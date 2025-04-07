@@ -46,7 +46,7 @@ export function composeStepRouting(fdata: LoadSalesFormData) {
             title,
             uid,
             components: stepProducts?.map((p) => ({
-                title: p.product?.title || p.door?.title,
+                title: p?.name || p.product?.title || p.door?.title,
                 uid: p.uid,
                 id: p.id,
                 variations: p.meta?.variations || [],

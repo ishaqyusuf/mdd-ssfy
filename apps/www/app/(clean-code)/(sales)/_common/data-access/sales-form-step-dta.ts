@@ -88,6 +88,7 @@ export async function getStepsForRoutingDta() {
                     id: true,
                     custom: true,
                     meta: true,
+                    name: true,
                     product: {
                         select: {
                             title: true,

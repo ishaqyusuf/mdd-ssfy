@@ -1,6 +1,8 @@
 "use server";
 
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/db";
+import { Tags } from "@/utils/constants";
 import z from "zod";
 
 import { actionClient } from "./safe-action";
@@ -26,5 +28,6 @@ export const createShelfCategoryAction = actionClient
                 parentCategoryId: input.parentCategoryId,
             },
         });
+        revalidateTag(Tags.shelfCategories);
         return cat;
     });
