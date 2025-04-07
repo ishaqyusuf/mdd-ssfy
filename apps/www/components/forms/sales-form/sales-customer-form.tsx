@@ -69,12 +69,9 @@ export function SalesCustomerForm() {
             <div className="col-span-2 p-4">
                 {!customer ? (
                     <SelectCustomer
+                        textTrigger
                         onSelect={(e) => onCustomerSelect(e.customerId)}
-                    >
-                        <Button variant="ghost" className="cursor-pointer">
-                            Select Customer...
-                        </Button>
-                    </SelectCustomer>
+                    ></SelectCustomer>
                 ) : (
                     <div className="relative text-sm text-muted-foreground">
                         <div className="">
@@ -90,11 +87,7 @@ export function SalesCustomerForm() {
                         <div className="absolute right-0 top-0 -mr-5 flex items-center">
                             <SelectCustomer
                                 onSelect={(e) => onCustomerSelect(e.customerId)}
-                            >
-                                <Button size="xs" variant="link">
-                                    <Icons.Search className="size-4" />
-                                </Button>
-                            </SelectCustomer>
+                            ></SelectCustomer>
                             <Button
                                 onClick={() => {
                                     setParams({
@@ -115,7 +108,7 @@ export function SalesCustomerForm() {
     );
 }
 function SelectBilling({ children, onSelect }) {}
-function SelectCustomer({ children, onSelect }) {
+function SelectCustomer({ textTrigger = false, onSelect }) {
     const [q, setSearch] = useState("");
     const debouncedQuery = useDebounce(q, 800);
     const [open, setOpen] = useState(false);
@@ -130,16 +123,15 @@ function SelectCustomer({ children, onSelect }) {
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger>
-                {children}
-                {/* <Button
-                    disabled={disabled}
-                    aria-expanded={open}
-                    size="sm"
-                    variant="outline"
-                    className="h-8"
-                >
-                    <Search className="h-4 w-4 text-muted-foreground" />
-                </Button> */}
+                {!textTrigger ? (
+                    <Button size="xs" variant="link">
+                        <Icons.Search className="size-4" />
+                    </Button>
+                ) : (
+                    <Button variant="ghost" className="cursor-pointer">
+                        Select Customer...
+                    </Button>
+                )}
             </PopoverTrigger>
             <PopoverContent className="p-0" align="end">
                 <Command shouldFilter={false}>

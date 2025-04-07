@@ -74,10 +74,12 @@ export function ComboxBox<
                 );
                 const onSelect = (value) => {
                     if (maxSelection > 1) {
+                        console.log({ selectedValues });
                         const currentValue = [...selectedValues];
                         const newValue = currentValue.includes(value)
                             ? currentValue.filter((v) => v !== value)
                             : [...currentValue, value];
+                        console.log({ newValue });
                         field.onChange(newValue);
                         return;
                     }
@@ -125,16 +127,47 @@ export function ComboxBox<
                                         ) : (
                                             <>
                                                 {selectedValues?.size > 0 && (
-                                                    <div className="flex items-center">
-                                                        <Badge
-                                                            variant="secondary"
-                                                            className="rounded-sm px-1 font-normal lg:hidden"
-                                                        >
-                                                            {
-                                                                selectedValues.size
-                                                            }
-                                                        </Badge>
-                                                        <div className="hidden min-w-0 gap-1 lg:flex">
+                                                    <div className="flex items-center gap-1">
+                                                        {filterFields
+                                                            ?.filter((option) =>
+                                                                selectedValues.has(
+                                                                    optValue(
+                                                                        option,
+                                                                    ),
+                                                                ),
+                                                            )
+                                                            .filter(
+                                                                (a, i) =>
+                                                                    maxStack >
+                                                                    i,
+                                                            )
+                                                            .map((option) => (
+                                                                <Badge
+                                                                    variant="secondary"
+                                                                    key={optValue(
+                                                                        option,
+                                                                    )}
+                                                                    className="truncate rounded-sm px-1 font-normal"
+                                                                >
+                                                                    {optLabel(
+                                                                        option,
+                                                                    )}
+                                                                </Badge>
+                                                            ))}
+                                                        {!(
+                                                            selectedValues.size >
+                                                            maxStack
+                                                        ) || (
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="rounded-sm px-1 font-normal lg:hidden"
+                                                            >
+                                                                {"+"}
+                                                                {selectedValues.size -
+                                                                    maxStack}
+                                                            </Badge>
+                                                        )}
+                                                        {/* <div className="hidden min-w-0 gap-1 lg:flex">
                                                             {selectedValues.size >
                                                             maxStack ? (
                                                                 <Badge
@@ -147,36 +180,9 @@ export function ComboxBox<
                                                                     selected
                                                                 </Badge>
                                                             ) : (
-                                                                filterFields
-                                                                    ?.filter(
-                                                                        (
-                                                                            option,
-                                                                        ) =>
-                                                                            selectedValues.has(
-                                                                                optValue(
-                                                                                    option,
-                                                                                ),
-                                                                            ),
-                                                                    )
-                                                                    .map(
-                                                                        (
-                                                                            option,
-                                                                        ) => (
-                                                                            <Badge
-                                                                                variant="secondary"
-                                                                                key={optValue(
-                                                                                    option,
-                                                                                )}
-                                                                                className="truncate rounded-sm px-1 font-normal"
-                                                                            >
-                                                                                {optLabel(
-                                                                                    option,
-                                                                                )}
-                                                                            </Badge>
-                                                                        ),
-                                                                    )
+                                                                <></>
                                                             )}
-                                                        </div>
+                                                        </div> */}
                                                     </div>
                                                 )}
                                             </>
@@ -204,16 +210,10 @@ export function ComboxBox<
                                                         key={optValue(opt)}
                                                         value={optValue(opt)}
                                                         onSelect={onSelect}
-                                                        selected={selectedValues.has(
+                                                        selected={selectedValues?.has(
                                                             optValue(opt),
                                                         )}
                                                     >
-                                                        {/* {opt?.icon && (
-                                                            <opt.icon
-                                                                className="mr-2 size-4 text-muted-foreground"
-                                                                aria-hidden="true"
-                                                            />
-                                                        )} */}
                                                         <span>
                                                             {optLabel(opt)}
                                                         </span>

@@ -13,8 +13,8 @@ import {
     CommandList,
     CommandSeparator,
     CommandShortcut,
-} from "@gnd/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
+} from "./command";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
 const FacetedFilter = Popover;
 

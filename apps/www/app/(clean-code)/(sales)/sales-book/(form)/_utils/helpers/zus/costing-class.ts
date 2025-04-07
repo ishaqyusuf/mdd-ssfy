@@ -74,9 +74,9 @@ export class CostingClass {
     ) {
         const data = this.setting.zus;
         if (this.setting.staticZus) return;
-        const shelf = data.kvFormItem[itemUid].shelfItems;
+        const shelf = data.kvFormItem[itemUid]?.shelfItems;
         let subTotal = 0;
-        shelf.lineUids.map((uid) => {
+        shelf?.lineUids.map((uid) => {
             const line = shelf?.lines?.[uid];
             line?.productUids?.map((puid) => {
                 let prod = line?.products?.[puid];

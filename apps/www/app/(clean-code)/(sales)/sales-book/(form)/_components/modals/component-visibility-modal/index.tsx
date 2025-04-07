@@ -6,6 +6,16 @@ import { ComboxBox } from "@/components/(clean-code)/custom/controlled/combo-box
 import FormSelect from "@/components/common/controls/form-select";
 import Modal from "@/components/common/modal";
 import { _modal } from "@/components/common/modal/provider";
+import {
+    Combobox,
+    ComboboxAnchor,
+    ComboboxBadgeItem,
+    ComboboxBadgeList,
+    ComboboxContent,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxTrigger,
+} from "@/components/ui/combobox";
 import { AlertCircle } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -141,6 +151,7 @@ export default function ComponentVariantModal({ cls, componentsUid }: Props) {
         </Context.Provider>
     );
 }
+
 function RuleComponent({ index }) {
     const ctx = useCtx();
     const rulesArray = useFieldArray({
@@ -154,26 +165,7 @@ function RuleComponent({ index }) {
             stepUid: null,
         });
     }
-    function ComponentInput({ fieldIndex }) {
-        const stepUid = ctx.form.watch(
-            `variations.${index}.rules.${fieldIndex}.stepUid`,
-        );
-        const options = (ctx.data?.componentsByStepUid[stepUid] || [])?.filter(
-            (a) => a.title && a.uid,
-        );
-        console.log("OPTIONS", options);
-        return (
-            <ComboxBox
-                maxSelection={999}
-                options={options}
-                labelKey="title"
-                valueKey="uid"
-                className="w-full"
-                control={ctx.form.control}
-                name={`variations.${index}.rules.${fieldIndex}.componentsUid`}
-            />
-        );
-    }
+
     return (
         <div className="flex flex-col gap-2 overflow-y-auto py-0.5 pr-1">
             {rulesArray?.fields?.map((field, fieldIndex) => (
@@ -199,7 +191,7 @@ function RuleComponent({ index }) {
                         />
                     </div>
                     <div className="flex-1">
-                        <ComponentInput fieldIndex={fieldIndex} />
+                        <ComponentInput index={index} fieldIndex={fieldIndex} />
                     </div>
                     <ConfirmBtn
                         onClick={(e) => {
@@ -221,5 +213,49 @@ function RuleComponent({ index }) {
                 </Button>
             </div>
         </div>
+    );
+}
+function ComponentInput({ fieldIndex, index }) {
+    const ctx = useCtx();
+    const stepUid = ctx.form.watch(
+        `variations.${index}.rules.${fieldIndex}.stepUid`,
+    );
+    const components = ctx.data?.componentsByStepUid[stepUid];
+    const options = useMemo(() => {
+        if (!components?.length) return [];
+        let _options = components
+            .filter((a, i) => {
+                let duplicates = components.filter(
+                    (b) => b.uid == a.uid || b.title == a.title,
+                );
+                if (duplicates.length > 1) {
+                    let filteredIndex = duplicates.findIndex(
+                        (a) => (a as any).variations?.length > 0,
+                    );
+                    if (filteredIndex > -1) {
+                        return i == filteredIndex;
+                    }
+                    return duplicates?.[0]?.uid == a.uid;
+                }
+                return true;
+            })
+            .map(({ title: label, uid: value }) => ({ label, value }));
+        // .filter((a, i) => i < 2);
+        console.log({ _options });
+        return _options;
+    }, [components]);
+
+    return (
+        <>
+            <ComboxBox
+                maxSelection={2}
+                options={options || []}
+                // labelKey="title"
+                // valueKey="uid"
+                className="w-full"
+                control={ctx.form.control}
+                name={`variations.${index}.rules.${fieldIndex}.componentsUid`}
+            />
+        </>
     );
 }

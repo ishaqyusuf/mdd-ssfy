@@ -1,7 +1,8 @@
 "use client";
 
-import { ServerPromiseType } from "@/types";
 import { useEffect, useState } from "react";
+import { ServerPromiseType } from "@/types";
+
 import { generateRandomString } from "./utils";
 
 interface Props {
@@ -13,7 +14,7 @@ interface Props {
 }
 export default function useEffectLoader<T extends (...args: any) => any>(
     fn: T,
-    props: Props = {}
+    props: Props = {},
 ) {
     type DataType = Awaited<NonNullable<ReturnType<T>>>;
     const [data, setData] = useState<DataType>();
@@ -34,7 +35,6 @@ export default function useEffectLoader<T extends (...args: any) => any>(
             setReady(true);
             if (r) setRefreshToken(generateRandomString());
             props.onSuccess?.(res);
-            console.log(res);
         });
     }
     return {
