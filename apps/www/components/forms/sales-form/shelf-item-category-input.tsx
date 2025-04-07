@@ -15,6 +15,8 @@ import { useShelfItem } from "@/hooks/use-shelf-item";
 import { ChevronDown } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 
+import { useToast } from "@gnd/ui/use-toast";
+
 import { ClearCategoryModal } from "./clear-category";
 
 export function ShelfItemCategoryInput({}) {
@@ -37,12 +39,24 @@ export function ShelfItemCategoryInput({}) {
     }
     const [openClearCat, setOpenClearCat] = useState(false);
     function _clearCats() {}
+    const { toast } = useToast();
     const createCategory = useAction(createShelfCategoryAction, {
-        onSuccess(args) {},
+        onSuccess(args) {
+            console.log(args);
+            toast({
+                title: "Category created",
+                description: `Category "${args.input.name}" created`,
+                variant: "default",
+            });
+        },
     });
     async function __createCategory(name) {
+        const parentCategoryId = categoryIds?.[0];
+        const categoryId = [...categoryIds].reverse()[0];
         createCategory.execute({
             name,
+            parentCategoryId,
+            categoryId,
         });
     }
     return (
@@ -110,7 +124,8 @@ export function ShelfItemCategoryInput({}) {
                                         console.log(e);
                                         e.preventDefault();
                                         const value = e.currentTarget.value;
-                                        console.log({ value });
+                                        // console.log({ value });
+                                        __createCategory(value);
                                     }
                                 }}
                                 placeholder="Select category..."

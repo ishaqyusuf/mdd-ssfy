@@ -26,4 +26,5 @@ export const createShelfCategoryAction = actionClient
                 parentCategoryId: input.parentCategoryId,
             },
         });
+        return cat;
     });
