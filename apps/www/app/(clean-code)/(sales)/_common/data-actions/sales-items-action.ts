@@ -1,16 +1,22 @@
 "use server";
 
+import { authId } from "@/app/(v1)/_actions/utils";
 import { prisma } from "@/db";
-import { QtyControlByType, QtyControlType, SalesItemMeta } from "../../types";
+import { formatMoney } from "@/lib/use-number";
+import { sum } from "@/lib/utils";
 import { AsyncFnType } from "@/types";
+
+import {
+    QtyControlByType,
+    QtyControlType,
+    SalesItemMeta,
+    SalesMeta,
+} from "../../types";
 import {
     doorItemControlUid,
     itemItemControlUid,
     mouldingItemControlUid,
 } from "../utils/item-control-utils";
-import { formatMoney } from "@/lib/use-number";
-import { sum } from "@/lib/utils";
-import { authId } from "@/app/(v1)/_actions/utils";
 import { composeStepFormDisplay } from "../utils/sales-step-utils";
 
 export type GetSalesItemOverviewAction = AsyncFnType<
@@ -32,6 +38,7 @@ export async function getSalesItemsOverviewAction({
     const order = await prisma.salesOrders.findFirstOrThrow({
         where: { id: salesId },
         select: {
+            meta: true,
             orderId: true,
             isDyke: true,
             assignments: {
@@ -270,12 +277,12 @@ export async function getSalesItemsOverviewAction({
         const doors = hpt?.doors;
         let { configs, sectionTitle } = composeStepFormDisplay(
             item.formSteps,
-            item.dykeDescription
+            item.dykeDescription,
         );
 
         if (!order.isDyke || (!doors?.length && !hpt?.door)) {
             const assignments = order.assignments.filter(
-                (a) => !a.salesDoorId && a.itemId == item.id
+                (a) => !a.salesDoorId && a.itemId == item.id,
             );
             itemControlUid = hpt
                 ? mouldingItemControlUid(item.id, hpt.id)
@@ -302,7 +309,7 @@ export async function getSalesItemsOverviewAction({
             doors.map((door) => {
                 // console.log(door);
                 const assignments = order.assignments.filter(
-                    (a) => a.salesDoorId == door.id && a.itemId == item.id
+                    (a) => a.salesDoorId == door.id && a.itemId == item.id,
                 );
                 const title = `${
                     door?.stepProduct?.door?.title ||
@@ -335,13 +342,13 @@ export async function getSalesItemsOverviewAction({
             if (
                 index ==
                 items.findIndex(
-                    (a) => a.itemIndex >= 0 && item.itemIndex == a.itemConfigs
+                    (a) => a.itemIndex >= 0 && item.itemIndex == a.itemConfigs,
                 )
             )
                 item.primary = true;
 
             const control = order.itemControls.find(
-                (c) => c.uid == item.itemControlUid
+                (c) => c.uid == item.itemControlUid,
             );
             item.produceable = control?.produceable;
             item.shippable = control?.shippable;
@@ -364,7 +371,7 @@ export async function getSalesItemsOverviewAction({
         .filter((item) => {
             if (!adminMode) {
                 item.assignments = item.assignments.filter(
-                    (a) => a.assignedToId == producerId
+                    (a) => a.assignedToId == producerId,
                 );
                 return item.assignments.length;
             }
@@ -372,5 +379,6 @@ export async function getSalesItemsOverviewAction({
         });
     return {
         items,
+        meta: order.meta as any as SalesMeta,
     };
 }

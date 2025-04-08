@@ -24,6 +24,7 @@ import {
     SelectValue,
 } from "@gnd/ui/select";
 
+import { TakeOffForm } from "../take-off-form/take-off-form";
 import { Footer } from "./footer";
 import { SalesCustomerForm } from "./sales-customer-form";
 import { SalesFormEmailMenu } from "./sales-form-email-menu";
@@ -35,8 +36,9 @@ export function SalesMetaForm({}) {
     const md = zus.metaData;
     const tabs = [
         "summary",
-        "transactions",
-        "customer info",
+        "take off",
+        // "transactions",
+        // "customer info",
         // , "customer"
     ];
     const [tab, setTab] = useState(md?.id ? "summary" : "summary");
@@ -47,7 +49,7 @@ export function SalesMetaForm({}) {
                     <Button
                         key={_tab}
                         variant="ghost"
-                        disabled={ti != 0}
+                        // disabled={ti != 0}
                         onClick={(e) => {
                             setTab(_tab);
                         }}
@@ -84,7 +86,13 @@ export function SalesMetaForm({}) {
                     </Menu>
                 </div>
             </div>
-            {tab == "summary" ? <SummaryTab /> : <SalesCustomerForm />}
+            {tab == "summary" ? (
+                <SummaryTab />
+            ) : tab == "take off" ? (
+                <TakeOffForm salesId={md?.id} />
+            ) : (
+                <></>
+            )}
         </div>
     );
 }
@@ -154,7 +162,7 @@ function SummaryTab({}) {
                             <Select
                                 name="metaData.tax.taxCode"
                                 options={taxList}
-                                value={md.tax.taxCode}
+                                value={md.tax?.taxCode}
                                 titleKey="title"
                                 valueKey="taxCode"
                                 onSelect={(e) => {
@@ -164,7 +172,7 @@ function SummaryTab({}) {
                             />
                             <span className="text-sm">
                                 {!md.tax?.taxCode || (
-                                    <span>({md.tax.percentage || 0}%)</span>
+                                    <span>({md.tax?.percentage || 0}%)</span>
                                 )}
                                 :
                             </span>

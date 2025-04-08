@@ -13,6 +13,14 @@ export function shuffle(array: any) {
   }
   return array;
 }
+export function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[\s\W-]+/g, "-") // Replace spaces and non-word chars with -
+    .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+}
 
 export enum FileType {
   Pdf = "application/pdf",

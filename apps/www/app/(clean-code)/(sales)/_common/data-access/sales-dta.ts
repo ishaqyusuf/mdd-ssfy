@@ -134,6 +134,7 @@ export async function getSalesItemOverviewDta(slug, type, retries = 0) {
         shipping: salesShippingDto(overview, data),
         retries,
         salesInfo: salesOrderDto(data as any),
+        meta: sale.meta as any as SalesMeta,
     };
     if ((await statMismatchDta(resp)) && retries < 1) {
         return await getSalesItemOverviewDta(slug, type, retries + 1);

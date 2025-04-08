@@ -133,6 +133,20 @@ export type SalesMeta = {
     truck;
     tax?: boolean;
     calculatedPriceMode?: boolean;
+    takeOff: {
+        list: {
+            title: string;
+            index: number;
+            components: {
+                itemUid: string;
+                qty: {
+                    rh?: number | undefined;
+                    lh?: number | undefined;
+                    total?: number | undefined;
+                };
+            }[];
+        }[];
+    };
 };
 
 export type TypedSales = SalesOrders & {
