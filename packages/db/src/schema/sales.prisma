@@ -20,6 +20,43 @@ model CommissionPayment {
     @@index([usersId])
 }
 
+model SalesTakeOff {
+    id        Int                   @unique @default(autoincrement())
+    salesId   Int
+    sections  SalesTakeOffSection[]
+    deletedAt DateTime?             @db.Timestamp(0)
+    createdAt DateTime?             @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?             @updatedAt
+}
+
+model SalesTakeOffSection {
+    id             Int                     @unique @default(autoincrement())
+    title          String
+    components     SalesTakeOffComponent[]
+    deletedAt      DateTime?               @db.Timestamp(0)
+    createdAt      DateTime?               @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime?               @updatedAt
+    takeOff        SalesTakeOff            @relation(fields: [salesTakeOffId], references: [id])
+    salesTakeOffId Int
+
+    @@index([salesTakeOffId])
+}
+
+model SalesTakeOffComponent {
+    id                    Int                 @unique @default(autoincrement())
+    itemUid               String
+    lhQty                 Int?
+    rhQty                 Int?
+    totalQty              Int
+    deletedAt             DateTime?           @db.Timestamp(0)
+    createdAt             DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime?           @updatedAt
+    section               SalesTakeOffSection @relation(fields: [salesTakeOffSectionId], references: [id])
+    salesTakeOffSectionId Int
+
+    @@index([salesTakeOffSectionId])
+}
+
 model SalesOrders {
     id                Int                              @unique @default(autoincrement())
     title             String?                          @db.VarChar(255)

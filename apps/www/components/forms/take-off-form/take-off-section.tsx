@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
+import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import FormInput from "@/components/common/controls/form-input";
 import { Table } from "@/components/ui/table";
 import { CaretSortIcon } from "@radix-ui/react-icons";
@@ -18,49 +19,106 @@ import { useTakeOffForm } from "./take-off-form";
 interface Props {
     index: number;
 }
-export function TakeOffSection({ index }: Props) {
+const Context = createContext<ReturnType<typeof useTakeOffSectionCtx>>(
+    null as any,
+);
+const useTakeOffSectionCtx = (sectionIndex) => {
     const ctx = useTakeOffForm();
     const [opened, setOpened] = useState(true);
     const componentsArray = useFieldArray({
         control: ctx.form.control,
-        name: `list.${index}.components`,
+        name: `list.${sectionIndex}.components`,
         keyName: "_id",
     });
+    function addComponentToList(itemUid, qty) {
+        componentsArray.append({
+            itemUid,
+            qty,
+        });
+    }
+    return {
+        opened,
+        setOpened,
+        ...componentsArray,
+        addComponentToList,
+        ctx,
+        sectionIndex,
+    };
+};
+export const useTakeOffSection = () => useContext(Context);
+export function TakeOffSection({ index }: Props) {
+    const takeOffCtx = useTakeOffSectionCtx(index);
+    const { opened, setOpened, ctx, fields } = takeOffCtx;
+
     return (
-        <Collapsible open={opened} onOpenChange={setOpened}>
-            <div className="flex w-full py-2">
-                <div className="flex-1">
-                    <FormInput
-                        className="uppercase"
-                        control={ctx.form.control}
-                        name={`list.${index}.title`}
-                        placeholder="Take off title..."
-                    />
+        <Context.Provider value={takeOffCtx}>
+            {" "}
+            <Collapsible open={opened} onOpenChange={setOpened}>
+                <div className="flex w-full py-2">
+                    <div className="flex-1">
+                        <FormInput
+                            className="uppercase"
+                            control={ctx.form.control}
+                            name={`list.${index}.title`}
+                            placeholder="Take off title..."
+                        />
+                    </div>
+                    <CollapsibleTrigger asChild className="p-0 text-sm">
+                        <Button
+                            onClick={(e) => setOpened(!opened)}
+                            variant={opened ? "secondary" : "ghost"}
+                            size="icon"
+                        >
+                            <CaretSortIcon className="h-4 w-4" />
+                        </Button>
+                    </CollapsibleTrigger>
                 </div>
-                <CollapsibleTrigger asChild className="p-0 text-sm">
-                    <Button
-                        onClick={(e) => setOpened(!opened)}
-                        variant={opened ? "secondary" : "ghost"}
-                        size="icon"
-                    >
-                        <CaretSortIcon className="h-4 w-4" />
-                    </Button>
-                </CollapsibleTrigger>
-            </div>
-            <CollapsibleContent>
-                <div className="border-b-2 p-4">
-                    <Table>
-                        <TableBody>
-                            {componentsArray.fields.map((component) => (
-                                <TableRow key={component?._id}>
-                                    <TableCell></TableCell>
-                                </TableRow>
+                <CollapsibleContent>
+                    <div className="border-b-2">
+                        <div className="divide-y font-mono text-sm">
+                            {fields.map((component, index) => (
+                                <TakeOffSectionComponent
+                                    key={component?._id}
+                                    index={index}
+                                />
                             ))}
-                        </TableBody>
-                    </Table>
-                    <AddTakeOffComponent listIndex={index} />
-                </div>
-            </CollapsibleContent>
-        </Collapsible>
+                        </div>
+
+                        <AddTakeOffComponent />
+                    </div>
+                </CollapsibleContent>
+            </Collapsible>
+        </Context.Provider>
+    );
+}
+function TakeOffSectionComponent({ index }) {
+    const takeOffCtx = useTakeOffSection();
+    const takeOffComponent = takeOffCtx?.fields?.[index];
+    const component = takeOffCtx?.ctx?.components?.find(
+        (a) => a.itemControlUid == takeOffComponent?.itemUid,
+    );
+    const noHandle = !takeOffComponent?.qty?.lh && !takeOffComponent?.qty?.rh;
+
+    return (
+        <div className="p-1" key={takeOffComponent?._id}>
+            <div className="uppercase">
+                <TCell.Primary>
+                    {index + 1}
+                    {". "}
+                    {component?.title}
+                </TCell.Primary>
+                <TCell.Secondary className="flex ">
+                    <div className="flex">
+                        {[
+                            component?.sectionTitle,
+                            component?.subtitle,
+                            component?.swing,
+                        ]
+                            ?.filter((a) => a)
+                            ?.join(" | ")}
+                    </div>
+                </TCell.Secondary>
+            </div>
+        </div>
     );
 }

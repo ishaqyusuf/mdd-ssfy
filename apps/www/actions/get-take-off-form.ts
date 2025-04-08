@@ -6,6 +6,7 @@ import { getSalesItemsOverviewAction } from "@/app/(clean-code)/(sales)/_common/
 export async function getTakeOffForm(id) {
     const data = await getSalesItemsOverviewAction({
         salesId: id,
+        adminMode: true,
     });
     const meta = data.meta;
     const takeOff = meta.takeOff;
@@ -16,5 +17,7 @@ export async function getTakeOffForm(id) {
     return {
         takeOff,
         items: data.items,
+        data,
+        id,
     };
 }

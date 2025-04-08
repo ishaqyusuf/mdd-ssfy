@@ -25,7 +25,7 @@ export function SalesFormClient({ data }) {
     if (!zus.formStatus || zus.currentTab != "invoice") return <></>;
 
     return (
-        <div className="min-h-screen w-full bg-white p-4 xl:flex xl:gap-4 xl:p-8">
+        <div className="min-h-screen w-full bg-white p-4 lg:flex xl:gap-4 xl:p-8">
             <div className="flex-1">
                 <div className={cn()}>
                     {zus.sequence?.formItem?.map((uid) => (
@@ -43,7 +43,7 @@ export function SalesFormClient({ data }) {
                     </div>
                 </div>
             </div>
-            <div className="relative xl:w-[350px]">
+            <div className="relative lg:w-[350px]">
                 <div className="sticky top-16 flex w-full flex-col">
                     <div className="">
                         <SalesMetaForm />
