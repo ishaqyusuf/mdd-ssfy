@@ -1,12 +1,11 @@
 import { SquarePaymentStatus } from "@/_v2/lib/square";
-import { CustomerTransactionType } from "@/actions/get-sales-transactions";
 import { composeQuery } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
 import { PaymentMethods } from "@/app/(clean-code)/(sales)/types";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { Prisma } from "@/db";
 
 export function whereCustomerTx(query: SearchParamsType) {
-    const whereAnd: Prisma.CustomerTransactionWhereInput[] = [
+    let whereAnd: Prisma.CustomerTransactionWhereInput[] = [
         {
             OR: [
                 {
@@ -39,16 +38,24 @@ export function whereCustomerTx(query: SearchParamsType) {
                 },
             ],
         },
-        // {
-        // },
-        // {
-        //     salesPayments: {
-        //         some: {
-        //             order: {},
-        //         },
-        //     },
-        // },
     ];
+    if (query["customer.tx.id"]) {
+        whereAnd = [
+            {
+                id: query["customer.tx.id"],
+            },
+        ];
+    }
+    if (query["sales.tx.id"])
+        whereAnd = [
+            {
+                salesPayments: {
+                    some: {
+                        id: query["sales.tx.id"],
+                    },
+                },
+            },
+        ];
     if (query["account.no"]) {
         whereAnd.push({
             wallet: {

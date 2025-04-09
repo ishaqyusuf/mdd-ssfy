@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect } from "react";
 import { getTakeOffForm } from "@/actions/get-take-off-form";
+import Button from "@/components/common/button";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useAsyncMemo } from "use-async-memo";
 
 import { Form } from "@gnd/ui/form";
+import { Icons } from "@gnd/ui/icons";
 
 import { TakeOffSection } from "./take-off-section";
 
@@ -88,11 +90,15 @@ export function TakeOffForm({ salesId, refreshToken }: Props) {
     return (
         <Context.Provider value={ctx}>
             <Form {...ctx.form}>
-                <div>
+                <div className="space-y-2">
                     {ctx?.list?.map((_, i) => (
                         <TakeOffSection index={i} key={i} />
                     ))}
                     {/* <TakeOffSection index={-1} /> */}
+                    <Button className="w-full">
+                        <Icons.Add className="size-4" />
+                        Add
+                    </Button>
                 </div>
             </Form>
         </Context.Provider>

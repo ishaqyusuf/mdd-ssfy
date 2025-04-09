@@ -11,6 +11,7 @@ import { DataTableFilterCommand } from "@/components/(clean-code)/data-table/fil
 import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/infinity/data-table-toolbar";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
+import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -33,13 +34,16 @@ export default function CustomersPageClient(props: InfiniteDataTablePageProps) {
             size: "sm",
         },
     });
-
+    const overview = useCustomerOverviewQuery();
     return (
         <div className="bg-white">
             <DataTable.Infinity
                 checkable
                 queryKey={props.queryKey}
                 {...table.props}
+                itemViewFn={(item) => {
+                    overview.open(item.accountNo);
+                }}
             >
                 {/* <DataTable.BatchAction></DataTable.BatchAction> */}
                 <DataTable.Header className="bg-white">

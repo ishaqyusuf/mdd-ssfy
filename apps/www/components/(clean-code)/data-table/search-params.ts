@@ -1,4 +1,14 @@
 import {
+    DISPATCH_FILTER_OPTIONS,
+    INVOICE_FILTER_OPTIONS,
+    PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
+    PRODUCTION_STATUS,
+} from "@/app/(clean-code)/(sales)/_common/utils/contants";
+import { PERMISSIONS } from "@/data/contants/permissions";
+// Note: import from 'nuqs/server' to avoid the "use client" directive
+import { ARRAY_DELIMITER, SORT_DELIMITER } from "@/lib/delimiters";
+import { noteParamsParser, noteSchema } from "@/modules/notes/constants";
+import {
     createParser,
     createSearchParamsCache,
     createSerializer,
@@ -8,17 +18,8 @@ import {
     parseAsString,
     parseAsStringLiteral,
 } from "nuqs/server";
-// Note: import from 'nuqs/server' to avoid the "use client" directive
-import { ARRAY_DELIMITER, SORT_DELIMITER } from "@/lib/delimiters";
 import { z } from "zod";
-import {
-    DISPATCH_FILTER_OPTIONS,
-    INVOICE_FILTER_OPTIONS,
-    PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
-    PRODUCTION_STATUS,
-} from "@/app/(clean-code)/(sales)/_common/utils/contants";
-import { PERMISSIONS } from "@/data/contants/permissions";
-import { noteParamsParser, noteSchema } from "@/modules/notes/constants";
+
 // import { REGIONS } from "@/constants/region";
 // import { METHODS } from "@/constants/method";
 
@@ -70,6 +71,8 @@ export const searchParamsParser: {
     uuid: parseAsString,
     "customer.id": parseAsInteger,
     "customer.name": parseAsString,
+    "customer.tx.id": parseAsString,
+    "sales.tx.id": parseAsString,
     address: parseAsString,
     status: parseAsString,
     search: parseAsString,
@@ -94,7 +97,7 @@ export const searchParamsParser: {
     id: parseAsInteger,
     "user.permissions": parseAsArrayOf(
         parseAsStringLiteral(PERMISSIONS),
-        ARRAY_DELIMITER
+        ARRAY_DELIMITER,
     ),
     ...noteParamsParser,
 };
@@ -105,6 +108,7 @@ export const searchSchema = z
         status: z.string().optional(),
         address: z.string().optional(),
         "customer.id": z.number().optional(),
+        "customer.tx.id": z.number().optional(),
         "customer.name": z.string().optional(),
         "order.no": z.string().optional(),
         po: z.string().optional(),
@@ -117,11 +121,12 @@ export const searchSchema = z
         "production.assignedToId": z.number().optional(),
         production: z.string().optional(),
         invoice: z.enum(INVOICE_FILTER_OPTIONS).optional(),
-        "sales.rep": z.string().optional(),
-        search: z.string().optional(),
-        "sales.type": z.enum(["order", "quote"]).optional(),
-        "dealer.id": z.number().optional(),
         "sales.id": z.number().optional(),
+        "sales.rep": z.string().optional(),
+        "sales.tx.id": z.number().optional(),
+        "sales.type": z.enum(["order", "quote"]).optional(),
+        search: z.string().optional(),
+        "dealer.id": z.number().optional(),
         "user.permissions": z.enum(PERMISSIONS).optional(),
     })
     .merge(noteSchema);

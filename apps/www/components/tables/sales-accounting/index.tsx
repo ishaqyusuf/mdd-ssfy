@@ -1,11 +1,20 @@
 "use client";
 
+import QueryTab from "@/app/(clean-code)/_common/query-tab";
+import { QueryTabAction } from "@/app/(clean-code)/_common/query-tab/query-tab-edit";
 import { __filters } from "@/app/(clean-code)/(sales)/_common/utils/contants";
 import {
     DataTable,
     InfiniteDataTablePageProps,
 } from "@/components/(clean-code)/data-table";
+import { DataTableFilterCommand } from "@/components/(clean-code)/data-table/filter-command";
+import { BatchBtn } from "@/components/(clean-code)/data-table/infinity/batch-action";
+import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/infinity/data-table-toolbar";
 import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
+import { Menu } from "@/components/(clean-code)/menu";
+import { useTransactionOverviewModal } from "@/components/modals/transaction-overview";
+import { openSalesCustomerTx } from "@/components/sheets/sales-customer-tx-sheet";
+
 import {
     ActionCell,
     AmountPaidCell,
@@ -16,18 +25,12 @@ import {
     SalesRepCell,
     StatusCell,
 } from "./columns";
-import QueryTab from "@/app/(clean-code)/_common/query-tab";
-import { QueryTabAction } from "@/app/(clean-code)/_common/query-tab/query-tab-edit";
-import { DataTableFilterCommand } from "@/components/(clean-code)/data-table/filter-command";
-import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/infinity/data-table-toolbar";
-import { openSalesCustomerTx } from "@/components/sheets/sales-customer-tx-sheet";
-import { Menu } from "@/components/(clean-code)/menu";
-import { BatchBtn } from "@/components/(clean-code)/data-table/infinity/batch-action";
 
 export default function SalesAccountingTable({
     filterFields,
     queryKey,
 }: InfiniteDataTablePageProps) {
+    const txView = useTransactionOverviewModal();
     const table = useTableCompose({
         cells(ctx) {
             return [
@@ -63,10 +66,8 @@ export default function SalesAccountingTable({
                 ActionCell={ActionCell}
                 queryKey={queryKey}
                 itemViewFn={(item) => {
-                    openSalesCustomerTx(item.id);
-                    // openSalesProductionTasksModal({
-                    //     salesId: item.id,
-                    // });
+                    // openSalesCustomerTx(item.id);
+                    txView.viewTx(item?.id);
                 }}
                 {...table.props}
             >
@@ -84,7 +85,7 @@ export default function SalesAccountingTable({
                     </BatchBtn>
                 </DataTable.BatchAction>
                 <DataTable.Header top="sm" className="bg-white">
-                    <div className="flex justify-between items-end mb-2 gap-2 sm:sticky">
+                    <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
                         <div className="">
                             <QueryTab page="orders" />
                         </div>

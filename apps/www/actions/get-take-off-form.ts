@@ -2,6 +2,7 @@
 
 import { getSalesItemOverviewDta } from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
 import { getSalesItemsOverviewAction } from "@/app/(clean-code)/(sales)/_common/data-actions/sales-items-action";
+import { prisma } from "@/db";
 
 export async function getTakeOffForm(id) {
     const data = await getSalesItemsOverviewAction({
@@ -14,6 +15,31 @@ export async function getTakeOffForm(id) {
         const itemControlUid = item.itemControlUid;
         const qty = item.status.qty;
     });
+    let takeoff = await prisma.salesTakeOff.findFirst({
+        where: {
+            salesId: id,
+        },
+        include: {
+            sections: {
+                include: {
+                    components: true,
+                },
+            },
+        },
+    });
+    if (!takeoff)
+        takeoff = await prisma.salesTakeOff.create({
+            data: {
+                salesId: id,
+            },
+            include: {
+                sections: {
+                    include: {
+                        components: true,
+                    },
+                },
+            },
+        });
     return {
         takeOff,
         items: data.items,

@@ -22,11 +22,13 @@ model CommissionPayment {
 
 model SalesTakeOff {
     id        Int                   @unique @default(autoincrement())
-    salesId   Int
+    salesId   Int                   @unique
     sections  SalesTakeOffSection[]
     deletedAt DateTime?             @db.Timestamp(0)
     createdAt DateTime?             @default(now()) @db.Timestamp(0)
     updatedAt DateTime?             @updatedAt
+
+    order SalesOrders @relation(references: [id], fields: [salesId])
 }
 
 model SalesTakeOffSection {
@@ -123,6 +125,7 @@ model SalesOrders {
     supplies          SalesItemSupply[]
     extraCosts        SalesExtraCosts[]
     squarePayOrders   SquarePaymentOrders[]
+    takeOff           SalesTakeOff?
 
     @@unique([orderId, type])
     @@index([createdAt, deletedAt, orderId, grandTotal, prodId, type, prodDueDate])

@@ -38,7 +38,12 @@ export async function getCustomersDta(query: CustomersQueryParams) {
     const pageInfo = await getPageInfo(query, where, prisma.customers);
     return {
         ...pageInfo,
-        data,
+        data: data.map((data) => {
+            return {
+                ...data,
+                accountNo: data?.phoneNo || `cust-${data?.id}`,
+            };
+        }),
     };
 }
 export async function getCustomersSimpleListDta() {

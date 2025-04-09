@@ -1,10 +1,10 @@
 "use server";
 
-import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import {
     getPageInfo,
     pageQueryFilter,
 } from "@/app/(clean-code)/_common/utils/db-utils";
+import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
@@ -79,7 +79,7 @@ export async function getSalesTransactionsAction(query: SearchParamsType) {
     const pageInfo = await getPageInfo(
         query,
         where,
-        prisma.customerTransaction
+        prisma.customerTransaction,
     );
     return {
         ...pageInfo,
@@ -93,7 +93,9 @@ export async function getSalesTransactionsAction(query: SearchParamsType) {
             const paymentMethod = item.paymentMethod;
             const description = item.description;
             const salesReps = Array.from(
-                new Set(item.salesPayments?.map((s) => s.order?.salesRep?.name))
+                new Set(
+                    item.salesPayments?.map((s) => s.order?.salesRep?.name),
+                ),
             );
             return {
                 uuid: item.id,
@@ -105,6 +107,7 @@ export async function getSalesTransactionsAction(query: SearchParamsType) {
                 description,
                 orderIds,
                 salesReps,
+                sales: item.salesPayments,
             };
         }),
     };
