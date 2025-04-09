@@ -8,13 +8,14 @@ import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
-import { sum } from "@/lib/utils";
 import { AsyncFnType } from "@/types";
 import { whereCustomerTx } from "@/utils/db/where.customer-transactions";
 
-export type GetSalesCustomerTx = AsyncFnType<typeof getSalesTransactionsAction>;
+export type GetSalesCustomerTx = AsyncFnType<
+    typeof getCustomerTransactionsAction
+>;
 export type CustomerTransactionType = "wallet" | "transaction";
-export async function getSalesTransactionsAction(query: SearchParamsType) {
+export async function getCustomerTransactionsAction(query: SearchParamsType) {
     const where = whereCustomerTx(query);
     const data = await prisma.customerTransaction.findMany({
         where,

@@ -1,10 +1,11 @@
 "use server";
 
 import { prisma } from "@/db";
-import { getSalesTransactionsAction } from "./get-sales-transactions";
+
+import { getCustomerTransactionsAction } from "./get-customer-tx-action";
 
 export async function getOrderTransactionHistoryAction(id) {
-    const transactions = await getSalesTransactionsAction({
+    const transactions = await getCustomerTransactionsAction({
         "sales.id": id,
     });
     return transactions;

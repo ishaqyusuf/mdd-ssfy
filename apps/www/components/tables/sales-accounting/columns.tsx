@@ -1,4 +1,4 @@
-import { GetSalesCustomerTx } from "@/actions/get-sales-transactions";
+import { GetSalesCustomerTx } from "@/actions/get-customer-tx-action";
 import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Progress } from "@/components/(clean-code)/progress";
@@ -23,7 +23,7 @@ export function AmountPaidCell({ item }: ItemProps) {
             <TCell.Secondary
                 className={cn(
                     "font-mono text-sm",
-                    item.amount < 0 && "text-red-700/70"
+                    item.amount < 0 && "text-red-700/70",
                 )}
             >
                 {item.amount <= 0 ? `($${money})` : `$${money}`}

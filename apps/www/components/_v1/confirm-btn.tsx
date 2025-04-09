@@ -10,7 +10,7 @@ import { Button, ButtonProps } from "@gnd/ui/button";
 
 import { Icons } from "./icons";
 
-interface Props extends ButtonProps {
+export interface ConfirmBtnProps extends ButtonProps {
     Icon?;
     trash?: boolean;
     variant?: ButtonProps["variant"];
@@ -25,7 +25,7 @@ export default function ConfirmBtn({
     variant = "ghost",
     children,
     ...props
-}: Props) {
+}: ConfirmBtnProps) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const confirm = useBool();

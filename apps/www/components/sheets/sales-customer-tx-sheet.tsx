@@ -1,16 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
     GetSalesCustomerTxOverview,
     getSalesCustomerTxOverviewAction,
-} from "@/actions/get-sales-transactions";
+} from "@/actions/get-customer-tx-action";
+
+import Money from "../_v1/money";
+import { TCell } from "../(clean-code)/data-table/table-cells";
 import Modal from "../common/modal";
 import { _modal } from "../common/modal/provider";
 import { Table, TableBody, TableCell, TableRow } from "../ui/table";
-import Money from "../_v1/money";
-import { TCell } from "../(clean-code)/data-table/table-cells";
-import Link from "next/link";
-import { useEffect, useState } from "react";
 
 export async function openSalesCustomerTx(tid) {
     // const res = await getSalesCustomerTxOverviewAction(tid);

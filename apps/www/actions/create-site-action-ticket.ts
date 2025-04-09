@@ -26,6 +26,11 @@ export async function createSiteActionTicket(
             type: props.type,
             event: props.event,
             meta,
+            SiteActionNotification: {
+                create: {
+                    event: `${props.type}-${props.event}`,
+                },
+            },
         },
     });
 }

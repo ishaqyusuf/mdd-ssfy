@@ -7,8 +7,8 @@ import { getBaseUrl } from "@/envs";
 import { generateRandomString } from "@/lib/utils";
 import { SQUARE_LOCATION_ID, squareClient } from "@/utils/square-utils";
 
+import { CustomerTransactionType } from "./get-customer-tx-action";
 import { getSalesPaymentCheckoutInfoAction } from "./get-sales-payment-checkout-info-action";
-import { CustomerTransactionType } from "./get-sales-transactions";
 
 interface Props {
     emailToken: string;

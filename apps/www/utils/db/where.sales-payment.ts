@@ -1,4 +1,4 @@
-import { CustomerTransactionType } from "@/actions/get-sales-transactions";
+import { CustomerTransactionType } from "@/actions/get-customer-tx-action";
 import { composeQuery } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
 import { PaymentMethods } from "@/app/(clean-code)/(sales)/types";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
@@ -20,6 +20,10 @@ export function whereSalesPayment(query: SearchParamsType) {
             order: {
                 orderId: query["order.no"],
             },
+        });
+    if (query["customer.tx.id"])
+        whereAnd.push({
+            transactionId: query["customer.tx.id"],
         });
     return composeQuery(whereAnd);
 }

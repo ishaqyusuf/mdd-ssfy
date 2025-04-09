@@ -1,16 +1,21 @@
 "use server";
 
-import { prisma } from "@/db";
-
-import { getSalesTransactionsAction } from "./get-sales-transactions";
+import { getCustomerTransactionsAction } from "./get-customer-tx-action";
+import { getSalesPaymentsAction } from "./get-sales-payment";
 
 export async function getCustomerTransactionOverviewAction(id) {
     const {
         data: [item],
-    } = await getSalesTransactionsAction({
+    } = await getCustomerTransactionsAction({
         "customer.tx.id": id,
     });
+    if (!item) throw new Error("Transaction not found");
     // const orders = await prisma
-
-    return item;
+    const salesTx = await getSalesPaymentsAction({
+        "customer.tx.id": item?.id,
+    });
+    return {
+        ...item,
+        salesTx,
+    };
 }

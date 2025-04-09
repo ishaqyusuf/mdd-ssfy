@@ -5,8 +5,9 @@ import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
 
-export async function updateSalesDueAmount(salesId) {
-    const order = await prisma.salesOrders.findUniqueOrThrow({
+export async function updateSalesDueAmount(salesId, _tx?) {
+    let tx: typeof prisma = _tx || prisma;
+    const order = await tx.salesOrders.findUniqueOrThrow({
         where: {
             id: salesId,
         },
@@ -37,7 +38,7 @@ export async function updateSalesDueAmount(salesId) {
     const totalPaid = formatMoney(sum(order.payments, "amount"));
     const amountDue = formatMoney(order.grandTotal - totalPaid);
     if (amountDue !== order.amountDue)
-        await prisma.salesOrders.update({
+        await tx.salesOrders.update({
             where: { id: order.id },
             data: {
                 amountDue,

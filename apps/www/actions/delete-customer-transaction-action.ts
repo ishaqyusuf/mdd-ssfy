@@ -45,7 +45,7 @@ export const deleteCustomerTransactionAction = actionClient
             });
             await Promise.all(
                 resp?.salesPayments?.map(async ({ orderId }) => {
-                    await updateSalesDueAmount(orderId);
+                    await updateSalesDueAmount(orderId, prisma);
                 }),
             );
             await createSiteActionTicket({

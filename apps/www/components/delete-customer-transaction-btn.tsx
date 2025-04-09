@@ -5,9 +5,19 @@ import { useAction } from "next-safe-action/hooks";
 
 import { useToast } from "@gnd/ui/use-toast";
 
-import ConfirmBtn from "./_v1/confirm-btn";
+import ConfirmBtn, { ConfirmBtnProps } from "./_v1/confirm-btn";
+import { revalidateTable } from "./(clean-code)/data-table/use-infinity-data-table";
 
-export function DeleteCustomerTxBtn({ transactionId }) {
+interface Props {
+    transactionId?;
+    btnProps?: ConfirmBtnProps;
+    onDelete?;
+}
+export function DeleteCustomerTxBtn({
+    transactionId,
+    onDelete,
+    btnProps,
+}: Props) {
     const toast = useLoadingToast();
     const deleteFn = useAction(deleteCustomerTransactionAction, {
         onSuccess(args) {
@@ -16,6 +26,8 @@ export function DeleteCustomerTxBtn({ transactionId }) {
                 duration: 2000,
                 variant: "destructive",
             });
+            revalidateTable();
+            onDelete?.();
         },
         onExecute(args) {
             toast.display({
@@ -31,6 +43,7 @@ export function DeleteCustomerTxBtn({ transactionId }) {
             disabled={!!status}
             trash
             size="xs"
+            {...(btnProps || {})}
             onClick={(e) => {
                 toast.display({
                     title: "Deleting...",
