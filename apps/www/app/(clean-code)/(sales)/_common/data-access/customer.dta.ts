@@ -42,6 +42,7 @@ export async function getCustomersDta(query: CustomersQueryParams) {
             return {
                 ...data,
                 accountNo: data?.phoneNo || `cust-${data?.id}`,
+                uuid: data?.id,
             };
         }),
     };

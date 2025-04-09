@@ -14,7 +14,7 @@
   },
   "scripts": {
     "build": "prisma db push && tsc",
-    "dev": "tsc",
+    "dev": "rm -rf dist .turbo tsc",
     "clean": "rm -rf .turbo node_modules",
     "lint": "biome check .",
     "format": "biome format --write .",

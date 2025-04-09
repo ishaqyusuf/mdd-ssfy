@@ -1,12 +1,10 @@
 "use client";
 
-import type {
-    ColumnFiltersState,
-    RowSelectionState,
-    SortingState,
-    Table as TTable,
-    VisibilityState,
-} from "@tanstack/react-table";
+import * as React from "react";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { arrSome, inDateRange } from "@/lib/table/filterfns";
+import { generateRandomString } from "@/lib/utils";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import {
     getCoreRowModel,
     getFacetedRowModel,
@@ -14,20 +12,19 @@ import {
     getFilteredRowModel,
     getSortedRowModel,
     useReactTable,
+    type ColumnFiltersState,
+    type RowSelectionState,
+    type SortingState,
+    type Table as TTable,
+    type VisibilityState,
 } from "@tanstack/react-table";
-import * as React from "react";
-
-import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useQueryStates } from "nuqs";
-import { searchParamsParser } from "./search-params";
-import { useInfiniteQuery } from "@tanstack/react-query";
-
-import { inDateRange, arrSome } from "@/lib/table/filterfns";
-import { dataOptions } from "./query-options";
-import { TableProps } from "./use-table-compose";
-import { generateRandomString } from "@/lib/utils";
 import { toast } from "sonner";
+
 import { __findFilterField } from "./filter-command/filters";
+import { dataOptions } from "./query-options";
+import { searchParamsParser } from "./search-params";
+import { TableProps } from "./use-table-compose";
 
 export const ctx = {
     refetch: null,
@@ -86,7 +83,7 @@ export function useInfiniteDataTableContext({
             __filterFields.map((field) => {
                 return field;
             }),
-        [totalFilters]
+        [totalFilters],
     );
     const [columnFilters, setColumnFilters] =
         React.useState<ColumnFiltersState>(defaultColumnFilters);
@@ -97,17 +94,17 @@ export function useInfiniteDataTableContext({
 
     const [columnOrder, setColumnOrder] = useLocalStorage<string[]>(
         `${queryKey}-data-table-column-order`,
-        []
+        [],
     );
 
     const [columnVisibility, setColumnVisibility] =
         useLocalStorage<VisibilityState>(
             `${queryKey}-data-table-visibility`,
-            {}
+            {},
         );
     const [controlsOpen, setControlsOpen] = useLocalStorage(
         `${queryKey}-data-table-controls`,
-        true
+        true,
     );
     const topBarRef = React.useRef<HTMLDivElement>(null);
     const [topBarHeight, setTopBarHeight] = React.useState(0);
@@ -189,7 +186,7 @@ export function useInfiniteDataTableContext({
     React.useEffect(() => {
         const columnFiltersWithNullable = filterFields.map((field) => {
             const filterValue = columnFilters.find((filter) =>
-                __findFilterField(field, filter)
+                __findFilterField(field, filter),
             );
             if (!filterValue) return { id: field.value, value: null };
 
@@ -199,10 +196,13 @@ export function useInfiniteDataTableContext({
             };
         });
 
-        const search = columnFiltersWithNullable.reduce((prev, curr) => {
-            prev[curr.id as string] = curr.value;
-            return prev;
-        }, {} as Record<string, unknown>);
+        const search = columnFiltersWithNullable.reduce(
+            (prev, curr) => {
+                prev[curr.id as string] = curr.value;
+                return prev;
+            },
+            {} as Record<string, unknown>,
+        );
 
         setSearch(search);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -237,6 +237,7 @@ export function useInfiniteDataTableContext({
         const selected = selectedRow;
 
         if (itemViewFn && selected) {
+            console.log([selected, rowSelection]);
             itemViewFn(selected.original);
             setRowSelection({});
             return;
@@ -252,7 +253,7 @@ export function useInfiniteDataTableContext({
     React.useEffect(() => {
         const selectedKeys = Object.keys(rowSelection);
         const selections = flatData.filter((a) =>
-            selectedKeys?.includes(a?.uuid)
+            selectedKeys?.includes(a?.uuid),
         );
         if (selectedKeys?.length && selectedKeys.length != selections.length) {
             setRowSelection({});

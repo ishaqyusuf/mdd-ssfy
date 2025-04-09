@@ -33,6 +33,11 @@ export default function CustomersPageClient(props: InfiniteDataTablePageProps) {
         cellVariants: {
             size: "sm",
         },
+        passThroughProps: {
+            itemClick(item) {
+                // _modal.openSheet();
+            },
+        },
     });
     const overview = useCustomerOverviewQuery();
     return (
@@ -40,10 +45,11 @@ export default function CustomersPageClient(props: InfiniteDataTablePageProps) {
             <DataTable.Infinity
                 checkable
                 queryKey={props.queryKey}
-                {...table.props}
                 itemViewFn={(item) => {
+                    console.log(item?.accountNo, item?.id);
                     overview.open(item.accountNo);
                 }}
+                {...table.props}
             >
                 {/* <DataTable.BatchAction></DataTable.BatchAction> */}
                 <DataTable.Header className="bg-white">

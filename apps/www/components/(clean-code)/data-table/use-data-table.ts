@@ -1,22 +1,23 @@
+import React, { createContext, useContext } from "react";
+import { ReadonlyURLSearchParams, useSearchParams } from "next/navigation";
 import { useDebounce } from "@/hooks/use-debounce";
 import { formatDate } from "@/lib/use-day";
 import useQueryParams from "@/lib/use-query-params";
 import {
     ColumnFiltersState,
-    PaginationState,
-    SortingState,
-    VisibilityState,
     getCoreRowModel,
     getFacetedRowModel,
     getFacetedUniqueValues,
     getFilteredRowModel,
     getPaginationRowModel,
     getSortedRowModel,
+    PaginationState,
+    SortingState,
     useReactTable,
+    VisibilityState,
 } from "@tanstack/react-table";
-import { ReadonlyURLSearchParams, useSearchParams } from "next/navigation";
 import qs from "qs";
-import React, { createContext, useContext } from "react";
+
 import { useInfiniteDataTableContext } from "./use-infinity-data-table";
 
 export const dataTableContext = createContext({});
@@ -201,7 +202,7 @@ export function useDataTable({
                     }
                     _q[k as any] = value;
                 }
-            })
+            }),
         );
         // const _filtered = filters.
         if (sort.id) {

@@ -196,7 +196,11 @@ function _Table({}) {
                         table
                             .getRowModel()
                             .rows.map((row, index) => (
-                                <Tr rowIndex={index} key={row.id} row={row} />
+                                <Tr
+                                    rowIndex={index}
+                                    key={`${row.id}-${index}`}
+                                    row={row}
+                                />
                             ))
                     ) : (
                         <TableRow>
