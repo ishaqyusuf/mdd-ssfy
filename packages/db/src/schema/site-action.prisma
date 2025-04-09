@@ -1,6 +1,8 @@
 model SiteActionTicket {
     id                       Int                     @unique @default(autoincrement())
     description              String
+    type                     String?
+    event                    String?
     userId                   Int?
     siteActionNotificationId Int
     meta                     Json?

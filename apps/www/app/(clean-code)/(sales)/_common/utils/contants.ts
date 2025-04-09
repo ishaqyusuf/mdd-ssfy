@@ -1,13 +1,14 @@
 import {
-    DeliveryOption,
-    PaymentMethods,
-    SalesDispatchStatus,
-} from "../../types";
-import {
     filterCol,
     filterFields,
     Filters,
 } from "@/components/(clean-code)/data-table/filter-command/filters";
+
+import {
+    DeliveryOption,
+    PaymentMethods,
+    SalesDispatchStatus,
+} from "../../types";
 
 export const SEPARATOR = ` &`;
 
@@ -63,6 +64,7 @@ export const widthList = [
     "4-8",
     "5-0",
     "5-4",
+    "5-8",
     "6-0",
     "6-8",
 ];

@@ -17,10 +17,14 @@ export async function updateSalesDueAmount(salesId) {
             payments: {
                 where: {
                     status: "success" as SalesPaymentStatus,
+                    deletedAt: null,
                 },
                 select: {
                     amount: true,
                     transaction: {
+                        where: {
+                            deletedAt: null,
+                        },
                         select: {
                             amount: true,
                             type: true,

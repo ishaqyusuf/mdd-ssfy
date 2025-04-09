@@ -2,9 +2,11 @@
 
 import { useEffect } from "react";
 import { getCustomerGeneralInfoAction } from "@/actions/get-customer-general-info";
+import ConfirmBtn from "@/components/_v1/confirm-btn";
 import Money from "@/components/_v1/money";
 import ProgressStatus from "@/components/_v1/progress-status";
 import { DataSkeleton } from "@/components/data-skeleton";
+import { DeleteCustomerTxBtn } from "@/components/delete-customer-transaction-btn";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import {
     DataSkeletonProvider,
@@ -133,7 +135,6 @@ export function GeneralTab({ setCustomerName }) {
                                             as="span"
                                             placeholder="$100,000"
                                         >
-                                            {/* {data?.walletBalance?.toFixed(2)} */}
                                             <Money
                                                 noCurrency
                                                 value={data?.pendingPayment}
@@ -228,6 +229,17 @@ export function GeneralTab({ setCustomerName }) {
                                                     >
                                                         <ProgressStatus
                                                             status={tx?.status}
+                                                        />
+                                                    </DataSkeleton>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <DataSkeleton
+                                                        placeholder={"BTN"}
+                                                    >
+                                                        <DeleteCustomerTxBtn
+                                                            transactionId={
+                                                                tx?.id
+                                                            }
                                                         />
                                                     </DataSkeleton>
                                                 </TableCell>

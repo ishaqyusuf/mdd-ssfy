@@ -99,6 +99,7 @@ export async function getSalesTransactionsAction(query: SearchParamsType) {
             );
             return {
                 uuid: item.id,
+                id: item.id,
                 authorName: item.author?.name,
                 status: item.status,
                 createdAt: item.createdAt,
