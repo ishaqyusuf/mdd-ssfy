@@ -10,7 +10,20 @@ import ConfirmBtn from "./_v1/confirm-btn";
 export function DeleteCustomerTxBtn({ transactionId }) {
     const toast = useLoadingToast();
     const deleteFn = useAction(deleteCustomerTransactionAction, {
-        onSuccess(args) {},
+        onSuccess(args) {
+            toast.display({
+                title: "Deleted",
+                duration: 2000,
+                variant: "destructive",
+            });
+        },
+        onExecute(args) {
+            toast.display({
+                title: "Unable to complete",
+                duration: 2000,
+                variant: "error",
+            });
+        },
     });
 
     return (

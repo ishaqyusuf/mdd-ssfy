@@ -145,10 +145,10 @@ export function PayPortalTab({}) {
     function checkTerminalStatus() {
         setTimeout(
             () => {
-                if (waitSeconds > 3) {
+                if (waitSeconds > 15) {
                     pToast.updateNotification("terminal-long-waiting");
                 } else pToast.updateNotification("terminal-waiting");
-                if (waitSeconds > 5) {
+                if (waitSeconds > 17) {
                     setWaitTok(null);
                     return;
                 }

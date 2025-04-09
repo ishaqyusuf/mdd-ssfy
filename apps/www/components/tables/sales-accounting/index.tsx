@@ -12,8 +12,8 @@ import { BatchBtn } from "@/components/(clean-code)/data-table/infinity/batch-ac
 import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/infinity/data-table-toolbar";
 import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
 import { Menu } from "@/components/(clean-code)/menu";
-import { useTransactionOverviewModal } from "@/components/modals/transaction-overview";
 import { openSalesCustomerTx } from "@/components/sheets/sales-customer-tx-sheet";
+import { useTransactionOverviewModal } from "@/hooks/use-tx-overview-modal";
 
 import {
     ActionCell,

@@ -1,16 +1,8 @@
-import { env } from "process";
-import { useEffect, useState } from "react";
-import { cancelTerminaPaymentAction } from "@/actions/cancel-terminal-payment-action";
-import { createSalesPaymentAction } from "@/actions/create-sales-payment";
-import { getCustomerPayPortalAction } from "@/actions/get-customer-pay-portal-action";
 import { getSalesPaymentsAction } from "@/actions/get-sales-payment";
-import { getTerminalPaymentStatusAction } from "@/actions/get-terminal-payment-status";
-import { createPaymentSchema } from "@/actions/schema";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import {
     DataSkeletonProvider,
     useCreateDataSkeletonCtx,

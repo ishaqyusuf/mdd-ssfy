@@ -1,7 +1,5 @@
 "use server";
 
-import { SalesPaymentStatus } from "@/app/(clean-code)/(sales)/types";
-import { user } from "@/app/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import z from "zod";
 
@@ -19,7 +17,7 @@ export const deleteCustomerTransactionAction = actionClient
         track: {},
     })
     .action(async ({ parsedInput: { transactionId, ...input } }) => {
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (prisma) => {
             const resp = await prisma.customerTransaction.update({
                 where: {
                     id: transactionId,
