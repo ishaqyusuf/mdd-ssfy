@@ -272,29 +272,52 @@ export function whereSales(query: SearchParamsType) {
         }
     });
     const prodStatus = query["production.status"];
+    const assignedToId = query["production.assignedToId"];
     switch (prodStatus) {
         case "completed":
             whereAnd.push({
-                assignments: {
-                    every: {
-                        assignedToId:
-                            query["production.assignedToId"] || undefined,
-                        deletedAt: null,
-                        itemControl: {
-                            qtyControls: {
-                                every: {
-                                    type: "prodCompleted" as QtyControlType,
-                                    percentage: 100,
-                                },
-                            },
-                        },
-                    },
-                },
+                itemControls: assignedToId
+                    ? undefined
+                    : {
+                          some: {
+                              qtyControls: {
+                                  some: {
+                                      AND: [
+                                          {
+                                              type: "prodAssigned" as QtyControlType,
+                                              percentage: 100,
+                                          },
+                                          {
+                                              type: "prodCompleted" as QtyControlType,
+                                              percentage: 100,
+                                          },
+                                      ],
+                                  },
+                              },
+                          },
+                      },
+                assignments: !assignedToId
+                    ? undefined
+                    : {
+                          every: {
+                              assignedToId: assignedToId,
+                              deletedAt: null,
+                              itemControl: {
+                                  qtyControls: {
+                                      every: {
+                                          type: "prodCompleted" as QtyControlType,
+                                          percentage: 100,
+                                      },
+                                  },
+                              },
+                          },
+                      },
             });
         case "due today":
             whereAnd.push({
                 assignments: {
                     some: {
+                        assignedToId: assignedToId || undefined,
                         deletedAt: null,
                         dueDate: dateEquals(formatDate(dayjs(), "YYYY-MM-DD")),
                     },
@@ -305,16 +328,39 @@ export function whereSales(query: SearchParamsType) {
             whereAnd.push({
                 assignments: {
                     some: {
+                        assignedToId: assignedToId || undefined,
                         deletedAt: null,
                         dueDate: {
                             lt: fixDbTime(dayjs()).toISOString(),
                         },
+                        // itemControl: {
+                        //     OR: [
+                        //         {
+                        //             qtyControls: {
+                        //                 some: {
+                        //                     type: "prodCompleted" as QtyControlType,
+                        //                     percentage: {
+                        //                         lt: 100,
+                        //                     },
+                        //                 },
+                        //             },
+                        //         },
+                        //         {
+                        //             qtyControls: {
+                        //                 none: {
+                        //                     type: "prodCompleted" as QtyControlType,
+                        //                 },
+                        //             },
+                        //         },
+                        //     ],
+                        // },
                     },
                 },
             });
             // case ''
             break;
     }
+
     switch (query["production.assignment"]) {
         case "all assigned":
             break;

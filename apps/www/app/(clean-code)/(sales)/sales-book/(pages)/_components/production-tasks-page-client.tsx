@@ -11,6 +11,7 @@ import { DataTableFilterCommand } from "@/components/(clean-code)/data-table/fil
 import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/infinity/data-table-toolbar";
 import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
 import { _modal } from "@/components/common/modal/provider";
+import { TaskProductionTabs } from "@/components/task-production-tabs";
 
 import { Badge } from "@gnd/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
@@ -99,39 +100,7 @@ export default function ProductionTasksPageClient({
                         <DataTableInfinityToolbar />
                     </div>
                 </DataTable.Header>
-                <div className="my-2 px-4">
-                    <Tabs className="min-w-[400px] font-mono ">
-                        <TabsList>
-                            <TabsTrigger
-                                asChild
-                                value="due-today"
-                                className="uppercase"
-                            >
-                                <Link href={``}>
-                                    Due Today{" "}
-                                    <Badge
-                                        variant="destructive"
-                                        className="mx-2 px-2"
-                                    >
-                                        8
-                                    </Badge>
-                                </Link>
-                            </TabsTrigger>
-                            <TabsTrigger className="uppercase" value="past-due">
-                                Past Due
-                            </TabsTrigger>
-                            <TabsTrigger
-                                className="uppercase"
-                                value="completed"
-                            >
-                                Completed
-                            </TabsTrigger>
-                            <TabsTrigger className="uppercase" value="all">
-                                All
-                            </TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-                </div>
+                <TaskProductionTabs />
                 <DataTable.Table />
                 <DataTable.LoadMore />
             </DataTable.Infinity>
