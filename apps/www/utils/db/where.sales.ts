@@ -273,6 +273,24 @@ export function whereSales(query: SearchParamsType) {
     });
     const prodStatus = query["production.status"];
     switch (prodStatus) {
+        case "completed":
+            whereAnd.push({
+                assignments: {
+                    every: {
+                        assignedToId:
+                            query["production.assignedToId"] || undefined,
+                        deletedAt: null,
+                        itemControl: {
+                            qtyControls: {
+                                every: {
+                                    type: "prodCompleted" as QtyControlType,
+                                    percentage: 100,
+                                },
+                            },
+                        },
+                    },
+                },
+            });
         case "due today":
             whereAnd.push({
                 assignments: {

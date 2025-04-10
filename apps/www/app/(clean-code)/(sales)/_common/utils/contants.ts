@@ -36,6 +36,7 @@ export const PRODUCTION_STATUS = [
     "part assigned",
     "due today",
     "past due",
+    "completed",
 ] as const;
 export const PRODUCTION_ASSIGNMENT_FILTER_OPTIONS = [
     "not assigned",

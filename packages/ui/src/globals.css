@@ -60,7 +60,8 @@
     @apply bg-background text-foreground;
   }
 }
-@layer base {
+/* THEME V1 */
+/* @layer base {
   :root {
     --background: 279 69% 98%;
     --foreground: 279 63% 0%;
@@ -115,7 +116,7 @@
     --chart-4: 99 99% 53%;
     --chart-5: 279 102% 50%;
   }
-}
+} */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
