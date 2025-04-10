@@ -1,11 +1,13 @@
 "use client";
-import { useSession } from "next-auth/react";
+
 import { redirect } from "next/navigation";
-import { cn } from "@/lib/utils";
 import SiteHeader from "@/components/_v1/layouts/site-header";
-import { nav } from "@/lib/navs";
 import SiteNav from "@/components/_v1/layouts/site-nav";
 import Refresher from "@/components/_v1/refresher";
+import { nav } from "@/lib/navs";
+import { cn } from "@/lib/utils";
+import { useSession } from "next-auth/react";
+
 export default function AccountLayout({ children }: any) {
     const { data: session } = useSession({
         required: true,
@@ -35,7 +37,7 @@ export default function AccountLayout({ children }: any) {
                     <SiteHeader nav={sb} />
                     <div
                         className={cn(
-                            "relative py-4 lg:gap-10 2xl:grid 2xl:grid-cols-[1fr_300px] mb-16"
+                            "relative mb-16 py-4 lg:gap-10 2xl:grid 2xl:grid-cols-[1fr_300px]",
                         )}
                     >
                         <div className="mx-auto w-full min-w-0">{children}</div>

@@ -99,6 +99,8 @@ export async function getProductionListAction(query: SearchParamsType) {
         where,
         ...pageQueryFilter(query),
         select: {
+            customer: true,
+            billingAddress: true,
             id: true,
             orderId: true,
             salesRep: {
@@ -177,6 +179,8 @@ function transformProductionList(item: GetProductionList[number]) {
         totalCompleted,
         orderId: item.orderId,
         alert,
+        customer: item.customer?.name || item.customer?.businessName,
+
         salesRep: item?.salesRep?.name,
         assignedTo: Array.from(
             new Set(item.assignments.map((a) => a.assignedTo?.name)),

@@ -1,8 +1,10 @@
-import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
+import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
+import { TCell } from "@/components/(clean-code)/data-table/table-cells";
+import { Progress } from "@/components/(clean-code)/progress";
+
 import { GetProductionListPage } from "../../../_common/data-actions/production-actions/productions-list-action";
 import { OrderCells } from "./orders-page-cells";
-import { Progress } from "@/components/(clean-code)/progress";
 
 export interface ItemProps {
     item: GetProductionListPage["data"][number];
@@ -12,11 +14,22 @@ export type SalesItemProp = ItemProps["item"];
 function Date({ item }: ItemProps) {
     return (
         <TCell>
-            <TCell.Secondary className="font-mono">
+            <TCell.Primary className="font-mono">
                 {item.alert.date ? (
                     <TCell.Date>{item.alert.date}</TCell.Date>
                 ) : (
                     <>N/A</>
+                )}
+            </TCell.Primary>
+            <TCell.Secondary className="flex gap-4 font-mono">
+                {item.completed ? (
+                    <></>
+                ) : (
+                    <TCell.Status
+                        noDot
+                        color={item.alert.color}
+                        status={item.alert.text}
+                    />
                 )}
             </TCell.Secondary>
         </TCell>
@@ -25,16 +38,14 @@ function Date({ item }: ItemProps) {
 function Order({ item }: ItemProps) {
     return (
         <TCell>
-            <TCell.Secondary className="font-mono">
-                {item.orderId}
-            </TCell.Secondary>
+            <TCell.Primary className="font-mono">{item.orderId}</TCell.Primary>
         </TCell>
     );
 }
 function Alert({ item }: ItemProps) {
     return (
         <TCell>
-            <TCell.Secondary className="font-mono flex gap-4">
+            <TCell.Secondary className="flex gap-4 font-mono">
                 {item.completed ? (
                     <></>
                 ) : (
@@ -50,9 +61,9 @@ function Alert({ item }: ItemProps) {
 function Assignments({ item }: ItemProps) {
     return (
         <TCell>
-            <TCell.Secondary className="font-mono flex gap-4">
+            <TCell.Primary className="flex gap-4 font-mono">
                 <TCell.Status status={item.assignedTo} color={"gray"} />
-            </TCell.Secondary>
+            </TCell.Primary>
         </TCell>
     );
 }
@@ -69,7 +80,18 @@ function Status({ item }: ItemProps) {
         </TCell>
     );
 }
-
+function SalesRep({ item }: ItemProps) {
+    return (
+        <TCell>
+            <TCell.Primary className="whitespace-nowrap uppercase">
+                <TextWithTooltip
+                    className="max-w-[85px]"
+                    text={item.salesRep}
+                />
+            </TCell.Primary>
+        </TCell>
+    );
+}
 function Action({ item }: ItemProps) {
     return (
         <>
@@ -84,7 +106,14 @@ export let Cells = {
     Date,
     Alert,
     Order,
-    SalesRep: OrderCells.SalesRep,
+    SalesRep,
     Assignments,
     Status,
+    Customer({ item }: ItemProps) {
+        return (
+            <TCell>
+                <TCell.Primary>{item.customer}</TCell.Primary>
+            </TCell>
+        );
+    },
 };
