@@ -17,25 +17,30 @@ import { TransactionsTab } from "./transactions-tab";
 
 export function CustomerOverviewSheet() {
     const ctx = useCustomerOverviewQuery();
-    const pt = usePageTitle();
+    return ctx?.opened ? <Modal /> : null;
+}
+function Modal() {
+    const ctx = useCustomerOverviewQuery();
+    usePageTitle();
 
     const currenTab = ctx.params?.tab;
     const [customerName, setCustomerName] = useState(null);
+    useEffect(() => {
+        console.log("CUSTOMER OVERVIEW SHEET>>>>>>>>>>>>>>");
+    }, []);
     useEffect(() => {
         if (!ctx.opened) return;
         function _title(_t) {
             return [_t, customerName].filter(Boolean).join(" - ");
         }
-        pt.setTitle(
-            {
-                general: _title(`Overview`),
-                sales: _title(`Sales`),
-                quotes: _title(`Quotes`),
-                transactions: _title(`Transactions`),
-                "pay-portal": _title(`Pay Portal`),
-            }[currenTab],
-        );
-    }, [currenTab, ctx.opened, pt, customerName]);
+        document.title = {
+            general: _title(`Overview`),
+            sales: _title(`Sales`),
+            quotes: _title(`Quotes`),
+            transactions: _title(`Transactions`),
+            "pay-portal": _title(`Pay Portal`),
+        }[currenTab];
+    }, [currenTab, ctx.opened, customerName]);
     return (
         <CustomSheet
             open={ctx.opened}
@@ -44,7 +49,7 @@ export function CustomerOverviewSheet() {
             floating
             onOpenChange={(e) => {
                 ctx.close();
-                pt.reset();
+                // pt.reset();
             }}
         >
             <Tabs

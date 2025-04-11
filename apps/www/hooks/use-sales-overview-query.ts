@@ -9,6 +9,7 @@ import {
     parseAsStringEnum,
     useQueryStates,
 } from "nuqs";
+
 import { useOnCloseQuery } from "./use-on-close-query";
 
 const openModes = [
@@ -26,6 +27,13 @@ export function useSalesOverviewQuery() {
         "sales-type": parseAsStringEnum(["quote", "sales"] as SalesType[]),
         mode: parseAsStringEnum([...openModes]),
         onCloseQuery: parseAsJson(),
+        tab: parseAsStringEnum([
+            "general",
+            "production",
+            "transaction",
+            "shipping",
+            "notification",
+        ] as const),
     });
 
     return {

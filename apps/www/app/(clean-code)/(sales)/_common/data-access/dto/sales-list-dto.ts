@@ -63,6 +63,8 @@ function getSalesOrderStatus(stats: SalesStat[]) {
 function commonListData(data: Item) {
     const meta = (data.meta || {}) as any as SalesMeta;
     return {
+        netTerm: data.paymentTerm,
+        dueDate: data.paymentDueDate,
         id: data.id,
         orderId: data.orderId?.toUpperCase(),
         uuid: data.orderId,

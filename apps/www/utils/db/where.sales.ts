@@ -383,6 +383,7 @@ export function whereSales(query: SearchParamsType) {
                 phoneNo: query["account.no"],
             },
         });
+
     return composeQuery(whereAnd);
 }
 function whereSearch(query): Prisma.SalesOrdersWhereInput | null {

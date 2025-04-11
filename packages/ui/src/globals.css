@@ -117,6 +117,64 @@
     --chart-5: 279 102% 50%;
   }
 } */
+
+/* THEME V2 */
+@layer base {
+  :root {
+    --background: 279 69% 98%;
+    --foreground: 279 63% 0%;
+    --muted: 99 33% 86%;
+    --muted-foreground: 99 1% 25%;
+    --popover: 279 69% 97%;
+    --popover-foreground: 0 0% 0%;
+    --card: 279 69% 97%;
+    --card-foreground: 0 0% 0%;
+    --border: 279 15% 93%;
+    --input: 279 15% 93%;
+    --primary: 279 99% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 196.98 99% 50%;
+    --secondary-foreground: 99 99% 10%;
+    --accent: 201.51 89.18% 50.21%;
+    --accent-foreground: 99 99% 10%;
+    --destructive: 0 87% 37%;
+    --destructive-foreground: 0 87% 97%;
+    --ring: 279 99% 50%;
+    --chart-1: 279 99% 50%;
+    --chart-2: 99 99% 50%;
+    --chart-3: 99 99% 50%;
+    --chart-4: 99 99% 53%;
+    --chart-5: 279 102% 50%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 279 40% 2%;
+    --foreground: 279 16% 98%;
+    --muted: 99 33% 14%;
+    --muted-foreground: 99 1% 75%;
+    --popover: 279 40% 3%;
+    --popover-foreground: 279 16% 99%;
+    --card: 279 40% 3%;
+    --card-foreground: 279 16% 99%;
+    --border: 279 15% 13%;
+    --input: 279 15% 13%;
+    --primary: 279 99% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 99 99% 50%;
+    --secondary-foreground: 99 99% 10%;
+    --accent: 99 99% 50%;
+    --accent-foreground: 99 99% 10%;
+    --destructive: 0 87% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --ring: 279 99% 50%;
+    --chart-1: 279 99% 50%;
+    --chart-2: 99 99% 50%;
+    --chart-3: 99 99% 50%;
+    --chart-4: 99 99% 53%;
+    --chart-5: 279 102% 50%;
+  }
+}
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }

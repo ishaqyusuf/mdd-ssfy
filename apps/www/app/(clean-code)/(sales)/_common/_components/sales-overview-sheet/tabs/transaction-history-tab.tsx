@@ -1,24 +1,8 @@
 "use client";
 
-import { getSalesPaymentsAction } from "@/actions/get-sales-payment";
-import ConfirmBtn from "@/components/_v1/confirm-btn";
-import Money from "@/components/_v1/money";
-import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { TransactionsTab } from "@/components/sheets/customer-overview-sheet/transactions-tab";
-import useEffectLoader from "@/lib/use-effect-loader";
-
-import { Badge } from "@gnd/ui/badge";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@gnd/ui/table";
 
 import { salesOverviewStore } from "../store";
-import NoResults from "./empty-tx-history";
 
 export function TransactionHistoryTab() {
     return <TransactionsTab salesId={salesOverviewStore().salesId} />;
