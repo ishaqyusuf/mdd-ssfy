@@ -1,6 +1,7 @@
 import React from "react";
 import { getSalesOverviewAction } from "@/actions/get-sales-overview";
 import Money from "@/components/_v1/money";
+import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
@@ -136,7 +137,10 @@ export function GeneralTab({}) {
                                                 }}
                                                 className="flex items-center gap-1 text-lg font-medium"
                                             >
-                                                {saleData?.displayName}
+                                                <TextWithTooltip
+                                                    className="max-w-[150px]"
+                                                    text={saleData?.displayName}
+                                                />
                                                 <ExternalLink className="ml-1 h-4 w-4" />
                                             </Button>
                                         </DataSkeleton>

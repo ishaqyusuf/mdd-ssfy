@@ -124,7 +124,7 @@
 } */
 
 /* THEME V2 */
-/* @layer base {
+@layer base {
   :root {
     --background: 279 69% 98%;
     --foreground: 279 63% 0%;
@@ -134,7 +134,8 @@
     --popover-foreground: 0 0% 0%;
     --card: 279 69% 97%;
     --card-foreground: 0 0% 0%;
-    --border: 279 15% 93%;
+    /* --border: 279 15% 93%; */
+    --border: 45, 5%, 85%;
     --input: 279 15% 93%;
     --primary: 279 99% 50%;
     --primary-foreground: 0 0% 100%;
@@ -179,7 +180,7 @@
     --chart-4: 99 99% 53%;
     --chart-5: 279 102% 50%;
   }
-} */
+}
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
