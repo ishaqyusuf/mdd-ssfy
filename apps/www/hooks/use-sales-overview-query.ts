@@ -26,6 +26,8 @@ export function useSalesOverviewQuery() {
         "sales-overview-id": parseAsString,
         "sales-type": parseAsStringEnum(["quote", "sales"] as SalesType[]),
         mode: parseAsStringEnum([...openModes]),
+        "prod-item-view": parseAsString,
+        "prod-item-tab": parseAsString,
         onCloseQuery: parseAsJson(),
         tab: parseAsStringEnum([
             "general",

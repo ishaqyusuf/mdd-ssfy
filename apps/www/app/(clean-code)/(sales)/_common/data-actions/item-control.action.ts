@@ -287,7 +287,6 @@ export async function getSalesItemControllablesInfoAction(salesId) {
                 setting?.data?.route?.[stepConfigUid]?.config ||
                 groupConfig?.[item.multiDykeUid];
             if (config) groupConfig[item.multiDykeUid] = config;
-            console.log(config);
             const isService = mainStep?.value?.toLowerCase() == "services";
             return {
                 ...item,

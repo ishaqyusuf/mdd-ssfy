@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { CustomSheet, CustomSheetContent } from "../custom-sheet-content";
 import { GeneralTab } from "./general-tab-1";
+import { ProductionTab } from "./production-tab";
 
 export default function SalesOverviewSheet() {
     const query = useSalesOverviewQuery();
@@ -27,7 +28,13 @@ function Modal() {
     const store = salesOverviewStore();
 
     return (
-        <CustomSheet open onOpenChange={query.close} floating rounded size="xl">
+        <CustomSheet
+            open
+            onOpenChange={query.close}
+            floating
+            rounded
+            size="2xl"
+        >
             <Tabs
                 value={query?.params?.tab}
                 onValueChange={(e) => {
@@ -43,7 +50,9 @@ function Modal() {
                     <SheetDescription>
                         <TabsList className="flex w-full justify-start">
                             <TabsTrigger value="general">General</TabsTrigger>
-                            <TabsTrigger value="sales">Sales</TabsTrigger>
+                            <TabsTrigger value="productions">
+                                Productions
+                            </TabsTrigger>
                             <TabsTrigger value="quotes">Quotes</TabsTrigger>
                             <TabsTrigger value="transactions">
                                 Transactions
@@ -60,6 +69,9 @@ function Modal() {
                 <Tabs value={query?.params?.tab}>
                     <TabsContent value="general">
                         <GeneralTab />
+                    </TabsContent>
+                    <TabsContent value="productions">
+                        <ProductionTab />
                     </TabsContent>
                 </Tabs>
             </CustomSheetContent>

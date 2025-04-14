@@ -8,8 +8,6 @@ import {
     Prisma,
     SalesOrders,
     SalesStat,
-    SalesTaxes,
-    Taxes,
 } from "@/db";
 import { FieldPath } from "react-hook-form";
 

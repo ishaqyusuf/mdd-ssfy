@@ -15,12 +15,12 @@ import { prisma } from "@/db";
 import { composeQtyMatrix, Qty } from "@/utils/sales-control-util";
 import { Prisma } from "@prisma/client";
 
-export async function getSalesProductionOverviewAction(salesId, assignedToId?) {
+export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
     let _select = select;
     if (assignedToId) _select.assignments.where.assignedToId = assignedToId;
     const order = await prisma.salesOrders.findFirstOrThrow({
         where: {
-            id: salesId,
+            orderId,
             type: "order" as SalesType,
         },
         select: _select,
@@ -104,8 +104,11 @@ export async function getSalesProductionOverviewAction(salesId, assignedToId?) {
             item.shippable = control?.shippable;
             return item;
         });
+    console.log({ orderId });
+
     return {
         items,
+        orderId,
     };
 }
 interface Item {

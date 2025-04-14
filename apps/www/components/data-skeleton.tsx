@@ -1,9 +1,9 @@
 "use client";
 
+import React from "react";
 import { useDataSkeleton } from "@/hooks/use-data-skeleton";
 import { cn } from "@/lib/utils";
 import { Placeholders } from "@/utils/constants";
-import React from "react";
 
 interface Props {
     children?;
@@ -34,10 +34,10 @@ export function DataSkeleton({
                 {
                     className: cn(
                         "animate-pulse rounded-md bg-muted",
-                        className
+                        className,
                     ),
                 },
-                <span className="opacity-0">{placeholder}</span>
+                <span className="opacity-0">{placeholder}</span>,
             )
         );
     }
@@ -45,7 +45,11 @@ export function DataSkeleton({
     return as === React.Fragment ? (
         <React.Fragment>{children}</React.Fragment>
     ) : (
-        React.createElement(as, { className: cn(className) }, children)
+        React.createElement(
+            as,
+            { className: !ctx?.loading || cn(className) },
+            children,
+        )
     );
     // if (ctx.loading)
     //     return (

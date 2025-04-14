@@ -7,7 +7,6 @@ import { cn, percent, sum } from "@/lib/utils";
 
 import { Badge } from "@gnd/ui/badge";
 import { Label } from "@gnd/ui/label";
-import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { AdminOnly } from "../../helper";
 import { salesOverviewStore } from "../../store";

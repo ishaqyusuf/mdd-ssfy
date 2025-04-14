@@ -2,6 +2,7 @@ import { SalesStat } from "@/db";
 import { timeAgo } from "@/lib/use-day";
 import { toNumber } from "@/lib/utils";
 import { getNameInitials } from "@/utils/get-name-initials";
+import { composeSalesStat } from "@/utils/sales-utils";
 
 import {
     AddressBookMeta,
@@ -63,15 +64,6 @@ function getAddressDto(
             .join(" "),
     };
 }
-function getSalesOrderStatus(stats: SalesStat[]) {
-    const _stat: { [id in QtyControlType]: SalesStat } = {} as any;
-    stats.map((s) => (_stat[s.type] = s));
-    return _stat;
-    // return {
-    //     status: "-",
-    //     date: undefined,
-    // };
-}
 function commonListData(data: Item) {
     const meta = (data.meta || {}) as any as SalesMeta;
     const customerId = data?.customer?.id;
@@ -80,6 +72,7 @@ function commonListData(data: Item) {
         : !customerId
           ? null
           : `cust-${customerId}`;
+    const salesStat = composeSalesStat(data.stat);
     return {
         netTerm: data.paymentTerm,
         accountNo,
@@ -89,6 +82,7 @@ function commonListData(data: Item) {
         uuid: data.orderId,
         isDyke: data.isDyke,
         slug: data.slug,
+        salesStat,
         address:
             data.shippingAddress?.address1 || data.billingAddress?.address1,
         displayName:
