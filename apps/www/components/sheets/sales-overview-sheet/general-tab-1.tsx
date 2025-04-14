@@ -1,17 +1,24 @@
 import { getSalesOverviewAction } from "@/actions/get-sales-overview";
+import Money from "@/components/_v1/money";
+import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { DataSkeleton } from "@/components/data-skeleton";
+import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { timeout } from "@/lib/timeout";
 import {
+    Building,
     Calendar,
     CheckCircle2,
     Clock,
     ExternalLink,
     Factory,
     FileText,
+    Mail,
     MapPin,
+    Package,
     CreditCardIcon as PaymentIcon,
+    Phone,
     User,
     UserCheck,
 } from "lucide-react";
@@ -22,6 +29,8 @@ import { Button } from "@gnd/ui/button";
 import { Card, CardContent } from "@gnd/ui/card";
 import { Progress } from "@gnd/ui/progress";
 import { Separator } from "@gnd/ui/separator";
+
+import { SalesPO } from "./inline-data-edit";
 
 export function GeneralTab({}) {
     const ctx = useSalesOverviewQuery();
@@ -38,14 +47,67 @@ export function GeneralTab({}) {
             console.log(res);
             return res;
         };
-    //     );
-    // }, 200),
-    // );
-    const data = useAsyncMemo(loader, []);
+    const customerQuery = useCustomerOverviewQuery();
+    const data = useAsyncMemo(loader, [ctx.refreshTok]);
+    const ph = {
+        invoice: {},
+        addressData: {
+            shipping: {},
+            billing: {},
+        },
+        status: {
+            delivery: {},
+            assignment: {},
+            production: {},
+        },
+        dispatchList: [],
+        stats: {
+            prodAssigned: {},
+        },
+    } as Partial<typeof data>;
+    const saleData = data || ph;
     const paymentPercentage =
-        (saleData.costs.paid / saleData.costs.total) * 100;
+        saleData?.invoice?.total > 0
+            ? (saleData?.invoice?.paid / saleData?.invoice?.total) * 100
+            : 0;
+    const productionPercentage = saleData?.stats?.prodCompleted?.percentage;
+    const assignmentPercentage = saleData?.stats?.prodAssigned?.percentage;
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case "green":
+                return "bg-green-500";
+            case "amber":
+            case "yellow":
+                return "bg-amber-500";
+            case "red":
+                return "bg-red-500";
+            case "blue":
+                return "bg-blue-500";
+            case "warmGray":
+            default:
+                return "bg-slate-400";
+        }
+    };
+
+    const getStatusVariant = (
+        status: string,
+    ): "default" | "secondary" | "destructive" | "outline" => {
+        switch (status) {
+            case "completed":
+                return "default";
+            case "in-progress":
+                return "secondary";
+            case "pending":
+                return "outline";
+            case "cancelled":
+                return "destructive";
+            default:
+                return "outline";
+        }
+    };
     return (
-        <DataSkeletonProvider value={{ loading: !data?.id } as any}>
+        <DataSkeletonProvider value={{ loading: !saleData?.id } as any}>
             <div className="mt-0 space-y-6 p-6">
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="space-y-6">
@@ -54,33 +116,66 @@ export function GeneralTab({}) {
                                 <User className="h-4 w-4" />
                                 CUSTOMER INFORMATION
                             </h3>
-                            <div className="space-y-1">
-                                <DataSkeleton
-                                    className="text-lg font-medium"
-                                    placeholder="Customer Name"
-                                >
-                                    <Button
-                                        variant="link"
-                                        className="flex h-auto items-center gap-1 p-0 text-lg font-medium hover:no-underline"
-                                        // onClick={() =>
-                                        //     onCustomerClick(saleData.id)
-                                        // }
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <User className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                                    <div>
+                                        <DataSkeleton
+                                            className="text-lg font-medium"
+                                            placeholder="Customer Name"
+                                        >
+                                            <Button
+                                                variant="secondary"
+                                                size="xs"
+                                                // href={saleData?.links?.customer}
+                                                onClick={(e) => {
+                                                    customerQuery.open(
+                                                        saleData.accountNo,
+                                                    );
+                                                }}
+                                                className="flex items-center gap-1 text-lg font-medium"
+                                            >
+                                                {saleData?.displayName}
+                                                <ExternalLink className="ml-1 h-4 w-4" />
+                                            </Button>
+                                        </DataSkeleton>
+                                        {saleData?.isBusiness && (
+                                            <DataSkeleton
+                                                className="text-sm text-muted-foreground"
+                                                placeholder="Business"
+                                            >
+                                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                                    <Building className="h-3 w-3" />
+                                                    <span>Business</span>
+                                                </div>
+                                            </DataSkeleton>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start gap-2">
+                                    <Phone className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                                    <DataSkeleton
+                                        className="text-sm"
+                                        placeholder="239-825-2782"
                                     >
-                                        {saleData.customerName}
-                                        <ExternalLink className="ml-1 h-4 w-4" />
-                                    </Button>
-                                </DataSkeleton>
-                                <DataSkeleton
-                                    className="text-sm text-muted-foreground"
-                                    placeholder="(555) 123-4567"
-                                >
-                                    <p className="text-sm text-muted-foreground">
-                                        {saleData.customerPhone}
-                                    </p>
-                                </DataSkeleton>
+                                        <span>{saleData?.customerPhone}</span>
+                                    </DataSkeleton>
+                                </div>
+
+                                {saleData?.email && (
+                                    <div className="flex items-start gap-2">
+                                        <Mail className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                                        <DataSkeleton
+                                            className="text-sm"
+                                            placeholder="customer@example.com"
+                                        >
+                                            <span>{saleData?.email}</span>
+                                        </DataSkeleton>
+                                    </div>
+                                )}
                             </div>
                         </div>
-
                         <div>
                             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                                 <Calendar className="h-4 w-4" />
@@ -94,23 +189,25 @@ export function GeneralTab({}) {
                                         </p>
                                         <DataSkeleton
                                             className="font-medium"
-                                            placeholder="ORD-2023-0042"
+                                            placeholder="03527PC"
                                         >
                                             <p className="font-medium">
-                                                {saleData.orderNumber}
+                                                {saleData?.orderId}
                                             </p>
                                         </DataSkeleton>
                                     </div>
                                     <div>
                                         <p className="text-muted-foreground">
-                                            Quote Number
+                                            Type
                                         </p>
                                         <DataSkeleton
                                             className="font-medium"
-                                            placeholder="QT-2023-0036"
+                                            placeholder="Order"
                                         >
-                                            <p className="font-medium">
-                                                {saleData.quoteNumber}
+                                            <p className="font-medium capitalize">
+                                                {saleData?.isQuote
+                                                    ? "Quote"
+                                                    : saleData?.type}
                                             </p>
                                         </DataSkeleton>
                                     </div>
@@ -122,26 +219,31 @@ export function GeneralTab({}) {
                                         </p>
                                         <DataSkeleton
                                             className="font-medium"
-                                            placeholder="April 10, 2023"
+                                            placeholder="04/04/25"
                                         >
                                             <p className="font-medium">
-                                                {saleData.date}
+                                                {saleData.salesDate}
                                             </p>
                                         </DataSkeleton>
                                     </div>
                                     <div>
                                         <p className="text-muted-foreground">
-                                            P.O. Number
+                                            Delivery Option
                                         </p>
                                         <DataSkeleton
                                             className="font-medium"
-                                            placeholder="PO-78945"
+                                            placeholder="Standard"
                                         >
                                             <p className="font-medium">
-                                                {saleData.poNumber}
+                                                {saleData?.deliveryOption ||
+                                                    "Standard"}
                                             </p>
                                         </DataSkeleton>
                                     </div>
+                                    <SalesPO
+                                        salesId={saleData.id}
+                                        value={saleData.poNo}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -153,10 +255,12 @@ export function GeneralTab({}) {
                             </h3>
                             <DataSkeleton
                                 className="text-sm font-medium"
-                                placeholder="Sarah Johnson"
+                                placeholder="Pablo Cruz (PC)"
                             >
                                 <p className="text-sm font-medium">
-                                    {saleData.salesRep}
+                                    {saleData?.salesRep}{" "}
+                                    {saleData?.salesRepInitial &&
+                                        `(${saleData?.salesRepInitial})`}
                                 </p>
                             </DataSkeleton>
                         </div>
@@ -175,7 +279,7 @@ export function GeneralTab({}) {
                                     </span>
                                     <DataSkeleton
                                         className="text-sm font-medium"
-                                        placeholder="60%"
+                                        placeholder="0%"
                                     >
                                         <span className="text-sm font-medium">
                                             {paymentPercentage.toFixed(0)}%
@@ -200,11 +304,11 @@ export function GeneralTab({}) {
                                             </p>
                                             <DataSkeleton
                                                 className="text-sm font-medium"
-                                                placeholder="$3,000.00"
+                                                placeholder="$0.00"
                                             >
                                                 <p className="text-sm font-medium">
                                                     $
-                                                    {saleData.costs.paid.toFixed(
+                                                    {saleData?.invoice?.paid?.toFixed(
                                                         2,
                                                     )}
                                                 </p>
@@ -219,16 +323,46 @@ export function GeneralTab({}) {
                                             </p>
                                             <DataSkeleton
                                                 className="text-sm font-medium"
-                                                placeholder="$2,000.00"
+                                                placeholder="$3,217.63"
                                             >
                                                 <p className="text-sm font-medium">
                                                     $
-                                                    {saleData.costs.pending.toFixed(
+                                                    {saleData.invoice.pending?.toFixed(
                                                         2,
                                                     )}
                                                 </p>
                                             </DataSkeleton>
                                         </div>
+                                    </div>
+                                </div>
+                                <div className="mt-2 grid grid-cols-2 gap-4 border-t border-border/40  pt-3">
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">
+                                            Payment Terms
+                                        </p>
+                                        <DataSkeleton
+                                            className="text-sm font-medium"
+                                            placeholder="NET10"
+                                        >
+                                            <p className="text-sm font-medium">
+                                                {saleData.netTerm}
+                                            </p>
+                                        </DataSkeleton>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">
+                                            Due Date
+                                        </p>
+                                        <DataSkeleton
+                                            className="text-sm font-medium"
+                                            placeholder="04/14/25"
+                                        >
+                                            <p className="text-sm font-medium">
+                                                <TCell.Date>
+                                                    {saleData.dueDate}
+                                                </TCell.Date>
+                                            </p>
+                                        </DataSkeleton>
                                     </div>
                                 </div>
                             </div>
@@ -237,71 +371,58 @@ export function GeneralTab({}) {
                         <div>
                             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                                 <FileText className="h-4 w-4" />
-                                COST BREAKDOWN
+                                INVOICE DETAILS
                             </h3>
                             <Card className="border-border/40">
                                 <CardContent className="p-4">
                                     <div className="space-y-2">
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">
-                                                Labour
+                                                Total Invoice
                                             </span>
                                             <DataSkeleton
                                                 className=""
-                                                placeholder="$1,250.00"
+                                                placeholder="$3,217.63"
                                             >
                                                 <span>
-                                                    $
-                                                    {saleData.costs.labour.toFixed(
-                                                        2,
-                                                    )}
+                                                    <Money
+                                                        value={
+                                                            saleData.invoice
+                                                                .total
+                                                        }
+                                                    />
                                                 </span>
                                             </DataSkeleton>
                                         </div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">
-                                                Materials
+                                                Paid Amount
                                             </span>
                                             <DataSkeleton
                                                 className=""
-                                                placeholder="$3,600.00"
+                                                placeholder="$0.00"
                                             >
                                                 <span>
-                                                    $
-                                                    {saleData.costs.materials.toFixed(
-                                                        2,
-                                                    )}
-                                                </span>
-                                            </DataSkeleton>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">
-                                                Delivery
-                                            </span>
-                                            <DataSkeleton
-                                                className=""
-                                                placeholder="$150.00"
-                                            >
-                                                <span>
-                                                    $
-                                                    {saleData.costs.delivery.toFixed(
-                                                        2,
-                                                    )}
+                                                    <Money
+                                                        value={
+                                                            saleData.invoice
+                                                                .paid
+                                                        }
+                                                    />
                                                 </span>
                                             </DataSkeleton>
                                         </div>
                                         <Separator className="my-2" />
                                         <div className="flex justify-between text-sm font-medium">
-                                            <span>Total</span>
+                                            <span>Due Amount</span>
                                             <DataSkeleton
                                                 className="font-medium"
-                                                placeholder="$5,000.00"
+                                                placeholder="$3,217.63"
                                             >
                                                 <span>
-                                                    $
-                                                    {saleData.costs.total.toFixed(
-                                                        2,
-                                                    )}
+                                                    <Money
+                                                        value={saleData.due}
+                                                    />
                                                 </span>
                                             </DataSkeleton>
                                         </div>
@@ -325,22 +446,21 @@ export function GeneralTab({}) {
                                 </h4>
                                 <DataSkeleton
                                     className="text-sm not-italic text-muted-foreground"
-                                    placeholder="123 Delivery St, Suite 101, Shipville, CA 90210, USA"
+                                    placeholder="1713 LEE AVE"
                                 >
                                     <address className="text-sm not-italic text-muted-foreground">
-                                        {saleData.shippingAddress.line1}
-                                        <br />
-                                        {saleData.shippingAddress.line2 && (
+                                        {saleData.addressData.shipping.address}
+                                        {saleData.addressData.shipping
+                                            .phone && (
                                             <>
-                                                {saleData.shippingAddress.line2}
                                                 <br />
+                                                Phone:{" "}
+                                                {
+                                                    saleData.addressData
+                                                        .shipping.phone
+                                                }
                                             </>
                                         )}
-                                        {saleData.shippingAddress.city},{" "}
-                                        {saleData.shippingAddress.state}{" "}
-                                        {saleData.shippingAddress.postalCode}
-                                        <br />
-                                        {saleData.shippingAddress.country}
                                     </address>
                                 </DataSkeleton>
                             </CardContent>
@@ -353,22 +473,20 @@ export function GeneralTab({}) {
                                 </h4>
                                 <DataSkeleton
                                     className="text-sm not-italic text-muted-foreground"
-                                    placeholder="456 Invoice Ave, Billtown, NY 10001, USA"
+                                    placeholder="1713 LEE AVE"
                                 >
                                     <address className="text-sm not-italic text-muted-foreground">
-                                        {saleData.billingAddress.line1}
-                                        <br />
-                                        {saleData.billingAddress.line2 && (
+                                        {saleData.addressData.billing.address}
+                                        {saleData.addressData.billing.phone && (
                                             <>
-                                                {saleData.billingAddress.line2}
                                                 <br />
+                                                Phone:{" "}
+                                                {
+                                                    saleData.addressData.billing
+                                                        .phone
+                                                }
                                             </>
                                         )}
-                                        {saleData.billingAddress.city},{" "}
-                                        {saleData.billingAddress.state}{" "}
-                                        {saleData.billingAddress.postalCode}
-                                        <br />
-                                        {saleData.billingAddress.country}
                                     </address>
                                 </DataSkeleton>
                             </CardContent>
@@ -381,39 +499,139 @@ export function GeneralTab({}) {
                         <Factory className="h-4 w-4" />
                         PRODUCTION STATUS
                     </h3>
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <Card className="border-border/40">
+                            <CardContent className="p-4">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <span className="text-sm">
+                                        Assignment Progress
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <div
+                                            className={`h-2 w-2 rounded-full ${getStatusColor(saleData?.status?.assignment?.color)}`}
+                                        ></div>
+                                        <DataSkeleton
+                                            className="text-xs font-medium"
+                                            placeholder="Completed"
+                                        >
+                                            <span className="text-xs font-medium capitalize">
+                                                {
+                                                    saleData.status.assignment
+                                                        .status
+                                                }
+                                            </span>
+                                        </DataSkeleton>
+                                    </div>
+                                </div>
+                                <DataSkeleton
+                                    className="mb-3 h-2 w-full"
+                                    placeholder=""
+                                >
+                                    <Progress
+                                        value={assignmentPercentage}
+                                        className="mb-3 h-2"
+                                    />
+                                </DataSkeleton>
+                                <DataSkeleton
+                                    className="text-sm text-muted-foreground"
+                                    placeholder="7/7 items assigned"
+                                >
+                                    <p className="text-sm text-muted-foreground">
+                                        {saleData.stats.prodAssigned.score}/
+                                        {saleData.stats.prodAssigned.total}{" "}
+                                        items assigned
+                                    </p>
+                                </DataSkeleton>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-border/40">
+                            <CardContent className="p-4">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <span className="text-sm">
+                                        Production Progress
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <div
+                                            className={`h-2 w-2 rounded-full ${getStatusColor(saleData?.status?.production?.color)}`}
+                                        ></div>
+                                        <DataSkeleton
+                                            className="text-xs font-medium"
+                                            placeholder="Pending"
+                                        >
+                                            <span className="text-xs font-medium capitalize">
+                                                {
+                                                    saleData.status.production
+                                                        .status
+                                                }
+                                            </span>
+                                        </DataSkeleton>
+                                    </div>
+                                </div>
+                                <DataSkeleton
+                                    className="mb-3 h-2 w-full"
+                                    placeholder=""
+                                >
+                                    <Progress
+                                        value={productionPercentage}
+                                        className="mb-3 h-2"
+                                    />
+                                </DataSkeleton>
+                                <DataSkeleton
+                                    className="text-sm text-muted-foreground"
+                                    placeholder="0/7 items completed"
+                                >
+                                    <p className="text-sm text-muted-foreground">
+                                        {saleData?.stats?.prodCompleted?.score}/
+                                        {saleData?.stats?.prodCompleted?.total}{" "}
+                                        items completed
+                                    </p>
+                                </DataSkeleton>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <Package className="h-4 w-4" />
+                        SHIPPING STATUS
+                    </h3>
                     <Card className="border-border/40">
                         <CardContent className="p-4">
                             <div className="mb-3 flex items-center justify-between">
-                                <span className="text-sm">Progress</span>
-                                <DataSkeleton
-                                    className="rounded-full px-2 py-1 text-xs font-medium"
-                                    placeholder="In Progress"
-                                >
-                                    <Badge
-                                        variant={getProductionStatusVariant(
-                                            saleData.productionStatus
-                                                .percentage,
-                                        )}
+                                <span className="text-sm">Delivery Status</span>
+                                <div className="flex items-center gap-2">
+                                    <div
+                                        className={`h-2 w-2 rounded-full ${getStatusColor(saleData.status.delivery.color)}`}
+                                    ></div>
+                                    <DataSkeleton
+                                        className="text-xs font-medium"
+                                        placeholder="Pending"
                                     >
-                                        {saleData.productionStatus.status}
-                                    </Badge>
-                                </DataSkeleton>
+                                        <Badge
+                                            variant={getStatusVariant(
+                                                saleData.status.delivery.status,
+                                            )}
+                                        >
+                                            <span className="capitalize">
+                                                {
+                                                    saleData.status.delivery
+                                                        .status
+                                                }
+                                            </span>
+                                        </Badge>
+                                    </DataSkeleton>
+                                </div>
                             </div>
                             <DataSkeleton
-                                className="mb-3 h-2 w-full"
-                                placeholder=""
-                            >
-                                <Progress
-                                    value={saleData.productionStatus.percentage}
-                                    className="mb-3 h-2"
-                                />
-                            </DataSkeleton>
-                            <DataSkeleton
                                 className="text-sm text-muted-foreground"
-                                placeholder="4/5 assigned, 2/4 production completed"
+                                placeholder="No dispatch information available"
                             >
                                 <p className="text-sm text-muted-foreground">
-                                    {saleData.productionStatus.details}
+                                    {saleData.dispatchList.length > 0
+                                        ? `${saleData.dispatchList.length} dispatch entries available`
+                                        : "No dispatch information available"}
                                 </p>
                             </DataSkeleton>
                         </CardContent>
@@ -423,69 +641,3 @@ export function GeneralTab({}) {
         </DataSkeletonProvider>
     );
 }
-
-function getProductionStatusVariant(
-    percentage: number,
-): "default" | "secondary" | "outline" {
-    if (percentage === 0) return "outline";
-    if (percentage < 50) return "secondary";
-    if (percentage < 100) return "secondary";
-    return "default";
-}
-
-function getShippingStatusVariant(
-    status: string,
-): "default" | "secondary" | "destructive" | "outline" {
-    switch (status.toLowerCase()) {
-        case "shipped":
-            return "default";
-        case "processing":
-            return "secondary";
-        case "pending":
-            return "outline";
-        case "cancelled":
-            return "destructive";
-        default:
-            return "outline";
-    }
-}
-const saleData = {
-    id: "sale-123",
-    orderNumber: "ORD-2023-0042",
-    quoteNumber: "QT-2023-0036",
-    customerName: "John Smith",
-    customerPhone: "(555) 123-4567",
-    date: "April 10, 2023",
-    salesRep: "Sarah Johnson",
-    poNumber: "PO-78945",
-    costs: {
-        labour: 1250.0,
-        delivery: 150.0,
-        materials: 3600.0,
-        total: 5000.0,
-        paid: 3000.0,
-        pending: 2000.0,
-    },
-    shippingAddress: {
-        line1: "123 Delivery St",
-        line2: "Suite 101",
-        city: "Shipville",
-        state: "CA",
-        postalCode: "90210",
-        country: "USA",
-    },
-    billingAddress: {
-        line1: "456 Invoice Ave",
-        line2: "",
-        city: "Billtown",
-        state: "NY",
-        postalCode: "10001",
-        country: "USA",
-    },
-    productionStatus: {
-        status: "In Progress",
-        percentage: 60,
-        details: "4/5 assigned, 2/4 production completed",
-    },
-    shippingStatus: "Processing",
-};

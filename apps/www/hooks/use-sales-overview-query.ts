@@ -34,6 +34,7 @@ export function useSalesOverviewQuery() {
             "shipping",
             "notification",
         ] as const),
+        refreshTok: parseAsString,
     });
 
     return {

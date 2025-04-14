@@ -48,6 +48,11 @@
     --border: 0, 0%, 17%;
     --input: 0, 0%, 11%;
     --ring: 240 4.9% 83.9%;
+    --chart-1: 279 99% 50%;
+    --chart-2: 99 99% 50%;
+    --chart-3: 99 99% 50%;
+    --chart-4: 99 99% 53%;
+    --chart-5: 279 102% 50%;
   }
 }
 
@@ -119,7 +124,7 @@
 } */
 
 /* THEME V2 */
-@layer base {
+/* @layer base {
   :root {
     --background: 279 69% 98%;
     --foreground: 279 63% 0%;
@@ -174,7 +179,7 @@
     --chart-4: 99 99% 53%;
     --chart-5: 279 102% 50%;
   }
-}
+} */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
