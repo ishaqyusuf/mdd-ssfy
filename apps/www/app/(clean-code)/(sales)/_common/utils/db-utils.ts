@@ -132,6 +132,7 @@ export const SalesListInclude = {
             name: true,
             phoneNo: true,
             email: true,
+            address: true,
         },
     },
     billingAddress: {

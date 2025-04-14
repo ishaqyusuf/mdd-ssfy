@@ -1,3 +1,4 @@
+import React from "react";
 import { getSalesOverviewAction } from "@/actions/get-sales-overview";
 import Money from "@/components/_v1/money";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
@@ -439,58 +440,40 @@ export function GeneralTab({}) {
                         ADDRESSES
                     </h3>
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        <Card className="border-border/40">
-                            <CardContent className="p-4">
-                                <h4 className="mb-2 font-medium">
-                                    Shipping Address
-                                </h4>
-                                <DataSkeleton
-                                    className="text-sm not-italic text-muted-foreground"
-                                    placeholder="1713 LEE AVE"
-                                >
-                                    <address className="text-sm not-italic text-muted-foreground">
-                                        {saleData.addressData.shipping.address}
-                                        {saleData.addressData.shipping
-                                            .phone && (
-                                            <>
-                                                <br />
-                                                Phone:{" "}
-                                                {
-                                                    saleData.addressData
-                                                        .shipping.phone
-                                                }
-                                            </>
-                                        )}
-                                    </address>
-                                </DataSkeleton>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-border/40">
-                            <CardContent className="p-4">
-                                <h4 className="mb-2 font-medium">
-                                    Billing Address
-                                </h4>
-                                <DataSkeleton
-                                    className="text-sm not-italic text-muted-foreground"
-                                    placeholder="1713 LEE AVE"
-                                >
-                                    <address className="text-sm not-italic text-muted-foreground">
-                                        {saleData.addressData.billing.address}
-                                        {saleData.addressData.billing.phone && (
-                                            <>
-                                                <br />
-                                                Phone:{" "}
-                                                {
-                                                    saleData.addressData.billing
-                                                        .phone
-                                                }
-                                            </>
-                                        )}
-                                    </address>
-                                </DataSkeleton>
-                            </CardContent>
-                        </Card>
+                        {[
+                            saleData?.addressData?.billing,
+                            saleData?.addressData?.shipping,
+                        ]?.map((address) => (
+                            <Card
+                                key={address?.title}
+                                className="border-border/40"
+                            >
+                                <CardContent className="p-4">
+                                    <h4 className="mb-2 font-medium">
+                                        {address?.title}
+                                    </h4>
+                                    <DataSkeleton
+                                        className="text-sm not-italic text-muted-foreground"
+                                        placeholder="1713 LEE AVE"
+                                    >
+                                        <address className="text-sm not-italic text-muted-foreground">
+                                            {[
+                                                address.name,
+                                                address.address,
+                                                address.phone,
+                                            ]
+                                                ?.filter(Boolean)
+                                                .map((line, li) => (
+                                                    <React.Fragment key={li}>
+                                                        {line}
+                                                        <br />
+                                                    </React.Fragment>
+                                                ))}
+                                        </address>
+                                    </DataSkeleton>
+                                </CardContent>
+                            </Card>
+                        ))}
                     </div>
                 </div>
 

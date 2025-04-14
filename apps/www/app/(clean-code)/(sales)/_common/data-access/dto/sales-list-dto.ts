@@ -18,6 +18,7 @@ export type Item = GetSalesListDta["data"][number];
 export function salesOrderDto(data: Item) {
     let due = toNumber(data.amountDue);
     if (due <= 0) due = 0;
+    const customer = data.customer;
     return {
         ...commonListData(data),
         dispatchList: data.deliveries?.map((d) => {
@@ -32,23 +33,34 @@ export function salesOrderDto(data: Item) {
         addressData: {
             shipping: getAddressDto(
                 data.shippingAddress || data.billingAddress,
+                customer,
                 "Shipping Address",
             ),
-            billing: getAddressDto(data.billingAddress, "Billing Address"),
+            billing: getAddressDto(
+                data.billingAddress,
+                customer,
+                "Billing Address",
+            ),
         },
     };
 }
-function getAddressDto(data: Item["shippingAddress"], title) {
+function getAddressDto(
+    data: Item["shippingAddress"],
+    customer: Item["customer"],
+    title,
+) {
     // console.log(data);
-    if (!data) return {};
+    if (!data) return { title, address: "No address set" };
     const meta: AddressBookMeta = data?.meta as any;
     return {
         id: data.id,
         title,
-        name: data.name,
-        phone: data.phoneNo,
-        email: data.email,
-        address: [data.address1, meta?.zip_code]?.filter(Boolean).join(" "),
+        name: data.name || customer?.businessName || customer?.name,
+        phone: data.phoneNo || customer.phoneNo,
+        email: data.email || customer?.email,
+        address: [data.address1 || customer?.address, meta?.zip_code]
+            ?.filter(Boolean)
+            .join(" "),
     };
 }
 function getSalesOrderStatus(stats: SalesStat[]) {
