@@ -68,7 +68,13 @@ export function SalesCustomerForm() {
         ]).then(([resp, shipping]) => {
             setCustomer({
                 ...resp,
-                shipping,
+                shipping: shipping?.id
+                    ? shipping
+                    : {
+                          ...resp,
+                          id: resp?.addressId,
+                          customerId: resp?.id,
+                      },
             });
             const shippingId = shipping?.id || resp?.addressId;
             zus.dotUpdate("metaData.customer.id", customerId);
@@ -164,7 +170,7 @@ export function SalesCustomerForm() {
                                         });
                                     }}
                                     size="xs"
-                                    variant="link"
+                                    variant="outline"
                                 >
                                     <Icons.edit2 className="size-4" />
                                 </Button>
@@ -206,6 +212,7 @@ function SelectCustomer({
             ? getCustomerAddress(debouncedQuery, customerId)
             : getCustomersAction(debouncedQuery);
         // if(debouncedQuery)
+        console.log({ customerId });
         prom.then((res) => {
             setResult(res || []);
         });
@@ -215,7 +222,7 @@ function SelectCustomer({
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger>
                 {!textTrigger ? (
-                    <Button size="xs" variant="link">
+                    <Button size="xs" variant="secondary">
                         <Icons.Search className="size-4" />
                     </Button>
                 ) : (

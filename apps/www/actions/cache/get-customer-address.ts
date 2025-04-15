@@ -7,46 +7,44 @@ import { AsyncFnType } from "@/types";
 import { Tags } from "@/utils/constants";
 
 export const getCustomerAddress = async (q, customerId) => {
-    return unstable_cache(
-        async (q) => {
-            const contains = !q ? undefined : { contains: q };
-            const addresses = await prisma.addressBooks.findMany({
-                where: {
-                    customerId,
-                    OR: contains
-                        ? [
-                              {
-                                  address1: contains,
-                              },
-                              {
-                                  email: contains,
-                              },
-                              {
-                                  phoneNo: contains,
-                              },
-                          ]
-                        : undefined,
-                },
-            });
-            return addresses.map((address) => {
-                const meta: AddressBookMeta = address?.meta as any;
+    const fn = async (q) => {
+        const contains = !q ? undefined : { contains: q };
+        const addresses = await prisma.addressBooks.findMany({
+            where: {
+                customerId,
+                OR: contains
+                    ? [
+                          {
+                              address1: contains,
+                          },
+                          {
+                              email: contains,
+                          },
+                          {
+                              phoneNo: contains,
+                          },
+                      ]
+                    : undefined,
+            },
+        });
+        return addresses.map((address) => {
+            const meta: AddressBookMeta = address?.meta as any;
 
-                return {
-                    customerId: address?.customerId,
-                    name: address?.name,
-                    address: address?.address1,
-                    phone: address?.phoneNo,
-                    addressId: address?.id,
-                    state: address?.state,
-                    city: address?.city,
-                    email: address.email,
-                    zipCode: meta?.zip_code,
-                };
-            });
-        },
-        [Tags.salesCustomers],
-        {
-            tags: [Tags.salesCustomers],
-        },
-    )(q);
+            return {
+                customerId: address?.customerId,
+                name: address?.name,
+                address: address?.address1,
+                phone: address?.phoneNo,
+                addressId: address?.id,
+                state: address?.state,
+                city: address?.city,
+                email: address.email,
+                zipCode: meta?.zip_code,
+            };
+        });
+    };
+    // return fn(q)
+    return unstable_cache(fn, [Tags.salesCustomers, `customer-${customerId}`], {
+        tags: [Tags.salesCustomers, `customer-${customerId}`],
+    })(q);
 };
