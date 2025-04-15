@@ -70,12 +70,13 @@ export function SalesCustomerForm() {
                 ...resp,
                 shipping,
             });
+            const shippingId = shipping?.id || resp?.addressId;
             zus.dotUpdate("metaData.customer.id", customerId);
             zus.dotUpdate("metaData.billing.id", resp?.addressId);
             zus.dotUpdate("metaData.bad", resp?.addressId);
             if (resetSalesData) {
-                zus.dotUpdate("metaData.shipping.id", shipping?.id);
-                zus.dotUpdate("metaData.sad", shipping?.id);
+                zus.dotUpdate("metaData.shipping.id", shippingId);
+                zus.dotUpdate("metaData.sad", shippingId);
                 zus.dotUpdate(
                     "metaData.salesProfileId",
                     Number(resp?.profileId),
