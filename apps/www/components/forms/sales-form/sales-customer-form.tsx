@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { getCustomerAddress } from "@/actions/cache/get-customer-address";
 import {
     CustomersListData,
     getCustomersAction,
 } from "@/actions/cache/get-customers";
 import { findCustomerIdFromBilling } from "@/actions/find-customer-id-from-billing";
+import { getCustomerAddressForm } from "@/actions/get-customer-adddress-form";
 import { getCustomerFormAction } from "@/actions/get-customer-form";
 import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SettingsClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
@@ -12,6 +14,7 @@ import Button from "@/components/common/button";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { useDebounce } from "@/hooks/use-debounce";
 
+import { cn } from "@gnd/ui/cn";
 import { Command, CommandInput, CommandList } from "@gnd/ui/command";
 import { Label } from "@gnd/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
@@ -28,26 +31,50 @@ export function SalesCustomerForm() {
     const setting = useMemo(() => new SettingsClass(), []);
     useEffect(() => {
         setTimeout(() => {
-            if (md.customer?.id) onCustomerSelect(md?.customer?.id, false);
+            if (md.customer?.id)
+                onCustomerSelect(md?.customer?.id, md?.shipping?.id, false);
             else {
-                if (md.bad) {
-                    findCustomerIdFromBilling(md.bad).then((customerId) => {
-                        console.log(customerId);
-                        // return;
-                        if (customerId) onCustomerSelect(customerId, false);
-                    });
+                if (md.billing?.id) {
+                    findCustomerIdFromBilling(md.billing?.id).then(
+                        (customerId) => {
+                            console.log(customerId);
+                            // return;
+                            if (customerId)
+                                onCustomerSelect(
+                                    customerId,
+                                    md.shipping?.id,
+                                    false,
+                                );
+                        },
+                    );
                 }
             }
         }, 250);
     }, []);
-    const [customer, setCustomer] = useState<CustomerFormData>(null);
-    const onCustomerSelect = (customerId, resetSalesData = true) => {
-        getCustomerFormAction(customerId).then((resp) => {
-            setCustomer(resp);
+    const [customer, setCustomer] = useState<
+        CustomerFormData & {
+            shipping?: CustomerFormData;
+        }
+    >(null);
+    const onCustomerSelect = (
+        customerId,
+        shippingId?,
+        resetSalesData = true,
+    ) => {
+        Promise.all([
+            getCustomerFormAction(customerId),
+            getCustomerAddressForm(shippingId),
+        ]).then(([resp, shipping]) => {
+            setCustomer({
+                ...resp,
+                shipping,
+            });
             zus.dotUpdate("metaData.customer.id", customerId);
             zus.dotUpdate("metaData.billing.id", resp?.addressId);
+            zus.dotUpdate("metaData.bad", resp?.addressId);
             if (resetSalesData) {
-                zus.dotUpdate("metaData.shipping.id", resp?.addressId);
+                zus.dotUpdate("metaData.shipping.id", shipping?.id);
+                zus.dotUpdate("metaData.sad", shipping?.id);
                 zus.dotUpdate(
                     "metaData.salesProfileId",
                     Number(resp?.profileId),
@@ -70,23 +97,21 @@ export function SalesCustomerForm() {
                 {!customer ? (
                     <SelectCustomer
                         textTrigger
-                        onSelect={(e) => onCustomerSelect(e.customerId)}
+                        onSelect={(e) =>
+                            onCustomerSelect(e.customerId, e.addressId)
+                        }
                     ></SelectCustomer>
                 ) : (
                     <div className="relative text-sm text-muted-foreground">
-                        <div className="mb-2 uppercase">
-                            <span>Customer Data</span>
-                        </div>
-                        <p>{customer?.name}</p>
-                        <p>{customer?.phoneNo}</p>
-                        <p>
-                            {customer?.address1} {customer.zip_code}
-                        </p>
-                        <p>{customer?.email}</p>
-                        <p>{/* {customer?.} */}</p>
-                        <div className="absolute right-0 top-0 -mr-5 flex items-center">
+                        <div className="flex items-center gap-2">
+                            <div className="mb-2 uppercase">
+                                <span>Customer Data</span>
+                            </div>
+                            <div className="flex-1"></div>
                             <SelectCustomer
-                                onSelect={(e) => onCustomerSelect(e.customerId)}
+                                onSelect={(e) =>
+                                    onCustomerSelect(e.customerId, e.addressId)
+                                }
                             ></SelectCustomer>
                             <Button
                                 onClick={() => {
@@ -101,7 +126,17 @@ export function SalesCustomerForm() {
                                 <Icons.edit2 className="size-4" />
                             </Button>
                         </div>
-                        <div className="mt-4">
+                        <p>{customer?.name}</p>
+                        <p>{customer?.phoneNo}</p>
+                        <p>
+                            {customer?.address1} {customer.zip_code}
+                        </p>
+                        <p>{customer?.email}</p>
+                        <p>{/* {customer?.} */}</p>
+
+                        <div
+                            className={cn("mt-4", !md.shipping?.id && "hidden")}
+                        >
                             <div className="flex items-center gap-2">
                                 <div className="uppercase">
                                     <span>Shipping Address</span>
@@ -110,13 +145,19 @@ export function SalesCustomerForm() {
 
                                 <SelectCustomer
                                     onSelect={(e) =>
-                                        onCustomerSelect(e.customerId)
+                                        onCustomerSelect(
+                                            e.customerId,
+                                            e.addressId,
+                                        )
                                     }
+                                    customerId={md.customer?.id}
                                 ></SelectCustomer>
                                 <Button
                                     onClick={() => {
                                         setParams({
                                             customerId: customer.id,
+                                            addressOnly: true,
+                                            addressId: md.cad,
                                             customerForm: true,
                                         });
                                     }}
@@ -126,6 +167,17 @@ export function SalesCustomerForm() {
                                     <Icons.edit2 className="size-4" />
                                 </Button>
                             </div>
+                            <div className="">
+                                <p>{customer?.shipping?.name}</p>
+                                <p>{customer?.shipping?.phoneNo}</p>
+                                <p>
+                                    {customer?.shipping?.address1}{" "}
+                                    {customer.shipping?.city}
+                                    {customer.shipping?.state}
+                                    {customer.shipping?.zip_code}
+                                </p>
+                                <p>{customer?.shipping?.email}</p>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -133,18 +185,29 @@ export function SalesCustomerForm() {
         </div>
     );
 }
-function SelectBilling({ children, onSelect }) {}
-function SelectCustomer({ textTrigger = false, onSelect }) {
+interface SelectCustomerProps {
+    textTrigger?: boolean;
+    onSelect?;
+    customerId?;
+}
+function SelectCustomer({
+    textTrigger = false,
+    onSelect,
+    customerId,
+}: SelectCustomerProps) {
     const [q, setSearch] = useState("");
     const debouncedQuery = useDebounce(q, 800);
     const [open, setOpen] = useState(false);
     const [result, setResult] = useState<CustomersListData[]>([]);
     useEffect(() => {
-        if (debouncedQuery)
-            getCustomersAction(debouncedQuery).then((res) => {
-                setResult(res || []);
-            });
-    }, [debouncedQuery]);
+        const prom = customerId
+            ? getCustomerAddress(debouncedQuery, customerId)
+            : getCustomersAction(debouncedQuery);
+        // if(debouncedQuery)
+        prom.then((res) => {
+            setResult(res || []);
+        });
+    }, [debouncedQuery, customerId]);
     const { params, setParams } = useCreateCustomerParams();
     return (
         <Popover open={open} onOpenChange={setOpen}>

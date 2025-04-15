@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getCustomerProfilesAction } from "@/actions/cache/get-customer-profiles";
 import { getTaxProfilesAction } from "@/actions/cache/get-tax-profiles";
 import { createCustomerAction } from "@/actions/create-customer-action";
+import { createCustomerAddressAction } from "@/actions/create-customer-address-action";
 import { createCustomerSchema } from "@/actions/schema";
 import salesData from "@/app/(clean-code)/(sales)/_common/utils/sales-data";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
@@ -37,6 +38,8 @@ export const customerFormStaticCallbacks = {
 };
 export function CustomerForm({ data }: Props) {
     const [sections, setSections] = useState<string[]>(["general"]);
+
+    const { params, setParams } = useCreateCustomerParams();
     const form = useForm<CustomerFormData>({
         resolver: zodResolver(createCustomerSchema),
         defaultValues: {
@@ -56,6 +59,7 @@ export function CustomerForm({ data }: Props) {
             state: undefined,
             zip_code: undefined,
             customerType: "Personal",
+            addressOnly: params.addressOnly,
         },
     });
     const resp = useEffectLoader(
@@ -71,10 +75,11 @@ export function CustomerForm({ data }: Props) {
         },
     );
     const { taxProfiles, salesProfiles } = resp?.data || {};
-    const { params, setParams } = useCreateCustomerParams();
     useEffect(() => {
         if (data) {
-            setSections(["general", "address"]);
+            setSections(
+                params?.addressOnly ? ["address"] : ["general", "address"],
+            );
             let formData = {};
             Object.entries(data).map(
                 ([k, v]) => (formData[k] = v || undefined),
@@ -83,15 +88,30 @@ export function CustomerForm({ data }: Props) {
                 ...formData,
             });
         }
-    }, [data, form]);
+    }, [data, form, params]);
 
     const [customerType] = form.watch(["customerType"]);
 
+    const createCustomerAddress = useAction(createCustomerAddressAction, {
+        onSuccess: ({ data: resp }) => {
+            toast.success(data?.id ? "Updated" : "Created");
+            customerFormStaticCallbacks?.created?.(
+                resp.customerId,
+                resp?.addressId,
+            );
+
+            // if (resp) {
+            setParams(null);
+            // }
+        },
+    });
     const createCustomer = useAction(createCustomerAction, {
         onSuccess: ({ data: resp }) => {
             toast.success(data?.id ? "Updated" : "Created");
-            customerFormStaticCallbacks?.created?.(resp.customerId);
-
+            customerFormStaticCallbacks?.created?.(
+                resp.customerId,
+                resp?.addressId,
+            );
             // if (resp) {
             setParams(null);
             // }
@@ -102,7 +122,11 @@ export function CustomerForm({ data }: Props) {
         <Form {...form}>
             <form
                 // onSubmit={form.handleSubmit(__test)}
-                onSubmit={form.handleSubmit(createCustomer.execute)}
+                onSubmit={form.handleSubmit(
+                    params?.addressOnly
+                        ? createCustomerAddress.execute
+                        : createCustomer.execute,
+                )}
                 className="flex flex-col overflow-x-hidden pb-32"
             >
                 <div className="">
@@ -112,89 +136,120 @@ export function CustomerForm({ data }: Props) {
                         defaultValue={sections}
                         className="space-y-6"
                     >
-                        <AccordionItem value="general">
-                            <AccordionTrigger>General</AccordionTrigger>
-                            <AccordionContent>
-                                <div className="space-y-4">
-                                    <ExistingCustomerResolver />
-                                    <FormSelect
-                                        placeholder="Customer Type"
-                                        control={form.control}
-                                        name="customerType"
-                                        label="Customer Type"
-                                        size="sm"
-                                        options={["Personal", "Business"]}
-                                    />
-                                    {customerType == "Business" ? (
-                                        <FormInput
+                        {params.addressOnly ? (
+                            <></>
+                        ) : (
+                            <AccordionItem value="general">
+                                <AccordionTrigger disabled={params.addressOnly}>
+                                    General
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="space-y-4">
+                                        <ExistingCustomerResolver />
+                                        <FormSelect
+                                            placeholder="Customer Type"
                                             control={form.control}
-                                            name="businessName"
-                                            label="Business Name"
+                                            name="customerType"
+                                            label="Customer Type"
                                             size="sm"
+                                            options={["Personal", "Business"]}
                                         />
-                                    ) : (
-                                        <FormInput
-                                            control={form.control}
-                                            name="name"
-                                            label="Name"
-                                            size="sm"
-                                        />
-                                    )}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <FormInput
-                                            control={form.control}
-                                            name="phoneNo"
-                                            label="Phone"
-                                            size="sm"
-                                        />
-                                        <FormInput
-                                            control={form.control}
-                                            name="email"
-                                            label="Email"
-                                            size="sm"
-                                        />
+                                        {customerType == "Business" ? (
+                                            <FormInput
+                                                control={form.control}
+                                                name="businessName"
+                                                label="Business Name"
+                                                size="sm"
+                                            />
+                                        ) : (
+                                            <FormInput
+                                                control={form.control}
+                                                name="name"
+                                                label="Name"
+                                                size="sm"
+                                            />
+                                        )}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <FormInput
+                                                control={form.control}
+                                                name="phoneNo"
+                                                label="Phone"
+                                                size="sm"
+                                            />
+                                            <FormInput
+                                                control={form.control}
+                                                name="email"
+                                                label="Email"
+                                                size="sm"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <FormSelect
+                                                control={form.control}
+                                                name="profileId"
+                                                label="Customer Profile"
+                                                size="sm"
+                                                titleKey="title"
+                                                valueKey="id"
+                                                options={salesProfiles?.map(
+                                                    (s) => ({
+                                                        ...s,
+                                                        id: String(s.id),
+                                                    }),
+                                                )}
+                                            />
+                                            <FormSelect
+                                                control={form.control}
+                                                name="taxCode"
+                                                label="Tax Profile"
+                                                size="sm"
+                                                titleKey="title"
+                                                valueKey="taxCode"
+                                                options={taxProfiles || []}
+                                            />
+                                            <FormSelect
+                                                size="sm"
+                                                label="Net Term"
+                                                name="netTerm"
+                                                control={form.control}
+                                                options={salesData.paymentTerms}
+                                                valueKey={"value"}
+                                                titleKey={"text"}
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <FormSelect
-                                            control={form.control}
-                                            name="profileId"
-                                            label="Customer Profile"
-                                            size="sm"
-                                            titleKey="title"
-                                            valueKey="id"
-                                            options={salesProfiles?.map(
-                                                (s) => ({
-                                                    ...s,
-                                                    id: String(s.id),
-                                                }),
-                                            )}
-                                        />
-                                        <FormSelect
-                                            control={form.control}
-                                            name="taxCode"
-                                            label="Tax Profile"
-                                            size="sm"
-                                            titleKey="title"
-                                            valueKey="taxCode"
-                                            options={taxProfiles || []}
-                                        />
-                                        <FormSelect
-                                            size="sm"
-                                            label="Net Term"
-                                            name="netTerm"
-                                            control={form.control}
-                                            options={salesData.paymentTerms}
-                                            valueKey={"value"}
-                                            titleKey={"text"}
-                                        />
-                                    </div>
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
+                                </AccordionContent>
+                            </AccordionItem>
+                        )}
                         <AccordionItem value="address">
                             <AccordionTrigger>Address</AccordionTrigger>
                             <AccordionContent>
                                 <div className="space-y-4">
+                                    {!params.addressOnly || (
+                                        <>
+                                            <FormInput
+                                                control={form.control}
+                                                name="name"
+                                                label="Name"
+                                                size="sm"
+                                            />
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <FormInput
+                                                    control={form.control}
+                                                    name="phoneNo"
+                                                    label="Phone"
+                                                    size="sm"
+                                                />
+                                                <FormInput
+                                                    control={form.control}
+                                                    name="email"
+                                                    label="Email"
+                                                    size="sm"
+                                                />
+                                            </div>
+                                        </>
+                                    )}
                                     <FormInput
                                         control={form.control}
                                         name="address1"
@@ -238,6 +293,7 @@ export function CustomerForm({ data }: Props) {
                         </AccordionItem>
                     </Accordion>
                 </div>
+                {JSON.stringify(form.formState)}
                 <div className="absolute bottom-0 left-0 right-0 bg-white px-4">
                     <div className="mt-auto flex justify-end space-x-4">
                         <Button

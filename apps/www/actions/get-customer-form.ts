@@ -7,7 +7,7 @@ import {
 import { CustomerFormData } from "@/components/forms/customer-form/customer-form";
 import { prisma } from "@/db";
 
-export async function getCustomerFormAction(id) {
+export async function getCustomerFormAction(id, addressId?) {
     const customer = await prisma.customers.findFirst({
         where: {
             id,
@@ -21,20 +21,27 @@ export async function getCustomerFormAction(id) {
             },
             profile: true,
             addressBooks: {
-                where: {
-                    OR: [
-                        {
-                            isPrimary: true,
-                        },
-                        {
-                            AND: [
-                                {
-                                    isPrimary: false,
-                                },
-                            ],
-                        },
-                    ],
-                },
+                where: addressId
+                    ? {
+                          id: addressId,
+                      }
+                    : {
+                          OR: [
+                              // {
+                              //     id: shippingId,
+                              // },
+                              {
+                                  isPrimary: true,
+                              },
+                              {
+                                  AND: [
+                                      {
+                                          isPrimary: false,
+                                      },
+                                  ],
+                              },
+                          ],
+                      },
                 take: 1,
                 orderBy: {
                     createdAt: "desc",

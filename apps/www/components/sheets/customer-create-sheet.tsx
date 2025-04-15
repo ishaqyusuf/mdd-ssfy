@@ -16,7 +16,10 @@ export function CustomerCreateSheet() {
     const customerData = useEffectLoader(
         async () => {
             if (!opened || !params.customerId) return null;
-            return await getCustomerFormAction(params.customerId);
+            return await getCustomerFormAction(
+                params.customerId,
+                params.addressId,
+            );
         },
         {
             deps: [opened, params.customerId],

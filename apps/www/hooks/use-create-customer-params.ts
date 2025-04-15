@@ -9,6 +9,7 @@ export function useCreateCustomerParams() {
         // : parseAsString,
         // tab: parseAsStringEnum(["general", "sales", "quotes", "payments"]),
         // onCloseQuery: parseAsJson(),
+        addressId: parseAsInteger,
         customerId: parseAsInteger,
         addressOnly: parseAsBoolean,
     });
