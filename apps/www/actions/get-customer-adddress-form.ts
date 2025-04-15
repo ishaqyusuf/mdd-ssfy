@@ -8,6 +8,7 @@ import { CustomerFormData } from "@/components/forms/customer-form/customer-form
 import { prisma } from "@/db";
 
 export async function getCustomerAddressForm(id) {
+    if (!id) return null;
     const address = await prisma.addressBooks.findUnique({
         where: {
             id,

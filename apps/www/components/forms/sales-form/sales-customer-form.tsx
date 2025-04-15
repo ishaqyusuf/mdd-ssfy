@@ -61,6 +61,7 @@ export function SalesCustomerForm() {
         shippingId?,
         resetSalesData = true,
     ) => {
+        console.log({ customerId, shippingId });
         Promise.all([
             getCustomerFormAction(customerId),
             getCustomerAddressForm(shippingId),
@@ -105,7 +106,7 @@ export function SalesCustomerForm() {
                     <div className="relative text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
                             <div className="mb-2 uppercase">
-                                <span>Customer Data</span>
+                                <span>Bill To</span>
                             </div>
                             <div className="flex-1"></div>
                             <SelectCustomer
@@ -139,7 +140,7 @@ export function SalesCustomerForm() {
                         >
                             <div className="flex items-center gap-2">
                                 <div className="uppercase">
-                                    <span>Shipping Address</span>
+                                    <span>Ship To</span>
                                 </div>
                                 <div className="flex-1"></div>
 
