@@ -235,18 +235,47 @@ function SelectCustomer({
                 </Command>
                 <ScrollArea className="max-h-[30vh] max-w-[400px] overflow-auto">
                     <div className="divide-y">
-                        <button
-                            onClick={(e) => {
-                                setParams({
-                                    customerForm: true,
-                                });
-                            }}
-                            className="w-full space-y-1 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground"
-                        >
-                            <Label className="truncate text-sm font-medium text-primary">
-                                Create Customer
-                            </Label>
-                        </button>
+                        {!customerId ? (
+                            <button
+                                onClick={(e) => {
+                                    setParams({
+                                        customerForm: true,
+                                    });
+                                }}
+                                className="w-full space-y-1 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground"
+                            >
+                                <Label className="truncate text-sm font-medium text-primary">
+                                    Create Customer
+                                </Label>
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={(e) => {
+                                        setParams({
+                                            customerForm: true,
+                                        });
+                                    }}
+                                    className="w-full space-y-1 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground"
+                                >
+                                    <Label className="truncate text-sm font-medium text-primary">
+                                        Same as billing
+                                    </Label>
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        setParams({
+                                            customerForm: true,
+                                        });
+                                    }}
+                                    className="w-full space-y-1 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground"
+                                >
+                                    <Label className="truncate text-sm font-medium text-primary">
+                                        Create Address
+                                    </Label>
+                                </button>
+                            </>
+                        )}
                         {result?.map((address, key) => (
                             <button
                                 key={key}
