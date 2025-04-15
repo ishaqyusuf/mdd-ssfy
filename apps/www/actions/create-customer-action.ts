@@ -121,6 +121,7 @@ export const createCustomerAction = actionClient
                       },
                   });
             revalidateTag(Tags.salesCustomers);
+            revalidateTag(`customer-${customerId}`);
             return {
                 customerId,
                 addressId: address.id,

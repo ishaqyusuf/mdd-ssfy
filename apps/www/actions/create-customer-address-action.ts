@@ -16,8 +16,8 @@ export const createCustomerAddressAction = actionClient
     })
     .action(async ({ parsedInput: { ...input } }) => {
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
-            let addressId = input.id;
-
+            let addressId = input.addressId;
+            let customerId = input.id;
             const customerData = {
                 name: input.name,
                 phoneNo: input.phoneNo,
@@ -31,7 +31,7 @@ export const createCustomerAddressAction = actionClient
                 } satisfies AddressBookMeta,
                 customer: {
                     connect: {
-                        id: input.customerId,
+                        id: customerId,
                     },
                 },
             } satisfies Prisma.AddressBooksUpdateInput;
@@ -54,8 +54,9 @@ export const createCustomerAddressAction = actionClient
             }
 
             revalidateTag(Tags.salesCustomers);
+            revalidateTag(`customer-${customerId}`);
             return {
-                customerId: input.customerId,
+                customerId,
                 addressId,
             };
         });

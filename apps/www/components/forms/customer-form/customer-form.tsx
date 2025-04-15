@@ -8,6 +8,7 @@ import { createCustomerAddressAction } from "@/actions/create-customer-address-a
 import { createCustomerSchema } from "@/actions/schema";
 import salesData from "@/app/(clean-code)/(sales)/_common/utils/sales-data";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
+import { useLoadingToast } from "@/hooks/use-loading-toast";
 import useEffectLoader from "@/lib/use-effect-loader";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "next-safe-action/hooks";
@@ -86,12 +87,13 @@ export function CustomerForm({ data }: Props) {
             );
             form.reset({
                 ...formData,
+                addressOnly: params.addressOnly,
             });
         }
     }, [data, form, params]);
 
     const [customerType] = form.watch(["customerType"]);
-
+    const lt = useLoadingToast();
     const createCustomerAddress = useAction(createCustomerAddressAction, {
         onSuccess: ({ data: resp }) => {
             toast.success(data?.id ? "Updated" : "Created");
@@ -99,13 +101,23 @@ export function CustomerForm({ data }: Props) {
                 resp.customerId,
                 resp?.addressId,
             );
-
+            lt.display({
+                variant: "success",
+                title: "Saved",
+            });
             // if (resp) {
             setParams(null);
             // }
         },
+        onError() {
+            lt.display({
+                variant: "error",
+                title: "Unable to complete",
+            });
+        },
     });
     const createCustomer = useAction(createCustomerAction, {
+        onError() {},
         onSuccess: ({ data: resp }) => {
             toast.success(data?.id ? "Updated" : "Created");
             customerFormStaticCallbacks?.created?.(
@@ -293,7 +305,7 @@ export function CustomerForm({ data }: Props) {
                         </AccordionItem>
                     </Accordion>
                 </div>
-                {JSON.stringify(form.formState)}
+
                 <div className="absolute bottom-0 left-0 right-0 bg-white px-4">
                     <div className="mt-auto flex justify-end space-x-4">
                         <Button
@@ -304,9 +316,13 @@ export function CustomerForm({ data }: Props) {
                             Cancel
                         </Button>
                         <SubmitButton
-                            isSubmitting={createCustomer.isExecuting}
+                            isSubmitting={
+                                createCustomer.isExecuting ||
+                                createCustomerAddress.isExecuting
+                            }
                             disabled={
                                 createCustomer.isExecuting ||
+                                createCustomerAddress.isExecuting ||
                                 !form.formState.isValid
                             }
                         >

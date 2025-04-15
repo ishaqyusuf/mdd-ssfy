@@ -7,7 +7,7 @@ export const changeSalesChartTypeSchema = z.enum(["sales"]);
 
 export const createCustomerSchema = z
     .object({
-        profileId: z.string().optional(),
+        profileId: z.string().optional().nullable(),
         id: z.number().optional(),
         customerId: z.number().optional(),
         addressOnly: z.boolean().nullable().optional(),
@@ -27,14 +27,18 @@ export const createCustomerSchema = z
         taxProfileId: z.number().optional(),
         netTerm: z.string().optional(),
         customerType: z.enum(["Personal", "Business"]).optional(),
-        existingCustomers: z.array(z.any()).default(undefined),
+        existingCustomers: z
+            .array(z.any())
+            .nullable()
+            .optional()
+            .default(undefined),
     })
     .superRefine((data, ctx) => {
         if (data.addressOnly) return;
         if (!data.profileId)
             ctx.addIssue({
                 path: ["profileId"],
-                message: "Profile is required",
+                message: "Profile is required!",
                 code: "custom",
             });
         if (data.customerType === "Personal" && !data.name) {

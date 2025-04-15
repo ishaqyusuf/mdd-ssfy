@@ -3,7 +3,6 @@
 import { unstable_cache } from "next/cache";
 import { AddressBookMeta } from "@/app/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
-import { AsyncFnType } from "@/types";
 import { Tags } from "@/utils/constants";
 
 export const getCustomerAddress = async (q, customerId) => {

@@ -7,6 +7,7 @@ import {
 import { findCustomerIdFromBilling } from "@/actions/find-customer-id-from-billing";
 import { getCustomerAddressForm } from "@/actions/get-customer-adddress-form";
 import { getCustomerFormAction } from "@/actions/get-customer-form";
+import { updateSalesAddressAction } from "@/actions/update-sales-address-action";
 import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SettingsClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
 import { Icons } from "@/components/_v1/icons";
@@ -66,6 +67,12 @@ export function SalesCustomerForm() {
             getCustomerFormAction(customerId),
             getCustomerAddressForm(shippingId),
         ]).then(([resp, shipping]) => {
+            const shippingId = shipping?.id || resp?.addressId;
+            if (md.id && shippingId != md?.shipping?.id) {
+                updateSalesAddressAction(md.id, {
+                    shippingId,
+                }).then((e) => {});
+            }
             setCustomer({
                 ...resp,
                 shipping: shipping?.id
@@ -76,7 +83,7 @@ export function SalesCustomerForm() {
                           customerId: resp?.id,
                       },
             });
-            const shippingId = shipping?.id || resp?.addressId;
+
             zus.dotUpdate("metaData.customer.id", customerId);
             zus.dotUpdate("metaData.billing.id", resp?.addressId);
             zus.dotUpdate("metaData.bad", resp?.addressId);
@@ -275,6 +282,8 @@ function SelectCustomer({
                                     onClick={(e) => {
                                         setParams({
                                             customerForm: true,
+                                            addressOnly: true,
+                                            customerId,
                                         });
                                     }}
                                     className="w-full space-y-1 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground"

@@ -16,10 +16,29 @@ export function CustomerCreateSheet() {
     const customerData = useEffectLoader(
         async () => {
             if (!opened || !params.customerId) return null;
-            return await getCustomerFormAction(
+
+            // return {
+            //     customerId: params?.customerId,
+            // };
+            const data = await getCustomerFormAction(
                 params.customerId,
                 params.addressId,
             );
+            if (params.addressOnly) {
+                if (params.customerId && !params.addressId) {
+                    return {
+                        id: data?.id,
+                        name: data?.name,
+                        city: data?.city,
+                        country: data?.country,
+                        zip_code: data?.zip_code,
+                        address1: undefined,
+                        phoneNo: undefined,
+                        state: data?.state,
+                    };
+                }
+            }
+            return data;
         },
         {
             deps: [opened, params.customerId],
