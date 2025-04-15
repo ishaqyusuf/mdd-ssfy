@@ -82,7 +82,10 @@ const hiddenDisplaySteps = [
     "Hand",
     "Width",
 ];
-export const composeStepFormDisplay = (stepForms, sectionTitle = null) => {
+export const composeStepFormDisplay = (
+    stepForms: any[],
+    sectionTitle = null,
+) => {
     const configs = stepForms
         ?.map((stepForm) => {
             let color = null;

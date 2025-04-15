@@ -1,5 +1,6 @@
 import { StepComponentMeta } from "@/app/(clean-code)/(sales)/types";
 import { paymentMethods } from "@/utils/constants";
+import { Qty } from "@/utils/sales-control-util";
 import { z } from "zod";
 
 export const changeSalesChartTypeSchema = z.enum(["sales"]);
@@ -136,4 +137,48 @@ export const createPaymentSchema = z
             });
         } else {
         }
+    });
+export const createAssignmentSchema = z
+    .object({
+        pending: z.object({
+            lh: z.number().nullable().optional(),
+            rh: z.number().nullable().optional(),
+            qty: z.number().nullable().optional(),
+        }), //.optional() as z.ZodType<Qty>,
+        qty: z.object({
+            lh: z.number().nullable().optional(),
+            rh: z.number().nullable().optional(),
+            qty: z.number().nullable().optional(),
+        }), //.optional() as z.ZodType<Qty>,
+        assignedToId: z.any().optional().nullable(),
+        dueDate: z.date().optional().nullable(),
+    })
+    .superRefine((data, ctx) => {
+        let totalQty = 0;
+        // console.log(data?.pending?.);
+
+        ["qty", "lh", "rh"].map((a) => {
+            let val = +data.qty?.[a] || 0;
+            totalQty += val;
+            if (val) {
+                if (val > data.pending?.[a])
+                    ctx.addIssue({
+                        path: [`qty.${a}`],
+                        message: "Qty can not be more than pending",
+                        code: "custom",
+                    });
+            }
+        });
+        if (totalQty == 0)
+            ctx.addIssue({
+                path: [],
+                message: "Qty required",
+                code: "custom",
+            });
+        if (totalQty > data?.pending?.qty)
+            ctx.addIssue({
+                path: [],
+                message: "Qty overload",
+                code: "custom",
+            });
     });

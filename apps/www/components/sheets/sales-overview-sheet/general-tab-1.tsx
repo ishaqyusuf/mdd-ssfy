@@ -7,7 +7,9 @@ import { DataSkeleton } from "@/components/data-skeleton";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { openLink } from "@/lib/open-link";
 import { timeout } from "@/lib/timeout";
+import { salesFormUrl } from "@/utils/sales-utils";
 import {
     Building,
     Calendar,
@@ -196,9 +198,28 @@ export function GeneralTab({}) {
                                             className="font-medium"
                                             placeholder="03527PC"
                                         >
-                                            <p className="font-medium">
-                                                {saleData?.orderId}
-                                            </p>
+                                            <Button
+                                                variant="secondary"
+                                                size="xs"
+                                                // href={saleData?.links?.customer}
+                                                onClick={(e) => {
+                                                    openLink(
+                                                        salesFormUrl(
+                                                            saleData.type,
+                                                            saleData.orderId,
+                                                        ),
+                                                        {},
+                                                        true,
+                                                    );
+                                                }}
+                                                className="flex items-center gap-1 font-medium"
+                                            >
+                                                <TextWithTooltip
+                                                    className="max-w-[150px]"
+                                                    text={saleData?.orderId}
+                                                />
+                                                <ExternalLink className="ml-1 h-4 w-4" />
+                                            </Button>
                                         </DataSkeleton>
                                     </div>
                                     <div>

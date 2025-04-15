@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useDataSkeleton } from "@/hooks/use-data-skeleton";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -17,6 +18,7 @@ import {
     FormMessage,
 } from "@gnd/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
+import { Skeleton } from "@gnd/ui/skeleton";
 
 interface Props<T> {
     label?: string;
@@ -43,6 +45,7 @@ export function DatePicker<
 }: Partial<ControllerProps<TFieldValues, TName>> & Props<TOptionType>) {
     // const [date, setDate] = React.useState<Date>();
     const [opened, setOpened] = React.useState(false);
+    const load = useDataSkeleton();
     return (
         <FormField
             {...(props as any)}
@@ -52,23 +55,30 @@ export function DatePicker<
                     <Popover open={opened} onOpenChange={setOpened}>
                         <PopoverTrigger asChild>
                             <FormControl>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                        " pl-3 text-left font-normal",
-                                        !field.value && "text-muted-foreground",
-                                        size == "sm" && "h-8",
-                                    )}
-                                >
-                                    {field.value ? (
-                                        format(field.value, "PPP")
-                                    ) : (
-                                        <span>
-                                            {placeholder || "Pick a date"}
-                                        </span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
+                                {load?.loading ? (
+                                    <>
+                                        <Skeleton className="h-8 w-full" />
+                                    </>
+                                ) : (
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "pl-3 text-left font-normal",
+                                            !field.value &&
+                                                "text-muted-foreground",
+                                            size == "sm" && "h-8",
+                                        )}
+                                    >
+                                        {field.value ? (
+                                            format(field.value, "PPP")
+                                        ) : (
+                                            <span>
+                                                {placeholder || "Pick a date"}
+                                            </span>
+                                        )}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                )}
                             </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">

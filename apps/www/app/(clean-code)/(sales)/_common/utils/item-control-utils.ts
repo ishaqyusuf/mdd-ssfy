@@ -1,5 +1,6 @@
-import { Prisma, QtyControl } from "@/db";
+import { Prisma } from "@/db";
 import { percent, sum } from "@/lib/utils";
+import { qtyControlsByType } from "@/utils/sales-utils";
 import { isEqual } from "lodash";
 
 import {
@@ -79,13 +80,7 @@ interface ComposeQtyControlProps {
     produceable;
     shippable;
 }
-export function qtyControlsByType(qtyControls: QtyControl[]) {
-    const resp: QtyControlByType = {} as any;
-    qtyControls.map((q) => {
-        resp[q.type] = q;
-    });
-    return resp;
-}
+
 export function composeQtyControl(props: ComposeQtyControlProps) {
     const { produceable, shippable } = props;
     const totalQty = props.qty ? props.qty : sum([props.lh, props.rh]);

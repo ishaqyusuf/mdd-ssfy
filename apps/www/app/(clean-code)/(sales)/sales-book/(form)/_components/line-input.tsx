@@ -52,7 +52,6 @@ export function LineInput({
                         : e.target.value;
 
                 cls.dotUpdateGroupItemFormPath(lineUid, name, val);
-
                 valueChanged?.(val);
             }}
         />

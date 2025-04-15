@@ -204,7 +204,7 @@ export function skeletonListData<T>(
     placeholder: Partial<T> | null = null,
 ) {
     if (!data)
-        return Array(5)
+        return Array(count)
             .fill(null)
             .map((a) => placeholder) as any as T[];
     return data;

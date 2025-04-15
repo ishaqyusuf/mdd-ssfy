@@ -53,6 +53,7 @@ export function useSalesOverviewQuery() {
                 "sales-overview-id": orderNo,
                 "sales-type": salesType,
                 mode,
+                tab: "general",
             });
         },
         open(salesOverviewId: number, mode: Modes) {

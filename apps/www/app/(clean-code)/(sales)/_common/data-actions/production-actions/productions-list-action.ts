@@ -13,7 +13,6 @@ import { AsyncFnType } from "@/types";
 import { whereSales } from "@/utils/db/where.sales";
 
 import { overallStatus } from "../../data-access/dto/sales-stat-dto";
-import { qtyControlsByType } from "../../utils/item-control-utils";
 import { dueDateAlert } from "../../utils/production-utils";
 
 export type GetProductionListPage = AsyncFnType<

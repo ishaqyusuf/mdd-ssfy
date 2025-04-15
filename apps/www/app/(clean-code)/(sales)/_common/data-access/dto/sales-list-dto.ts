@@ -97,9 +97,9 @@ function commonListData(data: Item) {
         poNo: meta?.po,
         deliveryOption: data?.deliveryOption,
         customerPhone:
-            data.shippingAddress?.phoneNo ||
             data.billingAddress?.phoneNo ||
-            data.customer?.phoneNo,
+            data.customer?.phoneNo ||
+            data.shippingAddress?.phoneNo,
         salesDate: timeAgo(data.createdAt),
         links: salesLinks(data),
         shippingId: data.shippingAddressId,

@@ -31,7 +31,7 @@ interface ProgressItemProps {
     total: number;
 }
 
-function ProgressItem({ label, completed, total }: ProgressItemProps) {
+export function ProgressItem({ label, completed, total }: ProgressItemProps) {
     completed = completed || 0;
     const percentage = (completed / total) * 100;
 

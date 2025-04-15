@@ -11,6 +11,7 @@ import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { timeout } from "@/lib/timeout";
+import { cn } from "@/lib/utils";
 import { skeletonListData } from "@/utils/format";
 import { CheckCircle, MoreVertical, Truck, UserPlus } from "lucide-react";
 import { useAsyncMemo } from "use-async-memo";
@@ -39,7 +40,7 @@ function useContextProductionContext() {
             const res = await getSalesProductionOverviewAction(
                 ctx.params["sales-overview-id"],
             );
-            console.log(res);
+
             return res;
         };
     const customerQuery = useCustomerOverviewQuery();
@@ -105,21 +106,30 @@ function ItemCard({ item }: ItemCardProps) {
         <ItemCardContext.Provider value={ctx}>
             <AccordionItem
                 value={item.controlUid}
-                className="overflow-hidden border-border"
+                className={cn(
+                    "overflow-hidden border-border",
+                    item.controlUid == queryCtx["prod-item-view"] ? "" : "",
+                    !item?.produceable && "hidden",
+                )}
             >
-                <Card>
+                <Card
+                    className={cn(
+                        item.controlUid == queryCtx["prod-item-view"]
+                            ? "border-muted-foregrounds sbg-gradient-to-tr  border-destructive/50 from-slate-50 to-slate-50/10 shadow-xl"
+                            : "hover:border-muted-foreground/50",
+                    )}
+                >
                     <CardHeader className="space-y-4 px-4 pb-2 pt-4">
                         <div className="flex items-start justify-between">
                             <div
                                 className="cursor-pointer space-y-1"
                                 onClick={toggle}
                             >
-                                <h3 className="text-lg font-semibold">
+                                <h3 className="text-base font-semibold uppercase">
                                     {item.title}
                                 </h3>
                                 <p className="font-mono text-sm font-semibold uppercase text-muted-foreground">
-                                    {item.sectionTitle}{" "}
-                                    {item.swing ? `| ${item.swing}` : ""} |{" "}
+                                    {item.subtitle}
                                 </p>
                             </div>
                             <div className="flex items-center space-x-2">

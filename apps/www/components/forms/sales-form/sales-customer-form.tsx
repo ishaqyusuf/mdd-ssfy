@@ -74,7 +74,7 @@ export function SalesCustomerForm() {
                     ></SelectCustomer>
                 ) : (
                     <div className="relative text-sm text-muted-foreground">
-                        <div className="">
+                        <div className="mb-2 uppercase">
                             <span>Customer Data</span>
                         </div>
                         <p>{customer?.name}</p>
@@ -98,8 +98,34 @@ export function SalesCustomerForm() {
                                 size="xs"
                                 variant="link"
                             >
-                                <Icons.edit className="size-3" />
+                                <Icons.edit2 className="size-4" />
                             </Button>
+                        </div>
+                        <div className="mt-4">
+                            <div className="flex items-center gap-2">
+                                <div className="uppercase">
+                                    <span>Shipping Address</span>
+                                </div>
+                                <div className="flex-1"></div>
+
+                                <SelectCustomer
+                                    onSelect={(e) =>
+                                        onCustomerSelect(e.customerId)
+                                    }
+                                ></SelectCustomer>
+                                <Button
+                                    onClick={() => {
+                                        setParams({
+                                            customerId: customer.id,
+                                            customerForm: true,
+                                        });
+                                    }}
+                                    size="xs"
+                                    variant="link"
+                                >
+                                    <Icons.edit2 className="size-4" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 )}

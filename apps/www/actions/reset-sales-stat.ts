@@ -3,6 +3,7 @@
 import { prisma } from "@/db";
 
 export async function resetSalesStatAction(salesId) {
+    return;
     await prisma.qtyControl.deleteMany({
         where: {
             itemControl: {
@@ -15,4 +16,7 @@ export async function resetSalesStatAction(salesId) {
             salesId,
         },
     });
+    // fetch sales data
+
+    // update assignment to include salesitemcontroluid
 }

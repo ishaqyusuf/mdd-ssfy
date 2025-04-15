@@ -5,6 +5,8 @@ import {
 import { Prisma } from "@prisma/client";
 import dayjs from "dayjs";
 
+import { Qty } from "./sales-control-util";
+
 export const salesFormUrl = (type, slug?) => {
     return `/sales-book/${slug ? `edit-${type}` : `create-${type}`}${
         slug ? `/${slug}` : ""
@@ -22,4 +24,26 @@ export function composeSalesStat(stats: Prisma.SalesStatGetPayload<{}>[]) {
         isValid: validStat,
         ..._stat,
     };
+}
+export function qtyControlsByType(controls: Prisma.QtyControlGetPayload<{}>[]) {
+    const _stat: { [id in QtyControlType]: (typeof controls)[number] } =
+        {} as any;
+    controls.map((c) => (_stat[c.type] = c));
+    return _stat;
+}
+export function formatControlQty(
+    control: Prisma.QtyControlGetPayload<{}>,
+): Qty {
+    return {
+        lh: control?.lh,
+        rh: control?.rh,
+        qty: control?.total,
+        noHandle: !control?.lh && !control?.rh,
+    };
+}
+export function productionStatus(qty, completed): SalesStatStatus {
+    if (!qty) return "unknown";
+    if (completed == 0) return "pending";
+    if (qty == completed) return "completed";
+    if (qty > completed && completed > 0) return "in progress";
 }

@@ -4,7 +4,7 @@ import {
     PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
     PRODUCTION_STATUS,
 } from "@/app/(clean-code)/(sales)/_common/utils/contants";
-import { PERMISSIONS } from "@/data/contants/permissions";
+import { PERMISSIONS, ROLES } from "@/data/contants/permissions";
 // Note: import from 'nuqs/server' to avoid the "use client" directive
 import { ARRAY_DELIMITER, SORT_DELIMITER } from "@/lib/delimiters";
 import { noteParamsParser, noteSchema } from "@/modules/notes/constants";
@@ -99,6 +99,7 @@ export const searchParamsParser: {
         parseAsStringLiteral(PERMISSIONS),
         ARRAY_DELIMITER,
     ),
+    "user.role": parseAsArrayOf(parseAsStringLiteral(ROLES), ARRAY_DELIMITER),
     ...noteParamsParser,
 };
 export const searchSchema = z
@@ -128,6 +129,7 @@ export const searchSchema = z
         search: z.string().optional(),
         "dealer.id": z.number().optional(),
         "user.permissions": z.enum(PERMISSIONS).optional(),
+        "user.role": z.enum(ROLES).optional(),
     })
     .merge(noteSchema);
 export const searchParamsCache = createSearchParamsCache(searchParamsParser);

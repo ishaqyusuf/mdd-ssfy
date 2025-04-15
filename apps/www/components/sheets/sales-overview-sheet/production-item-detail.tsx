@@ -1,7 +1,8 @@
 import { CardContent } from "@gnd/ui/card";
+import { cn } from "@gnd/ui/cn";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
-import { ProductionItemAssignments } from "./production-item-assignments";
+import { ProductionItemAssignments } from "./production-assignments";
 import { useProductionItem } from "./production-tab";
 
 export function ProductionItemDetail({}) {
@@ -26,10 +27,9 @@ export function ProductionItemDetail({}) {
                 </TabsList>
 
                 {/* Details Tab */}
-                <TabsContent
-                    value="details"
-                    className="mt-4 space-y-4"
-                ></TabsContent>
+                <TabsContent value="details" className="mt-4 space-y-4">
+                    <Details />
+                </TabsContent>
 
                 {/* Notes Tab */}
                 <TabsContent
@@ -43,5 +43,29 @@ export function ProductionItemDetail({}) {
                 </TabsContent>
             </Tabs>
         </CardContent>
+    );
+}
+function Details() {
+    const ctx = useProductionItem();
+    return (
+        <div className="grid grid-cols-2 gap-3">
+            {ctx?.item?.configs
+                ?.filter((c) => !c.hidden)
+                ?.map((config, k) => (
+                    <div key={k} className="space-y-1">
+                        <p className="text-xs font-medium capitalize text-muted-foreground">
+                            {config?.label}:
+                        </p>
+                        <p
+                            className={cn(
+                                "text-smuppercase",
+                                config?.color == "red" && "text-red-600",
+                            )}
+                        >
+                            {config?.value}
+                        </p>
+                    </div>
+                ))}
+        </div>
     );
 }

@@ -1,6 +1,5 @@
 import { env } from "process";
 import { useEffect, useState } from "react";
-import { renderToHTML } from "next/dist/server/render";
 import DevOnly from "@/_v2/components/common/dev-only";
 import { cancelTerminaPaymentAction } from "@/actions/cancel-terminal-payment-action";
 import { createSalesPaymentAction } from "@/actions/create-sales-payment";

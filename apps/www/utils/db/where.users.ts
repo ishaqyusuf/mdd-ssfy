@@ -42,5 +42,16 @@ export function whereUsers(query: SearchParamsType) {
             },
         });
     }
+    let role = query["user.role"];
+    if (role)
+        wheres.push({
+            roles: {
+                some: {
+                    role: {
+                        name: role,
+                    },
+                },
+            },
+        });
     return composeQuery(wheres);
 }

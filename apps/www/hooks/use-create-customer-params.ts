@@ -1,4 +1,5 @@
 import { parseAsBoolean, parseAsInteger, useQueryStates } from "nuqs";
+
 import { useOnCloseQuery } from "./use-on-close-query";
 
 export function useCreateCustomerParams() {
@@ -9,6 +10,7 @@ export function useCreateCustomerParams() {
         // tab: parseAsStringEnum(["general", "sales", "quotes", "payments"]),
         // onCloseQuery: parseAsJson(),
         customerId: parseAsInteger,
+        addressOnly: parseAsBoolean,
     });
 
     return {

@@ -22,10 +22,6 @@ function Modal() {
     usePageTitle();
     const query = useSalesOverviewQuery();
     const customerQuery = useCustomerOverviewQuery();
-    useEffect(() => {
-        document.title = "Sales Overview";
-    }, []);
-    const store = salesOverviewStore();
 
     return (
         <CustomSheet
@@ -45,12 +41,12 @@ function Modal() {
             >
                 <SheetHeader>
                     <SheetTitle>
-                        {store?.overview?.title || "Loading..."}
+                        {/* {store?.overview?.title || "Loading..."} */}
                     </SheetTitle>
                     <SheetDescription>
                         <TabsList className="flex w-full justify-start">
                             <TabsTrigger value="general">General</TabsTrigger>
-                            <TabsTrigger value="productions">
+                            <TabsTrigger value="production">
                                 Productions
                             </TabsTrigger>
                             <TabsTrigger value="quotes">Quotes</TabsTrigger>
@@ -64,13 +60,12 @@ function Modal() {
                     </SheetDescription>
                 </SheetHeader>
             </Tabs>
-
             <CustomSheetContent className="-mt-4">
                 <Tabs value={query?.params?.tab}>
                     <TabsContent value="general">
                         <GeneralTab />
                     </TabsContent>
-                    <TabsContent value="productions">
+                    <TabsContent value="production">
                         <ProductionTab />
                     </TabsContent>
                 </Tabs>

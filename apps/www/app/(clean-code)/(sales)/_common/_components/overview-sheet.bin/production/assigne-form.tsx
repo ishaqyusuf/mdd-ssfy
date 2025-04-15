@@ -107,7 +107,7 @@ function AssignmentForm({}) {
                             control={form.control}
                             name={"lhQty"}
                             size="sm"
-                            label={item.hasSwing ? "LH Qty" : "Qty"}
+                            label={item.hasSwing ? "LH Qty" : "Qtyss"}
                             length={pending.lh || pending.qty}
                         />
                     ) : (

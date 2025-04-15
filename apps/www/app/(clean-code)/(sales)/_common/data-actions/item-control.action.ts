@@ -4,13 +4,13 @@ import { Prisma, prisma } from "@/db";
 // import { updateSalesStatControlAction } from "./sales-stat-control.action";
 import { percent, sum } from "@/lib/utils";
 import { AsyncFnType } from "@/types";
+import { qtyControlsByType } from "@/utils/sales-utils";
 
 import { QtyControlType, SalesDispatchStatus, StepMeta } from "../../types";
 import { loadSalesSetting } from "../data-access/sales-form-settings.dta";
 import {
     composeControls,
     itemControlUidObject,
-    qtyControlsByType,
 } from "../utils/item-control-utils";
 
 // export async function updateItemControlAction(

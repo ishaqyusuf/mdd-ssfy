@@ -12,7 +12,13 @@ import {
     SalesType,
 } from "@/app/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
-import { composeQtyMatrix, Qty } from "@/utils/sales-control-util";
+import { sum } from "@/lib/utils";
+import {
+    composeQtyMatrix,
+    Qty,
+    qtyMatrixDifference,
+} from "@/utils/sales-control-util";
+import { formatControlQty, qtyControlsByType } from "@/utils/sales-utils";
 import { Prisma } from "@prisma/client";
 
 export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
@@ -35,6 +41,21 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
                 ? item.doorId == a.salesDoorId
                 : undefined,
         );
+        const itemControl = order.itemControls.find(
+            (a) => a.uid == item.controlUid,
+        );
+        const controls = qtyControlsByType(itemControl.qtyControls);
+        item.produced = formatControlQty(controls?.prodCompleted);
+        item.qty = formatControlQty(controls?.qty);
+        item.assigned = {
+            lh: sum(assignments, "lhQty"),
+            rh: sum(assignments, "rhQty"),
+            qty: sum(assignments, "qtyAssigned"),
+        };
+        item.delivered = formatControlQty(controls?.dispatchCompleted);
+        item.pending = {
+            assignment: qtyMatrixDifference(item.qty, item.assigned),
+        };
 
         items.push(item);
     }
@@ -63,6 +84,7 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
                 unitCost: item.rate,
                 totalCost: item.total,
                 noHandle: false,
+                configs,
             });
         }
         if (doors?.length) {
@@ -90,6 +112,7 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
                     swing: door.swing,
                     qty: qty,
                     noHandle: qty.noHandle,
+                    configs,
                 });
             });
         }
@@ -104,7 +127,6 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
             item.shippable = control?.shippable;
             return item;
         });
-    console.log({ orderId });
 
     return {
         items,
@@ -114,6 +136,7 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
 interface Item {
     title: string;
     produceable?: boolean;
+    configs?: { color?; label?; value?; hidden }[];
     shippable?: boolean;
     subtitle?: string;
     swing?: string;
@@ -127,6 +150,11 @@ interface Item {
     qty?: Qty;
     assigned?: Qty;
     produced?: Qty;
+    pending?: {
+        assignment?: Qty;
+        production?: Qty;
+        delivery?: Qty;
+    };
     delivered?: Qty;
     unitCost?: number;
     totalCost?: number;
