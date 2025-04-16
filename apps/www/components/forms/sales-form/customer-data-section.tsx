@@ -28,7 +28,6 @@ export function CustomerDataSection() {
     useEffect(() => {
         if (query?.params?.payload) {
             let data = query.params.payload;
-
             let metaData = { ...md };
             if (!data?.address) {
                 metaData[data.address] = data.addressId;
@@ -57,7 +56,7 @@ export function CustomerDataSection() {
             : ({} as any);
 
         return resp;
-    }, [md.sad, md.cad, md.bad, refreshToken]);
+    }, [md.sad, md.cad, md.bad]);
     const setting = useMemo(() => new SettingsClass(), []);
     useEffect(() => {
         if (!data || !md) return;
@@ -75,17 +74,17 @@ export function CustomerDataSection() {
             patch.bad != md.bad,
             patch.sad != md.sad,
             patch.cad != md.cad,
+            // patch.tax.taxCode != md.taxco
         ]?.filter(Boolean)?.length;
-        console.log({ changes, patch, data });
 
-        if (changes) {
-            zus.dotUpdate("metaData", patch);
-            setting.taxCodeChanged();
-            setting.salesProfileChanged();
-            setTimeout(() => {
-                setting.calculateTotalPrice();
-            }, 100);
-        }
+        zus.dotUpdate("metaData", patch);
+        setting.taxCodeChanged();
+        setting.salesProfileChanged();
+        setTimeout(() => {
+            setting.calculateTotalPrice();
+        }, 100);
+        // if (changes) {
+        // }
     }, [data]);
     return (
         <div className="divide-y">
