@@ -267,9 +267,9 @@ export class SaveSalesClass extends SaveSalesHelper {
     }
     public async generateSalesForm() {
         const md = this.ctx.form.metaData;
-        this.ctx.data.billingAddressId = md.bad;
-        this.ctx.data.shippingAddressId = md?.sad;
-        this.ctx.data.customerId = md?.cad;
+        this.ctx.data.billingAddressId = md.billing.id;
+        this.ctx.data.shippingAddressId = md?.shipping.id;
+        this.ctx.data.customerId = md?.customer.id;
         const saveData = await this.composeSalesForm(this.form);
         this.data.sales = saveData;
     }

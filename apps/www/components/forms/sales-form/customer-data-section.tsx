@@ -30,12 +30,15 @@ export function CustomerDataSection() {
             let data = query.params.payload;
             let metaData = { ...md };
             if (!data?.address) {
-                metaData.cad = data.customerId;
-                metaData.bad = data.addressId;
+                metaData.customer.id = data.customerId;
+                metaData.billing.id = data.addressId;
             } else {
-                metaData.cad = data.customerId;
-                if (data?.address == "bad" && (md.sad == md.bad || !md.sad))
-                    md.sad = data.addressId;
+                metaData.customer.id = data.customerId;
+                if (
+                    data?.address == "bad" &&
+                    (md.shipping.id == md.billing.id || !md.shipping.id)
+                )
+                    md.shipping.id = data.addressId;
                 metaData[data?.address] = data.addressId;
             }
             zus.dotUpdate("metaData", metaData);
@@ -46,34 +49,42 @@ export function CustomerDataSection() {
         await timeout(100);
         const promise = async () =>
             getSalesCustomerData({
-                billingId: md.bad,
-                customerId: md.cad,
-                shippingId: md.sad,
+                billingId: md.billing.id,
+                customerId: md.customer.id,
+                shippingId: md.shipping.id,
             });
 
-        const resp: AsyncFnType<typeof promise> = !!md?.cad
+        const resp: AsyncFnType<typeof promise> = !!md?.customer.id
             ? await promise()
             : ({} as any);
 
         return resp;
-    }, [md.sad, md.cad, md.bad]);
+    }, [md.shipping.id, md.customer.id, md.billing.id]);
     const setting = useMemo(() => new SettingsClass(), []);
     useEffect(() => {
         if (!data || !md) return;
         const patch: typeof md = {
             ...md,
-            bad: data.billingId,
-            sad: data.shippingId,
-            cad: data.customerId,
+            billing: {
+                id: data.billingId,
+                customerId: data.customerId,
+            },
+            shipping: {
+                id: data.shippingId,
+                customerId: data.customerId,
+            },
+            customer: {
+                id: data.customerId,
+            },
         };
         patch.tax.taxCode = data?.taxCode;
         patch.salesProfileId = data.profileId;
         patch.paymentTerm = data.netTerm as any;
 
         const changes = !![
-            patch.bad != md.bad,
-            patch.sad != md.sad,
-            patch.cad != md.cad,
+            patch.billing.id != md.billing.id,
+            patch.shipping.id != md.shipping.id,
+            patch.customer.id != md.customer.id,
             // patch.tax.taxCode != md.taxco
         ]?.filter(Boolean)?.length;
 
@@ -121,10 +132,10 @@ function EditBtn({ address }: EditBtnProps) {
         <Button
             onClick={() => {
                 setParams({
-                    customerId: md.cad,
+                    customerId: md.customer.id,
                     customerForm: true,
                     addressId:
-                        address == "sad" && md.sad == md.bad
+                        address == "sad" && md.shipping.id == md.billing.id
                             ? null
                             : md?.[address],
                     address,
@@ -175,9 +186,10 @@ function DataCard(props: DataCardProps) {
                             ...md,
                         };
                         if (!props.address) {
-                            metaData.cad = customerId;
-                            if (!md.sad) metaData.sad = addressId;
-                            if (!md.bad) metaData.bad = addressId;
+                            metaData.customer.id = customerId;
+                            if (!md.shipping.id)
+                                metaData.shipping.id = addressId;
+                            if (!md.billing.id) metaData.billing.id = addressId;
                         } else {
                             metaData[props.address] = addressId;
                         }
@@ -190,7 +202,7 @@ function DataCard(props: DataCardProps) {
                     }}
                     searching={searching}
                     setSearching={setSearching}
-                    customerId={props.address ? md?.cad : undefined}
+                    customerId={props.address ? md?.customer.id : undefined}
                 />
             </div>
         </div>

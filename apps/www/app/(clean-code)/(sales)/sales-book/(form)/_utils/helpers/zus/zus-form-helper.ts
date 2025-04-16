@@ -86,9 +86,20 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
             po: data.order?.meta?.po,
             qb: data.order?.meta?.qb,
             salesProfileId: profile?.id,
-            cad: data.customer?.id,
-            bad: data.billingAddressId,
-            sad: data.shippingAddressId,
+            // cad: data.customer?.id,
+            customer: {
+                id: data.customer?.id,
+            },
+            billing: {
+                id: data.billingAddressId,
+                customerId: data.customerId,
+            },
+            shipping: {
+                id: data.shippingAddressId,
+                customerId: data.customerId,
+            },
+            // bad: data.billingAddressId,
+            // sad: data.shippingAddressId,
             primaryPhone: data.customer?.phoneNo,
         },
         formStatus: "ready",

@@ -20,7 +20,7 @@ export function Footer({}) {
                         onClick={() => {
                             customerQuery.pay({
                                 phoneNo: zus.metaData.primaryPhone,
-                                customerId: zus.metaData.cad,
+                                customerId: zus.metaData.customer.id,
                                 orderId: zus.metaData.id,
                             });
                         }}

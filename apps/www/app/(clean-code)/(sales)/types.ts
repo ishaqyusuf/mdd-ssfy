@@ -512,9 +512,19 @@ export interface SalesFormFields {
         deliveryMode: DeliveryOption;
         primaryPhone: string;
         debugMode: boolean;
-        cad?: number;
-        bad?: number;
-        sad?: number;
+        // cad?: number;
+        billing?: {
+            id?: number;
+            customerId?: number;
+        };
+        shipping?: {
+            id?: number;
+            customerId?: number;
+        };
+        customer?: {
+            id?: number;
+        };
+        // sad?: number;
         paymentMethod: SalesPaymentOptions;
         pricing: PricingMetaData;
         tax?: {
