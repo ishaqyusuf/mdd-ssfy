@@ -27,7 +27,7 @@ export function CustomerDataSection() {
     const zus = useFormDataStore();
     const md = zus.metaData;
     const query = useCreateCustomerParams();
-    function compare<T>(obj1: T, obj2, ...paths: FieldPath<T>[]) {}
+
     useEffect(() => {
         if (query?.params?.payload) {
             let data = query.params.payload;
@@ -144,16 +144,21 @@ function EditBtn({ address }: EditBtnProps) {
     const { params, setParams } = useCreateCustomerParams();
     const zus = useFormDataStore();
     const md = zus.metaData;
+    const id = !address
+        ? md?.customer?.id
+        : address == "sad"
+          ? md?.shipping?.id
+          : md?.billing?.id;
     return (
         <Button
+            disabled={
+                !id || (address == "sad" && md?.shipping?.id == md?.billing?.id)
+            }
             onClick={() => {
                 setParams({
                     customerId: md.customer.id,
                     customerForm: true,
-                    addressId:
-                        address == "sad" && md.shipping.id == md.billing.id
-                            ? null
-                            : md?.[address],
+                    addressId: !address ? null : md?.[address],
                     address,
                 });
             }}
@@ -207,13 +212,10 @@ function DataCard(props: DataCardProps) {
                                 metaData.shipping.id = addressId;
                             if (!md.billing.id) metaData.billing.id = addressId;
                         } else {
-                            metaData[props.address] = addressId;
+                            if (props.address == "bad")
+                                metaData.billing.id = addressId;
+                            else metaData.shipping.id = addressId;
                         }
-                        console.log({
-                            metaData,
-                            addressId,
-                            customerId,
-                        });
                         zus.dotUpdate("metaData", metaData);
                     }}
                     searching={searching}

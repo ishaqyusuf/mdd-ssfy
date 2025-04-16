@@ -21,18 +21,19 @@ export function useCreateCustomerParams() {
             address?: "sad" | "bad";
         }>(),
     });
-
+    const action = !params.address
+        ? !params.customerId
+            ? "Create"
+            : "Edit"
+        : !params.addressId
+          ? "Create"
+          : "Edit";
     return {
         params,
         setParams,
+        actionTitle: action == "Edit" ? "Update" : action,
         title: [
-            !params.address
-                ? !params.customerId
-                    ? "Create"
-                    : "Edit"
-                : !params.addressId
-                  ? "Create"
-                  : "Edit",
+            action,
             !params.address
                 ? "Customer"
                 : { sad: "Shipping Address", bad: "Billing Address" }[

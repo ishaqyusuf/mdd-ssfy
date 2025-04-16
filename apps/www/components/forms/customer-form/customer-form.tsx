@@ -41,7 +41,7 @@ type Props = {
 export function CustomerForm({ data }: Props) {
     const [sections, setSections] = useState<string[]>(["general"]);
 
-    const { params, setParams } = useCreateCustomerParams();
+    const { params, setParams, actionTitle } = useCreateCustomerParams();
     const form = useForm<CustomerFormData>({
         resolver: zodResolver(createCustomerSchema),
         defaultValues: {
@@ -468,7 +468,7 @@ export function CustomerForm({ data }: Props) {
                                 resolutionRequired
                             }
                         >
-                            {data?.id ? "Update" : "Create"}
+                            {actionTitle}
                         </SubmitButton>
                     </div>
                 </div>
