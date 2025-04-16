@@ -244,6 +244,8 @@ function AddressDataSearch({
 }: SelectCustomerProps) {
     const [q, setSearch] = useState("");
     const debouncedQuery = useDebounce(q, 800);
+    const zus = useFormDataStore();
+    const md = zus.metaData;
     // const [open, setOpen] = useState(false);
     const [result, setResult] = useState<CustomersListData[]>([]);
     useEffect(() => {
@@ -297,18 +299,25 @@ function AddressDataSearch({
                             </button>
                         ) : (
                             <>
-                                <button
-                                    onClick={(e) => {
-                                        setParams({
-                                            customerForm: true,
-                                        });
-                                    }}
-                                    className="w-full space-y-1 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground"
-                                >
-                                    <Label className="truncate text-sm font-medium text-primary">
-                                        Same as billing
-                                    </Label>
-                                </button>
+                                {(address == "bad" && md?.billing?.id) || (
+                                    <button
+                                        onClick={(e) => {
+                                            zus.dotUpdate(
+                                                "metaData.shipping.id",
+                                                md.billing.id,
+                                            );
+                                            setOpen(false);
+                                        }}
+                                        className="w-full space-y-1 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground"
+                                    >
+                                        <Label className="truncate text-sm font-medium text-primary">
+                                            Same as billing
+                                        </Label>
+                                        <div className="truncate text-xs text-muted-foreground">
+                                            same with billing address
+                                        </div>
+                                    </button>
+                                )}
                                 <button
                                     onClick={(e) => {
                                         setParams({
@@ -316,12 +325,16 @@ function AddressDataSearch({
                                             address,
                                             customerId,
                                         });
+                                        setOpen(false);
                                     }}
                                     className="w-full space-y-1 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground"
                                 >
                                     <Label className="truncate text-sm font-medium text-primary">
                                         Create Address
                                     </Label>
+                                    <div className="truncate text-xs text-muted-foreground">
+                                        create a new customer address
+                                    </div>
                                 </button>
                             </>
                         )}
