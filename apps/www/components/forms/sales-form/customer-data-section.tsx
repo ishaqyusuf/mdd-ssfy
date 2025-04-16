@@ -30,7 +30,8 @@ export function CustomerDataSection() {
             let data = query.params.payload;
             let metaData = { ...md };
             if (!data?.address) {
-                metaData[data.address] = data.addressId;
+                metaData.cad = data.customerId;
+                metaData.bad = data.addressId;
             } else {
                 metaData.cad = data.customerId;
                 if (data?.address == "bad" && (md.sad == md.bad || !md.sad))
@@ -41,7 +42,6 @@ export function CustomerDataSection() {
             query.setParams(null);
         }
     }, [query, md, zus]);
-    const [refreshToken, setRefreshToken] = useState(null);
     const data = useAsyncMemo(async () => {
         await timeout(100);
         const promise = async () =>
