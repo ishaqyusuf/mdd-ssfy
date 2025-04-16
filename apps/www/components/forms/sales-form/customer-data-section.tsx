@@ -140,7 +140,9 @@ function DataCard(props: DataCardProps) {
     const zus = useFormDataStore();
     const md = zus.metaData;
     return (
-        <div className="group relative space-y-2 p-2 px-4">
+        <div
+            className={cn("group relative space-y-2 p-2 px-4", props.className)}
+        >
             <div className="font-mono">
                 <div className="text-xs font-bold uppercase">
                     <span>{props.label}</span>
