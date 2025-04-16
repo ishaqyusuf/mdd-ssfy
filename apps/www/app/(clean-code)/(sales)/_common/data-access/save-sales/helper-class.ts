@@ -12,7 +12,7 @@ import { SaveSalesClass } from "./save-sales-class";
 export class SaveSalesHelper {
     constructor(public ctx?: SaveSalesClass) {}
 
-    public createRel(newId, oldId) {
+    public createRel(newId, oldId?) {
         const resp: any = {};
         if (newId) {
             resp.connect = { id: newId };
@@ -59,9 +59,9 @@ export class SaveSalesHelper {
                       },
                   }
                 : undefined,
-            customer: this.createRel(sd.customerId, md.cad),
-            billingAddress: this.createRel(sd.billingAddressId, md.bad),
-            shippingAddress: this.createRel(sd.shippingAddressId, md.sad),
+            customer: this.createRel(sd.customerId),
+            billingAddress: this.createRel(sd.billingAddressId),
+            shippingAddress: this.createRel(sd.shippingAddressId),
             createdAt: md.createdAt,
             // shippingAddress: {
             //     connect: sd.shippingAddressId

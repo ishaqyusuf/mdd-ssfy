@@ -160,14 +160,17 @@ export const createAssignmentSchema = z
             lh: z.number().nullable().optional(),
             rh: z.number().nullable().optional(),
             qty: z.number().nullable().optional(),
-        }), //.optional() as z.ZodType<Qty>,
+        }),
         qty: z.object({
             lh: z.number().nullable().optional(),
             rh: z.number().nullable().optional(),
             qty: z.number().nullable().optional(),
-        }), //.optional() as z.ZodType<Qty>,
+        }),
         assignedToId: z.any().optional().nullable(),
         dueDate: z.date().optional().nullable(),
+        salesDoorId: z.number().nullable().optional(),
+        salesId: z.number(),
+        salesItemId: z.number(),
     })
     .superRefine((data, ctx) => {
         let totalQty = 0;
