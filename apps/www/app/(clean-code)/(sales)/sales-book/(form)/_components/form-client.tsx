@@ -89,10 +89,10 @@ function FormClientOld({ data }: FormClientProps) {
                 </div>
             </div>
             <FormFooter />
-            <CustomerProfileUpdateModal
+            {/* <CustomerProfileUpdateModal
                 phoneNo={zus.metaData.primaryPhone}
                 profileId={zus.metaData.salesProfileId}
-            />
+            /> */}
         </div>
     );
 }
