@@ -11,7 +11,9 @@ import { Icons } from "@/components/_v1/icons";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { useDebounce } from "@/hooks/use-debounce";
 import { timeout } from "@/lib/timeout";
+import { generateRandomString } from "@/lib/utils";
 import { AsyncFnType } from "@/types";
+import { dotCompare } from "@/utils/compare";
 import { useAsyncMemo } from "use-async-memo";
 
 import { Button } from "@gnd/ui/button";
@@ -25,6 +27,7 @@ export function CustomerDataSection() {
     const zus = useFormDataStore();
     const md = zus.metaData;
     const query = useCreateCustomerParams();
+    function compare<T>(obj1: T, obj2, ...paths: FieldPath<T>[]) {}
     useEffect(() => {
         if (query?.params?.payload) {
             let data = query.params.payload;
@@ -41,10 +44,23 @@ export function CustomerDataSection() {
                     md.shipping.id = data.addressId;
                 metaData[data?.address] = data.addressId;
             }
+            if (
+                dotCompare(
+                    metaData,
+                    md,
+                    "billing.id",
+                    "shipping.id",
+                    "customer.id",
+                )
+            ) {
+                console.log("REF TOK");
+                setRefreshTok(generateRandomString());
+            }
             zus.dotUpdate("metaData", metaData);
             query.setParams(null);
         }
     }, [query, md, zus]);
+    const [refreshTok, setRefreshTok] = useState(null);
     const data = useAsyncMemo(async () => {
         await timeout(100);
         const promise = async () =>
@@ -57,9 +73,9 @@ export function CustomerDataSection() {
         const resp: AsyncFnType<typeof promise> = !!md?.customer.id
             ? await promise()
             : ({} as any);
-
+        console.log({ resp });
         return resp;
-    }, [md.shipping.id, md.customer.id, md.billing.id]);
+    }, [md.shipping.id, md.customer.id, md.billing.id, refreshTok]);
     const setting = useMemo(() => new SettingsClass(), []);
     useEffect(() => {
         if (!data || !md) return;
@@ -81,12 +97,12 @@ export function CustomerDataSection() {
         patch.salesProfileId = data.profileId;
         patch.paymentTerm = data.netTerm as any;
 
-        const changes = !![
-            patch.billing.id != md.billing.id,
-            patch.shipping.id != md.shipping.id,
-            patch.customer.id != md.customer.id,
-            // patch.tax.taxCode != md.taxco
-        ]?.filter(Boolean)?.length;
+        // const changes = !![
+        //     patch.billing.id != md.billing.id,
+        //     patch.shipping.id != md.shipping.id,
+        //     patch.customer.id != md.customer.id,
+        //     // patch.tax.taxCode != md.taxco
+        // ]?.filter(Boolean)?.length;
 
         zus.dotUpdate("metaData", patch);
         setting.taxCodeChanged();
