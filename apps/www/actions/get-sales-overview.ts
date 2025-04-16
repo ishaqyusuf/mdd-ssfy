@@ -11,9 +11,9 @@ export async function getSalesOverviewAction(orderNo) {
     });
     const [sales] = data;
     if (!sales.salesStat?.isValid) {
-        await resetSalesStatAction(sales.id);
-        await timeout(1000);
-        return await getSalesOverviewAction(orderNo);
+        // await resetSalesStatAction(sales.id);
+        // await timeout(1000);
+        // return await getSalesOverviewAction(orderNo);
     }
     return sales;
 }

@@ -1,3 +1,4 @@
+import React from "react";
 import Link from "next/link";
 import DevOnly from "@/_v2/components/common/dev-only";
 import { Icons } from "@/components/_v1/icons";
@@ -96,31 +97,26 @@ export function SalesInfoTab({}) {
             ></InfoLine>
 
             <div className="my-4 grid gap-4 sm:grid-cols-2">
-                {[overview.billing, overview.shipping].map((k, i) => (
+                {[overview.billing, overview.shipping].map((address, i) => (
                     <div key={i}>
                         <Label>
                             {i == 0 ? "Billing" : "Shipping"}
                             {" Address"}
                         </Label>
-                        {!k?.length ? (
+
+                        {!address?.length ? (
                             <div className="flex min-h-16 flex-col items-center justify-center">
                                 No Address
                             </div>
                         ) : (
-                            k.map((line, ki) => {
-                                const Ico = Icons[line.icon];
-                                return (
-                                    <div
-                                        key={ki}
-                                        className="flex gap-4 border-b py-1"
-                                    >
-                                        {Ico && (
-                                            <Ico className="size-4 text-muted-foreground" />
-                                        )}
-                                        <span>{line.value}</span>
-                                    </div>
-                                );
-                            })
+                            <address className="text-sm not-italic text-muted-foreground">
+                                {address?.filter(Boolean).map((line, li) => (
+                                    <React.Fragment key={li}>
+                                        {line}
+                                        <br />
+                                    </React.Fragment>
+                                ))}
+                            </address>
                         )}
                     </div>
                 ))}

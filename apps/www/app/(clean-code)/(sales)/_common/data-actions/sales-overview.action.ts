@@ -4,6 +4,7 @@ import { IconKeys } from "@/components/_v1/icons";
 import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { AsyncFnType } from "@/types";
+import { salesAddressLines } from "@/utils/sales-utils";
 
 import { SalesMeta, SalesType } from "../../types";
 
@@ -89,15 +90,19 @@ export async function loadSalesOverviewAction(id) {
         phoneNo,
         customerId: order.customer?.id,
         displayName,
-        shipping: [
-            addressLine(order.shippingAddress?.name || displayName, "user"),
-            addressLine(order.shippingAddress?.phoneNo || phoneNo, "phone"),
-            addressLine(order.shippingAddress?.address1, "address"),
-        ].filter((a) => a.value),
-        billing: [
-            addressLine(order.billingAddress?.name || displayName, "user"),
-            addressLine(order.billingAddress?.phoneNo || phoneNo, "phone"),
-            addressLine(order.billingAddress?.address1, "address"),
-        ].filter((a) => a.value),
+        shipping: salesAddressLines(
+            order?.shippingAddress as any,
+            order?.customer as any,
+        ),
+        billing: salesAddressLines(
+            order?.billingAddress as any,
+            order?.customer as any,
+        ),
+
+        // billing: [
+        //     addressLine(order.billingAddress?.name || displayName, "user"),
+        //     addressLine(order.billingAddress?.phoneNo || phoneNo, "phone"),
+        //     addressLine(order.billingAddress?.address1, "address"),
+        // ].filter((a) => a.value),
     };
 }

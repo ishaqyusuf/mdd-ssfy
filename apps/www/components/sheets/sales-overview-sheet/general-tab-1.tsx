@@ -48,7 +48,6 @@ export function GeneralTab({}) {
             const res = await getSalesOverviewAction(
                 ctx.params["sales-overview-id"],
             );
-            console.log(res);
             return res;
         };
     const customerQuery = useCustomerOverviewQuery();
@@ -482,11 +481,7 @@ export function GeneralTab({}) {
                                         placeholder="1713 LEE AVE"
                                     >
                                         <address className="text-sm not-italic text-muted-foreground">
-                                            {[
-                                                address.name,
-                                                address.address,
-                                                address.phone,
-                                            ]
+                                            {address?.lines
                                                 ?.filter(Boolean)
                                                 .map((line, li) => (
                                                     <React.Fragment key={li}>

@@ -2,7 +2,7 @@ import { SalesStat } from "@/db";
 import { timeAgo } from "@/lib/use-day";
 import { toNumber } from "@/lib/utils";
 import { getNameInitials } from "@/utils/get-name-initials";
-import { composeSalesStat } from "@/utils/sales-utils";
+import { composeSalesStat, salesAddressLines } from "@/utils/sales-utils";
 
 import {
     AddressBookMeta,
@@ -62,6 +62,7 @@ function getAddressDto(
         address: [data.address1 || customer?.address, meta?.zip_code]
             ?.filter(Boolean)
             .join(" "),
+        lines: salesAddressLines(data as any, customer as any),
     };
 }
 function commonListData(data: Item) {
