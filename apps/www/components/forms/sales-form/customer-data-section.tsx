@@ -10,6 +10,7 @@ import { Icons } from "@/components/_v1/icons";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { useDebounce } from "@/hooks/use-debounce";
 import { timeout } from "@/lib/timeout";
+import { AsyncFnType } from "@/types";
 import { useAsyncMemo } from "use-async-memo";
 
 import { Button } from "@gnd/ui/button";
@@ -43,12 +44,17 @@ export function CustomerDataSection() {
     const [refreshToken, setRefreshToken] = useState(null);
     const data = useAsyncMemo(async () => {
         await timeout(100);
-        const resp = await getSalesCustomerData({
-            billingId: md.bad,
-            customerId: md.cad,
-            shippingId: md.sad,
-        });
-        console.log({ resp });
+        const promise = async () =>
+            getSalesCustomerData({
+                billingId: md.bad,
+                customerId: md.cad,
+                shippingId: md.sad,
+            });
+
+        const resp: AsyncFnType<typeof promise> = !!md?.cad
+            ? await promise()
+            : ({} as any);
+
         return resp;
     }, [md.sad, md.cad, md.bad, refreshToken]);
     useEffect(() => {
@@ -157,6 +163,8 @@ function DataCard(props: DataCardProps) {
                         };
                         if (!props.address) {
                             metaData.cad = customerId;
+                            if (!md.sad) metaData.sad = addressId;
+                            if (!md.bad) metaData.bad = addressId;
                         } else {
                             metaData[props.address] = addressId;
                         }

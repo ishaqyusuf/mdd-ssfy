@@ -39,10 +39,10 @@ export async function getSalesCustomerData({
                                 isPrimary: true,
                             },
                             {
-                                id: shippingId,
+                                id: shippingId || undefined,
                             },
                             {
-                                id: billingId,
+                                id: billingId || undefined,
                             },
                         ],
                     },
