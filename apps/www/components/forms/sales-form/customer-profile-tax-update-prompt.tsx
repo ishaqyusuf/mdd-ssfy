@@ -21,7 +21,7 @@ import { Label } from "@gnd/ui/label";
 
 export function CustomerProfileTaxUpdatePrompt({}) {
     const zus = useFormDataStore();
-    const customerId = zus.metaData?.customer?.id;
+    const customerId = zus.metaData?.cad;
     const profileId = zus.metaData?.salesProfileId;
     const taxCode = zus.metaData?.pricing?.taxCode;
 

@@ -19,7 +19,7 @@ export function Footer({}) {
                     <Button
                         onClick={() => {
                             customerQuery.pay({
-                                phoneNo: zus.metaData.customer?.phone,
+                                phoneNo: zus.metaData.primaryPhone,
                                 customerId: zus.metaData.cad,
                                 orderId: zus.metaData.id,
                             });

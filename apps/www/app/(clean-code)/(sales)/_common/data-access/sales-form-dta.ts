@@ -1,21 +1,11 @@
 import { whereTrashed } from "@/app/(clean-code)/_common/utils/db-utils";
 import { AsyncFnType } from "@/app/(clean-code)/type";
-import {
-    dealerSession,
-    serverSession,
-    user,
-    userId,
-} from "@/app/(v1)/_actions/utils";
+import { dealerSession, user, userId } from "@/app/(v1)/_actions/utils";
 import { salesFormData } from "@/app/(v1)/(loggedIn)/sales/_actions/get-sales-form";
 import { ComponentPrice, prisma, Prisma } from "@/db";
 import dayjs from "dayjs";
 
-import {
-    AddressBookMeta,
-    SalesMeta,
-    SalesType,
-    StepComponentMeta,
-} from "../../types";
+import { SalesMeta, SalesType, StepComponentMeta } from "../../types";
 import { SalesBookFormIncludes } from "../utils/db-utils";
 import { transformSalesBookForm } from "./dto/sales-book-form-dto";
 import { getLoggedInDealerAccountDta } from "./sales-dealer-dta";
@@ -93,8 +83,6 @@ export async function createSalesBookFormDataDta(
             isDyke: true,
             customerId: dealer?.dealerId,
             customerProfileId: ctx.defaultProfile?.id,
-            // shippingAddress: {} as any,
-            // billingAddress: {}
             status: dealer?.id ? "Evaluating" : "Active",
             taxPercentage: +ctx.settings?.tax_percentage,
             paymentTerm: ctx.defaultProfile?.meta?.net,
