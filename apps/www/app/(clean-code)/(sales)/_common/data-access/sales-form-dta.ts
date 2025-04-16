@@ -144,14 +144,6 @@ async function formatForm(data: GetSalesBookFormDataDta) {
         shippingAddressId: data?.order?.shippingAddressId,
         billingAddressId: data?.order?.billingAddressId,
         customerId: data?.order?.customerId,
-        // shippingAddress: {
-        //     ...data?.order?.billingAddress,
-        //     meta: data?.order?.billingAddress?.meta as any as AddressBookMeta,
-        // },
-        // billingAddress: {
-        //     ...data?.order?.billingAddress,
-        //     meta: data?.order?.billingAddress?.meta as any as AddressBookMeta,
-        // },
         salesProfile: data.order.salesProfile,
         data: ctx,
         _taxForm,
