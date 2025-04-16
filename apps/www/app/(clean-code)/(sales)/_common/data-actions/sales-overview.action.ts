@@ -24,28 +24,28 @@ export async function loadSalesOverviewAction(id) {
             isDyke: true,
             paymentDueDate: true,
             customer: {
-                select: {
-                    id: true,
-                    phoneNo: true,
-                    name: true,
-                    businessName: true,
-                },
+                // select: {
+                //     id: true,
+                //     phoneNo: true,
+                //     name: true,
+                //     businessName: true,
+                // },
             },
             shippingAddress: {
-                select: {
-                    id: true,
-                    phoneNo: true,
-                    name: true,
-                    address1: true,
-                },
+                // select: {
+                //     id: true,
+                //     phoneNo: true,
+                //     name: true,
+                //     address1: true,
+                // },
             },
             billingAddress: {
-                select: {
-                    id: true,
-                    phoneNo: true,
-                    name: true,
-                    address1: true,
-                },
+                // select: {
+                //     id: true,
+                //     phoneNo: true,
+                //     name: true,
+                //     address1: true,
+                // },
             },
             meta: true,
             salesRep: {
@@ -90,14 +90,8 @@ export async function loadSalesOverviewAction(id) {
         phoneNo,
         customerId: order.customer?.id,
         displayName,
-        shipping: salesAddressLines(
-            order?.shippingAddress as any,
-            order?.customer as any,
-        ),
-        billing: salesAddressLines(
-            order?.billingAddress as any,
-            order?.customer as any,
-        ),
+        shipping: salesAddressLines(order?.shippingAddress, order?.customer),
+        billing: salesAddressLines(order?.billingAddress, order?.customer),
 
         // billing: [
         //     addressLine(order.billingAddress?.name || displayName, "user"),
