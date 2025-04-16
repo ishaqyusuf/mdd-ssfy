@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getCustomerAddress } from "@/actions/cache/get-customer-address";
 import {
     CustomersListData,
@@ -6,6 +6,7 @@ import {
 } from "@/actions/cache/get-customers";
 import { getSalesCustomerData } from "@/actions/get-sales-customer-data";
 import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { SettingsClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
 import { Icons } from "@/components/_v1/icons";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -27,7 +28,7 @@ export function CustomerDataSection() {
     useEffect(() => {
         if (query?.params?.payload) {
             let data = query.params.payload;
-            console.log({ data });
+
             let metaData = { ...md };
             if (!data?.address) {
                 metaData[data.address] = data.addressId;
@@ -57,6 +58,7 @@ export function CustomerDataSection() {
 
         return resp;
     }, [md.sad, md.cad, md.bad, refreshToken]);
+    const setting = useMemo(() => new SettingsClass(), []);
     useEffect(() => {
         if (!data || !md) return;
         const patch: typeof md = {
@@ -65,16 +67,26 @@ export function CustomerDataSection() {
             sad: data.shippingId,
             cad: data.customerId,
         };
+        patch.tax.taxCode = data?.taxCode;
+        patch.salesProfileId = data.profileId;
+        patch.paymentTerm = data.netTerm as any;
+
         const changes = !![
             patch.bad != md.bad,
             patch.sad != md.sad,
             patch.cad != md.cad,
         ]?.filter(Boolean)?.length;
+        console.log({ changes, patch, data });
+
         if (changes) {
-            console.log("META CHANGED", patch);
-            // zus.dotUpdate('metaData',patch)
+            zus.dotUpdate("metaData", patch);
+            setting.taxCodeChanged();
+            setting.salesProfileChanged();
+            setTimeout(() => {
+                setting.calculateTotalPrice();
+            }, 100);
         }
-    }, [data, md]);
+    }, [data]);
     return (
         <div className="divide-y">
             <DataCard label="Customer">
@@ -170,6 +182,11 @@ function DataCard(props: DataCardProps) {
                         } else {
                             metaData[props.address] = addressId;
                         }
+                        console.log({
+                            metaData,
+                            addressId,
+                            customerId,
+                        });
                         zus.dotUpdate("metaData", metaData);
                     }}
                     searching={searching}

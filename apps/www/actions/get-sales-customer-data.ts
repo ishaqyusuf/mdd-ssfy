@@ -55,6 +55,8 @@ export async function getSalesCustomerData({
         const shipping = customer?.addressBooks?.find(
             (a) => a.id == shippingId,
         );
+        const customerMeta = customer?.meta as any as CustomerMeta;
+        const [taxProfile] = customer?.taxProfiles;
         return {
             customerId: customer?.id,
             profileId: customer?.customerTypeId,
@@ -66,6 +68,7 @@ export async function getSalesCustomerData({
             ].filter(Boolean),
             shippingId,
             billingId,
+            netTerm: customerMeta?.netTerm,
             shipping: {
                 id: shipping?.id,
                 lines:
@@ -77,6 +80,8 @@ export async function getSalesCustomerData({
                 lines: salesAddressLines(billing, customer),
                 id: billing?.id,
             },
+            taxCode: taxProfile?.taxCode,
+            taxProfileId: taxProfile?.id,
         };
     };
     // return fn();

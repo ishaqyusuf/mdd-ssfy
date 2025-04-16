@@ -350,10 +350,10 @@ export class CostingClass {
             (tax) => tax.taxCode == this.setting.dotGet("metaData.tax.taxCode"),
         );
         // this.setting?.zus.dotUpdate("metaData.tax.taxCode", taxProfile.taxCode);
-        this.setting?.zus.dotUpdate("metaData.tax.title", taxProfile.title);
+        this.setting?.zus.dotUpdate("metaData.tax.title", taxProfile?.title);
         this.setting?.zus.dotUpdate(
             "metaData.tax.percentage",
-            taxProfile.percentage,
+            taxProfile?.percentage,
         );
         // console.log(taxProfile);
         this.calculateTotalPrice();
