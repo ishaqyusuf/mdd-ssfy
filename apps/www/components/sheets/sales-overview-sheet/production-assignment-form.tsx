@@ -39,7 +39,7 @@ export function ProductionAssignmentForm({ closeForm }) {
             assignedToId: null,
             dueDate: null,
             salesItemId: item?.itemId,
-            salesDoorId: 
+            // salesDoorId:
         },
     });
     useEffect(() => {
