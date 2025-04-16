@@ -161,6 +161,18 @@ export function whereSales(query: SearchParamsType) {
         const val = query?.[k] as any;
         if (!query?.[k]) return;
         switch (k) {
+            case "address.id":
+                whereAnd.push({
+                    OR: [
+                        {
+                            billingAddressId: val,
+                        },
+                        {
+                            shippingAddressId: val,
+                        },
+                    ],
+                });
+                break;
             case "id":
                 let id = String(query.id);
                 if (id?.includes(","))

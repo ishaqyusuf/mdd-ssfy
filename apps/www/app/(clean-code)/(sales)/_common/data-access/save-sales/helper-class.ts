@@ -14,6 +14,10 @@ export class SaveSalesHelper {
 
     public createRel(newId, oldId) {
         const resp: any = {};
+        if (newId) {
+            resp.connect = { id: newId };
+            return resp;
+        }
         if (oldId) {
             if (oldId != newId && !newId) resp.disconnect = { id: oldId };
         }

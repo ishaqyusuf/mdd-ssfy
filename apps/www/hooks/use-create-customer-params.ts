@@ -1,4 +1,10 @@
-import { parseAsBoolean, parseAsInteger, useQueryStates } from "nuqs";
+import {
+    parseAsBoolean,
+    parseAsInteger,
+    parseAsJson,
+    parseAsStringEnum,
+    useQueryStates,
+} from "nuqs";
 
 import { useOnCloseQuery } from "./use-on-close-query";
 
@@ -6,16 +12,32 @@ export function useCreateCustomerParams() {
     const onClose = useOnCloseQuery();
     const [params, setParams] = useQueryStates({
         customerForm: parseAsBoolean,
-        // : parseAsString,
-        // tab: parseAsStringEnum(["general", "sales", "quotes", "payments"]),
-        // onCloseQuery: parseAsJson(),
         addressId: parseAsInteger,
         customerId: parseAsInteger,
-        addressOnly: parseAsBoolean,
+        address: parseAsStringEnum(["sad", "bad"]),
+        payload: parseAsJson<{
+            addressId?: number;
+            customerId?: number;
+            address?: "sad" | "bad";
+        }>(),
     });
 
     return {
         params,
         setParams,
+        title: [
+            !params.address
+                ? !params.customerId
+                    ? "Create"
+                    : "Edit"
+                : !params.addressId
+                  ? "Create"
+                  : "Edit",
+            !params.address
+                ? "Customer"
+                : { sad: "Shipping Address", bad: "Billing Address" }[
+                      params.address
+                  ],
+        ].join(" "),
     };
 }

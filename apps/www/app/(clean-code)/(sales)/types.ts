@@ -510,15 +510,15 @@ export interface SalesFormFields {
         po?: string;
         sameAddress?: boolean;
         deliveryMode: DeliveryOption;
-        billing?: AddressForm;
-        shipping?: AddressForm;
-        customer: {
-            id?: number;
-            businessName?: string;
-            name?: string;
-            phone?: string;
-            isBusiness?: boolean;
-        };
+        // billing?: AddressForm;
+        // shipping?: AddressForm;
+        // customer: {
+        //     id?: number;
+        //     businessName?: string;
+        //     name?: string;
+        //     phone?: string;
+        //     isBusiness?: boolean;
+        // };
         debugMode: boolean;
         cad?: number;
         bad?: number;

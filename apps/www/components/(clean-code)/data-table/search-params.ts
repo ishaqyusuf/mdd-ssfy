@@ -64,6 +64,8 @@ export const searchParamsParser: {
     // date: parseAsArrayOf(parseAsTimestamp, RANGE_DELIMITER),
     // // REQUIRED FOR SORTING & PAGINATION
     "account.no": parseAsString,
+    address: parseAsString,
+    "address.id": parseAsInteger,
     sort: parseAsSort,
     size: parseAsInteger.withDefault(30),
     start: parseAsInteger.withDefault(0),
@@ -73,7 +75,6 @@ export const searchParamsParser: {
     "customer.name": parseAsString,
     "customer.tx.id": parseAsString,
     "sales.tx.id": parseAsString,
-    address: parseAsString,
     status: parseAsString,
     search: parseAsString,
     "dispatch.status": parseAsString,
@@ -105,9 +106,10 @@ export const searchParamsParser: {
 export const searchSchema = z
     .object({
         "account.no": z.string().optional(),
+        address: z.string().optional(),
+        "address.id": z.number().optional(),
         id: z.number().optional(),
         status: z.string().optional(),
-        address: z.string().optional(),
         "customer.id": z.number().optional(),
         "customer.tx.id": z.number().optional(),
         "customer.name": z.string().optional(),

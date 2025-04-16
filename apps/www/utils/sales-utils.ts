@@ -1,4 +1,6 @@
 import {
+    AddressBookMeta,
+    CustomerMeta,
     QtyControlType,
     SalesStatStatus,
 } from "@/app/(clean-code)/(sales)/types";
@@ -46,4 +48,26 @@ export function productionStatus(qty, completed): SalesStatStatus {
     if (completed == 0) return "pending";
     if (qty == completed) return "completed";
     if (qty > completed && completed > 0) return "in progress";
+}
+
+export function salesAddressLines(
+    address: Prisma.AddressBooksGetPayload<{}>,
+    customer?: Prisma.CustomersGetPayload<{}>,
+) {
+    let meta = address?.meta as any as AddressBookMeta;
+    let cMeta = customer?.meta as any as CustomerMeta;
+    return [
+        address?.name || customer?.name || customer?.businessName,
+        address?.phoneNo || customer?.phoneNo || customer?.phoneNo2,
+        address?.email || customer?.email,
+        [
+            address?.address1 || customer?.address,
+            address?.city,
+            address?.state,
+            meta?.zip_code,
+            address?.country,
+        ]
+            ?.filter(Boolean)
+            ?.join(", "),
+    ].filter(Boolean);
 }

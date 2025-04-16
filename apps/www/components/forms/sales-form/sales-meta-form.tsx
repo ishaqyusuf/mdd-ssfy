@@ -25,8 +25,8 @@ import {
 } from "@gnd/ui/select";
 
 import { TakeOffForm } from "../take-off-form/take-off-form";
+import { CustomerDataSection } from "./customer-data-section";
 import { Footer } from "./footer";
-import { SalesCustomerForm } from "./sales-customer-form";
 import { SalesFormEmailMenu } from "./sales-form-email-menu";
 import { SalesFormPrintMenu } from "./sales-form-print-menu";
 import { SalesFormSave } from "./sales-form-save";
@@ -108,7 +108,7 @@ function SummaryTab({}) {
     return (
         <div className="">
             <div className="min-h-[20vh] border-b">
-                <SalesCustomerForm />
+                <CustomerDataSection />
             </div>
             <div className="grid gap-1">
                 <Input

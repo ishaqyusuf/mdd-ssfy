@@ -1,27 +1,26 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { AsyncFnType } from "@/app/(clean-code)/type";
+
+import { zhInitializeState } from "../../sales-book/(form)/_utils/helpers/zus/zus-form-helper";
+import { SalesFormFields, SalesType } from "../../types";
+import { deleteSalesByOrderId, deleteSalesDta } from "../data-access/sales-dta";
 import {
     createSalesBookFormDataDta,
     GetSalesBookFormDataProps,
     getTransformedSalesBookFormDataDta,
 } from "../data-access/sales-form-dta";
-import { composeStepRouting } from "../utils/sales-step-utils";
 import {
     loadSalesFormData,
     saveSalesSettingData,
 } from "../data-access/sales-form-settings.dta";
-import { composeSalesPricing } from "../utils/sales-pricing-utils";
 import { getPricingListDta } from "../data-access/sales-pricing-dta";
-import { SalesFormFields, SalesType } from "../../types";
-import { saveSalesFormDta } from "../data-access/save-sales/index.dta";
-import { zhInitializeState } from "../../sales-book/(form)/_utils/helpers/zus/zus-form-helper";
-import { deleteSaleUseCase } from "@/use-cases/sales";
-import { prisma } from "@/db";
-import { SaveQuery } from "../data-access/save-sales/save-sales-class";
-import { deleteSalesByOrderId, deleteSalesDta } from "../data-access/sales-dta";
 import { copySalesDta } from "../data-access/save-sales/copy-sales-dta";
-import { redirect } from "next/navigation";
+import { saveSalesFormDta } from "../data-access/save-sales/index.dta";
+import { SaveQuery } from "../data-access/save-sales/save-sales-class";
+import { composeSalesPricing } from "../utils/sales-pricing-utils";
+import { composeStepRouting } from "../utils/sales-step-utils";
 
 export type GetSalesBookForm = AsyncFnType<typeof getSalesBookFormUseCase>;
 export async function getSalesBookFormUseCase(data: GetSalesBookFormDataProps) {
@@ -36,7 +35,7 @@ async function composeBookForm<T>(data: T) {
     };
 }
 export async function createSalesBookFormUseCase(
-    data: GetSalesBookFormDataProps
+    data: GetSalesBookFormDataProps,
 ) {
     const resp = await createSalesBookFormDataDta(data);
     return await composeBookForm(resp);
@@ -53,7 +52,7 @@ export async function saveSalesSettingUseCase(meta) {
 export async function saveFormUseCase(
     data: SalesFormFields,
     oldFormState?: SalesFormFields,
-    query?: SaveQuery
+    query?: SaveQuery,
     // allowRedirect = true
 ) {
     if (!oldFormState)
@@ -107,7 +106,7 @@ export async function copySalesUseCase(orderId, as: SalesType) {
             restoreMode: false,
             allowRedirect: false,
             copy: true,
-        }
+        },
     );
 
     return {

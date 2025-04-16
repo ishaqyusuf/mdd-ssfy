@@ -50,7 +50,8 @@ export async function getCustomerFormAction(id, addressId?) {
         },
     });
     const customerMeta = customer?.meta as any as CustomerMeta;
-    const [address] = customer?.addressBooks;
+    let [address] = customer?.addressBooks;
+
     const addressMeta = address?.meta as any as AddressBookMeta;
     const [taxProfile] = customer?.taxProfiles;
     return {
@@ -63,6 +64,7 @@ export async function getCustomerFormAction(id, addressId?) {
         customerType: customer.businessName ? "Business" : "Personal",
         email: customer?.email,
         id: customer?.id,
+        customerId: customer?.id,
         name: customer?.name,
         netTerm: customerMeta?.netTerm,
         phoneNo: customer?.phoneNo,
@@ -75,5 +77,6 @@ export async function getCustomerFormAction(id, addressId?) {
         zip_code: addressMeta?.zip_code,
         taxCode: taxProfile?.taxCode,
         taxProfileId: taxProfile?.id,
+        // addressList: customer?.addressBooks,
     } satisfies CustomerFormData;
 }

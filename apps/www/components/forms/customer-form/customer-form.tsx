@@ -5,17 +5,21 @@ import { getCustomerProfilesAction } from "@/actions/cache/get-customer-profiles
 import { getTaxProfilesAction } from "@/actions/cache/get-tax-profiles";
 import { createCustomerAction } from "@/actions/create-customer-action";
 import { createCustomerAddressAction } from "@/actions/create-customer-address-action";
+import { getSalesListAction } from "@/actions/get-sales-list";
 import { createCustomerSchema } from "@/actions/schema";
 import salesData from "@/app/(clean-code)/(sales)/_common/utils/sales-data";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import useEffectLoader from "@/lib/use-effect-loader";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Check, Copy } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
+import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 
 import FormInput from "../../common/controls/form-input";
@@ -33,9 +37,6 @@ import { ExistingCustomerResolver } from "./existing-customer-resolver";
 export type CustomerFormData = z.infer<typeof createCustomerSchema>;
 type Props = {
     data?: CustomerFormData;
-};
-export const customerFormStaticCallbacks = {
-    created: null,
 };
 export function CustomerForm({ data }: Props) {
     const [sections, setSections] = useState<string[]>(["general"]);
@@ -60,7 +61,8 @@ export function CustomerForm({ data }: Props) {
             state: undefined,
             zip_code: undefined,
             customerType: "Personal",
-            addressOnly: params.addressOnly,
+            addressOnly: !!params.address,
+            // resolutionRequired: false,
         },
     });
     const resp = useEffectLoader(
@@ -78,38 +80,44 @@ export function CustomerForm({ data }: Props) {
     const { taxProfiles, salesProfiles } = resp?.data || {};
     useEffect(() => {
         if (data) {
-            setSections(
-                params?.addressOnly ? ["address"] : ["general", "address"],
-            );
+            console.log(data);
+
+            setSections(params?.address ? ["address"] : ["general", "address"]);
             let formData = {};
             Object.entries(data).map(
                 ([k, v]) => (formData[k] = v || undefined),
             );
             form.reset({
                 ...formData,
-                addressOnly: params.addressOnly,
+                addressOnly: !!params.address,
             });
         }
     }, [data, form, params]);
 
     const [customerType] = form.watch(["customerType"]);
+    const [resolutionRequired, setResolutionRequired] = useState(false);
     const lt = useLoadingToast();
     const createCustomerAddress = useAction(createCustomerAddressAction, {
         onSuccess: ({ data: resp }) => {
             toast.success(data?.id ? "Updated" : "Created");
-            customerFormStaticCallbacks?.created?.(
-                resp.customerId,
-                resp?.addressId,
-            );
             lt.display({
                 variant: "success",
                 title: "Saved",
             });
+            setParams({
+                payload: {
+                    customerId: resp.customerId,
+                    addressId: resp.addressId,
+                    address: params.address as any,
+                },
+            });
             // if (resp) {
-            setParams(null);
+            // setParams(null);
             // }
         },
-        onError() {
+        onError(e) {
+            console.log(e);
+
             lt.display({
                 variant: "error",
                 title: "Unable to complete",
@@ -120,22 +128,45 @@ export function CustomerForm({ data }: Props) {
         onError() {},
         onSuccess: ({ data: resp }) => {
             toast.success(data?.id ? "Updated" : "Created");
-            customerFormStaticCallbacks?.created?.(
-                resp.customerId,
-                resp?.addressId,
-            );
+            // customerFormStaticCallbacks?.created?.(
+            //     resp.customerId,
+            //     resp?.addressId,
+            // );
+            setParams({
+                payload: {
+                    customerId: resp.customerId,
+                    addressId: resp.addressId,
+                    address: params.address as any,
+                },
+            });
             // if (resp) {
-            setParams(null);
             // }
         },
     });
-
+    const addressId = form.watch("addressId");
+    const [sales, setSales] = useState([]);
+    useEffect(() => {
+        setTimeout(() => {
+            if (!addressId) {
+                setSales([]);
+            } else
+                getSalesListAction({
+                    "address.id": addressId,
+                }).then(({ data: sales }) => {
+                    setSales(sales);
+                    console.log(sales);
+                    setResolutionRequired(!!sales?.length);
+                    // form.setValue("resolutionRequired", !!sales?.length);
+                });
+        }, 150);
+    }, [addressId]);
+    function handleCreateCopy() {}
     return (
         <Form {...form}>
             <form
                 // onSubmit={form.handleSubmit(__test)}
                 onSubmit={form.handleSubmit(
-                    params?.addressOnly
+                    params?.address
                         ? createCustomerAddress.execute
                         : createCustomer.execute,
                 )}
@@ -148,11 +179,11 @@ export function CustomerForm({ data }: Props) {
                         defaultValue={sections}
                         className="space-y-6"
                     >
-                        {params.addressOnly ? (
+                        {params.address ? (
                             <></>
                         ) : (
                             <AccordionItem value="general">
-                                <AccordionTrigger disabled={params.addressOnly}>
+                                <AccordionTrigger disabled={!!params.address}>
                                     General
                                 </AccordionTrigger>
                                 <AccordionContent>
@@ -237,7 +268,7 @@ export function CustomerForm({ data }: Props) {
                             <AccordionTrigger>Address</AccordionTrigger>
                             <AccordionContent>
                                 <div className="space-y-4">
-                                    {!params.addressOnly || (
+                                    {!params.address || (
                                         <>
                                             <FormInput
                                                 control={form.control}
@@ -301,6 +332,116 @@ export function CustomerForm({ data }: Props) {
                                         />
                                     </div>
                                 </div>
+                                {!(sales?.length && resolutionRequired) || (
+                                    <>
+                                        <Alert className="mt-4 border-amber-500">
+                                            <AlertTitle className="font-medium text-amber-800">
+                                                Connected Sales Detected
+                                            </AlertTitle>
+                                            <AlertDescription className="mt-2">
+                                                <p className="mb-3 text-sm text-amber-700">
+                                                    The address you are editing
+                                                    is connected to multiple (
+                                                    {sales?.length}) sales, and
+                                                    this will have all connected
+                                                    sales address updated.
+                                                </p>
+                                                <div className="relative">
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                setResolutionRequired(
+                                                                    false,
+                                                                );
+                                                            }}
+                                                        >
+                                                            <Check className="mr-2 h-4 w-4" />
+                                                            I know
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={
+                                                                handleCreateCopy
+                                                            }
+                                                        >
+                                                            <Copy className="mr-2 h-4 w-4" />
+                                                            Create a copy
+                                                        </Button>
+                                                    </div>
+                                                    <Accordion
+                                                        type="single"
+                                                        collapsible
+                                                        className="mt-4s hidden"
+                                                    >
+                                                        <AccordionItem value="connected-sales">
+                                                            <AccordionTrigger className="text-sm font-medium">
+                                                                Connected Sales
+                                                                ({sales.length})
+                                                            </AccordionTrigger>
+                                                            <AccordionContent>
+                                                                <div className="space-y-3">
+                                                                    {sales.map(
+                                                                        (
+                                                                            sale,
+                                                                        ) => (
+                                                                            <div
+                                                                                key={
+                                                                                    sale.id
+                                                                                }
+                                                                                className="rounded-md border p-3 text-sm"
+                                                                            >
+                                                                                <div className="mb-2 flex items-start justify-between">
+                                                                                    <div className="font-medium">
+                                                                                        {
+                                                                                            sale.id
+                                                                                        }
+                                                                                    </div>
+                                                                                    <Badge
+                                                                                        variant={
+                                                                                            sale.status ===
+                                                                                            "Completed"
+                                                                                                ? "default"
+                                                                                                : sale.status ===
+                                                                                                    "Pending"
+                                                                                                  ? "outline"
+                                                                                                  : "destructive"
+                                                                                        }
+                                                                                    >
+                                                                                        {
+                                                                                            sale.status
+                                                                                        }
+                                                                                    </Badge>
+                                                                                </div>
+                                                                                <div className="text-muted-foreground">
+                                                                                    <div>
+                                                                                        Date:{" "}
+                                                                                        {new Date(
+                                                                                            sale.date,
+                                                                                        ).toLocaleDateString()}
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        Sales
+                                                                                        Rep:{" "}
+                                                                                        {
+                                                                                            sale.salesRep
+                                                                                        }
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        ),
+                                                                    )}
+                                                                </div>
+                                                            </AccordionContent>
+                                                        </AccordionItem>
+                                                    </Accordion>
+                                                </div>
+                                            </AlertDescription>
+                                        </Alert>
+                                    </>
+                                )}
                             </AccordionContent>
                         </AccordionItem>
                     </Accordion>
@@ -323,7 +464,8 @@ export function CustomerForm({ data }: Props) {
                             disabled={
                                 createCustomer.isExecuting ||
                                 createCustomerAddress.isExecuting ||
-                                !form.formState.isValid
+                                !form.formState.isValid ||
+                                resolutionRequired
                             }
                         >
                             {data?.id ? "Update" : "Create"}

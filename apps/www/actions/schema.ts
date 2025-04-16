@@ -10,6 +10,9 @@ export const createCustomerSchema = z
         profileId: z.string().optional().nullable(),
         id: z.number().optional(),
         customerId: z.number().optional(),
+        // resolutionRequired: z.boolean().refine((val) => val == true, {
+        //     message: "resolution required",
+        // }),
         addressOnly: z.boolean().nullable().optional(),
         phoneNo: z.string().optional(),
         phoneNo2: z.string().optional(),

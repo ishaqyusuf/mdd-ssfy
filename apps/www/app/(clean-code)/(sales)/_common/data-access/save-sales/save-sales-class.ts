@@ -5,7 +5,6 @@ import { generateRandomString } from "@/lib/utils";
 import { SalesFormFields } from "../../../types";
 import { resetSalesStatAction } from "../../data-actions/sales-stat-control.action";
 import { composeSalesUrl } from "../../utils/sales-utils";
-import { AddressClass } from "./address-class";
 import { SaveSalesHelper } from "./helper-class";
 import { ItemHelperClass } from "./item-helper-class";
 import { saveShelfHelper } from "./save-shelf-helper";
@@ -71,7 +70,6 @@ export type SaveQuery = {
 };
 export class SaveSalesClass extends SaveSalesHelper {
     public result() {
-        let __redirect = this.query?.allowRedirect;
         const data = this.data;
         if (data.error) {
             return { data };
@@ -268,11 +266,11 @@ export class SaveSalesClass extends SaveSalesHelper {
         return this.data.sales?.id || this.data.sales?.updateId;
     }
     public async generateSalesForm() {
-        const addrs = new AddressClass(this.ctx);
-        await addrs.saveAddress();
-
+        const md = this.ctx.form.metaData;
+        this.ctx.data.billingAddressId = md.bad;
+        this.ctx.data.shippingAddressId = md?.sad;
+        this.ctx.data.customerId = md?.cad;
         const saveData = await this.composeSalesForm(this.form);
-
         this.data.sales = saveData;
     }
     public nextIds = {

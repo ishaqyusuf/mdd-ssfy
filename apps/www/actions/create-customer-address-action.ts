@@ -17,7 +17,7 @@ export const createCustomerAddressAction = actionClient
     .action(async ({ parsedInput: { ...input } }) => {
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
             let addressId = input.addressId;
-            let customerId = input.id;
+            let customerId = input.customerId || input.id;
             const customerData = {
                 name: input.name,
                 phoneNo: input.phoneNo,
@@ -35,10 +35,10 @@ export const createCustomerAddressAction = actionClient
                     },
                 },
             } satisfies Prisma.AddressBooksUpdateInput;
-            if (input.id) {
+            if (addressId) {
                 const address = await prisma.addressBooks.update({
                     where: {
-                        id: input.id,
+                        id: addressId,
                     },
                     data: {
                         ...customerData,
