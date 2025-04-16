@@ -17,7 +17,6 @@ import {
 } from "../_utils/helpers/zus/zus-form-helper";
 import { GetSalesBookForm } from "../../../_common/use-case/sales-book-form-use-case";
 import { FormDataPage } from "./data-page";
-import { AddressTab } from "./data-page/address-tab";
 import { FormFooter } from "./form-footer";
 import { FormHeader } from "./form-header";
 import ItemSection from "./item-section";
@@ -65,18 +64,7 @@ function FormClientOld({ data }: FormClientProps) {
                         "lg:flex lg:gap-4",
                     )}
                 >
-                    <div className="hidden w-2/3 lg:block">
-                        <AddressTab />
-                    </div>
                     <FormDataPage />
-                </div>
-                <div
-                    className={cn(
-                        zus.currentTab != "address" &&
-                            "z-0 h-0 w-0 overflow-hidden opacity-0",
-                    )}
-                >
-                    <AddressTab />
                 </div>
 
                 <div
@@ -102,7 +90,7 @@ function FormClientOld({ data }: FormClientProps) {
             </div>
             <FormFooter />
             <CustomerProfileUpdateModal
-                phoneNo={zus.metaData.billing?.primaryPhone}
+                phoneNo={zus.metaData.primaryPhone}
                 profileId={zus.metaData.salesProfileId}
             />
         </div>

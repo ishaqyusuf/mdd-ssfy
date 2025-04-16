@@ -89,6 +89,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
             cad: data.customer?.id,
             bad: data.billingAddressId,
             sad: data.shippingAddressId,
+            primaryPhone: data.customer?.phoneNo,
         },
         formStatus: "ready",
     };
