@@ -34,22 +34,26 @@ export function ProductionAssignmentForm({ closeForm }) {
                 ...item?.pending?.assignment,
             },
             qty: {
+                ...item?.pending?.assignment,
                 // qty: !item.pending?.assignment?.noHandle
             },
             assignedToId: null,
             dueDate: null,
             salesItemId: item?.itemId,
-            // salesDoorId:
+            salesDoorId: item.doorId,
+            salesId: item.salesId,
+            itemUid: item.controlUid,
+            itemsTotal: item.qty.qty,
         },
     });
-    useEffect(() => {
-        let qy = item?.pending?.assignment;
-        form.setValue("qty", {
-            lh: qy.lh || undefined,
-            rh: qy.rh || undefined,
-            qty: !qy.lh && !qy.rh ? qy.qty : undefined,
-        });
-    }, [item]);
+    // useEffect(() => {
+    //     let qy = item?.pending?.assignment;
+    //     form.setValue("qty", {
+    //         lh: qy.lh || undefined,
+    //         rh: qy.rh || undefined,
+    //         qty: !qy.lh && !qy.rh ? qy.qty : undefined,
+    //     });
+    // }, [item]);
     const formData = form.watch();
     const data = useAsyncMemo(async () => {
         await timeout(100);

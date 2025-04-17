@@ -7,10 +7,12 @@ import z from "zod";
 
 import { actionClient } from "./safe-action";
 import { createAssignmentSchema } from "./schema";
+import { updateSalesItemStats } from "./update-sales-item-stat";
+import { updateSalesStatAction } from "./update-sales-stat";
 
 export async function createSalesAssignment(
-    tx: typeof prisma,
     data: z.infer<typeof createAssignmentSchema>,
+    tx: typeof prisma = prisma,
 ) {
     const assignment = await tx.orderItemProductionAssignments.create({
         data: {
@@ -51,7 +53,12 @@ export async function createSalesAssignment(
                 },
             },
         },
+        include: {
+            assignedTo: true,
+        },
     });
+
+    return assignment;
 }
 export const createSalesAssignmentAction = actionClient
     .schema(createAssignmentSchema)
@@ -59,7 +66,28 @@ export const createSalesAssignmentAction = actionClient
         name: "create-sales-assignment",
         track: {},
     })
-    .action(async ({ parsedInput: { ...input } }) => {
-        const resp = await prisma.$transaction(async (tx: typeof prisma) => {});
+    .action(async ({ parsedInput: input }) => {
+        const resp = await prisma.$transaction(async (tx: typeof prisma) => {
+            const assignment = await createSalesAssignment(input, tx);
+            await updateSalesItemStats({
+                uid: input.itemUid,
+                salesId: input.salesId,
+                type: "prodAssigned",
+                itemTotal: input.itemsTotal,
+                qty: {
+                    ...input.qty,
+                },
+            });
+            await updateSalesStatAction(
+                {
+                    salesId: input.salesId,
+                    types: ["prodAssigned"],
+                },
+                tx,
+            );
+            return {
+                assignmentId: assignment.id,
+            };
+        });
         return resp;
     });

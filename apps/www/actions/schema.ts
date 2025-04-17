@@ -154,6 +154,7 @@ export const createPaymentSchema = z
         } else {
         }
     });
+
 export const createAssignmentSchema = z
     .object({
         pending: z.object({
@@ -170,6 +171,8 @@ export const createAssignmentSchema = z
         dueDate: z.date().optional().nullable(),
         salesDoorId: z.number().nullable().optional(),
         salesId: z.number(),
+        itemsTotal: z.number(),
+        itemUid: z.string(),
         salesItemId: z.number(),
     })
     .superRefine((data, ctx) => {

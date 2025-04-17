@@ -33,6 +33,7 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
     });
     let items: Item[] = [];
     function addItem(item: Item) {
+        item.salesId = order.id;
         item.subtitle = [item.sectionTitle, item.size, item.swing]
             ?.filter(Boolean)
             .join(" | ");
@@ -146,6 +147,7 @@ interface Item {
     itemIndex?: number;
     itemId?: number;
     doorId?: number;
+    salesId?: number;
     primary?: boolean;
     qty?: Qty;
     assigned?: Qty;
@@ -164,6 +166,7 @@ const select = {
     meta: true,
     orderId: true,
     isDyke: true,
+    id: true,
     assignments: {
         where: {
             assignedToId: undefined, // !producerId ? undefined : producerId,

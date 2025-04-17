@@ -28,3 +28,14 @@ export function qtyMatrixSum(...qties: Qty[]) {
     });
     return res;
 }
+export function transformQtyHandle({ lhQty: lh, rhQty: rh, qty }): Qty {
+    return { lh, rh, qty };
+}
+export function negativeQty({ lh, rh, qty, ...rest }: Qty): Qty {
+    return {
+        ...rest,
+        lh: lh * -1,
+        rh: rh * -1,
+        qty: qty * -1,
+    };
+}

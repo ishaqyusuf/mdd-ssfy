@@ -8,22 +8,25 @@ import { Sheet, SheetContent, SheetContentProps } from "@gnd/ui/sheet";
 import Portal from "../_v1/portal";
 import { ScrollArea } from "../ui/scroll-area";
 
-const sheetContentVariant = cva("flex flex-col h-screen w-full ", {
-    variants: {
-        floating: {
-            true: "md:h-[96vh] md:mx-4 md:mt-[2vh]",
-        },
-        rounded: {
-            true: "md:rounded-xl",
-        },
-        size: {
-            xl: "sm:max-w-xl",
-            "2xl": "sm:max-w-2xl",
-            default: "",
-            lg: "sm:max-w-lg",
+const sheetContentVariant = cva(
+    "flex flex-col h-screen w-full overflow-x-hidden ",
+    {
+        variants: {
+            floating: {
+                true: "md:h-[96vh] md:mx-4 md:mt-[2vh]",
+            },
+            rounded: {
+                true: "md:rounded-xl",
+            },
+            size: {
+                xl: "sm:max-w-xl",
+                "2xl": "lg:max-w-2xl",
+                default: "",
+                lg: "sm:max-w-lg",
+            },
         },
     },
-});
+);
 interface Props
     extends SheetContentProps,
         VariantProps<typeof sheetContentVariant> {
