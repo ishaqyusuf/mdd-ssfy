@@ -55,16 +55,11 @@ export function CustomerDataSection() {
             ) {
                 metaData.dataRefreshToken = generateRandomString();
             }
+            metaData.profileChangedToken = data.address
+                ? null
+                : generateRandomString();
             zus.dotUpdate("metaData", metaData);
             query.setParams(null);
-            if (!data.address) {
-                setTimeout(() => {
-                    zus.dotUpdate(
-                        "metaData.profileChangedToken",
-                        generateRandomString(),
-                    );
-                }, 1500);
-            }
         }
     }, [query, md, zus]);
     const data = useAsyncMemo(async () => {
@@ -80,8 +75,17 @@ export function CustomerDataSection() {
             ? await promise()
             : ({} as any);
 
-        return resp;
-    }, [md.shipping.id, md.customer.id, md.billing.id, md.dataRefreshToken]);
+        return {
+            ...resp,
+            profileChangedToken: md.profileChangedToken,
+        };
+    }, [
+        md.shipping.id,
+        md.customer.id,
+        md.billing.id,
+        md.dataRefreshToken,
+        md.profileChangedToken,
+    ]);
     const setting = useMemo(() => new SettingsClass(), []);
     useEffect(() => {
         if (!data || !md) return;
@@ -99,15 +103,16 @@ export function CustomerDataSection() {
                 id: data.customerId,
             },
         };
-        patch.profileChangedToken = null;
-        const updateTok = md?.profileChangedToken;
-        if (updateTok) {
+        // patch.profileChangedToken = null;
+        if (data.profileChangedToken) {
             patch.tax.taxCode = data?.taxCode;
             patch.salesProfileId = data.profileId;
             patch.paymentTerm = data.netTerm as any;
         }
+
         zus.dotUpdate("metaData", patch);
-        if (updateTok) {
+        // zus.dotUpdate("metaData", patch);
+        if (data.profileChangedToken) {
             setting.taxCodeChanged();
             setting.salesProfileChanged();
             setTimeout(() => {
@@ -115,6 +120,7 @@ export function CustomerDataSection() {
             }, 100);
         }
     }, [data]);
+
     return (
         <div className="divide-y">
             <DataCard label="Customer">
@@ -219,13 +225,14 @@ function DataCard(props: DataCardProps) {
                                 metaData.billing.id = addressId;
                             else metaData.shipping.id = addressId;
                         }
+                        metaData.profileChangedToken = generateRandomString();
                         zus.dotUpdate("metaData", metaData);
-                        setTimeout(() => {
-                            zus.dotUpdate(
-                                "metaData.profileChangedToken",
-                                generateRandomString(),
-                            );
-                        }, 1500);
+                        // setTimeout(() => {
+                        //     zus.dotUpdate(
+                        //         "metaData.profileChangedToken",
+                        //         generateRandomString(),
+                        //     );
+                        // }, 3000);
                     }}
                     searching={searching}
                     setSearching={setSearching}
