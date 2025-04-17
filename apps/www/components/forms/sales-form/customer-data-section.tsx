@@ -53,14 +53,20 @@ export function CustomerDataSection() {
                     "customer.id",
                 )
             ) {
-                console.log("REF TOK");
-                setRefreshTok(generateRandomString());
+                metaData.dataRefreshToken = generateRandomString();
             }
             zus.dotUpdate("metaData", metaData);
             query.setParams(null);
+            if (!data.address) {
+                setTimeout(() => {
+                    zus.dotUpdate(
+                        "metaData.profileChangedToken",
+                        generateRandomString(),
+                    );
+                }, 1500);
+            }
         }
     }, [query, md, zus]);
-    const [refreshTok, setRefreshTok] = useState(null);
     const data = useAsyncMemo(async () => {
         await timeout(100);
         const promise = async () =>
@@ -73,10 +79,10 @@ export function CustomerDataSection() {
         const resp: AsyncFnType<typeof promise> = !!md?.customer.id
             ? await promise()
             : ({} as any);
-        console.log({ resp });
-        return resp;
-    }, [md.shipping.id, md.customer.id, md.billing.id, refreshTok]);
 
+        return resp;
+    }, [md.shipping.id, md.customer.id, md.billing.id, md.dataRefreshToken]);
+    const setting = useMemo(() => new SettingsClass(), []);
     useEffect(() => {
         if (!data || !md) return;
         const patch: typeof md = {
@@ -93,11 +99,25 @@ export function CustomerDataSection() {
                 id: data.customerId,
             },
         };
+        patch.profileChangedToken = null;
+        const updateTok = md?.profileChangedToken;
+        if (updateTok) {
+            patch.tax.taxCode = data?.taxCode;
+            patch.salesProfileId = data.profileId;
+            patch.paymentTerm = data.netTerm as any;
+        }
         zus.dotUpdate("metaData", patch);
+        if (updateTok) {
+            setting.taxCodeChanged();
+            setting.salesProfileChanged();
+            setTimeout(() => {
+                setting.calculateTotalPrice();
+            }, 100);
+        }
     }, [data]);
     return (
         <div className="divide-y">
-            <DataCard data={data} label="Customer">
+            <DataCard label="Customer">
                 <Lines lines={data?.customerData} />
             </DataCard>
 
@@ -159,32 +179,12 @@ interface DataCardProps {
     children?;
     className?: string;
     address?: EditBtnProps["address"];
-    data?;
 }
 function DataCard(props: DataCardProps) {
     const [searching, setSearching] = useState(false);
     const zus = useFormDataStore();
     const md = zus.metaData;
-    const setting = useMemo(() => new SettingsClass(), []);
-    const data = props.data;
-    const [updateCustomerProfileToken, setUpdateCustomerProfileToken] =
-        useState(null);
-    useEffect(() => {
-        if (!updateCustomerProfileToken || !data) return;
-        setUpdateCustomerProfileToken(null);
-        const patch: typeof md = {
-            ...md,
-        };
-        patch.tax.taxCode = data?.taxCode;
-        patch.salesProfileId = data.profileId;
-        patch.paymentTerm = data.netTerm as any;
-        zus.dotUpdate("metaData", patch);
-        setting.taxCodeChanged();
-        setting.salesProfileChanged();
-        setTimeout(() => {
-            setting.calculateTotalPrice();
-        }, 100);
-    }, [data, updateCustomerProfileToken]);
+
     return (
         <div
             className={cn("group relative space-y-2 p-2 px-4", props.className)}
@@ -221,7 +221,8 @@ function DataCard(props: DataCardProps) {
                         }
                         zus.dotUpdate("metaData", metaData);
                         setTimeout(() => {
-                            setUpdateCustomerProfileToken(
+                            zus.dotUpdate(
+                                "metaData.profileChangedToken",
                                 generateRandomString(),
                             );
                         }, 1500);

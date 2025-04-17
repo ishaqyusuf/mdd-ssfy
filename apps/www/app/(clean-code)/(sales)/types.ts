@@ -537,6 +537,8 @@ export interface SalesFormFields {
         paymentTerm?: PaymentTerms;
         paymentDueDate?;
         goodUntil?;
+        profileChangedToken?;
+        dataRefreshToken?;
     };
     kvFormItem: {
         [itemUid in string]: SalesFormItem;
