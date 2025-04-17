@@ -76,7 +76,7 @@ export function CustomerDataSection() {
         console.log({ resp });
         return resp;
     }, [md.shipping.id, md.customer.id, md.billing.id, refreshTok]);
-    const setting = useMemo(() => new SettingsClass(), []);
+
     useEffect(() => {
         if (!data || !md) return;
         const patch: typeof md = {
@@ -93,29 +93,11 @@ export function CustomerDataSection() {
                 id: data.customerId,
             },
         };
-        patch.tax.taxCode = data?.taxCode;
-        patch.salesProfileId = data.profileId;
-        patch.paymentTerm = data.netTerm as any;
-
-        // const changes = !![
-        //     patch.billing.id != md.billing.id,
-        //     patch.shipping.id != md.shipping.id,
-        //     patch.customer.id != md.customer.id,
-        //     // patch.tax.taxCode != md.taxco
-        // ]?.filter(Boolean)?.length;
-
         zus.dotUpdate("metaData", patch);
-        setting.taxCodeChanged();
-        setting.salesProfileChanged();
-        setTimeout(() => {
-            setting.calculateTotalPrice();
-        }, 100);
-        // if (changes) {
-        // }
     }, [data]);
     return (
         <div className="divide-y">
-            <DataCard label="Customer">
+            <DataCard data={data} label="Customer">
                 <Lines lines={data?.customerData} />
             </DataCard>
 
@@ -177,11 +159,32 @@ interface DataCardProps {
     children?;
     className?: string;
     address?: EditBtnProps["address"];
+    data?;
 }
 function DataCard(props: DataCardProps) {
     const [searching, setSearching] = useState(false);
     const zus = useFormDataStore();
     const md = zus.metaData;
+    const setting = useMemo(() => new SettingsClass(), []);
+    const data = props.data;
+    const [updateCustomerProfileToken, setUpdateCustomerProfileToken] =
+        useState(null);
+    useEffect(() => {
+        if (!updateCustomerProfileToken || !data) return;
+        setUpdateCustomerProfileToken(null);
+        const patch: typeof md = {
+            ...md,
+        };
+        patch.tax.taxCode = data?.taxCode;
+        patch.salesProfileId = data.profileId;
+        patch.paymentTerm = data.netTerm as any;
+        zus.dotUpdate("metaData", patch);
+        setting.taxCodeChanged();
+        setting.salesProfileChanged();
+        setTimeout(() => {
+            setting.calculateTotalPrice();
+        }, 100);
+    }, [data, updateCustomerProfileToken]);
     return (
         <div
             className={cn("group relative space-y-2 p-2 px-4", props.className)}
@@ -217,6 +220,11 @@ function DataCard(props: DataCardProps) {
                             else metaData.shipping.id = addressId;
                         }
                         zus.dotUpdate("metaData", metaData);
+                        setTimeout(() => {
+                            setUpdateCustomerProfileToken(
+                                generateRandomString(),
+                            );
+                        }, 1500);
                     }}
                     searching={searching}
                     setSearching={setSearching}
