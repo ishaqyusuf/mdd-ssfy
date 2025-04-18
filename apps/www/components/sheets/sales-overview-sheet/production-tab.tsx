@@ -18,6 +18,7 @@ import { useAsyncMemo } from "use-async-memo";
 
 import { Button } from "@gnd/ui/button";
 import { Card, CardHeader } from "@gnd/ui/card";
+import { Checkbox } from "@gnd/ui/checkbox";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -124,9 +125,12 @@ function ItemCard({ item }: ItemCardProps) {
                     )}
                 >
                     <CardHeader className="space-y-4 px-4 pb-2 pt-4">
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4">
+                            <div className="mt-1">
+                                <Checkbox className="size-5" />
+                            </div>
                             <div
-                                className="cursor-pointer space-y-1"
+                                className="flex-1 cursor-pointer space-y-1"
                                 onClick={toggle}
                             >
                                 <h3 className="text-base font-semibold uppercase">
@@ -136,6 +140,7 @@ function ItemCard({ item }: ItemCardProps) {
                                     {item.subtitle}
                                 </p>
                             </div>
+
                             <div className="flex items-center space-x-2">
                                 {/* <Badge
                                 variant={
@@ -170,7 +175,10 @@ function ItemCard({ item }: ItemCardProps) {
                             </div>
                         </div>
                         <div className="mt-4 flex items-center space-x-4">
-                            <div className="flex-1">
+                            <div
+                                onClick={toggle}
+                                className="flex-1 cursor-pointer"
+                            >
                                 <ItemProgressBar item={item} />
                             </div>
                             <AccordionTrigger

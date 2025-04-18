@@ -3,11 +3,16 @@ import {
     useContext as useContextBase,
     useState,
 } from "react";
+import { deleteSalesAssignmentAction } from "@/actions/delete-sales-assignment";
+import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { DataSkeleton } from "@/components/data-skeleton";
+import { useLoadingToast } from "@/hooks/use-loading-toast";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatDate } from "@/lib/use-day";
 import { cn } from "@/lib/utils";
 import { createContextFactory } from "@/utils/context-factory";
 import { CheckCircle, ClipboardList, Clock, Send } from "lucide-react";
+import { useAction } from "next-safe-action/hooks";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -27,6 +32,7 @@ import {
 import { useProductionAssignments } from "./production-assignments";
 import { ProductionSubmissions } from "./production-submissions";
 import { ProductionSubmitForm } from "./production-submit-form";
+import { useProductionItem } from "./production-tab";
 import { QtyStatus } from "./qty-label";
 
 const { useContext: useAssignmentRow, Provider: AssignmentRowProvider } =
@@ -53,6 +59,18 @@ export function ProductionAssignmentRow({ index }) {
 function Content() {
     const ctx = useAssignmentRow();
     const { assignment } = ctx;
+    const queryCtx = useSalesOverviewQuery();
+    const itemCtx = useProductionItem();
+    const deleteAction = useAction(deleteSalesAssignmentAction, {
+        onSuccess(args) {
+            toast.success("Deleted");
+            queryCtx._refreshToken();
+        },
+        onError() {
+            toast.error("Unable to complete");
+        },
+    });
+    const toast = useLoadingToast();
     return (
         <Collapsible
             open={ctx.openSubmitForm}
@@ -143,6 +161,28 @@ function Content() {
                         )}
                         {assignment.status.replace("-", " ")}
                     </Badge>
+                    <ConfirmBtn
+                        disabled={deleteAction.isExecuting}
+                        onClick={(e) => {
+                            if (assignment.submissionCount) {
+                                toast.error("Cannot perform action", {
+                                    description:
+                                        "Assignment cannot be delivered as it contains submitted items.",
+                                });
+                                return;
+                            }
+                            toast.display({
+                                description: "Deleting...",
+                                duration: Number.POSITIVE_INFINITY,
+                            });
+                            deleteAction.execute({
+                                assignmentId: assignment.id,
+                                itemUid: itemCtx?.item?.controlUid,
+                            });
+                        }}
+                        trash
+                        size="icon"
+                    />
                 </div>
 
                 <div className="space-y-2 pt-2">

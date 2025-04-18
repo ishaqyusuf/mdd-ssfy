@@ -77,15 +77,18 @@ export const createSalesAssignmentAction = actionClient
         // if (input.assignedToId) input.assignedToId = +input.assignedToId;
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
             const assignment = await createSalesAssignment(input, tx);
-            await updateSalesItemStats({
-                uid: input.itemUid,
-                salesId: input.salesId,
-                type: "prodAssigned",
-                itemTotal: input.itemsTotal,
-                qty: {
-                    ...input.qty,
+            await updateSalesItemStats(
+                {
+                    uid: input.itemUid,
+                    salesId: input.salesId,
+                    type: "prodAssigned",
+                    itemTotal: input.itemsTotal,
+                    qty: {
+                        ...input.qty,
+                    },
                 },
-            });
+                tx,
+            );
             await updateSalesStatAction(
                 {
                     salesId: input.salesId,

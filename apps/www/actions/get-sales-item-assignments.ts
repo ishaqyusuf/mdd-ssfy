@@ -104,7 +104,9 @@ export async function getSalesItemAssignments(
                         };
                     },
                 ),
+                submissionCount: sum(assignment.submissions, "qty"),
             };
+
             return data;
         }),
         uid: salesItemControlUid,

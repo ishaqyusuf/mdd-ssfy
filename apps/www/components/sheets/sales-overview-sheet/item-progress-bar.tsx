@@ -39,8 +39,8 @@ export function ProgressItem({ label, completed, total }: ProgressItemProps) {
     return (
         <div className="space-y-2">
             <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{label}</span>
-                <span className="text-sm text-gray-500">
+                <span className="text-xs font-medium uppercase">{label}</span>
+                <span className="text-xs text-gray-500">
                     {completed}/{total} ({percentage.toFixed(0)}%)
                 </span>
             </div>

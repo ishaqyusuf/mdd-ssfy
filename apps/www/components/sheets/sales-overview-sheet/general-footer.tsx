@@ -17,6 +17,7 @@ export function GeneralFooter({ data }) {
                     data?.orderId,
                 );
                 toast.success("Reset complete");
+                qs._refreshToken();
                 // qs.setParams({
                 //     refreshTok: generateRandomString(),
                 // });

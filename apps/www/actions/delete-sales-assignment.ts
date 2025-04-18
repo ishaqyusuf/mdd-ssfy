@@ -10,6 +10,7 @@ import { updateSalesStatAction } from "./update-sales-stat";
 
 export const deleteSalesAssignmentSchema = z.object({
     assignmentId: z.number(),
+    itemUid: z.string(),
 });
 export async function deleteSalesAssignment(
     data: z.infer<typeof deleteSalesAssignmentSchema>,
@@ -41,16 +42,19 @@ export const deleteSalesAssignmentAction = actionClient
     .action(async ({ parsedInput: input }) => {
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
             const assignment = await deleteSalesAssignment(input, tx);
-            await updateSalesItemStats({
-                uid: assignment.salesItemControlUid,
-                salesId: assignment.orderId,
-                type: "prodAssigned",
-                qty: negativeQty({
-                    lh: assignment.lhQty,
-                    rh: assignment.rhQty,
-                    qty: assignment.qtyAssigned,
-                }),
-            });
+            await updateSalesItemStats(
+                {
+                    uid: input.itemUid,
+                    salesId: assignment.orderId,
+                    type: "prodAssigned",
+                    qty: negativeQty({
+                        lh: assignment.lhQty,
+                        rh: assignment.rhQty,
+                        qty: assignment.qtyAssigned,
+                    }),
+                },
+                tx,
+            );
             await updateSalesStatAction(
                 {
                     salesId: assignment.orderId,

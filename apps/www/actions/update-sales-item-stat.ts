@@ -14,7 +14,7 @@ interface Props {
 }
 export async function updateSalesItemStats(
     data: Props,
-    tx: typeof prisma = prisma,
+    tx: typeof prisma, //= prisma,
 ) {
     const qtyControl = await tx.qtyControl.upsert({
         where: {
