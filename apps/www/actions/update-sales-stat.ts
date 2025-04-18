@@ -41,6 +41,15 @@ export async function updateSalesStatAction(
     await Promise.all(
         sale.stat.map(async (stat) => {
             const qtyControls = sale.itemControls
+                .filter((a) => {
+                    const type = stat.type as QtyControlType;
+                    switch (type) {
+                        case "prodAssigned":
+                        case "prodCompleted":
+                            return a.produceable;
+                    }
+                    return true;
+                })
                 .map((a) =>
                     a.qtyControls
                         .map((q) => ({

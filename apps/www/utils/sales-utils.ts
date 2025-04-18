@@ -2,6 +2,7 @@ import {
     AddressBookMeta,
     CustomerMeta,
     QtyControlType,
+    SalesSettingsMeta,
     SalesStatStatus,
 } from "@/app/(clean-code)/(sales)/types";
 import { Prisma } from "@prisma/client";
@@ -17,9 +18,16 @@ export const salesFormUrl = (type, slug?) => {
 
 // const date = dayjs().
 export function composeSalesStat(stats: Prisma.SalesStatGetPayload<{}>[]) {
-    let validStat = stats.every(
-        (a) => dayjs("2025-04-13").diff(a.createdAt, "D") > 0,
-    );
+    const statDateCheck = stats.map((stat) => {
+        const isValid = dayjs(stat.createdAt).isAfter(
+            dayjs("2025-04-15"),
+            "days",
+        );
+        return {
+            isValid,
+        };
+    });
+    let validStat = statDateCheck.every((a) => a.isValid);
     const _stat: { [id in QtyControlType]: (typeof stats)[number] } = {} as any;
     stats.map((s) => (_stat[s.type] = s));
     return {
@@ -70,4 +78,29 @@ export function salesAddressLines(
             ?.filter(Boolean)
             ?.join(", "),
     ].filter(Boolean);
+}
+interface ItemStatConfigProps {
+    isDyke?: boolean;
+    qty?;
+    formSteps;
+    setting: SalesSettingsMeta;
+    dykeProduction?: boolean;
+    swing?;
+}
+export function getItemStatConfig({ setting, ...props }: ItemStatConfigProps) {
+    const mainStep = props.formSteps?.[0];
+    const stepConfigUid = mainStep?.prodUid;
+    let config = setting?.route?.[stepConfigUid]?.config;
+    const isService = mainStep?.value?.toLowerCase() == "services";
+    console.log({ config, stepConfigUid, mainStep, setting });
+
+    return props.isDyke
+        ? {
+              production: isService ? props.dykeProduction : config?.production,
+              shipping: config?.shipping,
+          }
+        : {
+              production: !!(props.qty && props.swing),
+              shipping: !!props.qty,
+          };
 }

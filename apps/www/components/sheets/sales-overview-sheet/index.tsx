@@ -1,8 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-import { salesOverviewStore } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet/store";
-import Button from "@/components/common/button";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -32,10 +29,10 @@ function Modal() {
             size="2xl"
         >
             <Tabs
-                value={query?.params?.tab}
+                value={query?.params?.salesTab}
                 onValueChange={(e) => {
                     query.setParams({
-                        tab: e as any,
+                        salesTab: e as any,
                     });
                 }}
             >
@@ -61,7 +58,7 @@ function Modal() {
                 </SheetHeader>
             </Tabs>
             <CustomSheetContent className="-mt-4">
-                <Tabs value={query?.params?.tab}>
+                <Tabs value={query?.params?.salesTab}>
                     <TabsContent value="general">
                         <GeneralTab />
                     </TabsContent>

@@ -1,7 +1,6 @@
 "use server";
 
 import { getSalesOrdersDta } from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
-import { timeout } from "@/lib/timeout";
 
 import { resetSalesStatAction } from "./reset-sales-stat";
 

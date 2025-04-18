@@ -13,29 +13,6 @@ import {
     itemControlUidObject,
 } from "../utils/item-control-utils";
 
-// export async function updateItemControlAction(
-//     uid,
-//     data: Prisma.SalesItemControlUpdateInput,
-//     { totalQty, produceableChanged, shippableChanged, qty }
-// ) {
-//     const resp = await prisma.salesItemControl.update({
-//         where: {
-//             uid,
-//         },
-//         data: {
-//             produceable: data.produceable,
-//             shippable: data.shippable,
-//         },
-//     });
-//     await updateQtyControlAutoComplete(data, uid, {
-//         totalQty,
-//         produceableChanged,
-//         shippableChanged,
-//         qty,
-//     });
-//     await updateItemQtyControlsAction(uid);
-//     await updateSalesStatControlAction(resp.salesId);
-// }
 export async function updateQtyControlAutoComplete(
     data,
     uid,

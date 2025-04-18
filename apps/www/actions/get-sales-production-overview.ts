@@ -1,5 +1,6 @@
 "use server";
 
+import { loadSalesSetting } from "@/app/(clean-code)/(sales)/_common/data-access/sales-form-settings.dta";
 import {
     doorItemControlUid,
     itemItemControlUid,
@@ -15,10 +16,15 @@ import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import {
     composeQtyMatrix,
+    composeSalesItemControlStat,
     Qty,
     qtyMatrixDifference,
 } from "@/utils/sales-control-util";
-import { formatControlQty, qtyControlsByType } from "@/utils/sales-utils";
+import {
+    formatControlQty,
+    getItemStatConfig,
+    qtyControlsByType,
+} from "@/utils/sales-utils";
 import { Prisma } from "@prisma/client";
 
 export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
@@ -31,36 +37,31 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
         },
         select: _select,
     });
-    let items: Item[] = [];
-    function addItem(item: Item) {
-        item.salesId = order.id;
-        item.subtitle = [item.sectionTitle, item.size, item.swing]
-            ?.filter(Boolean)
-            .join(" | ");
-        const assignments = order.assignments.filter((a) =>
-            a.itemId == item.itemId && item.doorId
-                ? item.doorId == a.salesDoorId
-                : undefined,
-        );
-        const itemControl = order.itemControls.find(
-            (a) => a.uid == item.controlUid,
-        );
-        const controls = qtyControlsByType(itemControl.qtyControls);
-        item.produced = formatControlQty(controls?.prodCompleted);
-        item.qty = formatControlQty(controls?.qty);
-        item.assigned = {
-            lh: sum(assignments, "lhQty"),
-            rh: sum(assignments, "rhQty"),
-            qty: sum(assignments, "qtyAssigned"),
-        };
-        item.delivered = formatControlQty(controls?.dispatchCompleted);
-        item.pending = {
-            assignment: qtyMatrixDifference(item.qty, item.assigned),
-        };
 
-        items.push(item);
-    }
+    const setting = await loadSalesSetting();
+    let items: Item[] = [];
     order.items.map((item) => {
+        let baseItem = item;
+        function addItem(item: Item) {
+            item.salesId = order.id;
+            item.itemConfig = getItemStatConfig({
+                isDyke: order.isDyke,
+                formSteps: baseItem.formSteps,
+                setting: setting.data,
+                qty: baseItem.qty,
+                dykeProduction: baseItem.dykeProduction,
+                swing: baseItem.swing,
+            });
+            item.subtitle = [item.sectionTitle, item.size, item.swing]
+                ?.filter(Boolean)
+                .join(" | ");
+            item.analytics = composeSalesItemControlStat(
+                item.controlUid,
+                item.qty,
+                order,
+            );
+            items.push(item);
+        }
         const itemIndex = (item.meta as any as SalesItemMeta)?.lineIndex;
         const hpt = item.housePackageTool;
         const doors = hpt?.doors;
@@ -78,6 +79,9 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
             if (hidden) sectionTitle = title?.replaceAll("*", "");
             addItem({
                 controlUid,
+                qty: {
+                    qty: item.qty,
+                },
                 sectionTitle,
                 itemIndex,
                 title: title?.replaceAll("*", ""),
@@ -118,27 +122,19 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
             });
         }
     });
-    items = items
-        .sort((a, b) => a.itemIndex - b.itemIndex)
-        .map((item, index) => {
-            const control = order.itemControls.find(
-                (c) => c.uid == item.controlUid,
-            );
-            item.produceable = control?.produceable;
-            item.shippable = control?.shippable;
-            return item;
-        });
+    items = items.sort((a, b) => a.itemIndex - b.itemIndex);
 
     return {
         items,
-        orderId,
+        orderNo: orderId,
+        orderId: order.id,
     };
 }
 interface Item {
     title: string;
-    produceable?: boolean;
+    // produceable?: boolean;
     configs?: { color?; label?; value?; hidden }[];
-    shippable?: boolean;
+    // shippable?: boolean;
     subtitle?: string;
     swing?: string;
     size?: string;
@@ -149,24 +145,45 @@ interface Item {
     doorId?: number;
     salesId?: number;
     primary?: boolean;
-    qty?: Qty;
-    assigned?: Qty;
-    produced?: Qty;
-    pending?: {
-        assignment?: Qty;
-        production?: Qty;
-        delivery?: Qty;
-    };
-    delivered?: Qty;
+    qty: Qty;
+    // assigned?: Qty;
+    // produced?: Qty;
+    // pending?: {
+    //     assignment?: Qty;
+    //     production?: Qty;
+    //     delivery?: Qty;
+    // };
+    // delivered?: Qty;
     unitCost?: number;
     totalCost?: number;
     noHandle: boolean;
+    analytics?: ReturnType<typeof composeSalesItemControlStat>;
+    itemConfig?: ReturnType<typeof getItemStatConfig>;
 }
 const select = {
     meta: true,
     orderId: true,
     isDyke: true,
     id: true,
+    deliveries: {
+        where: {
+            deletedAt: null,
+        },
+        select: {
+            status: true,
+            items: {
+                where: {
+                    deletedAt: null,
+                },
+                select: {
+                    qty: true,
+                    lhQty: true,
+                    rhQty: true,
+                    orderProductionSubmissionId: true,
+                },
+            },
+        },
+    },
     assignments: {
         where: {
             assignedToId: undefined, // !producerId ? undefined : producerId,
@@ -209,6 +226,7 @@ const select = {
         select: {
             description: true,
             dykeDescription: true,
+            dykeProduction: true,
             qty: true,
             id: true,
             meta: true,
@@ -220,6 +238,7 @@ const select = {
                     deletedAt: null,
                 },
                 select: {
+                    prodUid: true,
                     value: true,
                     step: {
                         select: {

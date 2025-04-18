@@ -6,10 +6,13 @@
 // import { PrismaClient } from "@prisma/client/edge";
 // import { withAccelerate } from "@prisma/extension-accelerate";
 
-import { Prisma, PrismaClient } from "@prisma/client";
+// import { PrismaClient } from "@prisma/client";
 
-export * from "@prisma/client";
+import { PrismaClient } from "../generated/client";
 
+// export * from "@prisma/client";
+export * from "../generated/client";
+// export { PrismaClient };
 // Learn more about instantiating PrismaClient in Next.js here: https://www.prisma.io/docs/data-platform/accelerate/getting-started
 const prismaClientSingleton = () => {
   return new PrismaClient({

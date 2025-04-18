@@ -53,7 +53,9 @@ export function ProductionItemAssignments() {
 export function Content() {
     const ctx = useProductionAssignments();
     const { data, item } = ctx;
-    const [open, setOpen] = useState(item?.assigned?.qty == 0);
+    const [open, setOpen] = useState(
+        item?.analytics?.stats?.prodAssigned?.qty == 0,
+    );
     return (
         <DataSkeletonProvider value={{ loading: !data?.uid } as any}>
             {/* <ProgressItem
@@ -68,7 +70,10 @@ export function Content() {
                         <CollapsibleTrigger asChild>
                             <DataSkeleton className="h-8">
                                 <Button
-                                    disabled={!item?.pending?.assignment?.qty}
+                                    disabled={
+                                        !item?.analytics?.assignment?.pending
+                                            ?.qty
+                                    }
                                     onClick={(e) => setOpen(!open)}
                                     size="sm"
                                     variant="outline"

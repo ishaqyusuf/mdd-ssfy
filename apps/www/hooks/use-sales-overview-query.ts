@@ -29,7 +29,7 @@ export function useSalesOverviewQuery() {
         "prod-item-view": parseAsString,
         "prod-item-tab": parseAsString,
         onCloseQuery: parseAsJson(),
-        tab: parseAsStringEnum([
+        salesTab: parseAsStringEnum([
             "general",
             "production",
             "transaction",
@@ -53,7 +53,7 @@ export function useSalesOverviewQuery() {
                 "sales-overview-id": orderNo,
                 "sales-type": salesType,
                 mode,
-                tab: "general",
+                salesTab: "general",
             });
         },
         open(salesOverviewId: number, mode: Modes) {

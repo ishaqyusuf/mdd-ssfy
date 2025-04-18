@@ -1,9 +1,10 @@
 "use server";
 
 import { prisma } from "@/db";
+import { percent, sum } from "@/lib/utils";
+
 import { QtyControlType } from "../../types";
 import { updateSalesItemControlAction } from "./item-control.action";
-import { percent, sum } from "@/lib/utils";
 
 export async function validateSalesStatControlAction(salesId) {
     const order = await prisma.salesOrders.findFirstOrThrow({
@@ -54,27 +55,23 @@ export async function updateSalesStatControlAction(salesId) {
                 produceable: a.produceable,
                 shippable: a.shippable,
                 type: c.type as QtyControlType,
-            }))
+            })),
         )
         .flat();
 
     const totalProduceable = sum(
         qtyControls.filter((t) => t.produceable && t.type == "prodAssigned"),
-        "itemTotal"
+        "itemTotal",
     );
     const totalShippable = sum(
         qtyControls.filter((t) => t.shippable && t.type == "dispatchAssigned"),
-        "itemTotal"
+        "itemTotal",
     );
-    // console.log({
-    //     totalProduceable,
-    //     totalShippable,
-    // });
 
     async function createStat(type: QtyControlType, total) {
         const score = sum(
             qtyControls.filter((a) => a.type == type),
-            "total"
+            "total",
         );
         const percentage = percent(score, total);
         await prisma.salesStat.upsert({
@@ -105,18 +102,6 @@ export async function updateSalesStatControlAction(salesId) {
     await createStat("prodCompleted", totalProduceable);
 }
 export async function resetSalesStatAction(salesId) {
-    // const resp = await prisma.qtyControl.deleteMany({
-    //     where: {
-    //         itemControl: {
-    //             salesId,
-    //         },
-    //     },
-    // });
-    // const _resp = await prisma.salesItemControl.deleteMany({
-    //     where: { salesId },
-    // });
-    // console.log({ resp, _resp });
-
     await updateSalesItemControlAction(salesId);
     await updateSalesStatControlAction(salesId);
 }

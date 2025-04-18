@@ -34,6 +34,7 @@ import { Card, CardContent } from "@gnd/ui/card";
 import { Progress } from "@gnd/ui/progress";
 import { Separator } from "@gnd/ui/separator";
 
+import { GeneralFooter } from "./general-footer";
 import { SalesPO } from "./inline-data-edit";
 
 export function GeneralTab({}) {
@@ -111,7 +112,7 @@ export function GeneralTab({}) {
     };
     return (
         <DataSkeletonProvider value={{ loading: !saleData?.id } as any}>
-            <div className="mt-0 space-y-6 p-6">
+            <div className="relative mt-0 space-y-6 p-6">
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="space-y-6">
                         <div>
@@ -540,8 +541,8 @@ export function GeneralTab({}) {
                                     placeholder="7/7 items assigned"
                                 >
                                     <p className="text-sm text-muted-foreground">
-                                        {saleData.stats.prodAssigned.score}/
-                                        {saleData.stats.prodAssigned.total}{" "}
+                                        {saleData.stats.prodAssigned?.score}/
+                                        {saleData.stats.prodAssigned?.total}{" "}
                                         items assigned
                                     </p>
                                 </DataSkeleton>
@@ -640,6 +641,7 @@ export function GeneralTab({}) {
                         </CardContent>
                     </Card>
                 </div>
+                <GeneralFooter data={data} />
             </div>
         </DataSkeletonProvider>
     );

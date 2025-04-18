@@ -40,6 +40,7 @@ function useContextProductionContext() {
             const res = await getSalesProductionOverviewAction(
                 ctx.params["sales-overview-id"],
             );
+            console.log(res);
 
             return res;
         };
@@ -64,7 +65,10 @@ export function ProductionTab({}) {
                 >
                     {skeletonListData(data?.items, 5).map((item, i) => (
                         <DataSkeleton className="h-48" key={i}>
+                            {/* <div className={cn(!item?.itemConfig?.production && "hidden")}> */}
+
                             <ItemCard item={item} key={i} />
+                            {/* </div> */}
                         </DataSkeleton>
                     ))}
                 </Accordion>
@@ -109,7 +113,7 @@ function ItemCard({ item }: ItemCardProps) {
                 className={cn(
                     "overflow-hidden border-border",
                     item.controlUid == queryCtx["prod-item-view"] ? "" : "",
-                    !item?.produceable && "hidden",
+                    !item?.itemConfig?.production && "hidden",
                 )}
             >
                 <Card

@@ -1,0 +1,2541 @@
+model GitTasks {
+  id          Int    @id @default(autoincrement())
+  description String
+
+  deletedAt DateTime? @db.Timestamp(0)
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt
+
+  todos      Todos[]
+  statusList GitTaskStatus[]
+  tags       GitTaskTags[]
+}
+
+model Todos {
+  id         Int       @unique @default(autoincrement())
+  task       GitTasks  @relation(fields: [gitTasksId], references: [id])
+  gitTasksId Int
+  status     String
+  deletedAt  DateTime? @db.Timestamp(0)
+  createdAt  DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt  DateTime? @updatedAt
+}
+
+model GitTaskStatus {
+  id          Int       @unique @default(autoincrement())
+  current     Boolean   @default(false)
+  status      String
+  description String
+  taskId      Int
+  deletedAt   DateTime? @db.Timestamp(0)
+  createdAt   DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime? @updatedAt
+  task        GitTasks? @relation(fields: [taskId], references: [id])
+
+  @@index([taskId])
+}
+
+model GitTaskTags {
+  id        Int       @unique @default(autoincrement())
+  tagId     Int
+  gitTaskId Int
+  task      GitTasks? @relation(fields: [gitTaskId], references: [id])
+  tag       Tags?     @relation(fields: [tagId], references: [id])
+  deletedAt DateTime? @db.Timestamp(0)
+
+  @@index([gitTaskId])
+  @@index([tagId])
+}
+
+model Tags {
+  id    Int    @unique @default(autoincrement())
+  title String
+
+  deletedAt DateTime? @db.Timestamp(0)
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt
+
+  taskTags GitTaskTags[]
+}
+
+model MailGrids {
+  id        Int                @unique @default(autoincrement())
+  title     String             @db.VarChar(255)
+  subject   String?            @db.VarChar(255)
+  html      String?            @db.Text
+  message   String?            @db.Text
+  design    String?            @db.LongText
+  fromName  String?            @db.VarChar(255)
+  fromEmail String?            @db.VarChar(255)
+  meta      Json?              @db.Json
+  status    String             @db.VarChar(255)
+  deletedAt DateTime?          @db.Timestamp(0)
+  createdAt DateTime?          @default(now()) @db.Timestamp(0)
+  updatedAt DateTime?          @updatedAt
+  slug      String?            @db.VarChar(255)
+  type      String?            @db.VarChar(255)
+  events    MailEventTrigger[]
+}
+
+model MailEventTrigger {
+  id         Int        @unique @default(autoincrement())
+  when       String
+  mailGridId Int?
+  authorId   Int
+  status     String //draft,active etc
+  mail       MailGrids? @relation(fields: [mailGridId], references: [id])
+  deletedAt  DateTime?  @db.Timestamp(0)
+  createdAt  DateTime?  @default(now()) @db.Timestamp(0)
+  updatedAt  DateTime?  @updatedAt
+  author     Users      @relation(fields: [authorId], references: [id])
+
+  @@index([mailGridId])
+  @@index([authorId])
+}
+
+model Inbox {
+  id        Int       @unique @default(autoincrement())
+  clientId  Int?
+  senderId  Int
+  parentId  Int?
+  subject   String?   @db.Text()
+  from      String    @db.Text()
+  to        String    @db.Text()
+  type      String    @db.Text()
+  body      String    @db.Text()
+  meta      Json?     @db.Json
+  sentAt    DateTime? @db.Timestamp(0)
+  deletedAt DateTime? @db.Timestamp(0)
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt
+
+  sender      Users              @relation(fields: [senderId], references: [id])
+  attachments InboxAttachments[]
+
+  @@index([senderId])
+}
+
+model InboxAttachments {
+  id        Int       @unique @default(autoincrement())
+  url       String
+  title     String
+  inboxId   Int
+  deletedAt DateTime? @db.Timestamp(0)
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt
+  inbox     Inbox     @relation(fields: [inboxId], references: [id])
+
+  @@index([inboxId])
+}
+
+model NotePad {
+  id              Int                  @unique @default(autoincrement())
+  note            String?
+  color           String?
+  subject         String?
+  headline        String?
+  createdById     Int?
+  comments        NoteComments[]
+  deletedAt       DateTime?            @db.Timestamp(0)
+  createdAt       DateTime?            @default(now()) @db.Timestamp(0)
+  commentNote     NoteComments[]       @relation(name: "commentNote")
+  tags            NoteTags[]
+  senderContactId Int
+  recipients      NoteRecipients[]
+  senderContact   NotePadContacts?     @relation(fields: [senderContactId], references: [id])
+  events          NotePadEvent[]
+  readReceipts    NotePadReadReceipt[]
+
+  @@index([senderContactId])
+}
+
+model NoteRecipients {
+  id               Int             @unique @default(autoincrement())
+  notePage         NotePad         @relation(fields: [notePadId], references: [id])
+  deletedAt        DateTime?       @db.Timestamp(0)
+  createdAt        DateTime?       @default(now()) @db.Timestamp(0)
+  notePadId        Int
+  notePadContactId Int
+  contact          NotePadContacts @relation(fields: [notePadContactId], references: [id])
+
+  @@index([notePadId])
+  @@index([notePadContactId])
+}
+
+model NotePadContacts {
+  id            Int                  @unique @default(autoincrement())
+  name          String
+  email         String?
+  phoneNo       String?
+  notesReceived NoteRecipients[]
+  notesSent     NotePad[]
+  deletedAt     DateTime?            @db.Timestamp(0)
+  createdAt     DateTime?            @default(now()) @db.Timestamp(0)
+  readReceipts  NotePadReadReceipt[]
+
+  @@unique([name, email, phoneNo])
+}
+
+model NoteTags {
+  id        Int       @unique @default(autoincrement())
+  tagName   String //itemUID, deliveryId,section=dispatch|production|sales
+  tagValue  String
+  notePad   NotePad?  @relation(fields: [notePadId], references: [id])
+  notePadId Int?
+  deletedAt DateTime? @db.Timestamp(0)
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+
+  @@unique([tagName, tagValue, notePadId])
+  @@index([notePadId])
+}
+
+model NoteComments {
+  id               Int  @unique @default(autoincrement())
+  notePadId        Int?
+  commentNotePadId Int?
+
+  commentToNote NotePad? @relation(fields: [notePadId], references: [id])
+  note          NotePad? @relation(name: "commentNote", fields: [commentNotePadId], references: [id])
+
+  deletedAt DateTime? @db.Timestamp(0)
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+
+  @@index([notePadId])
+  @@index([commentNotePadId])
+}
+
+model NotePadEvent {
+  id Int @unique @default(autoincrement())
+
+  reminderType String?
+  status       String? //queued,cancelled,notified,completed
+  reminderDate DateTime? @db.Timestamp(0)
+  remindedAt   DateTime? @db.Timestamp(0)
+  eventDate    DateTime? @db.Timestamp(0)
+  deletedAt    DateTime? @db.Timestamp(0)
+  createdAt    DateTime? @default(now()) @db.Timestamp(0)
+  notePad      NotePad   @relation(fields: [notePadId], references: [id])
+  notePadId    Int
+
+  @@index([notePadId])
+}
+
+model NotePadReadReceipt {
+  id Int @unique @default(autoincrement())
+
+  deletedAt        DateTime?        @db.Timestamp(0)
+  createdAt        DateTime?        @default(now()) @db.Timestamp(0)
+  notePadContactId Int
+  notePadId        Int
+  contact          NotePadContacts? @relation(fields: [notePadContactId], references: [id])
+  note             NotePad?         @relation(fields: [notePadId], references: [id])
+
+  @@index([notePadContactId])
+  @@index([notePadId])
+}
+
+model Customers {
+  id             Int                   @unique @default(autoincrement())
+  addressId      Int?
+  customerTypeId Int?
+  slug           String?               @unique @db.VarChar(255)
+  walletId       Int?                  @unique
+  name           String?               @db.VarChar(255)
+  businessName   String?               @db.VarChar(255)
+  email          String?               @db.VarChar(255)
+  phoneNo        String?               @unique @db.VarChar(255)
+  phoneNo2       String?               @db.VarChar(255)
+  address        String?               @db.Text
+  meta           Json?                 @db.Json
+  deletedAt      DateTime?             @db.Timestamp(0)
+  createdAt      DateTime?             @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime?             @updatedAt
+  salesOrders    SalesOrders[]
+  profile        CustomerTypes?        @relation(fields: [customerTypeId], references: [id])
+  addressBooks   AddressBooks[]        @relation(name: "addressBooks")
+  taxProfiles    CustomerTaxProfiles[]
+  // payments       SalesPayments[] @relation()
+  wallet         CustomerWallet?
+  auth           DealerAuth?
+
+  @@index([createdAt, deletedAt, name, email, phoneNo])
+  @@index([customerTypeId])
+  @@index([phoneNo])
+}
+
+model CustomerTaxProfiles {
+  id         Int       @unique @default(autoincrement())
+  customerId Int
+  customer   Customers @relation(fields: [customerId], references: [id])
+  taxCode    String
+  tax        Taxes     @relation(fields: [taxCode], references: [taxCode])
+  deletedAt  DateTime? @db.Timestamp(0)
+  createdAt  DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt  DateTime? @updatedAt
+
+  @@unique([taxCode, customerId, deletedAt])
+  @@index([customerId])
+}
+
+model DealerAuth {
+  id                       Int                   @unique @default(autoincrement())
+  dealerId                 Int                   @unique
+  createdAt                DateTime?             @default(now()) @db.Timestamp(0)
+  email                    String                @unique
+  password                 String?               @db.VarChar(255)
+  emailVerifiedAt          DateTime?             @db.Timestamp(0)
+  approvedAt               DateTime?             @db.Timestamp(0)
+  rejectedAt               DateTime?             @db.Timestamp(0)
+  restricted               Boolean?
+  updatedAt                DateTime?             @updatedAt
+  deletedAt                DateTime?             @db.Timestamp(0)
+  status                   String?
+  primaryBillingAddressId  Int?
+  primaryShippingAddressId Int?
+  dealer                   Customers             @relation(fields: [dealerId], references: [id])
+  statusHistory            DealerStatusHistory[]
+  token                    DealerToken[]
+  primaryBillingAddress    AddressBooks?         @relation(name: "primaryBillingAddress", fields: [primaryBillingAddressId], references: [id])
+  primaryShippingAddress   AddressBooks?         @relation(name: "primaryShippingAddress", fields: [primaryShippingAddressId], references: [id])
+
+  @@index([primaryBillingAddressId])
+  @@index([primaryShippingAddressId])
+}
+
+model DealerStatusHistory {
+  id        Int         @unique @default(autoincrement())
+  dealerId  Int
+  status    String // pending-approval, approved, rejected, restricted
+  authorId  Int
+  reason    String?     @db.LongText
+  createdAt DateTime?   @default(now()) @db.Timestamp(0)
+  deletedAt DateTime?   @db.Timestamp(0)
+  auth      DealerAuth? @relation(fields: [dealerId], references: [id])
+  author    Users       @relation(fields: [authorId], references: [id])
+
+  @@index([dealerId])
+  @@index([authorId])
+}
+
+model DealerToken {
+  dealerId   Int
+  token      String      @unique
+  expiredAt  DateTime?   @db.Timestamp(0)
+  consumedAt DateTime?   @db.Timestamp(0)
+  deletedAt  DateTime?   @db.Timestamp(0)
+  auth       DealerAuth? @relation(fields: [dealerId], references: [id])
+
+  @@index([dealerId])
+}
+
+model CustomerTypes {
+  id             Int       @unique @default(autoincrement())
+  title          String    @db.VarChar(255)
+  coefficient    Float?
+  defaultProfile Boolean?
+  meta           Json?     @db.Json
+  deletedAt      DateTime? @db.Timestamp(0)
+  createdAt      DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime? @updatedAt
+
+  customers Customers[]
+  sales     SalesOrders[]
+}
+
+model DealerSalesRequest {
+  id           Int         @unique @default(autoincrement())
+  createdAt    DateTime?   @default(now()) @db.Timestamp(0)
+  updatedAt    DateTime?   @updatedAt
+  salesId      Int
+  request      String
+  status       String
+  deletedAt    DateTime?   @db.Timestamp(0)
+  approvedById Int?
+  sale         SalesOrders @relation(fields: [salesId], references: [id])
+  approvedBy   Users?      @relation(fields: [approvedById], references: [id])
+
+  @@index([salesId])
+  @@index([approvedById])
+}
+
+model OrderDelivery {
+  id           Int                 @unique @default(autoincrement())
+  salesOrderId Int
+  deliveredTo  String?
+  deliveryMode String
+  items        OrderItemDelivery[]
+  driverId     Int?
+  createdById  Int?
+  status       String?
+  dueDate      DateTime?
+  meta         Json?               @db.Json
+  createdAt    DateTime?           @default(now()) @db.Timestamp(0)
+  updatedAt    DateTime            @updatedAt
+  deletedAt    DateTime?           @db.Timestamp(0)
+  order        SalesOrders         @relation(fields: [salesOrderId], references: [id])
+  driver       Users?              @relation(name: "driver", fields: [driverId], references: [id])
+  createdBy    Users?              @relation(name: "createdBy", fields: [createdById], references: [id])
+  // orderDeliveryProgress   OrderDeliveryProgress? @relation(fields: [orderDeliveryProgressId], references: [id])
+  // orderDeliveryProgressId Int?
+  // @@index([orderDeliveryProgressId])
+
+  @@index([salesOrderId])
+  @@index([driverId])
+  @@index([createdById])
+}
+
+model OrderItemDelivery {
+  id                          Int                         @unique @default(autoincrement())
+  orderItemId                 Int
+  orderId                     Int
+  lhQty                       Int?                        @default(0)
+  rhQty                       Int?                        @default(0)
+  qty                         Int                         @default(0)
+  meta                        Json?                       @db.Json
+  status                      String?
+  createdAt                   DateTime?                   @default(now()) @db.Timestamp(0)
+  updatedAt                   DateTime                    @updatedAt
+  deletedAt                   DateTime?                   @db.Timestamp(0)
+  orderDeliveryId             Int?
+  order                       SalesOrders                 @relation(fields: [orderId], references: [id])
+  salesItem                   SalesOrderItems             @relation(fields: [orderItemId], references: [id])
+  delivery                    OrderDelivery?              @relation(fields: [orderDeliveryId], references: [id])
+  orderProductionSubmissionId Int?
+  submission                  OrderProductionSubmissions? @relation(fields: [orderProductionSubmissionId], references: [id])
+
+  @@index([orderProductionSubmissionId])
+  @@index([orderId])
+  @@index([orderItemId])
+  @@index([orderDeliveryId])
+}
+
+model SalesPickup {
+  id               Int           @unique @default(autoincrement())
+  pickupBy         String?
+  pickupApprovedBy Int
+  meta             Json?         @db.Json
+  pickupAt         DateTime?     @db.Timestamp(0)
+  createdAt        DateTime?     @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime?     @updatedAt
+  deletedAt        DateTime?     @db.Timestamp(0)
+  sales            SalesOrders[]
+  approvedBy       Users         @relation(fields: [pickupApprovedBy], references: [id])
+
+  @@index([pickupApprovedBy])
+}
+
+model CommissionPayment {
+  id            Int              @unique @default(autoincrement())
+  amount        Float
+  userId        Int
+  paidBy        Int
+  checkNo       String?
+  paymentMethod String?
+  meta          Json?            @db.Json
+  deletedAt     DateTime?        @db.Timestamp(0)
+  createdAt     DateTime?        @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime?        @updatedAt
+  commissions   SalesCommision[]
+  user          Users?           @relation(name: "worker", fields: [userId], references: [id])
+  payer         Users?           @relation(name: "payer", fields: [paidBy], references: [id])
+  Users         Users?           @relation(fields: [usersId], references: [id])
+  usersId       Int?
+
+  @@index([userId])
+  @@index([paidBy])
+  @@index([usersId])
+}
+
+model SalesTakeOff {
+  id        Int                   @unique @default(autoincrement())
+  salesId   Int                   @unique
+  sections  SalesTakeOffSection[]
+  deletedAt DateTime?             @db.Timestamp(0)
+  createdAt DateTime?             @default(now()) @db.Timestamp(0)
+  updatedAt DateTime?             @updatedAt
+
+  order SalesOrders @relation(references: [id], fields: [salesId])
+}
+
+model SalesTakeOffSection {
+  id             Int                     @unique @default(autoincrement())
+  title          String
+  components     SalesTakeOffComponent[]
+  deletedAt      DateTime?               @db.Timestamp(0)
+  createdAt      DateTime?               @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime?               @updatedAt
+  takeOff        SalesTakeOff            @relation(fields: [salesTakeOffId], references: [id])
+  salesTakeOffId Int
+
+  @@index([salesTakeOffId])
+}
+
+model SalesTakeOffComponent {
+  id                    Int                 @unique @default(autoincrement())
+  itemUid               String
+  lhQty                 Int?
+  rhQty                 Int?
+  totalQty              Int
+  deletedAt             DateTime?           @db.Timestamp(0)
+  createdAt             DateTime?           @default(now()) @db.Timestamp(0)
+  updatedAt             DateTime?           @updatedAt
+  section               SalesTakeOffSection @relation(fields: [salesTakeOffSectionId], references: [id])
+  salesTakeOffSectionId Int
+
+  @@index([salesTakeOffSectionId])
+}
+
+model SalesOrders {
+  id                Int                              @unique @default(autoincrement())
+  title             String?                          @db.VarChar(255)
+  customerId        Int?
+  billingAddressId  Int?
+  shippingAddressId Int?
+  salesRepId        Int?
+  pickupId          Int?
+  prodId            Int?
+  isDyke            Boolean?                         @default(false)
+  summary           String?                          @db.Text
+  instruction       String?                          @db.Text
+  meta              Json?                            @db.Json
+  status            String?                          @db.VarChar(255)
+  inventoryStatus   String?                          @db.VarChar(255)
+  deletedAt         DateTime?                        @db.Timestamp(0)
+  createdAt         DateTime?                        @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime?                        @updatedAt
+  orderId           String                           @db.VarChar(255)
+  slug              String                           @db.VarChar(255)
+  type              String?                          @db.VarChar(255)
+  goodUntil         DateTime?
+  paymentTerm       String?
+  prodQty           Float?
+  builtQty          Float?
+  subTotal          Float?
+  profitMargin      Float?
+  tax               Float?
+  taxPercentage     Float?
+  grandTotal        Float?
+  amountDue         Float?
+  invoiceStatus     String?                          @db.VarChar(255)
+  prodStatus        String?                          @db.VarChar(255)
+  prodDueDate       DateTime?                        @db.Timestamp(0)
+  paymentDueDate    DateTime?                        @db.Timestamp(0)
+  deliveredAt       DateTime?
+  deliveryOption    String?
+  customerProfileId Int?
+  taxes             SalesTaxes[]
+  checkouts         SalesCheckout[]
+  refunds           Refunds[]                        @relation(name: "salesRefunds")
+  refund            Refunds?                         @relation(name: "refund")
+  assignments       OrderItemProductionAssignments[]
+  billingAddress    AddressBooks?                    @relation(name: "billingAddress", fields: [billingAddressId], references: [id])
+  commisions        SalesCommision[]
+  customer          Customers?                       @relation(fields: [customerId], references: [id])
+  deliveries        OrderDelivery[]
+  doors             DykeSalesDoors[]
+  formSteps         DykeStepForm[]
+  housePackageTools HousePackageTools[]
+  items             SalesOrderItems[]
+  itemControls      SalesItemControl[]
+  itemDeliveries    OrderItemDelivery[]
+  payments          SalesPayments[]                  @relation(name: "salesPayment")
+  pickup            SalesPickup?                     @relation(fields: [pickupId], references: [id])
+  pricings          ComponentPrice[]
+  producer          Users?                           @relation(name: "producer", fields: [prodId], references: [id])
+  productions       OrderProductionSubmissions[]
+  requests          DealerSalesRequest[]
+  salesProfile      CustomerTypes?                   @relation(fields: [customerProfileId], references: [id])
+  salesRep          Users?                           @relation(name: "salesRep", fields: [salesRepId], references: [id])
+  shippingAddress   AddressBooks?                    @relation(name: "shippingAddress", fields: [shippingAddressId], references: [id])
+  stat              SalesStat[]
+  supplies          SalesItemSupply[]
+  extraCosts        SalesExtraCosts[]
+  squarePayOrders   SquarePaymentOrders[]
+  takeOff           SalesTakeOff?
+
+  @@unique([orderId, type])
+  @@index([createdAt, deletedAt, orderId, grandTotal, prodId, type, prodDueDate])
+  @@index([customerProfileId])
+  @@index([customerId])
+  @@index([shippingAddressId])
+  @@index([billingAddressId])
+  @@index([prodId])
+  @@index([salesRepId])
+  @@index([pickupId])
+}
+
+model SalesExtraCosts {
+  id          Int          @unique @default(autoincrement())
+  order       SalesOrders? @relation(fields: [orderId], references: [id])
+  type        String //discount, labor, etc
+  taxxable    Boolean?
+  amount      Float
+  tax         Float?
+  totalAmount Float?
+  orderId     Int
+
+  @@index([orderId])
+}
+
+model SalesOrderItems {
+  id                 Int                              @unique @default(autoincrement())
+  description        String?                          @db.VarChar(300)
+  dykeDescription    String?                          @db.VarChar(300)
+  productId          Int?
+  supplier           String?
+  swing              String?                          @db.VarChar(255)
+  price              Float?
+  tax                Float?
+  taxPercenatage     Float?
+  discount           Float?
+  discountPercentage Float?
+  meta               Json?                            @db.Json
+  createdAt          DateTime?                        @default(now()) @db.Timestamp(0)
+  updatedAt          DateTime?                        @updatedAt
+  deletedAt          DateTime?                        @db.Timestamp(0)
+  qty                Float?
+  prebuiltQty        Float?
+  truckLoadQty       Float?
+  salesOrderId       Int
+  profitMargin       Float?
+  rate               Float?
+  total              Float?
+  salesPercentage    Float?
+  prodStatus         String?                          @db.VarChar(255)
+  prodStartedAt      DateTime?                        @db.Timestamp(0)
+  sentToProdAt       DateTime?                        @db.Timestamp(0)
+  prodCompletedAt    DateTime?                        @db.Timestamp(0)
+  multiDyke          Boolean                          @default(false)
+  dykeProduction     Boolean                          @default(false)
+  multiDykeUid       String?
+  salesOrder         SalesOrders?                     @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  shelfItems         DykeSalesShelfItem[]
+  formSteps          DykeStepForm[]
+  housePackageTool   HousePackageTools?
+  salesDoors         DykeSalesDoors[]
+  supplies           SalesItemSupply[]
+  assignments        OrderItemProductionAssignments[]
+  productions        OrderProductionSubmissions[]
+  itemDeliveries     OrderItemDelivery[]
+  priceList          ComponentPrice[]
+  itemControls       SalesItemControl[]
+
+  @@index([createdAt, description, swing])
+  @@index([salesOrderId], name: "idx_SalesOrderItems_on_salesOrderId")
+}
+
+model QtyControl {
+  // uid            String //@unique // type+uid 
+  itemControlUid String
+  qty            Int?             @default(0)
+  lh             Int?             @default(0)
+  rh             Int?             @default(0)
+  total          Int              @default(0)
+  itemTotal      Int?
+  type           String
+  percentage     Float?
+  autoComplete   Boolean?
+  deletedAt      DateTime?        @db.Timestamp(0)
+  itemControl    SalesItemControl @relation(fields: [itemControlUid], references: [uid])
+
+  // @@index([uid])
+  // @@index([itemControlUid])
+
+  @@unique([itemControlUid, type])
+}
+
+model SalesItemControl {
+  uid          String                           @unique // item-1, door-234, moulding-1
+  title        String?
+  subtitle     String?
+  sectionTitle String?
+  salesId      Int
+  produceable  Boolean?
+  shippable    Boolean?
+  deletedAt    DateTime?                        @db.Timestamp(0)
+  orderItemId  Int?
+  sales        SalesOrders?                     @relation(fields: [salesId], references: [id])
+  item         SalesOrderItems?                 @relation(fields: [orderItemId], references: [id])
+  qtyControls  QtyControl[]
+  assignments  OrderItemProductionAssignments[]
+
+  @@index([salesId])
+  @@index([orderItemId])
+  @@index([uid])
+}
+
+model HousePackageTools {
+  id             Int                @unique @default(autoincrement())
+  orderItemId    Int                @unique
+  priceId        String?            @unique
+  height         String?
+  doorType       String?
+  doorId         Int?
+  dykeDoorId     Int?
+  jambSizeId     Int?
+  casingId       Int?
+  moldingId      Int?
+  stepProductId  Int?
+  totalPrice     Float?             @default(0)
+  totalDoors     Int?               @default(0)
+  meta           Json?              @db.Json
+  salesOrderId   Int
+  createdAt      DateTime?          @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime?          @updatedAt
+  deletedAt      DateTime?          @db.Timestamp(0)
+  order          SalesOrders        @relation(fields: [salesOrderId], references: [id])
+  salesOrderItem SalesOrderItems    @relation(fields: [orderItemId], references: [id])
+  door           DykeDoors?         @relation(name: "door", fields: [dykeDoorId], references: [id])
+  shelfProd      DykeShelfProducts? @relation(name: "shelfProd", fields: [doorId], references: [id])
+  jambSize       DykeProducts?      @relation(name: "jamb", fields: [jambSizeId], references: [id])
+  casing         DykeProducts?      @relation(name: "casing", fields: [casingId], references: [id])
+  molding        DykeProducts?      @relation(name: "molding", fields: [moldingId], references: [id])
+  doors          DykeSalesDoors[]
+  stepProduct    DykeStepProducts?  @relation(fields: [stepProductId], references: [id])
+  priceData      ComponentPrice?    @relation(fields: [priceId], references: [id], name: "moulding")
+
+  @@index([stepProductId])
+  @@index([salesOrderId])
+  @@index([dykeDoorId])
+  @@index([doorId])
+  @@index([jambSizeId])
+  @@index([casingId])
+  @@index([moldingId])
+}
+
+model ComponentPrice {
+  id             String             @unique
+  salesItemId    Int
+  salesId        Int
+  qty            Float
+  type           String
+  baseUnitCost   Float
+  baseTotalCost  Float
+  salesUnitCost  Float
+  salesTotalCost Float
+  margin         Float              @default(1)
+  salesProfit    Float
+  taxPercentage  Float?
+  totalTax       Float?
+  grandTotal     Float?
+  createdAt      DateTime?          @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime?          @updatedAt
+  deletedAt      DateTime?          @db.Timestamp(0)
+  door           DykeSalesDoors?    @relation(name: "door")
+  moulding       HousePackageTools? @relation(name: "moulding")
+  component      DykeStepForm?      @relation(name: "component")
+  sales          SalesOrders        @relation(fields: [salesId], references: [id])
+  salesItem      SalesOrderItems    @relation(fields: [salesItemId], references: [id])
+
+  @@index([salesId])
+  @@index([salesItemId])
+}
+
+model DykeSalesDoors {
+  id                 Int                              @unique @default(autoincrement())
+  priceId            String?                          @unique
+  dimension          String
+  swing              String?
+  doorType           String?
+  housePackageToolId Int
+  doorPrice          Float? // addon price.
+  jambSizePrice      Float? // total door price
+  casingPrice        Float?
+  unitPrice          Float?
+  lhQty              Int?                             @default(0)
+  rhQty              Int?                             @default(0)
+  totalQty           Int                              @default(0)
+  salesOrderId       Int
+  lineTotal          Float?                           @default(0)
+  salesOrderItemId   Int?
+  stepProductId      Int?
+  meta               Json?                            @db.Json
+  createdAt          DateTime?                        @default(now()) @db.Timestamp(0)
+  updatedAt          DateTime?                        @updatedAt
+  deletedAt          DateTime?                        @db.Timestamp(0)
+  housePackageTool   HousePackageTools                @relation(fields: [housePackageToolId], references: [id])
+  salesOrderItem     SalesOrderItems?                 @relation(fields: [salesOrderItemId], references: [id])
+  order              SalesOrders?                     @relation(fields: [salesOrderId], references: [id])
+  productions        OrderItemProductionAssignments[]
+  priceData          ComponentPrice?                  @relation(fields: [priceId], references: [id], name: "door")
+  stepProduct        DykeStepProducts?                @relation(fields: [stepProductId], references: [id])
+
+  @@index([housePackageToolId])
+  @@index([salesOrderItemId])
+  @@index([salesOrderId])
+  @@index([stepProductId])
+}
+
+model DykeStepForm {
+  id             Int               @unique @default(autoincrement())
+  componentId    Int?
+  value          String?
+  priceId        String?           @unique
+  qty            Int?              @default(0)
+  price          Float?            @default(0)
+  basePrice      Float?            @default(0)
+  prodUid        String?
+  salesId        Int?
+  salesItemId    Int?
+  stepId         Int
+  meta           Json?             @db.Json
+  deletedAt      DateTime?         @db.Timestamp(0)
+  createdAt      DateTime?         @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime?         @updatedAt
+  sales          SalesOrders?      @relation(fields: [salesId], references: [id])
+  salesOrderItem SalesOrderItems?  @relation(fields: [salesItemId], references: [id])
+  step           DykeSteps         @relation(fields: [stepId], references: [id])
+  priceData      ComponentPrice?   @relation(fields: [priceId], references: [id], name: "component")
+  component      DykeStepProducts? @relation(fields: [componentId], references: [id])
+
+  @@index([componentId])
+  @@index([salesId])
+  @@index([salesItemId])
+  @@index([stepId])
+}
+
+model DykeSteps {
+  id              Int                 @unique @default(autoincrement())
+  title           String?
+  uid             String?
+  value           String?             @db.Text
+  createdAt       DateTime?           @default(now()) @db.Timestamp(0)
+  updatedAt       DateTime?           @updatedAt
+  stepProducts    DykeStepProducts[]
+  stepValueId     Int?
+  rootStepValueId Int?
+  prevStepValueId Int?
+  stepForms       DykeStepForm[]
+  priceSystem     DykePricingSystem[]
+  meta            Json?               @db.Json
+  deletedAt       DateTime?           @db.Timestamp(0)
+  rootStepValue   DykeStepValues?     @relation(fields: [rootStepValueId], references: [id], name: "rootValue")
+  stepValue       DykeStepValues?     @relation(fields: [stepValueId], references: [id], name: "stepValue")
+  prevStepValue   DykeStepValues?     @relation(fields: [prevStepValueId], references: [id], name: "prevStepValue")
+
+  @@index([rootStepValueId])
+  @@index([stepValueId])
+  @@index([prevStepValueId])
+}
+
+model DykeStepValues {
+  id        Int         @unique @default(autoincrement())
+  title     String?
+  createdAt DateTime?   @default(now()) @db.Timestamp(0)
+  updatedAt DateTime?   @updatedAt
+  deletedAt DateTime?   @db.Timestamp(0)
+  rootSteps DykeSteps[] @relation(name: "rootValue")
+  steps     DykeSteps[] @relation(name: "stepValue")
+  prevStep  DykeSteps[] @relation(name: "prevStepValue")
+}
+
+model DykeCategories {
+  id        Int            @unique @default(autoincrement())
+  title     String         @unique
+  createdAt DateTime?      @default(now()) @db.Timestamp(0)
+  updatedAt DateTime?      @updatedAt
+  deletedAt DateTime?      @db.Timestamp(0)
+  products  DykeProducts[]
+}
+
+model DykeStepProducts {
+  id                Int                 @unique @default(autoincrement())
+  uid               String?             @unique
+  productCode       String?
+  name              String?
+  img               String?
+  redirectUid       String?
+  custom            Boolean?            @default(false)
+  sortIndex         Int?
+  dykeProductId     Int?
+  doorId            Int?
+  dykeStepId        Int
+  nextStepId        Int?
+  housePackageTools HousePackageTools[]
+  meta              Json?               @db.Json
+  createdAt         DateTime?           @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime?           @updatedAt
+  deletedAt         DateTime?           @db.Timestamp(0)
+  product           DykeProducts?       @relation(fields: [dykeProductId], references: [id])
+  door              DykeDoors?          @relation(fields: [doorId], references: [id])
+  salesDoors        DykeSalesDoors[]
+  step              DykeSteps           @relation(fields: [dykeStepId], references: [id])
+  stepForms         DykeStepForm[]
+  sorts             ProductSortIndex[]
+
+  @@index([doorId])
+  @@index([dykeStepId])
+  @@index([dykeProductId])
+}
+
+model ProductSortIndex {
+  id              Int              @unique @default(autoincrement())
+  sortIndex       Int
+  uid             String
+  createdAt       DateTime?        @default(now()) @db.Timestamp(0)
+  updatedAt       DateTime?        @updatedAt
+  deletedAt       DateTime?        @db.Timestamp(0)
+  stepComponentId Int
+  stepComponent   DykeStepProducts @relation(fields: [stepComponentId], references: [id])
+
+  @@unique([stepComponentId, uid])
+  @@index([stepComponentId])
+}
+
+model DykePricingSystem {
+  id              Int        @unique @default(autoincrement())
+  dykeStepId      Int
+  dependenciesUid String? //"isdu-ewr-423-dfr23" depencies uid = stepProductUids
+  stepProductUid  String
+  price           Float
+  createdAt       DateTime?  @default(now()) @db.Timestamp(0)
+  updatedAt       DateTime?  @updatedAt
+  deletedAt       DateTime?  @db.Timestamp(0)
+  step            DykeSteps? @relation(fields: [dykeStepId], references: [id])
+
+  @@index([dykeStepId])
+}
+
+model DykeDoors {
+  id                Int                 @unique @default(autoincrement())
+  query             String?
+  doorType          String? //GARAGE DOOR
+  title             String
+  img               String?
+  price             Float?
+  meta              Json?               @db.Json
+  createdAt         DateTime?           @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime?           @updatedAt
+  deletedAt         DateTime?           @db.Timestamp(0)
+  housePackageTools HousePackageTools[] @relation(name: "door")
+  stepProducts      DykeStepProducts[]
+}
+
+model DykeProducts {
+  id                      Int                 @unique @default(autoincrement())
+  img                     String?
+  description             String?
+  noteRequired            Boolean?            @default(false)
+  custom                  Boolean?
+  title                   String?
+  price                   Float?
+  categoryId              Int?
+  productCode             String?
+  qty                     Int?                @default(0)
+  meta                    Json?               @db.Json
+  value                   String
+  createdAt               DateTime?           @default(now()) @db.Timestamp(0)
+  updatedAt               DateTime?           @updatedAt
+  deletedAt               DateTime?           @db.Timestamp(0)
+  stepProducts            DykeStepProducts[]
+  category                DykeCategories?     @relation(fields: [categoryId], references: [id])
+  jambHousePackageTools   HousePackageTools[] @relation(name: "jamb")
+  casingHousePackageTools HousePackageTools[] @relation(name: "casing")
+  moldingHousePkgTools    HousePackageTools[] @relation(name: "molding")
+
+  @@index([categoryId])
+}
+
+model DykeProductPrices {
+  id        Int       @unique @default(autoincrement())
+  price     Float
+  dimension String // 1-0 x 6-7
+  type      String // door, jamb, casing
+  productId Int
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt
+  deletedAt DateTime? @db.Timestamp(0)
+}
+
+model DykeShelfCategories {
+  id   Int    @unique @default(autoincrement())
+  name String
+  type String //parent/child
+
+  categoryId       Int?
+  parentCategoryId Int?
+  products         DykeShelfProducts[]  @relation(name: "childCategory")
+  groupedProducts  DykeShelfProducts[]  @relation(name: "parentCategory")
+  shelfItems       DykeSalesShelfItem[]
+  createdAt        DateTime?            @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime?            @updatedAt
+  deletedAt        DateTime?            @db.Timestamp(0)
+}
+
+model DykeShelfProducts {
+  id                Int                  @unique @default(autoincrement())
+  title             String
+  unitPrice         Float?
+  categoryId        Int?
+  parentCategoryId  Int?
+  img               String?
+  meta              Json?                @db.Json
+  createdAt         DateTime?            @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime?            @updatedAt
+  deletedAt         DateTime?            @db.Timestamp(0)
+  category          DykeShelfCategories? @relation(name: "childCategory", fields: [categoryId], references: [id])
+  parentCategory    DykeShelfCategories? @relation(name: "parentCategory", fields: [parentCategoryId], references: [id])
+  orderItems        DykeSalesShelfItem[]
+  housePackageTools HousePackageTools[]  @relation(name: "shelfProd")
+
+  // @@fulltext([title])
+
+  @@index([categoryId])
+  @@index([parentCategoryId])
+}
+
+model DykeSalesError {
+  id         Int       @unique @default(autoincrement())
+  errorId    String
+  userId     Int
+  restoredAt DateTime?
+  meta       Json?     @db.Json
+  deletedAt  DateTime? @db.Timestamp(0)
+  createdAt  DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt  DateTime? @updatedAt
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+// model Refunds {
+
+// }
+model SalesTaxes {
+  id        String      @id @default(cuid())
+  sale      SalesOrders @relation(fields: [salesId], references: [id])
+  salesId   Int
+  taxCode   String
+  taxxable  Float
+  tax       Float       @default(0)
+  createdAt DateTime?   @default(now()) @db.Timestamp(0)
+  updatedAt DateTime?   @updatedAt
+  deletedAt DateTime?   @db.Timestamp(0)
+
+  taxConfig Taxes? @relation(fields: [taxCode], references: [taxCode])
+
+  @@index([salesId])
+  @@index([taxCode])
+}
+
+model Taxes {
+  title               String
+  taxCode             String                @unique
+  percentage          Float                 @default(0.00)
+  taxOn               String                @default("total") //total, first 50000 
+  createdAt           DateTime?             @default(now()) @db.Timestamp(0)
+  updatedAt           DateTime?             @updatedAt
+  deletedAt           DateTime?             @db.Timestamp(0)
+  salesTaxes          SalesTaxes[]
+  customerTaxProfiles CustomerTaxProfiles[]
+}
+
+model SalesStat {
+  salesId    Int
+  status     String?
+  type       String // production, dispatch, payment
+  score      Float?
+  total      Float?
+  percentage Float?
+  sales      SalesOrders @relation(fields: [salesId], references: [id])
+  createdAt  DateTime?   @default(now()) @db.Timestamp(0)
+
+  deletedAt DateTime? @db.Timestamp(0)
+
+  @@unique([salesId, type])
+  @@index([salesId])
+}
+
+// model SalesNote {
+//     id            Int  @unique @default(autoincrement())
+//     noteId        Int  @unique
+//     replyToNoteId Int? @unique
+
+//     salesId      Int
+//     salesItemId  Int?
+//     assignmentId Int?
+//     deliveryId   Int?
+
+//     note       Note      @relation(name: "salesNote", fields: [noteId], references: [id])
+//     replyNote  Note?     @relation(name: "replySalesNote", fields: [replyToNoteId], references: [id])
+//     resolvedAt DateTime? @db.Timestamp(0)
+//     deletedAt  DateTime? @db.Timestamp(0)
+//     createdAt  DateTime? @default(now()) @db.Timestamp(0)
+//     updatedAt  DateTime? @updatedAt
+// }
+
+model OrderItemProductionAssignments {
+  id                  Int                          @unique @default(autoincrement())
+  itemId              Int
+  orderId             Int
+  assignedToId        Int?
+  assignedById        Int
+  qtyAssigned         Int?
+  qtyCompleted        Int?
+  lhQty               Int?
+  rhQty               Int?
+  note                String?
+  salesDoorId         Int?
+  startedAt           DateTime?                    @db.Timestamp(0)
+  dueDate             DateTime?                    @db.Timestamp(0)
+  deletedAt           DateTime?                    @db.Timestamp(0)
+  createdAt           DateTime?                    @default(now()) @db.Timestamp(0)
+  updatedAt           DateTime?                    @updatedAt
+  submissions         OrderProductionSubmissions[]
+  order               SalesOrders                  @relation(fields: [orderId], references: [id])
+  item                SalesOrderItems              @relation(fields: [itemId], references: [id])
+  assignedTo          Users?                       @relation(name: "orderItemAssignments", fields: [assignedToId], references: [id])
+  assignedBy          Users                        @relation(name: "orderItemAssignedByMe", fields: [assignedById], references: [id])
+  salesDoor           DykeSalesDoors?              @relation(fields: [salesDoorId], references: [id])
+  salesItemControlUid String?
+  itemControl         SalesItemControl?            @relation(fields: [salesItemControlUid], references: [uid])
+  shelfItem           DykeSalesShelfItem?          @relation(fields: [shelfItemId], references: [id])
+  shelfItemId         Int?
+
+  @@index([shelfItemId])
+  @@index([salesItemControlUid])
+  @@index([orderId])
+  @@index([itemId])
+  @@index([assignedToId])
+  @@index([assignedById])
+  @@index([salesDoorId])
+}
+
+model OrderProductionSubmissions {
+  id               Int                             @unique @default(autoincrement())
+  salesOrderId     Int?
+  salesOrderItemId Int?
+  qty              Int
+  lhQty            Int?                            @default(0)
+  rhQty            Int?                            @default(0)
+  note             String?                         @db.Text
+  deletedAt        DateTime?                       @db.Timestamp(0)
+  createdAt        DateTime?                       @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime?                       @updatedAt
+  assignmentId     Int?
+  meta             Json?                           @db.Json
+  order            SalesOrders?                    @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  item             SalesOrderItems?                @relation(fields: [salesOrderItemId], references: [id], onDelete: Cascade)
+  assignment       OrderItemProductionAssignments? @relation(fields: [assignmentId], references: [id])
+  itemDeliveries   OrderItemDelivery[]
+
+  @@index([salesOrderId])
+  @@index([salesOrderItemId])
+  @@index([assignmentId])
+}
+
+model DykeSalesShelfItem {
+  id               Int                              @unique @default(autoincrement())
+  salesOrderItemId Int?
+  description      String?
+  productId        Int?
+  categoryId       Int
+  qty              Int?
+  unitPrice        Int?
+  totalPrice       Int?
+  meta             Json?                            @db.Json
+  createdAt        DateTime?                        @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime?                        @updatedAt
+  deletedAt        DateTime?                        @db.Timestamp(0)
+  salesOrderItem   SalesOrderItems?                 @relation(fields: [salesOrderItemId], references: [id])
+  shelfProduct     DykeShelfProducts?               @relation(fields: [productId], references: [id])
+  category         DykeShelfCategories?             @relation(fields: [categoryId], references: [id])
+  assignments      OrderItemProductionAssignments[]
+
+  @@index([salesOrderItemId])
+  @@index([productId])
+  @@index([categoryId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+model SalesCommision {
+  id                  Int                @unique @default(autoincrement())
+  amount              Float
+  userId              Int
+  orderId             Int
+  orderPaymentId      Int
+  commissionPaymentId Int?
+  status              String             @db.VarChar(255)
+  deletedAt           DateTime?          @db.Timestamp(0)
+  createdAt           DateTime?          @default(now()) @db.Timestamp(0)
+  updatedAt           DateTime?          @updatedAt
+  order               SalesOrders        @relation(fields: [orderId], references: [id])
+  user                Users              @relation(fields: [userId], references: [id])
+  orderPayment        SalesPayments      @relation(fields: [orderPaymentId], references: [id])
+  commissionPayment   CommissionPayment? @relation(fields: [commissionPaymentId], references: [id])
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([orderPaymentId])
+  @@index([commissionPaymentId])
+}
+
+model SalesOrderProducts {
+  id               Int       @unique @default(autoincrement())
+  salesOrderId     Int
+  salesOrderItemId Int
+  qty              Int?
+  stockQty         Int?
+  shortQty         Int?
+  productVariantId Int?
+  productId        Int?
+  status           String    @db.VarChar(255)
+  deletedAt        DateTime? @db.Timestamp(0)
+  createdAt        DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime? @updatedAt
+}
+
+model Refunds {
+  id            String  @unique @default(uuid())
+  refId         String //ref-salesid
+  salesId       Int
+  refundSalesId Int?    @unique
+  walletId      Int
+  total         Float
+  status        String
+  description   String?
+
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt
+  deletedAt DateTime? @db.Timestamp(0)
+
+  sales        SalesOrders?         @relation(fields: [salesId], references: [id], name: "salesRefunds")
+  refundSale   SalesOrders?         @relation(name: "refund", fields: [refundSalesId], references: [id])
+  wallet       CustomerWallet       @relation(fields: [walletId], references: [id])
+  transactions RefundTransactions[]
+
+  @@index([salesId])
+  @@index([walletId])
+}
+
+model RefundTransactions {
+  id            String              @unique @default(uuid())
+  refundId      String
+  transactionId Int
+  refund        Refunds?            @relation(fields: [refundId], references: [id])
+  transaction   CustomerTransaction @relation(fields: [transactionId], references: [id])
+  createdAt     DateTime?           @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime?           @updatedAt
+  deletedAt     DateTime?           @db.Timestamp(0)
+
+  @@index([refundId])
+  @@index([transactionId])
+}
+
+model CustomerTransaction {
+  id            Int                  @unique @default(autoincrement())
+  authorId      Int?
+  txId          String?
+  status        String?
+  amount        Float
+  walletId      Int?
+  paymentMethod String?
+  type          String? //wallet, transaction
+  description   String?              @db.LongText
+  meta          Json?                @db.Json
+  createdAt     DateTime?            @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime?            @updatedAt
+  deletedAt     DateTime?            @db.Timestamp(0)
+  wallet        CustomerWallet?      @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  salesPayments SalesPayments[]
+  refundTx      RefundTransactions[]
+  squarePayment SquarePayments?      @relation(fields: [squarePID], references: [id])
+  squarePID     String?
+  author        Users?               @relation(fields: [authorId], references: [id])
+
+  @@index([authorId])
+  @@index([walletId])
+  @@index([squarePID])
+}
+
+model CustomerWallet {
+  id           Int                   @unique @default(autoincrement())
+  balance      Float
+  accountNo    String?               @unique
+  meta         Json?                 @db.Json
+  customer     Customers?            @relation(fields: [id], references: [walletId], onDelete: Cascade)
+  transactions CustomerTransaction[]
+  createdAt    DateTime?             @default(now()) @db.Timestamp(0)
+  updatedAt    DateTime?             @updatedAt
+  deletedAt    DateTime?             @db.Timestamp(0)
+  refunds      Refunds[]
+}
+
+model SalesPayments {
+  id               Int                  @unique @default(autoincrement())
+  note             String?
+  authorId         Int?
+  squarePaymentsId String?
+  // customerId    Int
+  transactionId    Int?
+  orderId          Int
+  amount           Float
+  tip              Float?
+  meta             Json?                @db.Json
+  status           String? // success,pending,paid
+  deletedAt        DateTime?            @db.Timestamp(0)
+  createdAt        DateTime?            @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime?            @updatedAt
+  order            SalesOrders          @relation(name: "salesPayment", fields: [orderId], references: [id], onDelete: Cascade)
+  checkout         SalesCheckout?
+  // customer      Customers            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  transaction      CustomerTransaction? @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  commissions      SalesCommision[]
+  author           Users?               @relation(fields: [authorId], references: [id])
+  squarePayments   SquarePayments?      @relation(fields: [squarePaymentsId], references: [id])
+
+  @@index([authorId])
+  @@index([orderId])
+  // @@index([customerId])
+  @@index([transactionId])
+  @@index([squarePaymentsId])
+}
+
+model SquarePayments {
+  id              String                @id @default(cuid())
+  paymentId       String?               @unique
+  status          String                @default("created")
+  squareOrderId   String?
+  paymentMethod   String //link,terminal
+  paymentLink     String?
+  terminalId      String?
+  amount          Float
+  tip             Float?
+  meta            Json?                 @db.Json
+  deletedAt       DateTime?             @db.Timestamp(0)
+  createdAt       DateTime?             @default(now()) @db.Timestamp(0)
+  updatedAt       DateTime?             @updatedAt
+  createdById     Int?
+  paymentTerminal PaymentTerminals?     @relation(fields: [terminalId], references: [terminalId])
+  customerTxs     CustomerTransaction[]
+  createdBy       Users?                @relation(fields: [createdById], references: [id])
+  orders          SquarePaymentOrders[]
+  salesPayments   SalesPayments[]
+  checkout        SalesCheckout?
+
+  @@index([terminalId])
+  @@index([createdById])
+}
+
+model SquarePaymentOrders {
+  id              String         @id @default(cuid())
+  orderId         Int
+  squarePaymentId String
+  squarePayment   SquarePayments @relation(fields: [squarePaymentId], references: [id])
+  order           SalesOrders?   @relation(fields: [orderId], references: [id])
+
+  @@index([squarePaymentId])
+  @@index([orderId])
+}
+
+model PaymentTerminals {
+  terminalId   String    @unique
+  terminalName String?
+  deletedAt    DateTime? @db.Timestamp(0)
+  createdAt    DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt    DateTime? @updatedAt
+
+  payments SquarePayments[]
+}
+
+model SalesCheckout {
+  id              String            @id @default(cuid())
+  paymentId       String?           @unique
+  userId          Int?
+  status          String?
+  paymentType     String?
+  terminalId      String?
+  terminalName    String?
+  amount          Float?
+  tip             Float?            @default(0)
+  orderId         Int?
+  meta            Json?             @db.Json
+  deletedAt       DateTime?         @db.Timestamp(0)
+  createdAt       DateTime?         @default(now()) @db.Timestamp(0)
+  updatedAt       DateTime?         @updatedAt
+  order           SalesOrders?      @relation(fields: [orderId], references: [id])
+  createdBy       Users?            @relation(fields: [userId], references: [id])
+  salesPaymentsId Int?              @unique
+  squarePaymentId String?           @unique
+  paymentSlip     SalesPayments?    @relation(fields: [salesPaymentsId], references: [id])
+  squarePayment   SquarePayments?   @relation(fields: [squarePaymentId], references: [id])
+  tenders         CheckoutTenders[]
+
+  @@index([orderId])
+  @@index([userId])
+}
+
+model CheckoutTenders {
+  id              String        @id @default(cuid())
+  tenderId        String        @unique
+  // squarePaymentId String
+  // squareOrderId   String
+  salesCheckoutId String
+  status          String
+  amount          Float?
+  tip             Float?
+  deletedAt       DateTime?     @db.Timestamp(0)
+  createdAt       DateTime?     @default(now()) @db.Timestamp(0)
+  checkout        SalesCheckout @relation(fields: [salesCheckoutId], references: [id])
+
+  @@index([salesCheckoutId])
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["typedSql", "prismaSchemaFolder"]
+  output          = "../../generated/client"
+  // binaryTargets   = ["native", "debian-openssl-3.0.x"]
+  // previewFeatures = ["filteredRelationCount"]
+}
+
+datasource db {
+  provider     = "mysql"
+  relationMode = "prisma"
+  url          = env("DATABASE_URL")
+}
+
+// datasource db {
+//     provider     = "postgres"
+//     relationMode = "prisma"
+//     url          = env("POSTGRESS_URL")
+// }
+
+model AutoCompletes {
+  id        Int       @unique @default(autoincrement())
+  type      String
+  fieldName String
+  deletedAt DateTime?
+  value     String
+}
+
+/// The underlying table does notnpx contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model AddressBooks {
+  id             Int           @unique @default(autoincrement())
+  customerId     Int?
+  name           String?       @db.VarChar(255)
+  address1       String?       @db.VarChar(300)
+  address2       String?       @db.VarChar(300)
+  country        String?       @db.VarChar(255)
+  state          String?       @db.VarChar(255)
+  city           String?       @db.VarChar(255)
+  email          String?       @db.VarChar(255)
+  phoneNo        String?       @db.VarChar(255)
+  phoneNo2       String?       @db.VarChar(255)
+  isPrimary      Boolean?
+  meta           Json?         @db.Json
+  createdAt      DateTime?     @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime?     @updatedAt
+  deletedAt      DateTime?
+  customer       Customers?    @relation(fields: [customerId], references: [id], name: "addressBooks", onDelete: Cascade)
+  billingOrders  SalesOrders[] @relation(name: "billingAddress")
+  shippingOrders SalesOrders[] @relation(name: "shippingAddress")
+  dealerBilling  DealerAuth[]  @relation(name: "primaryBillingAddress")
+  dealerShipping DealerAuth[]  @relation(name: "primaryShippingAddress")
+
+  @@index([createdAt, deletedAt, name, address1])
+  @@index([customerId])
+  @@index([phoneNo])
+}
+
+model ErrorLog {
+  id          Int            @unique @default(autoincrement())
+  userId      Int
+  title       String?
+  description String?
+  data        String?
+  meta        Json           @db.Json
+  status      String
+  deletedAt   DateTime?      @db.Timestamp(0)
+  createdAt   DateTime?      @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime?      @updatedAt
+  Users       Users          @relation(fields: [userId], references: [id])
+  tags        ErrorLogTags[]
+
+  @@index([userId])
+}
+
+model ErrorLogTags {
+  id         Int       @unique @default(autoincrement())
+  errorLogId Int
+  errorTagId Int
+  errorLog   ErrorLog  @relation(fields: [errorLogId], references: [id])
+  errorTags  ErrorTags @relation(fields: [errorTagId], references: [id])
+  deletedAt  DateTime? @db.Timestamp(0)
+
+  @@index([errorLogId])
+  @@index([errorTagId])
+}
+
+model ErrorTags {
+  id           Int            @unique @default(autoincrement())
+  name         String         @unique
+  errorLogTags ErrorLogTags[]
+  deletedAt    DateTime?      @db.Timestamp(0)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Builders {
+  id            Int             @unique @default(autoincrement())
+  name          String?         @db.VarChar(255)
+  slug          String?         @db.VarChar(255)
+  meta          Json?           @db.Json
+  deletedAt     DateTime?       @db.Timestamp(0)
+  createdAt     DateTime?       @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime?       @updatedAt
+  projects      Projects[]
+  homeTemplates HomeTemplates[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model CostCharts {
+  id        Int            @unique @default(autoincrement())
+  parentId  Int?
+  current   Boolean?
+  title     String         @db.VarChar(255)
+  type      String         @db.VarChar(255)
+  model     String         @db.VarChar(255)
+  meta      Json?          @db.Json
+  startDate DateTime       @default(now()) @db.Timestamp(0)
+  endDate   DateTime?      @db.Timestamp(0)
+  deletedAt DateTime?      @db.Timestamp(0)
+  createdAt DateTime?      @default(now()) @db.Timestamp(0)
+  updatedAt DateTime?      @updatedAt
+  template  HomeTemplates? @relation(fields: [parentId], references: [id])
+
+  @@index([parentId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model CommunityModels {
+  id        Int       @unique @default(autoincrement())
+  projectId Int
+  pivotId   Int?
+  modelName String    @db.VarChar(255)
+  meta      Json?     @db.Json
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt
+  deletedAt DateTime? @db.Timestamp(0)
+
+  slug    String                     @unique @db.VarChar(255)
+  project Projects                   @relation(fields: [projectId], references: [id])
+  homes   Homes[]
+  history CommunityTemplateHistory[]
+  costs   CommunityModelCost[]
+  pivot   CommunityModelPivot?       @relation(fields: [pivotId], references: [id])
+
+  @@index([pivotId])
+  @@index([projectId])
+}
+
+model CommunityTemplateHistory {
+  id                Int              @unique @default(autoincrement())
+  userId            Int
+  meta              Json?            @db.Json
+  createdAt         DateTime?        @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime?        @updatedAt
+  deletedAt         DateTime?        @db.Timestamp(0)
+  model             CommunityModels? @relation(fields: [communityModelsId], references: [id])
+  communityModelsId Int?
+  Users             Users            @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([communityModelsId])
+}
+
+model PageView {
+  id           Int       @id @default(autoincrement())
+  url          String
+  group        String?
+  searchParams String?
+  createdAt    DateTime? @default(now()) @db.Timestamp(0)
+  deletedAt    DateTime? @db.Timestamp(0)
+  Users        Users?    @relation(fields: [userId], references: [id])
+  userId       Int?
+
+  @@index([userId])
+}
+
+model Event {
+  id        Int       @id @default(autoincrement())
+  type      String
+  data      Json
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  deletedAt DateTime? @db.Timestamp(0)
+  value     Float?    @default(1)
+  Users     Users?    @relation(fields: [userId], references: [id])
+  userId    Int?
+
+  @@index([userId])
+}
+
+model CommunityModelPivot {
+  id              Int                  @unique @default(autoincrement())
+  model           String               @db.VarChar(255)
+  projectId       Int
+  meta            Json?                @db.Json
+  createdAt       DateTime?            @default(now()) @db.Timestamp(0)
+  updatedAt       DateTime?            @updatedAt
+  deletedAt       DateTime?            @db.Timestamp(0)
+  communityModels CommunityModels[]
+  modelCosts      CommunityModelCost[]
+}
+
+model CommunityModelCost {
+  id               Int                  @unique @default(autoincrement())
+  communityModelId Int?
+  pivotId          Int?
+  current          Boolean?
+  title            String               @db.VarChar(255)
+  type             String               @db.VarChar(255)
+  model            String               @db.VarChar(255)
+  meta             Json?                @db.Json
+  startDate        DateTime             @default(now()) @db.Timestamp(0)
+  endDate          DateTime?            @db.Timestamp(0)
+  createdAt        DateTime?            @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime?            @updatedAt
+  deletedAt        DateTime?            @db.Timestamp(0)
+  community        CommunityModels?     @relation(fields: [communityModelId], references: [id])
+  pivot            CommunityModelPivot? @relation(fields: [pivotId], references: [id])
+
+  @@index([communityModelId])
+  @@index([pivotId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+model Homes {
+  id                  Int              @unique @default(autoincrement())
+  archived            Boolean?
+  projectId           Int
+  builderId           Int?
+  homeTemplateId      Int?
+  communityTemplateId Int?
+  homeKey             String?          @db.VarChar(255)
+  slug                String?          @unique @db.VarChar(255)
+  modelName           String?          @db.VarChar(255)
+  modelNo             String?          @db.VarChar(255)
+  lotBlock            String?          @db.VarChar(255)
+  lot                 String?          @db.VarChar(255)
+  block               String?          @db.VarChar(255)
+  status              String?          @db.VarChar(255)
+  address             String?          @db.VarChar(255)
+  meta                Json?            @db.Json
+  sentToProdAt        DateTime?        @db.Timestamp(0)
+  installedAt         DateTime?        @db.Timestamp(0)
+  deletedAt           DateTime?        @db.Timestamp(0)
+  createdAt           DateTime?        @default(now()) @db.Timestamp(0)
+  updatedAt           DateTime?        @updatedAt
+  search              String?          @db.VarChar(255)
+  punchoutAt          DateTime?        @db.Timestamp(0)
+  installCost         Float?
+  punchoutCost        Float?
+  project             Projects         @relation(fields: [projectId], references: [id])
+  homeTemplate        HomeTemplates?   @relation(fields: [homeTemplateId], references: [id])
+  communityTemplate   CommunityModels? @relation(fields: [communityTemplateId], references: [id])
+  tasks               HomeTasks[]
+  jobs                Jobs[]
+  invoices            Invoices[]
+
+  @@index([createdAt, deletedAt, modelName, search, projectId])
+  @@index([projectId])
+  @@index([homeTemplateId])
+  @@index([communityTemplateId])
+}
+
+model HomeTasks {
+  id                   Int       @unique @default(autoincrement())
+  archived             Boolean?
+  homeId               Int?
+  type                 String?   @db.VarChar(255)
+  taskName             String?   @db.VarChar(255)
+  taskUid              String?   @db.VarChar(255)
+  status               String?   @db.VarChar(255)
+  meta                 Json?     @db.Json
+  producerName         String?   @db.VarChar(255)
+  search               String?   @db.VarChar(255)
+  productionStatus     String?   @db.VarChar(255)
+  checkNo              String?   @db.VarChar(255)
+  projectId            Int?
+  assignedToId         Int?
+  billable             Boolean?
+  produceable          Boolean?
+  installable          Boolean?
+  punchout             Boolean?
+  deco                 Boolean?
+  addon                Boolean?
+  taxCost              Float?
+  amountDue            Float?
+  amountPaid           Float?
+  completedAt          DateTime?
+  jobId                Int?
+  checkDate            DateTime? @db.Timestamp(0)
+  statusDate           DateTime? @db.Timestamp(0)
+  sentToProductionAt   DateTime? @db.Timestamp(0)
+  producedAt           DateTime? @db.Timestamp(0)
+  prodStartedAt        DateTime? @db.Timestamp(0)
+  productionStatusDate DateTime? @db.Timestamp(0)
+  productionDueDate    DateTime? @db.Timestamp(0)
+  deletedAt            DateTime? @db.Timestamp(0)
+  createdAt            DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt            DateTime? @updatedAt
+  home                 Homes?    @relation(fields: [homeId], references: [id])
+  project              Projects? @relation(fields: [projectId], references: [id])
+  job                  Jobs?     @relation(fields: [jobId], references: [id])
+  assignedTo           Users?    @relation(fields: [assignedToId], references: [id])
+
+  @@index([createdAt, deletedAt, produceable, billable, addon, deco, punchout, installable, taskName, projectId, jobId])
+  @@index([homeId])
+  @@index([projectId])
+  @@index([jobId])
+  @@index([assignedToId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model HomeTemplates {
+  id        Int          @unique @default(autoincrement())
+  builderId Int?
+  slug      String       @unique @db.VarChar(255)
+  modelNo   String?      @db.VarChar(255)
+  modelName String?      @db.VarChar(255)
+  meta      Json?        @db.Json
+  deletedAt DateTime?    @db.Timestamp(0)
+  createdAt DateTime?    @default(now()) @db.Timestamp(0)
+  updatedAt DateTime?    @updatedAt
+  builder   Builders?    @relation(fields: [builderId], references: [id])
+  homes     Homes[]
+  costs     CostCharts[]
+
+  @@index([builderId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+model SalesItemSupply {
+  id               Int              @unique @default(autoincrement())
+  salesOrderItemId Int
+  salesOrderId     Int
+  qty              Int
+  productId        Int?
+  meta             Json?            @db.Json
+  status           String           @db.VarChar(255)
+  location         String?          @db.VarChar(255)
+  supplier         String?
+  putAwayBy        Int?
+  putawayAt        DateTime?        @db.Timestamp(0)
+  deletedAt        DateTime?        @db.Timestamp(0)
+  createdAt        DateTime?        @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime?        @updatedAt
+  unitCost         Float?
+  totalCost        Float?
+  order            SalesOrders      @relation(fields: [salesOrderId], references: [id])
+  item             SalesOrderItems? @relation(fields: [salesOrderItemId], references: [id])
+
+  @@index([salesOrderId])
+  @@index([salesOrderItemId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Inventories {
+  id               Int       @unique @default(autoincrement())
+  qty              Int
+  productId        Int
+  productVariantId Int
+  meta             Json?     @db.Json
+  deletedAt        DateTime? @db.Timestamp(0)
+  createdAt        DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime? @updatedAt
+}
+
+model OrderInventory {
+  id               Int              @unique @default(autoincrement())
+  category         String
+  meta             Json?            @db.Json
+  name             String
+  description      String?
+  price            Float?
+  parentId         Int?
+  // components       OrderInventory[] @relation(name: "ParentChild")
+  // product          OrderInventory?  @relation(name: "ParentChild", fields: [orderInventoryId], references: [id])
+  components       OrderInventory[] @relation(name: "components")
+  product          OrderInventory?  @relation(name: "components", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdAt        DateTime?        @default(now()) @db.Timestamp(0)
+  deletedAt        DateTime?        @db.Timestamp(0)
+  updatedAt        DateTime?        @updatedAt
+  orderInventoryId Int?
+
+  @@index([parentId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model InventoryProducts {
+  id                Int               @unique @default(autoincrement())
+  multiVariant      Boolean?
+  title             String            @db.VarChar(255)
+  description       String?           @db.Text
+  categoryId        Int?
+  subCategoryId     Int?
+  weight            Float?
+  meta              Json?             @db.Json
+  deletedAt         DateTime?         @db.Timestamp(0)
+  createdAt         DateTime?         @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime?         @updatedAt
+  priceUpdateAt     String?           @db.VarChar(255)
+  type              String?           @db.VarChar(255)
+  slug              String            @db.VarChar(255)
+  sku               String?           @db.VarChar(255)
+  barcode           String?           @db.VarChar(255)
+  qty               Int?
+  price             Float?
+  minimumStockLevel Int?
+  img               String?           @db.VarChar(255)
+  status            String?           @db.VarChar(255)
+  category          String?           @db.VarChar(255)
+  subCategory       String?           @db.VarChar(255)
+  supplier          String?           @db.VarChar(255)
+  variants          ProductVariants[]
+}
+
+model Invoices {
+  id        Int       @unique @default(autoincrement())
+  projectId Int?
+  homeId    Int?
+  refNo     String?   @db.VarChar(255)
+  lot       String?   @db.VarChar(255)
+  block     String?   @db.VarChar(255)
+  taskId    Int?
+  checkNo   String?   @db.VarChar(255)
+  amount    Float?
+  taskName  String?   @db.VarChar(255)
+  meta      Json?     @db.Json
+  deletedAt DateTime? @db.Timestamp(0)
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt
+  taskUid   String?   @db.VarChar(255)
+  checkDate DateTime? @db.Timestamp(0)
+  project   Projects? @relation(fields: [projectId], references: [id])
+  home      Homes?    @relation(fields: [homeId], references: [id])
+
+  @@index([projectId])
+  @@index([homeId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Migrations {
+  id        Int    @unique @default(autoincrement())
+  migration String @db.VarChar(255)
+  batch     Int
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model ModelHasPermissions {
+  permissionId Int
+  modelType    String      @db.VarChar(255)
+  modelId      BigInt      @db.UnsignedBigInt
+  permissions  Permissions @relation(fields: [permissionId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "model_has_permissions_permission_id_foreign")
+  deletedAt    DateTime?   @db.Timestamp(0)
+  // @@index([createdAt,deletedAt,modelId, modelType], map: "model_has_permissions_model_id_model_type_index")
+
+  @@id([permissionId, modelId, modelType])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model ModelHasRoles {
+  roleId    Int
+  modelType String @db.VarChar(255)
+  modelId   Int
+
+  role      Roles     @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "model_has_roles_role_id_foreign")
+  user      Users     @relation(fields: [modelId], references: [id])
+  deletedAt DateTime? @db.Timestamp(0)
+  // @@index([createdAt,deletedAt,modelId, modelType], map: "model_has_roles_model_id_model_type_index")
+
+  @@id([roleId, modelId, modelType])
+  @@index([modelId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model PasswordResets {
+  id        Int       @unique @default(autoincrement())
+  email     String    @db.VarChar(255)
+  token     String    @db.VarChar(255)
+  usedAt    DateTime? @db.Timestamp(0)
+  deletedAt DateTime? @db.Timestamp(0)
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Permissions {
+  id                    Int                   @unique @default(autoincrement())
+  name                  String                @db.VarChar(255)
+  createdAt             DateTime?             @default(now()) @db.Timestamp(0)
+  updatedAt             DateTime?             @updatedAt
+  deletedAt             DateTime?             @db.Timestamp(0)
+  model_has_permissions ModelHasPermissions[]
+  role_has_permissions  RoleHasPermissions[]
+
+  // @@unique([name], map: "permissions_name_guard_name_unique")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Posts {
+  id        Int       @unique @default(autoincrement())
+  title     String?   @db.VarChar(255)
+  slug      String?   @db.VarChar(255)
+  type      String    @db.VarChar(255)
+  content   String?   @db.Text
+  meta      Json?     @db.Json
+  status    String?   @db.VarChar(255)
+  parentId  Int?
+  deletedAt DateTime? @db.Timestamp(0)
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt
+}
+
+model Settings {
+  id        Int       @unique @default(autoincrement())
+  type      String    @db.VarChar(255)
+  meta      Json?     @db.Json
+  deletedAt DateTime? @db.Timestamp(0)
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model ProductCategories {
+  id         Int       @unique @default(autoincrement())
+  productId  Int
+  categoryId Int
+  createdAt  DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt  DateTime? @updatedAt
+  deletedAt  DateTime? @db.Timestamp(0)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Products {
+  id          Int       @unique @default(autoincrement())
+  slug        String    @db.VarChar(255)
+  section     String    @db.VarChar(255)
+  name        String    @db.VarChar(255)
+  description String    @db.VarChar(255)
+  size        String?   @db.VarChar(255)
+  type        String?   @db.VarChar(255)
+  box         String?   @db.VarChar(255)
+  price       Float
+  finish      String?   @db.VarChar(255)
+  length      String?   @db.VarChar(255)
+  per         String?   @db.VarChar(255)
+  unitQty     String?   @db.VarChar(255)
+  itemNumber  String?   @db.VarChar(255)
+  lastUpdate  String    @db.VarChar(255)
+  note        String?   @db.Text
+  priceType   String?   @db.VarChar(255)
+  meta        Json?     @db.Json
+  deletedAt   DateTime? @db.Timestamp(0)
+  createdAt   DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime? @updatedAt
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+// model ProductTags {
+//     id        Int       @unique @default(autoincrement())
+//     productId Int
+//     tagId     Int
+//     createdAt    DateTime?         @default(now())    @db.Timestamp(0)
+//     updatedAt DateTime? @updatedAt
+// }
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model ProductVariants {
+  id                Int               @unique @default(autoincrement())
+  productId         Int
+  weight            Float?
+  price             Float?
+  description       String?           @db.VarChar(255)
+  meta              Json?             @db.Json
+  deletedAt         DateTime?         @db.Timestamp(0)
+  createdAt         DateTime?         @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime?         @updatedAt
+  slug              String            @db.VarChar(255)
+  title             String?           @db.VarChar(255)
+  variantTitle      String?           @db.Text
+  sku               String?           @db.VarChar(255)
+  barcode           String?           @db.VarChar(255)
+  qty               Int?
+  minimumStockLevel Int?
+  img               String?           @db.VarChar(255)
+  status            String?           @db.VarChar(255)
+  category          String?           @db.VarChar(255)
+  subCategory       String?           @db.VarChar(255)
+  supplier          String?           @db.VarChar(255)
+  product           InventoryProducts @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+model Progress {
+  id               Int       @unique @default(autoincrement())
+  parentId         Int?
+  progressableId   Int?
+  progressableType String?   @db.VarChar(255)
+  userId           Int?
+  status           String?   @db.VarChar(255)
+  type             String?   @db.VarChar(255)
+  headline         String?   @db.VarChar(255)
+  description      String?   @db.Text
+  meta             Json?     @db.Json
+  deletedAt        DateTime? @db.Timestamp(0)
+  createdAt        DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime? @updatedAt
+  user             Users?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+// model Note {
+//     id             Int        @unique @default(autoincrement())
+//     note           String?
+//     createdById    Int
+//     resolvedById   Int?
+//     visibility     String? //public,production,delivery,admin
+//     flagId         Int
+//     replyToNoteId  Int?
+//     deletedAt      DateTime?  @db.Timestamp(0)
+//     createdAt      DateTime?  @default(now()) @db.Timestamp(0)
+//     updatedAt      DateTime?  @updatedAt
+//     salesNote      SalesNote? @relation(name: "salesNote")
+//     replySalesNote SalesNote? @relation(name: "replySalesNote")
+//     flag           NoteFlags? @relation(fields: [flagId], references: [id])
+
+//     @@index([flagId])
+// }
+
+// model NoteFlags {
+//     id              Int       @unique @default(autoincrement())
+//     title           String
+//     color           String?
+//     resolveRequired Boolean?
+//     notes           Note[]
+//     deletedAt       DateTime? @db.Timestamp(0)
+//     createdAt       DateTime? @default(now()) @db.Timestamp(0)
+//     updatedAt       DateTime? @updatedAt
+// }
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Projects {
+  id              Int               @unique @default(autoincrement())
+  archived        Boolean?
+  title           String?           @db.VarChar(255)
+  builderId       Int?
+  address         String?           @db.VarChar(255)
+  slug            String?           @unique @db.VarChar(255)
+  meta            Json?             @db.Json
+  refNo           String?           @db.VarChar(255)
+  deletedAt       DateTime?         @db.Timestamp(0)
+  createdAt       DateTime?         @default(now()) @db.Timestamp(0)
+  updatedAt       DateTime?         @updatedAt
+  homes           Homes[]
+  builder         Builders?         @relation(fields: [builderId], references: [id])
+  jobs            Jobs[]
+  communityModels CommunityModels[]
+  invoices        Invoices[]
+  homeTasks       HomeTasks[]
+
+  @@index([builderId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model RoleHasPermissions {
+  permissionId Int
+  roleId       Int
+  permission   Permissions @relation(fields: [permissionId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "role_has_permissions_permission_id_foreign")
+  role         Roles       @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "role_has_permissions_role_id_foreign")
+  deletedAt    DateTime?   @db.Timestamp(0)
+
+  @@id([permissionId, roleId])
+  @@index([roleId], map: "role_has_permissions_role_id_foreign")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Roles {
+  id                 Int                  @unique @default(autoincrement())
+  name               String               @db.VarChar(255)
+  createdAt          DateTime?            @default(now()) @db.Timestamp(0)
+  updatedAt          DateTime?            @updatedAt
+  deletedAt          DateTime?            @db.Timestamp(0)
+  ModelHasRoles      ModelHasRoles[]
+  RoleHasPermissions RoleHasPermissions[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model SalesInvoiceItems {
+  id              Int       @unique @default(autoincrement())
+  uid             Int
+  productId       Int
+  salesInvoiceId  Int
+  item            String?   @db.VarChar(255)
+  description     String?   @db.VarChar(255)
+  qty             Int
+  salesPercentage Float?
+  costPrice       Float?
+  salesPrice      Float?
+  total           Float?
+  tax             Float?
+  meta            Json?     @db.Json
+  deletedAt       DateTime? @db.Timestamp(0)
+  createdAt       DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt       DateTime? @updatedAt
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model SalesInvoices {
+  id              Int       @unique @default(autoincrement())
+  slug            String    @db.VarChar(255)
+  invoiceNumber   String    @db.VarChar(255)
+  customerName    String?   @db.VarChar(255)
+  sumTax          Float?
+  subTotal        Float?
+  total           Float
+  salesPercentage Float?
+  taxPercentage   Float?
+  meta            Json?     @db.Json
+  deletedAt       DateTime? @db.Timestamp(0)
+  createdAt       DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt       DateTime? @updatedAt
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model SalesJobs {
+  id           Int       @unique @default(autoincrement())
+  jobId        String?   @db.VarChar(255)
+  salesOrderId Int
+  meta         Json?     @db.Json
+  status       String    @db.VarChar(255)
+  createdAt    DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt    DateTime? @updatedAt
+  deletedAt    DateTime? @db.Timestamp(0)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Jobs {
+  id          Int       @unique @default(autoincrement())
+  userId      Int
+  coWorkerId  Int?
+  type        String    @db.VarChar(255)
+  homeId      Int?
+  // unitId      Int?
+  projectId   Int?
+  // taskId      Int?
+  amount      Float
+  title       String?   @db.VarChar(255)
+  subtitle    String?   @db.VarChar(255)
+  description String?   @db.LongText
+  note        String?   @db.Text
+  // doneBy      String?      @db.VarChar(255)
+  status      String    @db.VarChar(255)
+  meta        Json?     @db.Json
+  adminNote   String?   @db.Text
+  statusDate  DateTime? @db.Timestamp(0)
+  rejectedAt  DateTime? @db.Timestamp(0)
+  approvedAt  DateTime? @db.Timestamp(0)
+  // paidAt      DateTime?    @db.Timestamp(0)
+  approvedBy  Int?
+  // paidBy      Int?
+  paymentId   Int?
+
+  // checkNo     String?      @db.VarChar(255)
+  deletedAt DateTime?    @db.Timestamp(0)
+  createdAt DateTime?    @default(now()) @db.Timestamp(0)
+  updatedAt DateTime?    @updatedAt
+  payment   JobPayments? @relation(fields: [paymentId], references: [id])
+  home      Homes?       @relation(fields: [homeId], references: [id])
+  user      Users?       @relation(name: "installer", fields: [userId], references: [id])
+  coWorker  Users?       @relation(name: "co-worker", fields: [coWorkerId], references: [id])
+  project   Projects?    @relation(fields: [projectId], references: [id])
+  homeTasks HomeTasks[]
+
+  @@index([createdAt, homeId, type, status, userId])
+  @@index([paymentId])
+  @@index([homeId])
+  @@index([userId])
+  @@index([coWorkerId])
+  @@index([projectId])
+}
+
+model JobPayments {
+  id            Int       @unique @default(autoincrement())
+  amount        Int
+  charges       Int?
+  subTotal      Int?
+  userId        Int
+  paidBy        Int
+  checkNo       String?
+  paymentMethod String?
+  meta          Json?     @db.Json
+  createdAt     DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime? @updatedAt
+  deletedAt     DateTime? @db.Timestamp(0)
+  jobs          Jobs[]
+  user          Users?    @relation(name: "worker", fields: [userId], references: [id])
+  payer         Users?    @relation(name: "payer", fields: [paidBy], references: [id])
+
+  @@index([userId])
+  @@index([paidBy])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+// model Variants {
+//     id        Int       @unique @default(autoincrement())
+//     name      String    @db.VarChar(255)
+//     value     String    @db.VarChar(255)
+//     meta      Json?     @db.Json
+//     deletedAt DateTime? @db.Timestamp(0)
+//     createdAt    DateTime?         @default(now())    @db.Timestamp(0)
+//     updatedAt DateTime? @updatedAt
+// }
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model WorkOrders {
+  id           Int       @unique @default(autoincrement())
+  techId       Int?
+  slug         String    @unique @db.VarChar(255)
+  description  String?   @db.Text
+  lot          String?   @db.VarChar(255)
+  block        String?   @db.VarChar(255)
+  projectName  String?   @db.VarChar(255)
+  builderName  String?   @db.VarChar(255)
+  requestDate  DateTime?
+  supervisor   String?   @db.VarChar(255)
+  scheduleDate DateTime? @db.Timestamp(0)
+  scheduleTime String?   @db.VarChar(255)
+  homeAddress  String?   @db.VarChar(255)
+  homeOwner    String?   @db.VarChar(255)
+  homePhone    String?   @db.VarChar(255)
+  meta         Json?     @db.Json
+  status       String?   @db.VarChar(255)
+  assignedAt   DateTime? @db.Timestamp(0)
+  completedAt  DateTime  @default(now()) @db.Timestamp(0)
+  deletedAt    DateTime? @db.Timestamp(0)
+  createdAt    DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt    DateTime? @updatedAt
+  tech         Users?    @relation(fields: [techId], references: [id])
+
+  @@index([techId])
+}
+
+model Notifications {
+  id          Int       @unique @default(autoincrement())
+  meta        Json?     @db.Json
+  type        String
+  fromUserId  Int
+  userId      Int
+  message     String
+  alert       Boolean?
+  deliveredAt Boolean?
+  link        String?   @db.Text()
+  user        Users     @relation(name: "notifications", fields: [userId], references: [id])
+  fromUser    Users     @relation(name: "fromUser", fields: [fromUserId], references: [id])
+  seenAt      DateTime? @db.Timestamp(0)
+  archivedAt  DateTime? @db.Timestamp(0)
+  createdAt   DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime? @updatedAt
+  deletedAt   DateTime?
+
+  @@index([createdAt, deletedAt, userId, seenAt, archivedAt])
+  @@index([userId])
+  @@index([fromUserId])
+}
+
+// Dyke Edge Db
+
+model Cache {
+  id        Int       @unique @default(autoincrement())
+  path      String?
+  name      String
+  group     String?
+  meta      Json?     @db.Json
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  deletedAt DateTime? @db.Timestamp(0)
+}
+
+// model Payday {
+//     id        Int            @unique @default(autoincrement())
+//     invoiceId Int?
+//     startedAt DateTime?      @db.Timestamp(0)
+//     endTime   DateTime?      @db.Timestamp(0)
+//     createdAt DateTime?      @default(now()) @db.Timestamp(0)
+//     updatedAt DateTime?      @updatedAt
+//     deletedAt DateTime?      @db.Timestamp(0)
+//     invoice   PaydayInvoice? @relation(fields: [invoiceId], references: [id])
+
+//     @@index([invoiceId])
+// }
+
+// model PaydayInvoice {
+//     id        Int       @unique @default(autoincrement())
+//     payments  Payday[]
+//     createdAt DateTime? @default(now()) @db.Timestamp(0)
+//     deletedAt DateTime? @db.Timestamp(0)
+//     updatedAt DateTime? @updatedAt
+// }
+
+model Blogs {
+  id          Int       @unique @default(autoincrement())
+  title       String
+  slug        String    @unique
+  authorId    Int
+  type        String
+  content     String    @db.LongText
+  meta        Json      @db.Json
+  status      String    @default("draft")
+  publishedAt DateTime? @db.Timestamp(0)
+  createdAt   DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime? @updatedAt
+  deletedAt   DateTime? @db.Timestamp(0)
+  user        Users?    @relation(fields: [authorId], references: [id])
+
+  @@index([authorId])
+}
+
+model Gallery {
+  id          Int          @unique @default(autoincrement())
+  description String?
+  src         String       @unique
+  tags        GalleryTag[]
+  createdAt   DateTime?    @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime?    @updatedAt
+  deletedAt   DateTime?    @db.Timestamp(0)
+}
+
+model GalleryTag {
+  id        Int             @unique @default(autoincrement())
+  galleryId Int
+  tagId     Int
+  tag       GalleryTagName? @relation(fields: [tagId], references: [id])
+  gallery   Gallery?        @relation(fields: [galleryId], references: [id])
+  createdAt DateTime?       @default(now()) @db.Timestamp(0)
+  updatedAt DateTime?       @updatedAt
+  deletedAt DateTime?       @db.Timestamp(0)
+
+  @@index([tagId])
+  @@index([galleryId])
+}
+
+model GalleryTagName {
+  id          Int          @unique @default(autoincrement())
+  title       String       @unique
+  galleryTags GalleryTag[]
+  createdAt   DateTime?    @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime?    @updatedAt
+  deletedAt   DateTime?    @db.Timestamp(0)
+}
+
+model SiteActionTicket {
+  id                       Int                     @unique @default(autoincrement())
+  description              String
+  type                     String?
+  event                    String?
+  userId                   Int?
+  siteActionNotificationId Int
+  meta                     Json?
+  deletedAt                DateTime?               @db.Timestamp(0)
+  createdAt                DateTime?               @default(now()) @db.Timestamp(0)
+  updatedAt                DateTime?               @updatedAt
+  SiteActionNotification   SiteActionNotification? @relation(fields: [siteActionNotificationId], references: [id])
+
+  @@index([siteActionNotificationId])
+}
+
+model SiteActionNotification {
+  id            Int                                    @unique @default(autoincrement())
+  event         String
+  notifications SiteActionTicket[]
+  enabled       Boolean?
+  custom        Boolean?
+  meta          Json?
+  activeUsers   SiteActionNotificationActiveForUsers[]
+  deletedAt     DateTime?                              @db.Timestamp(0)
+  createdAt     DateTime?                              @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime?                              @updatedAt
+}
+
+model SiteActionNotificationActiveForUsers {
+  id                       Int                     @unique @default(autoincrement())
+  userId                   Int
+  siteActionNotificationId Int
+  SiteActionNotification   SiteActionNotification? @relation(fields: [siteActionNotificationId], references: [id])
+  deletedAt                DateTime?               @db.Timestamp(0)
+  createdAt                DateTime?               @default(now()) @db.Timestamp(0)
+  updatedAt                DateTime?               @updatedAt
+
+  @@unique([userId, siteActionNotificationId, deletedAt])
+  @@index([siteActionNotificationId])
+}
+
+model Users {
+  id                          Int                              @unique @default(autoincrement())
+  slug                        String?
+  name                        String?                          @db.VarChar(255)
+  username                    String?                          @db.VarChar(255)
+  email                       String                           @db.VarChar(255)
+  phoneNo                     String?                          @db.VarChar(255)
+  phoneCode                   String?                          @db.VarChar(255)
+  country                     String?                          @db.VarChar(255)
+  emailVerifiedAt             DateTime?                        @db.Timestamp(0)
+  password                    String?                          @db.VarChar(255)
+  rememberToken               String?                          @db.VarChar(100)
+  meta                        Json?                            @db.Json
+  deletedAt                   DateTime?                        @db.Timestamp(0)
+  createdAt                   DateTime?                        @default(now()) @db.Timestamp(0)
+  updatedAt                   DateTime?                        @updatedAt
+  employeeProfileId           Int?
+  workOrders                  WorkOrders[]
+  salesProductions            SalesOrders[]                    @relation(name: "producer")
+  reppedProductions           SalesOrders[]                    @relation(name: "salesRep")
+  roles                       ModelHasRoles[]
+  notifications               Notifications[]                  @relation(name: "notifications")
+  sentNotifications           Notifications[]                  @relation(name: "fromUser")
+  inbox                       Inbox[]
+  jobs                        Jobs[]                           @relation(name: "installer")
+  coWorkerJobs                Jobs[]                           @relation(name: "co-worker")
+  myIssuedPayments            JobPayments[]                    @relation(name: "payer")
+  payments                    JobPayments[]                    @relation(name: "worker")
+  templateHistory             CommunityTemplateHistory[]
+  employeeProfile             EmployeeProfile?                 @relation(fields: [employeeProfileId], references: [id])
+  SalesPickup                 SalesPickup[]
+  driverDeliveries            OrderDelivery[]                  @relation(name: "driver")
+  createdDeliveries           OrderDelivery[]                  @relation(name: "createdBy")
+  assignedTasks               HomeTasks[]
+  errors                      ErrorLog[]
+  documents                   UserDocuments[]
+  commissions                 SalesCommision[]
+  commissionPayments          CommissionPayment[]              @relation(name: "payer")
+  myIssuedCommissionPayments  CommissionPayment[]              @relation(name: "worker")
+  CommissionPayment           CommissionPayment[]
+  blogs                       Blogs[]
+  orderItemAssignments        OrderItemProductionAssignments[] @relation(name: "orderItemAssignments")
+  orderItemAssignedByMe       OrderItemProductionAssignments[] @relation(name: "orderItemAssignedByMe")
+  events                      Event[]
+  pageView                    PageView[]
+  notes                       Progress[]
+  approvedDealerStatusHistory DealerStatusHistory[]
+  mailEvents                  MailEventTrigger[]
+  sessions                    Session[]
+  approvedRequests            DealerSalesRequest[]
+  checkouts                   SalesCheckout[]
+  exportConfigs               ExportConfig[]
+  squarePayments              SquarePayments[]
+  customerTransactions        CustomerTransaction[]
+  salesTransactions           SalesPayments[]
+
+  @@index([createdAt, deletedAt, name])
+  @@index([employeeProfileId])
+}
+
+model Session {
+  id           String    @id @default(cuid())
+  sessionToken String    @unique @map("session_token")
+  userId       Int
+  expires      DateTime
+  deletedAt    DateTime? @db.Timestamp(0)
+  user         Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model EmployeeProfile {
+  id        Int       @unique @default(autoincrement())
+  name      String
+  discount  Int?
+  meta      Json?     @db.Json
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  deletedAt DateTime? @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt
+
+  employees Users[]
+}
+
+model UserDocuments {
+  id          Int       @unique @default(autoincrement())
+  title       String?
+  description String?
+  url         String
+  userId      Int
+  meta        Json?     @db.Json
+  createdAt   DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime? @updatedAt
+  deletedAt   DateTime? @db.Timestamp(0)
+  user        Users?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model ExportConfig {
+  id          Int       @unique @default(autoincrement())
+  title       String
+  type        String
+  meta        Json      @db.Json
+  createdById Int
+  createdBy   Users?    @relation(fields: [createdById], references: [id])
+  createdAt   DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime? @updatedAt
+  deletedAt   DateTime? @db.Timestamp(0)
+
+  @@index([createdById])
+}
+
+model PageTabs {
+  id      Int      @unique @default(autoincrement())
+  page    String
+  userId  Int
+  private Boolean? @default(true)
+
+  title      String
+  query      String
+  tabIndices PageTabIndex[]
+  createdAt  DateTime?      @default(now()) @db.Timestamp(0)
+  updatedAt  DateTime?      @updatedAt
+  deletedAt  DateTime?      @db.Timestamp(0)
+}
+
+model PageTabIndex {
+  id       String   @unique @default(uuid())
+  tabId    Int
+  tabIndex Int
+  userId   Int
+  tab      PageTabs @relation(fields: [tabId], references: [id])
+  default  Boolean? @default(false)
+
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt
+  deletedAt DateTime? @db.Timestamp(0)
+
+  @@index([tabId])
+}
+
+model SearchParameters {
+  page  String
+  key   String
+  value String
+
+  createdAt DateTime? @default(now()) @db.Timestamp(0)
+  updatedAt DateTime? @updatedAt
+  deletedAt DateTime? @db.Timestamp(0)
+
+  @@id(name: "uid", [page, key, value])
+}

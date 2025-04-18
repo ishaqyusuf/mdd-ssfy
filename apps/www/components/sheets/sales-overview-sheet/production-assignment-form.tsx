@@ -27,14 +27,18 @@ import { useProductionItem } from "./production-tab";
 export function ProductionAssignmentForm({ closeForm }) {
     const ctx = useProductionItem();
     const { queryCtx, item } = ctx;
+    const pending = item?.analytics?.assignment?.pending;
     const form = useForm<z.infer<typeof createAssignmentSchema>>({
         resolver: zodResolver(createAssignmentSchema),
         defaultValues: {
             pending: {
-                ...item?.pending?.assignment,
+                ...pending,
             },
             qty: {
-                ...item?.pending?.assignment,
+                lh: pending.lh,
+                rh: pending.rh,
+                qty: pending.lh || pending.rh ? null : pending.qty,
+                // ...item?.analytics?.assignment?.pending,
                 // qty: !item.pending?.assignment?.noHandle
             },
             assignedToId: null,
@@ -46,14 +50,6 @@ export function ProductionAssignmentForm({ closeForm }) {
             itemsTotal: item.qty.qty,
         },
     });
-    // useEffect(() => {
-    //     let qy = item?.pending?.assignment;
-    //     form.setValue("qty", {
-    //         lh: qy.lh || undefined,
-    //         rh: qy.rh || undefined,
-    //         qty: !qy.lh && !qy.rh ? qy.qty : undefined,
-    //     });
-    // }, [item]);
     const formData = form.watch();
     const data = useAsyncMemo(async () => {
         await timeout(100);

@@ -5,8 +5,6 @@ import { prisma } from "@/db";
 import { percent, sum } from "@/lib/utils";
 import { Qty } from "@/utils/sales-control-util";
 
-import { updateSalesStatAction } from "./update-sales-stat";
-
 interface Props {
     uid: string;
     salesId: number;

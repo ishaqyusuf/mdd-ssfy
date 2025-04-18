@@ -81,7 +81,7 @@ interface ComposeQtyControlProps {
     shippable;
 }
 
-export function composeQtyControl(props: ComposeQtyControlProps) {
+function composeQtyControl(props: ComposeQtyControlProps) {
     const { produceable, shippable } = props;
     const totalQty = props.qty ? props.qty : sum([props.lh, props.rh]);
     if (!totalQty) return [];

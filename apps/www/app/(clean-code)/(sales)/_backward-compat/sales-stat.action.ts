@@ -17,17 +17,6 @@ import { AsyncFnType } from "../../type";
 import { TypedSalesStat } from "../types";
 
 export async function loadSalesWithoutStats() {
-    // const resp = await prisma.qtyControl.deleteMany({
-    //     where: {
-    //         itemControl: {
-    //             // salesId,
-    //         },
-    //     },
-    // });
-    // const _resp = await prisma.salesItemControl.deleteMany({
-    //     where: {
-    //         // salesId
-    //     },
     // });
     const sales = await prisma.salesOrders.findMany({
         where: {
