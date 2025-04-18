@@ -1,7 +1,7 @@
 "use server";
 
 import { authId } from "@/app/(v1)/_actions/utils";
-import { prisma, Prisma } from "@/db";
+import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import z from "zod";
 
