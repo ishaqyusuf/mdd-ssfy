@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { redirect } from "next/navigation";
 import { createSalesAssignmentAction } from "@/actions/create-sales-assignment";
 import { getUsersListAction } from "@/actions/get-users-list";
 import {
@@ -17,6 +18,7 @@ import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { timeout } from "@/lib/timeout";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useSession } from "next-auth/react";
 import { useAction } from "next-safe-action/hooks";
 import { useController, useForm, useFormContext } from "react-hook-form";
 import { NumericFormatProps } from "react-number-format";
@@ -39,6 +41,12 @@ export function ProductionSubmitForm({}) {
     const ctx = useAssignmentRow();
     const pending = ctx?.assignment?.pending;
     const { item, queryCtx } = useProductionItem();
+    const session = useSession({
+        required: true,
+        onUnauthenticated() {
+            redirect("/login");
+        },
+    });
     const form = useForm<z.infer<typeof createSubmissionSchema>>({
         resolver: zodResolver(createSubmissionSchema),
         defaultValues: {
@@ -56,6 +64,7 @@ export function ProductionSubmitForm({}) {
             itemId: item.itemId,
             assignmentId: ctx.assignment.id,
             itemUid: item.controlUid,
+            submittedById: session?.data?.user?.id,
         },
     });
     const formData = form.watch();

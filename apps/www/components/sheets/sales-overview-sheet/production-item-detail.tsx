@@ -53,12 +53,12 @@ function Details() {
                 ?.filter((c) => !c.hidden)
                 ?.map((config, k) => (
                     <div key={k} className="space-y-1">
-                        <p className="text-xs font-medium capitalize text-muted-foreground">
+                        <p className="text-xs font-medium uppercase text-muted-foreground">
                             {config?.label}:
                         </p>
                         <p
                             className={cn(
-                                "text-smuppercase",
+                                "text-sm font-medium uppercase",
                                 config?.color == "red" && "text-red-600",
                             )}
                         >

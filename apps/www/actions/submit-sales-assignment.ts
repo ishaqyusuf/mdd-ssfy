@@ -18,6 +18,11 @@ export async function submitSalesAssignment(
             qty: data.qty.qty,
             lhQty: data.qty.lh,
             rhQty: data.qty.rh,
+            submittedBy: {
+                connect: {
+                    id: data.submittedById,
+                },
+            },
             assignment: {
                 connect: {
                     id: data.assignmentId,

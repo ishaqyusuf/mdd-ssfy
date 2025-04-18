@@ -28,18 +28,18 @@ export function useLoadingToast() {
         clearToastId() {
             setToastId(null);
         },
-        error(description, data: Data = {}) {
+        error(title, data: Data = {}) {
             ctx.display({
-                description,
+                title,
                 duration: 1500,
                 variant: "error",
                 ...data,
             });
             ctx.clearToastId();
         },
-        success(description, data: Data = {}) {
+        success(title, data: Data = {}) {
             ctx.display({
-                description,
+                title,
                 duration: 1500,
                 variant: "success",
                 ...data,

@@ -170,6 +170,7 @@ export const createSubmissionSchema = z
         note: z.string().optional(),
         salesId: z.number(),
         itemId: z.number(),
+        submittedById: z.number(),
         itemUid: z.string(),
     })
     .superRefine((data, ctx) => {

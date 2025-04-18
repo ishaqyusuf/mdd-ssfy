@@ -20,7 +20,7 @@ export async function deleteSalesAssignment(
             id: data.assignmentId,
         },
         data: {
-            deletedAt: new Date(0),
+            deletedAt: new Date(),
         },
         select: {
             orderId: true,

@@ -12,7 +12,7 @@ import { actionClient } from "./safe-action";
 import { updateSalesItemStats } from "./update-sales-item-stat";
 import { updateSalesStatAction } from "./update-sales-stat";
 
-export const deleteSalesAssignmentSubmissionSchema = z.object({
+const deleteSalesAssignmentSubmissionSchema = z.object({
     submissionId: z.number().optional(),
     assignmentId: z.number().optional(),
     salesId: z.number(),
@@ -57,7 +57,7 @@ export async function deleteSalesAssignmentSubmission(
     await tx.orderProductionSubmissions.updateMany({
         where,
         data: {
-            deletedAt: new Date(0),
+            deletedAt: new Date(),
         },
     });
     return resp;
