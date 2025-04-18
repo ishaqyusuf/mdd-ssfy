@@ -16,6 +16,7 @@ export const deleteSalesAssignmentSubmissionSchema = z.object({
     submissionId: z.number().optional(),
     assignmentId: z.number().optional(),
     salesId: z.number(),
+    itemUid: z.string().optional(),
 });
 export async function deleteSalesAssignmentSubmission(
     data: z.infer<typeof deleteSalesAssignmentSubmissionSchema>,
@@ -26,11 +27,12 @@ export async function deleteSalesAssignmentSubmission(
         whereQueries.push({
             id: data.submissionId,
         });
-
-    if (data.assignmentId)
-        whereQueries.push({
-            assignmentId: data.assignmentId,
-        });
+    else {
+        if (data.assignmentId)
+            whereQueries.push({
+                assignmentId: data.assignmentId,
+            });
+    }
     const where =
         whereQueries.length > 0
             ? {
@@ -46,12 +48,13 @@ export async function deleteSalesAssignmentSubmission(
             rhQty: true,
             assignment: {
                 select: {
+                    id: true,
                     salesItemControlUid: true,
                 },
             },
         },
     });
-    await prisma.orderProductionSubmissions.updateMany({
+    await tx.orderProductionSubmissions.updateMany({
         where,
         data: {
             deletedAt: new Date(0),
@@ -74,14 +77,13 @@ export const deleteSalesAssignmentSubmissionAction = actionClient
             await Promise.all(
                 submissions.map(async (item, index) => {
                     let commonItems = submissions.filter(
-                        (i) =>
-                            i.assignment.salesItemControlUid ==
-                            item.assignment.salesItemControlUid,
+                        (i) => i.assignment.id == item.assignment?.id,
                     );
                     if (item.id != commonItems[0]?.id) return;
-                    const itemUid = item.assignment.salesItemControlUid;
+
+                    // const itemUid = item.assignment.salesItemControlUid;
                     await updateSalesItemStats({
-                        uid: itemUid,
+                        uid: input.itemUid,
                         salesId: input.salesId,
                         type: "prodCompleted",
                         qty: negativeQty(

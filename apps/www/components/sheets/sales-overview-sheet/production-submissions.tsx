@@ -1,9 +1,17 @@
+import { deleteSalesAssignmentSubmissionAction } from "@/actions/delete-sales-assignment-submission";
+import ConfirmBtn from "@/components/_v1/confirm-btn";
+import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { formatDate } from "@/lib/use-day";
+import { useAction } from "next-safe-action/hooks";
 
 import { useAssignmentRow } from "./production-assignment-row";
+import { useProductionItem } from "./production-tab";
+import { QtyStatus } from "./qty-label";
 
 export function ProductionSubmissions({}) {
     const ctx = useAssignmentRow();
+    const item = useProductionItem();
+
     const { assignment } = ctx;
     if (!assignment?.submissions?.length)
         return (
@@ -11,6 +19,17 @@ export function ProductionSubmissions({}) {
                 No submissions yet
             </p>
         );
+
+    const deleteSubmission = useAction(deleteSalesAssignmentSubmissionAction, {
+        onSuccess(args) {
+            toast.success("Deleted");
+            item.queryCtx._refreshToken();
+        },
+        onError() {
+            toast.error("Unable to complete");
+        },
+    });
+    const toast = useLoadingToast();
     return (
         <div className="space-y-2">
             {assignment.submissions.map((submission) => (
@@ -31,8 +50,47 @@ export function ProductionSubmissions({}) {
                                         : "No date"}
                                 </p>
                             </div>
+                            <div className="mt-1 flex gap-2">
+                                <QtyStatus
+                                    as="badge"
+                                    qty={submission.qty}
+                                    label="qty"
+                                />
+
+                                <QtyStatus
+                                    as="badge"
+                                    qty={submission.qty}
+                                    label="rh"
+                                />
+
+                                <QtyStatus
+                                    as="badge"
+                                    qty={submission.qty}
+                                    label="lh"
+                                />
+                            </div>
                         </div>
+                        <ConfirmBtn
+                            disabled={deleteSubmission.isExecuting}
+                            onClick={(e) => {
+                                toast.display({
+                                    description: "Deleting...",
+                                    duration: Number.POSITIVE_INFINITY,
+                                });
+                                deleteSubmission.execute({
+                                    // assignmentId: assignment.id,
+                                    salesId: item.item.salesId,
+                                    submissionId: submission.id,
+                                    itemUid: item.item.controlUid,
+                                });
+                            }}
+                            trash
+                            size="icon"
+                        />
                     </div>
+                    {submission.note && (
+                        <p className="mt-1">{submission.note}</p>
+                    )}
                 </div>
             ))}
         </div>

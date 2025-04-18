@@ -18,20 +18,37 @@ export function useLoadingToast() {
             setToastData(null);
         }
     }, [toastId, toastData]);
-
-    return {
+    type Data = Pick<
+        Toast,
+        "description" | "title" | "duration" | "variant" | "action"
+    >;
+    const ctx = {
         setToastData,
         toastId,
         clearToastId() {
             setToastId(null);
         },
-        display(
-            data: Pick<
-                Toast,
-                "description" | "title" | "duration" | "variant" | "action"
-            >,
-        ) {
+        error(description, data: Data = {}) {
+            ctx.display({
+                description,
+                duration: 1500,
+                variant: "error",
+                ...data,
+            });
+            ctx.clearToastId();
+        },
+        success(description, data: Data = {}) {
+            ctx.display({
+                description,
+                duration: 1500,
+                variant: "success",
+                ...data,
+            });
+            ctx.clearToastId();
+        },
+        display(data: Data) {
             setToastData(data as any);
         },
     };
+    return ctx;
 }

@@ -2,7 +2,11 @@
 
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
-import { Qty, qtyMatrixDifference } from "@/utils/sales-control-util";
+import {
+    Qty,
+    qtyMatrixDifference,
+    transformQtyHandle,
+} from "@/utils/sales-control-util";
 import { productionStatus } from "@/utils/sales-utils";
 
 export async function getSalesItemAssignments(
@@ -73,15 +77,15 @@ export async function getSalesItemAssignments(
                         createdAt,
                         meta,
                         submittedBy,
-                        ...sub
                     }) => {
-                        // meta = meta as
                         return {
                             id,
                             submitDate: createdAt,
-                            qty,
-                            lhQty,
-                            rhQty,
+                            qty: transformQtyHandle({
+                                qty,
+                                lhQty,
+                                rhQty,
+                            }),
                             note,
                             submittedBy: submittedBy?.name,
                         };
