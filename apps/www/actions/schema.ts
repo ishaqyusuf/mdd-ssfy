@@ -154,7 +154,51 @@ export const createPaymentSchema = z
         } else {
         }
     });
-
+export const createSubmissionSchema = z
+    .object({
+        pending: z.object({
+            lh: z.number().nullable().optional(),
+            rh: z.number().nullable().optional(),
+            qty: z.number().nullable().optional(),
+        }),
+        qty: z.object({
+            lh: z.number().nullable().optional(),
+            rh: z.number().nullable().optional(),
+            qty: z.number().nullable().optional(),
+        }),
+        assignmentId: z.number(),
+        note: z.string().optional(),
+        salesId: z.number(),
+        itemId: z.number(),
+        itemUid: z.string(),
+    })
+    .superRefine((data, ctx) => {
+        let totalQty = 0;
+        ["qty", "lh", "rh"].map((a) => {
+            let val = +data.qty?.[a] || 0;
+            totalQty += val;
+            if (val) {
+                if (val > data.pending?.[a])
+                    ctx.addIssue({
+                        path: [`qty.${a}`],
+                        message: "Qty can not be more than pending",
+                        code: "custom",
+                    });
+            }
+        });
+        if (totalQty == 0)
+            ctx.addIssue({
+                path: [],
+                message: "Qty required",
+                code: "custom",
+            });
+        if (totalQty > data?.pending?.qty)
+            ctx.addIssue({
+                path: [],
+                message: "Qty overload",
+                code: "custom",
+            });
+    });
 export const createAssignmentSchema = z
     .object({
         pending: z.object({
@@ -168,6 +212,7 @@ export const createAssignmentSchema = z
             qty: z.number().nullable().optional(),
         }),
         assignedToId: z.any().optional().nullable(),
+        shelfItemId: z.any().optional().nullable(),
         dueDate: z.date().optional().nullable(),
         salesDoorId: z.number().nullable().optional(),
         salesId: z.number(),

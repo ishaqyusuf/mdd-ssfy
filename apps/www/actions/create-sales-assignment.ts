@@ -16,6 +16,13 @@ export async function createSalesAssignment(
 ) {
     const assignment = await tx.orderItemProductionAssignments.create({
         data: {
+            shelfItem: data.shelfItemId
+                ? {
+                      connect: {
+                          id: data.shelfItemId,
+                      },
+                  }
+                : undefined,
             salesDoor: data.salesDoorId
                 ? {
                       connect: {
@@ -33,7 +40,7 @@ export async function createSalesAssignment(
             qtyAssigned: data.qty.qty || sum([data.qty.lh, data.qty.rh]),
             assignedTo: data.assignedToId
                 ? {
-                      connect: { id: data.assignedToId },
+                      connect: { id: +data.assignedToId },
                   }
                 : undefined,
             dueDate: data.dueDate,
@@ -49,7 +56,7 @@ export async function createSalesAssignment(
             },
             itemControl: {
                 connect: {
-                    uid: "aa",
+                    uid: data.itemUid,
                 },
             },
         },
@@ -67,6 +74,7 @@ export const createSalesAssignmentAction = actionClient
         track: {},
     })
     .action(async ({ parsedInput: input }) => {
+        // if (input.assignedToId) input.assignedToId = +input.assignedToId;
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
             const assignment = await createSalesAssignment(input, tx);
             await updateSalesItemStats({

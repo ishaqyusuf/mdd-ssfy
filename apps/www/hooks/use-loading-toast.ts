@@ -22,6 +22,9 @@ export function useLoadingToast() {
     return {
         setToastData,
         toastId,
+        clearToastId() {
+            setToastId(null);
+        },
         display(
             data: Pick<
                 Toast,

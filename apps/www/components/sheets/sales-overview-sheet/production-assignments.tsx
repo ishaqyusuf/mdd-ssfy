@@ -114,6 +114,13 @@ export function Content() {
                         </DataSkeleton>
                     ),
                 )}
+                <DataSkeleton className="hidden">
+                    {!!data?.assignments?.length || (
+                        <p className="py-2 text-center text-sm text-muted-foreground">
+                            No assignments yet
+                        </p>
+                    )}
+                </DataSkeleton>
             </div>
         </DataSkeletonProvider>
     );

@@ -10,7 +10,7 @@ import {
 } from "../../types";
 import { GetSalesItemControllables } from "../data-actions/item-control.action";
 
-export type ItemControlTypes = "door" | "molding" | "item";
+export type ItemControlTypes = "door" | "molding" | "item" | "shelf";
 
 export type ItemControl = {
     type: ItemControlTypes;
@@ -18,12 +18,15 @@ export type ItemControl = {
     dim?;
     itemId?;
     hptId?;
+    shelfId?;
 };
 export function itemControlUid(props: ItemControl) {
     const stacks = [props.type];
     if (props.doorId) {
         stacks.push(props.doorId);
         stacks.push(props.dim);
+    } else if (props.shelfId) {
+        stacks.push(props.shelfId);
     } else {
         stacks.push(props.itemId);
         if (props.hptId) stacks.push(props.hptId);
@@ -43,6 +46,12 @@ export function itemControlUidObject(str) {
     }
     return obj;
 }
+export function shelfItemControlUid(shelfId) {
+    return itemControlUid({
+        type: "shelf",
+        shelfId,
+    });
+}
 export function itemItemControlUid(itemId) {
     return itemControlUid({
         type: "item",
@@ -55,6 +64,18 @@ export function doorItemControlUid(doorId, dim) {
         doorId,
         dim,
     });
+}
+export function generateItemControlUid({
+    itemId = null,
+    hptId = null,
+    doorId = null,
+    dim = null,
+    shelfId = null,
+}) {
+    if (shelfId) return shelfItemControlUid(shelfId);
+    if (doorId) return doorItemControlUid(doorId, dim);
+    if (hptId) return mouldingItemControlUid(itemId, hptId);
+    return itemControlUid(itemId);
 }
 export function mouldingItemControlUid(itemId, hptId) {
     return itemControlUid({

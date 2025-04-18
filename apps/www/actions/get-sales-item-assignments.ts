@@ -25,6 +25,14 @@ export async function getSalesItemAssignments(
                 where: {
                     deletedAt: null,
                 },
+                include: {
+                    submittedBy: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+                },
             },
             assignedBy: true,
             assignedTo: true,
@@ -35,7 +43,6 @@ export async function getSalesItemAssignments(
     });
     return {
         assignments: assignments.map((assignment) => {
-            // const completed = sum(assignment.submissions, "qty");
             const qty: Qty = {
                 lh: assignment.lhQty,
                 rh: assignment.rhQty,
@@ -51,6 +58,7 @@ export async function getSalesItemAssignments(
                 id: assignment.id,
                 assignedTo: assignment.assignedTo?.name,
                 assignedToId: assignment.assignedToId,
+                dueDate: assignment.dueDate,
                 qty,
                 completed,
                 pending,
@@ -64,15 +72,18 @@ export async function getSalesItemAssignments(
                         note,
                         createdAt,
                         meta,
+                        submittedBy,
                         ...sub
                     }) => {
                         // meta = meta as
                         return {
                             id,
+                            submitDate: createdAt,
                             qty,
                             lhQty,
                             rhQty,
                             note,
+                            submittedBy: submittedBy?.name,
                         };
                     },
                 ),

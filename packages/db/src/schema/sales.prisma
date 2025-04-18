@@ -686,12 +686,16 @@ model OrderProductionSubmissions {
     createdAt        DateTime?                       @default(now()) @db.Timestamp(0)
     updatedAt        DateTime?                       @updatedAt
     assignmentId     Int?
+    submittedById    Int?
     meta             Json?                           @db.Json
     order            SalesOrders?                    @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
     item             SalesOrderItems?                @relation(fields: [salesOrderItemId], references: [id], onDelete: Cascade)
     assignment       OrderItemProductionAssignments? @relation(fields: [assignmentId], references: [id])
     itemDeliveries   OrderItemDelivery[]
 
+    submittedBy Users? @relation(fields: [submittedById], references: [id])
+
+    @@index([submittedById])
     @@index([salesOrderId])
     @@index([salesOrderItemId])
     @@index([assignmentId])

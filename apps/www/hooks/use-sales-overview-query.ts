@@ -3,6 +3,7 @@ import {
     salesTabs,
 } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet/store";
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
+import { generateRandomString } from "@/lib/utils";
 import {
     parseAsJson,
     parseAsString,
@@ -45,6 +46,11 @@ export function useSalesOverviewQuery() {
         close() {
             setParams(null);
             onCloseQuery.handle(params, setParams);
+        },
+        _refreshToken() {
+            setParams({
+                refreshTok: generateRandomString(),
+            });
         },
         setParams,
         open2(orderNo: string, mode: Modes) {

@@ -1,24 +1,48 @@
 import {
     createContext as createContextBase,
     useContext as useContextBase,
+    useState,
 } from "react";
+import { DataSkeleton } from "@/components/data-skeleton";
+import { formatDate } from "@/lib/use-day";
+import { cn } from "@/lib/utils";
 import { createContextFactory } from "@/utils/context-factory";
-import { CheckCircle, ClipboardList, Clock } from "lucide-react";
+import { CheckCircle, ClipboardList, Clock, Send } from "lucide-react";
 
 import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@gnd/ui/collapsible";
+import { Icons } from "@gnd/ui/icons";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@gnd/ui/tooltip";
 
 import { useProductionAssignments } from "./production-assignments";
+import { ProductionSubmissions } from "./production-submissions";
+import { ProductionSubmitForm } from "./production-submit-form";
+import { QtyStatus } from "./qty-label";
 
 const { useContext: useAssignmentRow, Provider: AssignmentRowProvider } =
     createContextFactory(function (index: number) {
         const ctx = useProductionAssignments();
         const assignment = ctx?.data?.assignments[index];
-        console.log(ctx?.data);
+        const [openSubmitForm, setOpenSubmitForm] = useState(false);
 
         return {
             assignment,
+            pendingSubmissions: assignment?.pending?.qty,
+            openSubmitForm,
+            setOpenSubmitForm,
         };
     });
+export { useAssignmentRow };
 export function ProductionAssignmentRow({ index }) {
     return (
         <AssignmentRowProvider args={[index]}>
@@ -30,35 +54,121 @@ function Content() {
     const ctx = useAssignmentRow();
     const { assignment } = ctx;
     return (
-        <div className="space-y-3 border border-border p-3">
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="text-sm font-medium">
-                        {assignment.assignedTo}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                        Qty: {assignment.qty?.qty}
-                    </p>
+        <Collapsible
+            open={ctx.openSubmitForm}
+            // onOpenChange={ctx.setOpenSubmitForm}
+        >
+            <div className="space-y-3 border border-border p-3">
+                <div className="flex items-center gap-2">
+                    <div className="">
+                        <div className="flex">
+                            <p className="text-sm font-medium uppercase">
+                                {assignment.assignedTo}
+                            </p>
+                            {assignment.assignedTo && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Badge
+                                                variant="outline"
+                                                className="ml-2 text-xs"
+                                            >
+                                                <Clock className="mr-1 h-3 w-3" />
+                                                {formatDate(assignment.dueDate)}
+                                            </Badge>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Due date</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
+                        </div>
+                        <div className="flex gap-2">
+                            <QtyStatus
+                                qty={assignment.qty}
+                                done={assignment.completed}
+                                label="qty"
+                            />
+                            <QtyStatus
+                                qty={assignment.qty}
+                                done={assignment.completed}
+                                label="rh"
+                            />
+                            <QtyStatus
+                                qty={assignment.qty}
+                                done={assignment.completed}
+                                label="lh"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex-1"></div>
+                    <CollapsibleTrigger
+                        disabled={!assignment?.pending?.qty}
+                        asChild
+                    >
+                        <div className="">
+                            <Button
+                                disabled={!assignment?.pending?.qty}
+                                onClick={(e) => {
+                                    ctx.setOpenSubmitForm(!ctx.openSubmitForm);
+                                }}
+                                size="sm"
+                                variant="outline"
+                                className={cn(
+                                    "h-7 w-full",
+                                    ctx.openSubmitForm && "hidden",
+                                )}
+                            >
+                                <Send className="mr-2 h-4 w-4" />
+                                Submit
+                            </Button>
+                        </div>
+                    </CollapsibleTrigger>
+                    <Badge
+                        variant={
+                            assignment.status === "completed"
+                                ? "success"
+                                : assignment.status === "in progress"
+                                  ? "default"
+                                  : "outline"
+                        }
+                    >
+                        {assignment.status === "completed" ? (
+                            <CheckCircle className="mr-1 h-3 w-3" />
+                        ) : assignment.status === "in progress" ? (
+                            <Clock className="mr-1 h-3 w-3" />
+                        ) : (
+                            <ClipboardList className="mr-1 h-3 w-3" />
+                        )}
+                        {assignment.status.replace("-", " ")}
+                    </Badge>
                 </div>
-                <Badge
-                    variant={
-                        assignment.status === "completed"
-                            ? "success"
-                            : assignment.status === "in progress"
-                              ? "default"
-                              : "outline"
-                    }
-                >
-                    {assignment.status === "completed" ? (
-                        <CheckCircle className="mr-1 h-3 w-3" />
-                    ) : assignment.status === "in progress" ? (
-                        <Clock className="mr-1 h-3 w-3" />
-                    ) : (
-                        <ClipboardList className="mr-1 h-3 w-3" />
-                    )}
-                    {assignment.status.replace("-", " ")}
-                </Badge>
+
+                <div className="space-y-2 pt-2">
+                    <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium">Submissions</p>
+                        {/* {expandedSubmitForms[assignment.id] && ( */}
+                        {ctx.openSubmitForm && (
+                            <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => {
+                                    ctx.setOpenSubmitForm(false);
+                                }}
+                                className="h-6 px-2 text-xs"
+                            >
+                                Cancel
+                            </Button>
+                        )}
+                        {/* )} */}
+                    </div>
+                </div>
+                <CollapsibleContent>
+                    <ProductionSubmitForm />
+                </CollapsibleContent>
+                <ProductionSubmissions />
             </div>
-        </div>
+        </Collapsible>
     );
 }

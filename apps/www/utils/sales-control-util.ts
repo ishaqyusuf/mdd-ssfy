@@ -1,3 +1,5 @@
+import { ItemControlData } from "@/actions/get-sales-production-overview";
+import { generateItemControlUid } from "@/app/(clean-code)/(sales)/_common/utils/item-control-utils";
 import {
     QtyControlType,
     SalesDispatchStatus,
@@ -45,7 +47,22 @@ export function negativeQty({ lh, rh, qty, ...rest }: Qty): Qty {
         qty: qty * -1,
     };
 }
-export function composeSalesItemControlStat(uid, qty: Qty, _order) {
+export function composeSalesItemControlStat(
+    // uid,
+    // qty: Qty,
+    item: ItemControlData,
+    _order,
+    // { production, shipping },
+) {
+    const {
+        controlUid: uid,
+        qty,
+        itemConfig: { production },
+        doorId,
+        hptId,
+        dim,
+        itemId,
+    } = item;
     const order = _order as Prisma.SalesOrdersGetPayload<{
         select: {
             deliveries: {
@@ -56,6 +73,9 @@ export function composeSalesItemControlStat(uid, qty: Qty, _order) {
             };
             assignments: {
                 select: {
+                    itemId: true;
+                    shelfItemId: true;
+                    salesDoorId: true;
                     qtyAssigned: true;
                     lhQty: true;
                     rhQty: true;
@@ -72,9 +92,21 @@ export function composeSalesItemControlStat(uid, qty: Qty, _order) {
             };
         };
     }>;
-    const assignments = order.assignments.filter(
-        (a) => a.salesItemControlUid == uid,
-    );
+    const assignments = order.assignments
+        .filter((a) => a.itemId == item.itemId)
+        .filter((a) => {
+            if (!a.salesItemControlUid)
+                a.salesItemControlUid = generateItemControlUid({
+                    shelfId: a.shelfItemId,
+                    itemId: a.itemId,
+                    doorId: a.salesDoorId,
+                    hptId: item.hptId,
+                    dim: item.dim,
+                });
+            return a.salesItemControlUid == item.controlUid;
+        });
+    console.log({ assignments, aa: order.assignments });
+    // throw new Error("...");
     const assigned = qtyMatrixSum(
         ...assignments.map(({ lhQty: lh, rhQty: rh, qtyAssigned: qty }) => ({
             lh,
@@ -139,7 +171,7 @@ export function composeSalesItemControlStat(uid, qty: Qty, _order) {
         qtyMatrixSum(dispatch.queued, dispatch.inProgress, dispatch.completed),
     );
     const availableDispatch = qtyMatrixDifference(
-        submitted,
+        !production ? qty : submitted,
         qtyMatrixSum(dispatch.queued, dispatch.inProgress, dispatch.completed),
     );
     const stats = {

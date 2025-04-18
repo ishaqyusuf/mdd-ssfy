@@ -49,10 +49,12 @@ export function GeneralTab({}) {
             const res = await getSalesOverviewAction(
                 ctx.params["sales-overview-id"],
             );
+            console.log({ res });
             return res;
         };
     const customerQuery = useCustomerOverviewQuery();
     const data = useAsyncMemo(loader, [ctx.refreshTok]);
+    // data.id
     const ph = {
         invoice: {},
         addressData: {

@@ -67,6 +67,7 @@ export function ProductionAssignmentForm({ closeForm }) {
                 title: "Assignment Created",
                 duration: 2000,
             });
+            toast.clearToastId();
             revalidateTable();
         },
         onError(e) {
@@ -75,6 +76,7 @@ export function ProductionAssignmentForm({ closeForm }) {
                 duration: 2000,
                 variant: "destructive",
             });
+            toast.clearToastId();
         },
     });
 

@@ -6,25 +6,23 @@ import { percent, sum } from "@/lib/utils";
 
 import { getSalesProductionOverviewAction } from "./get-sales-production-overview";
 
-export async function resetSalesStatAction(salesNo) {
+export async function resetSalesStatAction(id, salesNo) {
     return await prisma.$transaction(async (tx) => {
         await tx.qtyControl.deleteMany({
             where: {
                 itemControl: {
-                    salesId: salesNo,
+                    salesId: id,
                 },
             },
         });
         await tx.salesStat.deleteMany({
             where: {
-                salesId: salesNo,
+                salesId: id,
             },
         });
         await tx.salesItemControl.deleteMany({
             where: {
-                sales: {
-                    orderId: salesNo,
-                },
+                salesId: id,
             },
         });
         const overview = await getSalesProductionOverviewAction(salesNo);
@@ -109,8 +107,8 @@ export async function resetSalesStatAction(salesNo) {
                 const qties = overview.items
                     .filter((a) => {
                         switch (type) {
-                            case "dispatchCompleted":
-                                return a.itemConfig.shipping;
+                            // case "dispatchCompleted":
+                            // return a.itemConfig.shipping;
                             case "prodAssigned":
                             case "prodCompleted":
                                 return a.itemConfig.production;

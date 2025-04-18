@@ -33,6 +33,9 @@ function Modal() {
                 onValueChange={(e) => {
                     query.setParams({
                         salesTab: e as any,
+                        "prod-item-tab": null,
+                        "prod-item-view": null,
+                        refreshTok: null,
                     });
                 }}
             >

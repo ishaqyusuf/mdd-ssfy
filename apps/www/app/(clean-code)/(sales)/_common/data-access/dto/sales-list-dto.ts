@@ -43,6 +43,7 @@ export function salesOrderDto(data: Item) {
                 "Billing Address",
             ),
         },
+        statList: data.stat,
     };
 }
 function getAddressDto(

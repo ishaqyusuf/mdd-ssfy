@@ -39,10 +39,10 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
     });
 
     const setting = await loadSalesSetting();
-    let items: Item[] = [];
+    let items: ItemControlData[] = [];
     order.items.map((item) => {
         let baseItem = item;
-        function addItem(item: Item) {
+        function addItem(item: ItemControlData) {
             item.salesId = order.id;
             item.itemConfig = getItemStatConfig({
                 isDyke: order.isDyke,
@@ -56,9 +56,11 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
                 ?.filter(Boolean)
                 .join(" | ");
             item.analytics = composeSalesItemControlStat(
-                item.controlUid,
-                item.qty,
+                item,
+                // item.controlUid,
+                // item.qty,
                 order,
+                // item.itemConfig,
             );
             items.push(item);
         }
@@ -82,6 +84,7 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
                 qty: {
                     qty: item.qty,
                 },
+                hptId: hpt.id,
                 sectionTitle,
                 itemIndex,
                 title: title?.replaceAll("*", ""),
@@ -109,6 +112,8 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
                     controlUid,
                     sectionTitle,
                     doorId: door.id,
+                    hptId: hpt.id,
+                    dim: door.dimension,
                     itemIndex,
                     title,
                     itemId: item.id,
@@ -130,7 +135,7 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
         orderId: order.id,
     };
 }
-interface Item {
+export interface ItemControlData {
     title: string;
     // produceable?: boolean;
     configs?: { color?; label?; value?; hidden }[];
@@ -143,6 +148,9 @@ interface Item {
     itemIndex?: number;
     itemId?: number;
     doorId?: number;
+    hptId?: number;
+    shelfId?: number;
+    dim?: string;
     salesId?: number;
     primary?: boolean;
     qty: Qty;
@@ -165,6 +173,7 @@ const select = {
     orderId: true,
     isDyke: true,
     id: true,
+
     deliveries: {
         where: {
             deletedAt: null,
@@ -198,6 +207,8 @@ const select = {
             salesDoorId: true,
             qtyAssigned: true,
             createdAt: true,
+            salesItemControlUid: true,
+            shelfItemId: true,
             assignedTo: {
                 select: {
                     id: true,
@@ -224,6 +235,11 @@ const select = {
             deletedAt: null,
         },
         select: {
+            shelfItems: {
+                select: {
+                    id: true,
+                },
+            },
             description: true,
             dykeDescription: true,
             dykeProduction: true,

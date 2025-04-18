@@ -53,6 +53,7 @@ model Users {
     squarePayments              SquarePayments[]
     customerTransactions        CustomerTransaction[]
     salesTransactions           SalesPayments[]
+    submissions                 OrderProductionSubmissions[]
 
     @@index([createdAt, deletedAt, name])
     @@index([employeeProfileId])
