@@ -63,20 +63,12 @@ export function ProductionAssignmentForm({ closeForm }) {
     const toast = useLoadingToast();
     const createAssignment = useAction(createSalesAssignmentAction, {
         onSuccess(args) {
-            toast.display({
-                title: "Assignment Created",
-                duration: 2000,
-            });
-            toast.clearToastId();
+            toast.success("Assignment Created");
+            queryCtx._refreshToken();
             revalidateTable();
         },
         onError(e) {
-            toast.display({
-                title: "Unable to complete",
-                duration: 2000,
-                variant: "destructive",
-            });
-            toast.clearToastId();
+            toast.error("Unable to complete");
         },
     });
 

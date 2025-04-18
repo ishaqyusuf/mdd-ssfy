@@ -54,14 +54,17 @@ export const submitSalesAssignmentAction = actionClient
         if (!input.qty.qty) input.qty.qty = sum([input.qty.lh, input.qty.rh]);
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
             const submission = await submitSalesAssignment(input, tx);
-            await updateSalesItemStats({
-                uid: input.itemUid,
-                salesId: input.salesId,
-                type: "prodCompleted",
-                qty: {
-                    ...input.qty,
+            await updateSalesItemStats(
+                {
+                    uid: input.itemUid,
+                    salesId: input.salesId,
+                    type: "prodCompleted",
+                    qty: {
+                        ...input.qty,
+                    },
                 },
-            });
+                tx,
+            );
             await updateSalesStatAction(
                 {
                     salesId: input.salesId,

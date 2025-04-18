@@ -72,22 +72,14 @@ export function ProductionSubmitForm({}) {
     const toast = useLoadingToast();
     const createSubmit = useAction(submitSalesAssignmentAction, {
         onSuccess(args) {
-            toast.display({
-                title: "Submitted",
-                duration: 2000,
-            });
+            toast.success("Submitted");
             toast.clearToastId();
             ctx.setOpenSubmitForm(false);
             queryCtx._refreshToken();
             revalidateTable();
         },
         onError(e) {
-            toast.display({
-                title: "Unable to complete",
-                duration: 2000,
-                variant: "destructive",
-            });
-            toast.clearToastId();
+            toast.error("Unable to complete");
         },
     });
 
