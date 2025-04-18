@@ -30,6 +30,17 @@ export async function getSalesItemAssignments(
                     deletedAt: null,
                 },
                 include: {
+                    itemDeliveries: {
+                        where: {
+                            deletedAt: null,
+                            delivery: {
+                                deletedAt: null,
+                            },
+                        },
+                        select: {
+                            qty: true,
+                        },
+                    },
                     submittedBy: {
                         select: {
                             id: true,
@@ -77,6 +88,7 @@ export async function getSalesItemAssignments(
                         createdAt,
                         meta,
                         submittedBy,
+                        ...sub
                     }) => {
                         return {
                             id,
@@ -88,6 +100,7 @@ export async function getSalesItemAssignments(
                             }),
                             note,
                             submittedBy: submittedBy?.name,
+                            delivered: sum(sub.itemDeliveries, "qty"),
                         };
                     },
                 ),

@@ -35,7 +35,7 @@ export function ProductionSubmissions({}) {
             {assignment.submissions.map((submission) => (
                 <div
                     key={submission.id}
-                    className="rounded-md bg-muted p-2 text-xs"
+                    className="rounded-md border border-border bg-zinc-50 p-2 text-xs"
                 >
                     <div className="flex items-start justify-between">
                         <div>
@@ -73,6 +73,13 @@ export function ProductionSubmissions({}) {
                         <ConfirmBtn
                             disabled={deleteSubmission.isExecuting}
                             onClick={(e) => {
+                                if (submission.delivered) {
+                                    toast.error("Cannot perform action", {
+                                        description:
+                                            "Submission cannot be delivered as it contains already shipped items.",
+                                    });
+                                    return;
+                                }
                                 toast.display({
                                     description: "Deleting...",
                                     duration: Number.POSITIVE_INFINITY,

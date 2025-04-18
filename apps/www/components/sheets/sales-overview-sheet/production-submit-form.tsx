@@ -77,9 +77,9 @@ export function ProductionSubmitForm({}) {
                 duration: 2000,
             });
             toast.clearToastId();
-            revalidateTable();
-            queryCtx._refreshToken();
             ctx.setOpenSubmitForm(false);
+            queryCtx._refreshToken();
+            revalidateTable();
         },
         onError(e) {
             toast.display({
