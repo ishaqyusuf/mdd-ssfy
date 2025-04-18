@@ -3,22 +3,23 @@ import { Progress } from "@gnd/ui/progress";
 import { ItemCardProps } from "./production-tab";
 
 export function ItemProgressBar({ item }: ItemCardProps) {
+    const stats = item?.analytics?.stats;
     return (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <ProgressItem
                 label="Assigned"
-                completed={item.assigned?.qty}
+                completed={stats?.prodAssigned?.qty}
                 total={item.qty?.qty}
             />
             <ProgressItem
                 label="Production"
-                completed={item.produced?.qty}
+                completed={stats?.prodCompleted?.qty}
                 total={item.qty?.qty}
             />
 
             <ProgressItem
                 label="Fulfilled"
-                completed={item.delivered?.qty}
+                completed={stats?.dispatchCompleted?.qty}
                 total={item.qty?.qty}
             />
         </div>
