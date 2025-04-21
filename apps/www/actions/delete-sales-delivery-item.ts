@@ -98,16 +98,19 @@ export const deleteSalesDeliveryItemAction = actionClient
                     if (item.id != commonItems[0]?.id) return;
                     const itemUid =
                         item.submission.assignment.salesItemControlUid;
-                    await updateSalesItemStats({
-                        uid: itemUid,
-                        salesId: input.salesId,
-                        type,
-                        qty: negativeQty(
-                            qtyMatrixSum(
-                                ...commonItems.map(transformQtyHandle),
+                    await updateSalesItemStats(
+                        {
+                            uid: itemUid,
+                            salesId: input.salesId,
+                            type,
+                            qty: negativeQty(
+                                qtyMatrixSum(
+                                    ...commonItems.map(transformQtyHandle),
+                                ),
                             ),
-                        ),
-                    });
+                        },
+                        tx,
+                    );
                 }),
             );
             await updateSalesStatAction(
