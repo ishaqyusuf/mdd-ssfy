@@ -96,7 +96,7 @@ export async function performUpdate(list) {
                         },
                     },
                     data: {
-                        completedAt: update.completedAt,
+                        // completedAt: update.completedAt,
                     },
                 });
             } else

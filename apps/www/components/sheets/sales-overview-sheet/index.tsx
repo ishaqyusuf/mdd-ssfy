@@ -76,7 +76,11 @@ function Content() {
                     <DataSkeletonProvider value={{ loading: !data?.id } as any}>
                         <SheetTitle>
                             <DataSkeleton pok="textLg">
-                                <span>{[data?.orderId]?.join(" | ")}</span>
+                                <span>
+                                    {[data?.orderId, data?.displayName]?.join(
+                                        " | ",
+                                    )}
+                                </span>
                             </DataSkeleton>
                         </SheetTitle>
                     </DataSkeletonProvider>
