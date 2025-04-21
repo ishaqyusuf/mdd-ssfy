@@ -20,7 +20,7 @@ export const getCachedProductionUsers = async () => {
                     orderItemAssignments: {
                         where: {
                             deletedAt: null,
-                            completedAt: null,
+                            // completedAt: null,
                             // submissions: {
 
                             // }
