@@ -18,7 +18,7 @@
     "build": "turbo build ",
     "clean": "git clean -xdf node_modules",
     "clean:workspaces": "turbo clean",
-    "db:push": "turbo -F @gnd/db push",
+    "db:push": "turbo -F @gnd/db db-push",
     "db:pull": "turbo -F @gnd/db pull",
     "db:studio": "turbo -F @gnd/db studio",
     "db:migrate": "turbo -F @gnd/db db-migrate",
