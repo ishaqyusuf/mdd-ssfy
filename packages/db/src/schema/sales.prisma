@@ -20,45 +20,6 @@ model CommissionPayment {
     @@index([usersId])
 }
 
-model SalesTakeOff {
-    id        Int                   @unique @default(autoincrement())
-    salesId   Int                   @unique
-    sections  SalesTakeOffSection[]
-    deletedAt DateTime?             @db.Timestamp(0)
-    createdAt DateTime?             @default(now()) @db.Timestamp(0)
-    updatedAt DateTime?             @updatedAt
-
-    order SalesOrders @relation(references: [id], fields: [salesId])
-}
-
-model SalesTakeOffSection {
-    id             Int                     @unique @default(autoincrement())
-    title          String
-    components     SalesTakeOffComponent[]
-    deletedAt      DateTime?               @db.Timestamp(0)
-    createdAt      DateTime?               @default(now()) @db.Timestamp(0)
-    updatedAt      DateTime?               @updatedAt
-    takeOff        SalesTakeOff            @relation(fields: [salesTakeOffId], references: [id])
-    salesTakeOffId Int
-
-    @@index([salesTakeOffId])
-}
-
-model SalesTakeOffComponent {
-    id                    Int                 @unique @default(autoincrement())
-    itemUid               String
-    lhQty                 Int?
-    rhQty                 Int?
-    totalQty              Int
-    deletedAt             DateTime?           @db.Timestamp(0)
-    createdAt             DateTime?           @default(now()) @db.Timestamp(0)
-    updatedAt             DateTime?           @updatedAt
-    section               SalesTakeOffSection @relation(fields: [salesTakeOffSectionId], references: [id])
-    salesTakeOffSectionId Int
-
-    @@index([salesTakeOffSectionId])
-}
-
 model SalesOrders {
     id                Int                              @unique @default(autoincrement())
     title             String?                          @db.VarChar(255)
@@ -125,7 +86,6 @@ model SalesOrders {
     supplies          SalesItemSupply[]
     extraCosts        SalesExtraCosts[]
     squarePayOrders   SquarePaymentOrders[]
-    takeOff           SalesTakeOff?
 
     @@unique([orderId, type])
     @@index([createdAt, deletedAt, orderId, grandTotal, prodId, type, prodDueDate])
@@ -645,6 +605,7 @@ model OrderItemProductionAssignments {
     assignedById        Int
     qtyAssigned         Int?
     qtyCompleted        Int?
+    completedAt         DateTime?
     lhQty               Int?
     rhQty               Int?
     note                String?

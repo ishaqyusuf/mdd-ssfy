@@ -28,6 +28,7 @@ import {
 
 import { ItemProgressBar } from "./item-progress-bar";
 import { ProductionItemDetail } from "./production-item-detail";
+import { ProductionItemMenu } from "./production-item-menu";
 
 function useContextProductionContext() {
     const ctx = useSalesOverviewQuery();
@@ -107,24 +108,30 @@ function ItemCard({ item }: ItemCardProps) {
                 "prod-item-tab": "assignments",
             });
     };
+    const opened = item.controlUid == queryCtx["prod-item-view"];
     return (
         <ItemCardContext.Provider value={ctx}>
             <AccordionItem
                 value={item.controlUid}
                 className={cn(
                     "overflow-hidden border-border",
-                    item.controlUid == queryCtx["prod-item-view"] ? "" : "",
+                    opened ? "" : "",
                     !item?.itemConfig?.production && "hidden",
                 )}
             >
                 <Card
                     className={cn(
-                        item.controlUid == queryCtx["prod-item-view"]
-                            ? "border-muted-foregrounds sbg-gradient-to-tr  border-destructive/50 from-slate-50 to-slate-50/10 shadow-xl"
+                        opened
+                            ? "border-muted-foregrounds sbg-gradient-to-tr  border-muted/50 from-slate-50 to-slate-50/10 shadow-xl"
                             : "hover:border-muted-foreground/50",
                     )}
                 >
-                    <CardHeader className="space-y-4 px-4 pb-2 pt-4">
+                    <CardHeader
+                        className={cn(
+                            "space-y-4 px-4 pb-2 pt-4",
+                            opened && "border-b border-muted/50 bg-rose-100/20",
+                        )}
+                    >
                         <div className="flex items-start gap-4">
                             <div className="mt-1">
                                 <Checkbox className="size-5" />
@@ -151,27 +158,7 @@ function ItemCard({ item }: ItemCardProps) {
                                     ? "Completed"
                                     : `${completed}/${total} Complete`}
                             </Badge> */}
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon">
-                                            <MoreVertical className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem>
-                                            <CheckCircle className="mr-2 h-4 w-4" />
-                                            Mark as Completed
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem>
-                                            <UserPlus className="mr-2 h-4 w-4" />
-                                            Assign All
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem>
-                                            <Truck className="mr-2 h-4 w-4" />
-                                            Mark as Delivered
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                <ProductionItemMenu />
                             </div>
                         </div>
                         <div className="mt-4 flex items-center space-x-4">
@@ -189,7 +176,7 @@ function ItemCard({ item }: ItemCardProps) {
                             </AccordionTrigger>
                         </div>
                     </CardHeader>
-                    <AccordionContent>
+                    <AccordionContent className="">
                         <ProductionItemDetail />
                     </AccordionContent>
                 </Card>

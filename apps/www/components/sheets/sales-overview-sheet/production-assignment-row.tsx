@@ -167,7 +167,7 @@ function Content() {
                             if (assignment.submissionCount) {
                                 toast.error("Cannot perform action", {
                                     description:
-                                        "Assignment cannot be delivered as it contains submitted items.",
+                                        "Assignment cannot be deleted as it contains submitted items.",
                                 });
                                 return;
                             }

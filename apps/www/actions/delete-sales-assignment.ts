@@ -8,7 +8,7 @@ import { actionClient } from "./safe-action";
 import { updateSalesItemStats } from "./update-sales-item-stat";
 import { updateSalesStatAction } from "./update-sales-stat";
 
-export const deleteSalesAssignmentSchema = z.object({
+const deleteSalesAssignmentSchema = z.object({
     assignmentId: z.number(),
     itemUid: z.string(),
 });

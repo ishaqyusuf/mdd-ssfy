@@ -124,9 +124,17 @@ function Item({
             <DropdownMenuSub {...props}>
                 <DropdownMenuSubTrigger disabled={props.disabled}>
                     {Icon && (
-                        <Icon className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
+                        <Icon className="mr-2 size-4 text-muted-foreground/70" />
                     )}
                     {children}
+                    {!!shortCut && (
+                        <>
+                            <div className="flex-1"></div>
+                            <DropdownMenuShortcut className="">
+                                {shortCut}
+                            </DropdownMenuShortcut>
+                        </>
+                    )}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                     <ScrollArea className="max-h-[50vh] overflow-auto">

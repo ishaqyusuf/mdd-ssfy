@@ -21,6 +21,7 @@ export const Tags = {
     shelfProducts: "shelf_products",
     shelfCategories: "shelf-categories",
     siteActionNotifications: "site_action_notifications",
+    users: "users",
 };
 export const Events = {
     salesCreated: "sales_created",

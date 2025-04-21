@@ -1,6 +1,6 @@
 import { useEffect } from "react";
+import { getCachedUsersList } from "@/actions/cache/get-cached-users-list";
 import { createSalesAssignmentAction } from "@/actions/create-sales-assignment";
-import { getUsersListAction } from "@/actions/get-users-list";
 import { createAssignmentSchema } from "@/actions/schema";
 import { DatePicker } from "@/components/(clean-code)/custom/controlled/date-picker";
 import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
@@ -54,7 +54,7 @@ export function ProductionAssignmentForm({ closeForm }) {
     const data = useAsyncMemo(async () => {
         await timeout(100);
         return {
-            productionTeams: await getUsersListAction({
+            productionTeams: await getCachedUsersList({
                 "user.role": "Production",
             }),
             loaded: true,
@@ -66,6 +66,7 @@ export function ProductionAssignmentForm({ closeForm }) {
             toast.success("Assignment Created");
             queryCtx._refreshToken();
             revalidateTable();
+            closeForm();
         },
         onError(e) {
             toast.error("Unable to complete");

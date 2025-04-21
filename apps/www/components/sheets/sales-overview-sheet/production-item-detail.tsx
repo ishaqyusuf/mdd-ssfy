@@ -9,7 +9,7 @@ export function ProductionItemDetail({}) {
     const ctx = useProductionItem();
     const { queryCtx } = ctx;
     return (
-        <CardContent className="">
+        <div className="">
             <Tabs
                 value={queryCtx.params?.["prod-item-tab"]}
                 onValueChange={(e) => {
@@ -18,37 +18,34 @@ export function ProductionItemDetail({}) {
                     });
                 }}
                 defaultValue="details"
-                className="w-full"
+                className=" w-full"
             >
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="details">Details</TabsTrigger>
                     <TabsTrigger value="notes">Notes</TabsTrigger>
                     <TabsTrigger value="assignments">Assignments</TabsTrigger>
                 </TabsList>
-
                 {/* Details Tab */}
                 <TabsContent value="details" className="mt-4 space-y-4">
                     <Details />
                 </TabsContent>
-
                 {/* Notes Tab */}
                 <TabsContent
                     value="notes"
                     className="mt-4 space-y-4"
                 ></TabsContent>
-
                 {/* Assignments Tab */}
                 <TabsContent value="assignments" className="mt-4 space-y-4">
                     <ProductionItemAssignments />
                 </TabsContent>
             </Tabs>
-        </CardContent>
+        </div>
     );
 }
 function Details() {
     const ctx = useProductionItem();
     return (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 px-6">
             {ctx?.item?.configs
                 ?.filter((c) => !c.hidden)
                 ?.map((config, k) => (

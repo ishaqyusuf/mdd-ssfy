@@ -34,8 +34,6 @@ export const {
             item.itemId,
             item.doorId,
         );
-        console.log({ result, ctx });
-
         return result;
     }, [item.controlUid, queryCtx.refreshTok]);
     return {
@@ -63,7 +61,7 @@ export function Content() {
                 completed={item?.assigned?.qty}
                 total={item?.qty?.qty}
             /> */}
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-3 px-6">
                 <Collapsible open={open} onOpenChange={setOpen}>
                     <div className="flex items-center justify-between">
                         <h4 className="text-sm font-medium">Assignments</h4>

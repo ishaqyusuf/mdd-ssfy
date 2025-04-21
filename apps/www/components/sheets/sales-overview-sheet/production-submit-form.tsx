@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { redirect } from "next/navigation";
 import { createSalesAssignmentAction } from "@/actions/create-sales-assignment";
-import { getUsersListAction } from "@/actions/get-users-list";
 import {
     createAssignmentSchema,
     createSubmissionSchema,

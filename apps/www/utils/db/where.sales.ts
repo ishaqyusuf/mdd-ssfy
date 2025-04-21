@@ -345,27 +345,6 @@ export function whereSales(query: SearchParamsType) {
                         dueDate: {
                             lt: fixDbTime(dayjs()).toISOString(),
                         },
-                        // itemControl: {
-                        //     OR: [
-                        //         {
-                        //             qtyControls: {
-                        //                 some: {
-                        //                     type: "prodCompleted" as QtyControlType,
-                        //                     percentage: {
-                        //                         lt: 100,
-                        //                     },
-                        //                 },
-                        //             },
-                        //         },
-                        //         {
-                        //             qtyControls: {
-                        //                 none: {
-                        //                     type: "prodCompleted" as QtyControlType,
-                        //                 },
-                        //             },
-                        //         },
-                        //     ],
-                        // },
                     },
                 },
             });
