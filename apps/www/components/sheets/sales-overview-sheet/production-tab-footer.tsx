@@ -1,17 +1,23 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Menu } from "@/components/(clean-code)/menu";
 import { SheetFooter } from "@/components/ui/sheet";
 import NumberFlow from "@number-flow/react";
-import { CheckCircle, CheckIcon } from "lucide-react";
+import { ActivityIcon, CheckCircle, CheckIcon } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
+import { cn } from "@gnd/ui/cn";
 import { Label } from "@gnd/ui/label";
 
 import { CustomSheetContentPortal } from "../custom-sheet-content";
+import { ProductionItemMenuActions } from "./production-item-menu";
 import { useProduction } from "./production-tab";
 
 export function ProductionTabFooter({}) {
     const { data, selections, setSelections } = useProduction();
+    const prodItems = data?.items?.filter(
+        (item) => item?.itemConfig?.production,
+    );
     const ctx = useMemo(() => {
         const selectedUids = Object.entries(selections)
             .filter(([k, v]) => v)
@@ -21,21 +27,21 @@ export function ProductionTabFooter({}) {
         return {
             selectCount,
             selectedUids,
-            allSelected: data.items.every((i) =>
+            allSelected: prodItems?.every((i) =>
                 selectedUids.includes(i.controlUid),
             ),
         };
-    }, [selections, data]);
+    }, [selections, prodItems]);
     function toggleCheckState() {
         let newState = !ctx.allSelected;
         const newSelections = {};
-        // data.items.filter(a => a.).map((item) =>
-        //     newState ? (newSelections[item.controlUid] = true) : undefined,
-        // );
-        // console.log({ newState, newSelections });
+        prodItems?.map((item) => (newSelections[item.controlUid] = newState));
+        console.log({ newState, newSelections });
 
-        // setSelections(newState);
+        setSelections((current) => ({ ...newSelections }));
     }
+
+    const [opened, setOpened] = useState(false);
     return (
         <CustomSheetContentPortal>
             <SheetFooter className="-m-4 -mb-2 border-t p-4 shadow-xl">
@@ -50,12 +56,29 @@ export function ProductionTabFooter({}) {
                             Mark All
                         </Label>
                     </div>
-                    <div>
+                    <div
+                        className={cn(!ctx.selectCount && "hidden", "text-sm")}
+                    >
                         <NumberFlow
                             value={ctx.selectCount}
-                            suffix="items selected"
+                            suffix=" items selected"
                         />
                     </div>
+                    <div className="flex-1"></div>
+                    <Menu
+                        noSize
+                        open={opened}
+                        onOpenChanged={setOpened}
+                        label={"Action"}
+                        Icon={ActivityIcon}
+                    >
+                        <ProductionItemMenuActions
+                            itemUids={
+                                ctx.selectCount ? ctx.selectedUids : undefined
+                            }
+                            setOpened={setOpened}
+                        />
+                    </Menu>
                 </div>
             </SheetFooter>
         </CustomSheetContentPortal>

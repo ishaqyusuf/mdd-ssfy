@@ -124,6 +124,7 @@ function ItemCard({ item }: ItemCardProps) {
             });
     };
     const opened = item.controlUid == queryCtx["prod-item-view"];
+    const prod = useProduction();
     return (
         <ItemCardContext.Provider value={ctx}>
             <AccordionItem
@@ -149,7 +150,19 @@ function ItemCard({ item }: ItemCardProps) {
                     >
                         <div className="flex items-start gap-4">
                             <div className="mt-1">
-                                <Checkbox className="size-5" />
+                                <Checkbox
+                                    checked={
+                                        prod.selections?.[item?.controlUid]
+                                    }
+                                    onCheckedChange={(e) => {
+                                        prod.setSelections((current) => ({
+                                            ...current,
+                                            [item?.controlUid]:
+                                                !current?.[item.controlUid],
+                                        }));
+                                    }}
+                                    className="size-5"
+                                />
                             </div>
                             <div
                                 className="flex-1 cursor-pointer space-y-1"

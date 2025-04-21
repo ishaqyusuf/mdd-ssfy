@@ -27,23 +27,27 @@ export function ProductionItemMenu({}) {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <BatchMenuAssignAll
+                <ProductionItemMenuActions
+                    itemUids={[item.controlUid]}
                     setOpened={setOpened}
-                    itemIds={[item?.controlUid]}
-                />
-                <BatchMenuSubmit
-                    setOpened={setOpened}
-                    itemIds={[item?.controlUid]}
-                />
-                <BatchMenuDeleteSubmissions
-                    setOpened={setOpened}
-                    itemIds={[item?.controlUid]}
-                />
-                <BatchMenuDeleteAssignments
-                    setOpened={setOpened}
-                    itemIds={[item?.controlUid]}
                 />
             </DropdownMenuContent>
         </DropdownMenu>
+    );
+}
+export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
+    return (
+        <>
+            <BatchMenuAssignAll setOpened={setOpened} itemIds={itemUids} />
+            <BatchMenuSubmit setOpened={setOpened} itemIds={itemUids} />
+            <BatchMenuDeleteSubmissions
+                setOpened={setOpened}
+                itemIds={itemUids}
+            />
+            <BatchMenuDeleteAssignments
+                setOpened={setOpened}
+                itemIds={itemUids}
+            />
+        </>
     );
 }
