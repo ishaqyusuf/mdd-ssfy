@@ -47,7 +47,7 @@ export async function submitSalesAssignment(
 export const submitSalesAssignmentAction = actionClient
     .schema(createSubmissionSchema)
     .metadata({
-        name: "create-sales-assignment",
+        name: "submit-sales-assignment",
         track: {},
     })
     .action(async ({ parsedInput: input }) => {

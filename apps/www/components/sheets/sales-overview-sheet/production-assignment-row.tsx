@@ -5,7 +5,6 @@ import {
 } from "react";
 import { deleteSalesAssignmentAction } from "@/actions/delete-sales-assignment";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
-import { DataSkeleton } from "@/components/data-skeleton";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatDate } from "@/lib/use-day";
@@ -21,7 +20,6 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@gnd/ui/collapsible";
-import { Icons } from "@gnd/ui/icons";
 import {
     Tooltip,
     TooltipContent,
@@ -159,7 +157,7 @@ function Content() {
                         ) : (
                             <ClipboardList className="mr-1 h-3 w-3" />
                         )}
-                        {assignment.status.replace("-", " ")}
+                        {assignment.status?.replace("-", " ")}
                     </Badge>
                     <ConfirmBtn
                         disabled={deleteAction.isExecuting}

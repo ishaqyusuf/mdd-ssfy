@@ -73,6 +73,7 @@ export function composeSalesItemControlStat(
             };
             assignments: {
                 select: {
+                    id: true;
                     itemId: true;
                     shelfItemId: true;
                     salesDoorId: true;
@@ -105,7 +106,7 @@ export function composeSalesItemControlStat(
                 });
             return a.salesItemControlUid == item.controlUid;
         });
-    console.log({ assignments, aa: order.assignments });
+    // console.log({ assignments, aa: order.assignments });
     // throw new Error("...");
     const assigned = qtyMatrixSum(
         ...assignments.map(({ lhQty: lh, rhQty: rh, qtyAssigned: qty }) => ({
@@ -174,6 +175,29 @@ export function composeSalesItemControlStat(
         !production ? qty : submitted,
         qtyMatrixSum(dispatch.queued, dispatch.inProgress, dispatch.completed),
     );
+    const pendingSubmissions = assignments
+        .map((assignment) => {
+            const pendingSubmission = qtyMatrixDifference(
+                {
+                    lh: assignment.lhQty,
+                    rh: assignment.rhQty,
+                    qty: assignment.qtyAssigned,
+                },
+                qtyMatrixSum(
+                    ...assignment.submissions.map((s) => ({
+                        lh: s.lhQty,
+                        rh: s.rhQty,
+                        qty: s.qty,
+                    })),
+                ),
+            );
+            return {
+                qty: pendingSubmission,
+                assignmentId: assignment.id,
+            };
+        })
+        .filter((a) => a.qty.qty);
+
     const stats = {
         qty,
         prodAssigned: assigned,
@@ -185,8 +209,10 @@ export function composeSalesItemControlStat(
     } as { [k in QtyControlType]: Qty };
     return {
         stats,
+        pendingSubmissions,
         assignment: {
             pending: pendingAssignment,
+            ids: assignments.map((a) => a.id),
         },
         production: {
             pending: pendingProduction,

@@ -173,33 +173,13 @@ export const createSubmissionSchema = z
         submittedById: z.number(),
         itemUid: z.string(),
     })
-    .superRefine((data, ctx) => {
-        let totalQty = 0;
-        ["qty", "lh", "rh"].map((a) => {
-            let val = +data.qty?.[a] || 0;
-            totalQty += val;
-            if (val) {
-                if (val > data.pending?.[a])
-                    ctx.addIssue({
-                        path: [`qty.${a}`],
-                        message: "Qty can not be more than pending",
-                        code: "custom",
-                    });
-            }
-        });
-        if (totalQty == 0)
-            ctx.addIssue({
-                path: [],
-                message: "Qty required",
-                code: "custom",
-            });
-        if (totalQty > data?.pending?.qty)
-            ctx.addIssue({
-                path: [],
-                message: "Qty overload",
-                code: "custom",
-            });
-    });
+    .superRefine(qtySuperRefine);
+export const deleteSalesAssignmentSubmissionSchema = z.object({
+    submissionId: z.number().optional(),
+    assignmentId: z.number().optional(),
+    salesId: z.number(),
+    itemUid: z.string().optional(),
+});
 export const createAssignmentSchema = z
     .object({
         pending: z.object({
@@ -221,32 +201,34 @@ export const createAssignmentSchema = z
         itemUid: z.string(),
         salesItemId: z.number(),
     })
-    .superRefine((data, ctx) => {
-        let totalQty = 0;
-        // console.log(data?.pending?.);
+    .superRefine(qtySuperRefine);
+function qtySuperRefine(data, ctx) {
+    let totalQty = 0;
+    // console.log(data?.pending?.);
 
-        ["qty", "lh", "rh"].map((a) => {
-            let val = +data.qty?.[a] || 0;
-            totalQty += val;
-            if (val) {
-                if (val > data.pending?.[a])
-                    ctx.addIssue({
-                        path: [`qty.${a}`],
-                        message: "Qty can not be more than pending",
-                        code: "custom",
-                    });
-            }
-        });
-        if (totalQty == 0)
-            ctx.addIssue({
-                path: [],
-                message: "Qty required",
-                code: "custom",
-            });
-        if (totalQty > data?.pending?.qty)
-            ctx.addIssue({
-                path: [],
-                message: "Qty overload",
-                code: "custom",
-            });
+    ["qty", "lh", "rh"].map((a) => {
+        let val = +data.qty?.[a] || 0;
+        if (a == "qty" && (data.qty.lh || data.qty.rh)) {
+        } else totalQty += val;
+        if (val) {
+            if (val > data.pending?.[a])
+                ctx.addIssue({
+                    path: [`qty.${a}`],
+                    message: "Qty can not be more than pending",
+                    code: "custom",
+                });
+        }
     });
+    if (totalQty == 0)
+        ctx.addIssue({
+            path: [],
+            message: "Qty required",
+            code: "custom",
+        });
+    if (totalQty > data?.pending?.qty)
+        ctx.addIssue({
+            path: [],
+            message: "Qty overload",
+            code: "custom",
+        });
+}

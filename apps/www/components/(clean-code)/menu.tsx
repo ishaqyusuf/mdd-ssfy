@@ -130,7 +130,7 @@ function Item({
                     {!!shortCut && (
                         <>
                             <div className="flex-1"></div>
-                            <DropdownMenuShortcut className="">
+                            <DropdownMenuShortcut className="pl-4">
                                 {shortCut}
                             </DropdownMenuShortcut>
                         </>
@@ -155,7 +155,7 @@ function Item({
             {!!shortCut && (
                 <>
                     <div className="flex-1"></div>
-                    <DropdownMenuShortcut className="">
+                    <DropdownMenuShortcut className="pl-4">
                         {shortCut}
                     </DropdownMenuShortcut>
                 </>

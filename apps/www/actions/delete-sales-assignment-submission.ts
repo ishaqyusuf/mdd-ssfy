@@ -9,15 +9,10 @@ import {
 import z from "zod";
 
 import { actionClient } from "./safe-action";
+import { deleteSalesAssignmentSubmissionSchema } from "./schema";
 import { updateSalesItemStats } from "./update-sales-item-stat";
 import { updateSalesStatAction } from "./update-sales-stat";
 
-const deleteSalesAssignmentSubmissionSchema = z.object({
-    submissionId: z.number().optional(),
-    assignmentId: z.number().optional(),
-    salesId: z.number(),
-    itemUid: z.string().optional(),
-});
 export async function deleteSalesAssignmentSubmission(
     data: z.infer<typeof deleteSalesAssignmentSubmissionSchema>,
     tx: typeof prisma = prisma,
@@ -50,6 +45,9 @@ export async function deleteSalesAssignmentSubmission(
                 select: {
                     id: true,
                     salesItemControlUid: true,
+                    qtyAssigned: true,
+                    lhQty: true,
+                    rhQty: true,
                 },
             },
         },
@@ -74,24 +72,31 @@ export const deleteSalesAssignmentSubmissionAction = actionClient
                 input,
                 tx,
             );
+
             await Promise.all(
                 submissions.map(async (item, index) => {
                     let commonItems = submissions.filter(
                         (i) => i.assignment.id == item.assignment?.id,
                     );
+                    const assignment = commonItems?.[0]?.assignment;
                     if (item.id != commonItems[0]?.id) return;
 
                     // const itemUid = item.assignment.salesItemControlUid;
+                    let submitQty = qtyMatrixSum(
+                        ...commonItems.map(transformQtyHandle),
+                    );
+                    if (submitQty?.qty > assignment.qtyAssigned)
+                        submitQty = {
+                            lh: assignment.lhQty,
+                            rh: assignment.rhQty,
+                            qty: assignment.qtyAssigned,
+                        };
                     await updateSalesItemStats(
                         {
                             uid: input.itemUid,
                             salesId: input.salesId,
                             type: "prodCompleted",
-                            qty: negativeQty(
-                                qtyMatrixSum(
-                                    ...commonItems.map(transformQtyHandle),
-                                ),
-                            ),
+                            qty: negativeQty(submitQty),
                         },
                         tx,
                     );

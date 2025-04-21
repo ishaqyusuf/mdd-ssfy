@@ -1,11 +1,13 @@
+import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { toast } from "sonner";
 
 interface Props {
     worker;
     list;
     chunkSize?;
+    loadingToast?: ReturnType<typeof useLoadingToast>;
 }
-export function chunker({ worker, list, chunkSize = 50 }: Props) {
+export function chunker({ worker, list, chunkSize = 50, loadingToast }: Props) {
     let index = 0;
     // const chunkSize = 50;
     let toastId;
@@ -14,59 +16,65 @@ export function chunker({ worker, list, chunkSize = 50 }: Props) {
     function cancelProcessing() {
         cancel = true;
         toast.dismiss(toastId);
-        toast("Processing canceled.");
+        if (loadingToast) loadingToast.error(`Processing cancelled`);
+        else toast("Processing canceled.");
     }
 
     async function processNextChunk() {
         if (cancel) return;
 
         if (index >= list.length) {
-            toast.dismiss(toastId);
-            toast.success("Processing complete!");
+            if (loadingToast) loadingToast.success("Processing Complete!");
+            else {
+                toast.dismiss(toastId);
+                toast.success("Processing complete!");
+            }
             return;
         }
 
         const chunk = list.slice(index, index + chunkSize);
 
-        // Process the current chunk
-        //    await processChunkUseCase(chunk);
-        console.log(`PROCESSING: ${index}`, chunk);
+        console.log(chunk);
+
         const resp = await worker(chunk);
 
-        console.log(resp);
-        // await new Promise((resolve) => {
-        //     setTimeout(() => {
-        //         resolve("");
-        //         console.log(
-        //             `PROCESSING COMPLETED: ${index}`
-        //         );
-        //     }, 4000);
-        // });
-
         index += chunkSize;
-
-        toastId = toast(
-            `Processing items ${index - chunkSize + 1} to ${index} of ${
-                list?.length
-            }`,
-            {
+        const text = `Processing items ${index - chunkSize + 1} to ${index} of ${
+            list?.length
+        }`;
+        if (loadingToast) {
+            loadingToast.display({
+                title: "Processing",
+                description: text,
+                duration: Number.POSITIVE_INFINITY,
+            });
+        } else {
+            toastId = toast(text, {
                 action: {
                     label: "Cancel",
                     onClick: cancelProcessing,
                 },
                 duration: 2000,
-            }
-        );
+            });
+        }
         // await processNextChunk();
         setTimeout(processNextChunk, 1000); // Automatically process the next chunk
     }
-    toast.promise(
-        processNextChunk(),
-        {
-            loading: "Processing...",
-            success: "Processing started...",
-            error: "Error during processing!",
-        }
-        // { id: "chunk-toast" } // Ensures reuse of a single toast
-    );
+    if (loadingToast) {
+        processNextChunk();
+        loadingToast.display({
+            title: "Processing",
+            description: `Processing started`,
+            duration: Number.POSITIVE_INFINITY,
+        });
+    } else
+        toast.promise(
+            processNextChunk(),
+            {
+                loading: "Processing...",
+                success: "Processing started...",
+                error: "Error during processing!",
+            },
+            // { id: "chunk-toast" } // Ensures reuse of a single toast
+        );
 }

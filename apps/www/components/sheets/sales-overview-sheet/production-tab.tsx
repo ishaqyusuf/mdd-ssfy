@@ -1,4 +1,5 @@
 import React, { createContext, useContext } from "react";
+import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-users";
 import { getSalesProductionOverviewAction } from "@/actions/get-sales-production-overview";
 import { DataSkeleton } from "@/components/data-skeleton";
 import {
@@ -12,6 +13,7 @@ import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { timeout } from "@/lib/timeout";
 import { cn } from "@/lib/utils";
+import { createContextFactory } from "@/utils/context-factory";
 import { skeletonListData } from "@/utils/format";
 import { CheckCircle, MoreVertical, Truck, UserPlus } from "lucide-react";
 import { useAsyncMemo } from "use-async-memo";
@@ -30,32 +32,42 @@ import { ItemProgressBar } from "./item-progress-bar";
 import { ProductionItemDetail } from "./production-item-detail";
 import { ProductionItemMenu } from "./production-item-menu";
 
-function useContextProductionContext() {
-    const ctx = useSalesOverviewQuery();
-
-    const loader = async () =>
-        // new Promise((resolve) =>
-        //     setTimeout(async () => {
-        //         resolve(
-        {
+const { useContext: useProduction, Provider } = createContextFactory(
+    function () {
+        const ctx = useSalesOverviewQuery();
+        const users = useAsyncMemo(async () => {
+            await timeout(80);
+            return await getCachedProductionUsers();
+        }, []);
+        const loader = async () => {
             await timeout(100);
             const res = await getSalesProductionOverviewAction(
                 ctx.params["sales-overview-id"],
             );
-            console.log(res);
 
             return res;
         };
-    const customerQuery = useCustomerOverviewQuery();
-    const data = useAsyncMemo(loader, [ctx.refreshTok]);
+        const customerQuery = useCustomerOverviewQuery();
+        const data = useAsyncMemo(loader, [ctx.refreshTok]);
 
-    return {
-        data,
-        ctx,
-    };
-}
+        return {
+            data,
+            ctx,
+            users,
+        };
+    },
+);
+export { useProduction };
+
 export function ProductionTab({}) {
-    const { data, ctx } = useContextProductionContext();
+    return (
+        <Provider args={[]}>
+            <Content />
+        </Provider>
+    );
+}
+function Content() {
+    const { data, ctx } = useProduction();
 
     return (
         <DataSkeletonProvider value={{ loading: !data?.orderId } as any}>
@@ -79,9 +91,7 @@ export function ProductionTab({}) {
     );
 }
 export interface ItemCardProps {
-    item: ReturnType<
-        typeof useContextProductionContext
-    >["data"]["items"][number];
+    item: ReturnType<typeof useProduction>["data"]["items"][number];
 }
 function useItemCardContext(item: ItemCardProps["item"]) {
     const ctx = useSalesOverviewQuery();

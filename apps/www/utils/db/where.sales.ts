@@ -332,6 +332,7 @@ export function whereSales(query: SearchParamsType) {
                         assignedToId: assignedToId || undefined,
                         deletedAt: null,
                         dueDate: dateEquals(formatDate(dayjs(), "YYYY-MM-DD")),
+                        completedAt: null,
                     },
                 },
             });
@@ -345,6 +346,7 @@ export function whereSales(query: SearchParamsType) {
                         dueDate: {
                             lt: fixDbTime(dayjs()).toISOString(),
                         },
+                        completedAt: null,
                     },
                 },
             });
