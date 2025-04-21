@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { createContextFactory } from "@/utils/context-factory";
 import { cva, VariantProps } from "class-variance-authority";
 
 import { Sheet, SheetContent, SheetContentProps } from "@gnd/ui/sheet";
@@ -33,12 +34,35 @@ interface Props
     children?;
     open?: boolean;
     onOpenChange?;
+    sheetName: string;
 }
-export function CustomSheet({ children, open, onOpenChange, ...props }: Props) {
+const { Provider: SheetProvider, useContext: useSheet } = createContextFactory(
+    function (sheetName) {
+        return {
+            nodeId: ["custom-sheet-content", sheetName]
+                ?.filter(Boolean)
+                .join("-"),
+        };
+    },
+);
+export function CustomSheet(props: Props) {
+    return (
+        <SheetProvider args={[props.sheetName]}>
+            <CustomSheetBase {...props} />
+        </SheetProvider>
+    );
+}
+export function CustomSheetBase({
+    children,
+    open,
+    onOpenChange,
+    ...props
+}: Props) {
+    const sheet = useSheet();
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent
-                id="customSheetContent"
+                id={sheet.nodeId}
                 {...props}
                 className={cn(
                     "p-2 px-4",
@@ -52,9 +76,11 @@ export function CustomSheet({ children, open, onOpenChange, ...props }: Props) {
         </Sheet>
     );
 }
-export function CustomSheetContentPortal({ children }) {
+export function CustomSheetContentPortal({ children, sheetId = null }) {
+    // [`customSheetContent`,sheetId]
+    const sheet = useSheet();
     return (
-        <Portal nodeId={"customSheetContent"} noDelay>
+        <Portal nodeId={sheet.nodeId} noDelay>
             {children}
         </Portal>
     );

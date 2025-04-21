@@ -43,6 +43,7 @@ function Modal() {
     }, [currenTab, ctx.opened, customerName]);
     return (
         <CustomSheet
+            sheetName="customer-overview-sheet"
             open={ctx.opened}
             rounded
             size="xl"

@@ -22,6 +22,7 @@ function Modal() {
 
     return (
         <CustomSheet
+            sheetName="sales-overview-sheet"
             open
             onOpenChange={query.close}
             floating

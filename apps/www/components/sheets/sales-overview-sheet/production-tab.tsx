@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-users";
 import { getSalesProductionOverviewAction } from "@/actions/get-sales-production-overview";
 import { DataSkeleton } from "@/components/data-skeleton";
@@ -31,6 +31,7 @@ import {
 import { ItemProgressBar } from "./item-progress-bar";
 import { ProductionItemDetail } from "./production-item-detail";
 import { ProductionItemMenu } from "./production-item-menu";
+import { ProductionTabFooter } from "./production-tab-footer";
 
 const { useContext: useProduction, Provider } = createContextFactory(
     function () {
@@ -49,8 +50,11 @@ const { useContext: useProduction, Provider } = createContextFactory(
         };
         const customerQuery = useCustomerOverviewQuery();
         const data = useAsyncMemo(loader, [ctx.refreshTok]);
+        const [selections, setSelections] = useState({});
 
         return {
+            selections,
+            setSelections,
             data,
             ctx,
             users,
@@ -63,6 +67,7 @@ export function ProductionTab({}) {
     return (
         <Provider args={[]}>
             <Content />
+            <ProductionTabFooter />
         </Provider>
     );
 }

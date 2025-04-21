@@ -46,6 +46,7 @@ export function CustomerCreateSheet() {
     if (!opened) return;
     return (
         <CustomSheet
+            sheetName="customer-create"
             onOpenChange={(e) => {
                 setTimeout(() => {
                     setParams(null);

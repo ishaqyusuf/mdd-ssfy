@@ -13,12 +13,6 @@ export function ProductionSubmissions({}) {
     const item = useProductionItem();
 
     const { assignment } = ctx;
-    if (!assignment?.submissions?.length)
-        return (
-            <p className="py-1 text-center text-xs text-muted-foreground">
-                No submissions yet
-            </p>
-        );
 
     const deleteSubmission = useAction(deleteSalesAssignmentSubmissionAction, {
         onSuccess(args) {
@@ -30,6 +24,12 @@ export function ProductionSubmissions({}) {
         },
     });
     const toast = useLoadingToast();
+    if (!assignment?.submissions?.length)
+        return (
+            <p className="py-1 text-center text-xs text-muted-foreground">
+                No submissions yet
+            </p>
+        );
     return (
         <div className="space-y-2">
             {assignment.submissions.map((submission) => (
