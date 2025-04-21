@@ -5,13 +5,17 @@ import { Menu } from "@/components/(clean-code)/menu";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { generateRandomString, sum } from "@/lib/utils";
-import { UserPlus } from "lucide-react";
+import { TimerOff, UserPlus } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useForm } from "react-hook-form";
 import z from "zod";
 
 import { Button } from "@gnd/ui/button";
 import { Calendar } from "@gnd/ui/calendar";
+import {
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+} from "@gnd/ui/dropdown-menu";
 import { Label } from "@gnd/ui/label";
 
 import { useProduction } from "./production-tab";
@@ -117,7 +121,7 @@ export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
             ...itemData.meta,
         });
     }, [nextTriggerUID]);
-    async function assignTo(assignedToId) {
+    async function assignTo(assignedToId = null) {
         const data = {};
         items?.map((item) => {
             data[item.uid] = {
@@ -143,45 +147,62 @@ export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
     return (
         <Menu.Item
             Icon={UserPlus}
+            className="max-h-none overflow-hidden"
             SubMenu={
-                <>
-                    {prod?.users?.map((user) => (
-                        <Menu.Item
-                            shortCut={`${user.pendingProductionQty} pending`}
-                            icon="production"
-                            key={user.id}
-                            SubMenu={
-                                <>
-                                    <Label>Due Date</Label>
-                                    <Calendar
-                                        mode="single"
-                                        initialFocus
-                                        // toDate={new Date()}
-                                        selected={dueDate}
-                                        onSelect={(value) => {
-                                            setDueDate(value);
-                                        }}
-                                    />
-                                    <div className="">
-                                        <Button
-                                            disabled={
-                                                !!currentActionId ||
-                                                createAssignment.isExecuting ||
-                                                !!actions
-                                            }
-                                            onClick={() => assignTo(user.id)}
-                                            className="w-full"
+                !pendingQty ? undefined : (
+                    <>
+                        {prod?.users?.map((user) => (
+                            <Menu.Item
+                                shortCut={`${user.pendingProductionQty} pending`}
+                                icon="production"
+                                key={user.id}
+                                SubMenu={
+                                    <>
+                                        <DropdownMenuLabel>
+                                            Due Date
+                                        </DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <Menu.Item
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                assignTo();
+                                            }}
+                                            Icon={TimerOff}
                                         >
-                                            Proceed
-                                        </Button>
-                                    </div>
-                                </>
-                            }
-                        >
-                            {user.name}
-                        </Menu.Item>
-                    ))}
-                </>
+                                            No Due Date
+                                        </Menu.Item>
+                                        <Calendar
+                                            mode="single"
+                                            initialFocus
+                                            // toDate={new Date()}
+                                            selected={dueDate}
+                                            onSelect={(value) => {
+                                                setDueDate(value);
+                                            }}
+                                        />
+                                        <div className="">
+                                            <Button
+                                                disabled={
+                                                    !!currentActionId ||
+                                                    createAssignment.isExecuting ||
+                                                    !!actions
+                                                }
+                                                onClick={() =>
+                                                    assignTo(user.id)
+                                                }
+                                                className="w-full"
+                                            >
+                                                Proceed
+                                            </Button>
+                                        </div>
+                                    </>
+                                }
+                            >
+                                {user.name}
+                            </Menu.Item>
+                        ))}
+                    </>
+                )
             }
             disabled={!pendingQty}
             shortCut={`QTY: ${pendingQty}`}

@@ -1,23 +1,15 @@
 import { useState } from "react";
-import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-users";
-import { getCachedUsersList } from "@/actions/cache/get-cached-users-list";
-import { Menu } from "@/components/(clean-code)/menu";
-import { timeout } from "@/lib/timeout";
-import { formatISO } from "date-fns";
-import { CheckCircle, MoreVertical, Truck, UserPlus } from "lucide-react";
-import { useAsyncMemo } from "use-async-memo";
+import { MoreVertical } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
-import { Calendar } from "@gnd/ui/calendar";
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
-import { Icons } from "@gnd/ui/icons";
 
 import { BatchMenuAssignAll } from "./batch-menu-assign-all";
+import { BatchMenuDeleteAssignments } from "./batch-menu-delete-assignments";
 import { BatchMenuDeleteSubmissions } from "./batch-menu-delete-submissions";
 import { BatchMenuSubmit } from "./batch-menu-submit";
 import { useProduction, useProductionItem } from "./production-tab";
@@ -47,10 +39,10 @@ export function ProductionItemMenu({}) {
                     setOpened={setOpened}
                     itemIds={[item?.controlUid]}
                 />
-                {/* <DropdownMenuItem>
-                    <Truck className="mr-2 h-4 w-4" />
-                    Mark as Delivered
-                </DropdownMenuItem> */}
+                <BatchMenuDeleteAssignments
+                    setOpened={setOpened}
+                    itemIds={[item?.controlUid]}
+                />
             </DropdownMenuContent>
         </DropdownMenu>
     );

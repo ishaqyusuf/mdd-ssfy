@@ -209,6 +209,12 @@ export function composeSalesItemControlStat(
     } as { [k in QtyControlType]: Qty };
     return {
         stats,
+        deliveredQty: qtyMatrixSum(
+            stats.dispatchAssigned,
+            stats.dispatchCompleted,
+            stats.dispatchInProgress,
+        )?.qty,
+        submitQty: submitted.qty,
         pendingSubmissions,
         assignment: {
             pending: pendingAssignment,

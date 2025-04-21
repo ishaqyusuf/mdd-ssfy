@@ -74,7 +74,7 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
         );
         if (!order.isDyke || (!doors?.length && !hpt?.door)) {
             controlUid = hpt
-                ? mouldingItemControlUid(item.id, hpt.id)
+                ? mouldingItemControlUid(item.id, hpt?.id)
                 : itemItemControlUid(item.id);
             let title = item.description;
             let hidden = !order.isDyke && (title?.includes("***") || !item.qty);
@@ -84,7 +84,7 @@ export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
                 qty: {
                     qty: item.qty,
                 },
-                hptId: hpt.id,
+                hptId: hpt?.id,
                 sectionTitle,
                 itemIndex,
                 title: title?.replaceAll("*", ""),

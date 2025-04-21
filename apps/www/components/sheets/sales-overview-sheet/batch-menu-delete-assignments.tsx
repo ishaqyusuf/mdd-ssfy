@@ -1,13 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { createSalesAssignmentAction } from "@/actions/create-sales-assignment";
-import {
-    deleteSalesAssignmentSubmission,
-    deleteSalesAssignmentSubmissionAction,
-} from "@/actions/delete-sales-assignment-submission";
-import {
-    createAssignmentSchema,
-    deleteSalesAssignmentSubmissionSchema,
-} from "@/actions/schema";
+import { useEffect, useMemo } from "react";
+import { deleteSalesAssignmentAction } from "@/actions/delete-sales-assignment";
+import { deleteSalesAssignmentSubmissionSchema } from "@/actions/schema";
 import { Menu } from "@/components/(clean-code)/menu";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -16,10 +9,7 @@ import { useAction } from "next-safe-action/hooks";
 import { useForm } from "react-hook-form";
 import z from "zod";
 
-import { Button } from "@gnd/ui/button";
-import { Calendar } from "@gnd/ui/calendar";
 import { Icons } from "@gnd/ui/icons";
-import { Label } from "@gnd/ui/label";
 
 import { useProduction } from "./production-tab";
 
@@ -28,33 +18,36 @@ interface Props {
     setOpened?;
 }
 type DeleteSchema = z.infer<typeof deleteSalesAssignmentSubmissionSchema>;
-export function BatchMenuDeleteSubmissions({ itemIds, setOpened }: Props) {
+export function BatchMenuDeleteAssignments({ itemIds, setOpened }: Props) {
     const prod = useProduction();
     const { qty, items } = useMemo(() => {
         const _items = prod.data?.items
             ?.filter((item) =>
                 !itemIds ? true : itemIds?.includes(item.controlUid),
             )
-            ?.map((item) => ({
-                uid: item.controlUid,
-                assignmentIds: item.analytics.assignment.ids,
-                itemId: item.itemId,
-                qty: item.analytics.stats?.prodCompleted?.qty,
-                deliveredQty: item.analytics.deliveredQty,
-            }));
+            ?.map((item) => {
+                const stats = item.analytics.stats;
+                return {
+                    uid: item.controlUid,
+                    assignmentIds: item.analytics.assignment.ids,
+                    itemId: item.itemId,
+                    qty: stats?.prodAssigned?.qty,
+                    deliveredQty: item.analytics.deliveredQty,
+                    submitQty: item.analytics.submitQty,
+                };
+            });
         return {
             qty: sum(_items, "qty"),
             items: _items,
         };
     }, [prod.data, itemIds]);
     const loader = useLoadingToast();
-    const deleteSubmissions = useAction(deleteSalesAssignmentSubmissionAction, {
+    const deleteAssignments = useAction(deleteSalesAssignmentAction, {
         onSuccess(args) {
             form.setValue(
                 `actions.${args.input?.assignmentId}.status`,
                 "success",
             );
-
             loader.display({
                 title: "Deleting Assignment Submissions",
                 // description: `Created`,
@@ -108,13 +101,13 @@ export function BatchMenuDeleteSubmissions({ itemIds, setOpened }: Props) {
         }
         const [assignmentId, { meta }] = entry;
         console.log(meta);
-        deleteSubmissions.execute({
+        deleteAssignments.execute({
             ...meta,
         });
     }, [nextTriggerUID]);
     async function deleteSubmits(e) {
         const deliveredQty = sum(items, "deliveredQty");
-
+        const submitQty = sum(items, "submitQty");
         if (deliveredQty) {
             loader.error("Cannot perform action", {
                 description:
@@ -122,17 +115,20 @@ export function BatchMenuDeleteSubmissions({ itemIds, setOpened }: Props) {
             });
             return;
         }
+        if (submitQty) {
+            loader.error("Cannot perform action", {
+                description: "Some assignments have been submitted.",
+            });
+            return;
+        }
         e.preventDefault();
         const data = {};
         items?.map((item) => {
-            console.log(item);
-
             item.assignmentIds.map((aid) => {
                 data[String(aid)] = {
                     meta: {
                         assignmentId: aid,
                         itemUid: item.uid,
-                        salesId: prod.data.orderId,
                     } as DeleteSchema,
                 };
             });
@@ -153,7 +149,7 @@ export function BatchMenuDeleteSubmissions({ itemIds, setOpened }: Props) {
             disabled={!qty || !!actions || !!nextTriggerUID}
             shortCut={`QTY: ${qty}`}
         >
-            Delete Submissions
+            Delete Assignments
         </Menu.Item>
     );
 }

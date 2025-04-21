@@ -116,6 +116,7 @@ function Item({
     _blank,
     icon,
     shortCut,
+    className,
     ...props
 }: MenuItemProps) {
     if (!Icon && icon) Icon = Icons[icon];
@@ -137,7 +138,9 @@ function Item({
                     )}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
-                    <ScrollArea className="max-h-[50vh] overflow-auto">
+                    <ScrollArea
+                        className={cn("max-h-[50vh] overflow-auto", className)}
+                    >
                         {SubMenu}
                     </ScrollArea>
                 </DropdownMenuSubContent>

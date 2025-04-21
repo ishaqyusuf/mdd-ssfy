@@ -13,7 +13,7 @@ import { Menu } from "@/components/(clean-code)/menu";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { generateRandomString, sum } from "@/lib/utils";
-import { CheckCircle, UserPlus } from "lucide-react";
+import { CheckCircle, TimerOff, UserPlus } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useAction } from "next-safe-action/hooks";
 import { useForm } from "react-hook-form";
@@ -174,8 +174,6 @@ export function BatchMenuSubmit({ itemIds, setOpened }: Props) {
         "nextTriggerUID",
     ]);
     useEffect(() => {
-        console.log({ actions });
-
         if (!nextTriggerUID) {
             if (actions) {
                 loader.success("Submission completed.");
@@ -308,7 +306,19 @@ export function BatchMenuSubmit({ itemIds, setOpened }: Props) {
                                 key={user.id}
                                 SubMenu={
                                     <>
-                                        <Label>Due Date</Label>
+                                        <DropdownMenuLabel>
+                                            Due Date
+                                        </DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <Menu.Item
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                submit({});
+                                            }}
+                                            Icon={TimerOff}
+                                        >
+                                            No Due Date
+                                        </Menu.Item>
                                         <Calendar
                                             mode="single"
                                             initialFocus
