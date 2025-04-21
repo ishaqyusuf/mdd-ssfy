@@ -1,6 +1,7 @@
 import { StepComponentMeta } from "@/app/(clean-code)/(sales)/types";
-import { prisma } from "@/db";
-import { Prisma } from "@prisma/client";
+import { prisma, Prisma } from "@/db";
+
+// import { Prisma } from "@prisma/client";
 
 // async function stepFn() {
 //     return await prisma.door

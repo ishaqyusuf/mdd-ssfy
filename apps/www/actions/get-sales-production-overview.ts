@@ -12,7 +12,7 @@ import {
     SalesItemMeta,
     SalesType,
 } from "@/app/(clean-code)/(sales)/types";
-import { prisma } from "@/db";
+import { prisma, Prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import {
     composeQtyMatrix,
@@ -25,7 +25,6 @@ import {
     getItemStatConfig,
     qtyControlsByType,
 } from "@/utils/sales-utils";
-import { Prisma } from "@prisma/client";
 
 export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
     let _select = select;

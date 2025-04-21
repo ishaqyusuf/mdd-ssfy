@@ -5,7 +5,7 @@ import {
     SalesSettingsMeta,
     SalesStatStatus,
 } from "@/app/(clean-code)/(sales)/types";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/db";
 import dayjs from "dayjs";
 
 import { Qty } from "./sales-control-util";

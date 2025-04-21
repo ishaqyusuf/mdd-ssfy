@@ -8,6 +8,7 @@ const nextConfig = {
         // "@gnd/db",
         // "@gnd/common",
         "@gnd/ui",
+        "@gnd/printer",
         // "@gnd/stripe",
     ],
     images: {

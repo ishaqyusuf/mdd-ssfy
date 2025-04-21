@@ -60,7 +60,7 @@ export async function updateSalesStatAction(
                 )
                 .flat();
 
-            let total = qtyControls?.[0]?.itemTotal;
+            let total = sum(qtyControls, "itemTotal");
             let qty = sum(qtyControls, "qty");
             let percentage = percent(qty, total);
             await tx.salesStat.update({

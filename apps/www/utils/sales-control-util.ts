@@ -4,8 +4,8 @@ import {
     QtyControlType,
     SalesDispatchStatus,
 } from "@/app/(clean-code)/(sales)/types";
+import { Prisma } from "@/db";
 import { sum } from "@/lib/utils";
-import { Prisma } from "@prisma/client";
 
 export interface Qty {
     lh?;
