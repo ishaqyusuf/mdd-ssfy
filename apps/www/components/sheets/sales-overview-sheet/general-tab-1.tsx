@@ -533,8 +533,8 @@ export function GeneralTab({}) {
                                 >
                                     <p className="text-sm text-muted-foreground">
                                         {saleData.stats.prodAssigned?.score}/
-                                        {saleData.stats.qty?.total} items
-                                        assigned
+                                        {saleData.stats.prodAssigned?.total}{" "}
+                                        items assigned
                                     </p>
                                 </DataSkeleton>
                             </CardContent>
