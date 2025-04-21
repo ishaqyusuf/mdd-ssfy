@@ -57,7 +57,10 @@ export function ProductionTabFooter({}) {
                         </Label>
                     </div>
                     <div
-                        className={cn(!ctx.selectCount && "hidden", "text-sm")}
+                        className={cn(
+                            !ctx.selectCount && "text-red-100 text-opacity-0",
+                            "text-sm",
+                        )}
                     >
                         <NumberFlow
                             value={ctx.selectCount}

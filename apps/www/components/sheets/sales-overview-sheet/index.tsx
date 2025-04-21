@@ -1,8 +1,14 @@
 "use client";
 
+import { getSalesOverviewAction } from "@/actions/get-sales-overview";
+import { DataSkeleton } from "@/components/data-skeleton";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
+import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { timeout } from "@/lib/timeout";
+import { createContextFactory } from "@/utils/context-factory";
+import { useAsyncMemo } from "use-async-memo";
 
 import { SheetDescription, SheetHeader, SheetTitle } from "@gnd/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
@@ -11,15 +17,41 @@ import { CustomSheet, CustomSheetContent } from "../custom-sheet-content";
 import { GeneralTab } from "./general-tab-1";
 import { ProductionTab } from "./production-tab";
 
+const { useContext: useSaleOverview, Provider } = createContextFactory(
+    function () {
+        const ctx = useSalesOverviewQuery();
+        const loader = async () => {
+            await timeout(100);
+            const res = await getSalesOverviewAction(
+                ctx.params["sales-overview-id"],
+            );
+            console.log({ res });
+            return res;
+        };
+
+        const data = useAsyncMemo(loader, [ctx.refreshTok]);
+        return {
+            data,
+        };
+    },
+);
+export { useSaleOverview };
 export default function SalesOverviewSheet() {
     const query = useSalesOverviewQuery();
     return query["sales-overview-id"] ? <Modal /> : null;
 }
 function Modal() {
+    return (
+        <Provider args={[]}>
+            <Content />
+        </Provider>
+    );
+}
+function Content() {
     usePageTitle();
     const query = useSalesOverviewQuery();
     const customerQuery = useCustomerOverviewQuery();
-
+    const { data } = useSaleOverview();
     return (
         <CustomSheet
             sheetName="sales-overview-sheet"
@@ -41,22 +73,23 @@ function Modal() {
                 }}
             >
                 <SheetHeader>
-                    <SheetTitle>
-                        {/* {store?.overview?.title || "Loading..."} */}
-                    </SheetTitle>
+                    <DataSkeletonProvider value={{ loading: !data?.id } as any}>
+                        <SheetTitle>
+                            <DataSkeleton pok="textLg">
+                                <span>{[data?.orderId]?.join(" | ")}</span>
+                            </DataSkeleton>
+                        </SheetTitle>
+                    </DataSkeletonProvider>
                     <SheetDescription>
                         <TabsList className="flex w-full justify-start">
                             <TabsTrigger value="general">General</TabsTrigger>
                             <TabsTrigger value="production">
                                 Productions
                             </TabsTrigger>
-                            <TabsTrigger value="quotes">Quotes</TabsTrigger>
-                            <TabsTrigger value="transactions">
+                            {/* <TabsTrigger value="transactions">
                                 Transactions
-                            </TabsTrigger>
-                            <TabsTrigger value="pay-portal">
-                                Pay Portal
-                            </TabsTrigger>
+                            </TabsTrigger> */}
+                            <TabsTrigger value="payment">Payment</TabsTrigger>
                         </TabsList>
                     </SheetDescription>
                 </SheetHeader>

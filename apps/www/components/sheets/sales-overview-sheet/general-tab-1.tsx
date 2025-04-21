@@ -34,26 +34,15 @@ import { Card, CardContent } from "@gnd/ui/card";
 import { Progress } from "@gnd/ui/progress";
 import { Separator } from "@gnd/ui/separator";
 
+import { useSaleOverview } from ".";
 import { GeneralFooter } from "./general-footer";
 import { SalesPO } from "./inline-data-edit";
 
 export function GeneralTab({}) {
     const ctx = useSalesOverviewQuery();
 
-    const loader = async () =>
-        // new Promise((resolve) =>
-        //     setTimeout(async () => {
-        //         resolve(
-        {
-            await timeout(100);
-            const res = await getSalesOverviewAction(
-                ctx.params["sales-overview-id"],
-            );
-            console.log({ res });
-            return res;
-        };
+    const { data } = useSaleOverview();
     const customerQuery = useCustomerOverviewQuery();
-    const data = useAsyncMemo(loader, [ctx.refreshTok]);
     // data.id
     const ph = {
         invoice: {},

@@ -8,7 +8,7 @@ import { date } from "zod";
 export async function getAssignmentCompleteDateList() {
     const a = await prisma.orderItemProductionAssignments.findMany({
         where: {
-            completedAt: null,
+            // completedAt: null,
         },
         select: {
             id: true,
