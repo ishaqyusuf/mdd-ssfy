@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import DevOnly from "@/_v2/components/common/dev-only";
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import { getSalesPrintData } from "@/app/(v2)/printer/sales/get-sales-print-data";
 import { OrderBasePrinter } from "@/app/(v2)/printer/sales/order-base-printer";
@@ -56,9 +57,16 @@ export function SalesPreviewModal({}) {
         >
             <DialogContent className="w-[800px]s max-w-4xl">
                 <ScrollArea className="h-[90vh] overflow-auto">
-                    <SalesInvoicePdfTemplate />
                     {data && (
                         <OrderBasePrinter mode={ctx.q.salesPreviewType as any}>
+                            <DevOnly>
+                                <SalesInvoicePdfTemplate
+                                    printData={{
+                                        sale: data,
+                                        mode: ctx.q.salesPreviewType as any,
+                                    }}
+                                />
+                            </DevOnly>
                             <SalesPrintDisplay
                                 data={data}
                                 slug={ctx.q.salesPreviewSlug}

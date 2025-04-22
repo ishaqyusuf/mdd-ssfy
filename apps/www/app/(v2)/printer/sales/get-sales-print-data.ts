@@ -1,16 +1,14 @@
 "use server";
 
-import { SalesPrintProps } from "./page";
-import { viewSale } from "../../(loggedIn)/sales-v2/overview/_actions/get-sales-overview";
 import { composeSalesItems } from "../../(loggedIn)/sales-v2/_utils/compose-sales-items";
+import { viewSale } from "../../(loggedIn)/sales-v2/overview/_actions/get-sales-overview";
 import { composePrint } from "./compose-print";
+import { SalesPrintProps } from "./page";
 
 export async function getSalesPrintData(
     slug,
-    query: SalesPrintProps["searchParams"]
+    query: SalesPrintProps["searchParams"],
 ) {
-    const resp = {};
-
     const order = await viewSale(null, slug, query.deletedAt);
 
     const salesitems = composeSalesItems(order);
@@ -20,6 +18,6 @@ export async function getSalesPrintData(
             order,
             ...salesitems,
         },
-        query
+        query,
     );
 }

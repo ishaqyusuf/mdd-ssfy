@@ -1,11 +1,10 @@
 "use client";
 
-import { salesPdf } from "@/app/(v2)/printer/_action/sales-pdf";
+import { useEffect, useRef } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { SalesPrintProps } from "@/app/(v2)/printer/sales/page";
 import { env } from "@/env.mjs";
-import { useParams, useSearchParams } from "next/navigation";
 import QueryString from "qs";
-import { useEffect, useRef } from "react";
 
 export default function Page({}) {
     const searchParams = useSearchParams();
@@ -31,14 +30,14 @@ export default function Page({}) {
                     env.NEXT_PUBLIC_NODE_ENV == "production"
                         ? ""
                         : "https://gnd-prodesk.vercel.app"
-                }/api/pdf/sales?${QueryString.stringify(query)}`
+                }/api/pdf/sales?${QueryString.stringify(query)}`,
             ).then((res) => res.json());
             console.log(pdf);
             const link = document.createElement("a");
             // link.href = pdf.url;
             const downloadUrl = pdf.url.replace(
                 "/fl_attachment/",
-                `/fl_attachment:${query.slugs}/`
+                `/fl_attachment:${query.slugs}/`,
             ); //+ `/${query.slugs}.pdf`;
 
             link.href = downloadUrl;

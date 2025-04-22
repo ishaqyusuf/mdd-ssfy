@@ -9,6 +9,20 @@ import SalesPrintLineItems from "./components/sales-print-line-items";
 import SalesPrintShelfItems from "./components/sales-print-shelf-items";
 
 export function SalesInvoicePdfTemplate(props: SalesInvoiceTemplateProps) {
+  return (
+    <Document>
+      <Page
+        size="A4"
+        style={cn("p-4 bg-white text-black font-helvetica text-xs")}
+      >
+        <View>
+          <Text>NOTHING TO DOWNLOAD</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}
+export function __SalesInvoicePdfTemplate(props: SalesInvoiceTemplateProps) {
   const { size = "a4", printData } = props;
   if (!printData)
     return (

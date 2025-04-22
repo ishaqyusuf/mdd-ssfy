@@ -1,9 +1,10 @@
 "use client";
 
-import { Icons } from "@/components/_v1/icons";
-import { useSalesBlockCtx } from "../sales-print-block";
-import Text from "../../components/print-text";
 import React from "react";
+import { Icons } from "@/components/_v1/icons";
+
+import Text from "../../components/print-text";
+import { useSalesBlockCtx } from "../sales-print-block";
 
 export default function SalesPrintShelfItems({ index }) {
     const ctx = useSalesBlockCtx();
@@ -14,10 +15,10 @@ export default function SalesPrintShelfItems({ index }) {
     return (
         <tr className="">
             <td className="my-4" colSpan={16}>
-                <table className="table-fixed w-full border">
+                <table className="w-full table-fixed border">
                     <thead id="topHeader">
                         <th
-                            className="p-2 text-start uppercase text-base bg-slate-200"
+                            className="bg-slate-200 p-2 text-start text-base uppercase"
                             colSpan={16}
                         >
                             Shelf Items

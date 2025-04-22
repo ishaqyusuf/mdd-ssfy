@@ -6,7 +6,8 @@
         "dev": "TZ=UTC next dev -p 3000",
         "build": "NODE_ENV=production next build",
         "start": "next start",
-        "lint": "next lint"
+        "lint": "next lint",
+        "dump-tsc": "tsc temp.ts --declaration --emitDeclarationOnly"
     },
     "prisma": {
         "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
