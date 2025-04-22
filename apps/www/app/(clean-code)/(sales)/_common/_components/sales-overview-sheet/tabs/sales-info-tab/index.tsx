@@ -121,16 +121,16 @@ export function SalesInfoTab({}) {
                     </div>
                 ))}
             </div>
-            {/* <DevOnly> */}
-            <Button
-                onClick={() => {
-                    _modal.close();
-                    salesQuery.open2(overview.orderId, "sales");
-                }}
-            >
-                V2
-            </Button>
-            {/* </DevOnly> */}
+            <DevOnly>
+                <Button
+                    onClick={() => {
+                        _modal.close();
+                        salesQuery.open2(overview.orderId, "sales");
+                    }}
+                >
+                    V2
+                </Button>
+            </DevOnly>
             <Note
                 admin
                 tagFilters={[

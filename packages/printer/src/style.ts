@@ -1,5 +1,7 @@
 // type StyleType = keyof typeof tw;
 
+import { Font } from "@react-pdf/renderer";
+
 // const tw = {
 //   // Typography
 //   "text-sm": { fontSize: 12 },
@@ -36,7 +38,21 @@
 //   "w-2/3": { width: "66.666667%" },
 // } as const;
 type StyleType = keyof typeof tw;
+const CDN_URL = "https://cdn.midday.ai";
 
+// Font.register({
+//   family: "GeistMono",
+//   fonts: [
+//     {
+//       src: `${CDN_URL}/fonts/GeistMono/ttf/GeistMono-Regular.ttf`,
+//       fontWeight: 400,
+//     },
+//     {
+//       src: `${CDN_URL}/fonts/GeistMono/ttf/GeistMono-Medium.ttf`,
+//       fontWeight: 500,
+//     },
+//   ],
+// });
 const tw = {
   // Typography
   "text-sm": { fontSize: 12 },
