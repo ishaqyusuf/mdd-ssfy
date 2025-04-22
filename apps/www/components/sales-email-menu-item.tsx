@@ -1,5 +1,6 @@
 import { __sendInvoiceEmailTrigger } from "@/actions/triggers/send-invoice-email";
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
+import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { toast } from "sonner";
 
 import { Menu } from "./(clean-code)/menu";
@@ -16,23 +17,25 @@ export function SalesEmailMenuItem({
     orderNo?: string;
 }) {
     const isQuote = salesType === "quote";
-
+    const loadingToast = useLoadingToast();
     const sendInvoiceEmail = async ({ withPayment = false } = {}) => {
-        toast.promise(
-            async () =>
-                await __sendInvoiceEmailTrigger({
-                    ids: salesId,
-                    orderIds: orderNo,
-                    withPayment,
-                }),
-            {
-                loading: "Sending email...",
-                error: (data) => data.message,
-                success: ((data) => {
-                    toast.success("Sent.");
-                }) as any,
-            },
-        );
+        loadingToast.display({
+            variant: "spinner",
+            title: "Sending Email...",
+            duration: Number.POSITIVE_INFINITY,
+        });
+
+        __sendInvoiceEmailTrigger({
+            ids: salesId,
+            orderIds: orderNo,
+            withPayment,
+        })
+            .catch((e) => {
+                loadingToast.error("Unable to complete");
+            })
+            .then((a) => {
+                loadingToast.success("Unable to complete");
+            });
     };
 
     const emailLabel = `${isQuote ? "Quote" : "Invoice"} Email`;

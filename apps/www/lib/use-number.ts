@@ -18,6 +18,11 @@ export function formatMoney(value) {
     if (!v) return 0;
     return +v;
 }
+export function formatCurrency(value) {
+    return new Intl.NumberFormat("en-US", {
+        minimumFractionDigits: 2,
+    }).format(value);
+}
 export function numeric<T>(cells: (keyof T)[], data) {
     if (data)
         cells.map((cell) => {

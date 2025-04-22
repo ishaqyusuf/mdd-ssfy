@@ -15,6 +15,8 @@ import {
 import { Footer } from "../components/footer";
 import { Logo } from "../components/logo";
 
+import "./style.css";
+
 interface Props {
   salesRep?: string;
   link?: string;
@@ -22,6 +24,7 @@ interface Props {
   customerName: string;
   type: string;
   amountDue?: string;
+  salesList?: { orderId: string; po: string; amount: string }[];
 }
 export const composeSalesEmail = (props: Props) => (
   <SalesInvoiceEmail {...props} />
@@ -32,6 +35,7 @@ export const SalesInvoiceEmail = ({
   type,
   link,
   customerName,
+  salesList,
 }: Props) => {
   const isQuote = type == "quote";
   const text = `You've Received ${
@@ -85,7 +89,42 @@ export const SalesInvoiceEmail = ({
                             on time`}
               . If you have any questions, feel free to reply to this email.
             </Text>
-
+            {!salesList?.length ? (
+              <></>
+            ) : (
+              <Section className="">
+                <table className="w-full">
+                  <thead className="border border-gray-200 bg-gray-100 p-1">
+                    <tr>
+                      <th className="p-1 px-2" align="left">
+                        Invoice No
+                      </th>
+                      <th className="p-1 px-2" align="left">
+                        PO No.
+                      </th>
+                      <th className="p-1 px-2" align="right">
+                        Amount
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {salesList?.map((sale, i) => (
+                      <tr className="border border-gray-200" key={i}>
+                        <td className="border-x border-gray-200" align="left">
+                          {sale.orderId}
+                        </td>
+                        <td className="border-x border-gray-200" align="left">
+                          {sale.po || "-"}
+                        </td>
+                        <td className="border-x border-gray-200" align="right">
+                          {sale.amount}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Section>
+            )}
             <Section className="mb-[50px] mt-[50px] text-center">
               <Button
                 className="border border-solid border-[#121212] bg-transparent px-6 py-3 text-center text-[14px] font-medium text-[#121212] text-primary no-underline"

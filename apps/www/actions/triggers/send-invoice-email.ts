@@ -1,9 +1,11 @@
 "use server";
 
+import { SalesMeta } from "@/app/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { env } from "@/env.mjs";
 import { getBaseUrl } from "@/envs";
 import { resend } from "@/lib/resend";
+import { formatCurrency } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
 import { createNoteAction } from "@/modules/notes/actions/create-note-action";
 import { whereSales } from "@/utils/db/where.sales";
@@ -28,34 +30,42 @@ export const __sendInvoiceEmailTrigger = async ({
         "order.no": orderIds,
         id: _ids,
     });
-    const __sales = await prisma.salesOrders.findMany({
-        where,
-        select: {
-            slug: true,
-            id: true,
-            type: true,
-            amountDue: true,
-            salesRep: {
-                select: {
-                    name: true,
-                    email: true,
+    const __sales = (
+        await prisma.salesOrders.findMany({
+            where,
+            select: {
+                slug: true,
+                id: true,
+                type: true,
+                amountDue: true,
+                meta: true,
+                grandTotal: true,
+                orderId: true,
+                salesRep: {
+                    select: {
+                        name: true,
+                        email: true,
+                    },
+                },
+                customer: {
+                    select: {
+                        email: true,
+                        name: true,
+                        businessName: true,
+                    },
+                },
+                billingAddress: {
+                    select: {
+                        email: true,
+                        name: true,
+                    },
                 },
             },
-            customer: {
-                select: {
-                    email: true,
-                    name: true,
-                    businessName: true,
-                },
-            },
-            billingAddress: {
-                select: {
-                    email: true,
-                    name: true,
-                },
-            },
-        },
-    });
+        })
+    ).map((s) => ({
+        ...s,
+        meta: s.meta as any as SalesMeta,
+    }));
 
     const noEmail = __sales
         .filter((sales) => sales.customer?.email || sales.billingAddress?.email)
@@ -120,6 +130,13 @@ export const __sendInvoiceEmailTrigger = async ({
                     }`,
                     html: await render(
                         composeSalesEmail({
+                            salesList: isQuote
+                                ? []
+                                : matchingSales?.map((e) => ({
+                                      amount: formatCurrency(e.grandTotal),
+                                      orderId: e.orderId,
+                                      po: e.meta?.po,
+                                  })),
                             type: sales.type as any,
                             customerName,
                             paymentLink: withPayment ? paymentLink : null,
