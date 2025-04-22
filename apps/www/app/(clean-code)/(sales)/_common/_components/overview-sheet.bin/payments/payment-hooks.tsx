@@ -1,5 +1,10 @@
 import { useEffect, useState, useTransition } from "react";
-import { useSalesOverview } from "../overview-provider";
+import { PaymentMethods } from "@/app/(clean-code)/(sales)/types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+
 import {
     cancelSalesPaymentCheckoutUseCase,
     checkTerminalPaymentStatusUseCase,
@@ -10,11 +15,7 @@ import {
     GetSalesPayment,
     getSalesPaymentUseCase,
 } from "../../../use-case/sales-payment-use-case";
-import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { PaymentMethods } from "@/app/(clean-code)/(sales)/types";
+import { useSalesOverview } from "../overview-provider";
 
 export const usePayment = (ctx) => {
     return usePaymentContext(ctx);
@@ -28,7 +29,7 @@ const usePaymentContext = (ctx) => {
         resolver: zodResolver(
             z.object({
                 amount: z.number(),
-            })
+            }),
         ),
         defaultValues: {
             paymentMethod: null as PaymentMethods,
@@ -145,27 +146,27 @@ const usePaymentContext = (ctx) => {
                     form.setError("deviceId", {});
                     return;
                 }
-                if (isTerminal()) {
-                    const resp = await createTerminalPaymentUseCase({
-                        salesPayment: {
-                            amount: Number(formData.amount),
-                            orderId,
-                            terminalId: formData.deviceId,
-                            paymentType: "square_terminal",
-                        },
-                        terminal: {
-                            amount: Number(formData.amount),
-                            deviceId: formData.deviceId,
-                            allowTipping: formData.enableTip,
-                        },
-                    });
+                // if (isTerminal()) {
+                //     const resp = await createTerminalPaymentUseCase({
+                //         salesPayment: {
+                //             amount: Number(formData.amount),
+                //             orderId,
+                //             terminalId: formData.deviceId,
+                //             paymentType: "square_terminal",
+                //         },
+                //         terminal: {
+                //             amount: Number(formData.amount),
+                //             deviceId: formData.deviceId,
+                //             allowTipping: formData.enableTip,
+                //         },
+                //     });
 
-                    if (resp.error) toast.error(resp.error.message);
-                    else {
-                        form.setValue("checkoutId", resp.resp.salesPayment.id);
-                        // setWaitingForPayment(true);
-                    }
-                }
+                //     if (resp.error) toast.error(resp.error.message);
+                //     else {
+                //         form.setValue("checkoutId", resp.resp.salesPayment.id);
+                //         // setWaitingForPayment(true);
+                //     }
+                // }
             }
         });
         // });
