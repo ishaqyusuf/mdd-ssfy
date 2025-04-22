@@ -1,8 +1,10 @@
-import { env } from "@/env.mjs";
-import { Client, Environment } from "square";
-import { errorHandler } from "../error/handler";
 import { squareSalesPaymentCreatedDta } from "@/app/(clean-code)/(sales)/_common/data-access/wallet/sales-payment-dta";
+import { env } from "@/env.mjs";
 import { formatMoney } from "@/lib/use-number";
+import { squareSalesNote } from "@/utils/sales-utils";
+import { Client, Environment } from "square";
+
+import { errorHandler } from "../error/handler";
 
 export type TerminalCheckoutStatus =
     | "PENDING"
@@ -44,9 +46,10 @@ export interface CreateTerminalCheckoutProps {
     allowTipping?: boolean;
     amount;
     idempotencyKey?;
+    orderIds: string[];
 }
 export async function createSquareTerminalCheckout(
-    props: CreateTerminalCheckoutProps
+    props: CreateTerminalCheckoutProps,
 ) {
     const amt = formatMoney(props.amount);
     const cent = Math.round(props.amount * 100);
@@ -59,6 +62,7 @@ export async function createSquareTerminalCheckout(
                 amount,
                 currency: "USD",
             },
+            note: squareSalesNote(props.orderIds),
             deviceOptions: {
                 deviceId: props.deviceId,
                 tipSettings: {
@@ -102,7 +106,7 @@ export async function createTerminalCheckout({
             salesPayment: await squareSalesPaymentCreatedDta(
                 idempotencyKey,
                 terminal.result.checkout.id,
-                terminal.result.checkout.orderId
+                terminal.result.checkout.orderId,
             ),
         };
     });

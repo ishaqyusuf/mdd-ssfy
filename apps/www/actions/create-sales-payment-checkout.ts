@@ -5,6 +5,7 @@ import { PaymentMethods } from "@/app/(clean-code)/(sales)/types";
 import { prisma as _prisma } from "@/db";
 import { getBaseUrl } from "@/envs";
 import { generateRandomString } from "@/lib/utils";
+import { squareSalesNote } from "@/utils/sales-utils";
 import { SQUARE_LOCATION_ID, squareClient } from "@/utils/square-utils";
 
 import { CustomerTransactionType } from "./get-customer-tx-action";
@@ -86,9 +87,7 @@ export async function createSalesCheckoutLinkAction(props: Props) {
                 idempotencyKey: new Date().toISOString(),
                 quickPay: {
                     locationId: SQUARE_LOCATION_ID,
-                    name: `sales payment for order${
-                        orderIds.length ? "s" : ""
-                    } ${orderIds.join(", ")}`,
+                    name: squareSalesNote(orderIds),
                     priceMoney: {
                         amount: BigInt(Math.round(data.amountDue * 100)),
                         currency: "USD",

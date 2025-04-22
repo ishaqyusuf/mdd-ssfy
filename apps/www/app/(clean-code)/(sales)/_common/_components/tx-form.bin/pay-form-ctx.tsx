@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import {
     cancelTerminalCheckoutAction,
     checkTerminalPaymentStatusAction,
-    createTerminalPaymentAction,
+    // createTerminalPaymentAction,
     CreateTerminalPaymentAction,
     paymentReceivedAction,
 } from "../../data-actions/sales-payment/terminal-payment.action";
@@ -63,6 +63,7 @@ export const usePayForm = () => {
     }, [pm, tx.terminals]);
 
     async function terminalPay() {
+        return;
         setWaitSeconds(null);
         const data = form.getValues();
         const deviceName = tx.terminals?.find(
@@ -70,21 +71,22 @@ export const usePayForm = () => {
         )?.label;
         const amount = +data.amount;
 
-        const resp = await createTerminalPaymentAction({
-            amount,
-            deviceId: data.deviceId,
-            allowTipping: data.enableTip,
-            deviceName,
-        });
-        console.log({ resp });
+        // const resp = await createTerminalPaymentAction({
+        //     amount,
+        //     deviceId: data.deviceId,
+        //     allowTipping: data.enableTip,
+        //     deviceName,
+        //     orderIds: [],
+        // });
+        // console.log({ resp });
 
-        if (resp.error) {
-            toast.error(resp.error.message);
-        } else {
-            form.setValue("terminal", resp.resp);
-            setWaitSeconds(0);
-            // await terminalPaymentUpdate();
-        }
+        // if (resp.error) {
+        //     toast.error(resp.error.message);
+        // } else {
+        //     form.setValue("terminal", resp.resp);
+        //     setWaitSeconds(0);
+        //     // await terminalPaymentUpdate();
+        // }
     }
     const [waitSeconds, setWaitSeconds] = useState(null);
     useEffect(() => {

@@ -37,12 +37,15 @@ export function CustomerDataSection() {
                 metaData.billing.id = data.addressId;
             } else {
                 metaData.customer.id = data.customerId;
+                if (data.address == "bad") metaData.billing.id = data.addressId;
+                else metaData.shipping.id = data.addressId;
                 if (
                     data?.address == "bad" &&
                     (md.shipping.id == md.billing.id || !md.shipping.id)
                 )
-                    md.shipping.id = data.addressId;
-                metaData[data?.address] = data.addressId;
+                    metaData.shipping.id = data.addressId;
+
+                // metaData[data?.address] = data.addressId;
             }
             if (
                 dotCompare(
@@ -53,6 +56,7 @@ export function CustomerDataSection() {
                     "customer.id",
                 )
             ) {
+                console.log("CHANGED>>>>");
                 metaData.dataRefreshToken = generateRandomString();
             }
             metaData.profileChangedToken = data.address
@@ -162,7 +166,7 @@ function EditBtn({ address }: EditBtnProps) {
             disabled={
                 !id || (address == "sad" && md?.shipping?.id == md?.billing?.id)
             }
-            onClick={() => {
+            onClick={(e) => {
                 setParams({
                     customerId: md.customer.id,
                     customerForm: true,
@@ -211,6 +215,7 @@ function DataCard(props: DataCardProps) {
             >
                 <EditBtn address={props.address} />
                 <AddressDataSearch
+                    address={props.address}
                     onSelect={({ addressId, customerId }) => {
                         const metaData = {
                             ...md,
@@ -226,6 +231,7 @@ function DataCard(props: DataCardProps) {
                             else metaData.shipping.id = addressId;
                         }
                         metaData.profileChangedToken = generateRandomString();
+                        // console.log({md})
                         zus.dotUpdate("metaData", metaData);
                         // setTimeout(() => {
                         //     zus.dotUpdate(
@@ -303,6 +309,7 @@ function AddressDataSearch({
                         {!customerId ? (
                             <button
                                 onClick={(e) => {
+                                    e.preventDefault();
                                     setParams({
                                         customerForm: true,
                                     });
@@ -322,6 +329,10 @@ function AddressDataSearch({
                                                 "metaData.shipping.id",
                                                 md.billing.id,
                                             );
+                                            zus.dotUpdate(
+                                                "metaData.dataRefreshToken",
+                                                generateRandomString(),
+                                            );
                                             setOpen(false);
                                         }}
                                         className="w-full space-y-1 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground"
@@ -336,11 +347,14 @@ function AddressDataSearch({
                                 )}
                                 <button
                                     onClick={(e) => {
-                                        setParams({
+                                        const data = {
                                             customerForm: true,
                                             address,
                                             customerId,
-                                        });
+                                        };
+                                        console.log({ data });
+
+                                        setParams(data);
                                         setOpen(false);
                                     }}
                                     className="w-full space-y-1 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground"

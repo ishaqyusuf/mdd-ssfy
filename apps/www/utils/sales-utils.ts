@@ -104,3 +104,8 @@ export function getItemStatConfig({ setting, ...props }: ItemStatConfigProps) {
               shipping: !!props.qty,
           };
 }
+export function squareSalesNote(orderIds: string[]) {
+    return `sales payment for order${
+        orderIds.length > 1 ? "s" : ""
+    } ${orderIds.join(", ")}`;
+}

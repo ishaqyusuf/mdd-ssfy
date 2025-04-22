@@ -116,8 +116,6 @@ export function CustomerForm({ data }: Props) {
             // }
         },
         onError(e) {
-            console.log(e);
-
             lt.display({
                 variant: "error",
                 title: "Unable to complete",

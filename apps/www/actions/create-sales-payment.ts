@@ -120,6 +120,7 @@ async function createTerminalPayment(
             deviceId: props.deviceId,
             allowTipping: props.enableTip,
             amount: props.amount,
+            orderIds: props?.orderNos,
         });
 
         const squarePayment = await prisma.squarePayments.create({

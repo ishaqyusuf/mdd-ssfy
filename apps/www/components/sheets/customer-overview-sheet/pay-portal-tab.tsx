@@ -97,8 +97,15 @@ export function PayPortalTab({}) {
         });
     }
     useEffect(() => {
-        form.setValue("salesIds", query.params?.["pay-selections"]);
-    }, [query.params?.["pay-selections"]]);
+        const selections = query.params?.["pay-selections"];
+        form.setValue("salesIds", selections);
+        form.setValue(
+            "orderNos",
+            data?.pendingSales
+                ?.filter((a) => selections?.includes(a.id))
+                .map((a) => a.orderId),
+        );
+    }, [query.params?.["pay-selections"], data?.pendingSales]);
     const pm = form.watch("paymentMethod");
     const terminalPaymentSession = form.watch("terminalPaymentSession");
 

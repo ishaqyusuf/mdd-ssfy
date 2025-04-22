@@ -144,11 +144,7 @@ export const __filters = (): Filters => ({
             filterFields["order.no"],
             //
         ],
-        filterColumns: [
-            filterCol("search"),
-            filterCol("order.no"),
-            //
-        ],
+        filterColumns: [filterCol("search"), filterCol("order.no")],
     },
 });
 
