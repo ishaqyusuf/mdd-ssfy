@@ -10,13 +10,13 @@ import { WorkOrders } from "@/db";
 import { useAppSelector } from "@/store";
 import { IProject } from "@/types/community";
 import { IWorkOrder } from "@/types/customer-service";
-import { DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 import { Input } from "@gnd/ui/input";

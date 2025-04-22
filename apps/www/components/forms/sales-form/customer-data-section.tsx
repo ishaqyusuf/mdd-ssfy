@@ -170,7 +170,11 @@ function EditBtn({ address }: EditBtnProps) {
                 setParams({
                     customerId: md.customer.id,
                     customerForm: true,
-                    addressId: !address ? null : md?.[address],
+                    addressId: !address
+                        ? null
+                        : address == "bad"
+                          ? md?.billing?.id
+                          : md?.shipping?.id,
                     address,
                 });
             }}

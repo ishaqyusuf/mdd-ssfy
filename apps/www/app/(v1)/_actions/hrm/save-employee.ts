@@ -3,8 +3,9 @@
 import { prisma } from "@/db";
 import { transformData } from "@/lib/utils";
 import { IUser } from "@/types/hrm";
-import { hashPassword } from "../utils";
+
 import { clearCacheAction } from "../_cache/clear-cache";
+import { hashPassword } from "../utils";
 
 export async function createEmployeeAction(data: IUser) {
     const { name, username, email, meta, phoneNo, role } = data;
@@ -65,12 +66,22 @@ export async function saveEmployeeAction(data: IUser) {
                 roleId: role?.id,
             },
         });
+    await prisma.session.deleteMany({
+        where: {
+            userId: id,
+        },
+    });
 }
 export async function resetEmployeePassword(id) {
     await prisma.users.update({
         where: { id },
         data: {
             password: await hashPassword("Millwork"),
+        },
+    });
+    await prisma.session.deleteMany({
+        where: {
+            userId: id,
         },
     });
 }

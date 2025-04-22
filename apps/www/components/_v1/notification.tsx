@@ -14,11 +14,14 @@ import { deepCopy } from "@/lib/deep-copy";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store";
 import { dispatchSlice } from "@/store/slicers";
-import { DropdownMenuContent } from "@radix-ui/react-dropdown-menu";
 import { AlertTriangle, Archive, Bell, Dot } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
-import { DropdownMenu, DropdownMenuTrigger } from "@gnd/ui/dropdown-menu";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from "@gnd/ui/dropdown-menu";
 
 import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
