@@ -1,10 +1,11 @@
 "use client";
 
-import { Icons } from "@/components/_v1/icons";
-import { useSalesBlockCtx } from "../sales-print-block";
-import Text from "../../components/print-text";
 import React from "react";
+import { Icons } from "@/components/_v1/icons";
 import { cn } from "@/lib/utils";
+
+import Text from "../../components/print-text";
+import { useSalesBlockCtx } from "../sales-print-block";
 
 export default function SalesPrintHeader() {
     const ctx = useSalesBlockCtx();
@@ -14,7 +15,7 @@ export default function SalesPrintHeader() {
         <thead id="topHeader">
             <tr className="">
                 <td colSpan={16}>
-                    <table className="w-full  font-mono table-fixed text-xs">
+                    <table className="w-full table-fixed font-mono text-xs">
                         <tbody>
                             <tr className="">
                                 <td colSpan={9} valign="top">
@@ -33,7 +34,7 @@ export default function SalesPrintHeader() {
                                 </td>
                                 <td colSpan={1}></td>
                                 <td valign="top" colSpan={9}>
-                                    <p className="text-black mb-1 text-end text-xl font-bold capitalize">
+                                    <p className="mb-1 text-end text-xl font-bold capitalize text-black">
                                         {sale?.headerTitle}
                                     </p>
                                     <table className="w-full table-fixed">
@@ -67,7 +68,7 @@ export default function SalesPrintHeader() {
                                         {index == 1 && (
                                             <td colSpan={6} className="">
                                                 {!sale.paymentDate || (
-                                                    <div className="sabsolute watermark-text text-strokes   -rotate-45 -translate-y-6 translate-x-8 font-mono uppercase font-bold inline-flex flex-col ">
+                                                    <div className="sabsolute watermark-text text-strokes   inline-flex -translate-y-6 translate-x-8 -rotate-45 flex-col font-mono font-bold uppercase ">
                                                         <span className="text-5xl">
                                                             Paid
                                                         </span>
@@ -81,15 +82,15 @@ export default function SalesPrintHeader() {
                                         <td colSpan={9} key={address?.title}>
                                             <div
                                                 className={cn(
-                                                    "my-4  mb-4 flex flex-col"
+                                                    "my-4  mb-4 flex flex-col",
                                                 )}
                                             >
                                                 <div>
-                                                    <span className="p-1 px-2 border border-b-0 border-gray-400 bg-slate-200 text-gray-700 text-sm  font-bold">
+                                                    <span className="border border-b-0 border-gray-400 bg-slate-200 p-1 px-2 text-sm font-bold  text-gray-700">
                                                         {address?.title}
                                                     </span>
                                                 </div>
-                                                <div className="flex flex-col p-2 border border-gray-400">
+                                                <div className="flex flex-col border border-gray-400 p-2">
                                                     {address?.lines?.map(
                                                         (f, _) => {
                                                             return (
@@ -100,7 +101,7 @@ export default function SalesPrintHeader() {
                                                                     {f}
                                                                 </p>
                                                             );
-                                                        }
+                                                        },
                                                     )}
                                                 </div>
                                             </div>

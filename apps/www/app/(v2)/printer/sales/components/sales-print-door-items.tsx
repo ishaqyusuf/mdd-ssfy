@@ -1,9 +1,10 @@
 "use client";
 
-import { Icons } from "@/components/_v1/icons";
-import { useSalesBlockCtx } from "../sales-print-block";
-import Text from "../../components/print-text";
 import React from "react";
+import { Icons } from "@/components/_v1/icons";
+
+import Text from "../../components/print-text";
+import { useSalesBlockCtx } from "../sales-print-block";
 
 export default function SalesPrintDoorItems({ index }) {
     const ctx = useSalesBlockCtx();
@@ -15,14 +16,16 @@ export default function SalesPrintDoorItems({ index }) {
         <tr className="uppercase">
             <td colSpan={16} className="">
                 {/* {sale.doorsTable.doors.map((dt, index) => ( */}
-                <table className="table-fixed w-full border">
+                <table className="w-full table-fixed border">
                     <thead id="topHeader">
-                        <th
-                            className="p-1s text-start uppercase text-base bg-slate-200"
-                            colSpan={16}
-                        >
-                            {doors?.sectionTitle}
-                        </th>
+                        <tr>
+                            <th
+                                className="p-1s bg-slate-200 text-start text-base uppercase"
+                                colSpan={16}
+                            >
+                                {doors?.sectionTitle}
+                            </th>
+                        </tr>
                     </thead>
                     <tbody className="">
                         <tr>
@@ -33,15 +36,15 @@ export default function SalesPrintDoorItems({ index }) {
                                         .filter(
                                             (d) =>
                                                 !["Height"].includes(
-                                                    d.step?.title as any
-                                                )
+                                                    d.step?.title as any,
+                                                ),
                                         )
                                         .map((detail, i) => (
                                             <div
                                                 key={i}
-                                                className="grid grid-cols-5 border-b border-r  gap-2"
+                                                className="grid grid-cols-5 gap-2 border-b  border-r"
                                             >
-                                                <div className="font-bold col-span-2  border-r px-2 py-1">
+                                                <div className="col-span-2 border-r  px-2 py-1 font-bold">
                                                     {detail.step.title}
                                                 </div>
                                                 <div className=" col-span-3 px-2 py-1">
@@ -55,7 +58,7 @@ export default function SalesPrintDoorItems({ index }) {
                         {doors.lines?.length ? (
                             <tr>
                                 <td colSpan={16}>
-                                    <table className="table-fixed w-full printly">
+                                    <table className="printly w-full table-fixed">
                                         <thead className="">
                                             <tr>
                                                 {doors.itemCells.map(
@@ -73,7 +76,7 @@ export default function SalesPrintDoorItems({ index }) {
                                                                 {cell.title}
                                                             </Text>
                                                         </th>
-                                                    )
+                                                    ),
                                                 )}
                                             </tr>
                                         </thead>
@@ -93,12 +96,12 @@ export default function SalesPrintDoorItems({ index }) {
                                                         ) : (
                                                             <Text {...ld.style}>
                                                                 {Array.isArray(
-                                                                    ld.value
+                                                                    ld.value,
                                                                 )
                                                                     ? ld.value.map(
                                                                           (
                                                                               val,
-                                                                              vi
+                                                                              vi,
                                                                           ) => (
                                                                               <div
                                                                                   key={
@@ -109,7 +112,7 @@ export default function SalesPrintDoorItems({ index }) {
                                                                                       val
                                                                                   }
                                                                               </div>
-                                                                          )
+                                                                          ),
                                                                       )
                                                                     : ld.value}
                                                             </Text>

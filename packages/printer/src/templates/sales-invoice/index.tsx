@@ -1,10 +1,11 @@
-import { Document, Page } from "@react-pdf/renderer";
+import { Document, Page, Text, View } from "@react-pdf/renderer";
 
 import { SalesInvoiceTemplateProps } from "../../types";
+import { SalesPrintHeader } from "./components/sales-print-header";
 
-export async function SalesInvoicePdfTemplate({
-  size = "a4",
-}: SalesInvoiceTemplateProps) {
+export function SalesInvoicePdfTemplate(props: SalesInvoiceTemplateProps) {
+  const { size = "a4" } = props;
+  return null;
   return (
     <Document>
       <Page
@@ -16,7 +17,15 @@ export async function SalesInvoicePdfTemplate({
           color: "#000",
           fontFamily: "Helvetica",
         }}
-      ></Page>
+      >
+        <SalesPrintHeader {...props} />
+        {/* <Text style={{ color: "red" }}>HELLO PDF</Text> */}
+        <View
+          style={{
+            flexDirection: "row",
+          }}
+        ></View>
+      </Page>
     </Document>
   );
 }

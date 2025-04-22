@@ -1,3 +1,3 @@
 export type SalesInvoiceTemplateProps = {
-  size: "letter" | "a4";
+  size?: "letter" | "a4";
 };

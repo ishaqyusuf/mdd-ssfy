@@ -10,6 +10,7 @@
   },
   "exports": {
     ".": "./src/index.tsx",
+    "./templates/sales-invoice": "./src/templates/sales-invoice/index.tsx",
     "./token": "./src/token/index.ts",
     "./number": "./src/utils/number.ts",
     "./templates/html": "./src/templates/html/index.tsx",

@@ -7,6 +7,7 @@ import { OrderBasePrinter } from "@/app/(v2)/printer/sales/order-base-printer";
 import SalesPrintDisplay from "@/app/(v2)/printer/sales/sales-print-display";
 import { parseAsString, parseAsStringEnum, useQueryStates } from "nuqs";
 
+import { SalesInvoicePdfTemplate } from "@gnd/printer/templates/sales-invoice";
 import { Dialog, DialogContent } from "@gnd/ui/dialog";
 
 import { ScrollArea } from "../ui/scroll-area";
@@ -55,6 +56,7 @@ export function SalesPreviewModal({}) {
         >
             <DialogContent className="w-[800px]s max-w-4xl">
                 <ScrollArea className="h-[90vh] overflow-auto">
+                    <SalesInvoicePdfTemplate />
                     {data && (
                         <OrderBasePrinter mode={ctx.q.salesPreviewType as any}>
                             <SalesPrintDisplay
