@@ -28,7 +28,7 @@ export const __sendInvoiceEmailTrigger = async ({
 }: Props) => {
     const where = whereSales({
         "order.no": orderIds,
-        id: _ids,
+        id: _ids?.split(",")?.map((a) => Number(a))?.[0],
     });
     const __sales = (
         await prisma.salesOrders.findMany({
@@ -75,7 +75,7 @@ export const __sendInvoiceEmailTrigger = async ({
             throw new Error("Some selected sales has no valid customer email");
         else throw new Error("Customer has no valid email");
     }
-    await Promise.all(
+    return await Promise.all(
         __sales.map(async (sales) => {
             // let phoneNo = sales?.customer?.email
             let customerEmail: any =
@@ -174,10 +174,10 @@ export const __sendInvoiceEmailTrigger = async ({
                     }),
                 );
                 if (response.error) {
-                    console.log(response.error);
-
+                    console.log(response);
                     throw new Error(`Unable to send email`);
                 }
+                return response;
             }
         }),
     );

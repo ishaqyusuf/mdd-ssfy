@@ -11,6 +11,7 @@ export function SalesFormEmailMenu({}) {
         <SalesEmailMenuItem
             salesId={zus?.metaData?.id}
             salesType={zus.metaData.type}
+            orderNo={zus?.metaData?.salesId}
         />
     );
 

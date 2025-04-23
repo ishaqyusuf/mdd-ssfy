@@ -18,26 +18,13 @@ export function SalesEmailMenuItem({
     orderNo?: string;
 }) {
     const isQuote = salesType === "quote";
-    const loadingToast = useLoadingToast();
     const mailSender = useSalesEmailSender();
     const sendInvoiceEmail = async ({ withPayment = false } = {}) => {
-        loadingToast.display({
-            variant: "spinner",
-            title: "Sending Email...",
-            duration: Number.POSITIVE_INFINITY,
-        });
-
-        __sendInvoiceEmailTrigger({
-            ids: salesId,
-            orderIds: orderNo,
+        mailSender.send({
             withPayment,
-        })
-            .catch((e) => {
-                loadingToast.error("Unable to complete");
-            })
-            .then((a) => {
-                loadingToast.success("Unable to complete");
-            });
+            ids: [salesId],
+            orderIds: [orderNo],
+        });
     };
 
     const emailLabel = `${isQuote ? "Quote" : "Invoice"} Email`;

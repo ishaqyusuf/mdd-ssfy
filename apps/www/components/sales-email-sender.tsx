@@ -1,38 +1,47 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { __sendInvoiceEmailTrigger } from "@/actions/triggers/send-invoice-email";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesEmailSender } from "@/hooks/use-sales-email-sender";
 
 export function SalesEmailSender() {
-    const _ctx = useSalesEmailSender();
+    const { params, clear } = useSalesEmailSender();
     const loader = useLoadingToast();
+    const r = useRef(false);
     useEffect(() => {
-        if (_ctx.params.ids) {
-            console.log("SENDING EMAIL>>>>>>>>>");
-            loader.loading("Sending Email...");
-        }
-    }, [_ctx.params.ids]);
-    const ctx = {
-        send({ ids, orderIds, withPayment = false }) {
-            loader.display({
-                variant: "spinner",
-                title: "Sending Email...",
-                duration: Number.POSITIVE_INFINITY,
-            });
-            return __sendInvoiceEmailTrigger({
-                ids,
-                orderIds,
-                withPayment,
-            })
-                .catch((e) => {
-                    loader.error("Unable to complete");
-                })
-                .then((a) => {
-                    loader.success("Unable to complete");
-                });
-        },
-    };
+        if (params.ids) {
+            if (!r.current) {
+                r.current = true;
+                console.log("RUNNING>>>");
+
+                console.log("SENDING EMAIL>>>>>>>>>");
+                loader.loading("Sending Email...");
+                //  loader.display({
+                //     variant: "spinner",
+                //     title: "Sending Email...",
+                //     duration: Number.POSITIVE_INFINITY,
+                // });
+                const fn = async () => {
+                    try {
+                        const resp = await __sendInvoiceEmailTrigger({
+                            ids: params.ids.join(","),
+                            orderIds: params.orderIds.join(","),
+                            withPayment: params.withPayment,
+                        });
+                        console.log(resp);
+
+                        loader.success("Email Sent");
+                        clear();
+                    } catch (error) {
+                        loader.error(error?.message || "Unable to complete");
+                        clear();
+                    }
+                };
+                fn();
+            }
+        } else r.current = false;
+    }, [params]);
+
     return null;
 }
