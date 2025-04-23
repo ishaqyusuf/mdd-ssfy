@@ -66,7 +66,8 @@ export function ProductionTab({}) {
 }
 function Content() {
     const { data, ctx } = useProduction();
-
+    const items = data?.items?.filter((a) => a?.itemConfig?.production);
+    const itemCount = items?.length || 0;
     return (
         <DataSkeletonProvider value={{ loading: !data?.orderId } as any}>
             <div className="mt-0 space-y-6">
@@ -75,18 +76,18 @@ function Content() {
                     value={[ctx.params["prod-item-view"]]}
                     className="space-y-4"
                 >
-                    {skeletonListData(data?.items, 5).map((item, i) => (
+                    <EmptyState
+                        className="h-[70vh]"
+                        description="No production items found"
+                        icon="production"
+                        empty={data?.orderId && !itemCount}
+                    />
+
+                    {skeletonListData(items, 5).map((item, i) => (
                         <DataSkeleton className="h-48" key={i}>
                             <ItemCard item={item} key={i} />
                         </DataSkeleton>
                     ))}
-                    {data?.orderId &&
-                    !data?.items?.filter((a) => a?.itemConfig?.production)
-                        ?.length ? (
-                        <EmptyState />
-                    ) : (
-                        <></>
-                    )}
                 </Accordion>
             </div>
         </DataSkeletonProvider>
@@ -122,6 +123,7 @@ function ItemCard({ item }: ItemCardProps) {
     };
     const opened = item.controlUid == queryCtx["prod-item-view"];
     const prod = useProduction();
+
     return (
         <ItemCardContext.Provider value={ctx}>
             <AccordionItem

@@ -509,97 +509,118 @@ export function GeneralTab({}) {
                         <Factory className="h-4 w-4" />
                         PRODUCTION STATUS
                     </h3>
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {saleData?.stats?.prodAssigned?.total === 0 &&
+                    saleData?.id ? (
                         <Card className="border-border/40">
                             <CardContent className="p-4">
-                                <div className="mb-3 flex items-center justify-between">
-                                    <span className="text-sm">
-                                        Assignment Progress
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <div
-                                            className={`h-2 w-2 rounded-full ${getStatusColor(saleData?.status?.assignment?.color)}`}
-                                        ></div>
-                                        <DataSkeleton
-                                            className="text-xs font-medium"
-                                            placeholder="Completed"
-                                        >
-                                            <span className="text-xs font-medium capitalize">
-                                                {
-                                                    saleData.status.assignment
-                                                        .status
-                                                }
-                                            </span>
-                                        </DataSkeleton>
-                                    </div>
-                                </div>
-                                <DataSkeleton
-                                    className="mb-3 h-2 w-full"
-                                    placeholder=""
-                                >
-                                    <Progress
-                                        value={assignmentPercentage}
-                                        className="mb-3 h-2"
-                                    />
-                                </DataSkeleton>
-                                <DataSkeleton
-                                    className="text-sm text-muted-foreground"
-                                    placeholder="7/7 items assigned"
-                                >
+                                <div className="flex items-center justify-center py-2">
                                     <p className="text-sm text-muted-foreground">
-                                        {saleData.stats.prodAssigned?.score}/
-                                        {saleData.stats.prodAssigned?.total}{" "}
-                                        items assigned
+                                        Production not applicable for this sale
                                     </p>
-                                </DataSkeleton>
+                                </div>
                             </CardContent>
                         </Card>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <Card className="border-border/40">
+                                <CardContent className="p-4">
+                                    <div className="mb-3 flex items-center justify-between">
+                                        <span className="text-sm">
+                                            Assignment Progress
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <div
+                                                className={`h-2 w-2 rounded-full ${getStatusColor(saleData?.status?.assignment?.color)}`}
+                                            ></div>
+                                            <DataSkeleton
+                                                className="text-xs font-medium"
+                                                placeholder="Completed"
+                                            >
+                                                <span className="text-xs font-medium capitalize">
+                                                    {
+                                                        saleData.status
+                                                            .assignment.status
+                                                    }
+                                                </span>
+                                            </DataSkeleton>
+                                        </div>
+                                    </div>
+                                    <DataSkeleton
+                                        className="mb-3 h-2 w-full"
+                                        placeholder=""
+                                    >
+                                        <Progress
+                                            value={assignmentPercentage}
+                                            className="mb-3 h-2"
+                                        />
+                                    </DataSkeleton>
+                                    <DataSkeleton
+                                        className="text-sm text-muted-foreground"
+                                        placeholder="7/7 items assigned"
+                                    >
+                                        <p className="text-sm text-muted-foreground">
+                                            {saleData.stats.prodAssigned?.score}
+                                            /
+                                            {saleData.stats.prodAssigned?.total}{" "}
+                                            items assigned
+                                        </p>
+                                    </DataSkeleton>
+                                </CardContent>
+                            </Card>
 
-                        <Card className="border-border/40">
-                            <CardContent className="p-4">
-                                <div className="mb-3 flex items-center justify-between">
-                                    <span className="text-sm">
-                                        Production Progress
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <div
-                                            className={`h-2 w-2 rounded-full ${getStatusColor(saleData?.status?.production?.color)}`}
-                                        ></div>
-                                        <DataSkeleton
-                                            className="text-xs font-medium"
-                                            placeholder="Pending"
-                                        >
-                                            <span className="text-xs font-medium capitalize">
-                                                {
-                                                    saleData.status.production
-                                                        .status
-                                                }
-                                            </span>
-                                        </DataSkeleton>
+                            <Card className="border-border/40">
+                                <CardContent className="p-4">
+                                    <div className="mb-3 flex items-center justify-between">
+                                        <span className="text-sm">
+                                            Production Progress
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <div
+                                                className={`h-2 w-2 rounded-full ${getStatusColor(saleData?.status?.production?.color)}`}
+                                            ></div>
+                                            <DataSkeleton
+                                                className="text-xs font-medium"
+                                                placeholder="Pending"
+                                            >
+                                                <span className="text-xs font-medium capitalize">
+                                                    {
+                                                        saleData.status
+                                                            .production.status
+                                                    }
+                                                </span>
+                                            </DataSkeleton>
+                                        </div>
                                     </div>
-                                </div>
-                                <DataSkeleton
-                                    className="mb-3 h-2 w-full"
-                                    placeholder=""
-                                >
-                                    <Progress
-                                        value={productionPercentage}
-                                        className="mb-3 h-2"
-                                    />
-                                </DataSkeleton>
-                                <DataSkeleton
-                                    className="text-sm text-muted-foreground"
-                                    placeholder="0/7 items completed"
-                                >
-                                    <p className="text-sm text-muted-foreground">
-                                        {saleData?.stats?.prodCompleted?.score}/
-                                        {saleData?.stats?.prodCompleted?.total}{" "}
-                                        items completed
-                                    </p>
-                                </DataSkeleton>
-                            </CardContent>
-                        </Card>
-                    </div>
+                                    <DataSkeleton
+                                        className="mb-3 h-2 w-full"
+                                        placeholder=""
+                                    >
+                                        <Progress
+                                            value={productionPercentage}
+                                            className="mb-3 h-2"
+                                        />
+                                    </DataSkeleton>
+                                    <DataSkeleton
+                                        className="text-sm text-muted-foreground"
+                                        placeholder="0/7 items completed"
+                                    >
+                                        <p className="text-sm text-muted-foreground">
+                                            {
+                                                saleData?.stats?.prodCompleted
+                                                    ?.score
+                                            }
+                                            /
+                                            {
+                                                saleData?.stats?.prodCompleted
+                                                    ?.total
+                                            }{" "}
+                                            items completed
+                                        </p>
+                                    </DataSkeleton>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
                 </div>
 
                 <div>

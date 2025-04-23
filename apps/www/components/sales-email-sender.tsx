@@ -25,8 +25,10 @@ export function SalesEmailSender() {
                 const fn = async () => {
                     try {
                         const resp = await __sendInvoiceEmailTrigger({
-                            ids: params.ids.join(","),
-                            orderIds: params.orderIds.join(","),
+                            ids: params.ids ? params.ids.join(",") : undefined,
+                            orderIds: params.orderIds
+                                ? params.orderIds.join(",")
+                                : undefined,
                             withPayment: params.withPayment,
                         });
                         console.log(resp);

@@ -1,4 +1,4 @@
-import { Document, Page, Text, View } from "@react-pdf/renderer";
+import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 import { cn } from "../../style";
 import { SalesInvoiceTemplateProps } from "../../types";
@@ -79,3 +79,47 @@ export function SalesInvoicePdfTemplate(props: SalesInvoiceTemplateProps) {
     </Document>
   );
 }
+
+const styles = StyleSheet.create({
+  page: {
+    paddingTop: 70,
+    paddingBottom: 60,
+    paddingHorizontal: 40,
+  },
+  header: {
+    position: "absolute",
+    top: 20,
+    left: 40,
+    right: 40,
+    textAlign: "center",
+    fontSize: 12,
+    borderBottomWidth: 1,
+    paddingBottom: 4,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 30,
+    left: 40,
+    right: 40,
+    textAlign: "center",
+    fontSize: 10,
+    color: "gray",
+  },
+  tableHeader: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    fontSize: 10,
+    paddingBottom: 4,
+  },
+  tableRow: {
+    flexDirection: "row",
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+  },
+  col: {
+    width: "20%",
+  },
+  colDescription: {
+    width: "40%",
+  },
+});
