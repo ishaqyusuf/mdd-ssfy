@@ -1,5 +1,6 @@
 import React from "react";
 import { getSalesOverviewAction } from "@/actions/get-sales-overview";
+import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";
 import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
@@ -384,7 +385,21 @@ export function GeneralTab({}) {
                                 </div>
                             </div>
                         </div>
-
+                        {!saleData.due || (
+                            <Button
+                                className="w-full"
+                                onClick={(e) => {
+                                    customerQuery.pay({
+                                        phoneNo: saleData.customerPhone,
+                                        orderId: saleData.id,
+                                        customerId: saleData.customerId,
+                                    });
+                                }}
+                            >
+                                <Icons.paypal className="mr-2 size-4" />
+                                Pay
+                            </Button>
+                        )}
                         <div>
                             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                                 <FileText className="h-4 w-4" />

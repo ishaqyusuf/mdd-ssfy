@@ -10,22 +10,21 @@ export default function SalesPrintFooter({
   const { sale } = printData;
   if (!sale.footer) return null;
 
-  const lines: NonNullable<(typeof sale.footer.lines)[number]>[] = sale.footer
-    .lines as any;
+  const lines: any[] = sale.footer.lines as any;
 
   return (
-    <View style={cn("text-right font-bold grid")}>
-      <View style={cn("border flex-1 border-gray-400 p-4")}>
+    <View style={cn("text-right font-bold flex")}>
+      <View style={cn("border flex-col w-2/3 border-gray-400 p-2")}>
         <Text
           style={cn(
-            "mb-2 col-span-2 text-left text-xs font-normal italic text-red-600",
+            "col-span-2 text-left text-xs font-normal italic text-red-600",
           )}
         >
           Note: Payments made with Cards will have an additional 3% charge to
           cover credit cards merchants fees.
         </Text>
 
-        <View style={cn("p-1 col-span-3")}>
+        <View style={cn("p-1 flex-col")}>
           {[
             "1) NO RETURN ON SPECIAL ORDER",
             "2) NO DAMAGED ORDER MAY BE EXCHANGE OR RETURN",
@@ -38,7 +37,7 @@ export default function SalesPrintFooter({
         </View>
       </View>
 
-      <View style={cn("relative")}>
+      <View style={cn("relative w-1/3")}>
         <View style={cn("w-full")}>
           {lines.map((line, index) => (
             <View

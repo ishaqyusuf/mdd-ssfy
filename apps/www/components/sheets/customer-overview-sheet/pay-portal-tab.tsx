@@ -19,11 +19,14 @@ import {
     DataSkeletonProvider,
     useCreateDataSkeletonCtx,
 } from "@/hooks/use-data-skeleton";
+import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { staticPaymentData, usePaymentToast } from "@/hooks/use-payment-toast";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatMoney } from "@/lib/use-number";
 import { cn, generateRandomString, sum } from "@/lib/utils";
 import { TerminalCheckoutStatus } from "@/modules/square";
 import { salesPaymentMethods } from "@/utils/constants";
+import { printSalesData } from "@/utils/sales-print-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle, Dot } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
@@ -108,6 +111,7 @@ export function PayPortalTab({}) {
     }, [query.params?.["pay-selections"], data?.pendingSales]);
     const pm = form.watch("paymentMethod");
     const terminalPaymentSession = form.watch("terminalPaymentSession");
+    const salesQ = useSalesOverviewQuery();
 
     const makePayment = useAction(createSalesPaymentAction, {
         onSuccess: (args) => {
@@ -122,6 +126,16 @@ export function PayPortalTab({}) {
                 if (args.data.status) {
                     pToast.updateNotification("payment-success");
                     revalidateTable();
+                    setTimeout(() => {
+                        if (salesQ?.params?.["sales-overview-id"]) {
+                            salesQ._refreshToken();
+                            query?.setParams(null);
+                        }
+                        printSalesData({
+                            mode: "order",
+                            slugs: args.input.orderNos?.join(","),
+                        });
+                    }, 1000);
                 }
             }
         },

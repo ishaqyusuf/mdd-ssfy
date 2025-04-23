@@ -1,11 +1,12 @@
-import { Menu } from "@/components/(clean-code)/menu";
-import { openLink } from "@/lib/open-link";
-import { SalesPrintProps } from "@/app/(v2)/printer/sales/page";
-import { toast } from "sonner";
 import { salesPdf } from "@/app/(v2)/printer/_action/sales-pdf";
-import { salesOverviewStore } from "../store";
-import QueryString from "qs";
+import { Menu } from "@/components/(clean-code)/menu";
 import { env } from "@/env.mjs";
+import { openLink } from "@/lib/open-link";
+import { SalesPrintProps } from "@/utils/sales-print-utils";
+import QueryString from "qs";
+import { toast } from "sonner";
+
+import { salesOverviewStore } from "../store";
 
 interface Props {
     pdf?: boolean;
@@ -16,13 +17,13 @@ export function PrintMenuAction({ pdf, data }: Props) {
     if (data) ctx = data as any;
     // const dispatchList = ctx.item.dispatchList || [];
     const type = ctx.overview?.type;
-    function print(params?: SalesPrintProps["searchParams"]) {
+    function print(params?: SalesPrintProps) {
         const query = {
             slugs: ctx.overview?.orderId,
             mode: type,
             preview: false,
             ...(params || {}),
-        } as SalesPrintProps["searchParams"];
+        } as SalesPrintProps;
         if (!pdf) openLink(`/printer/sales`, query, true);
         else {
             toast.promise(
@@ -33,13 +34,13 @@ export function PrintMenuAction({ pdf, data }: Props) {
                             env.NEXT_PUBLIC_NODE_ENV == "production"
                                 ? ""
                                 : "https://gnd-prodesk.vercel.app"
-                        }/api/pdf/sales?${QueryString.stringify(query)}`
+                        }/api/pdf/sales?${QueryString.stringify(query)}`,
                     ).then((res) => res.json());
                     const link = document.createElement("a");
                     // link.href = pdf.url;
                     const downloadUrl = pdf.url.replace(
                         "/fl_attachment/",
-                        `/fl_attachment:${query.slugs}/`
+                        `/fl_attachment:${query.slugs}/`,
                     ); //+ `/${query.slugs}.pdf`;
 
                     link.href = downloadUrl;
@@ -54,7 +55,7 @@ export function PrintMenuAction({ pdf, data }: Props) {
                     error(data) {
                         return "Something went wrong";
                     },
-                }
+                },
             );
         }
     }

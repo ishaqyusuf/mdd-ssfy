@@ -6,7 +6,6 @@ export default function Layout({ children }) {
     return (
         <AuthGuard can={["viewSales"]}>
             <SalesFormFeatureSwitch />
-            {/* <CustomerProfileTaxUpdatePrompt /> */}
             {children}
         </AuthGuard>
     );

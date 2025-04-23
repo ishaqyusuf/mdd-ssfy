@@ -31,17 +31,17 @@ export function SalesInvoicePdfTemplate(props: SalesInvoiceTemplateProps) {
     <Document>
       <Page
         size="A4"
-        style={cn("p-4 bg-white text-black font-helvetica text-xs", {
-          paddingTop: 80,
-          paddingBottom: 80,
-          paddingHorizontal: 40,
+        style={cn("p-4 bg-white text-black text-sm font-helvetica", {
+          // paddingTop: 80,
+          // paddingBottom: 80,
+          // paddingHorizontal: 40,
         })}
       >
-        <View>
+        <View style={cn("mb-2 flex-col")}>
           <SalesPrintHeader printData={printData} />
         </View>
         {order?.id && (
-          <View style={cn("w-full border-red-600")}>
+          <View style={cn("w-full border")}>
             {orderedPrinting.map((p: any, i: number) =>
               p.nonShelf ? (
                 <SalesPrintDoorItems

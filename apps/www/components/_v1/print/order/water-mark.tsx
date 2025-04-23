@@ -13,7 +13,10 @@ export function WaterMark() {
             <div>
                 <p></p>
             </div>
-            <p className="font-display text-3xl font-normal">Millwork Corp</p>
+            <p className="font-display py-1.5 text-3xl font-normal">
+                Millwork Corp
+            </p>
         </div>
     );
 }
+

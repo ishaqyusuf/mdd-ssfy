@@ -1,6 +1,7 @@
 import { __sendInvoiceEmailTrigger } from "@/actions/triggers/send-invoice-email";
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
+import { useSalesEmailSender } from "@/hooks/use-sales-email-sender";
 import { toast } from "sonner";
 
 import { Menu } from "./(clean-code)/menu";
@@ -18,6 +19,7 @@ export function SalesEmailMenuItem({
 }) {
     const isQuote = salesType === "quote";
     const loadingToast = useLoadingToast();
+    const mailSender = useSalesEmailSender();
     const sendInvoiceEmail = async ({ withPayment = false } = {}) => {
         loadingToast.display({
             variant: "spinner",

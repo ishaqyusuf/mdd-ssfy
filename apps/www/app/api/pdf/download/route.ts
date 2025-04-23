@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { salesPdf } from "@/app/(v2)/printer/_action/sales-pdf";
-import { SalesPrintProps } from "@/app/(v2)/printer/sales/page";
+import { SalesPrinterProps } from "@/app/(v2)/printer/type";
 import { prisma } from "@/db";
 import { apiParamsTokV } from "@/utils/api-params-to-kv";
 
@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const query = apiParamsTokV(
         req.nextUrl.searchParams,
-    ) as any as SalesPrintProps["searchParams"];
+    ) as any as SalesPrinterProps;
     console.log({ query });
 
     const id = req.nextUrl.searchParams.get("id");

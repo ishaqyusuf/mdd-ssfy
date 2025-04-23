@@ -1,5 +1,4 @@
-import { env } from "process";
-import { Image, Text, View } from "@react-pdf/renderer";
+import { Text, View } from "@react-pdf/renderer";
 
 import { cn } from "../../../style";
 import { SalesInvoiceTemplateProps } from "../../../types";
@@ -13,11 +12,11 @@ export default function SalesPrintLineItems({
   return (
     <View style={cn("uppercase")}>
       <View style={cn("w-full")}>
-        <View style={cn("flex", "border bg-slate-100")}>
+        <View style={cn("flex", "border border-gray-400 bg-slate-100")}>
           {sale.lineItems.heading.map((col) => (
             <View
               key={col.title}
-              style={cn("border uppercase p-0.5", "flex-1")}
+              style={cn("border border-gray-400  uppercase p-0.5", "flex-1")}
             >
               <Text>{col.title}</Text>
             </View>
@@ -31,7 +30,10 @@ export default function SalesPrintLineItems({
               style={cn(!line.total && "bg-slate-200", "flex")}
             >
               {line.cells.map((cell, i) => (
-                <View key={i} style={cn("border uppercase", "flex-1")}>
+                <View
+                  key={i}
+                  style={cn("border border-gray-400 uppercase", "flex-1")}
+                >
                   <Text style={cn("p-0.5")} {...cell.style}>
                     {cell.title}
                   </Text>

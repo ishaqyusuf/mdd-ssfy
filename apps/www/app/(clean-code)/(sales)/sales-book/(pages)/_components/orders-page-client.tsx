@@ -19,6 +19,7 @@ import { useInfiniteDataTable } from "@/components/(clean-code)/data-table/use-d
 import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
 import { _modal } from "@/components/common/modal/provider";
 import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
+import { useSalesEmailSender } from "@/hooks/use-sales-email-sender";
 
 import { Button } from "@gnd/ui/button";
 
@@ -61,6 +62,7 @@ export default function OrdersPageClient({
             },
         },
     });
+    const mailClient = useSalesEmailSender();
     return (
         <div className="bg-white">
             <DataTable.Infinity

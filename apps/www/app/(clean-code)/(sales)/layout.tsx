@@ -1,5 +1,6 @@
 import { SalesPreviewModal } from "@/components/modals/sales-preview-modal";
 import { TransactionOverviewModal } from "@/components/modals/transaction-overview-modal";
+import { SalesEmailSender } from "@/components/sales-email-sender";
 import { SalesQuickAction } from "@/components/sales-quick-action";
 import { CustomerCreateSheet } from "@/components/sheets/customer-create-sheet";
 import { CustomerOverviewSheet } from "@/components/sheets/customer-overview-sheet";
@@ -23,6 +24,7 @@ export default async function Layout({ children }) {
             <SalesOverviewSheet />
             <CustomerCreateSheet />
             <TransactionOverviewModal />
+            <SalesEmailSender />
         </SidebarLayout>
     );
 }

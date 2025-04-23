@@ -28,6 +28,15 @@ export function useLoadingToast() {
         clearToastId() {
             setToastId(null);
         },
+        loading(title, data: Data = {}) {
+            ctx.display({
+                title,
+                duration: Number.POSITIVE_INFINITY,
+                variant: "spinner",
+                ...data,
+            });
+            ctx.clearToastId();
+        },
         error(title, data: Data = {}) {
             ctx.display({
                 title,

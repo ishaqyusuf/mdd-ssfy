@@ -4,6 +4,7 @@ import { ToastAction } from "@gnd/ui/toast";
 import { useToast } from "@gnd/ui/use-toast";
 
 import { useCustomerOverviewQuery } from "./use-customer-overview-query";
+import { useLoadingToast } from "./use-loading-toast";
 
 type Status =
     | "idle"
@@ -23,7 +24,7 @@ export function usePaymentToast() {
     const [status, setStatus] = useState<Status>(null);
     const { toast, update, dismiss } = useToast();
     const [toastId, setToastId] = useState(null);
-
+    const toaster = useLoadingToast();
     useEffect(() => {
         if (!status) return;
         const toastData = toastDetail(status, toastId);
@@ -31,7 +32,7 @@ export function usePaymentToast() {
             const { id } = toast(toastData);
             setToastId(id);
         } else {
-            update(toastId, toastData);
+            // update(toastId, toastData);
             switch (status) {
                 case "failed":
                 case "terminal-cancelled":
@@ -57,6 +58,9 @@ export function usePaymentToast() {
             }
         },
         updateNotification(status: Status) {
+            toaster.display({
+                ...toastDetail(status),
+            });
             setStatus(status);
         },
     };
@@ -65,20 +69,23 @@ export function usePaymentToast() {
 
 type Toast = Parameters<ReturnType<typeof useToast>["update"]>[1];
 
-function toastDetail(status: Status, toastId, description?): Toast | null {
+export function toastDetail(
+    status: Status,
+    description?,
+): Partial<Toast> | null {
     if (!description) description = staticPaymentData.description;
     staticPaymentData.description = null;
     switch (status) {
         case "loading":
             return {
-                id: toastId,
+                // id: toastId,
                 title: `Generating payment...`,
                 duration: Number.POSITIVE_INFINITY,
                 variant: "spinner",
             };
         case "terminal-waiting":
             return {
-                id: toastId,
+                // id: toastId,
                 title: `Waiting to accept payment...`,
                 description,
                 duration: Number.POSITIVE_INFINITY,
@@ -87,7 +94,7 @@ function toastDetail(status: Status, toastId, description?): Toast | null {
             };
         case "terminal-long-waiting":
             return {
-                id: toastId,
+                // id: toastId,
                 title: `Payment taking too long...`,
                 description: `This may be a network problem. Have you received payment?`,
                 duration: Number.POSITIVE_INFINITY,
@@ -107,21 +114,21 @@ function toastDetail(status: Status, toastId, description?): Toast | null {
             };
         case "terminal-cancelled":
             return {
-                id: toastId,
+                // id: toastId,
                 title: `Terminal payment cancelled...`,
                 duration: Number.POSITIVE_INFINITY,
                 variant: "spinner",
             };
         case "payment-success":
             return {
-                id: toastId,
+                // id: toastId,
                 title: `Payment successful`,
                 variant: "success",
                 duration: 3000,
             };
         case "failed":
             return {
-                id: toastId,
+                // id: toastId,
                 description,
                 title: `Payment Failed, try again`,
                 variant: "error",

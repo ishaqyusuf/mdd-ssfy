@@ -21,7 +21,7 @@ const tw: { [key in string]: Partial<Style> } = {
   uppercase: { textTransform: "uppercase" },
   "font-bold": { fontWeight: "bold" },
   italic: { fontStyle: "italic" },
-
+  "flex-wrap": { flexWrap: "wrap" },
   // Layout
   flex: { display: "flex", flexDirection: "row" },
   "flex-col": { display: "flex", flexDirection: "column" },
@@ -46,22 +46,37 @@ const tw: { [key in string]: Partial<Style> } = {
   //   "col-span-3": { flexGrow: 0, flexShrink: 0, flexBasis: "75%" },
   relative: { position: "relative" },
   absolute: { position: "absolute" },
-
+  // Margin
+  "mb-2": { marginBottom: 8 },
+  "mb-4": { marginBottom: 16 },
   // Padding
   "p-2": { padding: 8 },
   "px-4": { paddingLeft: 16, paddingRight: 16 },
   "py-2": { paddingTop: 8, paddingBottom: 8 },
   "p-1": { padding: 4 },
   "px-1": { paddingLeft: 4, paddingRight: 4 },
+  "py-1": { paddingTop: 4, paddingBottom: 4 },
+  "py-1.5": {
+    paddingTop: 6, //0.375rem /* 6px */;
+    paddingBottom: 6, //0.375rem /* 6px */;
+  },
 
   // Border
   border: {
     borderWidth: 1,
-    borderColor: "#000000",
+    // borderColor: "#000000",
+    borderStyle: "solid",
+  },
+  "border-r-1": {
+    borderRightWidth: 1,
+    // borderColor: "#000000",
     borderStyle: "solid",
   },
   "border-gray-400": {
     borderColor: "#b0b0b0",
+  },
+  "border-slate-400": {
+    borderColor: "rgb(203 213 225)",
   },
   "border-red-600": {
     borderColor: "#e11d48",

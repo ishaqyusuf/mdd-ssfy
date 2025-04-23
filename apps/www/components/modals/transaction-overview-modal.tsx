@@ -1,13 +1,16 @@
 "use client";
 
 import { getCustomerTransactionOverviewAction } from "@/actions/get-customer-transaction-overview";
+import { updateSalesDueAmount } from "@/actions/update-sales-due-amount";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
+import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useTransactionOverviewModal } from "@/hooks/use-tx-overview-modal";
 import { cn } from "@/lib/utils";
 import { skeletonListData } from "@/utils/format";
 import { useAsyncMemo } from "use-async-memo";
 
 import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
 import {
     Dialog,
     DialogContent,
@@ -33,6 +36,20 @@ export function TransactionOverviewModal({}) {
     const txData = useAsyncMemo(async () => {
         return await getCustomerTransactionOverviewAction(ctx.transactionId);
     }, [ctx.transactionId]);
+    const loader = useLoadingToast();
+    async function updateSalesDue() {
+        loader.loading("Updating sales due amount...");
+        try {
+            await Promise.all(
+                txData?.salesTx?.transactions.map(async (tx) => {
+                    await updateSalesDueAmount(tx.salesId);
+                }),
+            );
+            loader.success("Sales due amount updated.");
+        } catch (error) {
+            loader.error("Failed to update sales due amount.");
+        }
+    }
     return (
         <DataSkeletonProvider
             value={
@@ -109,7 +126,7 @@ export function TransactionOverviewModal({}) {
                                 ))}
                             </TableBody>
                         </Table>
-                        <div className="mt-2">
+                        <div className="mt-2 flex flex-col space-y-2">
                             <DeleteCustomerTxBtn
                                 transactionId={ctx.transactionId}
                                 btnProps={{
@@ -122,6 +139,17 @@ export function TransactionOverviewModal({}) {
                                     ctx?.setParams(null);
                                 }}
                             />
+                            <Button
+                                disabled={loader?.toastId}
+                                variant="outline"
+                                size="default"
+                                className="w-full"
+                                onClick={async () => {
+                                    await updateSalesDue();
+                                }}
+                            >
+                                Update Sales Due Amount
+                            </Button>
                         </div>
                     </div>
                 </DialogContent>

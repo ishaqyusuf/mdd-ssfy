@@ -20,6 +20,7 @@ export async function getSalesPaymentsAction(query: SearchParamsType) {
             id: true,
             order: {
                 select: {
+                    id: true,
                     orderId: true,
                 },
             },
@@ -47,6 +48,7 @@ export async function getSalesPaymentsAction(query: SearchParamsType) {
     const transactions = payments.map((payment) => {
         let meta: ISalesPaymentMeta = payment.meta as any;
         return {
+            salesId: payment.order?.id,
             payment,
             id: payment.id,
             paymentId: `P${payment.id}-T${payment.transaction.id}`,

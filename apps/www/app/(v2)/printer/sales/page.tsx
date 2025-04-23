@@ -1,20 +1,14 @@
 import { cn } from "@/lib/utils";
+import { IOrderPrintMode } from "@/types/sales";
+import { SalesPrintProps as BaseSalesPrintProps } from "@/utils/sales-print-utils";
+
 import BasePrinter from "../base-printer";
 import { getSalesPrintData } from "./get-sales-print-data";
 import { OrderBasePrinter } from "./order-base-printer";
 import SalesPrintBlock from "./sales-print-block";
-import { IOrderPrintMode } from "@/types/sales";
 
 export interface SalesPrintProps {
-    searchParams: {
-        slugs?: string;
-        mode: IOrderPrintMode;
-        mockup?: "yes" | "no";
-        preview?: boolean;
-        pdf?: boolean;
-        deletedAt?;
-        dispatchId?;
-    };
+    searchParams: BaseSalesPrintProps;
 }
 export default async function PrintOrderPage({
     searchParams,
@@ -35,7 +29,7 @@ export default async function PrintOrderPage({
                     mode: "packing list",
                     dispatchId: searchParams.dispatchId,
                 }),
-            })
+            }),
         );
     const value = {
         // ...searchParams,
