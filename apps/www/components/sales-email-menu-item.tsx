@@ -15,7 +15,7 @@ export function SalesEmailMenuItem({
     salesId?;
     salesType: SalesType;
     asChild?: boolean;
-    orderNo?: string;
+    orderNo?;
 }) {
     const isQuote = salesType === "quote";
     const mailSender = useSalesEmailSender();

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState } from "react";
 import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-users";
 import { getSalesProductionOverviewAction } from "@/actions/get-sales-production-overview";
 import { DataSkeleton } from "@/components/data-skeleton";
+import { EmptyState } from "@/components/empty-state";
 import {
     Accordion,
     AccordionContent,
@@ -15,18 +16,10 @@ import { timeout } from "@/lib/timeout";
 import { cn } from "@/lib/utils";
 import { createContextFactory } from "@/utils/context-factory";
 import { skeletonListData } from "@/utils/format";
-import { CheckCircle, MoreVertical, Truck, UserPlus } from "lucide-react";
 import { useAsyncMemo } from "use-async-memo";
 
-import { Button } from "@gnd/ui/button";
 import { Card, CardHeader } from "@gnd/ui/card";
 import { Checkbox } from "@gnd/ui/checkbox";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@gnd/ui/dropdown-menu";
 
 import { ItemProgressBar } from "./item-progress-bar";
 import { ProductionItemDetail } from "./production-item-detail";
@@ -84,12 +77,16 @@ function Content() {
                 >
                     {skeletonListData(data?.items, 5).map((item, i) => (
                         <DataSkeleton className="h-48" key={i}>
-                            {/* <div className={cn(!item?.itemConfig?.production && "hidden")}> */}
-
                             <ItemCard item={item} key={i} />
-                            {/* </div> */}
                         </DataSkeleton>
                     ))}
+                    {data?.orderId &&
+                    !data?.items?.filter((a) => a?.itemConfig?.production)
+                        ?.length ? (
+                        <EmptyState />
+                    ) : (
+                        <></>
+                    )}
                 </Accordion>
             </div>
         </DataSkeletonProvider>

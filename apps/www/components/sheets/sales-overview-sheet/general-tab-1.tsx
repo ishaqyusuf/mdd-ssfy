@@ -35,7 +35,7 @@ import { Card, CardContent } from "@gnd/ui/card";
 import { Progress } from "@gnd/ui/progress";
 import { Separator } from "@gnd/ui/separator";
 
-import { useSaleOverview } from ".";
+import { useSaleOverview } from "./context";
 import { GeneralFooter } from "./general-footer";
 import { SalesPO } from "./inline-data-edit";
 

@@ -14,37 +14,19 @@ import { SheetDescription, SheetHeader, SheetTitle } from "@gnd/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { CustomSheet, CustomSheetContent } from "../custom-sheet-content";
+import { SalesOverviewProvider, useSaleOverview } from "./context";
 import { GeneralTab } from "./general-tab-1";
 import { ProductionTab } from "./production-tab";
 
-const { useContext: useSaleOverview, Provider } = createContextFactory(
-    function () {
-        const ctx = useSalesOverviewQuery();
-        const loader = async () => {
-            await timeout(100);
-            const res = await getSalesOverviewAction(
-                ctx.params["sales-overview-id"],
-            );
-            console.log({ res });
-            return res;
-        };
-
-        const data = useAsyncMemo(loader, [ctx.refreshTok]);
-        return {
-            data,
-        };
-    },
-);
-export { useSaleOverview };
 export default function SalesOverviewSheet() {
     const query = useSalesOverviewQuery();
     return query["sales-overview-id"] ? <Modal /> : null;
 }
 function Modal() {
     return (
-        <Provider args={[]}>
+        <SalesOverviewProvider args={[]}>
             <Content />
-        </Provider>
+        </SalesOverviewProvider>
     );
 }
 function Content() {
