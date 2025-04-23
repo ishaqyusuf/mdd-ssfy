@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { DropdownMenuArrow } from "@radix-ui/react-dropdown-menu";
 import { ChevronDown, Dot, LucideIcon } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
@@ -11,7 +12,6 @@ import {
 } from "@gnd/ui/collapsible";
 import {
     DropdownMenu,
-    DropdownMenuArrow,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,

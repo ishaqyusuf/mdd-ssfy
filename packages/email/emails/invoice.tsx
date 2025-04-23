@@ -94,7 +94,7 @@ export const SalesInvoiceEmail = ({
             ) : (
               <Section className="">
                 <table className="w-full">
-                  <thead className="border border-gray-200 bg-gray-100 p-1">
+                  <thead className="border border-gray-500 bg-gray-100 p-1">
                     <tr>
                       <th className="p-1 px-2" align="left">
                         Invoice No
@@ -109,15 +109,15 @@ export const SalesInvoiceEmail = ({
                   </thead>
                   <tbody>
                     {salesList?.map((sale, i) => (
-                      <tr className="border border-gray-200" key={i}>
-                        <td className="border-x border-gray-200" align="left">
+                      <tr className="border border-gray-500" key={i}>
+                        <td className="border-x border-gray-500" align="left">
                           {sale.orderId}
                         </td>
-                        <td className="border-x border-gray-200" align="left">
+                        <td className="border-x border-gray-500" align="left">
                           {sale.po || "-"}
                         </td>
-                        <td className="border-x border-gray-200" align="right">
-                          {sale.amount}
+                        <td className="border-x border-gray-500" align="right">
+                          ${sale.amount}
                         </td>
                       </tr>
                     ))}

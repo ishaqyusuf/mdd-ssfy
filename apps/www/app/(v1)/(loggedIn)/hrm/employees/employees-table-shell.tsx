@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useEmployeeProfiles } from "@/_v2/hooks/use-static-data";
+import { resetUserSessionAction } from "@/actions/reset-user-session";
 import {
     getStaticEmployeeProfiles,
     setEmployeeProfileAction,
@@ -159,6 +160,17 @@ export default function EmployeesTableShell<T>({
                                 Icon={Key}
                             >
                                 Reset Password
+                            </RowActionMenuItem>
+                            <RowActionMenuItem
+                                onClick={async () => {
+                                    await resetUserSessionAction(
+                                        row.original?.id,
+                                    );
+                                    toast.success("User session reset!");
+                                }}
+                                Icon={Key}
+                            >
+                                Reset Session
                             </RowActionMenuItem>
                             {/* <DeleteRowAction
                 menu
