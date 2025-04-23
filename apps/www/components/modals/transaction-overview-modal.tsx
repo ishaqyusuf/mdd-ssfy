@@ -140,7 +140,7 @@ export function TransactionOverviewModal({}) {
                                 }}
                             />
                             <Button
-                                disabled={loader?.toastId}
+                                // disabled={loader?.toastId}
                                 variant="outline"
                                 size="default"
                                 className="w-full"
