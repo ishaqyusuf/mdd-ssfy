@@ -10,7 +10,7 @@ export default function SalesPrintHeader({
   const { sale } = printData || {};
 
   return (
-    <View>
+    <View style={cn("mb-2")}>
       <View style={cn("flex")}>
         <View
           style={cn("", {
@@ -54,54 +54,75 @@ export default function SalesPrintHeader({
           ))}
         </View>
       </View>
-
-      {/* Address Section */}
       <View style={cn("flex")}>
-        {sale?.address?.map((address: any, index: number) => (
-          <View key={address.title} style={{ flex: 1, padding: 8 }}>
-            {index === 1 && sale.paymentDate && (
-              <View
-                style={cn("flex-col", {
-                  position: "absolute",
-                  top: -20,
-                  left: 40,
-                  transform: "rotate(-45deg)",
-                  fontSize: 72,
-                  lineHeight: 1,
-                  fontWeight: 700,
-                  color: "rgba(255, 0, 0, 0.3)",
-                  textAlign: "center",
-                })}
-              >
-                <Text
-                  style={{
-                    fontSize: "3rem",
-                    fontWeight: 700,
-                    textAlign: "center",
-                  }}
-                >
-                  Paid
-                </Text>
-                <Text style={{ fontSize: 24, lineHeight: "32px" }}>
-                  {sale.paymentDate}
-                </Text>
-              </View>
-            )}
-
-            <View>
-              <Text style={{ ...cn("text-sm"), fontWeight: 700 }}>
-                {address?.title}
-              </Text>
+        {[sale?.address?.[0], null, sale?.address?.[1]].map(
+          (address: any, index: number) => (
+            <View
+              key={address?.title}
+              style={cn(
+                index == 1 ? "w-1/4" : "",
+                index == 1
+                  ? {}
+                  : {
+                      width: "37.5%",
+                    },
+              )}
+            >
+              {index == 1 ? (
+                <View style={cn("relative")}>
+                  <View
+                    style={cn("flex-col", {
+                      position: "absolute",
+                      top: -20,
+                      left: 40,
+                      transform: "rotate(-45deg)",
+                      fontSize: 72,
+                      lineHeight: 1,
+                      fontWeight: 700,
+                      color: "rgba(255, 0, 0, 0.3)",
+                      textAlign: "center",
+                    })}
+                  >
+                    <Text
+                      style={{
+                        fontSize: "3rem",
+                        fontWeight: 700,
+                        textAlign: "center",
+                      }}
+                    >
+                      Paid
+                    </Text>
+                    <Text style={{ fontSize: 24, lineHeight: "32px" }}>
+                      {sale.paymentDate}
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <>
+                  <View>
+                    <Text
+                      style={cn(
+                        "text-sm bg-slate-200 text-gray-700 border p-1 px-2",
+                        {
+                          fontWeight: 700,
+                        },
+                      )}
+                    >
+                      {address?.title}
+                    </Text>
+                  </View>
+                  <View style={{ ...cn("border p-2 flex-col") }}>
+                    {address?.lines?.map((line: string, idx: number) => (
+                      <Text key={idx} style={cn("text-sm")}>
+                        {line}
+                      </Text>
+                    ))}
+                  </View>
+                </>
+              )}
             </View>
-            <View style={{ ...cn("border p-2 flex-col") }}>
-              {address?.lines?.map((line: string, idx: number) => (
-                <Text key={idx} style={cn("text-sm")}>
-                  {line}
-                </Text>
-              ))}
-            </View>
-          </View>
-        ))}
+          ),
+        )}
       </View>
     </View>
   );

@@ -31,7 +31,11 @@ export function SalesInvoicePdfTemplate(props: SalesInvoiceTemplateProps) {
     <Document>
       <Page
         size="A4"
-        style={cn("p-4 bg-white text-black font-helvetica text-xs")}
+        style={cn("p-4 bg-white text-black font-helvetica text-xs", {
+          paddingTop: 80,
+          paddingBottom: 80,
+          paddingHorizontal: 40,
+        })}
       >
         <View>
           <SalesPrintHeader printData={printData} />

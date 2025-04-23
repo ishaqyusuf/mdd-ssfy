@@ -83,6 +83,7 @@ const tw: { [key in string]: Partial<Style> } = {
   "text-xs": { fontSize: 10 },
   "text-left": { textAlign: "left" },
   "text-right": { textAlign: "right" },
+  "text-gray-700": { color: "#374151" },
 
   // Flex Growth
   "flex-4": { flex: 4 },

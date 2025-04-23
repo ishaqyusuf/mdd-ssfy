@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     color: "gray",
   },
   table: {
-    display: "table",
+    // display: "table",
     width: "auto",
     borderStyle: "solid",
     borderWidth: 1,
@@ -103,9 +103,9 @@ export const ExampleTemplate = ({}) => {
     }),
   ];
 
-  const paginated = [];
+  const paginated: any[] = [];
   for (let i = 0; i < paddedItems.length; i += rowsPerPage) {
-    paginated.push(paddedItems.slice(i, i + rowsPerPage));
+    paginated.push((paddedItems as any[]).slice(i, i + rowsPerPage));
   }
 
   return (
@@ -125,7 +125,7 @@ export const ExampleTemplate = ({}) => {
               <Text style={styles.tableColHeader}>UOM</Text>
               <Text style={styles.tableColHeader}>Item Description</Text>
             </View>
-            {pageItems.map((item, index) => (
+            {(pageItems as any).map((item, index) => (
               <TableRow key={index} item={item} />
             ))}
           </View>
