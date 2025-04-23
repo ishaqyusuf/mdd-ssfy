@@ -22,8 +22,12 @@ export function SalesEmailMenuItem({
     const sendInvoiceEmail = async ({ withPayment = false } = {}) => {
         mailSender.send({
             withPayment,
-            ids: [salesId],
-            orderIds: [orderNo],
+            ids: Array.isArray(salesId) ? salesId : salesId ? [salesId] : null,
+            orderIds: Array.isArray(orderNo)
+                ? orderNo
+                : orderNo
+                  ? [orderNo]
+                  : null,
         });
     };
 

@@ -163,7 +163,7 @@ function BatchActions() {
                         <SalesEmailMenuItem
                             asChild
                             salesType="order"
-                            orderNo={slugs.join(",")}
+                            orderNo={slugs}
                         />
                     </>
                 }
