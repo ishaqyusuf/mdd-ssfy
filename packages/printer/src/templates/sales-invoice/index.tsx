@@ -11,19 +11,20 @@ import { ExampleTemplate } from "./example-template";
 
 export function SalesInvoicePdfTemplate(props: SalesInvoiceTemplateProps) {
   const { size = "a4", printData } = props;
-  if (!printData) return <ExampleTemplate />;
-  return (
-    <Document>
-      <Page
-        size="A4"
-        style={cn("p-4 bg-white text-black font-helvetica text-xs")}
-      >
-        <View>
-          <Text>NOTHING TO DOWNLOAD</Text>
-        </View>
-      </Page>
-    </Document>
-  );
+  // if (!printData)
+  // return <ExampleTemplate />;
+  // return (
+  //   <Document>
+  //     <Page
+  //       size="A4"
+  //       style={cn("p-4 bg-white text-black font-helvetica text-xs")}
+  //     >
+  //       <View>
+  //         <Text>NOTHING TO DOWNLOAD</Text>
+  //       </View>
+  //     </Page>
+  //   </Document>
+  // );
   const { orderedPrinting = [], order, isPacking } = printData?.sale || {};
 
   return (

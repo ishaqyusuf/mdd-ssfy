@@ -15,10 +15,10 @@ export async function GET(req: NextRequest, res) {
     // return NextResponse.json(data);
     const buffer = await renderToBuffer(
         SalesInvoicePdfTemplate({
-            // printData: {
-            //     sale: data,
-            //     mode: "order",
-            // },
+            printData: {
+                sale: data,
+                mode: "order",
+            },
         }),
     );
     const responseHeaders = new Headers(res.headers);

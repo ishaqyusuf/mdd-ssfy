@@ -1,67 +1,22 @@
 // type StyleType = keyof typeof tw;
 
 import { Font } from "@react-pdf/renderer";
+import { Style } from "@react-pdf/types";
 
-// const tw = {
-//   // Typography
-//   "text-sm": { fontSize: 12 },
-//   "font-mono": {
-//     fontFamily:
-//       'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-//   },
-
-//   // Layout
-//   flex: { display: "flex", flexDirection: "row" },
-//   "flex-col": { display: "flex", flexDirection: "column" },
-//   "gap-4": { gap: 16 },
-//   grid: { display: "flex", flexWrap: "wrap", flexDirection: "row" }, // mimic grid
-//   "grid-cols-4": { width: "100%" },
-//   "col-span-3": { flexGrow: 0, flexShrink: 0, flexBasis: "75%" },
-
-//   // Padding
-//   "p-2": { padding: 8 },
-//   "px-4": { paddingLeft: 16, paddingRight: 16 },
-//   "py-2": { paddingTop: 8, paddingBottom: 8 },
-
-//   // Border
-//   border: {
-//     borderWidth: 1,
-//     borderColor: "#000000",
-//     borderStyle: "solid",
-//   },
-//   "border-red-400": {
-//     borderColor: "#f87171",
-//   },
-
-//   // Widths
-//   "w-1/2": { width: "50%" },
-//   "w-2/3": { width: "66.666667%" },
-// } as const;
 type StyleType = keyof typeof tw;
 const CDN_URL = "https://cdn.midday.ai";
 
-// Font.register({
-//   family: "GeistMono",
-//   fonts: [
-//     {
-//       src: `${CDN_URL}/fonts/GeistMono/ttf/GeistMono-Regular.ttf`,
-//       fontWeight: 400,
-//     },
-//     {
-//       src: `${CDN_URL}/fonts/GeistMono/ttf/GeistMono-Medium.ttf`,
-//       fontWeight: 500,
-//     },
-//   ],
-// });
-const tw = {
+const tw: { [key in string]: Partial<Style> } = {
   // Typography
+  // "text-xs": { fontSize: 12 },
   "text-sm": { fontSize: 12 },
   "text-xl": { fontSize: 18 },
+  "size-lg": { fontSize: 18 },
   "text-2xl": { fontSize: 24 },
   "text-5xl": { fontSize: 40 },
   "font-mono": {
-    fontFamily:
-      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    // fontFamily: "Roboto",
+    //   'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
   },
   uppercase: { textTransform: "uppercase" },
   "font-bold": { fontWeight: "bold" },
@@ -114,6 +69,8 @@ const tw = {
 
   // Widths
   "w-1/2": { width: "50%" },
+  "w-1/3": { width: "33.33%" },
+  "w-1/4": { width: "25%" },
   "w-2/3": { width: "66.666667%" },
   "w-full": { width: "100%" },
 
@@ -131,8 +88,15 @@ const tw = {
   "flex-4": { flex: 4 },
   "flex-2": { flex: 2 },
 } as const;
+export function cva(style) {
+  const styles: string[] = [];
+  Object.entries(style || {}).forEach(([key, value]) =>
+    styles.push(`${key}-${value}`),
+  );
+  return cn(...styles);
+}
 export function cn(
-  ...classNames: (string | Record<string, any> | false | null | undefined)[]
+  ...classNames: (string | Partial<Style> | false | null | undefined)[]
 ) {
   return classNames.reduce(
     (acc, curr) => {
