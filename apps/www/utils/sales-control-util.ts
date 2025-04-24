@@ -1,4 +1,4 @@
-import { ItemControlData } from "@/actions/get-sales-production-overview";
+import { ItemControlData } from "@/actions/get-sales-items-overview-action";
 import { generateItemControlUid } from "@/app/(clean-code)/(sales)/_common/utils/item-control-utils";
 import {
     QtyControlType,

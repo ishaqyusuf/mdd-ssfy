@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from "react";
 import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-users";
-import { getSalesProductionOverviewAction } from "@/actions/get-sales-production-overview";
+import { getSalesItemsOverviewAction } from "@/actions/get-sales-items-overview-action";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { EmptyState } from "@/components/empty-state";
 import {
@@ -35,7 +35,7 @@ const { useContext: useProduction, Provider } = createContextFactory(
         }, []);
         const loader = async () => {
             await timeout(100);
-            const res = await getSalesProductionOverviewAction(
+            const res = await getSalesItemsOverviewAction(
                 ctx.params["sales-overview-id"],
             );
 

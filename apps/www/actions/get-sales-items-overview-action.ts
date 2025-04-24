@@ -26,7 +26,7 @@ import {
     qtyControlsByType,
 } from "@/utils/sales-utils";
 
-export async function getSalesProductionOverviewAction(orderId, assignedToId?) {
+export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
     let _select = select;
     if (assignedToId) _select.assignments.where.assignedToId = assignedToId;
     const order = await prisma.salesOrders.findFirstOrThrow({

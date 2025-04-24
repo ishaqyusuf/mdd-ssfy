@@ -4,7 +4,7 @@ import { QtyControlType } from "@/app/(clean-code)/(sales)/types";
 import { Prisma, prisma } from "@/db";
 import { percent, sum } from "@/lib/utils";
 
-import { getSalesProductionOverviewAction } from "./get-sales-production-overview";
+import { getSalesItemsOverviewAction } from "./get-sales-items-overview-action";
 
 export async function resetSalesStatAction(id, salesNo) {
     return await prisma.$transaction(async (tx) => {
@@ -25,7 +25,7 @@ export async function resetSalesStatAction(id, salesNo) {
                 salesId: id,
             },
         });
-        const overview = await getSalesProductionOverviewAction(salesNo);
+        const overview = await getSalesItemsOverviewAction(salesNo);
         let qc: Prisma.QtyControlCreateManyInput[] = [];
         let salesItemControls: Prisma.SalesItemControlCreateManyInput[] = [];
         overview.items.map((item) => {

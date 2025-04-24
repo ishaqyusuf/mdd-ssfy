@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { CustomSheet, CustomSheetContent } from "../custom-sheet-content";
 import { SalesOverviewProvider, useSaleOverview } from "./context";
+import { DispatchTab } from "./dispatch-tab";
 import { GeneralTab } from "./general-tab-1";
 import { ProductionTab } from "./production-tab";
 
@@ -68,10 +69,8 @@ function Content() {
                             <TabsTrigger value="production">
                                 Productions
                             </TabsTrigger>
-                            {/* <TabsTrigger value="transactions">
-                                Transactions
-                            </TabsTrigger> */}
                             <TabsTrigger value="payment">Payment</TabsTrigger>
+                            <TabsTrigger value="dispatch">Dispatch</TabsTrigger>
                         </TabsList>
                     </SheetDescription>
                 </SheetHeader>
@@ -83,6 +82,9 @@ function Content() {
                     </TabsContent>
                     <TabsContent value="production">
                         <ProductionTab />
+                    </TabsContent>
+                    <TabsContent value="dispatch">
+                        <DispatchTab />
                     </TabsContent>
                 </Tabs>
             </CustomSheetContent>
