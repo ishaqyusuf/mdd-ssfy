@@ -1,21 +1,19 @@
 "use client";
 
-import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
+import QueryTab from "@/app/(clean-code)/_common/query-tab";
+import { QueryTabAction } from "@/app/(clean-code)/_common/query-tab/query-tab-edit";
 import {
     DataTable,
     InfiniteDataTablePageProps,
 } from "@/components/(clean-code)/data-table";
 import { DataTableFilterCommand } from "@/components/(clean-code)/data-table/filter-command";
-
 import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/infinity/data-table-toolbar";
+import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
 import { _modal } from "@/components/common/modal/provider";
 
-import { __filters } from "../../../_common/utils/contants";
-import QueryTab from "@/app/(clean-code)/_common/query-tab";
-import { QueryTabAction } from "@/app/(clean-code)/_common/query-tab/query-tab-edit";
-
-import { Cells } from "./production-page-cells";
 import { openSalesProductionModal } from "../../../_common/_components/sales-overview-sheet";
+import { __filters } from "../../../_common/utils/contants";
+import { Cells } from "./production-page-cells";
 
 export default function ProductionsPageClient({
     filterFields,
@@ -28,6 +26,7 @@ export default function ProductionsPageClient({
                 ctx.Column("Due Date", "date", Cells.Date),
                 ctx.Column("", "alert", Cells.Alert),
                 ctx.Column("Order #", "order.no", Cells.Order),
+                ctx.Column("Customer", "customer", Cells.Customer),
                 ctx.Column("Sales Rep", "sales.rep", Cells.SalesRep),
                 ctx.Column("Assigned To", "assignments", Cells.Assignments),
                 ctx.Column("Status", "status", Cells.Status),
@@ -64,7 +63,7 @@ export default function ProductionsPageClient({
                     </Menu> */}
                 </DataTable.BatchAction>
                 <DataTable.Header top="lg" className="bg-white">
-                    <div className="flex justify-between items-end mb-2 gap-2 sm:sticky">
+                    <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
                         <div className="">
                             <QueryTab page="orders" />
                         </div>
