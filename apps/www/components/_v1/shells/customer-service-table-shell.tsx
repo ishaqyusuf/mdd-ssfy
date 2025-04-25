@@ -1,39 +1,38 @@
 "use client";
 
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { deleteCustomerService } from "@/app/(v1)/_actions/customer-services/crud";
+import { staticEmployees } from "@/app/(v1)/_actions/hrm/get-employess";
+import { openModal } from "@/lib/modal";
+import { labelValue } from "@/lib/utils";
+import { useAppSelector } from "@/store";
+import { loadStaticList } from "@/store/slicers";
+import { IWorkOrder } from "@/types/customer-service";
 import { TableShellProps } from "@/types/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { useEffect, useMemo, useState, useTransition } from "react";
-import {
-    CheckColumn,
-    ColumnHeader,
-    Cell,
-    PrimaryCellContent,
-    DateCellContent,
-    SecondaryCellContent,
-    StatusCell,
-    _FilterColumn,
-} from "../columns/base-columns";
-
-import { DataTable2 } from "../data-table/data-table-2";
 
 import { Badge } from "../../ui/badge";
+import {
+    _FilterColumn,
+    Cell,
+    CheckColumn,
+    ColumnHeader,
+    DateCellContent,
+    PrimaryCellContent,
+    SecondaryCellContent,
+    StatusCell,
+} from "../columns/base-columns";
+import { DataTable2 } from "../data-table/data-table-2";
 import {
     DeleteRowAction,
     EditRowAction,
     RowActionCell,
 } from "../data-table/data-table-row-actions";
+import { SmartTable } from "../data-table/smart-table";
+import { TechEmployeeFilter } from "../filters/employee-filter";
 import WorkOrderTechCell, {
     WorkOrderStatusCell,
 } from "../work-order/tech-cell";
-import { IWorkOrder } from "@/types/customer-service";
-import { useAppSelector } from "@/store";
-import { loadStaticList } from "@/store/slicers";
-import { staticEmployees } from "@/app/(v1)/_actions/hrm/get-employess";
-import { labelValue } from "@/lib/utils";
-import { TechEmployeeFilter } from "../filters/employee-filter";
-import { openModal } from "@/lib/modal";
-import { deleteCustomerService } from "@/app/(v1)/_actions/customer-services/crud";
-import { SmartTable } from "../data-table/smart-table";
 
 export default function CustomerServiceTableShell<T>({
     data,
@@ -111,7 +110,7 @@ export default function CustomerServiceTableShell<T>({
                 ),
             },
         ],
-        [data, isPending]
+        [data, isPending],
     );
     const columns1 = useMemo<ColumnDef<IWorkOrder, unknown>[]>(
         () => [
@@ -158,8 +157,8 @@ export default function CustomerServiceTableShell<T>({
                         <PrimaryCellContent>
                             {row.original.projectName}{" "}
                             <Badge
-                                className="p-0.5 leading-none bg-accent
-              text-primary hover:bg-accent  px-1 rounded-sm"
+                                className="rounded-sm bg-accent p-0.5
+              px-1 leading-none  text-primary hover:bg-accent"
                             >
                                 {row.original.lot || "-"}
                                 {"/"}
@@ -214,7 +213,7 @@ export default function CustomerServiceTableShell<T>({
                 ),
             },
         ], //.filter(Boolean) as any,
-        [data, isPending]
+        [data, isPending],
     );
     return (
         <DataTable2

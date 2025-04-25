@@ -126,6 +126,39 @@ export function composeSalesItemControlStat(
             )
             .flat(),
     );
+    const deliverables = assignments
+        .map((assignment) => {
+            return assignment.submissions.map((s) => {
+                let submitted = transformQtyHandle(s);
+                const delivered = qtyMatrixSum(
+                    ...order.deliveries
+                        .filter(
+                            (d) =>
+                                (d.status as SalesDispatchStatus) !==
+                                "cancelled",
+                        )
+                        .map((d) =>
+                            qtyMatrixSum(
+                                ...d.items
+                                    .filter(
+                                        (i) =>
+                                            i.orderProductionSubmissionId ==
+                                            s.id,
+                                    )
+                                    .map(transformQtyHandle),
+                            ),
+                        )
+                        .flat(),
+                );
+                return {
+                    submissionId: s.id,
+                    submitted,
+                    delivered,
+                    available: qtyMatrixDifference(submitted, delivered),
+                };
+            });
+        })
+        .flat();
     const pendingAssignment = qtyMatrixDifference(qty, assigned);
     const pendingProduction = qtyMatrixDifference(assigned, submitted);
     const submissionIds = assignments
@@ -209,6 +242,7 @@ export function composeSalesItemControlStat(
     } as { [k in QtyControlType]: Qty };
     return {
         stats,
+        deliverables,
         deliveredQty: qtyMatrixSum(
             stats.dispatchAssigned,
             stats.dispatchCompleted,

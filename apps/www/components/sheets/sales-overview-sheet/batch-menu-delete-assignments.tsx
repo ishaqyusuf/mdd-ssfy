@@ -11,7 +11,7 @@ import z from "zod";
 
 import { Icons } from "@gnd/ui/icons";
 
-import { useProduction } from "./production-tab";
+import { useProduction } from "./context";
 
 interface Props {
     itemIds?: string[];

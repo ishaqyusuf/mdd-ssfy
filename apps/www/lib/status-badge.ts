@@ -15,6 +15,7 @@ export function _getStatusColor(color) {
 const StatusColorMap: { [key: string]: Colors } = {
     active: "blue",
     queued: "orange",
+    pending: "gray",
     completed: "green",
     available: "green",
     success: "green",

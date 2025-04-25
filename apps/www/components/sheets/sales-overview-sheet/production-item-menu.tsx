@@ -12,7 +12,8 @@ import { BatchMenuAssignAll } from "./batch-menu-assign-all";
 import { BatchMenuDeleteAssignments } from "./batch-menu-delete-assignments";
 import { BatchMenuDeleteSubmissions } from "./batch-menu-delete-submissions";
 import { BatchMenuSubmit } from "./batch-menu-submit";
-import { useProduction, useProductionItem } from "./production-tab";
+import { useProduction } from "./context";
+import { useProductionItem } from "./production-tab";
 
 export function ProductionItemMenu({}) {
     const ctx = useProductionItem();

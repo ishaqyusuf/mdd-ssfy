@@ -1,13 +1,19 @@
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { Prisma } from "@/db";
 import { addSpacesToCamelCase } from "@/lib/utils";
+import { Permission } from "@/types/auth";
+import { some } from "lodash";
 
 import { composeQuery } from "../../app/(clean-code)/(sales)/_common/utils/db-utils";
 
+export function mergePermissionsQuery(...permissions: Permission[]) {
+    return permissions.join(",") as any;
+}
 export function whereUsers(query: SearchParamsType) {
     const wheres: Prisma.UsersWhereInput[] = [];
 
     const permissions = query["user.permissions"]?.split(",");
+    const cannot = query["user.cannot"]?.split(",");
 
     if (permissions?.length) {
         const wherePermissions: Prisma.PermissionsWhereInput[] = [];
@@ -42,6 +48,28 @@ export function whereUsers(query: SearchParamsType) {
             },
         });
     }
+    if (cannot?.length)
+        wheres.push({
+            roles: {
+                some: {
+                    role: {
+                        RoleHasPermissions: {
+                            every: {
+                                AND: cannot?.map((p) => ({
+                                    permission: {
+                                        name: {
+                                            not: addSpacesToCamelCase(
+                                                p,
+                                            ).toLocaleLowerCase(),
+                                        },
+                                    },
+                                })),
+                            },
+                        },
+                    },
+                },
+            },
+        });
     let role = query["user.role"];
     if (role)
         wheres.push({

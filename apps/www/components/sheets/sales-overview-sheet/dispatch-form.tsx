@@ -1,34 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import {
+    createSalesDispatchItemsSchema,
+    createSalesDispatchSchema,
+} from "@/actions/schema";
+import { DatePicker } from "@/components/(clean-code)/custom/controlled/date-picker";
+import { TCell } from "@/components/(clean-code)/data-table/table-cells";
+import FormCheckbox from "@/components/common/controls/form-checkbox";
+import FormSelect from "@/components/common/controls/form-select";
 import { cn } from "@/lib/utils";
 // import type { Dispatch, DispatchItem } from "@/types/dispatch";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { Button } from "@gnd/ui/button";
-import { Calendar } from "@gnd/ui/calendar";
 import { Checkbox } from "@gnd/ui/checkbox";
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@gnd/ui/form";
+import { Form } from "@gnd/ui/form";
 import { Input } from "@gnd/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@gnd/ui/select";
 import {
     Table,
     TableBody,
@@ -39,6 +28,7 @@ import {
 } from "@gnd/ui/table";
 import { Textarea } from "@gnd/ui/textarea";
 
+import { useDispatch } from "./context";
 import { DispatchFormFooter } from "./dispatch-form-footer";
 
 const availableItems: any[] = [
@@ -59,18 +49,8 @@ const assignees = [
 ];
 
 const formSchema = z.object({
-    date: z.date(),
-    assignedTo: z.string(),
-    method: z.enum(["Pickup", "Delivery"]),
-    notes: z.string().optional(),
-    items: z.array(
-        z.object({
-            id: z.string(),
-            name: z.string(),
-            availableQty: z.number(),
-            dispatchQty: z.number().min(0),
-        }),
-    ),
+    delivery: createSalesDispatchSchema,
+    itemData: createSalesDispatchItemsSchema,
 });
 
 interface DispatchFormProps {
@@ -84,6 +64,7 @@ export function DispatchForm({
     onSubmit,
     onCancel,
 }: DispatchFormProps) {
+    const ctx = useDispatch();
     const [selectedItems, setSelectedItems] = useState<any[]>(
         dispatch?.items || [],
     );
@@ -92,14 +73,13 @@ export function DispatchForm({
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            date: dispatch?.date || new Date(),
-            assignedTo: dispatch?.assignedTo || "",
-            method: dispatch?.method || "Pickup",
-            notes: dispatch?.notes || "",
-            items: dispatch?.items || [],
+            delivery: {
+                deliveryMode: "delivery",
+            },
+            itemData: {},
         },
     });
-
+    const packingList = form.watch("delivery.packingList");
     const handleSelectAll = (checked: boolean) => {
         setAllSelected(checked);
         if (checked) {
@@ -134,12 +114,6 @@ export function DispatchForm({
                 `DISP-${Math.floor(Math.random() * 1000)
                     .toString()
                     .padStart(3, "0")}`,
-            date: values.date,
-            assignedTo: values.assignedTo,
-            status: dispatch?.status || "Queue",
-            method: values.method,
-            notes: values.notes || "",
-            items: selectedItems,
         };
 
         onSubmit(newDispatch);
@@ -151,172 +125,76 @@ export function DispatchForm({
                 onSubmit={form.handleSubmit(handleSubmit)}
                 className="space-y-6"
             >
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField
+                <div className="grid grid-cols-2 items-end gap-4">
+                    <DatePicker
                         control={form.control}
-                        name="date"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                                <FormLabel>Dispatch Date</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button
-                                                variant={"outline"}
-                                                className={cn(
-                                                    "w-full pl-3 text-left font-normal",
-                                                    !field.value &&
-                                                        "text-muted-foreground",
-                                                )}
-                                            >
-                                                {field.value ? (
-                                                    format(field.value, "PPP")
-                                                ) : (
-                                                    <span>Pick a date</span>
-                                                )}
-                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent
-                                        className="w-auto p-0"
-                                        align="start"
-                                    >
-                                        <Calendar
-                                            mode="single"
-                                            selected={field.value}
-                                            onSelect={field.onChange}
-                                            initialFocus
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                            </FormItem>
-                        )}
+                        name="delivery.deliveryDate"
+                        size="sm"
+                        label="Dispatch Date"
+                    />
+                    <FormSelect
+                        size="sm"
+                        options={ctx?.drivers || []}
+                        label={"Assign To"}
+                        name="delivery.driverId"
+                        control={form.control}
+                        placeholder="Select Driver"
+                        titleKey="name"
+                        valueKey="id"
                     />
 
-                    <FormField
+                    <FormSelect
+                        className="col-span-2"
+                        label="Dispatch Mode"
                         control={form.control}
-                        name="assignedTo"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Assigned To</FormLabel>
-                                <Select
-                                    onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                >
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select assignee" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {assignees.map((assignee) => (
-                                            <SelectItem
-                                                key={assignee.id}
-                                                value={assignee.name}
-                                            >
-                                                {assignee.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
+                        name="delivery.deliveryMode"
+                        options={["pickup", "delivery"]}
                     />
-                </div>
-
-                <FormField
-                    control={form.control}
-                    name="method"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Dispatch Method</FormLabel>
-                            <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                            >
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select method" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="Pickup">
-                                        Pickup
-                                    </SelectItem>
-                                    <SelectItem value="Delivery">
-                                        Delivery
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Dispatch Notes</FormLabel>
-                            <FormControl>
-                                <Textarea
-                                    placeholder="Add any special instructions or notes here"
-                                    {...field}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <div>
-                    <div className="mb-4 flex items-center justify-between">
-                        <h4 className="font-medium">Dispatchable Items</h4>
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="select-all"
-                                checked={allSelected}
-                                onCheckedChange={(checked) =>
-                                    handleSelectAll(checked as boolean)
-                                }
-                            />
-                            <label
-                                htmlFor="select-all"
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                                Select All
-                            </label>
-                        </div>
+                    <div className="col-span-2">
+                        <FormCheckbox
+                            control={form.control}
+                            name="delivery.packingList"
+                            label="Packing List"
+                        />
                     </div>
+                    <div className={cn("col-span-2", !packingList && "hidden")}>
+                        <div className="mb-4 flex items-center justify-between">
+                            <h4 className="font-medium">
+                                Prepare Packing List
+                            </h4>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="select-all"
+                                    checked={allSelected}
+                                    onCheckedChange={(checked) =>
+                                        handleSelectAll(checked as boolean)
+                                    }
+                                />
+                                <label
+                                    htmlFor="select-all"
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                    Select All
+                                </label>
+                            </div>
+                        </div>
 
-                    <div className="rounded-md border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[50px]"></TableHead>
-                                    <TableHead>Item</TableHead>
-                                    <TableHead>Available Qty</TableHead>
-                                    <TableHead>Dispatch Qty</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {availableItems.map((item) => {
-                                    const isSelected = selectedItems.some(
-                                        (i) => i.id === item.id,
-                                    );
-                                    const selectedItem = selectedItems.find(
-                                        (i) => i.id === item.id,
-                                    );
-
-                                    return (
-                                        <TableRow key={item.id}>
+                        <div className="rounded-md border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[50px]"></TableHead>
+                                        <TableHead>Item</TableHead>
+                                        <TableHead>Available Qty</TableHead>
+                                        <TableHead>Dispatch Qty</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {ctx?.data?.dispatchables?.map((item) => (
+                                        <TableRow key={item.uid}>
                                             <TableCell>
                                                 <Checkbox
-                                                    checked={isSelected}
+                                                    // checked={isSelected}
                                                     onCheckedChange={(
                                                         checked,
                                                     ) =>
@@ -327,36 +205,19 @@ export function DispatchForm({
                                                     }
                                                 />
                                             </TableCell>
-                                            <TableCell>{item.name}</TableCell>
                                             <TableCell>
-                                                {item.availableQty}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Input
-                                                    type="number"
-                                                    min={0}
-                                                    max={item.availableQty}
-                                                    value={
-                                                        selectedItem?.dispatchQty ||
-                                                        0
-                                                    }
-                                                    onChange={(e) =>
-                                                        handleQuantityChange(
-                                                            item.id,
-                                                            Number.parseInt(
-                                                                e.target.value,
-                                                            ) || 0,
-                                                        )
-                                                    }
-                                                    disabled={!isSelected}
-                                                    className="w-20"
-                                                />
+                                                <TCell.Primary>
+                                                    {item.title}
+                                                </TCell.Primary>
+                                                <TCell.Secondary className="uppercase">
+                                                    {item.subtitle}
+                                                </TCell.Secondary>
                                             </TableCell>
                                         </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </div>
                 </div>
                 <DispatchFormFooter />

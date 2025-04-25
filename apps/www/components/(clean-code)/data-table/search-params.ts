@@ -100,6 +100,10 @@ export const searchParamsParser: {
         parseAsStringLiteral(PERMISSIONS),
         ARRAY_DELIMITER,
     ),
+    "user.cannot": parseAsArrayOf(
+        parseAsStringLiteral(PERMISSIONS),
+        ARRAY_DELIMITER,
+    ),
     "user.role": parseAsArrayOf(parseAsStringLiteral(ROLES), ARRAY_DELIMITER),
     ...noteParamsParser,
 };
@@ -131,6 +135,7 @@ export const searchSchema = z
         search: z.string().optional(),
         "dealer.id": z.number().optional(),
         "user.permissions": z.enum(PERMISSIONS).optional(),
+        "user.cannot": z.enum(PERMISSIONS).optional(),
         "user.role": z.enum(ROLES).optional(),
     })
     .merge(noteSchema);

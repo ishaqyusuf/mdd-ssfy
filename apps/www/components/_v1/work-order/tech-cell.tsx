@@ -1,14 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { revalidatePath } from "next/cache";
 import { useRouter } from "next/navigation";
-import { updateProjectMeta } from "@/app/(v1)/_actions/community/projects";
 import { assignTech } from "@/app/(v1)/_actions/customer-services/assign-tech";
 import { updateWorkOrderStatus } from "@/app/(v1)/_actions/customer-services/update-status";
-import { WorkOrders } from "@/db";
 import { useAppSelector } from "@/store";
-import { IProject } from "@/types/community";
 import { IWorkOrder } from "@/types/customer-service";
 import { toast } from "sonner";
 

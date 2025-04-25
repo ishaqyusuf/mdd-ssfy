@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { getCachedUsersList } from "@/actions/cache/get-cached-users-list";
 import { createSalesAssignmentAction } from "@/actions/create-sales-assignment";
 import { createAssignmentSchema } from "@/actions/schema";
@@ -6,7 +5,6 @@ import { DatePicker } from "@/components/(clean-code)/custom/controlled/date-pic
 import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import FormSelect from "@/components/common/controls/form-select";
 import { NumberInput } from "@/components/currency-input";
-import { DataSkeleton } from "@/components/data-skeleton";
 import { SubmitButton } from "@/components/submit-button";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
@@ -127,13 +125,7 @@ export function ProductionAssignmentForm({ closeForm }) {
                             >
                                 Create Assignment
                             </SubmitButton>
-                            <Button
-                                variant="outline"
-                                onClick={(e) => {
-                                    // closeForm(e)
-                                    console.log(form.formState.errors);
-                                }}
-                            >
+                            <Button variant="outline" onClick={(e) => {}}>
                                 Cancel
                             </Button>
                         </div>

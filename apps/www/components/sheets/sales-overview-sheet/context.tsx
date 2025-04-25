@@ -1,5 +1,8 @@
 import { useState } from "react";
+import { getCachedDispatchers } from "@/actions/cache/get-cached-dispatchers";
+import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-users";
 import { getSalesDispatchDataAction } from "@/actions/get-sales-dispatch-data";
+import { getSalesItemsOverviewAction } from "@/actions/get-sales-items-overview-action";
 import { getSalesOverviewAction } from "@/actions/get-sales-overview";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -28,9 +31,9 @@ const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
 const { useContext: useDispatch, Provider: DispatchProvider } =
     createContextFactory(function () {
         const ctx = useSalesOverviewQuery();
-        const users = useAsyncMemo(async () => {
+        const drivers = useAsyncMemo(async () => {
             await timeout(80);
-            // return await getCachedProductionUsers();
+            return await getCachedDispatchers();
         }, []);
         const loader = async () => {
             await timeout(100);
@@ -51,7 +54,7 @@ const { useContext: useDispatch, Provider: DispatchProvider } =
             // setSelections,
             data,
             ctx,
-            users,
+            drivers,
         };
     });
 
@@ -61,3 +64,32 @@ export {
     DispatchProvider,
     useDispatch,
 };
+
+export const { useContext: useProduction, Provider: ProductionProvider } =
+    createContextFactory(function () {
+        const ctx = useSalesOverviewQuery();
+        const users = useAsyncMemo(async () => {
+            await timeout(80);
+            return await getCachedProductionUsers();
+        }, []);
+        const loader = async () => {
+            await timeout(100);
+            const res = await getSalesItemsOverviewAction(
+                ctx.params["sales-overview-id"],
+            );
+
+            return res;
+        };
+        const customerQuery = useCustomerOverviewQuery();
+        const data = useAsyncMemo(loader, [ctx.refreshTok]);
+        const [selections, setSelections] = useState({});
+
+        return {
+            selections,
+            setSelections,
+            data,
+            ctx,
+            users,
+        };
+    });
+// export { useProduction };

@@ -21,47 +21,18 @@ import {
 import { Card, CardHeader } from "@gnd/ui/card";
 import { Checkbox } from "@gnd/ui/checkbox";
 
+import { ProductionProvider, useProduction } from "./context";
 import { ItemProgressBar } from "./item-progress-bar";
 import { ProductionItemDetail } from "./production-item-detail";
 import { ProductionItemMenu } from "./production-item-menu";
 import { ProductionTabFooter } from "./production-tab-footer";
 
-const { useContext: useProduction, Provider } = createContextFactory(
-    function () {
-        const ctx = useSalesOverviewQuery();
-        const users = useAsyncMemo(async () => {
-            await timeout(80);
-            return await getCachedProductionUsers();
-        }, []);
-        const loader = async () => {
-            await timeout(100);
-            const res = await getSalesItemsOverviewAction(
-                ctx.params["sales-overview-id"],
-            );
-
-            return res;
-        };
-        const customerQuery = useCustomerOverviewQuery();
-        const data = useAsyncMemo(loader, [ctx.refreshTok]);
-        const [selections, setSelections] = useState({});
-
-        return {
-            selections,
-            setSelections,
-            data,
-            ctx,
-            users,
-        };
-    },
-);
-export { useProduction };
-
 export function ProductionTab({}) {
     return (
-        <Provider args={[]}>
+        <ProductionProvider args={[]}>
             <Content />
             <ProductionTabFooter />
-        </Provider>
+        </ProductionProvider>
     );
 }
 function Content() {
@@ -176,31 +147,19 @@ function ItemCard({ item }: ItemCardProps) {
                             </div>
 
                             <div className="flex items-center space-x-2">
-                                {/* <Badge
-                                variant={
-                                    completed === total ? "success" : "outline"
-                                }
-                            >
-                                {completed === total
-                                    ? "Completed"
-                                    : `${completed}/${total} Complete`}
-                            </Badge> */}
                                 <ProductionItemMenu />
                             </div>
                         </div>
-                        <div className="mt-4 flex items-center space-x-4">
-                            <div
-                                onClick={toggle}
-                                className="flex-1 cursor-pointer"
-                            >
-                                <ItemProgressBar item={item} />
+                        <div className="mt-4 flex  space-x-4">
+                            <ItemProgressBar item={item} />
+                            <div>
+                                <AccordionTrigger
+                                    onClick={toggle}
+                                    className="w-auto p-0 hover:no-underline"
+                                >
+                                    <span className="sr-only">Toggle</span>
+                                </AccordionTrigger>
                             </div>
-                            <AccordionTrigger
-                                onClick={toggle}
-                                className="p-0 hover:no-underline"
-                            >
-                                <span className="sr-only">Toggle</span>
-                            </AccordionTrigger>
                         </div>
                     </CardHeader>
                     <AccordionContent className="">

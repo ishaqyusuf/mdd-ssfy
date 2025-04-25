@@ -15,6 +15,7 @@ export async function createSalesDispatch(
         data: {
             deliveryMode: data.deliveryMode,
             status: data.status,
+            dueDate: data.deliveryDate,
             driver: !data.driverId
                 ? undefined
                 : {

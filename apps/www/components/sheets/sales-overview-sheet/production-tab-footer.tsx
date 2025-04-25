@@ -10,8 +10,8 @@ import { Label } from "@gnd/ui/label";
 import { SheetFooter } from "@gnd/ui/sheet";
 
 import { CustomSheetContentPortal } from "../custom-sheet-content";
+import { useProduction } from "./context";
 import { ProductionItemMenuActions } from "./production-item-menu";
-import { useProduction } from "./production-tab";
 
 export function ProductionTabFooter({}) {
     const { data, selections, setSelections } = useProduction();

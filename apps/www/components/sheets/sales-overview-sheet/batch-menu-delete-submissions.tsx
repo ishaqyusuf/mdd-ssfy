@@ -21,7 +21,7 @@ import { Calendar } from "@gnd/ui/calendar";
 import { Icons } from "@gnd/ui/icons";
 import { Label } from "@gnd/ui/label";
 
-import { useProduction } from "./production-tab";
+import { useProduction } from "./context";
 
 interface Props {
     itemIds?: string[];

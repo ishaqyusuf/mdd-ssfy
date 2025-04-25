@@ -2,6 +2,7 @@ import {
     SalesDispatchStatus,
     StepComponentMeta,
 } from "@/app/(clean-code)/(sales)/types";
+import { DeliveryOption } from "@/types/sales";
 import { paymentMethods } from "@/utils/constants";
 import { Qty } from "@/utils/sales-control-util";
 import { z } from "zod";
@@ -185,10 +186,12 @@ export const createSalesDispatchItemsSchema = z.object({
     ),
 });
 export const createSalesDispatchSchema = z.object({
-    deliveryMode: z.string(),
+    deliveryMode: z.string() as z.ZodType<DeliveryOption>,
     status: z.string() as z.ZodType<SalesDispatchStatus>,
     orderId: z.number(),
     driverId: z.number().optional(),
+    deliveryDate: z.date().optional(),
+    packingList: z.boolean().optional(),
 });
 export const createSubmissionSchema = z
     .object({
@@ -255,6 +258,7 @@ function qtySuperRefine(data, ctx) {
                 });
         }
     });
+
     if (totalQty == 0)
         ctx.addIssue({
             path: [],

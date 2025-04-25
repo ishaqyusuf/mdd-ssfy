@@ -18,7 +18,7 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { Label } from "@gnd/ui/label";
 
-import { useProduction } from "./production-tab";
+import { useProduction } from "./context";
 
 interface Props {
     itemIds?: string[];

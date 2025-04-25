@@ -5,7 +5,7 @@ import { ItemCardProps } from "./production-tab";
 export function ItemProgressBar({ item }: ItemCardProps) {
     const stats = item?.analytics?.stats;
     return (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-3">
             <ProgressItem
                 label="Assigned"
                 completed={stats?.prodAssigned?.qty}
