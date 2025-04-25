@@ -48,16 +48,16 @@ function ComponentLineItem({ componentIndex }) {
         const { lh, rh, total } = component?.status?.qty;
         let availableQty = { lh, rh, total };
 
-        ctx.list.map((a) =>
-            a.components
-                ?.filter((c) => c.itemUid == component?.itemControlUid)
-                ?.map((c) => {
-                    availableQty.total -= c.qty.total;
-                    availableQty.rh -= c.qty.rh;
-                    availableQty.lh -= c.qty.lh;
-                    return c.qty;
-                }),
-        );
+        // ctx.list.map((a) =>
+        //     a.components
+        //         ?.filter((c) => c.itemUid == component?.itemControlUid)
+        //         ?.map((c) => {
+        //             availableQty.total -= c.qty.total;
+        //             availableQty.rh -= c.qty.rh;
+        //             availableQty.lh -= c.qty.lh;
+        //             return c.qty;
+        //         }),
+        // );
         return {
             availableQty,
             componentQty: { lh, rh, total },
