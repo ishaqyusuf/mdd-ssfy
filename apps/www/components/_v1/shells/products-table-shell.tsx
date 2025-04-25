@@ -1,36 +1,35 @@
 "use client";
 
-import { TableShellProps } from "@/types/data-table";
-import { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
+    getStaticCategories,
+    getStaticProducts,
+} from "@/app/(v1)/_actions/sales-products/statics";
+import { useAppSelector } from "@/store";
+import { loadStaticList } from "@/store/slicers";
+import { TableShellProps } from "@/types/data-table";
+import { IProductVariant } from "@/types/product";
+import { ColumnDef } from "@tanstack/react-table";
+
+import { SalesCustomerFilter } from "../../../app/(v1)/(loggedIn)/sales/orders/components/sales-customer-filter";
+import {
+    _FilterColumn,
     Cell,
     CheckColumn,
     ColumnHeader,
     DateCellContent,
     PrimaryCellContent,
     SecondaryCellContent,
-    _FilterColumn,
 } from "../columns/base-columns";
-
 import { DataTable2 } from "../data-table/data-table-2";
-import { SalesBatchAction } from "../list-selection-action/sales-selection-action";
-import { SalesCustomerFilter } from "../../../app/(v1)/(loggedIn)/sales/orders/components/sales-customer-filter";
-import Money from "../money";
-import { IProductVariant } from "@/types/product";
+import { DynamicFilter } from "../data-table/data-table-dynamic-filter";
 import {
     DeleteRowAction,
     EditRowAction,
     RowActionCell,
 } from "../data-table/data-table-row-actions";
-import { deleteLegacyProductAction } from "@/app/(v1)/_actions/sales-products/crud";
-import { useAppSelector } from "@/store";
-import { loadStaticList } from "@/store/slicers";
-import {
-    getStaticCategories,
-    getStaticProducts,
-} from "@/app/(v1)/_actions/sales-products/statics";
-import { DynamicFilter } from "../data-table/data-table-dynamic-filter";
+import { SalesBatchAction } from "../list-selection-action/sales-selection-action";
+import Money from "../money";
 
 export default function ProductsTableShell({
     data,
@@ -106,15 +105,15 @@ export default function ProductsTableShell({
                 cell: ({ row }) => (
                     <RowActionCell>
                         {/* <EditRowAction /> */}
-                        <DeleteRowAction
+                        {/* <DeleteRowAction
                             row={row.original}
                             action={deleteLegacyProductAction}
-                        />
+                        /> */}
                     </RowActionCell>
                 ),
             },
         ],
-        [data, isPending]
+        [data, isPending],
     );
     return (
         <DataTable2
