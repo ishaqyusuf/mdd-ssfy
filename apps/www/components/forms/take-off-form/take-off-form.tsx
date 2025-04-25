@@ -45,7 +45,7 @@ const useTakeOffFormCtx = (salesId, refreshToken) => {
     // }, [listArray]);
     useEffect(() => {
         const timer = setTimeout(() => {
-            const last = listArray.fields.at(-1);
+            const last: any = listArray.fields.at(-1);
 
             const isLastEmpty =
                 last &&
