@@ -38,6 +38,9 @@ export function useSalesControlAction({ onFinish }) {
                     status: "success" | "error";
                 };
             };
+            dispatchItems: {
+                [itemUid in string]: {};
+            };
         };
     }>({
         defaultValues: {

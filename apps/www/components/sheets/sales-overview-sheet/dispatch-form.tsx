@@ -41,7 +41,6 @@ import { Textarea } from "@gnd/ui/textarea";
 
 import { DispatchFormFooter } from "./dispatch-form-footer";
 
-// Mock data for available items
 const availableItems: any[] = [
     { id: "ITEM-001", name: "Product A", availableQty: 100, dispatchQty: 0 },
     { id: "ITEM-002", name: "Product B", availableQty: 75, dispatchQty: 0 },

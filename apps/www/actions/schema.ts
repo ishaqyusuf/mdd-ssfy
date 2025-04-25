@@ -155,6 +155,11 @@ export const createPaymentSchema = z
         } else {
         }
     });
+export const createSalesDispatchSchema = z.object({
+    deliveryMode: z.string(),
+    status: z.string(),
+    orderId: z.number(),
+});
 export const createSubmissionSchema = z
     .object({
         pending: z.object({
