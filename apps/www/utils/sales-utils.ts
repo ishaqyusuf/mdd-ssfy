@@ -69,13 +69,9 @@ export function salesAddressLines(
         address?.name || customer?.name || customer?.businessName,
         address?.phoneNo || customer?.phoneNo || customer?.phoneNo2,
         address?.email || customer?.email,
-        [
-            address?.address1 || customer?.address,
-            address?.city,
-            address?.state,
-            meta?.zip_code,
-            address?.country,
-        ]
+        address?.address1 || customer?.address,
+        address?.address2,
+        [address?.city, address?.state, meta?.zip_code, address?.country]
             ?.filter(Boolean)
             ?.join(", "),
     ].filter(Boolean);

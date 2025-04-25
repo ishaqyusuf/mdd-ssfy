@@ -158,6 +158,12 @@ export const createPaymentSchema = z
         } else {
         }
     });
+export const updateDispatchStatusSchema = z.object({
+    orderId: z.number(),
+    deliveryId: z.number(),
+    status: z.string() as z.ZodType<SalesDispatchStatus>,
+    oldStatus: z.string() as z.ZodType<SalesDispatchStatus>,
+});
 export const createSalesDispatchItemsSchema = z.object({
     deliveryMode: z.string(),
     orderId: z.number(),

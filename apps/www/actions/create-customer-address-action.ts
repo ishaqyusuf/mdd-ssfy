@@ -24,6 +24,10 @@ export const createCustomerAddressAction = actionClient
                 phoneNo2: input.phoneNo2,
                 email: input.email,
                 address1: input.address1,
+                city: input.city,
+                state: input.state,
+                country: input.country,
+                address2: input.address2,
                 // businessName: input.businessName,
                 meta: {
                     // netTerm: input.netTerm,
@@ -36,7 +40,7 @@ export const createCustomerAddressAction = actionClient
                 },
             } satisfies Prisma.AddressBooksUpdateInput;
             if (addressId) {
-                const address = await prisma.addressBooks.update({
+                const address = await tx.addressBooks.update({
                     where: {
                         id: addressId,
                     },
@@ -45,7 +49,7 @@ export const createCustomerAddressAction = actionClient
                     },
                 });
             } else {
-                const address = await prisma.addressBooks.create({
+                const address = await tx.addressBooks.create({
                     data: {
                         ...customerData,
                     },

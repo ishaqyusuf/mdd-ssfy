@@ -56,7 +56,6 @@ export function CustomerDataSection() {
                     "customer.id",
                 )
             ) {
-                console.log("CHANGED>>>>");
                 metaData.dataRefreshToken = generateRandomString();
             }
             metaData.profileChangedToken = data.address
