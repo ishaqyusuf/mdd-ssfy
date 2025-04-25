@@ -92,11 +92,11 @@ export function TakeOffSection({ index }: Props) {
 }
 function TakeOffSectionComponent({ index }) {
     const takeOffCtx = useTakeOffSection();
-    const takeOffComponent = takeOffCtx?.fields?.[index];
+    const takeOffComponent = takeOffCtx?.fields?.[index] as any;
     const component = takeOffCtx?.ctx?.components?.find(
         (a) => a.itemControlUid == takeOffComponent?.itemUid,
     );
-    const noHandle = !takeOffComponent?.qty?.lh && !takeOffComponent?.qty?.rh;
+    // const noHandle = !takeOffComponent?.qty?.lh && !takeOffComponent?.qty?.rh;
 
     return (
         <div className="p-1" key={takeOffComponent?._id}>
