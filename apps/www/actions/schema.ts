@@ -160,17 +160,21 @@ export const createPaymentSchema = z
     });
 export const createSalesDispatchItemsSchema = z.object({
     deliveryMode: z.string(),
-
     orderId: z.number(),
     deliveryId: z.number(),
+    status: z.string().optional() as z.ZodType<SalesDispatchStatus>,
     items: z.array(
         z.object({
             orderItemId: z.number(),
-            lhQty: z.number().optional(),
-            rhQty: z.number().optional(),
-            qty: z.number(),
+            qty: z.object({
+                lh: z.number().nullable().optional(),
+                rh: z.number().nullable().optional(),
+                qty: z.number().nullable().optional(),
+            }),
             submissionId: z.number(),
             status: z.string().optional() as z.ZodType<SalesDispatchStatus>,
+            itemUid: z.string(),
+            totalItemQty: z.number(),
         }),
     ),
 });

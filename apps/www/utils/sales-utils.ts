@@ -2,6 +2,7 @@ import {
     AddressBookMeta,
     CustomerMeta,
     QtyControlType,
+    SalesDispatchStatus,
     SalesSettingsMeta,
     SalesStatStatus,
 } from "@/app/(clean-code)/(sales)/types";
@@ -108,4 +109,19 @@ export function squareSalesNote(orderIds: string[]) {
     return `sales payment for order${
         orderIds.length > 1 ? "s" : ""
     } ${orderIds.join(", ")}`;
+}
+
+export function getDispatchControlType(
+    status: SalesDispatchStatus,
+): QtyControlType {
+    switch (status) {
+        case "cancelled":
+            return "dispatchCancelled";
+        case "completed":
+            return "dispatchCompleted";
+        case "in progress":
+            return "dispatchInProgress";
+        default:
+            return "dispatchAssigned";
+    }
 }

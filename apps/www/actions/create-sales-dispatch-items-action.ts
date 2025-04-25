@@ -2,10 +2,13 @@
 
 import { userId } from "@/app/(v1)/_actions/utils";
 import { prisma } from "@/db";
+import { getDispatchControlType } from "@/utils/sales-utils";
 import z from "zod";
 
 import { actionClient } from "./safe-action";
 import { createSalesDispatchItemsSchema } from "./schema";
+import { updateSalesItemStats } from "./update-sales-item-stat";
+import { updateSalesStatAction } from "./update-sales-stat";
 
 export async function createSalesDispatchItems(
     data: z.infer<typeof createSalesDispatchItemsSchema>,
@@ -15,10 +18,10 @@ export async function createSalesDispatchItems(
         data: data.items.map((a) => ({
             orderId: data.orderId,
             orderItemId: a.orderItemId,
-            lhQty: a.lhQty,
-            rhQty: a.rhQty,
+            lhQty: a.qty.lh,
+            rhQty: a.qty.rh,
             orderProductionSubmissionId: a.submissionId,
-            qty: a.qty,
+            qty: a.qty.qty,
             orderDeliveryId: data.deliveryId,
             status: a.status,
         })),
@@ -34,6 +37,23 @@ export const createSalesDispatchItemsAction = actionClient
     .action(async ({ parsedInput: input }) => {
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
             const dispatch = await createSalesDispatchItems(input, tx);
-            // const
+            await Promise.all(
+                input.items.map(async (item) => {
+                    await updateSalesItemStats(
+                        {
+                            uid: item.itemUid,
+                            salesId: input.orderId,
+                            type: getDispatchControlType(input.status),
+                            itemTotal: item.totalItemQty,
+                            qty: item.qty,
+                        },
+                        tx,
+                    );
+                }),
+            );
+            await updateSalesStatAction({
+                salesId: input.orderId,
+                types: [getDispatchControlType(input.status)],
+            });
         });
     });
