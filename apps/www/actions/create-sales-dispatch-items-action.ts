@@ -20,7 +20,7 @@ export async function createSalesDispatchItems(
             orderProductionSubmissionId: a.submissionId,
             qty: a.qty,
             orderDeliveryId: data.deliveryId,
-            status: data.status,
+            status: a.status,
         })),
     });
     return dispatch;
@@ -34,5 +34,6 @@ export const createSalesDispatchItemsAction = actionClient
     .action(async ({ parsedInput: input }) => {
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
             const dispatch = await createSalesDispatchItems(input, tx);
+            // const
         });
     });

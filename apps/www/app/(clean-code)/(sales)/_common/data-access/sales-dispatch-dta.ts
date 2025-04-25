@@ -269,8 +269,6 @@ export async function createSalesDispatchDta(data: SalesDispatchFormData) {
 
                 updateHandleQty(subQty, qtyRem, submission.id);
             }
-            // return;
-            console.log(createManyData);
 
             if (createManyData.length) {
                 const totalQty = sum(createManyData.map((s) => s.qty));

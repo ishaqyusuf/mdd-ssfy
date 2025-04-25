@@ -1,4 +1,7 @@
-import { StepComponentMeta } from "@/app/(clean-code)/(sales)/types";
+import {
+    SalesDispatchStatus,
+    StepComponentMeta,
+} from "@/app/(clean-code)/(sales)/types";
 import { paymentMethods } from "@/utils/constants";
 import { Qty } from "@/utils/sales-control-util";
 import { z } from "zod";
@@ -157,7 +160,7 @@ export const createPaymentSchema = z
     });
 export const createSalesDispatchItemsSchema = z.object({
     deliveryMode: z.string(),
-    status: z.string(),
+
     orderId: z.number(),
     deliveryId: z.number(),
     items: z.array(
@@ -167,13 +170,13 @@ export const createSalesDispatchItemsSchema = z.object({
             rhQty: z.number().optional(),
             qty: z.number(),
             submissionId: z.number(),
-            status: z.string().optional(),
+            status: z.string().optional() as z.ZodType<SalesDispatchStatus>,
         }),
     ),
 });
 export const createSalesDispatchSchema = z.object({
     deliveryMode: z.string(),
-    status: z.string(),
+    status: z.string() as z.ZodType<SalesDispatchStatus>,
     orderId: z.number(),
     driverId: z.number().optional(),
 });
