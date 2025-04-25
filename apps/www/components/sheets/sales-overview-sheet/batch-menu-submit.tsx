@@ -11,6 +11,7 @@ import {
 } from "@/actions/submit-sales-assignment";
 import { Menu } from "@/components/(clean-code)/menu";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
+import { useSalesControlAction } from "@/hooks/use-sales-control-action";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { generateRandomString, sum } from "@/lib/utils";
 import { CheckCircle, TimerOff, UserPlus } from "lucide-react";
@@ -83,146 +84,11 @@ export function BatchMenuSubmit({ itemIds, setOpened }: Props) {
             };
         }, [prod.data, itemIds]);
     const loader = useLoadingToast();
-    const createSubmission = useAction(submitSalesAssignmentAction, {
-        onSuccess(args) {
-            const auid = `${args.input.assignmentId}_${args.input?.itemUid}`;
-            console.log({ auid });
-            form.setValue(
-                `actions.submissionActions.${auid}.status`,
-                "success",
-            );
-
-            loader.display({
-                title: "Creating Submission",
-            });
-            setTimeout(() => {
-                form.setValue("nextTriggerUID", generateRandomString());
-            }, 150);
-        },
-        onError(e) {
-            console.log(e);
-        },
-    });
-    const createAssignment = useAction(createSalesAssignmentAction, {
-        onSuccess(args) {
-            form.setValue(
-                `actions.assignmentActions.${args.input?.itemUid}.assignmentId`,
-                args.data?.assignmentId,
-            );
-            form.setValue(
-                `actions.assignmentActions.${args.input?.itemUid}.status`,
-                "success",
-            );
-            form.setValue(
-                `actions.submissionActions.${args.data?.assignmentId}_${args.input?.itemUid}`,
-                {
-                    status: null,
-                    meta: {
-                        assignmentId: args.data?.assignmentId,
-                        qty: args.input.qty,
-                        pending: args.input.pending,
-                    },
-                },
-            );
-            loader.display({
-                title: "Creating Assignment",
-                // description: `Created`,
-            });
-            setTimeout(() => {
-                form.setValue("nextTriggerUID", generateRandomString());
-            }, 150);
-        },
-        onError(e) {
-            console.log(e);
-        },
-    });
-
-    const form = useForm<{
-        actionIds: string[];
-        currentActionId: string;
-        nextTriggerUID?: string;
-        error?: string;
-        actions: {
-            assignmentActions: {
-                [itemUid in string]: {
-                    assignmentId: number;
-                    status?: string;
-                    uid: string;
-                    meta?: any;
-                };
-            };
-            submissionMeta: {
-                [itemUid in string]: SubmitSchema;
-            };
-            submissionActions: {
-                [itemUid in string]: {
-                    meta: SubmitSchema;
-                    status: "success" | "error";
-                };
-            };
-        };
-    }>({
-        defaultValues: {
-            actions: null,
-        },
-    });
-    const queryCtx = useSalesOverviewQuery();
-    const [error, currentActionId, actions, nextTriggerUID] = form.watch([
-        "error",
-        "currentActionId",
-        "actions",
-        "nextTriggerUID",
-    ]);
-    useEffect(() => {
-        if (!nextTriggerUID) {
-            if (actions) {
-                loader.success("Submission completed.");
-                queryCtx._refreshToken();
-                setOpened(false);
-            }
-            return;
-        }
-        if (error) {
-            loader.error(error);
-            queryCtx._refreshToken();
+    const { form, ...actionControl } = useSalesControlAction({
+        onFinish() {
             setOpened(false);
-            return;
-        }
-        const entry = Object.entries(actions.assignmentActions).find(
-            ([uid, data]) => !data.assignmentId,
-        );
-        if (entry) {
-            const [uid, itemData] = entry;
-            createAssignment.execute({
-                ...itemData.meta,
-            });
-            return;
-        }
-        const submissionEntry = Object.entries(actions.submissionActions).find(
-            ([uid, data]) => !data.status,
-        );
-        if (!submissionEntry) {
-            form.setValue("nextTriggerUID", null);
-            return;
-        }
-
-        const [uid, itemData] = submissionEntry;
-
-        const [assignmentId, itemUid] = uid?.split("_");
-        const submissionMeta = actions.submissionMeta?.[itemUid];
-
-        if (!submissionMeta) {
-            form.setValue("error", "Unable to create submission");
-            setTimeout(() => {
-                form.setValue("nextTriggerUID", generateRandomString());
-            }, 100);
-        } else {
-            createSubmission.execute({
-                ...itemData.meta,
-                ...submissionMeta,
-            });
-        }
-    }, [nextTriggerUID]);
+        },
+    });
     type SubmitProps = {
         assignedToId?;
     };
@@ -331,9 +197,7 @@ export function BatchMenuSubmit({ itemIds, setOpened }: Props) {
                                         <div className="">
                                             <Button
                                                 disabled={
-                                                    !!currentActionId ||
-                                                    createAssignment.isExecuting ||
-                                                    !!actions
+                                                    actionControl.executing
                                                 }
                                                 onClick={() =>
                                                     submit({
