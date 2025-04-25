@@ -11,10 +11,17 @@ export async function createSalesDispatch(
     data: z.infer<typeof createSalesDispatchSchema>,
     tx = prisma,
 ) {
-    const dispatch = await prisma.orderDelivery.create({
+    const dispatch = await tx.orderDelivery.create({
         data: {
             deliveryMode: data.deliveryMode,
             status: data.status,
+            driver: !data.driverId
+                ? undefined
+                : {
+                      connect: {
+                          id: data.driverId,
+                      },
+                  },
             createdBy: {
                 connect: {
                     id: await userId(),
@@ -27,6 +34,7 @@ export async function createSalesDispatch(
             },
         },
     });
+    return dispatch;
 }
 
 export const createSalesDispatchAction = actionClient
@@ -35,5 +43,7 @@ export const createSalesDispatchAction = actionClient
         name: "create-sales-dispatch",
     })
     .action(async ({ parsedInput: input }) => {
-        const resp = await prisma.$transaction(async (tx: typeof prisma) => {});
+        const resp = await prisma.$transaction(async (tx: typeof prisma) => {
+            const dispatch = await createSalesDispatch(input, tx);
+        });
     });

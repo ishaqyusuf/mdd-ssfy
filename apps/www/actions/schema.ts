@@ -155,10 +155,27 @@ export const createPaymentSchema = z
         } else {
         }
     });
+export const createSalesDispatchItemsSchema = z.object({
+    deliveryMode: z.string(),
+    status: z.string(),
+    orderId: z.number(),
+    deliveryId: z.number(),
+    items: z.array(
+        z.object({
+            orderItemId: z.number(),
+            lhQty: z.number().optional(),
+            rhQty: z.number().optional(),
+            qty: z.number(),
+            submissionId: z.number(),
+            status: z.string().optional(),
+        }),
+    ),
+});
 export const createSalesDispatchSchema = z.object({
     deliveryMode: z.string(),
     status: z.string(),
     orderId: z.number(),
+    driverId: z.number().optional(),
 });
 export const createSubmissionSchema = z
     .object({

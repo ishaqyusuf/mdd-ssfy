@@ -135,7 +135,7 @@ export function BatchMenuSubmit({ itemIds, setOpened }: Props) {
                 };
             });
         });
-        form.setValue("actions", data);
+        form.setValue("actions", data as any);
         loader.display({
             title: "Submitting Assignments...",
             duration: Number.POSITIVE_INFINITY,
