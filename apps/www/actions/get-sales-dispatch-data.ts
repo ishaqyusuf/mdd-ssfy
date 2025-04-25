@@ -37,6 +37,8 @@ export async function getSalesDispatchDataAction(orderId) {
         return {
             uid: item.controlUid,
             title: item.title,
+            itemId: item.itemId,
+            totalQty: item.qty.qty,
             dispatchStat,
             subtitle: item.subtitle,
             availableQty: qtyMatrixDifference(

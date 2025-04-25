@@ -170,9 +170,14 @@ export const createSalesDispatchItemsSchema = z.object({
     orderId: z.number(),
     deliveryId: z.number(),
     status: z.string().optional() as z.ZodType<SalesDispatchStatus>,
-    items: z.array(
+    items: z.record(
         z.object({
             orderItemId: z.number(),
+            available: z.object({
+                lh: z.number().nullable().optional(),
+                rh: z.number().nullable().optional(),
+                qty: z.number().nullable().optional(),
+            }),
             qty: z.object({
                 lh: z.number().nullable().optional(),
                 rh: z.number().nullable().optional(),
