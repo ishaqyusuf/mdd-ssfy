@@ -876,14 +876,12 @@ function address({ type, customer, billingAddress, shippingAddress }) {
             billingAddress as any,
             customer,
         ),
-        !estimate
-            ? addressLine(
-                  "Ship To",
-                  customer?.businessName,
-                  shippingAddress as any,
-                  customer,
-              )
-            : null,
+        addressLine(
+            estimate ? "Shipping Address" : "Ship To",
+            customer?.businessName,
+            shippingAddress as any,
+            customer,
+        ),
     ].filter(Boolean);
 }
 function addressLine(
