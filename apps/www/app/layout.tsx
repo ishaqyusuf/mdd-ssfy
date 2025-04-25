@@ -6,7 +6,6 @@ import AppProvider from "@/components/_v1/app-provider";
 import { TailwindIndicator } from "@/components/_v1/tailwind-indicator";
 import Upgrader from "@/components/_v1/upgrader";
 import UserAccountUpdateRequiredModal from "@/components/modals/user-account-update-required-modal";
-import { Toaster } from "@/components/ui/toaster";
 import { env } from "@/env.mjs";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import PageAnalytics from "@/lib/analytics/page-analytics";
@@ -16,7 +15,7 @@ import { ReactQueryProvider } from "@/providers/react-query";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { Provider as Analytics } from "@gnd/events/client";
-import { Toaster as MiddayToast } from "@gnd/ui/toaster";
+import { Toaster as MiddayToast, Toaster } from "@gnd/ui/toaster";
 
 import { QueryTabProvider } from "./(clean-code)/_common/query-tab/provider";
 

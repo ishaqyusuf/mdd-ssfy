@@ -1,12 +1,12 @@
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@gnd/ui/badge";
 import {
     Card,
     CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+} from "@gnd/ui/card";
+import { Progress } from "@gnd/ui/progress";
 
 export default function PendingCommissions() {
     const pendingCommissions = [
@@ -139,4 +139,3 @@ export default function PendingCommissions() {
         </Card>
     );
 }
-

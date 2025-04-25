@@ -79,6 +79,7 @@
     "./scroll-area": "./src/components/scroll-area.tsx",
     "./select": "./src/components/select.tsx",
     "./sheet": "./src/components/sheet.tsx",
+    "./sidebar": "./src/components/sidebar.tsx",
     "./sortable": "./src/components/sortable.tsx",
     "./badge": "./src/components/badge.tsx",
     "./separator": "./src/components/separator.tsx",

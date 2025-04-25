@@ -1,12 +1,14 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Eye, FileText } from "lucide-react";
+
+import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
 import {
     Card,
     CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card";
+} from "@gnd/ui/card";
 import {
     Table,
     TableBody,
@@ -14,8 +16,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table";
-import { Eye, FileText } from "lucide-react";
+} from "@gnd/ui/table";
 
 export default function RecentQuotes() {
     const recentQuotes = [
@@ -144,4 +145,3 @@ export default function RecentQuotes() {
         </Card>
     );
 }
-

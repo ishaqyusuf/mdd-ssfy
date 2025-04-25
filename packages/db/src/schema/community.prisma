@@ -1,0 +1,253 @@
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Projects {
+    id              Int               @unique @default(autoincrement())
+    archived        Boolean?
+    title           String?           @db.VarChar(255)
+    builderId       Int?
+    address         String?           @db.VarChar(255)
+    slug            String?           @unique @db.VarChar(255)
+    meta            Json?             @db.Json
+    refNo           String?           @db.VarChar(255)
+    deletedAt       DateTime?         @db.Timestamp(0)
+    createdAt       DateTime?         @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?         @updatedAt
+    homes           Homes[]
+    builder         Builders?         @relation(fields: [builderId], references: [id])
+    jobs            Jobs[]
+    communityModels CommunityModels[]
+    invoices        Invoices[]
+    homeTasks       HomeTasks[]
+
+    @@index([builderId])
+}
+
+model Homes {
+    id                  Int              @unique @default(autoincrement())
+    archived            Boolean?
+    projectId           Int
+    builderId           Int?
+    homeTemplateId      Int?
+    communityTemplateId Int?
+    homeKey             String?          @db.VarChar(255)
+    slug                String?          @unique @db.VarChar(255)
+    modelName           String?          @db.VarChar(255)
+    modelNo             String?          @db.VarChar(255)
+    lotBlock            String?          @db.VarChar(255)
+    lot                 String?          @db.VarChar(255)
+    block               String?          @db.VarChar(255)
+    status              String?          @db.VarChar(255)
+    address             String?          @db.VarChar(255)
+    meta                Json?            @db.Json
+    sentToProdAt        DateTime?        @db.Timestamp(0)
+    installedAt         DateTime?        @db.Timestamp(0)
+    deletedAt           DateTime?        @db.Timestamp(0)
+    createdAt           DateTime?        @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime?        @updatedAt
+    search              String?          @db.VarChar(255)
+    punchoutAt          DateTime?        @db.Timestamp(0)
+    installCost         Float?
+    punchoutCost        Float?
+    project             Projects         @relation(fields: [projectId], references: [id])
+    homeTemplate        HomeTemplates?   @relation(fields: [homeTemplateId], references: [id])
+    communityTemplate   CommunityModels? @relation(fields: [communityTemplateId], references: [id])
+    tasks               HomeTasks[]
+    jobs                Jobs[]
+    invoices            Invoices[]
+
+    @@index([createdAt, deletedAt, modelName, search, projectId])
+    @@index([projectId])
+    @@index([homeTemplateId])
+    @@index([communityTemplateId])
+}
+
+model HomeTasks {
+    id                   Int       @unique @default(autoincrement())
+    archived             Boolean?
+    homeId               Int?
+    type                 String?   @db.VarChar(255)
+    taskName             String?   @db.VarChar(255)
+    taskUid              String?   @db.VarChar(255)
+    status               String?   @db.VarChar(255)
+    meta                 Json?     @db.Json
+    producerName         String?   @db.VarChar(255)
+    search               String?   @db.VarChar(255)
+    productionStatus     String?   @db.VarChar(255)
+    checkNo              String?   @db.VarChar(255)
+    projectId            Int?
+    assignedToId         Int?
+    billable             Boolean?
+    produceable          Boolean?
+    installable          Boolean?
+    punchout             Boolean?
+    deco                 Boolean?
+    addon                Boolean?
+    taxCost              Float?
+    amountDue            Float?
+    amountPaid           Float?
+    completedAt          DateTime?
+    jobId                Int?
+    checkDate            DateTime? @db.Timestamp(0)
+    statusDate           DateTime? @db.Timestamp(0)
+    sentToProductionAt   DateTime? @db.Timestamp(0)
+    producedAt           DateTime? @db.Timestamp(0)
+    prodStartedAt        DateTime? @db.Timestamp(0)
+    productionStatusDate DateTime? @db.Timestamp(0)
+    productionDueDate    DateTime? @db.Timestamp(0)
+    deletedAt            DateTime? @db.Timestamp(0)
+    createdAt            DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt            DateTime? @updatedAt
+    home                 Homes?    @relation(fields: [homeId], references: [id])
+    project              Projects? @relation(fields: [projectId], references: [id])
+    job                  Jobs?     @relation(fields: [jobId], references: [id])
+    assignedTo           Users?    @relation(fields: [assignedToId], references: [id])
+
+    @@index([createdAt, deletedAt, produceable, billable, addon, deco, punchout, installable, taskName, projectId, jobId])
+    @@index([homeId])
+    @@index([projectId])
+    @@index([jobId])
+    @@index([assignedToId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model HomeTemplates {
+    id        Int          @unique @default(autoincrement())
+    builderId Int?
+    slug      String       @unique @db.VarChar(255)
+    modelNo   String?      @db.VarChar(255)
+    modelName String?      @db.VarChar(255)
+    meta      Json?        @db.Json
+    deletedAt DateTime?    @db.Timestamp(0)
+    createdAt DateTime?    @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?    @updatedAt
+    builder   Builders?    @relation(fields: [builderId], references: [id])
+    homes     Homes[]
+    costs     CostCharts[]
+
+    @@index([builderId])
+}
+
+model Invoices {
+    id        Int       @unique @default(autoincrement())
+    projectId Int?
+    homeId    Int?
+    refNo     String?   @db.VarChar(255)
+    lot       String?   @db.VarChar(255)
+    block     String?   @db.VarChar(255)
+    taskId    Int?
+    checkNo   String?   @db.VarChar(255)
+    amount    Float?
+    taskName  String?   @db.VarChar(255)
+    meta      Json?     @db.Json
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    taskUid   String?   @db.VarChar(255)
+    checkDate DateTime? @db.Timestamp(0)
+    project   Projects? @relation(fields: [projectId], references: [id])
+    home      Homes?    @relation(fields: [homeId], references: [id])
+
+    @@index([projectId])
+    @@index([homeId])
+}
+
+model CommunityModelPivot {
+    id              Int                  @unique @default(autoincrement())
+    model           String               @db.VarChar(255)
+    projectId       Int
+    meta            Json?                @db.Json
+    createdAt       DateTime?            @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?            @updatedAt
+    deletedAt       DateTime?            @db.Timestamp(0)
+    communityModels CommunityModels[]
+    modelCosts      CommunityModelCost[]
+}
+
+model CommunityModelCost {
+    id               Int                  @unique @default(autoincrement())
+    communityModelId Int?
+    pivotId          Int?
+    current          Boolean?
+    title            String               @db.VarChar(255)
+    type             String               @db.VarChar(255)
+    model            String               @db.VarChar(255)
+    meta             Json?                @db.Json
+    startDate        DateTime             @default(now()) @db.Timestamp(0)
+    endDate          DateTime?            @db.Timestamp(0)
+    createdAt        DateTime?            @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?            @updatedAt
+    deletedAt        DateTime?            @db.Timestamp(0)
+    community        CommunityModels?     @relation(fields: [communityModelId], references: [id])
+    pivot            CommunityModelPivot? @relation(fields: [pivotId], references: [id])
+
+    @@index([communityModelId])
+    @@index([pivotId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Builders {
+    id            Int             @unique @default(autoincrement())
+    name          String?         @db.VarChar(255)
+    slug          String?         @db.VarChar(255)
+    meta          Json?           @db.Json
+    deletedAt     DateTime?       @db.Timestamp(0)
+    createdAt     DateTime?       @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?       @updatedAt
+    projects      Projects[]
+    homeTemplates HomeTemplates[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model CostCharts {
+    id        Int            @unique @default(autoincrement())
+    parentId  Int?
+    current   Boolean?
+    title     String         @db.VarChar(255)
+    type      String         @db.VarChar(255)
+    model     String         @db.VarChar(255)
+    meta      Json?          @db.Json
+    startDate DateTime       @default(now()) @db.Timestamp(0)
+    endDate   DateTime?      @db.Timestamp(0)
+    deletedAt DateTime?      @db.Timestamp(0)
+    createdAt DateTime?      @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?      @updatedAt
+    template  HomeTemplates? @relation(fields: [parentId], references: [id])
+
+    @@index([parentId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model CommunityModels {
+    id        Int       @unique @default(autoincrement())
+    projectId Int
+    pivotId   Int?
+    modelName String    @db.VarChar(255)
+    meta      Json?     @db.Json
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    slug    String                     @unique @db.VarChar(255)
+    project Projects                   @relation(fields: [projectId], references: [id])
+    homes   Homes[]
+    history CommunityTemplateHistory[]
+    costs   CommunityModelCost[]
+    pivot   CommunityModelPivot?       @relation(fields: [pivotId], references: [id])
+
+    @@index([pivotId])
+    @@index([projectId])
+}
+
+model CommunityTemplateHistory {
+    id                Int              @unique @default(autoincrement())
+    userId            Int
+    meta              Json?            @db.Json
+    createdAt         DateTime?        @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime?        @updatedAt
+    deletedAt         DateTime?        @db.Timestamp(0)
+    model             CommunityModels? @relation(fields: [communityModelsId], references: [id])
+    communityModelsId Int?
+    Users             Users            @relation(fields: [userId], references: [id])
+
+    @@index([userId])
+    @@index([communityModelsId])
+}

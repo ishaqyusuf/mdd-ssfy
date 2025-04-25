@@ -19,6 +19,8 @@ model Todos {
     deletedAt  DateTime? @db.Timestamp(0)
     createdAt  DateTime? @default(now()) @db.Timestamp(0)
     updatedAt  DateTime? @updatedAt
+
+    @@index([gitTasksId])
 }
 
 model GitTaskStatus {

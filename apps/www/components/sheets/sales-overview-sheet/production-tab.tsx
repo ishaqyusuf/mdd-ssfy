@@ -3,12 +3,6 @@ import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-
 import { getSalesItemsOverviewAction } from "@/actions/get-sales-items-overview-action";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { EmptyState } from "@/components/empty-state";
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/components/ui/accordion";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -18,6 +12,12 @@ import { createContextFactory } from "@/utils/context-factory";
 import { skeletonListData } from "@/utils/format";
 import { useAsyncMemo } from "use-async-memo";
 
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@gnd/ui/accordion";
 import { Card, CardHeader } from "@gnd/ui/card";
 import { Checkbox } from "@gnd/ui/checkbox";
 

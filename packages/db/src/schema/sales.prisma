@@ -83,7 +83,7 @@ model SalesOrders {
     salesRep          Users?                           @relation(name: "salesRep", fields: [salesRepId], references: [id])
     shippingAddress   AddressBooks?                    @relation(name: "shippingAddress", fields: [shippingAddressId], references: [id])
     stat              SalesStat[]
-    supplies          SalesItemSupply[]
+    // supplies          SalesItemSupply[]
     extraCosts        SalesExtraCosts[]
     squarePayOrders   SquarePaymentOrders[]
 
@@ -147,7 +147,7 @@ model SalesOrderItems {
     formSteps          DykeStepForm[]
     housePackageTool   HousePackageTools?
     salesDoors         DykeSalesDoors[]
-    supplies           SalesItemSupply[]
+    // supplies           SalesItemSupply[]
     assignments        OrderItemProductionAssignments[]
     productions        OrderProductionSubmissions[]
     itemDeliveries     OrderItemDelivery[]

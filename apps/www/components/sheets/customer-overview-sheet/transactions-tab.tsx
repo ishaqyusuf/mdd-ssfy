@@ -2,13 +2,13 @@ import { getSalesPaymentsAction } from "@/actions/get-sales-payment";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { EmptyState } from "@/components/empty-state";
-import { Badge } from "@/components/ui/badge";
 import {
     DataSkeletonProvider,
     useCreateDataSkeletonCtx,
 } from "@/hooks/use-data-skeleton";
 import { cn } from "@/lib/utils";
 
+import { Badge } from "@gnd/ui/badge";
 import {
     Table,
     TableBody,

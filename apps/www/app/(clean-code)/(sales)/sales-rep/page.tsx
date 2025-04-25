@@ -5,18 +5,18 @@ import CustomerProfile from "@/components/sales-rep-profile";
 import RecentQuotes from "@/components/sales-rep-recent-quotes";
 import RecentSales from "@/components/sales-rep-recent-sales";
 import SalesChart from "@/components/sales-rep-sales-chart";
+import { CalendarIcon, DollarSign, Plus, Users } from "lucide-react";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";
+import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
 import {
     Card,
     CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card";
-import { CalendarIcon, DollarSign, Plus, Users } from "lucide-react";
-
-import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";
-import { Badge } from "@gnd/ui/badge";
-import { Button } from "@gnd/ui/button";
+} from "@gnd/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 // import CommissionPayments from "./commission-payments";

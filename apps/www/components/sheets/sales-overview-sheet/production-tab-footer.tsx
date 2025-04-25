@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Menu } from "@/components/(clean-code)/menu";
-import { SheetFooter } from "@/components/ui/sheet";
 import NumberFlow from "@number-flow/react";
 import { ActivityIcon, CheckCircle, CheckIcon } from "lucide-react";
 
@@ -8,6 +7,7 @@ import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
 import { Label } from "@gnd/ui/label";
+import { SheetFooter } from "@gnd/ui/sheet";
 
 import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { ProductionItemMenuActions } from "./production-item-menu";

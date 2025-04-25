@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from "react";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import Button from "@/components/common/button";
-import { Badge } from "@/components/ui/badge";
 
+import { Badge } from "@gnd/ui/badge";
 import {
     DropdownMenu,
     DropdownMenuContent,

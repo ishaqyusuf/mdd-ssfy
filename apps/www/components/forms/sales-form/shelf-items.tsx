@@ -6,15 +6,6 @@ import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@/components/_v1/icons";
 import { AnimatedNumber } from "@/components/animated-number";
 import Button from "@/components/common/button";
-import {
-    Combobox,
-    ComboboxAnchor,
-    ComboboxContent,
-    ComboboxEmpty,
-    ComboboxInput,
-    ComboboxItem,
-    ComboboxTrigger,
-} from "@/components/ui/combobox";
 import { ShelfContext, useShelf, useShelfContext } from "@/hooks/use-shelf";
 import {
     ShelfItemContext,
@@ -24,6 +15,15 @@ import {
 import { _useAsync } from "@/lib/use-async";
 import { ChevronDown } from "lucide-react";
 
+import {
+    Combobox,
+    ComboboxAnchor,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxTrigger,
+} from "@gnd/ui/combobox";
 import {
     Table,
     TableBody,

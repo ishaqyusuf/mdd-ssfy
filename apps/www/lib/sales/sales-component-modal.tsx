@@ -10,7 +10,6 @@ import { saveSalesComponentAction } from "@/app/(v1)/(loggedIn)/sales/_actions/s
 import { SalesFormCtx } from "@/app/(v1)/(loggedIn)/sales/_actions/sales-form";
 import Modal from "@/components/common/modal";
 import { useModal } from "@/components/common/modal/provider";
-import { OrderInventory } from "@/db";
 import { deepCopy } from "@/lib/deep-copy";
 import { closeModal } from "@/lib/modal";
 import { composeItemDescription } from "@/lib/sales/sales-invoice-form";
@@ -366,22 +365,5 @@ function ComponentInput({
             uppercase
             allowCreate
         />
-    );
-    return (
-        <Combobox<OrderInventory>
-            allowCreate
-            selected={(product) => {}}
-            labelKey="name"
-            valueKey="name"
-            align="start"
-            uppercase
-            searchFn={searchFn}
-            // onFocus={() => {
-            //   setWatchReady(true);
-            // }}
-            placeholder="Type Here"
-            form={form}
-            keyName={keyName}
-        ></Combobox>
     );
 }

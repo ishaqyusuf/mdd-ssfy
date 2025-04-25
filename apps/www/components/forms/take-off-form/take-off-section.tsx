@@ -1,7 +1,6 @@
 import { createContext, useContext, useState } from "react";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import FormInput from "@/components/common/controls/form-input";
-import { Table } from "@/components/ui/table";
 import { CaretSortIcon } from "@radix-ui/react-icons";
 import { useFieldArray } from "react-hook-form";
 
@@ -11,7 +10,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@gnd/ui/collapsible";
-import { TableBody, TableCell, TableRow } from "@gnd/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 
 import { AddTakeOffComponent } from "./add-take-off-component";
 import { useTakeOffForm } from "./take-off-form";

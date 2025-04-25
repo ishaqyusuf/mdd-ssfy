@@ -34,7 +34,7 @@ export function useSalesOverviewQuery() {
             "general",
             "production",
             "transaction",
-            "shipping",
+            "dispatch",
             "notification",
         ] as const),
         refreshTok: parseAsString,

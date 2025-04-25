@@ -1,12 +1,4 @@
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
     Building,
     Calendar,
     DollarSign,
@@ -19,6 +11,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@gnd/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 export default function CustomerProfile() {
     return (

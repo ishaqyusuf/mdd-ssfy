@@ -1,5 +1,10 @@
 import { useState } from "react";
 import { createShelfCategoryAction } from "@/actions/create-shelf-category";
+import { useShelf } from "@/hooks/use-shelf";
+import { useShelfItem } from "@/hooks/use-shelf-item";
+import { ChevronDown } from "lucide-react";
+import { useAction } from "next-safe-action/hooks";
+
 import {
     Combobox,
     ComboboxAnchor,
@@ -9,12 +14,7 @@ import {
     ComboboxInput,
     ComboboxItem,
     ComboboxTrigger,
-} from "@/components/ui/combobox";
-import { useShelf } from "@/hooks/use-shelf";
-import { useShelfItem } from "@/hooks/use-shelf-item";
-import { ChevronDown } from "lucide-react";
-import { useAction } from "next-safe-action/hooks";
-
+} from "@gnd/ui/combobox";
 import { useToast } from "@gnd/ui/use-toast";
 
 import { ClearCategoryModal } from "./clear-category";

@@ -12,7 +12,7 @@ export interface ISearchQuery {
 }
 export async function searchOrderInventoryAction(query: ISearchQuery) {
     const { q, category } = query;
-    const where: Prisma.OrderInventoryWhereInput = {
+    const where: any = {
         category,
     };
 
@@ -43,7 +43,7 @@ export async function searchOrderInventoryAction(query: ISearchQuery) {
         },
         take: 10,
         where,
-    } satisfies Prisma.OrderInventoryGroupByArgs;
+    } satisfies any;
     // const prods = await prisma.orderInventory.groupBy(groupByArgs);
     // console.log(prods);
     return [];
@@ -55,29 +55,30 @@ interface getComponentCostHistoryQuery {
 export async function getComponentCostHistoryAction(
     query: getComponentCostHistoryQuery,
 ) {
-    const { title, category } = query;
-    const where: Prisma.OrderInventoryWhereInput = {
-        category,
-        name: title,
-        price: {
-            gt: 0,
-        },
-    };
-    const products = await prisma.orderInventory.findMany({
-        // take: 5,
-        where,
-        // select: {
-        //     id:true,
-        //     name: true,
-        //     price: true
-        // },
-        // distinct: ["price"],
-        include: {
-            product: true,
-        },
-    });
-    console.log(products);
-    return products;
+    return {} as any;
+    // const { title, category } = query;
+    // const where: any = {
+    //     category,
+    //     name: title,
+    //     price: {
+    //         gt: 0,
+    //     },
+    // };
+    // const products = await prisma.orderInventory.findMany({
+    //     // take: 5,
+    //     where,
+    //     // select: {
+    //     //     id:true,
+    //     //     name: true,
+    //     //     price: true
+    //     // },
+    //     // distinct: ["price"],
+    //     include: {
+    //         product: true,
+    //     },
+    // });
+    // console.log(products);
+    // return products;
 }
 export interface InvCompTitleProps {
     title;
@@ -92,10 +93,10 @@ export async function updateInventoryComponentTitleAction({
     meta,
 }: InvCompTitleProps) {
     meta.componentTitle = title;
-    await prisma.productVariants.update({
-        where: { id: variantId },
-        data: {
-            meta: removeEmptyValues(meta),
-        },
-    });
+    // await prisma.productVariants.update({
+    //     where: { id: variantId },
+    //     data: {
+    //         meta: removeEmptyValues(meta),
+    //     },
+    // });
 }
