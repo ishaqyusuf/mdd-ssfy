@@ -20,13 +20,20 @@ export function useLoadingToast() {
     }, [toastId, toastData]);
     type Data = Pick<
         Toast,
-        "description" | "title" | "duration" | "variant" | "action"
+        "description" | "title" | "duration" | "variant" | "action" | "progress"
     >;
     const ctx = {
         setToastData,
         toastId,
         clearToastId() {
             setToastId(null);
+        },
+        description(description, data: Data = {}) {
+            ctx.display({
+                description,
+                ...data,
+            });
+            // ctx.clearToastId();
         },
         loading(title, data: Data = {}) {
             ctx.display({

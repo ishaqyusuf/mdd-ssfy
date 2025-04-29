@@ -5,6 +5,7 @@ import {
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import { generateRandomString } from "@/lib/utils";
 import {
+    parseAsInteger,
     parseAsJson,
     parseAsString,
     parseAsStringEnum,
@@ -38,6 +39,7 @@ export function useSalesOverviewQuery() {
             "notification",
         ] as const),
         refreshTok: parseAsString,
+        dispatchOverviewId: parseAsInteger,
     });
 
     return {

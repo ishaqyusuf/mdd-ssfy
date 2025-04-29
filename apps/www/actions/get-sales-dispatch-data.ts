@@ -1,5 +1,6 @@
 "use server";
 
+import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import { qtyMatrixDifference, qtyMatrixSum } from "@/utils/sales-control-util";
 
@@ -7,6 +8,7 @@ import { getSalesItemsOverviewAction } from "./get-sales-items-overview-action";
 
 export async function getSalesDispatchDataAction(orderId) {
     const overview = await getSalesItemsOverviewAction(orderId);
+    // const dispatchList =  await prisma.
     const availableDispatchQty = sum(
         overview.items.map((item) => item.analytics.dispatch.available.qty),
     );
@@ -39,7 +41,10 @@ export async function getSalesDispatchDataAction(orderId) {
             title: item.title,
             itemId: item.itemId,
             totalQty: item.qty.qty,
+            doorId: item.doorId,
             dispatchStat,
+            analytics: item.analytics,
+            pendingSubmissions: item.analytics?.pendingSubmissions,
             subtitle: item.subtitle,
             availableQty: qtyMatrixDifference(
                 item.itemConfig?.production
@@ -49,10 +54,34 @@ export async function getSalesDispatchDataAction(orderId) {
             ),
         };
     });
+    const deliveries = overview.deliveries.map((delivery) => {
+        return {
+            ...delivery,
+            items: delivery.items.map((item) => {
+                const _item = overview.items.find((i) =>
+                    i.analytics.submissionIds.includes(
+                        item.orderProductionSubmissionId,
+                    ),
+                );
+                const { controlUid, title, sectionTitle, subtitle } = _item;
+                return {
+                    ...item,
+                    item: {
+                        controlUid,
+                        title,
+                        sectionTitle,
+                        subtitle,
+                    },
+                };
+            }),
+        };
+    });
     return {
         id: overview.orderId,
-        orderUid: overview.orderId,
+        orderUid: overview.orderNo,
         dispatchables,
+        deliveries,
+        order: overview.order,
         progress: {
             availableDispatchQty,
             dispatchedQty,

@@ -1,18 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { redirect } from "next/navigation";
 import {
+    createAssignmentSchema,
     createSalesDispatchItemsSchema,
     createSalesDispatchSchema,
 } from "@/actions/schema";
+import { SalesDispatchStatus } from "@/app/(clean-code)/(sales)/types";
 import { DatePicker } from "@/components/(clean-code)/custom/controlled/date-picker";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import FormCheckbox from "@/components/common/controls/form-checkbox";
 import FormSelect from "@/components/common/controls/form-select";
 import { NumberInput } from "@/components/currency-input";
-import { cn } from "@/lib/utils";
+import { cn, generateRandomString, sum } from "@/lib/utils";
+import { qtyMatrixDifference } from "@/utils/sales-control-util";
 // import type { Dispatch, DispatchItem } from "@/types/dispatch";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useSession } from "next-auth/react";
 import { useController, useForm, useFormContext } from "react-hook-form";
 import { NumericFormatProps } from "react-number-format";
 import { z } from "zod";
@@ -43,48 +48,24 @@ const availableItems: any[] = [
     { id: "ITEM-006", name: "Product F", availableQty: 80, dispatchQty: 0 },
 ];
 
-// Mock data for assignees
-const assignees = [
-    { id: "1", name: "John Doe" },
-    { id: "2", name: "Jane Smith" },
-    { id: "3", name: "Mike Johnson" },
-    { id: "4", name: "Sarah Williams" },
-];
-
-const formSchema = z.object({
-    delivery: createSalesDispatchSchema,
-    itemData: createSalesDispatchItemsSchema,
-});
-
 interface DispatchFormProps {
     dispatch?: any;
     onSubmit?: (values: any) => void;
     onCancel?: () => void;
 }
 
-export function DispatchForm({
-    dispatch,
-    onSubmit,
-    onCancel,
-}: DispatchFormProps) {
+export function DispatchForm({ dispatch, onSubmit }: DispatchFormProps) {
     const ctx = useDispatch();
     const [selectedItems, setSelectedItems] = useState<any[]>(
         dispatch?.items || [],
     );
     const [allSelected, setAllSelected] = useState(false);
+    const { form, formSchema } = useDispatch();
 
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            delivery: {
-                deliveryMode: "delivery",
-            },
-            itemData: {},
-        },
-    });
     useEffect(() => {
         if (ctx.data) {
             const items: z.infer<typeof formSchema>["itemData"]["items"] = {};
+
             ctx.data.dispatchables.map((item) => {
                 items[item.uid] = {
                     available: item.availableQty,
@@ -100,6 +81,7 @@ export function DispatchForm({
                 delivery: {
                     deliveryMode: "delivery",
                     deliveryDate: new Date(),
+                    status: "queue",
                 },
                 itemData: {
                     orderId: ctx.data.id,
@@ -109,49 +91,11 @@ export function DispatchForm({
         }
     }, [ctx.data]);
     const packingList = form.watch("delivery.packingList");
-    const handleSelectAll = (checked: boolean) => {
-        setAllSelected(checked);
-        if (checked) {
-            setSelectedItems(
-                availableItems.map((item) => ({ ...item, dispatchQty: 0 })),
-            );
-        } else {
-            setSelectedItems([]);
-        }
-    };
-
-    const handleItemSelection = (item: any, checked: boolean) => {
-        if (checked) {
-            setSelectedItems((prev) => [...prev, { ...item, dispatchQty: 0 }]);
-        } else {
-            setSelectedItems((prev) => prev.filter((i) => i.id !== item.id));
-        }
-    };
-
-    const handleQuantityChange = (itemId: string, quantity: number) => {
-        setSelectedItems((prev) =>
-            prev.map((item) =>
-                item.id === itemId ? { ...item, dispatchQty: quantity } : item,
-            ),
-        );
-    };
-
-    const handleSubmit = (values: z.infer<typeof formSchema>) => {
-        const newDispatch: any = {
-            id:
-                dispatch?.id ||
-                `DISP-${Math.floor(Math.random() * 1000)
-                    .toString()
-                    .padStart(3, "0")}`,
-        };
-
-        onSubmit(newDispatch);
-    };
 
     return (
         <Form {...form}>
             <form
-                onSubmit={form.handleSubmit(handleSubmit)}
+                // onSubmit={form.handleSubmit(handleSubmit)}
                 className="space-y-6"
             >
                 <div className="grid grid-cols-2 items-end gap-4">
@@ -173,11 +117,22 @@ export function DispatchForm({
                     />
 
                     <FormSelect
-                        className="col-span-2"
                         label="Dispatch Mode"
                         control={form.control}
                         name="delivery.deliveryMode"
                         options={["pickup", "delivery"]}
+                    />
+                    <FormSelect
+                        label="Dispatch Status"
+                        control={form.control}
+                        name="delivery.status"
+                        options={
+                            [
+                                "queue",
+                                "in progress",
+                                "completed",
+                            ] as SalesDispatchStatus[]
+                        }
                     />
                     <div className="col-span-2">
                         <FormCheckbox
@@ -191,28 +146,11 @@ export function DispatchForm({
                             <h4 className="font-medium">
                                 Prepare Packing List
                             </h4>
-                            <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id="select-all"
-                                    checked={allSelected}
-                                    onCheckedChange={(checked) =>
-                                        handleSelectAll(checked as boolean)
-                                    }
-                                />
-                                <label
-                                    htmlFor="select-all"
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                >
-                                    Select All
-                                </label>
-                            </div>
                         </div>
-
                         <div className="rounded-md border">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="w-[50px]"></TableHead>
                                         <TableHead>Item</TableHead>
                                         <TableHead>Packing Qty</TableHead>
                                         {/* <TableHead>Dispatch Qty</TableHead> */}
@@ -221,19 +159,6 @@ export function DispatchForm({
                                 <TableBody>
                                     {ctx?.data?.dispatchables?.map((item) => (
                                         <TableRow key={item.uid}>
-                                            <TableCell>
-                                                <Checkbox
-                                                    // checked={isSelected}
-                                                    onCheckedChange={(
-                                                        checked,
-                                                    ) =>
-                                                        handleItemSelection(
-                                                            item,
-                                                            checked as boolean,
-                                                        )
-                                                    }
-                                                />
-                                            </TableCell>
                                             <TableCell>
                                                 <TCell.Primary>
                                                     {item.title}

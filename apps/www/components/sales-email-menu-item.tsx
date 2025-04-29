@@ -1,4 +1,3 @@
-import { __sendInvoiceEmailTrigger } from "@/actions/triggers/send-invoice-email";
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesEmailSender } from "@/hooks/use-sales-email-sender";

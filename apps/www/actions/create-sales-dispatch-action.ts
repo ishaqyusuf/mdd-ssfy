@@ -46,5 +46,9 @@ export const createSalesDispatchAction = actionClient
     .action(async ({ parsedInput: input }) => {
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
             const dispatch = await createSalesDispatch(input, tx);
+            return {
+                id: dispatch.id,
+            };
         });
+        return resp;
     });

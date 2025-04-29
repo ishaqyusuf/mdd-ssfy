@@ -1,6 +1,5 @@
 import { send } from "process";
 import { useEffect, useRef } from "react";
-import { __sendInvoiceEmailTrigger } from "@/actions/triggers/send-invoice-email";
 import {
     parseAsArrayOf,
     parseAsBoolean,

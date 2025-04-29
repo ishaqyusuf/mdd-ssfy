@@ -1,7 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import StatusBadge from "@/components/_v1/status-badge";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { formatDate } from "@/lib/use-day";
+import { ChevronDown, ChevronUp, Edit } from "lucide-react";
 
+import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@gnd/ui/collapsible";
 import {
     Table,
     TableBody,
@@ -15,6 +26,7 @@ import { useDispatch } from "./context";
 
 export function DispatchList({}) {
     const ctx = useDispatch();
+    const sq = useSalesOverviewQuery();
     const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
 
     const toggleItem = (id: string) => {
@@ -51,14 +63,22 @@ export function DispatchList({}) {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {/* {dispatches.map((dispatch) => (
+                    {ctx?.data?.deliveries.map((dispatch) => (
                         <Collapsible
                             key={dispatch.id}
                             open={
                                 openItems[dispatch.id] ||
-                                editingId === dispatch.id
+                                sq.params.dispatchOverviewId === dispatch.id
                             }
-                            onOpenChange={() => toggleItem(dispatch.id)}
+                            onOpenChange={() =>
+                                sq.setParams({
+                                    dispatchOverviewId:
+                                        sq.params.dispatchOverviewId ==
+                                        dispatch.id
+                                            ? null
+                                            : dispatch.id,
+                                })
+                            }
                             asChild
                         >
                             <>
@@ -78,17 +98,13 @@ export function DispatchList({}) {
                                         {dispatch.id}
                                     </TableCell>
                                     <TableCell>
-                                        {format(dispatch.date, "MMM dd, yyyy")}
+                                        {formatDate(dispatch.dueDate)}
                                     </TableCell>
-                                    <TableCell>{dispatch.assignedTo}</TableCell>
                                     <TableCell>
-                                        <Badge
-                                            className={getStatusColor(
-                                                dispatch.status,
-                                            )}
-                                        >
-                                            {dispatch.status}
-                                        </Badge>
+                                        {dispatch.driver?.name}
+                                    </TableCell>
+                                    <TableCell>
+                                        <StatusBadge status={dispatch.status} />
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <Button
@@ -96,10 +112,10 @@ export function DispatchList({}) {
                                             size="sm"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                onEdit(dispatch.id);
-                                                if (!openItems[dispatch.id]) {
-                                                    toggleItem(dispatch.id);
-                                                }
+                                                // onEdit(dispatch.id);
+                                                // if (!openItems[dispatch.id]) {
+                                                //     toggleItem(dispatch.id);
+                                                // }
                                             }}
                                         >
                                             <Edit className="h-4 w-4" />
@@ -110,91 +126,81 @@ export function DispatchList({}) {
                                     <TableRow>
                                         <TableCell colSpan={6} className="p-0">
                                             <div className="bg-muted/50 p-4">
-                                                {editingId === dispatch.id ? (
-                                                    <DispatchForm
-                                                        dispatch={dispatch}
-                                                        onSubmit={onUpdate}
-                                                        onCancel={() =>
-                                                            onEdit(null)
-                                                        }
-                                                    />
-                                                ) : (
-                                                    <div className="space-y-4">
-                                                        <div>
-                                                            <h4 className="font-medium">
-                                                                Dispatch Details
-                                                            </h4>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Method:{" "}
-                                                                {
-                                                                    dispatch.method
-                                                                }
-                                                            </p>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Notes:{" "}
-                                                                {dispatch.notes}
-                                                            </p>
-                                                        </div>
-                                                        <div>
-                                                            <h4 className="mb-2 font-medium">
-                                                                Items
-                                                            </h4>
-                                                            <Table>
-                                                                <TableHeader>
-                                                                    <TableRow>
-                                                                        <TableHead>
-                                                                            Item
-                                                                        </TableHead>
-                                                                        <TableHead>
-                                                                            Available
-                                                                            Qty
-                                                                        </TableHead>
-                                                                        <TableHead>
-                                                                            Dispatch
-                                                                            Qty
-                                                                        </TableHead>
-                                                                    </TableRow>
-                                                                </TableHeader>
-                                                                <TableBody>
-                                                                    {dispatch.items.map(
-                                                                        (
-                                                                            item,
-                                                                        ) => (
-                                                                            <TableRow
-                                                                                key={
-                                                                                    item.id
-                                                                                }
-                                                                            >
-                                                                                <TableCell>
-                                                                                    {
-                                                                                        item.name
-                                                                                    }
-                                                                                </TableCell>
-                                                                                <TableCell>
-                                                                                    {
-                                                                                        item.availableQty
-                                                                                    }
-                                                                                </TableCell>
-                                                                                <TableCell>
-                                                                                    {
-                                                                                        item.dispatchQty
-                                                                                    }
-                                                                                </TableCell>
-                                                                            </TableRow>
-                                                                        ),
-                                                                    )}
-                                                                </TableBody>
-                                                            </Table>
-                                                        </div>
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <h4 className="font-medium">
+                                                            Dispatch Details
+                                                        </h4>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Method:{" "}
+                                                            {
+                                                                dispatch.deliveryMode
+                                                            }
+                                                        </p>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Notes:{" "}
+                                                            {/* {dispatch.notes} */}
+                                                        </p>
                                                     </div>
-                                                )}
+                                                    <div>
+                                                        <h4 className="mb-2 font-medium">
+                                                            Items
+                                                        </h4>
+                                                        <Table>
+                                                            <TableHeader>
+                                                                <TableRow>
+                                                                    <TableHead>
+                                                                        Item
+                                                                    </TableHead>
+                                                                    <TableHead>
+                                                                        Available
+                                                                        Qty
+                                                                    </TableHead>
+                                                                    <TableHead>
+                                                                        Dispatch
+                                                                        Qty
+                                                                    </TableHead>
+                                                                </TableRow>
+                                                            </TableHeader>
+                                                            <TableBody>
+                                                                {dispatch.items.map(
+                                                                    (item) => (
+                                                                        <TableRow
+                                                                            key={
+                                                                                item.id
+                                                                            }
+                                                                        >
+                                                                            <TableCell>
+                                                                                {
+                                                                                    item
+                                                                                        .item
+                                                                                        .title
+                                                                                }
+                                                                            </TableCell>
+                                                                            <TableCell>
+                                                                                {
+                                                                                    item.qty
+                                                                                }
+                                                                            </TableCell>
+                                                                            <TableCell>
+                                                                                {
+                                                                                    item.qty
+                                                                                }
+                                                                            </TableCell>
+                                                                        </TableRow>
+                                                                    ),
+                                                                )}
+                                                            </TableBody>
+                                                        </Table>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </TableCell>
                                     </TableRow>
                                 </CollapsibleContent>
                             </>
                         </Collapsible>
-                    ))} */}
+                    ))}
                 </TableBody>
             </Table>
         </div>

@@ -14,7 +14,7 @@ export async function createSalesDispatchItems(
     tx = prisma,
 ) {
     const dispatch = await tx.orderItemDelivery.createMany({
-        data: data.items.map((a) => ({
+        data: Object.values(data.items).map((a) => ({
             orderId: data.orderId,
             orderItemId: a.orderItemId,
             lhQty: a.qty.lh,
@@ -36,9 +36,9 @@ export const createSalesDispatchItemsAction = actionClient
     .action(async ({ parsedInput: input }) => {
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
             const dispatch = await createSalesDispatchItems(input, tx);
-            await Promise.all(
-                input.items.map(async (item) => {
-                    await updateSalesItemStats(
+            const res = await Promise.all(
+                Object.values(input.items).map(async (item) => {
+                    return await updateSalesItemStats(
                         {
                             uid: item.itemUid,
                             salesId: input.orderId,

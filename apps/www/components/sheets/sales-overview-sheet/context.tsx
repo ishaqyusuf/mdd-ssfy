@@ -4,11 +4,19 @@ import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-
 import { getSalesDispatchDataAction } from "@/actions/get-sales-dispatch-data";
 import { getSalesItemsOverviewAction } from "@/actions/get-sales-items-overview-action";
 import { getSalesOverviewAction } from "@/actions/get-sales-overview";
+import {
+    createSalesDispatchItemsSchema,
+    createSalesDispatchSchema,
+} from "@/actions/schema";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
+import { useSalesControlAction } from "@/hooks/use-sales-control-action";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { timeout } from "@/lib/timeout";
 import { createContextFactory } from "@/utils/context-factory";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { useAsyncMemo } from "use-async-memo";
+import z from "zod";
 
 const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
     createContextFactory(function () {
@@ -40,21 +48,40 @@ const { useContext: useDispatch, Provider: DispatchProvider } =
             const res = await getSalesDispatchDataAction(
                 ctx.params["sales-overview-id"],
             );
-
+            console.log("DISPATCH DATA", res);
             return res;
         };
         const customerQuery = useCustomerOverviewQuery();
         const data = useAsyncMemo(loader, [ctx.refreshTok]);
         // const [selections, setSelections] = useState({});
         const [openForm, setOpenForm] = useState(false);
+        const bachWorker = useSalesControlAction({
+            onFinish() {},
+        });
+        const formSchema = z.object({
+            delivery: createSalesDispatchSchema,
+            itemData: createSalesDispatchItemsSchema,
+        });
+        const form = useForm<z.infer<typeof formSchema>>({
+            resolver: zodResolver(formSchema),
+            defaultValues: {
+                delivery: {
+                    deliveryMode: "delivery",
+                },
+                itemData: {},
+            },
+        });
         return {
             openForm,
             setOpenForm,
+            form,
+            formSchema,
             // selections,
             // setSelections,
             data,
             ctx,
             drivers,
+            bachWorker,
         };
     });
 

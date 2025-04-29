@@ -154,6 +154,13 @@ export const __sendInvoiceEmailTrigger = async ({
                         }),
                     ),
                 });
+                if (response.error) {
+                    console.log(response);
+                    throw new Error(`Unable to send email`, {
+                        cause: response?.error?.message,
+                    });
+                }
+
                 await Promise.all(
                     matchingSales?.map(async (s) => {
                         await createNoteAction({
@@ -173,10 +180,6 @@ export const __sendInvoiceEmailTrigger = async ({
                         });
                     }),
                 );
-                if (response.error) {
-                    console.log(response);
-                    throw new Error(`Unable to send email`);
-                }
                 return response;
             }
         }),

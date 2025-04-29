@@ -99,21 +99,19 @@ export function BatchMenuSubmit({ itemIds, setOpened }: Props) {
         },
     });
     async function submit({ assignedToId }: SubmitProps) {
-        const data = {
-            assignmentActions: {},
-            submissionActions: {},
-            submissionMeta: {},
-        };
+        const data = actionControl.emptyActions();
         items?.map((item) => {
+            const tok = generateRandomString(5);
             if (item.createAssignmentMeta?.qty?.qty)
                 data.assignmentActions[item.uid] = {
                     meta: {
                         ...item.createAssignmentMeta,
                         dueDate,
                         assignedToId,
-                        // itemUID: item.uid,
                     } as z.infer<typeof createAssignmentSchema>,
                     uid: item.uid,
+                    assignmentId: null as any,
+                    submitTok: tok,
                 };
             if (!data.submissionMeta[item.uid]) {
                 data.submissionMeta[item.uid] = {
@@ -127,6 +125,7 @@ export function BatchMenuSubmit({ itemIds, setOpened }: Props) {
                 data.submissionActions[
                     `${submitData.assignmentId}_${item.uid}`
                 ] = {
+                    status: null,
                     meta: {
                         qty: submitData.qty,
                         pending: submitData.qty,

@@ -13,6 +13,7 @@ import { Icons } from "@gnd/ui/icons";
 import { DispatchProvider, useDispatch } from "./context";
 import { DispatchFooter } from "./dispatch-footer";
 import { DispatchForm } from "./dispatch-form";
+import { DispatchList } from "./dispatch-list";
 import { DispatchProgressChart } from "./dispatch-progress-chart";
 
 export function DispatchTab({}) {
@@ -73,6 +74,7 @@ function Content() {
                     /> */}
                     </CollapsibleContent>
                 </Collapsible>
+                <DispatchList />
                 {openForm || <></>}
             </div>
         </DataSkeletonProvider>

@@ -107,42 +107,42 @@ export function DispatchProgressChart({ data }: DispatchProgressChartProps) {
                     }}
                     className="h-[100px] w-full"
                 >
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData} layout="vertical">
-                            <CartesianGrid
-                                strokeDasharray="3 3"
-                                horizontal={false}
-                            />
-                            <XAxis type="number" />
-                            <YAxis dataKey="name" type="category" hide />
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Legend />
-                            <Bar
-                                dataKey="dispatched"
-                                stackId="a"
-                                fill="var(--color-dispatched)"
-                                name="Dispatched"
-                            />
-                            <Bar
-                                dataKey="pending"
-                                stackId="a"
-                                fill="var(--color-pending)"
-                                name="Pending Dispatch"
-                            />
-                            <Bar
-                                dataKey="production"
-                                stackId="a"
-                                fill="var(--color-production)"
-                                name="Pending Production"
-                            />
-                            <Bar
-                                dataKey="available"
-                                stackId="a"
-                                fill="var(--color-available)"
-                                name="Available"
-                            />
-                        </BarChart>
-                    </ResponsiveContainer>
+                    {/* <ResponsiveContainer width="100%" height="100%"> */}
+                    <BarChart data={chartData} layout="vertical">
+                        <CartesianGrid
+                            strokeDasharray="3 3"
+                            horizontal={false}
+                        />
+                        <XAxis type="number" />
+                        <YAxis dataKey="name" type="category" hide />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Legend />
+                        <Bar
+                            dataKey="dispatched"
+                            stackId="a"
+                            fill="var(--color-dispatched)"
+                            name="Dispatched"
+                        />
+                        <Bar
+                            dataKey="pending"
+                            stackId="a"
+                            fill="var(--color-pending)"
+                            name="Pending Dispatch"
+                        />
+                        <Bar
+                            dataKey="production"
+                            stackId="a"
+                            fill="var(--color-production)"
+                            name="Pending Production"
+                        />
+                        <Bar
+                            dataKey="available"
+                            stackId="a"
+                            fill="var(--color-available)"
+                            name="Available"
+                        />
+                    </BarChart>
+                    {/* </ResponsiveContainer> */}
                 </ChartContainer>
             </CardContent>
         </Card>

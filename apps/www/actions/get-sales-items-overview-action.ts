@@ -127,11 +127,14 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
         }
     });
     items = items.sort((a, b) => a.itemIndex - b.itemIndex);
-
+    // order.deliveries.
     return {
         items,
         orderNo: orderId,
         orderId: order.id,
+        deliveries: order.deliveries,
+        order,
+        // order
     };
 }
 export interface ItemControlData {
@@ -179,15 +182,27 @@ const select = {
         },
         select: {
             status: true,
+            deliveryMode: true,
+            id: true,
+            driver: {
+                select: {
+                    name: true,
+                    id: true,
+                },
+            },
+            createdAt: true,
+            dueDate: true,
             items: {
                 where: {
                     deletedAt: null,
                 },
                 select: {
+                    id: true,
                     qty: true,
                     lhQty: true,
                     rhQty: true,
                     orderProductionSubmissionId: true,
+                    status: true,
                 },
             },
         },

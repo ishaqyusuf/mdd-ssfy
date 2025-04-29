@@ -36,8 +36,15 @@ export function SalesEmailSender() {
                         loader.success("Email Sent");
                         clear();
                     } catch (error) {
-                        loader.error(error?.message || "Unable to complete");
-                        clear();
+                        if (error instanceof Error) {
+                            loader.error(
+                                error?.message || "Unable to complete",
+                                {
+                                    description: error?.cause as string,
+                                },
+                            );
+                            clear();
+                        }
                     }
                 };
                 fn();

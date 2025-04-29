@@ -25,7 +25,7 @@ export const getCachedDispatchers = async () => {
             });
             return users.map((user) => {
                 return {
-                    id: user.id,
+                    id: user.id?.toString(),
                     name: user.name,
                     // pendingProductionQty:
                     //     sum(user.orderItemAssignments, "qtyAssigned") -

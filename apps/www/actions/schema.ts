@@ -191,6 +191,7 @@ export const createSalesDispatchItemsSchema = z.object({
     ),
 });
 export const createSalesDispatchSchema = z.object({
+    id: z.number().optional(),
     deliveryMode: z.string() as z.ZodType<DeliveryOption>,
     status: z.string() as z.ZodType<SalesDispatchStatus>,
     orderId: z.number(),
@@ -243,6 +244,7 @@ export const createAssignmentSchema = z
         salesId: z.number(),
         itemsTotal: z.number(),
         itemUid: z.string(),
+        token: z.string().optional(),
         salesItemId: z.number(),
     })
     .superRefine(qtySuperRefine);

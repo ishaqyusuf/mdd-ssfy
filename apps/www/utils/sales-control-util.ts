@@ -188,22 +188,23 @@ export function composeSalesItemControlStat(
         .flat();
     const dispatch = {
         queued: qtyMatrixSum(
-            deliveries.filter((a) => a.status == "queue") as any,
+            ...(deliveries.filter((a) => a.status == "queue") as any),
         ),
         inProgress: qtyMatrixSum(
-            deliveries.filter((a) => a.status == "in progress") as any,
+            ...(deliveries.filter((a) => a.status == "in progress") as any),
         ),
         completed: qtyMatrixSum(
-            deliveries.filter((a) => a.status == "completed") as any,
+            ...(deliveries.filter((a) => a.status == "completed") as any),
         ),
         cancelled: qtyMatrixSum(
-            deliveries.filter((a) => a.status == "cancelled") as any,
+            ...(deliveries.filter((a) => a.status == "cancelled") as any),
         ),
     };
     const pendingDispatch = qtyMatrixDifference(
         qty,
         qtyMatrixSum(dispatch.queued, dispatch.inProgress, dispatch.completed),
     );
+
     const availableDispatch = qtyMatrixDifference(
         !production ? qty : submitted,
         qtyMatrixSum(dispatch.queued, dispatch.inProgress, dispatch.completed),
@@ -242,6 +243,7 @@ export function composeSalesItemControlStat(
     } as { [k in QtyControlType]: Qty };
     return {
         stats,
+        submissionIds,
         deliverables,
         deliveredQty: qtyMatrixSum(
             stats.dispatchAssigned,
