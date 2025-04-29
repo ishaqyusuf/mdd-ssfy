@@ -10,7 +10,12 @@ import { salesOverviewStore } from "../store";
 
 interface Props {
     pdf?: boolean;
-    data?;
+    data?: {
+        overview?: {
+            type?;
+            orderId?;
+        };
+    };
 }
 export function PrintMenuAction({ pdf, data }: Props) {
     let ctx = salesOverviewStore();
@@ -75,29 +80,6 @@ export function PrintMenuAction({ pdf, data }: Props) {
             icon={pdf ? "pdf" : "print"}
             SubMenu={
                 <>
-                    {/* <Menu.Item
-                        SubMenu={
-                            dispatchList?.length == 0 ? null : (
-                                <>
-                                    <Menu.Item onClick={() => {}}>
-                                        {pdf ? "PDF " : "Print "} All
-                                    </Menu.Item>
-                                    {dispatchList.map((d) => (
-                                        <Menu.Item
-                                            key={d.id}
-                                            onClick={() => {}}
-                                        >
-                                            {d.title}
-                                        </Menu.Item>
-                                    ))}
-                                </>
-                            )
-                        }
-                        icon="packingList"
-                        disabled={dispatchList?.length == 0}
-                    >
-                        Packing List
-                    </Menu.Item> */}
                     <Menu.Item
                         icon="orders"
                         onClick={() => {

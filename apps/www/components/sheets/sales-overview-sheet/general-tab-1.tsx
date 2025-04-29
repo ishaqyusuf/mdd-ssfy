@@ -668,7 +668,7 @@ export function GeneralTab({}) {
                         </CardContent>
                     </Card>
                 </div>
-                <GeneralFooter data={data} />
+                <GeneralFooter />
             </div>
         </DataSkeletonProvider>
     );

@@ -74,8 +74,11 @@ function Content() {
                     /> */}
                     </CollapsibleContent>
                 </Collapsible>
-                <DispatchList />
-                {openForm || <></>}
+                {openForm || (
+                    <>
+                        <DispatchList />
+                    </>
+                )}
             </div>
         </DataSkeletonProvider>
     );
