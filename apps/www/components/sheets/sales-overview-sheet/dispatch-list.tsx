@@ -1,8 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { deleteSalesDeliveryAction } from "@/actions/delete-sales-delivery-action";
+import { salesProgressFallBackAction } from "@/actions/sales-progress-fallback";
 import StatusBadge from "@/components/_v1/status-badge";
+import { Menu } from "@/components/(clean-code)/menu";
+import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { timeout } from "@/lib/timeout";
 import { formatDate } from "@/lib/use-day";
 import { ChevronDown, ChevronUp, Edit } from "lucide-react";
 
@@ -27,28 +32,16 @@ import { useDispatch } from "./context";
 export function DispatchList({}) {
     const ctx = useDispatch();
     const sq = useSalesOverviewQuery();
-    const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
-
-    const toggleItem = (id: string) => {
-        setOpenItems((prev) => ({
-            ...prev,
-            [id]: !prev[id],
-        }));
+    const loader = useLoadingToast();
+    const deleteDispatch = async (id) => {
+        loader.loading("Deleting....");
+        await timeout(500);
+        await deleteSalesDeliveryAction({
+            deliveryId: id,
+        });
+        loader.success("Deleted!.");
+        sq._refreshToken();
     };
-
-    const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case "completed":
-                return "bg-green-500";
-            case "in progress":
-                return "bg-blue-500";
-            case "pending":
-                return "bg-yellow-500";
-            default:
-                return "bg-gray-500";
-        }
-    };
-
     return (
         <div className="rounded-md border">
             <Table>
@@ -59,17 +52,14 @@ export function DispatchList({}) {
                         <TableHead>Date</TableHead>
                         <TableHead>Assigned To</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead className="text-right"></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {ctx?.data?.deliveries.map((dispatch) => (
                         <Collapsible
                             key={dispatch.id}
-                            open={
-                                openItems[dispatch.id] ||
-                                sq.params.dispatchOverviewId === dispatch.id
-                            }
+                            open={sq.params.dispatchOverviewId === dispatch.id}
                             onOpenChange={() =>
                                 sq.setParams({
                                     dispatchOverviewId:
@@ -86,7 +76,8 @@ export function DispatchList({}) {
                                     <TableCell>
                                         <CollapsibleTrigger asChild>
                                             <Button variant="ghost" size="sm">
-                                                {openItems[dispatch.id] ? (
+                                                {sq.params.dispatchOverviewId ==
+                                                dispatch.id ? (
                                                     <ChevronUp className="h-4 w-4" />
                                                 ) : (
                                                     <ChevronDown className="h-4 w-4" />
@@ -106,20 +97,18 @@ export function DispatchList({}) {
                                     <TableCell>
                                         <StatusBadge status={dispatch.status} />
                                     </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                // onEdit(dispatch.id);
-                                                // if (!openItems[dispatch.id]) {
-                                                //     toggleItem(dispatch.id);
-                                                // }
-                                            }}
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
+                                    <TableCell className="w-8 text-right">
+                                        <Menu>
+                                            <Menu.Trash
+                                                action={async () =>
+                                                    await deleteDispatch(
+                                                        dispatch.id,
+                                                    )
+                                                }
+                                            >
+                                                Delete
+                                            </Menu.Trash>
+                                        </Menu>
                                     </TableCell>
                                 </TableRow>
                                 <CollapsibleContent asChild>

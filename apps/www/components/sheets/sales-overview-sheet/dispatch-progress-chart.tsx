@@ -90,19 +90,19 @@ export function DispatchProgressChart({ data }: DispatchProgressChartProps) {
                     config={{
                         dispatched: {
                             label: "Dispatched",
-                            color: "hsl(var(--chart-1))",
+                            color: "hsl(var(--chart-2))",
                         },
                         pending: {
                             label: "Pending Dispatch",
-                            color: "hsl(var(--chart-2))",
+                            color: "hsl(var(--primary))",
                         },
                         production: {
                             label: "Pending Production",
-                            color: "hsl(var(--chart-3))",
+                            color: "hsl(var(--destructive))",
                         },
                         available: {
                             label: "Available",
-                            color: "hsl(var(--chart-4))",
+                            color: "hsl(var(--accent-foreground))",
                         },
                     }}
                     className="h-[100px] w-full"

@@ -49,4 +49,5 @@ export async function salesProgressFallBackAction(
             });
     });
     await resetSalesStatAction(props.salesId, props.salesUid);
+    console.log({ props });
 }
