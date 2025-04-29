@@ -1,9 +1,11 @@
+import { redirect } from "next/navigation";
 import {
     salesOverviewStore,
     salesTabs,
-} from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet/store";
+} from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet.bin/store";
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import { generateRandomString } from "@/lib/utils";
+import { useSession } from "next-auth/react";
 import {
     parseAsInteger,
     parseAsJson,
@@ -41,10 +43,20 @@ export function useSalesOverviewQuery() {
         refreshTok: parseAsString,
         dispatchOverviewId: parseAsInteger,
     });
-
+    const session = useSession({
+        required: true,
+        onUnauthenticated() {
+            redirect("/login");
+        },
+    });
+    const assignedTo =
+        session?.data?.can?.viewProduction && !session?.data?.can?.viewOrders
+            ? session?.data?.user.id
+            : null;
     return {
         ...params,
         params,
+        assignedTo,
         close() {
             setParams(null);
             onCloseQuery.handle(params, setParams);
@@ -57,11 +69,12 @@ export function useSalesOverviewQuery() {
         setParams,
         open2(orderNo: string, mode: Modes) {
             let salesType: SalesType = mode == "quote" ? "quote" : "order";
+            if (assignedTo) mode = "production-tasks";
             setParams({
                 "sales-overview-id": orderNo,
                 "sales-type": salesType,
                 mode,
-                salesTab: "general",
+                salesTab: assignedTo ? "production" : "general",
             });
         },
         open(salesOverviewId: number, mode: Modes) {

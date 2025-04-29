@@ -1,6 +1,6 @@
 import { useContext, useState } from "react";
 import Link from "next/link";
-import { openSalesOverview } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet";
+import { openSalesOverview } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet.bin";
 import { PrintOrderMenuAction } from "@/components/_v1/actions/sales-menu-actions";
 import {
     Menu,

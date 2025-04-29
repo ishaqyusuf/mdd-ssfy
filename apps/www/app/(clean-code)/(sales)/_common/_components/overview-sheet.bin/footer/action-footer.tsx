@@ -10,7 +10,7 @@ import {
     deleteSalesUseCase,
     restoreDeleteUseCase,
 } from "../../../use-case/sales-use-case";
-import { openSalesOverview } from "../../sales-overview-sheet";
+import { openSalesOverview } from "../../sales-overview-sheet.bin";
 import { useSalesOverview } from "../overview-provider";
 import { CopyAction } from "./copy.action";
 import { MoveAction } from "./move.action";

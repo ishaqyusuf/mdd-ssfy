@@ -10,6 +10,8 @@ import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { openLink } from "@/lib/open-link";
 import { timeout } from "@/lib/timeout";
+import Note from "@/modules/notes";
+import { noteTagFilter } from "@/modules/notes/utils";
 import { salesFormUrl } from "@/utils/sales-utils";
 import {
     Building,
@@ -668,6 +670,19 @@ export function GeneralTab({}) {
                         </CardContent>
                     </Card>
                 </div>
+                <Note
+                    admin
+                    tagFilters={[noteTagFilter("salesId", data?.id)]}
+                    typeFilters={[
+                        "general",
+                        "dispatch",
+                        "payment",
+                        "production",
+                    ]}
+                    statusFilters={["public", "private"]}
+                    subject={`Sales Note`}
+                    headline={`${data?.orderId}`}
+                />
                 <GeneralFooter />
             </div>
         </DataSkeletonProvider>

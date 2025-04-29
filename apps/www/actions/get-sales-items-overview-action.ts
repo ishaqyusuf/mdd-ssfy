@@ -13,18 +13,12 @@ import {
     SalesType,
 } from "@/app/(clean-code)/(sales)/types";
 import { prisma, Prisma } from "@/db";
-import { sum } from "@/lib/utils";
 import {
     composeQtyMatrix,
     composeSalesItemControlStat,
     Qty,
-    qtyMatrixDifference,
 } from "@/utils/sales-control-util";
-import {
-    formatControlQty,
-    getItemStatConfig,
-    qtyControlsByType,
-} from "@/utils/sales-utils";
+import { getItemStatConfig } from "@/utils/sales-utils";
 
 export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
     let _select = select;

@@ -1,5 +1,5 @@
-import { salesOverviewStore } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet/store";
 import React, { useEffect, useState } from "react";
+import { salesOverviewStore } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet.bin/store";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -9,7 +9,7 @@ export function useItemsTabContext() {
     const [tab, setTab] = useState("production");
     let productionMode = tab == "production";
     const items = itemOverview?.items?.filter((item) =>
-        productionMode ? item.produceable : true
+        productionMode ? item.produceable : true,
     );
     const noItem = items?.length == 0;
     const form = useForm({
@@ -46,14 +46,14 @@ export function useItemsTabContext() {
         },
         toggeItemSelection(uid) {
             const item = itemOverview.items.find(
-                (item) => item.itemControlUid == uid
+                (item) => item.itemControlUid == uid,
             );
             if (item.status.qty.total <= item.status.prodAssigned.total) {
                 toast.error("Already assigned item cannot be selected");
                 return;
             }
             const index = selectionArray.fields.findIndex(
-                (field) => field.itemUid == uid
+                (field) => field.itemUid == uid,
             );
             if (index == -1) {
                 selectionArray.append({ itemUid: uid });

@@ -1,6 +1,6 @@
 "use client";
 
-import { openSalesProductionModal } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet";
+import { openSalesProductionModal } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet.bin";
 import {
     MenuItem,
     RowActionMoreMenu,

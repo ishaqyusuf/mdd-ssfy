@@ -11,7 +11,7 @@ import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/i
 import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
 import { _modal } from "@/components/common/modal/provider";
 
-import { openSalesProductionModal } from "../../../_common/_components/sales-overview-sheet";
+import { openSalesProductionModal } from "../../../_common/_components/sales-overview-sheet.bin";
 import { __filters } from "../../../_common/utils/contants";
 import { Cells } from "./production-page-cells";
 

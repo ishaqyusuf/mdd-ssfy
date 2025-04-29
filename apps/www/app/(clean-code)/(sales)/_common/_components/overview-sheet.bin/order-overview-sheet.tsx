@@ -27,7 +27,7 @@ import { useEffect } from "react";
 import { isProdClient } from "@/lib/is-prod";
 
 import { SalesDispatchListDto } from "../../data-access/dto/sales-shipping-dto";
-import { openSalesOverview } from "../sales-overview-sheet";
+import { openSalesOverview } from "../sales-overview-sheet.bin";
 import ActionFooter from "./footer/action-footer";
 import { SalesItemsOverview } from "./item-view/sales-items-overview";
 import NotificationTab from "./notification";

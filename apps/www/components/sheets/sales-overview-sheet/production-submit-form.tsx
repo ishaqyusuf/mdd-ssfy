@@ -1,12 +1,8 @@
 import { useEffect } from "react";
 import { redirect } from "next/navigation";
 import { createSalesAssignmentAction } from "@/actions/create-sales-assignment";
-import {
-    createAssignmentSchema,
-    createSubmissionSchema,
-} from "@/actions/schema";
+import { createSubmissionSchema } from "@/actions/schema";
 import { submitSalesAssignmentAction } from "@/actions/submit-sales-assignment";
-import { DatePicker } from "@/components/(clean-code)/custom/controlled/date-picker";
 import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import FormInput from "@/components/common/controls/form-input";
 import FormSelect from "@/components/common/controls/form-select";

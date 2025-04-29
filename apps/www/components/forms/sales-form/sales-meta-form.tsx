@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { openSalesOverview } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet";
+import { openSalesOverview } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet.bin";
 import salesData from "@/app/(clean-code)/(sales)/_common/utils/sales-data";
 import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SettingsClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";

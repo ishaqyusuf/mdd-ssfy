@@ -107,7 +107,6 @@ export function GeneralFooter({}) {
                         type={data?.type}
                         pdf
                     />
-
                     <MenuItemSalesCopy
                         slug={data?.uuid}
                         onOpenMenu={setMenuOpen}

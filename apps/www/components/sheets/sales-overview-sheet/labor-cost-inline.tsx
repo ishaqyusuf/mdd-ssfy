@@ -1,13 +1,13 @@
 "use client";
 
-import { salesOverviewStore } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet/store";
-
-import { InlineTextEditor } from "../../inline-text-editor";
-import Money from "../../_v1/money";
-import { InfoLine } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet/tabs/sales-info-tab";
 import { updateSalesLaborCostAction } from "@/actions/update-sales-labor-cost-action";
-import { refreshTabData } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet/helper";
+import { refreshTabData } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet.bin/helper";
+import { salesOverviewStore } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet.bin/store";
+import { InfoLine } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet.bin/tabs/sales-info-tab";
+
+import Money from "../../_v1/money";
 import { revalidateTable } from "../../(clean-code)/data-table/use-infinity-data-table";
+import { InlineTextEditor } from "../../inline-text-editor";
 
 export function LaborCostInline() {
     const store = salesOverviewStore();

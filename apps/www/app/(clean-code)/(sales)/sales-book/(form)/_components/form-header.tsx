@@ -12,7 +12,7 @@ import { Label } from "@gnd/ui/label";
 
 import { useFormDataStore } from "../_common/_stores/form-data-store";
 import { Sticky } from "../_hooks/use-sticky";
-import { openSalesOverview } from "../../../_common/_components/sales-overview-sheet";
+import { openSalesOverview } from "../../../_common/_components/sales-overview-sheet.bin";
 import FormSettingsModal from "./modals/form-settings-modal";
 
 export function FormHeader({ sticky }: { sticky: Sticky }) {

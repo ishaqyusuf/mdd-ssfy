@@ -5,6 +5,8 @@ import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import Note from "@/modules/notes";
+import { noteTagFilter } from "@/modules/notes/utils";
 
 import { SheetDescription, SheetHeader, SheetTitle } from "@gnd/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
@@ -66,27 +68,67 @@ function Content() {
                     </DataSkeletonProvider>
                     <SheetDescription>
                         <TabsList className="flex w-full justify-start">
-                            <TabsTrigger value="general">General</TabsTrigger>
-                            <TabsTrigger value="production">
-                                Productions
-                            </TabsTrigger>
-                            <TabsTrigger value="payment">Payment</TabsTrigger>
-                            <TabsTrigger value="dispatch">Dispatch</TabsTrigger>
+                            {query?.assignedTo ? (
+                                <>
+                                    <TabsTrigger value="production">
+                                        Productions
+                                    </TabsTrigger>
+                                    <TabsTrigger value="production-notes">
+                                        Notes
+                                    </TabsTrigger>
+                                </>
+                            ) : (
+                                <>
+                                    <TabsTrigger value="general">
+                                        General
+                                    </TabsTrigger>
+                                    <TabsTrigger value="production">
+                                        Productions
+                                    </TabsTrigger>
+                                    <TabsTrigger value="payment">
+                                        Payment
+                                    </TabsTrigger>
+                                    <TabsTrigger value="dispatch">
+                                        Dispatch
+                                    </TabsTrigger>
+                                </>
+                            )}
                         </TabsList>
                     </SheetDescription>
                 </SheetHeader>
             </Tabs>
             <CustomSheetContent className="-mt-4">
                 <Tabs value={query?.params?.salesTab}>
-                    <TabsContent value="general">
-                        <GeneralTab />
-                    </TabsContent>
-                    <TabsContent value="production">
-                        <ProductionTab />
-                    </TabsContent>
-                    <TabsContent value="dispatch">
-                        <DispatchTab />
-                    </TabsContent>
+                    {query?.assignedTo ? (
+                        <>
+                            <TabsContent value="production">
+                                <ProductionTab />
+                            </TabsContent>
+                            <TabsContent value="production-notes">
+                                <Note
+                                    subject={"Production Note"}
+                                    headline=""
+                                    statusFilters={["public"]}
+                                    typeFilters={["production", "general"]}
+                                    tagFilters={[
+                                        noteTagFilter("salesId", data?.id),
+                                    ]}
+                                />
+                            </TabsContent>
+                        </>
+                    ) : (
+                        <>
+                            <TabsContent value="general">
+                                <GeneralTab />
+                            </TabsContent>
+                            <TabsContent value="production">
+                                <ProductionTab />
+                            </TabsContent>
+                            <TabsContent value="dispatch">
+                                <DispatchTab />
+                            </TabsContent>
+                        </>
+                    )}
                 </Tabs>
             </CustomSheetContent>
         </CustomSheet>

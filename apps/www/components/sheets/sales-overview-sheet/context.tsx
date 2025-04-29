@@ -103,6 +103,7 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
             await timeout(100);
             const res = await getSalesItemsOverviewAction(
                 ctx.params["sales-overview-id"],
+                ctx?.assignedTo,
             );
 
             return res;

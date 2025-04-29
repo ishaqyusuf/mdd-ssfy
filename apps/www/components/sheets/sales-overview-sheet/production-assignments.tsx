@@ -16,6 +16,7 @@ import {
 } from "@gnd/ui/collapsible";
 import { Icons } from "@gnd/ui/icons";
 
+import { AccessBased } from "./access-based";
 import { ProgressItem } from "./item-progress-bar";
 import { ProductionAssignmentForm } from "./production-assignment-form";
 import { ProductionAssignmentRow } from "./production-assignment-row";
@@ -33,6 +34,7 @@ export const {
             item.controlUid,
             item.itemId,
             item.doorId,
+            queryCtx.assignedTo,
         );
         return result;
     }, [item.controlUid, queryCtx.refreshTok]);
@@ -65,32 +67,34 @@ export function Content() {
                 <Collapsible open={open} onOpenChange={setOpen}>
                     <div className="flex items-center justify-between">
                         <h4 className="text-sm font-medium">Assignments</h4>
-                        <CollapsibleTrigger asChild>
-                            <DataSkeleton className="h-8">
-                                <Button
-                                    disabled={
-                                        !item?.analytics?.assignment?.pending
-                                            ?.qty
-                                    }
-                                    onClick={(e) => setOpen(!open)}
-                                    size="sm"
-                                    variant="outline"
-                                    className="mt-2 w-full"
-                                >
-                                    {open ? (
-                                        <>
-                                            <Icons.Close className="mr-2 h-4 w-4" />
-                                            Close
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Icons.Add className="mr-2 h-4 w-4" />
-                                            New Assignment
-                                        </>
-                                    )}
-                                </Button>
-                            </DataSkeleton>
-                        </CollapsibleTrigger>
+                        <AccessBased>
+                            <CollapsibleTrigger asChild>
+                                <DataSkeleton className="h-8">
+                                    <Button
+                                        disabled={
+                                            !item?.analytics?.assignment
+                                                ?.pending?.qty
+                                        }
+                                        onClick={(e) => setOpen(!open)}
+                                        size="sm"
+                                        variant="outline"
+                                        className="mt-2 w-full"
+                                    >
+                                        {open ? (
+                                            <>
+                                                <Icons.Close className="mr-2 h-4 w-4" />
+                                                Close
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Icons.Add className="mr-2 h-4 w-4" />
+                                                New Assignment
+                                            </>
+                                        )}
+                                    </Button>
+                                </DataSkeleton>
+                            </CollapsibleTrigger>
+                        </AccessBased>
                     </div>
                     <CollapsibleContent>
                         <ProductionAssignmentForm

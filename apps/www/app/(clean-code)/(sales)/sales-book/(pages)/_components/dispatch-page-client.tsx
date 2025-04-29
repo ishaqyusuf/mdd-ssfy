@@ -1,17 +1,16 @@
 "use client";
 
-import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
-
+import QueryTab from "@/app/(clean-code)/_common/query-tab";
+import { QueryTabAction } from "@/app/(clean-code)/_common/query-tab/query-tab-edit";
 import { DataTable } from "@/components/(clean-code)/data-table";
 import { DataTableFilterCommand } from "@/components/(clean-code)/data-table/filter-command";
 import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/infinity/data-table-toolbar";
+import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
 
-import { DispatchCells } from "./dispatch-page-cells";
 import { DispatchOverviewSheet } from "../../../_common/_components/overview-sheet.bin/order-overview-sheet";
+import { openDispatchModal } from "../../../_common/_components/sales-overview-sheet.bin";
 import { __filters } from "../../../_common/utils/contants";
-import { QueryTabAction } from "@/app/(clean-code)/_common/query-tab/query-tab-edit";
-import QueryTab from "@/app/(clean-code)/_common/query-tab";
-import { openDispatchModal } from "../../../_common/_components/sales-overview-sheet";
+import { DispatchCells } from "./dispatch-page-cells";
 
 interface Props {
     queryKey?;
@@ -25,20 +24,20 @@ export default function DispatchPageClient({ queryKey, filterFields }: Props) {
                 ctx.Column(
                     "Dispatch #",
                     "dispatchId",
-                    DispatchCells.DispatchId
+                    DispatchCells.DispatchId,
                 ),
                 ctx.Column("Order #", "orderId", DispatchCells.Order),
                 ctx.Column(
                     "Dispatch Mode",
                     "orderId",
-                    DispatchCells.DispatchMode
+                    DispatchCells.DispatchMode,
                 ),
                 ctx.Column("Address", "address", DispatchCells.Address),
                 ctx.Column("Created By", "rep", DispatchCells.SalesRep),
                 ctx.Column(
                     "Assigned To",
                     "dispatcher",
-                    DispatchCells.Dispatcher
+                    DispatchCells.Dispatcher,
                 ),
                 ctx.Column("Status", "status", DispatchCells.Status),
                 ...__filters()["sales-delivery"].filterColumns,
@@ -67,7 +66,7 @@ export default function DispatchPageClient({ queryKey, filterFields }: Props) {
                 }}
             >
                 <DataTable.Header top="lg" className="bg-white">
-                    <div className="flex justify-between items-end mb-2 gap-2 sm:sticky">
+                    <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
                         <div className="">
                             <QueryTab page="orders" />
                         </div>

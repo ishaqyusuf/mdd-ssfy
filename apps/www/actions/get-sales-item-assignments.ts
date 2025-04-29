@@ -13,6 +13,7 @@ export async function getSalesItemAssignments(
     salesItemControlUid,
     itemId,
     doorId?,
+    assignedToId?,
 ) {
     const assignments = await prisma.orderItemProductionAssignments.findMany({
         where: {
@@ -23,6 +24,7 @@ export async function getSalesItemAssignments(
                     salesDoorId: doorId || undefined,
                 },
             ],
+            assignedToId: assignedToId || undefined,
         },
         include: {
             submissions: {

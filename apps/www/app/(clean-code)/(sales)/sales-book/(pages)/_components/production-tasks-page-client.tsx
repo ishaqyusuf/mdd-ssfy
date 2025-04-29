@@ -12,6 +12,7 @@ import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/i
 import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
 import { _modal } from "@/components/common/modal/provider";
 import { TaskProductionTabs } from "@/components/task-production-tabs";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 import { Badge } from "@gnd/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
@@ -19,7 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import {
     openSalesProductionModal,
     openSalesProductionTasksModal,
-} from "../../../_common/_components/sales-overview-sheet";
+} from "../../../_common/_components/sales-overview-sheet.bin";
 import { __filters } from "../../../_common/utils/contants";
 import { Cells } from "./production-page-cells";
 
@@ -50,7 +51,7 @@ export default function ProductionTasksPageClient({
             },
         },
     });
-
+    const ctx = useSalesOverviewQuery();
     return (
         <div className="bg-white">
             <DataTable.Infinity
@@ -58,9 +59,10 @@ export default function ProductionTasksPageClient({
                 ActionCell={Cells.Action}
                 queryKey={queryKey}
                 itemViewFn={(item) => {
-                    openSalesProductionTasksModal({
-                        salesId: item.id,
-                    });
+                    ctx.open2(item.uuid, "production-tasks");
+                    // openSalesProductionTasksModal({
+                    //     salesId: item.id,
+                    // });
                 }}
                 {...table.props}
             >

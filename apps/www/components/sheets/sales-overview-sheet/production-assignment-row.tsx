@@ -27,6 +27,7 @@ import {
     TooltipTrigger,
 } from "@gnd/ui/tooltip";
 
+import { AccessBased } from "./access-based";
 import { useProductionAssignments } from "./production-assignments";
 import { ProductionSubmissions } from "./production-submissions";
 import { ProductionSubmitForm } from "./production-submit-form";
@@ -159,30 +160,31 @@ function Content() {
                         )}
                         {assignment.status?.replace("-", " ")}
                     </Badge>
-                    <ConfirmBtn
-                        disabled={deleteAction.isExecuting}
-                        onClick={(e) => {
-                            if (assignment.submissionCount) {
-                                toast.error("Cannot perform action", {
-                                    description:
-                                        "Assignment cannot be deleted as it contains submitted items.",
+                    <AccessBased>
+                        <ConfirmBtn
+                            disabled={deleteAction.isExecuting}
+                            onClick={(e) => {
+                                if (assignment.submissionCount) {
+                                    toast.error("Cannot perform action", {
+                                        description:
+                                            "Assignment cannot be deleted as it contains submitted items.",
+                                    });
+                                    return;
+                                }
+                                toast.display({
+                                    description: "Deleting...",
+                                    duration: Number.POSITIVE_INFINITY,
                                 });
-                                return;
-                            }
-                            toast.display({
-                                description: "Deleting...",
-                                duration: Number.POSITIVE_INFINITY,
-                            });
-                            deleteAction.execute({
-                                assignmentId: assignment.id,
-                                itemUid: itemCtx?.item?.controlUid,
-                            });
-                        }}
-                        trash
-                        size="icon"
-                    />
+                                deleteAction.execute({
+                                    assignmentId: assignment.id,
+                                    itemUid: itemCtx?.item?.controlUid,
+                                });
+                            }}
+                            trash
+                            size="icon"
+                        />
+                    </AccessBased>
                 </div>
-
                 <div className="space-y-2 pt-2">
                     <div className="flex items-center justify-between">
                         <p className="text-xs font-medium">Submissions</p>

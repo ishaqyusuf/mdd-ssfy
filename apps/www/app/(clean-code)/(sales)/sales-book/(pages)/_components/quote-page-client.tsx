@@ -14,7 +14,7 @@ import { isProdClient } from "@/lib/is-prod";
 import { Button } from "@gnd/ui/button";
 
 import { OrderOverviewSheet } from "../../../_common/_components/overview-sheet.bin/order-overview-sheet";
-import { openQuoteOVerview } from "../../../_common/_components/sales-overview-sheet";
+import { openQuoteOVerview } from "../../../_common/_components/sales-overview-sheet.bin";
 import { __filters } from "../../../_common/utils/contants";
 import { QuotesCell } from "./quotes-page-cells";
 
