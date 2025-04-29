@@ -26,7 +26,6 @@ import { Button } from "@gnd/ui/button";
 
 import { PrintAction } from "../../../_common/_components/overview-sheet.bin/footer/print.action";
 import { OrderOverviewSheet } from "../../../_common/_components/overview-sheet.bin/order-overview-sheet";
-import { openSalesOverview } from "../../../_common/_components/sales-overview-sheet.bin";
 import { deleteSalesByOrderIds } from "../../../_common/data-actions/sales-actions";
 import { __filters } from "../../../_common/utils/contants";
 import { OrderCells as Cells } from "./orders-page-cells";
@@ -71,9 +70,6 @@ export default function OrdersPageClient({
                 checkable
                 itemViewFn={(data) => {
                     overviewQuery.open2(data.uuid, "sales");
-                    // openSalesOverview({
-                    //     salesId: data.id,
-                    // });
                 }}
                 ActionCell={Cells.Action}
                 queryKey={queryKey}

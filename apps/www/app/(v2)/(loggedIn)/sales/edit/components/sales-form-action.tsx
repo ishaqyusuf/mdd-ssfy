@@ -1,6 +1,5 @@
 import { useContext, useState } from "react";
 import Link from "next/link";
-import { openSalesOverview } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet.bin";
 import { PrintOrderMenuAction } from "@/components/_v1/actions/sales-menu-actions";
 import {
     Menu,
@@ -8,6 +7,7 @@ import {
 } from "@/components/_v1/data-table/data-table-row-actions";
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import { Icons } from "@/components/_v1/icons";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { Button } from "@gnd/ui/button";
@@ -23,6 +23,7 @@ export default function SalesFormAction() {
     const form = useFormContext<ISalesForm>();
     const date = form.watch("createdAt");
     const saveHook = useSaveSalesHook();
+    const overviewQuery = useSalesOverviewQuery();
 
     const [value, setValue] = useState("");
     return (
@@ -62,9 +63,10 @@ export default function SalesFormAction() {
                 {ctx.data.form?.id && (
                     <Button
                         onClick={() => {
-                            openSalesOverview({
-                                salesId: ctx.data?.form?.id,
-                            });
+                            overviewQuery.open2(
+                                ctx.data?.form?.orderId,
+                                ctx.data?.form?.type,
+                            );
                         }}
                         size="xs"
                     >

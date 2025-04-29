@@ -3,6 +3,7 @@ import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_
 import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 import { Button } from "@gnd/ui/button";
 
@@ -12,6 +13,8 @@ export function Footer({}) {
     const zus = useFormDataStore();
     let amountDue = zus.metaData.pricing?.dueAmount;
     const customerQuery = useCustomerOverviewQuery();
+
+    const overviewQuery = useSalesOverviewQuery();
     return (
         <div className="border-t pt-2">
             <div className="flex justify-end gap-4">
@@ -34,9 +37,13 @@ export function Footer({}) {
                 <Button
                     disabled={!zus.metaData.id}
                     onClick={() => {
-                        openSalesOverview({
-                            salesId: zus.metaData.id,
-                        });
+                        overviewQuery.open2(
+                            zus.metaData?.salesId,
+                            zus.metaData?.type as any,
+                        );
+                        // openSalesOverview({
+                        //     salesId: zus.metaData.id,
+                        // });
                     }}
                     size="xs"
                     variant="outline"

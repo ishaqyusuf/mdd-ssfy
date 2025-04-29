@@ -10,7 +10,6 @@ import {
     deleteSalesUseCase,
     restoreDeleteUseCase,
 } from "../../../use-case/sales-use-case";
-import { openSalesOverview } from "../../sales-overview-sheet.bin";
 import { useSalesOverview } from "../overview-provider";
 import { CopyAction } from "./copy.action";
 import { MoveAction } from "./move.action";
@@ -26,9 +25,6 @@ export default function ActionFooter({}) {
             <Button
                 onClick={() => {
                     ctx.closeModal();
-                    openSalesOverview({
-                        salesId: ctx.item?.id,
-                    });
                 }}
             >
                 NEW SHEET

@@ -5,6 +5,7 @@ import { _modal } from "@/components/common/modal/provider";
 import { SalesFormEmailMenu } from "@/components/forms/sales-form/sales-form-email-menu";
 import { SalesFormPrintMenu } from "@/components/forms/sales-form/sales-form-print-menu";
 import { SalesFormSave } from "@/components/forms/sales-form/sales-form-save";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { cn } from "@/lib/utils";
 import { MenuIcon } from "lucide-react";
 
@@ -12,7 +13,6 @@ import { Label } from "@gnd/ui/label";
 
 import { useFormDataStore } from "../_common/_stores/form-data-store";
 import { Sticky } from "../_hooks/use-sticky";
-import { openSalesOverview } from "../../../_common/_components/sales-overview-sheet.bin";
 import FormSettingsModal from "./modals/form-settings-modal";
 
 export function FormHeader({ sticky }: { sticky: Sticky }) {
@@ -28,6 +28,7 @@ export function FormHeader({ sticky }: { sticky: Sticky }) {
     function isActive(tab) {
         return (!zus.currentTab && tab.default) || zus.currentTab == tab.name;
     }
+    const ctx = useSalesOverviewQuery();
 
     return (
         <div
@@ -94,9 +95,10 @@ export function FormHeader({ sticky }: { sticky: Sticky }) {
                     size="xs"
                     disabled={!zus.metaData.id}
                     onClick={() => {
-                        openSalesOverview({
-                            salesId: zus.metaData.id,
-                        });
+                        ctx.open2(
+                            zus.metaData?.salesId,
+                            zus.metaData.type as any,
+                        );
                     }}
                 >
                     <span className="">Overview</span>

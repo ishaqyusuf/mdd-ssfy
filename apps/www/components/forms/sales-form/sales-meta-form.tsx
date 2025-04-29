@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { openSalesOverview } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet.bin";
 import salesData from "@/app/(clean-code)/(sales)/_common/utils/sales-data";
 import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SettingsClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
@@ -10,6 +9,7 @@ import { AnimatedNumber } from "@/components/animated-number";
 import { FormSelectProps } from "@/components/common/controls/form-select";
 import { NumberInput } from "@/components/currency-input";
 import { LabelInput } from "@/components/label-input";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { cn } from "@/lib/utils";
 import { NumericFormatProps } from "react-number-format";
 
@@ -42,6 +42,7 @@ export function SalesMetaForm({}) {
         // , "customer"
     ];
     const [tab, setTab] = useState(md?.id ? "summary" : "summary");
+    const ctx = useSalesOverviewQuery();
     return (
         <div className="">
             <div className="flex border-b">
@@ -70,9 +71,10 @@ export function SalesMetaForm({}) {
                         <SalesFormSave type="menu" />
                         <Menu.Item
                             onClick={() => {
-                                openSalesOverview({
-                                    salesId: zus.metaData.id,
-                                });
+                                overviewQuery.open2(
+                                    zus.metaData?.salesId,
+                                    zus.metaData?.type as any,
+                                );
                             }}
                             Icon={Icons.customerService}
                         >
