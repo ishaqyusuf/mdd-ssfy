@@ -40,7 +40,6 @@ export function CustomerCreateSheet() {
                 };
             }
         }
-
         return data;
     }, [opened, params.customerId]);
     if (!opened) return;

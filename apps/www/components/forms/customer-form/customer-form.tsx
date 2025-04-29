@@ -79,9 +79,9 @@ export function CustomerForm({ data }: Props) {
     );
     const { taxProfiles, salesProfiles } = resp?.data || {};
     useEffect(() => {
-        if (data) {
-            console.log(data);
+        console.log({ data, params });
 
+        if (data) {
             setSections(params?.address ? ["address"] : ["general", "address"]);
             let formData = {};
             Object.entries(data).map(
@@ -91,6 +91,16 @@ export function CustomerForm({ data }: Props) {
                 ...formData,
                 addressOnly: !!params.address,
             });
+        } else {
+            if (
+                params.search &&
+                Number.isInteger(params.search?.replaceAll("-", "")?.trim())
+            ) {
+                console.log({ params });
+                form.reset({
+                    phoneNo: params.search,
+                });
+            }
         }
     }, [data, form, params]);
 

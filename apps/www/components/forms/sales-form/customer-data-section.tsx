@@ -315,6 +315,7 @@ function AddressDataSearch({
                                     e.preventDefault();
                                     setParams({
                                         customerForm: true,
+                                        search: q,
                                     });
                                 }}
                                 className="w-full space-y-1 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground"

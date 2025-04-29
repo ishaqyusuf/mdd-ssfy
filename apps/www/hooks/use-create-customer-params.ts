@@ -2,6 +2,7 @@ import {
     parseAsBoolean,
     parseAsInteger,
     parseAsJson,
+    parseAsString,
     parseAsStringEnum,
     useQueryStates,
 } from "nuqs";
@@ -14,6 +15,7 @@ export function useCreateCustomerParams() {
         customerForm: parseAsBoolean,
         addressId: parseAsInteger,
         customerId: parseAsInteger,
+        search: parseAsString,
         address: parseAsStringEnum(["sad", "bad"]),
         payload: parseAsJson<{
             addressId?: number;

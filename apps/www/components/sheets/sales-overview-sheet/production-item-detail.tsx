@@ -1,3 +1,6 @@
+import Note from "@/modules/notes";
+import { noteTagFilter } from "@/modules/notes/utils";
+
 import { CardContent } from "@gnd/ui/card";
 import { cn } from "@gnd/ui/cn";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
@@ -30,10 +33,22 @@ export function ProductionItemDetail({}) {
                     <Details />
                 </TabsContent>
                 {/* Notes Tab */}
-                <TabsContent
-                    value="notes"
-                    className="mt-4 space-y-4"
-                ></TabsContent>
+                <TabsContent value="notes" className="mt-4 space-y-4">
+                    <Note
+                        subject={"Production Note"}
+                        headline=""
+                        statusFilters={["public"]}
+                        typeFilters={["production", "general"]}
+                        tagFilters={[
+                            noteTagFilter(
+                                "itemControlUID",
+                                ctx?.item?.controlUid,
+                            ),
+                            noteTagFilter("salesItemId", ctx?.item?.itemId),
+                            noteTagFilter("salesId", ctx?.item?.salesId),
+                        ]}
+                    />
+                </TabsContent>
                 {/* Assignments Tab */}
                 <TabsContent value="assignments" className="mt-4 space-y-4">
                     <ProductionItemAssignments />

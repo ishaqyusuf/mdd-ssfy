@@ -85,9 +85,9 @@ function Content() {
                                     <TabsTrigger value="production">
                                         Productions
                                     </TabsTrigger>
-                                    <TabsTrigger value="payment">
+                                    {/* <TabsTrigger value="payment">
                                         Payment
-                                    </TabsTrigger>
+                                    </TabsTrigger> */}
                                     <TabsTrigger value="dispatch">
                                         Dispatch
                                     </TabsTrigger>
