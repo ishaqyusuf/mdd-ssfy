@@ -71,7 +71,7 @@ export function SalesMetaForm({}) {
                         <SalesFormSave type="menu" />
                         <Menu.Item
                             onClick={() => {
-                                overviewQuery.open2(
+                                ctx.open2(
                                     zus.metaData?.salesId,
                                     zus.metaData?.type as any,
                                 );
