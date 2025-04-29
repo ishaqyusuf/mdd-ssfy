@@ -6,6 +6,7 @@ import {
     RowActionMoreMenu,
 } from "@/components/_v1/data-table/data-table-row-actions";
 import { TableCol } from "@/components/common/data-table/table-cells";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { cn, sum } from "@/lib/utils";
 import { Dot } from "lucide-react";
 
@@ -134,13 +135,15 @@ function AssignedTo({ item }: Props) {
     );
 }
 function Actions({ item }: Props) {
+    const ctx = useSalesOverviewQuery();
     return (
         <>
             <Button
                 onClick={() => {
-                    openSalesProductionModal({
-                        salesId: item.id,
-                    });
+                    ctx.open2(item.orderId, "sales-production");
+                    // openSalesProductionModal({
+                    //     salesId: item.id,
+                    // });
                 }}
                 size={"sm"}
                 className="h-8"
