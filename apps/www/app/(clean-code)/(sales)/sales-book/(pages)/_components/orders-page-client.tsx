@@ -70,7 +70,7 @@ export default function OrdersPageClient({
             <DataTable.Infinity
                 checkable
                 itemViewFn={(data) => {
-                    overviewQuery.open(data.uuid, "sales");
+                    overviewQuery.open2(data.uuid, "sales");
                     // openSalesOverview({
                     //     salesId: data.id,
                     // });
