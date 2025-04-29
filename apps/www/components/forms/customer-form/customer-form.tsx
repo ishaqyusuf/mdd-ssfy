@@ -93,8 +93,9 @@ export function CustomerForm({ data }: Props) {
             });
         } else {
             if (
-                params.search &&
-                Number.isInteger(params.search?.replaceAll("-", "")?.trim())
+                params.search
+                //  &&
+                // Number.isInteger(params.search?.replaceAll("-", "")?.trim())
             ) {
                 console.log({ params });
                 form.reset({
