@@ -10,6 +10,7 @@ import { DataTableFilterCommand } from "@/components/(clean-code)/data-table/fil
 import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/infinity/data-table-toolbar";
 import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
 import { _modal } from "@/components/common/modal/provider";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 import { openSalesProductionModal } from "../../../_common/_components/sales-overview-sheet.bin";
 import { __filters } from "../../../_common/utils/contants";
@@ -44,6 +45,7 @@ export default function ProductionsPageClient({
             },
         },
     });
+    const ctx = useSalesOverviewQuery();
     return (
         <div className="bg-white">
             <DataTable.Infinity
@@ -51,9 +53,10 @@ export default function ProductionsPageClient({
                 ActionCell={Cells.Action}
                 queryKey={queryKey}
                 itemViewFn={(item) => {
-                    openSalesProductionModal({
-                        salesId: item.id,
-                    });
+                    ctx.open2(item.uuid, "production-tasks");
+                    // openSalesProductionModal({
+                    //     salesId: item.id,
+                    // });
                 }}
                 {...table.props}
             >
