@@ -325,6 +325,14 @@ export function whereSales(query: SearchParamsType) {
                           },
                       },
             });
+        case "part assigned":
+            whereAnd.push({
+                assignments: {
+                    some: {
+                        deletedAt: null,
+                    },
+                },
+            });
         case "due today":
             whereAnd.push({
                 assignments: {

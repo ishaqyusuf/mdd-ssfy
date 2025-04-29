@@ -97,7 +97,7 @@ export function FormHeader({ sticky }: { sticky: Sticky }) {
                     onClick={() => {
                         ctx.open2(
                             zus.metaData?.salesId,
-                            zus.metaData.type as any,
+                            zus.metaData.type == "order" ? "sales" : "quote",
                         );
                     }}
                 >

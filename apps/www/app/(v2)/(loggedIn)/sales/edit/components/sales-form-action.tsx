@@ -65,7 +65,9 @@ export default function SalesFormAction() {
                         onClick={() => {
                             overviewQuery.open2(
                                 ctx.data?.form?.orderId,
-                                ctx.data?.form?.type,
+                                ctx.data?.form?.type == "order"
+                                    ? "sales"
+                                    : "quote",
                             );
                         }}
                         size="xs"

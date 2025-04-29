@@ -73,7 +73,9 @@ export function SalesMetaForm({}) {
                             onClick={() => {
                                 ctx.open2(
                                     zus.metaData?.salesId,
-                                    zus.metaData?.type as any,
+                                    zus.metaData.type == "order"
+                                        ? "sales"
+                                        : "quote",
                                 );
                             }}
                             Icon={Icons.customerService}

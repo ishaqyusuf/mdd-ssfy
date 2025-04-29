@@ -39,7 +39,7 @@ export function Footer({}) {
                     onClick={() => {
                         overviewQuery.open2(
                             zus.metaData?.salesId,
-                            zus.metaData?.type as any,
+                            zus.metaData.type == "order" ? "sales" : "quote",
                         );
                         // openSalesOverview({
                         //     salesId: zus.metaData.id,
