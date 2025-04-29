@@ -1,11 +1,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
+
 import { NoteProps } from ".";
 import { GetNotes, getNotesAction } from "./actions/get-notes-action";
-import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { NoteTagNames } from "./constants";
 
 export const noteContext = createContext<ReturnType<typeof useNoteContext>>(
-    null as any
+    null as any,
 );
 export const NoteProvider = noteContext.Provider;
 export const useNoteContext = (props: NoteProps) => {
@@ -23,29 +24,28 @@ export const useNoteContext = (props: NoteProps) => {
             if (f.tagName == "type" || f.tagName == "status") return;
             tagQuery[`note.${f.tagName}` as any] = f.tagValue;
         });
-        console.log(tagQuery);
         getNotesAction(tagQuery).then((result) => {
             setNotes(
                 result.filter((note) => {
                     let validations = [];
 
                     let status = note.tags.find(
-                        (t) => t.tagName == "status"
+                        (t) => t.tagName == "status",
                     )?.tagValue;
                     if (status)
                         validations.push(
-                            props.statusFilters.includes(status as any)
+                            props.statusFilters.includes(status as any),
                         );
                     let type = note.tags.find(
-                        (t) => t.tagName == ("type" as NoteTagNames)
+                        (t) => t.tagName == ("type" as NoteTagNames),
                     )?.tagValue;
                     console.log([type, status, validations]);
                     if (type)
                         validations.push(
-                            props.typeFilters.includes(type as any)
+                            props.typeFilters.includes(type as any),
                         );
                     return validations.every(Boolean);
-                })
+                }),
             );
         });
     }, []);
