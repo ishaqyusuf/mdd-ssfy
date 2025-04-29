@@ -94,8 +94,14 @@ export function composeSalesItemControlStat(
         };
     }>;
     const assignments = order.assignments
-        .filter((a) => a.itemId == item.itemId)
+        .filter(
+            (a) =>
+                a.itemId == item.itemId &&
+                a.salesDoorId == item.doorId &&
+                a.shelfItemId == item.shelfId,
+        )
         .filter((a) => {
+            if (a.salesDoorId) return true;
             if (!a.salesItemControlUid)
                 a.salesItemControlUid = generateItemControlUid({
                     shelfId: a.shelfItemId,
@@ -106,6 +112,7 @@ export function composeSalesItemControlStat(
                 });
             return a.salesItemControlUid == item.controlUid;
         });
+
     // console.log({ assignments, aa: order.assignments });
     // throw new Error("...");
     const assigned = qtyMatrixSum(
@@ -242,6 +249,10 @@ export function composeSalesItemControlStat(
         dispatchInProgress: dispatch.inProgress,
     } as { [k in QtyControlType]: Qty };
     return {
+        // orderAssignments: order.assignments,
+        assignmentUidUpdates: assignments
+            .filter((a) => a.salesItemControlUid != item.controlUid)
+            .map((a) => a.id),
         stats,
         submissionIds,
         deliverables,

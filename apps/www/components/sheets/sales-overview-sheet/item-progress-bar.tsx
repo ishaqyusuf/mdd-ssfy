@@ -1,9 +1,12 @@
+import { useEffect } from "react";
+
 import { Progress } from "@gnd/ui/progress";
 
 import { ItemCardProps } from "./production-tab";
 
 export function ItemProgressBar({ item }: ItemCardProps) {
     const stats = item?.analytics?.stats;
+
     return (
         <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-3">
             <ProgressItem

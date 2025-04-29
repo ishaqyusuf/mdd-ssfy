@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
+import DevOnly from "@/_v2/components/common/dev-only";
 import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-users";
 import { getSalesItemsOverviewAction } from "@/actions/get-sales-items-overview-action";
 import { DataSkeleton } from "@/components/data-skeleton";
@@ -149,6 +150,7 @@ function ItemCard({ item }: ItemCardProps) {
                                 <p className="font-mono text-sm font-semibold uppercase text-muted-foreground">
                                     {item.subtitle}
                                 </p>
+                                <DevOnly>{item.controlUid}</DevOnly>
                             </div>
 
                             <div className="flex items-center space-x-2">

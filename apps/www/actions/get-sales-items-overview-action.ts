@@ -123,6 +123,21 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
     });
     items = items.sort((a, b) => a.itemIndex - b.itemIndex);
     // order.deliveries.
+    await Promise.all(
+        items.map(async (item) => {
+            if (item.analytics?.assignmentUidUpdates?.length)
+                await prisma.orderItemProductionAssignments.updateMany({
+                    where: {
+                        id: {
+                            in: item.analytics.assignmentUidUpdates,
+                        },
+                    },
+                    data: {
+                        salesItemControlUid: item.controlUid,
+                    },
+                });
+        }),
+    );
     return {
         items,
         orderNo: orderId,
