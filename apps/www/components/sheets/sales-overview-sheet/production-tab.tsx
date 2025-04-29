@@ -32,7 +32,9 @@ export function ProductionTab({}) {
     return (
         <ProductionProvider args={[]}>
             <Content />
-            <ProductionTabFooter />
+            <AccessBased>
+                <ProductionTabFooter />
+            </AccessBased>
         </ProductionProvider>
     );
 }
