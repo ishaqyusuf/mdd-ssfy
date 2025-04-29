@@ -20,6 +20,7 @@ import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-
 import { _modal } from "@/components/common/modal/provider";
 import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
 import { useSalesEmailSender } from "@/hooks/use-sales-email-sender";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 import { Button } from "@gnd/ui/button";
 
@@ -63,15 +64,16 @@ export default function OrdersPageClient({
         },
     });
     const mailClient = useSalesEmailSender();
+    const overviewQuery = useSalesOverviewQuery();
     return (
         <div className="bg-white">
             <DataTable.Infinity
                 checkable
                 itemViewFn={(data) => {
-                    // overviewQuery.open(data.id, "sales");
-                    openSalesOverview({
-                        salesId: data.id,
-                    });
+                    overviewQuery.open(data.uuid, "sales");
+                    // openSalesOverview({
+                    //     salesId: data.id,
+                    // });
                 }}
                 ActionCell={Cells.Action}
                 queryKey={queryKey}
