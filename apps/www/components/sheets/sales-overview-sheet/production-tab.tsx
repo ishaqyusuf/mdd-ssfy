@@ -148,7 +148,6 @@ function ItemCard({ item }: ItemCardProps) {
                                 </h3>
                                 <p className="font-mono text-sm font-semibold uppercase text-muted-foreground">
                                     {item.subtitle}
-                                    {item.subtitle}
                                 </p>
                             </div>
 
