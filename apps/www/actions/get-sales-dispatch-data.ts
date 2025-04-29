@@ -63,7 +63,8 @@ export async function getSalesDispatchDataAction(orderId) {
                         item.orderProductionSubmissionId,
                     ),
                 );
-                const { controlUid, title, sectionTitle, subtitle } = _item;
+                const { controlUid, title, sectionTitle, subtitle } =
+                    _item || {};
                 return {
                     ...item,
                     item: {
