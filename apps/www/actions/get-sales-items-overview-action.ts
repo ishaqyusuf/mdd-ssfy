@@ -107,6 +107,7 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
                     doorId: door.id,
                     hptId: hpt.id,
                     dim: door.dimension,
+                    size: door.dimension,
                     itemIndex,
                     title,
                     itemId: item.id,
