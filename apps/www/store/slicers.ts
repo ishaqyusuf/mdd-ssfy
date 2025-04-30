@@ -6,7 +6,6 @@ import {
     CustomerTypes,
     EmployeeProfile,
     HomeTemplates,
-    InventoryProducts,
     Projects,
     Roles,
     Users,
@@ -70,7 +69,7 @@ export interface ISlicer {
         id;
         data;
     };
-    products: IProduct[];
+    products: any[];
     productionTasks: string[];
     // staticList: IStaticList;
     staticCustomerProfiles: CustomerTypes[];
@@ -84,7 +83,7 @@ export interface ISlicer {
     staticTechEmployees: Users[];
     staticInstallers: Users[];
     staticSalesCustomers: Customers[];
-    staticProducts: InventoryProducts[];
+    staticProducts: any[];
     staticProductCategories: string[];
     staticList: any[];
     refreshToken: string | undefined;
