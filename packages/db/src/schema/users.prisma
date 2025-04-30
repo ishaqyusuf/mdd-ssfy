@@ -71,13 +71,14 @@ model Session {
 }
 
 model EmployeeProfile {
-    id        Int       @unique @default(autoincrement())
-    name      String
-    discount  Int?
-    meta      Json?     @db.Json
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    deletedAt DateTime? @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
+    id                       Int       @unique @default(autoincrement())
+    name                     String
+    discount                 Int?
+    salesComissionPercentage Int?
+    meta                     Json?     @db.Json
+    createdAt                DateTime? @default(now()) @db.Timestamp(0)
+    deletedAt                DateTime? @db.Timestamp(0)
+    updatedAt                DateTime? @updatedAt
 
     employees Users[]
 }
