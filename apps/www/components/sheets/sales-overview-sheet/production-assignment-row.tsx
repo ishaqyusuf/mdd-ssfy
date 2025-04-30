@@ -4,7 +4,9 @@ import {
     useState,
 } from "react";
 import { deleteSalesAssignmentAction } from "@/actions/delete-sales-assignment";
+import { updateAssignmentDueDateUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sales-prod.use-case";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
+import { DatePicker } from "@/components/_v1/date-range-picker";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatDate } from "@/lib/use-day";
@@ -70,6 +72,13 @@ function Content() {
         },
     });
     const toast = useLoadingToast();
+    const [date, setDate] = useState(assignment.dueDate);
+    async function changeDueDate(e) {
+        toast.loading("Updating....");
+        updateAssignmentDueDateUseCase(assignment.id, e).then((resp) => {
+            toast.success("Updated");
+        });
+    }
     return (
         <Collapsible
             open={ctx.openSubmitForm}
@@ -83,22 +92,28 @@ function Content() {
                                 {assignment.assignedTo}
                             </p>
                             {assignment.assignedTo && (
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Badge
-                                                variant="outline"
-                                                className="ml-2 text-xs"
-                                            >
-                                                <Clock className="mr-1 h-3 w-3" />
-                                                {formatDate(assignment.dueDate)}
-                                            </Badge>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Due date</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
+                                <DatePicker
+                                    disabled={!!queryCtx.assignedTo}
+                                    className="ml-2 h-6 w-auto rounded-sm p-0 px-1 text-xs"
+                                    setValue={changeDueDate}
+                                    value={date}
+                                />
+                                // <TooltipProvider>
+                                //     <Tooltip>
+                                //         <TooltipTrigger asChild>
+                                //             <Badge
+                                //                 variant="outline"
+                                //                 className="ml-2 text-xs"
+                                //             >
+                                //                 <Clock className="mr-1 h-3 w-3" />
+                                //                 {formatDate(assignment.dueDate)}
+                                //             </Badge>
+                                //         </TooltipTrigger>
+                                //         <TooltipContent>
+                                //             <p>Due date</p>
+                                //         </TooltipContent>
+                                //     </Tooltip>
+                                // </TooltipProvider>
                             )}
                         </div>
                         <div className="flex gap-2">
