@@ -59,8 +59,8 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
             if (hands?.qty) {
                 if (hands?.lh || hands.rh)
                     handTitle = [
-                        `${hands?.lh ? `${hands?.lh} LH` : null}`,
-                        `${hands?.lh ? `${hands?.lh} RH` : null}`,
+                        hands?.lh ? `${hands?.lh} LH` : null,
+                        hands?.rh ? `${hands?.rh} RH` : null,
                     ]
                         ?.filter(Boolean)
                         ?.join(" & ");
