@@ -122,8 +122,6 @@ export async function createSalesCheckoutLinkAction(props: Props) {
                 paymentLink: paymentLink?.url,
             };
         } catch (error) {
-            console.log(error);
-
             throw new Error(error.message);
         }
     }) as any);

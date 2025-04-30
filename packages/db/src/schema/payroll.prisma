@@ -17,6 +17,7 @@ model SalesPayroll {
 
 model PayrollLineItems {
     id             Int          @unique @default(autoincrement())
+    uid            String       @unique
     amount         Float
     description    String?
     itemUid        String?

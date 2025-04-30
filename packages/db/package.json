@@ -22,7 +22,7 @@
     "db:generate": "bunx with-env prisma generate",
     "db-migrate": "bunx prisma migrate dev",
     "prisma-generate": "bunx prisma generate",
-    "push": "bunx  prisma db push",
+    "push": "bunx prisma db push",
     "pull": "bunx with-env prisma db pull",
     "studio": "bunx with-env prisma studio --port 5556",
     "with-env": "dotenv -e ../../.env --"
