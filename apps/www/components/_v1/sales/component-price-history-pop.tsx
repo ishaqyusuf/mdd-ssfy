@@ -3,7 +3,6 @@ import { getComponentCostHistoryAction } from "@/app/(v1)/(loggedIn)/sales/_acti
 import { Icons } from "@/components/_v1/icons";
 import { ToolTip } from "@/components/_v1/tool-tip";
 import { useBool } from "@/lib/use-loader";
-import { IOrderInventory } from "@/types/inventory";
 import { ISalesWizardForm } from "@/types/post";
 import { History } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
@@ -33,7 +32,7 @@ export function ComponentPriceHistory({
     const [open, setOpen] = React.useState(false);
     const watch = form.watch([`components.${rowIndex}.title`]);
     const loader = useBool();
-    const [components, setComponents] = React.useState<IOrderInventory[]>([]);
+    const [components, setComponents] = React.useState<any[]>([]);
     async function loadComponents() {
         const [title] = watch;
         // setComponents([]);
@@ -46,7 +45,7 @@ export function ComponentPriceHistory({
                 category: field.category,
             });
             console.log(_components);
-            setComponents(_components as IOrderInventory[]);
+            setComponents(_components as any[]);
         });
     }
     //   React.useEffect(() => {
