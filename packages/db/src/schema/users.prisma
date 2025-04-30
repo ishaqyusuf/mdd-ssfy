@@ -54,6 +54,8 @@ model Users {
     customerTransactions        CustomerTransaction[]
     salesTransactions           SalesPayments[]
     submissions                 OrderProductionSubmissions[]
+    salesPayrolls               SalesPayroll[]
+    salesPayoutsByMe            SalesPayout[]
 
     @@index([createdAt, deletedAt, name])
     @@index([employeeProfileId])
@@ -79,8 +81,7 @@ model EmployeeProfile {
     createdAt                DateTime? @default(now()) @db.Timestamp(0)
     deletedAt                DateTime? @db.Timestamp(0)
     updatedAt                DateTime? @updatedAt
-
-    employees Users[]
+    employees                Users[]
 }
 
 model UserDocuments {

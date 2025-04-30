@@ -606,6 +606,7 @@ model OrderItemProductionAssignments {
     qtyAssigned         Int?
     qtyCompleted        Int?
     completedAt         DateTime?
+    salesItemControlUid String?
     lhQty               Int?
     rhQty               Int?
     note                String?
@@ -621,7 +622,6 @@ model OrderItemProductionAssignments {
     assignedTo          Users?                       @relation(name: "orderItemAssignments", fields: [assignedToId], references: [id])
     assignedBy          Users                        @relation(name: "orderItemAssignedByMe", fields: [assignedById], references: [id])
     salesDoor           DykeSalesDoors?              @relation(fields: [salesDoorId], references: [id])
-    salesItemControlUid String?
     itemControl         SalesItemControl?            @relation(fields: [salesItemControlUid], references: [uid])
     shelfItem           DykeSalesShelfItem?          @relation(fields: [shelfItemId], references: [id])
     shelfItemId         Int?
