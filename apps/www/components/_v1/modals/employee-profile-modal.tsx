@@ -84,7 +84,9 @@ export default function EmployeeProfileModal() {
                             <Input
                                 type="number"
                                 className="h-8"
-                                {...form.register("salesComissionPercentage")}
+                                {...form.register(
+                                    "salesComissionPercentage" as any,
+                                )}
                             />
                         </div>
                         <div className="grid gap-2">
