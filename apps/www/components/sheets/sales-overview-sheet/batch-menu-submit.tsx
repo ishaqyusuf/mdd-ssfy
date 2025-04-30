@@ -99,11 +99,12 @@ export function BatchMenuSubmit({ itemIds, setOpened }: Props) {
         },
     });
     async function submit({ assignedToId }: SubmitProps) {
-        if (assignedToId)
+        if (assignedToId) {
             loader.error("Currently disabled", {
                 description: "A bug was detected",
             });
-        return;
+            return;
+        }
         const data = actionControl.emptyActions();
         items?.map((item) => {
             const tok = generateRandomString(5);
