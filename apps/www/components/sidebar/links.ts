@@ -1,3 +1,5 @@
+import { ICan, Permission } from "@/types/auth";
+
 import { IconKeys } from "../_v1/icons";
 
 type moduleNames = "HRM" | "Sales" | "Community";
@@ -36,9 +38,11 @@ const _section = (
     links,
     access,
 });
-type linkNames = "HRM" | "customer-services";
+// type linkNames = "HRM" | "customer-services" | "Dashboard" | "Sales";
+const _subLink = (name, href, access?: Access[]) =>
+    _link(name, null, href, access);
 const _link = (
-    name: linkNames,
+    name, //: linkNames,
     // title?: string,
     icon?: IconKeys,
     href?,
@@ -74,7 +78,6 @@ const __access = (
 ) => ({ type, equator, values }) as Access;
 
 type Role = "Admin" | "Production";
-type Can = "Admin" | "Production";
 const _role = {
     is: (role: Role) => __access("role", "is", role),
     isNot: (role: Role) => __access("role", "isNot", role),
@@ -83,20 +86,48 @@ const _role = {
     every: (...roles: Role[]) => __access("role", "every", ...roles),
     some: (...roles: Role[]) => __access("role", "some", ...roles),
 };
-const _can = {
-    is: (role: Can) => __access("permission", "is", role),
-    isNot: (role: Can) => __access("permission", "isNot", role),
-    in: (...roles: Can[]) => __access("permission", "in", ...roles),
-    notIn: (...roles: Can[]) => __access("permission", "notIn", ...roles),
-    every: (...roles: Can[]) => __access("permission", "every", ...roles),
-    some: (...roles: Can[]) => __access("permission", "some", ...roles),
+const _perm = {
+    is: (role: Permission) => __access("permission", "is", role),
+    isNot: (role: Permission) => __access("permission", "isNot", role),
+    in: (...roles: Permission[]) => __access("permission", "in", ...roles),
+    notIn: (...roles: Permission[]) =>
+        __access("permission", "notIn", ...roles),
+    every: (...roles: Permission[]) =>
+        __access("permission", "every", ...roles),
+    some: (...roles: Permission[]) => __access("permission", "some", ...roles),
 };
 
 export const linkModules = [
     _module("HRM", "hrm", "GND HRM", [
         _section("main", null, [
-            _link("HRM", "hrm", "/").access(_can.in("Admin")).data,
+            _link("HRM", "hrm", "/").access(_perm.in("viewHrm")).data,
         ]),
     ]),
-    _module("Sales", "orders", "GND Sales", []),
+    _module("Sales", "orders", "GND Sales", [
+        _section("main", null, [
+            _link("Dashboard", "dashboard", "/sales-rep").access(
+                _perm.is("editOrders"),
+            ).data,
+            _link("Sales", "orders", "/sales-books/orders").access(
+                _perm.is("editOrders"),
+            ).data,
+            _link("Quotes", "estimates", "/sales-books/quotes").access(
+                _perm.is("editOrders"),
+            ).data,
+            _link("Productions", "estimates", "/sales-books/quotes").access(
+                _perm.is("editOrders"),
+            ).data,
+            _link("Dispatch", "estimates", "/sales-books/quotes", [
+                _subLink("Delivey", "/sales-book/dispatchs").access(
+                    _perm.is("editDelivery"),
+                ).data,
+                _subLink("Pickup", "/sales-book/pickups").access(
+                    _perm.is("editPickup"),
+                ).data,
+            ]).access(_perm.is("editOrders")).data,
+            _link("Dispatch", "estimates", "/sales-books/quotes").access(
+                _perm.is("editOrders"),
+            ).data,
+        ]),
+    ]),
 ];

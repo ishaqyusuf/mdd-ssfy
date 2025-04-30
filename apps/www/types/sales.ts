@@ -2,10 +2,8 @@ import { DykeDoorType } from "@/app/(v2)/(loggedIn)/sales-v2/type";
 import {
     AddressBooks,
     CustomerTypes,
-    OrderInventory,
     OrderProductionSubmissions,
     Progress,
-    SalesItemSupply,
     SalesOrderItems,
     SalesOrders,
     SalesPayments,
@@ -104,7 +102,6 @@ export type ISalesOrderItem = Omit<SalesOrderItems, "meta"> & {
     productions: OrderProductionSubmissions[];
     meta: ISalesOrderItemMeta;
     salesOrder: ISalesOrder;
-    supplies: SalesItemSupply[];
     inboundOrderItem: IInboundOrderItems[];
 };
 export interface ISalesOrderItemMeta {
@@ -283,7 +280,7 @@ export interface FooterRowInfo {
 export interface IOrderInventoryUpdate {
     component: IOrderComponent;
     parent?: IOrderComponent;
-    currentData?: OrderInventory;
+    // currentData?: OrderInventory;
     checked?;
 }
 export interface ISaveOrderResponse {
@@ -293,7 +290,7 @@ export interface ISaveOrderResponse {
 export interface IOrderInventoryUpdate {
     component: IOrderComponent;
     parent?: IOrderComponent;
-    currentData?: OrderInventory;
+    // currentData?: OrderInventory;
     checked?;
 }
 export type ProdActions = "Start" | "Cancel" | "Complete" | "Stop";

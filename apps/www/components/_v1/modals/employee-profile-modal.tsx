@@ -30,6 +30,9 @@ export default function EmployeeProfileModal() {
                     await saveEmployeeProfile({
                         ...form.getValues(),
                         discount: +(form.getValues("discount") || 0),
+                        salesComissionPercentage: +(
+                            form.getValues("salesComissionPercentage") || 0
+                        ),
                     });
 
                 closeModal();
@@ -77,7 +80,15 @@ export default function EmployeeProfileModal() {
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label>Discount (%)</Label>
+                            <Label>Sales Commission (%)</Label>
+                            <Input
+                                type="number"
+                                className="h-8"
+                                {...form.register("salesComissionPercentage")}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Payout Discount (%)</Label>
                             <Input
                                 type="number"
                                 className="h-8"

@@ -41,9 +41,7 @@ export async function salesFormAction(
         include: {
             customer: true,
             items: {
-                include: {
-                    supplies: true,
-                },
+                include: {},
             },
             salesRep: true,
             billingAddress: true,

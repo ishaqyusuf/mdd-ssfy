@@ -105,7 +105,7 @@ function initInvoiceItems(items: ISalesFormItem[] | undefined) {
     if (!items) items = [];
     const _itemsByIndex: any = {};
     let rows = 20;
-    items.map(({ supplies, ...item }) => {
+    items.map(({ ...item }) => {
         const li = [
             item.meta?.line_index,
             item.meta?.uid,
