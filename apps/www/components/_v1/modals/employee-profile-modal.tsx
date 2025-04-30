@@ -30,9 +30,9 @@ export default function EmployeeProfileModal() {
                     await saveEmployeeProfile({
                         ...form.getValues(),
                         discount: +(form.getValues("discount") || 0),
-                        salesComissionPercentage: +(
-                            form.getValues("salesComissionPercentage") || 0
-                        ),
+                        // salesComissionPercentage: +(
+                        //     form.getValues("salesComissionPercentage") || 0
+                        // ),
                     });
 
                 closeModal();
