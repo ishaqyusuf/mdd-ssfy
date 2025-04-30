@@ -5,7 +5,10 @@ import z from "zod";
 
 import { useSidebar as useBaseSidebar } from "@gnd/ui/sidebar";
 
-const schema = z.object({
+import { useSidebarStore } from "./store";
+
+export const schema = z.object({
+    render: z.boolean(),
     siteModules: z
         .record(
             z.object({
@@ -45,13 +48,14 @@ const schema = z.object({
 const { useContext: useSidebar, Provider: SidebarContext } =
     createContextFactory(function () {
         // const ctx = useSalesOverviewQuery();
-        const form = useForm<z.infer<typeof schema>>({
-            defaultValues: {
-                siteModules: {},
-                links: {},
-            },
-        });
-        const data = form.watch();
+        // const form = useForm<z.infer<typeof schema>>({
+        //     defaultValues: {
+        //         siteModules: {},
+        //         links: {},
+        //     },
+        // });
+        const store = useSidebarStore();
+        const data = store;
         const { isMobile } = useBaseSidebar();
         const loader = async () => {
             await timeout(100);
@@ -66,7 +70,10 @@ const { useContext: useSidebar, Provider: SidebarContext } =
         return {
             data,
             isMobile,
-            form,
+            form: {
+                setValue: store.update,
+            },
+            // form,
         };
     });
 export { useSidebar, SidebarContext };
@@ -74,9 +81,11 @@ export { useSidebar, SidebarContext };
 export const { useContext: useSidebarModule, Provider: SideBarModuleProvider } =
     createContextFactory(function (name) {
         const ctx = useSidebar();
+        const store = useSidebarStore();
         // ctx.isMobile;
         // const module = ctx?.data?.siteModules?.[name];
-        const siteModule = ctx.form.watch(`siteModules.${name}`);
+        const siteModule = store.siteModules?.[name];
+        //  ctx.form.watch(`siteModules.${name}`);
         // const data = useAsyncMemo(loader, []);
         return { siteModule };
     });

@@ -18,17 +18,19 @@ import {
 
 import { Icon } from "../_v1/icons";
 import { useSidebar } from "./context";
+import { useSidebarStore } from "./store";
 
 export function ModuleSwitcher() {
     const sb = useSidebar();
-    const { isMobile, data } = sb;
+    const store = useSidebarStore();
+    const { isMobile } = sb;
     const { modules, currentModule } = useMemo(() => {
-        const modules = Object.values(data?.siteModules ?? {}).filter(
+        const modules = Object.values(store?.siteModules ?? {}).filter(
             // (module) => module.visible,
             Boolean,
         );
         const currentModule = modules.find((module) =>
-            Object.entries(data?.links ?? {}).some(([key, link]) => {
+            Object.entries(store?.links ?? {}).some(([key, link]) => {
                 return link.moduleName === module.name && link.visible;
             }),
         );
@@ -36,7 +38,7 @@ export function ModuleSwitcher() {
             modules,
             currentModule,
         };
-    }, [data]);
+    }, [store]);
     if (!modules?.length) return null;
     return (
         <SidebarMenu>

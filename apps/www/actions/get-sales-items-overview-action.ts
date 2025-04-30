@@ -45,9 +45,6 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
                 dykeProduction: baseItem.dykeProduction,
                 swing: baseItem.swing,
             });
-            item.subtitle = [item.sectionTitle, item.size, item.swing]
-                ?.filter(Boolean)
-                .join(" | ");
             item.analytics = composeSalesItemControlStat(
                 item,
                 // item.controlUid,
@@ -55,6 +52,28 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
                 order,
                 // item.itemConfig,
             );
+            const hands = assignedToId
+                ? item.analytics.stats?.prodAssigned
+                : item.analytics?.stats?.qty;
+            let handTitle = "";
+            if (hands?.qty) {
+                if (hands?.lh || hands.rh)
+                    handTitle = [
+                        `${hands?.lh ? `${hands?.lh} LH` : null}`,
+                        `${hands?.lh ? `${hands?.lh} RH` : null}`,
+                    ]
+                        ?.filter(Boolean)
+                        ?.join(" & ");
+                else handTitle = `QTY: ${hands.qty}`;
+            }
+            item.subtitle = [
+                item.sectionTitle,
+                item.size,
+                item.swing,
+                handTitle,
+            ]
+                ?.filter(Boolean)
+                .join(" | ");
             items.push(item);
         }
         const itemIndex = (item.meta as any as SalesItemMeta)?.lineIndex;

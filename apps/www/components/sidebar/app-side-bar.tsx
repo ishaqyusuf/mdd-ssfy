@@ -33,14 +33,47 @@ import {
     useSidebarSection,
 } from "./context";
 import { ModuleSwitcher } from "./module-switcher";
+import { useSidebarStore } from "./store";
 
 export function AppSideBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+    const store = useSidebarStore((s) => s);
+    useEffect(() => {
+        store.reset();
+    }, []);
+    if (!store.render) return null;
     return (
         <Sidebar collapsible="icon">
             <SidebarHeader>
                 <ModuleSwitcher />
             </SidebarHeader>
             <SidebarContent>
+                <SidebarModule
+                    name="hrm"
+                    icon="hrm"
+                    title="HRM"
+                    subtitle={"GND HRM"}
+                >
+                    <SidebarModuleSection name="main">
+                        <SidebarLink
+                            name="hrm"
+                            title="HRM"
+                            icon="hrm"
+                            link="/hello-side-bar"
+                        />
+                        <SidebarLink
+                            name="customer-service"
+                            title="Customer Service"
+                            icon="customerService"
+                            link="/customer-services"
+                        />
+                        <SidebarLink
+                            name="sales-commission"
+                            title="Sales Commission"
+                            icon="percent"
+                            link="/sales/commissions"
+                        />
+                    </SidebarModuleSection>
+                </SidebarModule>
                 <SidebarModule
                     name="sales"
                     title="Sales"
@@ -75,7 +108,7 @@ export function AppSideBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     );
 }
 interface SidebarModuleProps {
-    name;
+    name: "sales" | "hrm" | "community";
     title;
     subtitle;
     icon: IconKeys;
@@ -89,22 +122,26 @@ function SidebarModule({
     children,
 }: SidebarModuleProps) {
     const ctx = useSidebar();
+    const store = useSidebarStore();
     useEffect(() => {
-        ctx.form.setValue(`siteModules.${name}`, {
+        store.update(`siteModules.${name}`, {
             name,
             title,
             subtitle,
             icon,
         });
     }, []);
+    useEffect(() => {
+        console.log(store);
+    }, [store]);
     return (
         <SideBarModuleProvider args={[name]}>{children}</SideBarModuleProvider>
     );
 }
 interface SidebarModuleSectionProps {
     name: string;
-    title: string;
-    children: React.ReactNode;
+    title?: string;
+    children?: React.ReactNode;
 }
 function SidebarModuleSection({
     name,
@@ -119,7 +156,7 @@ function SidebarModuleSection({
     return (
         <SideBarSectionProvider args={[name]}>
             <SidebarGroup>
-                <SidebarGroupLabel>{title}</SidebarGroupLabel>
+                {!title || <SidebarGroupLabel>{title}</SidebarGroupLabel>}
                 <SidebarMenu>{children}</SidebarMenu>
             </SidebarGroup>
         </SideBarSectionProvider>
@@ -137,6 +174,7 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
     const ctx = useSidebar();
     const { siteModule } = useSidebarModule();
     const sectionCtx = useSidebarSection();
+
     useEffect(() => {
         ctx.form.setValue(`links.${name}`, {
             moduleName: siteModule?.name,
@@ -148,42 +186,42 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
         });
     }, [siteModule, sectionCtx?.name]);
     const subLinks = useMemo(() => {
-        console.log(ctx.data?.subLinks);
-
         const links = Object.entries(ctx.data?.subLinks ?? {})
             .filter(([key, link]) => {
-                return key?.startsWith(sectionCtx?.name);
+                return key?.startsWith(`${name}|`);
             })
             ?.map(([key, link]) => link);
         return links;
-    }, [ctx.data]);
+    }, [ctx.data, name]);
     return (
         <SideBarLinkProvider args={[name]}>
-            {/* <span>{}</span> */}
+            {children}
             {subLinks?.length ? (
-                <Collapsible asChild defaultOpen={false}>
+                <Collapsible
+                    className="group/collapsible"
+                    asChild
+                    defaultOpen={false}
+                >
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip={title}>
-                            <a href={link}>
+                        <CollapsibleTrigger asChild>
+                            <SidebarMenuButton tooltip={title}>
                                 <Icon name={icon} className="mr-2 h-4 w-4" />
                                 <span>{title}</span>
-                            </a>
-                        </SidebarMenuButton>
-                        <CollapsibleTrigger asChild>
-                            <SidebarMenuAction className="data-[state=open]:rotate-90">
+                                <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                            </SidebarMenuButton>
+                            {/* <SidebarMenuAction className="data-[state=open]:rotate-90">
                                 <ChevronRight />
                                 <span className="sr-only">Toggle</span>
-                            </SidebarMenuAction>
+                            </SidebarMenuAction> */}
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                             <SidebarMenuSub>
-                                {children}
                                 {subLinks
-                                    ?.filter((a) => a.custom)
+                                    // ?.filter((a) => a.custom)
                                     .map((subItem) => (
                                         <SidebarMenuSubItem key={subItem.title}>
                                             <SidebarMenuSubButton asChild>
-                                                <a href={subItem.url}>
+                                                <a href={subItem.url || ""}>
                                                     <span>{subItem.title}</span>
                                                 </a>
                                             </SidebarMenuSubButton>
@@ -195,13 +233,16 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
                 </Collapsible>
             ) : (
                 <SidebarMenuItem>
-                    <SidebarMenuButton>
+                    <SidebarMenuButton asChild>
+                        <a href={link}>
+                            {!Icon || <Icon className="mr-2 h-4 w-4" />}
+                            <span>{title}</span>
+                        </a>
                         {/* <File /> */}
-                        {!Icon || <Icon className="mr-2 h-4 w-4" />}
-                        {title}
+                        {/* {!Icon || <Icon className="mr-2 h-4 w-4" />}
+                        {title} */}
                     </SidebarMenuButton>
                     <SidebarMenuBadge>{/* {item.state} */}</SidebarMenuBadge>
-                    {children}
                 </SidebarMenuItem>
             )}
         </SideBarLinkProvider>
@@ -219,7 +260,7 @@ function SubLink({ title, name, link }: SubLinkProps) {
     // const sectionCtx = useSidebarSection();
     const linkCtx = useSidebarLink();
     useEffect(() => {
-        ctx.form.setValue(`subLinks.${linkCtx?.name}-${name}`, {
+        ctx.form.setValue(`subLinks.${linkCtx?.name}|${name}`, {
             // moduleName: siteModule?.name,
             // sectionName: sectionCtx?.name,
             url: link,
@@ -229,6 +270,7 @@ function SubLink({ title, name, link }: SubLinkProps) {
             // icon,
         });
     }, [linkCtx?.name]);
+    return null;
     return (
         <SidebarMenuSubItem>
             <SidebarMenuSubButton asChild>
