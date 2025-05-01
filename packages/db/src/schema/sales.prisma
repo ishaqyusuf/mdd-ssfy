@@ -100,14 +100,16 @@ model SalesOrders {
 }
 
 model SalesExtraCosts {
-    id          Int          @unique @default(autoincrement())
-    order       SalesOrders? @relation(fields: [orderId], references: [id])
+    id Int @unique @default(autoincrement())
+
     type        String //discount, labor, etc
     taxxable    Boolean?
     amount      Float
     tax         Float?
     totalAmount Float?
-    orderId     Int
+
+    orderId Int
+    order   SalesOrders @relation(fields: [orderId], references: [id])
 
     @@index([orderId])
 }

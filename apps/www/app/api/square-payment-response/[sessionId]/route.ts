@@ -1,5 +1,3 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import { unstable_noStore } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest, { params }) {

@@ -21,7 +21,6 @@ export function LineInput({
     valueChanged,
     ...props
 }: LineInputProps & InputProps) {
-    // const state = useFormDataStore();
     const value = cls.dotGetGroupItemFormValue(lineUid, name);
     if (props.type == "number")
         return (
