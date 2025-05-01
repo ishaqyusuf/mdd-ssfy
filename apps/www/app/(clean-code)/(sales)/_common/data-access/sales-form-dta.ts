@@ -49,13 +49,13 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
             .flat()
             .filter(Boolean),
     );
+    order.extraCosts;
     return {
         order: {
             ...(order as Partial<typeof order>),
             meta: order.meta as any as Partial<SalesMeta>,
-
-            // items: order.items
         },
+        extraCosts: order.extraCosts,
         stepComponents,
     };
     // return typedSalesBookForm(order)

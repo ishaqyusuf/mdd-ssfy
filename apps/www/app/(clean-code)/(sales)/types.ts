@@ -549,6 +549,10 @@ export interface SalesFormFields {
         goodUntil?;
         profileChangedToken?;
         dataRefreshToken?;
+        extraCosts: {
+            [tok in string]: Partial<Prisma.SalesExtraCostsGetPayload<{}>>;
+            // GetSalesBookForm["order"]["extraCosts"][number];
+        };
     };
     kvFormItem: {
         [itemUid in string]: SalesFormItem;

@@ -100,11 +100,10 @@ model SalesOrders {
 }
 
 model SalesExtraCosts {
-    id Int @unique @default(autoincrement())
-
-    type        String //discount, labor, etc
+    id          Int                @unique @default(autoincrement())
+    label       String
+    type        SalesExtraCostType //discount, labor, etc
     taxxable    Boolean?
-    editable    Boolean? @default(false)
     amount      Float
     tax         Float?
     totalAmount Float?
@@ -114,6 +113,13 @@ model SalesExtraCosts {
 
     @@unique([type, orderId])
     @@index([orderId])
+}
+
+enum SalesExtraCostType {
+    Discount
+    Labor
+    CustomTaxxable
+    CustomNonTaxxable
 }
 
 model SalesOrderItems {

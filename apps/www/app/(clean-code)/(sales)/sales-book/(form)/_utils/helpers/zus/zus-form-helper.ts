@@ -19,9 +19,6 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
     const salesMultiplier = profile?.coefficient
         ? formatMoney(1 / profile.coefficient)
         : 1;
-    // if (copy) {
-    //     data.order.id = data.order.slug = data.order.orderId = null;
-    // }
 
     function basePrice(sp) {
         if (!sp) return sp;
@@ -38,7 +35,16 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         }
         return price;
     }
-    console.log({ itemArray: data.itemArray });
+    // console.log({ itemArray: data.itemArray });
+    const extraCosts = Object.fromEntries(
+        data.order.extraCosts.map((c) => [c.label, c as Partial<typeof c>]),
+    );
+    if (!extraCosts.labor)
+        extraCosts["labor"] = {
+            label: "labor",
+            amount: 0,
+            type: "Labor",
+        };
 
     const resp: SalesFormZusData = {
         // data,
@@ -56,7 +62,6 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         kvFilteredStepComponentList: {},
         kvStepComponentList: {},
         currentTab: !data.order?.id ? "info" : "invoice",
-
         metaData: {
             debugMode: false,
             salesRepId: data.order?.salesRepId || data.order.salesRep?.id,
@@ -81,6 +86,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                 grandTotal: data.order?.grandTotal,
                 paid: copy ? 0 : data.paidAmount || 0,
             },
+
             salesMultiplier,
             deliveryMode: data.order.deliveryOption as any,
             po: data.order?.meta?.po,
@@ -98,13 +104,14 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                 id: data.shippingAddressId,
                 customerId: data.customerId,
             },
+            extraCosts,
             // bad: data.billingAddressId,
             // sad: data.shippingAddressId,
             primaryPhone: data.customer?.phoneNo,
         },
         formStatus: "ready",
     };
-    console.log({ resp });
+    // console.log({ resp });
 
     // console.log({ itemArray: data.itemArray });
 

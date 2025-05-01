@@ -383,6 +383,7 @@ export const includeStepPriceCount = {
 export const SalesBookFormIncludes = (restoreQuery) =>
     ({
         salesProfile: true,
+        extraCosts: true,
         items: {
             where: {
                 deletedAt: null,
