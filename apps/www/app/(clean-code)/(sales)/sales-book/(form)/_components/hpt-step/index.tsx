@@ -205,6 +205,10 @@ function DoorSizeRow({ size }: { size }) {
         ctx.ctx.updateGroupedCost();
         ctx.ctx.calculateTotalPrice();
     };
+    const unitLabor = ctx.ctx.dotGetGroupItemFormValue(
+        lineUid,
+        "pricing.unitLabor",
+    );
     return (
         <TableRow className={cn(!sizeForm?.selected && "hidden")}>
             <TableCell className="font-mono text-sm font-semibold">
@@ -323,7 +327,12 @@ function DoorSizeRow({ size }: { size }) {
                 </Menu>
             </TableCell>
             <TableCell>
-                <WageInput />
+                <WageInput
+                    value={unitLabor}
+                    valueChanged={valueChanged}
+                    cls={ctx.ctx}
+                    lineUid={lineUid}
+                />
             </TableCell>
             <TableCell>
                 <AnimatedNumber value={sizeForm?.pricing?.totalPrice || 0} />

@@ -246,6 +246,8 @@ export class ItemHelperClass {
             doorPrice: this.ctx.safeInt(formData.pricing.addon),
             meta: {
                 overridePrice: formData.pricing.customPrice,
+                laborQty: formData?.pricing?.laborQty,
+                unitLabor: formData?.pricing?.unitLabor,
             } satisfies DykeSalesDoorMeta,
             unitPrice: this.ctx.safeInt(formData.pricing.unitPrice),
             lineTotal: this.ctx.safeInt(formData.pricing.totalPrice),
@@ -307,6 +309,8 @@ export class ItemHelperClass {
                     itemIndex: ++itemIndex,
                     categoryUid: categoryIds.join("-"),
                     customPrice: prod.customPrice,
+                    laborQty: prod?.laborQty,
+                    unitLabor: prod?.unitLabor,
                     basePrice: prod.basePrice,
                     lineUid: uid,
                 } as ShelfItemMeta;
@@ -428,9 +432,6 @@ export class ItemHelperClass {
                 priceTags: {
                     moulding: {
                         addon: this.ctx.safeInt(gf.pricing?.addon),
-                        // overridePrice: gf.pricing?.customPrice
-                        //     ? this.ctx.safeInt(gf.pricing?.customPrice)
-                        //     : gf.pricing?.customPrice,
                         overridePrice: gf.pricing?.customPrice as any,
                         salesPrice: this.ctx.safeInt(
                             gf?.pricing?.itemPrice?.salesPrice,
@@ -439,6 +440,8 @@ export class ItemHelperClass {
                             gf?.pricing?.itemPrice?.basePrice,
                         ),
                         price: this.ctx.safeInt(gf?.pricing?.unitPrice),
+                        laborQty: gf.pricing?.laborQty,
+                        unitLabor: gf.pricing?.unitLabor,
                     },
                 },
             } satisfies HousePackageToolMeta;

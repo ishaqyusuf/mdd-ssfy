@@ -201,8 +201,6 @@ export class CostingClass {
                     salesPrice: 0,
                 },
             };
-        console.log({ groupItem });
-
         this.estimateGroupPricing(groupItem, itemUid);
     }
     public estimateGroupPricing(
@@ -217,20 +215,10 @@ export class CostingClass {
             salesPrice: 0,
         };
         this.groupComponentCost(groupItem, itemUid);
-        let noHandle = this.setting
-            // new SettingsClass(
-            //     null,
-            //     itemUid,
-            //     null,
-            //     this.setting.staticZus,
-            // )
-            .getRouteConfig(itemUid)?.noHandle;
+        let noHandle = this.setting.getRouteConfig(itemUid)?.noHandle;
         Object.entries(groupItem?.form).map(([uid, formData]) => {
-            // const noHandle = formData.meta.noHandle;
-            // console.log(formData.meta);
             const handleSum = sum([formData.qty.lh, formData.qty.rh]);
             const qty = noHandle ? formData.qty?.total || handleSum : handleSum;
-            // if (formData.meta.noHandle)
             formData.qty.total = qty;
             this.getEstimatePricing(groupItem, formData);
         });
@@ -245,8 +233,12 @@ export class CostingClass {
             );
         else staticData.kvFormItem[itemUid].groupItem = groupItem;
     }
-    public getEstimatePricing(groupItem, formData) {
-        const cPrice = formData.pricing?.customPrice;
+    public getEstimatePricing(gi, fd) {
+        let groupItem: (typeof this.setting.staticZus)["kvFormItem"][number]["groupItem"] =
+            gi;
+        let formData: (typeof this.setting.staticZus)["kvFormItem"][number]["groupItem"]["form"][number] =
+            fd;
+        const cPrice = formData.pricing?.customPrice as any;
         const customPricing = cPrice || (cPrice == 0 && cPrice !== "");
         const pll = [
             groupItem?.pricing?.components?.salesPrice,
@@ -257,12 +249,15 @@ export class CostingClass {
 
         const priceList = [pl, formData.pricing?.addon];
         const unitPrice = sum(priceList);
-        const totalPrice = formatMoney(
-            sum(priceList) * Number(formData.qty.total),
-        );
+        const qty = Number(formData.qty.total);
+        const unitLabor = Number(formData?.pricing.unitLabor || 0);
+        formData.pricing.unitLabor = unitLabor;
+        formData.pricing.laborQty = qty;
+        priceList.push(unitLabor);
+
+        const totalPrice = formatMoney(sum(priceList) * qty);
         formData.pricing.unitPrice = unitPrice;
         formData.pricing.totalPrice = totalPrice;
-        console.log({ unitPrice, priceList, pll });
 
         if (formData.selected)
             groupItem.pricing.total.salesPrice += formData.pricing.totalPrice;

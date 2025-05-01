@@ -243,6 +243,8 @@ export type TypedDykeSalesDoor = Omit<DykeSalesDoors, "meta"> & {
 export interface DykeSalesDoorMeta {
     _doorPrice?: number | null;
     overridePrice?: number | string;
+    unitLabor?: number;
+    laborQty?: number;
 }
 export interface HousePackageToolMeta {
     priceTags?: {
@@ -252,6 +254,8 @@ export interface HousePackageToolMeta {
             basePrice?: number | undefined;
             addon?: number | undefined;
             overridePrice?: number | undefined;
+            unitLabor?: number;
+            laborQty?: number;
         };
         components?: number | undefined;
         doorSizePriceTag?: { [size in string]: number };
@@ -281,6 +285,8 @@ export interface ShelfItemMeta {
     lineUid: string;
     customPrice?: number;
     basePrice?: number;
+    unitLabor?: number;
+    laborQty?: number;
 }
 
 export type DykeStepProduct = Omit<DykeStepProducts, "meta"> & {
@@ -396,6 +402,9 @@ export interface SalesShelfField {
             salesPrice: number;
             qty: number;
             customPrice: number;
+            unitLabor?: number;
+            laborQty?: number;
+            // : number;
             totalPrice: number;
             id?: number;
             categoryId: number;
@@ -476,6 +485,8 @@ export interface SalesFormItem {
                         salesPrice?: number;
                     };
                     customPrice?: number | string;
+                    unitLabor?: number;
+                    laborQty?: number;
                     componentPrice?: number | string;
                     unitPrice?: number;
                     totalPrice?: number;
@@ -490,7 +501,6 @@ export interface SalesFormItem {
                     fallbackId?;
                 };
                 mouldingProductId?;
-                // customPrice?: number | string;
                 // imgUrl: string;
             };
         };
