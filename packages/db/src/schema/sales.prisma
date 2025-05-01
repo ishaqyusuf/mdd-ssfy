@@ -104,6 +104,7 @@ model SalesExtraCosts {
 
     type        String //discount, labor, etc
     taxxable    Boolean?
+    editable    Boolean? @default(false)
     amount      Float
     tax         Float?
     totalAmount Float?
@@ -111,6 +112,7 @@ model SalesExtraCosts {
     orderId Int
     order   SalesOrders @relation(fields: [orderId], references: [id])
 
+    @@unique([type, orderId])
     @@index([orderId])
 }
 

