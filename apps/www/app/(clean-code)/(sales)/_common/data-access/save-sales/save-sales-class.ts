@@ -2,7 +2,7 @@ import { prisma, SalesOrders } from "@/db";
 import { nextId } from "@/lib/nextId";
 import { generateRandomString } from "@/lib/utils";
 
-import { SalesFormFields } from "../../../types";
+import { SalesFormFields, SalesType } from "../../../types";
 import { resetSalesStatAction } from "../../data-actions/sales-stat-control.action";
 import { composeSalesUrl } from "../../utils/sales-utils";
 import { SaveSalesHelper } from "./helper-class";
@@ -102,6 +102,9 @@ export class SaveSalesClass extends SaveSalesHelper {
             slug: salesResp?.slug,
             redirectTo,
             data,
+            salesType: salesResp?.type as SalesType,
+            salesId: salesResp?.id,
+            salesNo: salesResp?.orderId,
         };
     }
     public getTable(priority, tx = prisma) {

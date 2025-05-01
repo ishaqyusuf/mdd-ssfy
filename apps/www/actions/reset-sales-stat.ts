@@ -20,11 +20,7 @@ export async function resetSalesStatAction(id, salesNo) {
                 salesId: id,
             },
         });
-        await tx.salesItemControl.deleteMany({
-            where: {
-                salesId: id,
-            },
-        });
+
         const overview = await getSalesItemsOverviewAction(salesNo);
         let qc: Prisma.QtyControlCreateManyInput[] = [];
         let salesItemControls: Prisma.SalesItemControlCreateManyInput[] = [];
@@ -83,9 +79,23 @@ export async function resetSalesStatAction(id, salesNo) {
                 ],
             );
         });
-        await tx.salesItemControl.createMany({
-            data: salesItemControls,
+        await tx.salesItemControl.deleteMany({
+            where: {
+                salesId: id,
+                uid: {
+                    notIn: salesItemControls.map((a) => a.uid),
+                },
+            },
         });
+        await Promise.all(
+            salesItemControls.map(async (sic) => {
+                await tx.salesItemControl.upsert({
+                    where: { uid: sic.uid },
+                    create: sic,
+                    update: sic,
+                });
+            }),
+        );
         await tx.qtyControl.createMany({
             data: qc.map((d) => ({
                 ...d,

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import {
     copySalesUseCase,
     moveOrderUseCase,
@@ -33,7 +34,9 @@ export function MenuItemSalesMove(props: Props) {
         const orderId = slug;
         const to = type == "order" ? "quote" : "order";
         const result = await moveOrderUseCase(orderId, to);
-
+        if (to == "order") {
+            await resetSalesStatAction(result.id, result.slug);
+        }
         if (result.link) {
             loader.success(`Moved to ${to}`, {
                 duration: 3000,

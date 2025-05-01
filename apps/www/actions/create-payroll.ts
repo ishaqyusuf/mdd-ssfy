@@ -12,6 +12,8 @@ interface Props {
     salesAmount?: number;
     wage?: number;
     description?: string;
+    headline?: string;
+    itemUid?: string;
 }
 export async function createPayrollAction(data: Props) {
     const userId = await authId();
@@ -35,16 +37,23 @@ export async function createPayrollAction(data: Props) {
                 orderPaymentId: data.salesPaymentId,
                 productionSubmissionId: data.submissionId,
             },
-            // status: {
-            //     not: "COMPLETED",
-            // },
         },
         create: {
             amount: commission,
+            itemUid: data.itemUid,
             status: "PENDING",
             type: !data?.submissionId ? "WAGE" : "COMMISSION",
             userId,
             description: data.description,
+            history: {
+                create: {
+                    status: "PENDING",
+                    note: "created",
+                    user: {
+                        connect: { id: userId },
+                    },
+                },
+            },
         },
         update: {
             amount: commission,

@@ -6,6 +6,7 @@ import { DataLine } from "@/components/(clean-code)/data-table/Dl";
 import { Menu } from "@/components/(clean-code)/menu";
 import { MoneyBadge } from "@/components/(clean-code)/money-badge";
 import { AnimatedNumber } from "@/components/animated-number";
+import { WageInput } from "@/components/forms/sales-form/wage-input";
 import { cn } from "@/lib/utils";
 import { Repeat } from "lucide-react";
 
@@ -127,6 +128,9 @@ function DoorSizeTable({ door }: DoorSizeTable) {
                                 </>
                             )}
                             <TableHead className="w-28">Estimate</TableHead>
+                            <TableHead className="w-28 whitespace-nowrap">
+                                Labor/Qty
+                            </TableHead>
                             {/* <TableHead className="w-28">Addon/Qty</TableHead> */}
                             <TableHead className="w-28">Line Total</TableHead>
                             <TableHead className="w-16"></TableHead>
@@ -248,6 +252,7 @@ function DoorSizeRow({ size }: { size }) {
                 <Menu
                     noSize
                     Icon={null}
+                    triggerSize="xs"
                     label={<Money value={sizeForm?.pricing?.unitPrice} />}
                 >
                     <div className="min-w-[300px] p-2">
@@ -317,18 +322,11 @@ function DoorSizeRow({ size }: { size }) {
                     </div>
                 </Menu>
             </TableCell>
-            {/* <TableCell>
-                <LineInput
-                    cls={ctx.ctx}
-                    name="pricing.addon"
-                    lineUid={lineUid}
-                    type="number"
-                    valueChanged={valueChanged}
-                />
-            </TableCell> */}
+            <TableCell>
+                <WageInput />
+            </TableCell>
             <TableCell>
                 <AnimatedNumber value={sizeForm?.pricing?.totalPrice || 0} />
-                {/* <Money value={sizeForm?.pricing?.totalPrice} /> */}
             </TableCell>
             <TableCell align="right">
                 <ConfirmBtn

@@ -11,6 +11,7 @@ import { errorHandler } from "@/modules/error/handler";
 import { createSquareTerminalCheckout } from "@/modules/square";
 import { z } from "zod";
 
+import { createPayrollAction } from "./create-payroll";
 import { getCustomerPendingSales } from "./get-customer-pending-sales";
 import { getCustomerWalletAction } from "./get-customer-wallet";
 import { actionClient } from "./safe-action";
@@ -104,8 +105,31 @@ async function applySalesPayment(props: z.infer<typeof createPaymentSchema>) {
                             },
                         },
                     },
+                    select: {
+                        salesPayments: {
+                            select: {
+                                id: true,
+                                amount: true,
+                                order: {
+                                    select: {
+                                        salesRepId: true,
+                                        id: true,
+                                        orderId: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
                 });
+                const [sp] = __tx.salesPayments;
                 await updateSalesDueAmount(orderId);
+
+                await createPayrollAction({
+                    orderId: sp.order.id,
+                    userId: sp.order.salesRepId,
+                    salesPaymentId: sp.id,
+                    salesAmount: sp.amount,
+                });
             }),
         );
         return {};

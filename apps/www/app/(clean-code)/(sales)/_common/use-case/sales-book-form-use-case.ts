@@ -81,6 +81,8 @@ export async function copySalesUseCase(orderId, as: SalesType) {
     return {
         error: resp2?.error,
         link,
+        id: resp2.id,
+        slug: resp2.slug,
         data: resp2,
     };
     // return resp2;

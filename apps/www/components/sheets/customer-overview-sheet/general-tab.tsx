@@ -205,6 +205,9 @@ export function GeneralTab({ setCustomerName }) {
                                                 </TableCell>
                                                 <TableCell>
                                                     <DataSkeleton pok="textSm">
+                                                        {tx?.orderIds}
+                                                    </DataSkeleton>
+                                                    <DataSkeleton pok="textSm">
                                                         {tx?.description}
                                                     </DataSkeleton>
                                                     <DataSkeleton pok="textSm">

@@ -217,6 +217,7 @@ export const createSubmissionSchema = z
         itemId: z.number(),
         submittedById: z.number(),
         itemUid: z.string(),
+        unitWage: z.number().optional(),
     })
     .superRefine(qtySuperRefine);
 export const deleteSalesAssignmentSubmissionSchema = z.object({

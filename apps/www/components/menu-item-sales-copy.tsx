@@ -1,3 +1,4 @@
+import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { copySalesUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import { env } from "@/env.mjs";
@@ -27,7 +28,7 @@ export function MenuItemSalesCopy(props: Props) {
         loader.loading("Copying...");
         const orderId = slug;
         const result = await copySalesUseCase(orderId, as);
-
+        if (as == "order") await resetSalesStatAction(result.id, orderId);
         if (result.link) {
             loader.success(`Copied as ${as}`, {
                 duration: 3000,

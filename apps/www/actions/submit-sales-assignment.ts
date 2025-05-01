@@ -1,9 +1,11 @@
 "use server";
 
 import { prisma } from "@/db";
+import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
 import z from "zod";
 
+import { createPayrollAction } from "./create-payroll";
 import { actionClient } from "./safe-action";
 import { createSubmissionSchema } from "./schema";
 import { updateSalesItemStats } from "./update-sales-item-stat";
@@ -41,7 +43,25 @@ export async function submitSalesAssignment(
                 },
             },
         },
+        select: {
+            id: true,
+            assignment: {
+                select: {
+                    assignedToId: true,
+                    itemControl: {
+                        select: {},
+                    },
+                },
+            },
+        },
     });
+    if (data.unitWage && submission.assignment.assignedToId) {
+        await createPayrollAction({
+            wage: formatMoney(data.unitWage * data.qty.qty),
+            orderId: data.salesId,
+            userId: submission.assignment.assignedToId,
+        });
+    }
     return submission;
 }
 export const submitSalesAssignmentAction = actionClient

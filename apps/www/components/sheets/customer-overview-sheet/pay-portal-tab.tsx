@@ -141,7 +141,6 @@ export function PayPortalTab({}) {
         },
         onError(error) {
             console.log(error);
-
             staticPaymentData.description = error.error?.serverError;
             pToast.updateNotification("failed");
         },

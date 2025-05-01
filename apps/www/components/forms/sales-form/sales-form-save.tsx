@@ -1,5 +1,6 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { triggerEvent } from "@/actions/events";
+import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import {
     getSalesBookFormUseCase,
     saveFormUseCase,
@@ -40,6 +41,8 @@ export function SalesFormSave({ type = "button", and }: Props) {
             },
         );
         const s = resp?.data?.sales;
+        if (resp?.salesType == "order")
+            await resetSalesStatAction(resp.salesId, resp?.salesNo);
         if (s?.updateId) triggerEvent("salesUpdated", s?.id);
         else triggerEvent("salesCreated", s?.id);
 

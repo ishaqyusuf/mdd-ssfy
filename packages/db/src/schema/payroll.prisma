@@ -35,6 +35,9 @@ model Payroll {
     description String?
     status      PayoutStatus
 
+    itemUid     String?
+    itemControl SalesItemControl? @relation(fields: [itemUid], references: [uid])
+
     orderId Int?
     order   SalesOrders? @relation(fields: [orderId], references: [id])
 
@@ -61,6 +64,7 @@ model Payroll {
     @@index([orderId])
     @@index([userId])
     @@index([payoutId])
+    @@index([itemUid])
 }
 
 model SalesPayout {

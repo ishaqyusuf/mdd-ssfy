@@ -180,19 +180,21 @@ model QtyControl {
 }
 
 model SalesItemControl {
-    uid          String                           @unique // item-1, door-234, moulding-1
+    uid          String  @unique // item-1, door-234, moulding-1
     title        String?
     subtitle     String?
     sectionTitle String?
-    salesId      Int
-    produceable  Boolean?
-    shippable    Boolean?
-    deletedAt    DateTime?                        @db.Timestamp(0)
-    orderItemId  Int?
-    sales        SalesOrders?                     @relation(fields: [salesId], references: [id])
-    item         SalesOrderItems?                 @relation(fields: [orderItemId], references: [id])
-    qtyControls  QtyControl[]
-    assignments  OrderItemProductionAssignments[]
+
+    salesId     Int
+    produceable Boolean?
+    shippable   Boolean?
+    deletedAt   DateTime?                        @db.Timestamp(0)
+    orderItemId Int?
+    sales       SalesOrders?                     @relation(fields: [salesId], references: [id])
+    item        SalesOrderItems?                 @relation(fields: [orderItemId], references: [id])
+    qtyControls QtyControl[]
+    assignments OrderItemProductionAssignments[]
+    payroll     Payroll[]
 
     @@index([salesId])
     @@index([orderItemId])

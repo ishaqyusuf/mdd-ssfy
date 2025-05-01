@@ -5,10 +5,7 @@ import { FieldPath } from "react-hook-form";
 import { Input, InputProps } from "@gnd/ui/input";
 import { Switch } from "@gnd/ui/switch";
 
-import {
-    useFormDataStore,
-    ZusGroupItemFormPath,
-} from "../_common/_stores/form-data-store";
+import { ZusGroupItemFormPath } from "../_common/_stores/form-data-store";
 import { GroupFormClass } from "../_utils/helpers/zus/group-form-class";
 
 interface LineInputProps {
