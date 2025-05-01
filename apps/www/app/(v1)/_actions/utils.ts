@@ -1,10 +1,11 @@
 "use server";
 
-import { authOptions } from "@/lib/auth-options";
-import { getServerSession } from "next-auth";
 import { prisma } from "@/db";
+import { authOptions } from "@/lib/auth-options";
 import { IUser } from "@/types/hrm";
 import { hash } from "bcrypt-ts";
+import { getServerSession } from "next-auth";
+
 export async function serverSession() {
     const data = await getServerSession(authOptions);
     if (!data) throw new Error();
@@ -25,6 +26,7 @@ export async function user() {
     // throw new Error();
     return data.user;
 }
+export const authUser = user;
 export async function userId() {
     return (await user())?.id;
 }

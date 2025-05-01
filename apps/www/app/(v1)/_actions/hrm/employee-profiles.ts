@@ -46,6 +46,11 @@ export async function setEmployeeProfileAction(id, profileId) {
             },
         },
     });
+    await prisma.session.deleteMany({
+        where: {
+            userId: id,
+        },
+    });
 }
 export async function deleteEmployeeProfile(id) {
     await prisma.users.updateMany({

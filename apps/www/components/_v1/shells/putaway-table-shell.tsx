@@ -1,29 +1,14 @@
 "use client";
 
-import { TableShellProps } from "@/types/data-table";
-import { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState, useTransition } from "react";
-import {
-    ColumnHeader,
-    Cell,
-    PrimaryCellContent,
-    DateCellContent,
-    _FilterColumn,
-} from "../columns/base-columns";
-import { DataTable2 } from "../data-table/data-table-2";
-
-import { BuilderFilter } from "../filters/builder-filter";
-import {
-    DeleteRowAction,
-    RowActionCell,
-} from "../data-table/data-table-row-actions";
-
-import { deleteEmployeeProfile } from "@/app/(v1)/_actions/hrm/employee-profiles";
+import { TableShellProps } from "@/types/data-table";
 import { IInboundOrderItems } from "@/types/sales-inbound";
-import { SmartTable } from "../data-table/smart-table";
-import Btn from "../btn";
-import { CheckCircle } from "lucide-react";
+import { ColumnDef } from "@tanstack/react-table";
+
 import PutawayActions from "../actions/putaway-actions";
+import { _FilterColumn, ColumnHeader } from "../columns/base-columns";
+import { DataTable2 } from "../data-table/data-table-2";
+import { SmartTable } from "../data-table/smart-table";
 
 export default function PutawayTableShell<T>({
     data,
@@ -69,7 +54,7 @@ export default function PutawayTableShell<T>({
                         table.secondary(data.location),
                     ],
                 }),
-                { maxSize: 50 }
+                { maxSize: 50 },
             ),
             table.simpleColumn("Qty", (data) => ({
                 story: [table.primaryText(data.qty)],
@@ -91,7 +76,7 @@ export default function PutawayTableShell<T>({
                 cell: ({ row }) => <PutawayActions data={row.original} />,
             },
         ], //.filter(Boolean) as any,
-        [data, isPending]
+        [data, isPending],
     );
     return (
         <DataTable2
