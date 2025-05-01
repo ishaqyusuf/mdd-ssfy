@@ -54,8 +54,9 @@ model Users {
     customerTransactions        CustomerTransaction[]
     salesTransactions           SalesPayments[]
     submissions                 OrderProductionSubmissions[]
-    salesPayrolls               SalesPayroll[]
-    salesPayoutsByMe            SalesPayout[]
+    salesPayrolls               Payroll[]
+    myPayouts                   SalesPayout[]                    @relation(name: "myPayouts")
+    salesPayoutsByMe            SalesPayout[]                    @relation(name: "myIssuedPayouts")
 
     @@index([createdAt, deletedAt, name])
     @@index([employeeProfileId])

@@ -59,6 +59,7 @@ model SalesPayments {
     commissions      SalesCommision[]
     author           Users?               @relation(fields: [authorId], references: [id])
     squarePayments   SquarePayments?      @relation(fields: [squarePaymentsId], references: [id])
+    payroll          Payroll?
 
     @@index([authorId])
     @@index([orderId])

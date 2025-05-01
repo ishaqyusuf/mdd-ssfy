@@ -1,33 +1,39 @@
-model SalesPayroll {
-    id          Int                @unique @default(autoincrement())
-    amount      Float
-    description String?
-    createdAt   DateTime?          @default(now()) @db.Timestamp(0)
-    updatedAt   DateTime?          @updatedAt
-    deletedAt   DateTime?          @db.Timestamp(0)
-    user        Users?             @relation(fields: [userId], references: [id])
-    userId      Int
-    items       PayrollLineItems[]
-    payout      SalesPayout?       @relation(fields: [payoutId], references: [id])
-    payoutId    Int?
-
-    @@index([userId])
-    @@index([payoutId])
+enum PayrollType {
+    COMMISSION
+    WAGE
 }
 
-model PayrollLineItems {
-    id             Int          @unique @default(autoincrement())
-    uid            String       @unique
-    amount         Float
-    description    String?
-    itemUid        String?
-    createdAt      DateTime?    @default(now()) @db.Timestamp(0)
-    updatedAt      DateTime?    @updatedAt
-    deletedAt      DateTime?    @db.Timestamp(0)
-    payroll        SalesPayroll @relation(fields: [salesPayrollId], references: [id])
-    salesPayrollId Int
+model Payroll {
+    id Int @unique @default(autoincrement())
 
-    @@index([salesPayrollId])
+    amount      Float
+    type        PayrollType
+    description String?
+
+    orderId Int?
+    order   SalesOrders? @relation(fields: [orderId], references: [id])
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    user   Users? @relation(fields: [userId], references: [id])
+    userId Int
+
+    payoutId Int?
+    payout   SalesPayout? @relation(fields: [payoutId], references: [id])
+
+    productionSubmissionId Int?                        @unique
+    productionSubmission   OrderProductionSubmissions? @relation(fields: [productionSubmissionId], references: [id])
+
+    orderPaymentId Int?           @unique
+    orderPayment   SalesPayments? @relation(fields: [orderPaymentId], references: [id])
+
+    @@unique([orderId, productionSubmissionId, orderPaymentId])
+    @@index([productionSubmissionId])
+    @@index([orderId])
+    @@index([userId])
+    @@index([payoutId])
 }
 
 model SalesPayout {
@@ -38,14 +44,20 @@ model SalesPayout {
     status     PayoutStatus @default(PENDING)
     note       String?
 
-    payrolls SalesPayroll[]
+    payrolls Payroll[]
 
-    createdAt    DateTime @default(now()) @db.Timestamp(0)
-    updatedAt    DateTime @updatedAt
-    approvedById Int?
-    approvedBy   Users?   @relation(fields: [approvedById], references: [id])
+    createdAt DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
 
-    @@index([approvedById])
+    payerId Int
+    payer   Users? @relation(name: "myIssuedPayouts", fields: [payerId], references: [id])
+
+    payee   Users @relation(name: "myPayouts", fields: [payeeId], references: [id])
+    payeeId Int
+
+    @@index([payeeId])
+    @@index([payerId])
 }
 
 enum PayrollStatus {
