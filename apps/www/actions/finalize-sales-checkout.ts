@@ -6,6 +6,7 @@ import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
 
+import { createPayrollAction } from "./create-payroll";
 import { NotifySalesRepPayment } from "./triggers/sales-rep-payment-notification";
 
 interface Props {
@@ -132,6 +133,17 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
                         //     },
                         // },
                     },
+                    select: {
+                        id: true,
+                        amount: true,
+                        order: {
+                            select: {
+                                salesRepId: true,
+                                id: true,
+                                orderId: true,
+                            },
+                        },
+                    },
                 });
                 const ord = await prisma.salesOrders.update({
                     where: {
@@ -162,6 +174,12 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
                     salesRepsNotifications[salesRep.email].ordersNo.push(
                         o.order.orderId,
                     );
+                    await createPayrollAction({
+                        orderId: sp.order.id,
+                        userId: sp.order.salesRepId,
+                        salesPaymentId: sp.id,
+                        salesAmount: sp.amount,
+                    });
                 }
                 return {
                     sp,
