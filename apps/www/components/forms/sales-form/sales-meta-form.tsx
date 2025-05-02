@@ -213,14 +213,21 @@ function SummaryTab({}) {
                         <AnimatedNumber value={md.pricing?.ccc || 0} />
                     </div>
                 </LineContainer>
-                <Input
+                {/* <Input
                     label="Labor Cost ($)"
                     name="metaData.pricing.labour"
                     value={md.pricing?.labour}
                     numberProps={{ prefix: "$" }}
                     onChange={calculateTotal}
-                />
-                <Input
+                /> */}
+                <LineContainer label="Labor Cost ($)">
+                    <div className="text-right">
+                        <AnimatedNumber
+                            value={md.extraCosts?.Labor?.amount || 0}
+                        />
+                    </div>
+                </LineContainer>
+                {/* <Input
                     label="Delivery Cost ($)"
                     name="metaData.pricing.delivery"
                     value={md.pricing?.delivery}
@@ -233,7 +240,7 @@ function SummaryTab({}) {
                     value={md.pricing?.discount}
                     numberProps={{ prefix: "$" }}
                     onChange={calculateTotal}
-                />
+                /> */}
                 <LineContainer label="Total">
                     <div className="text-right">
                         <AnimatedNumber value={md.pricing?.grandTotal || 0} />

@@ -40,8 +40,8 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         data.order.extraCosts.map((c) => [c.label, c as Partial<typeof c>]),
     );
     if (!extraCosts.labor)
-        extraCosts["labor"] = {
-            label: "labor",
+        extraCosts["Labor"] = {
+            label: "Labor",
             amount: 0,
             type: "Labor",
         };
@@ -111,13 +111,9 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         },
         formStatus: "ready",
     };
-    // console.log({ resp });
-
-    // console.log({ itemArray: data.itemArray });
 
     data.itemArray.map((item) => {
         const uid = generateRandomString(4);
-        // console.log({ mc: item.multiComponent });
 
         resp.sequence.formItem.push(uid);
         resp.kvFormItem[uid] = {

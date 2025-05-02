@@ -29,7 +29,8 @@ export function WageInput({ lineUid, value, cls, valueChanged }) {
                                 lineUid={lineUid}
                                 name="pricing.unitLabor"
                                 cls={cls}
-                                // valueChanged={valueChanged}
+                                type="number"
+                                valueChanged={valueChanged}
                             />
                         </div>
                     </div>

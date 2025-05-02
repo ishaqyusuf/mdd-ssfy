@@ -1,6 +1,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { triggerEvent } from "@/actions/events";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
+import { updateSalesExtraCosts } from "@/actions/update-sales-extra-costs";
 import {
     getSalesBookFormUseCase,
     saveFormUseCase,
@@ -45,9 +46,10 @@ export function SalesFormSave({ type = "button", and }: Props) {
             await resetSalesStatAction(resp.salesId, resp?.salesNo);
         if (s?.updateId) triggerEvent("salesUpdated", s?.id);
         else triggerEvent("salesCreated", s?.id);
-
-        console.log({ resp });
-
+        await updateSalesExtraCosts(
+            resp.salesId,
+            Object.values(zus.metaData?.extraCosts),
+        );
         switch (action) {
             case "close":
                 router.push(`/sales-book/${metaData.type}s`);
@@ -55,13 +57,11 @@ export function SalesFormSave({ type = "button", and }: Props) {
             case "default":
                 if (resp.redirectTo) {
                     router.push(resp.redirectTo);
-                }
+                } else router.refresh();
                 break;
             case "new":
                 router.push(`/sales-book/create-${metaData.type}`);
         }
-        // console.log({ resp });
-        // return;
         if (!metaData.debugMode) {
             await refetchData();
             if (resp.data?.error) toast.error(resp.data?.error);
@@ -73,7 +73,6 @@ export function SalesFormSave({ type = "button", and }: Props) {
         } else {
             toast.info("Debug mode");
         }
-        // if(resp.redirectTo)
     }
     async function refetchData() {
         if (!zus.metaData.salesId) return;

@@ -207,8 +207,7 @@ export class CostingClass {
         groupItem: ZusGroupItem,
         itemUid = this.setting.itemUid,
     ) {
-        console.log({ pricing: groupItem.pricing });
-
+        // console.log({ pricing: groupItem.pricing });
         groupItem.pricing.total = {
             // flatRate: 0,
             basePrice: 0,
@@ -253,7 +252,7 @@ export class CostingClass {
         const unitLabor = Number(formData?.pricing.unitLabor || 0);
         formData.pricing.unitLabor = unitLabor;
         formData.pricing.laborQty = qty;
-        priceList.push(unitLabor);
+        // priceList.push(unitLabor);
 
         const totalPrice = formatMoney(sum(priceList) * qty);
         formData.pricing.unitPrice = unitPrice;
@@ -280,7 +279,8 @@ export class CostingClass {
             ...data.metaData.pricing,
             ...overrides,
         };
-        const discount = Number(estimate.discount) || 0;
+        const extraDiscount = data?.metaData?.extraCosts?.Discount?.amount;
+        const discount = extraDiscount || Number(estimate.discount) || 0;
         const taxxableDiscount = Math.min(discount, estimate.taxxable);
         const nonTaxxableDiscount =
             taxxableDiscount == estimate.taxxable &&
@@ -298,17 +298,47 @@ export class CostingClass {
         if (data.metaData.paymentMethod == "Credit Card") {
             estimate.ccc = percentageValue(subGrandTot, 3);
         } else estimate.ccc = 0;
+        const Labor = sum(
+            Object.entries(data.kvFormItem).map(([itemUid, itemData]) => {
+                return sum(
+                    Object.entries(itemData?.groupItem?.form).map(
+                        ([k, d]) =>
+                            sum([d?.pricing?.laborQty]) *
+                            sum([d?.pricing?.unitLabor]),
+                    ),
+                );
+            }),
+        );
+        const extraCosts = sum(
+            Object.values(data.metaData.extraCosts)
+                .filter(
+                    (a) =>
+                        a.type != "CustomTaxxable" &&
+                        a.type != "Discount" &&
+                        a.type != "Labor",
+                )
+                .map((a) => a.amount),
+        );
         estimate.grandTotal = formatMoney(
             sum([
                 estimate.labour,
                 estimate.delivery,
+                Labor,
+                extraCosts,
                 subGrandTot,
                 estimate.ccc || 0,
             ]),
         );
-        if (this.setting?.staticZus)
+        if (this.setting?.staticZus) {
             this.setting.staticZus.metaData.pricing = estimate;
-        else this.setting.zus.dotUpdate("metaData.pricing", estimate);
+            this.setting.staticZus.metaData.extraCosts.Labor.amount = Labor;
+        } else {
+            this.setting.zus.dotUpdate("metaData.pricing", estimate);
+            this.setting.zus.dotUpdate(
+                "metaData.extraCosts.Labor.amount",
+                Labor,
+            );
+        }
     }
     public calculateTotalPrice() {
         const data = this.setting.zus;

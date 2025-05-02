@@ -102,14 +102,14 @@ model SalesOrders {
 model SalesExtraCosts {
     id          Int                @unique @default(autoincrement())
     label       String
-    type        SalesExtraCostType //discount, labor, etc
+    type        SalesExtraCostType
     taxxable    Boolean?
     amount      Float
     tax         Float?
     totalAmount Float?
-
-    orderId Int
-    order   SalesOrders @relation(fields: [orderId], references: [id])
+    percentage  Float?
+    orderId     Int
+    order       SalesOrders        @relation(fields: [orderId], references: [id])
 
     @@unique([type, orderId])
     @@index([orderId])
@@ -117,6 +117,7 @@ model SalesExtraCosts {
 
 enum SalesExtraCostType {
     Discount
+    DiscountPercentage
     Labor
     CustomTaxxable
     CustomNonTaxxable
