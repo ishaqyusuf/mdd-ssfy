@@ -73,11 +73,11 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
                 item.size,
                 item.swing,
                 handTitle,
-                !assignedToId && item.unitLabor
-                    ? item.unitLabor
-                        ? `$ ${formatCurrency(item.unitLabor)}/qty labor`
-                        : `no labor cost`
-                    : null,
+                assignedToId
+                    ? null
+                    : item.unitLabor
+                      ? `$ ${formatCurrency(item.unitLabor)}/qty labor`
+                      : `no labor cost`,
             ]
                 ?.filter(Boolean)
                 .join(" | ");
