@@ -8,11 +8,13 @@ import {
 } from "@/app/(clean-code)/(sales)/_common/utils/item-control-utils";
 import { composeStepFormDisplay } from "@/app/(clean-code)/(sales)/_common/utils/sales-step-utils";
 import {
+    DykeSalesDoorMeta,
     QtyControlType,
     SalesItemMeta,
     SalesType,
 } from "@/app/(clean-code)/(sales)/types";
 import { prisma, Prisma } from "@/db";
+import { formatCurrency, formatMoney } from "@/lib/use-number";
 import {
     composeQtyMatrix,
     composeSalesItemControlStat,
@@ -71,6 +73,13 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
                 item.size,
                 item.swing,
                 handTitle,
+                !assignedToId || item.unitLabor
+                    ? item.unitLabor
+                        ? `$${formatCurrency(item.unitLabor)}/qty labor`
+                        : assignedToId
+                          ? null
+                          : `no labor cost`
+                    : null,
             ]
                 ?.filter(Boolean)
                 .join(" | ");
@@ -120,7 +129,9 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
                     door.lhQty,
                     door.totalQty,
                 );
+                const unitLabor = (door.meta as DykeSalesDoorMeta)?.unitLabor;
                 addItem({
+                    unitLabor,
                     controlUid,
                     sectionTitle,
                     doorId: door.id,
@@ -174,6 +185,7 @@ export interface ItemControlData {
     subtitle?: string;
     swing?: string;
     size?: string;
+    unitLabor?: number;
     sectionTitle?: string;
     controlUid: string;
     itemIndex?: number;
@@ -340,6 +352,7 @@ const select = {
                             rhQty: true,
                             lhQty: true,
                             totalQty: true,
+                            meta: true,
                             stepProduct: {
                                 select: {
                                     name: true,
