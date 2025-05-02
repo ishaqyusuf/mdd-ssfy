@@ -612,6 +612,7 @@ model OrderItemProductionAssignments {
     deletedAt           DateTime?                    @db.Timestamp(0)
     createdAt           DateTime?                    @default(now()) @db.Timestamp(0)
     updatedAt           DateTime?                    @updatedAt
+    laborCost           Float?
     submissions         OrderProductionSubmissions[]
     order               SalesOrders                  @relation(fields: [orderId], references: [id])
     item                SalesOrderItems              @relation(fields: [itemId], references: [id])
