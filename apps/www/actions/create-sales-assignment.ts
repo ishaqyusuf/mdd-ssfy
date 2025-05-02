@@ -16,6 +16,7 @@ export async function createSalesAssignment(
 ) {
     const assignment = await tx.orderItemProductionAssignments.create({
         data: {
+            laborCost: data.unitLabor,
             shelfItem: data.shelfItemId
                 ? {
                       connect: {

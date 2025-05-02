@@ -14,7 +14,7 @@ import {
     SalesType,
 } from "@/app/(clean-code)/(sales)/types";
 import { prisma, Prisma } from "@/db";
-import { formatCurrency, formatMoney } from "@/lib/use-number";
+import { formatCurrency } from "@/lib/use-number";
 import {
     composeQtyMatrix,
     composeSalesItemControlStat,

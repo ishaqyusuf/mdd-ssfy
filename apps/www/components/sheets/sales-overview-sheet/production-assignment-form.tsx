@@ -29,6 +29,7 @@ export function ProductionAssignmentForm({ closeForm }) {
     const form = useForm<z.infer<typeof createAssignmentSchema>>({
         resolver: zodResolver(createAssignmentSchema),
         defaultValues: {
+            unitLabor: item.unitLabor,
             pending: {
                 ...pending,
             },

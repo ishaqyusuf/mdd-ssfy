@@ -40,6 +40,7 @@ export async function getSalesDispatchDataAction(orderId) {
             uid: item.controlUid,
             title: item.title,
             itemId: item.itemId,
+            unitLabor: item.unitLabor,
             totalQty: item.qty.qty,
             doorId: item.doorId,
             dispatchStat,

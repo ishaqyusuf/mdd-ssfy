@@ -247,6 +247,7 @@ export const createAssignmentSchema = z
         itemUid: z.string(),
         token: z.string().optional(),
         salesItemId: z.number(),
+        unitLabor: z.number().optional(),
     })
     .superRefine(qtySuperRefine);
 function qtySuperRefine(data, ctx) {

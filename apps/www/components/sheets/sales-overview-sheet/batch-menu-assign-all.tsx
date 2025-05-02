@@ -43,6 +43,7 @@ export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
                     salesId: item.salesId,
                     salesDoorId: item.doorId,
                     salesItemId: item.itemId,
+                    unitLabor: item.unitLabor,
                 } as z.infer<typeof createAssignmentSchema>,
             }))
             .filter((a) => a.meta.qty?.qty > 0);

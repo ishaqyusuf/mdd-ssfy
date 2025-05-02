@@ -138,6 +138,7 @@ export function useDispatcherAction() {
                                     salesId: ctx.data?.id,
                                     salesDoorId: item.doorId,
                                     salesItemId: item.itemId,
+                                    unitLabor: item.unitLabor,
                                 });
                                 loader.description(`${baseTitle} | 40%`);
                                 console.log({ assingment: resp });
