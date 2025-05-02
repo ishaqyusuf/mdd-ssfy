@@ -45,6 +45,7 @@ type SpecialFilters =
     | "_q";
 export type FilterKeys = keyof typeof searchSchema._type;
 export type SearchParamsKeys = SpecialFilters | FilterKeys;
+const commissionFilters = ["all", "earned", "pending"] as const;
 export const searchParamsParser: {
     [k in SearchParamsKeys]: any;
 } = {
@@ -66,6 +67,7 @@ export const searchParamsParser: {
     "account.no": parseAsString,
     address: parseAsString,
     "address.id": parseAsInteger,
+    "commission.filter": parseAsString,
     sort: parseAsSort,
     size: parseAsInteger.withDefault(30),
     start: parseAsInteger.withDefault(0),
@@ -94,6 +96,7 @@ export const searchParamsParser: {
     "trashed.only": parseAsBoolean,
     "dealer.id": parseAsInteger,
     "sales.id": parseAsInteger,
+    "salesRep.id": parseAsInteger,
     _q: parseAsString,
     id: parseAsInteger,
     "user.permissions": parseAsArrayOf(
@@ -114,6 +117,7 @@ export const searchSchema = z
         "address.id": z.number().optional(),
         id: z.number().optional(),
         status: z.string().optional(),
+        "commission.filter": z.enum(commissionFilters).optional(),
         "customer.id": z.number().optional(),
         "customer.tx.id": z.number().optional(),
         "customer.name": z.string().optional(),
@@ -132,6 +136,7 @@ export const searchSchema = z
         "sales.rep": z.string().optional(),
         "sales.tx.id": z.number().optional(),
         "sales.type": z.enum(["order", "quote"]).optional(),
+        "salesRep.id": z.number().optional(),
         search: z.string().optional(),
         "dealer.id": z.number().optional(),
         "user.permissions": z.enum(PERMISSIONS).optional(),

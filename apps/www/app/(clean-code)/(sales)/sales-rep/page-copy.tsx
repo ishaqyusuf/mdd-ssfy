@@ -1,4 +1,3 @@
-import { Metadata } from "next";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import CommissionPayments from "@/components/sales-rep-commission-payment";
 import PendingCommissions from "@/components/sales-rep-pending-comissions";
@@ -20,20 +19,16 @@ import {
 } from "@gnd/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
-import { searchParamsCache } from "./search-params";
+// import CommissionPayments from "./commission-payments";
+// import CustomerProfile from "./customer-profile";
+// import PendingCommissions from "./pending-commissions";
+// import RecentQuotes from "./recent-quotes";
+// import RecentSales from "./recent-sales";
+// import SalesChart from "./sales-chart";
 
-export const metadata: Metadata = {
-    title: `My Dashboard | GND`,
-};
-export default async function SalesRepProfile({
-    searchParams,
-}: {
-    searchParams: Record<string, string | string[] | undefined>;
-}) {
-    const {} = searchParamsCache.parse(searchParams);
-
+export default function SalesRepProfile() {
     return (
-        <FPage can={["editOrders"]} title="Sales Rep Profile">
+        <FPage can={["viewOrders"]} title="Sales Rep Profile">
             <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
                 <div className="flex items-center justify-between">
                     <div>
