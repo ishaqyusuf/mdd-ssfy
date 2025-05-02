@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { Metadata } from "next";
 import Link from "next/link";
+import { authUser } from "@/app/(v1)/_actions/utils";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import CommissionPayments from "@/components/sales-rep-commission-payment";
 import PendingCommissions from "@/components/sales-rep-pending-comissions";
@@ -41,14 +42,14 @@ export default async function SalesRepProfile({
     searchParams: Record<string, string | string[] | undefined>;
 }) {
     const {} = searchParamsCache.parse(searchParams);
-
+    const user = await authUser();
     return (
         <FPage can={["editOrders"]} title="Sales Rep Profile">
             <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-3xl font-bold tracking-tight">
-                            Sales Rep Profile
+                            Welcome back, {user?.name}
                         </h2>
                         <p className="text-muted-foreground">
                             Manage your sales activities and track performance
