@@ -47,6 +47,7 @@ export async function submitSalesAssignment(
             id: true,
             assignment: {
                 select: {
+                    laborCost: true,
                     assignedToId: true,
                     itemControl: {
                         select: {},
@@ -55,9 +56,9 @@ export async function submitSalesAssignment(
             },
         },
     });
-    if (data.unitWage && submission.assignment.assignedToId) {
+    if (submission.assignment.laborCost && submission.assignment.assignedToId) {
         await createPayrollAction({
-            wage: formatMoney(data.unitWage * data.qty.qty),
+            wage: formatMoney(submission.assignment.laborCost * data.qty.qty),
             orderId: data.salesId,
             userId: submission.assignment.assignedToId,
         });

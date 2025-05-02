@@ -41,6 +41,12 @@ export async function deleteSalesAssignmentSubmission(
             qty: true,
             lhQty: true,
             rhQty: true,
+            payroll: {
+                select: {
+                    id: true,
+                    status: true,
+                },
+            },
             assignment: {
                 select: {
                     id: true,
