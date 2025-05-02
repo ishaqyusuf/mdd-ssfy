@@ -83,11 +83,7 @@ export function BatchAssignActionMenu() {
 export function BatchAssignAction() {
     const ctx = useSalesOverviewItemsTab();
     const opened = ctx.selectMode && ctx.batchAction == "assign-production";
-    useEffect(() => {
-        if (opened) {
-            console.log("LOAD");
-        }
-    }, [opened]);
+
     const form = useForm({
         defaultValues: {
             dueDate: null,
