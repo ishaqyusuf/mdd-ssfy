@@ -49,7 +49,8 @@ export default async function SalesRepProfile({
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-3xl font-bold tracking-tight">
-                            Welcome back, {user?.name?.split("  ")?.[0]}
+                            Welcome back,{" "}
+                            {user?.name?.split(" ")?.filter(Boolean)?.[0]}
                         </h2>
                         <p className="text-muted-foreground">
                             Manage your sales activities and track performance
