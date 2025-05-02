@@ -44,7 +44,7 @@ export default function SalesChart() {
                     color: "hsl(var(--chart-2))",
                 },
             }}
-            className="h-[300px]"
+            className="h-[300px] w-full "
         >
             <ResponsiveContainer width="100%" height="100%">
                 <LineChart
@@ -73,4 +73,3 @@ export default function SalesChart() {
         </ChartContainer>
     );
 }
-

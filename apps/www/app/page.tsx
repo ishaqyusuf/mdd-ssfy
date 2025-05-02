@@ -1,8 +1,10 @@
 "use client";
-import { nav } from "@/lib/navs";
-import { redirect } from "next/navigation";
+
 import { useEffect } from "react";
+import { redirect } from "next/navigation";
+import { nav } from "@/lib/navs";
 import { useSession } from "next-auth/react";
+
 export default function AuthPage({}) {
     const { data: session } = useSession({
         required: true,
@@ -13,8 +15,11 @@ export default function AuthPage({}) {
     // console.log(session)
     useEffect(() => {
         let sb = nav(session);
-        console.log(session);
-        if (sb) redirect(sb.homeRoute);
+
+        if (sb) {
+            console.log(sb.homeRoute);
+            redirect(sb.homeRoute);
+        }
         // else signOut();
     }, [session]);
     return <></>;

@@ -5,7 +5,7 @@ import NumberFlow from "@number-flow/react";
 
 type Props = {
     value: number;
-    currency?: string;
+    currency?: "USD" | "number";
     minimumFractionDigits?: number;
     maximumFractionDigits?: number;
     locale?: string;
@@ -24,12 +24,16 @@ export function AnimatedNumber({
     return (
         <NumberFlow
             value={value}
-            format={{
-                style: "currency",
-                currency: currency ?? "USD",
-                minimumFractionDigits,
-                maximumFractionDigits,
-            }}
+            format={
+                currency == "number"
+                    ? undefined
+                    : {
+                          style: "currency",
+                          currency: currency ?? "USD",
+                          minimumFractionDigits,
+                          maximumFractionDigits,
+                      }
+            }
             willChange
             locales={localeToUse}
         />

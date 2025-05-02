@@ -68,6 +68,8 @@ export const searchParamsParser: {
     address: parseAsString,
     "address.id": parseAsInteger,
     "commission.filter": parseAsString,
+    "date.from": parseAsString,
+    "date.to": parseAsString,
     sort: parseAsSort,
     size: parseAsInteger.withDefault(30),
     start: parseAsInteger.withDefault(0),
@@ -121,6 +123,9 @@ export const searchSchema = z
         "customer.id": z.number().optional(),
         "customer.tx.id": z.number().optional(),
         "customer.name": z.string().optional(),
+        "date.from": z.string().optional(),
+        "date.to": z.string().optional(),
+
         "order.no": z.string().optional(),
         po: z.string().optional(),
         phone: z.string().optional(),

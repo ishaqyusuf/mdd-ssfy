@@ -1,3 +1,5 @@
+import { getSalesOrdersDta } from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
+import { authId } from "@/app/(v1)/_actions/utils";
 import { Eye, MoreHorizontal } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";
@@ -11,7 +13,11 @@ import {
     CardTitle,
 } from "@gnd/ui/card";
 
-export default function RecentSales() {
+export default async function RecentSales() {
+    const userId = await authId();
+    const sales = await getSalesOrdersDta({
+        "salesRep.id": userId,
+    });
     const recentSales = [
         {
             id: "S-2023-001",

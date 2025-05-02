@@ -264,6 +264,11 @@ export function whereSales(query: SearchParamsType) {
                     ],
                 });
                 break;
+            case "salesRep.id":
+                whereAnd.push({
+                    salesRepId: val,
+                });
+                break;
             case "sales.rep":
                 whereAnd.push({
                     salesRep: {

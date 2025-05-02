@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Metadata } from "next";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import CommissionPayments from "@/components/sales-rep-commission-payment";
@@ -6,6 +7,14 @@ import CustomerProfile from "@/components/sales-rep-profile";
 import RecentQuotes from "@/components/sales-rep-recent-quotes";
 import RecentSales from "@/components/sales-rep-recent-sales";
 import SalesChart from "@/components/sales-rep-sales-chart";
+import {
+    SalesRepActiveCustomers,
+    SalesRepCommissionEarned,
+    SalesRepPendingCommission,
+    SalesRepTotalSales,
+} from "@/components/sales-rep-summary-cards";
+import { SummaryCardSkeleton } from "@/components/summary-card";
+import { SalesRepRecentSales } from "@/components/widgets/sales-rep-recent-sales";
 import { CalendarIcon, DollarSign, Plus, Users } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";
@@ -51,66 +60,22 @@ export default async function SalesRepProfile({
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Total Sales
-                            </CardTitle>
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">$45,231.89</div>
-                            <p className="text-xs text-muted-foreground">
-                                +20.1% from last month
-                            </p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Commission Earned
-                            </CardTitle>
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">$4,523.19</div>
-                            <p className="text-xs text-muted-foreground">
-                                +10.5% from last month
-                            </p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Active Customers
-                            </CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">+32</div>
-                            <p className="text-xs text-muted-foreground">
-                                +12.3% from last month
-                            </p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Pending Commission
-                            </CardTitle>
-                            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">$1,893.42</div>
-                            <p className="text-xs text-muted-foreground">
-                                5 pending payments
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <Suspense fallback={<SummaryCardSkeleton />}>
+                        <SalesRepTotalSales />
+                    </Suspense>
+                    <Suspense fallback={<SummaryCardSkeleton />}>
+                        <SalesRepCommissionEarned />
+                    </Suspense>
+                    <Suspense fallback={<SummaryCardSkeleton />}>
+                        <SalesRepPendingCommission />
+                    </Suspense>
+                    <Suspense fallback={<SummaryCardSkeleton />}>
+                        <SalesRepActiveCustomers />
+                    </Suspense>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                    <Card className="col-span-4">
+                <div className="hidden">
+                    <Card className="">
                         <CardHeader>
                             <div className="flex items-center justify-between">
                                 <CardTitle>Sales Performance</CardTitle>
@@ -123,57 +88,6 @@ export default async function SalesRepProfile({
                         </CardHeader>
                         <CardContent className="pl-2">
                             <SalesChart />
-                        </CardContent>
-                    </Card>
-                    <Card className="col-span-3">
-                        <CardHeader>
-                            <CardTitle>Sales Rep Information</CardTitle>
-                            <CardDescription>
-                                Personal and performance details
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center space-x-4">
-                                <Avatar className="h-20 w-20">
-                                    <AvatarImage
-                                        src="/placeholder.svg?height=80&width=80"
-                                        alt="Sales Rep"
-                                    />
-                                    <AvatarFallback>SR</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <h3 className="text-xl font-bold">
-                                        Sarah Johnson
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        Senior Sales Representative
-                                    </p>
-                                    <div className="mt-2 flex flex-col space-y-1">
-                                        <div className="flex items-center text-sm">
-                                            <span className="font-medium">
-                                                ID:
-                                            </span>
-                                            <span className="ml-2">
-                                                SR-2023-0042
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center text-sm">
-                                            <span className="font-medium">
-                                                Region:
-                                            </span>
-                                            <span className="ml-2">
-                                                Northeast
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center text-sm">
-                                            <span className="font-medium">
-                                                Commission Rate:
-                                            </span>
-                                            <span className="ml-2">10%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -192,7 +106,8 @@ export default async function SalesRepProfile({
                         <TabsTrigger value="commission">Commission</TabsTrigger>
                     </TabsList>
                     <TabsContent value="recent-sales" className="space-y-4">
-                        <RecentSales />
+                        <SalesRepRecentSales />
+                        {/* <RecentSales /> */}
                     </TabsContent>
                     <TabsContent value="recent-quotes" className="space-y-4">
                         <RecentQuotes />

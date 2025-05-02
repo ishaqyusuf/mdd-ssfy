@@ -334,6 +334,7 @@ export function nav(
         (sec) => (sec.routes as any)?.length > 0,
     ) as any;
     if (session.role?.name == "Dealer") homeRoute = "/orders";
+    if (__can?.editOrders) homeRoute = "/sales-rep";
     return {
         flatRoutes,
         routeGroup,
