@@ -29,6 +29,7 @@ export async function RecentSalesWidget() {
     const [{ data: salesList }] = await Promise.all([
         getMyRecentSales({
             "salesRep.id": await authId(),
+            size: 5,
         }),
     ]);
     return (

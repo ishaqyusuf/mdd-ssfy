@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { Metadata } from "next";
+import Link from "next/link";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import CommissionPayments from "@/components/sales-rep-commission-payment";
 import PendingCommissions from "@/components/sales-rep-pending-comissions";
@@ -53,9 +54,14 @@ export default async function SalesRepProfile({
                             Manage your sales activities and track performance
                         </p>
                     </div>
-                    <Button className="flex items-center gap-2">
-                        <Plus className="h-4 w-4" />
-                        Create Sale
+                    <Button asChild>
+                        <Link
+                            className="flex items-center gap-2"
+                            href="/sales-book/create-order"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Create Sale
+                        </Link>
                     </Button>
                 </div>
 

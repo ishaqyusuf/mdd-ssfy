@@ -10,12 +10,14 @@ export function SalesRepSalesWidgetHeader() {
 
     return (
         <div className="flex items-center justify-between">
-            <Link href="/invoices" prefetch>
+            <Link href="/sales-book/orders" prefetch>
                 <h2 className="text-lg">Recent Sales</h2>
             </Link>
 
-            <Button variant="outline" size="icon" onClick={() => {}}>
-                <Icons.add />
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/sales-book/create-order">
+                    <Icons.add />
+                </Link>
             </Button>
         </div>
     );
