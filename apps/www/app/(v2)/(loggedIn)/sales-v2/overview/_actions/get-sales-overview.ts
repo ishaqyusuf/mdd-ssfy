@@ -281,4 +281,5 @@ const SalesIncludes = {
             taxConfig: true,
         },
     },
+    extraCosts: true,
 } satisfies Prisma.SalesOrdersInclude;

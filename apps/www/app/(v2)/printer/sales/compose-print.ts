@@ -746,12 +746,19 @@ function printFooter(data: PrintData, notPrintable) {
                 },
             ),
             ...taxLines,
-            styled(
-                "Labor",
-                formatCurrency.format(data.order.meta?.labor_cost || 0),
-                {
+            data.order.meta?.labor_cost
+                ? styled(
+                      "Labor",
+                      formatCurrency.format(data.order.meta?.labor_cost || 0),
+                      {
+                          font: "bold",
+                      },
+                  )
+                : null,
+            ...data.order?.extraCosts?.map((ec) =>
+                styled(ec.label, formatCurrency.format(ec.amount || 0), {
                     font: "bold",
-                },
+                }),
             ),
             data.order.meta?.ccc
                 ? styled(

@@ -39,7 +39,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
     const extraCosts = Object.fromEntries(
         data.order.extraCosts.map((c) => [c.label, c as Partial<typeof c>]),
     );
-    if (!extraCosts.labor)
+    if (!extraCosts.Labor)
         extraCosts["Labor"] = {
             label: "Labor",
             amount: 0,
