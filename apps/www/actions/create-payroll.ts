@@ -42,7 +42,7 @@ export async function createPayrollAction(data: Props) {
             amount: commission,
             itemUid: data.itemUid,
             status: "PENDING",
-            type: !data?.submissionId ? "WAGE" : "COMMISSION",
+            type: data?.submissionId ? "WAGE" : "COMMISSION",
             userId,
             description: data.description,
             history: {
