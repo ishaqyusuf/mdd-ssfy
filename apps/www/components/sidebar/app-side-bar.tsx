@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { Fragment, useEffect, useMemo } from "react";
 import { ChevronRight } from "lucide-react";
 
 import {
@@ -32,6 +32,7 @@ import {
     useSidebarModule,
     useSidebarSection,
 } from "./context";
+import { linkModules } from "./links";
 import { ModuleSwitcher } from "./module-switcher";
 import { useSidebarStore } from "./store";
 
@@ -47,62 +48,53 @@ export function AppSideBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <ModuleSwitcher />
             </SidebarHeader>
             <SidebarContent>
-                <SidebarModule
-                    name="hrm"
-                    icon="hrm"
-                    title="HRM"
-                    subtitle={"GND HRM"}
-                >
-                    <SidebarModuleSection name="main">
-                        <SidebarLink
-                            name="hrm"
-                            title="HRM"
-                            icon="hrm"
-                            link="/hello-side-bar"
-                        />
-                        <SidebarLink
-                            name="customer-service"
-                            title="Customer Service"
-                            icon="customerService"
-                            link="/customer-services"
-                        />
-                        <SidebarLink
-                            name="sales-commission"
-                            title="Sales Commission"
-                            icon="percent"
-                            link="/sales/commissions"
-                        />
-                    </SidebarModuleSection>
-                </SidebarModule>
-                <SidebarModule
-                    name="sales"
-                    title="Sales"
-                    subtitle="GND Sales Module"
-                    icon="orders"
-                >
-                    <SidebarModuleSection name="sales" title="Sales">
-                        <SidebarLink
-                            name="side-bar"
-                            title="Hello Side bar"
-                            icon="billing"
-                            link="/hello-side-bar"
-                        />
-                        <SidebarLink
-                            name="accounting"
-                            title="Accounting"
-                            icon="billing"
-                        />
-                        <SidebarLink
-                            name="sales-orders"
-                            title="Orders"
-                            icon="billing"
-                        >
-                            <SubLink name="quotes" title="Quotes" />
-                            <SubLink name="productions" title="Productions" />
-                            <SubLink name="dispatch" title="Dispatch" />
-                        </SidebarLink>
-                    </SidebarModuleSection>
-                </SidebarModule>
+                {linkModules.map((module, mi) => (
+                    <SidebarModule
+                        name={module.name as any}
+                        icon={module.icon}
+                        title={module.title}
+                        subtitle={module.subtitle}
+                        key={mi}
+                    >
+                        {module.sections?.map((section, si) => (
+                            <SidebarModuleSection
+                                title={section.title}
+                                key={si}
+                                name={section.name}
+                            >
+                                {section.links?.map((link, li) => (
+                                    <Fragment key={li}>
+                                        {link?.subLinks?.length ? (
+                                            <SidebarLink
+                                                name={li.name}
+                                                title={li.title}
+                                                icon={li.icon}
+                                            >
+                                                {li.links?.map((sub, si) => (
+                                                    <SubLink
+                                                        name={sub?.name}
+                                                        title={sub?.title}
+                                                        link={sub?.href}
+                                                        key={si}
+                                                    />
+                                                ))}
+                                            </SidebarLink>
+                                        ) : (
+                                            <>
+                                                <SidebarLink
+                                                    name={link.name}
+                                                    title={link.title}
+                                                    link={link?.href}
+                                                    icon={link.icon}
+                                                />
+                                            </>
+                                        )}
+                                    </Fragment>
+                                ))}
+                            </SidebarModuleSection>
+                        ))}
+                    </SidebarModule>
+                ))}
             </SidebarContent>
         </Sidebar>
     );

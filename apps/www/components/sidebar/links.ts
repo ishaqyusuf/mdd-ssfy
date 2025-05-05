@@ -8,7 +8,7 @@ const _module = (
     icon: IconKeys,
     // title?,
     subtitle?,
-    sections = [],
+    sections: ReturnType<typeof _section>[] = [],
 ) => ({
     name,
     icon,
@@ -30,7 +30,7 @@ type Link = {
 const _section = (
     name: sectionNames,
     title?: string,
-    links?: Link[],
+    links?: ReturnType<typeof _link>["data"][],
     access: Access[] = [],
 ) => ({
     name,
@@ -96,7 +96,49 @@ const _perm = {
         __access("permission", "every", ...roles),
     some: (...roles: Permission[]) => __access("permission", "some", ...roles),
 };
+export const validLinks = ({ role, can }: { role; can: ICan }) => {
+    function validateAccess(accessList: Access[]) {
+        return accessList.every((a) => {
+            if (a.type == "permission")
+                switch (a.equator) {
+                    case "every":
+                    case "is":
+                        return a.values?.every((p) => can?.[p]);
+                    case "in":
+                    case "some":
+                        return a.values?.some((p) => can?.[p]);
+                    case "isNot":
+                    case "notIn":
+                        return a.values.every((p) => !can?.[p]);
+                }
+            else if (a.type == "role") {
+                switch (a.equator) {
+                    case "every":
+                    case "is":
+                        return a.values?.every((p) => role === p);
+                    case "in":
+                    case "some":
+                        return a.values?.some((p) => role === p);
+                    case "isNot":
+                    case "notIn":
+                        return a.values.every((p) => role !== p);
+                }
+            }
 
+            return true;
+        });
+    }
+    return linkModules.map((lm) => {
+        lm.sections = lm.sections.map((s) => {
+            s.links = s.links.map((lnk) => {
+                const valid = validateAccess(lnk.access);
+                // if(!valid)return
+                return lnk;
+            });
+            return s;
+        });
+    });
+};
 export const linkModules = [
     _module("HRM", "hrm", "GND HRM", [
         _section("main", null, [
