@@ -187,6 +187,24 @@ function SummaryTab({}) {
                         <AnimatedNumber value={md.pricing?.taxValue || 0} />
                     </div>
                 </LineContainer>
+                <LineContainer label="Labor Cost ($)">
+                    <div className="text-right">
+                        <AnimatedNumber
+                            value={md.extraCosts?.Labor?.amount || 0}
+                        />
+                    </div>
+                </LineContainer>
+                <Input
+                    onChange={(e) => {
+                        calculateTotal();
+                    }}
+                    label="Delivery"
+                    name="metaData.extraCosts.Delivery.amount"
+                    value={md.extraCosts?.Delivery?.amount}
+                    numberProps={{
+                        prefix: "$",
+                    }}
+                />
                 <LineContainer
                     label={
                         <div className="col-span-3 flex items-center justify-end border-b hover:bg-muted-foreground/30">
@@ -213,34 +231,7 @@ function SummaryTab({}) {
                         <AnimatedNumber value={md.pricing?.ccc || 0} />
                     </div>
                 </LineContainer>
-                {/* <Input
-                    label="Labor Cost ($)"
-                    name="metaData.pricing.labour"
-                    value={md.pricing?.labour}
-                    numberProps={{ prefix: "$" }}
-                    onChange={calculateTotal}
-                /> */}
-                <LineContainer label="Labor Cost ($)">
-                    <div className="text-right">
-                        <AnimatedNumber
-                            value={md.extraCosts?.Labor?.amount || 0}
-                        />
-                    </div>
-                </LineContainer>
-                {/* <Input
-                    label="Delivery Cost ($)"
-                    name="metaData.pricing.delivery"
-                    value={md.pricing?.delivery}
-                    numberProps={{ prefix: "$" }}
-                    onChange={calculateTotal}
-                />
-                <Input
-                    label="Sales Discount ($)"
-                    name="metaData.pricing.discount"
-                    value={md.pricing?.discount}
-                    numberProps={{ prefix: "$" }}
-                    onChange={calculateTotal}
-                /> */}
+
                 <LineContainer label="Total">
                     <div className="text-right">
                         <AnimatedNumber value={md.pricing?.grandTotal || 0} />

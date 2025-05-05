@@ -74,8 +74,6 @@ export function Input({
                             className="w-16"
                             value={value as any}
                             onValueChange={(e) => {
-                                console.log(e);
-
                                 const val = e.floatValue || null;
                                 state.dotUpdate(name, val);
                                 onChange?.(val);

@@ -48,7 +48,12 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
             amount: 0,
             type: "Labor",
         };
-
+    if (!extraCosts?.Delivery)
+        extraCosts["Delivery"] = {
+            label: "Delivery",
+            amount: 0,
+            type: "Delivery",
+        };
     const resp: SalesFormZusData = {
         // data,
         setting: data.salesSetting,

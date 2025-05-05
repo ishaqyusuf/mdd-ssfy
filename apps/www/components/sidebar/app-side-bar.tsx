@@ -261,15 +261,13 @@ function SubLink({ title, name, link }: SubLinkProps) {
     const linkCtx = useSidebarLink();
     useEffect(() => {
         ctx.form.setValue(`subLinks.${linkCtx?.name}|${name}`, {
-            // moduleName: siteModule?.name,
-            // sectionName: sectionCtx?.name,
             url: link,
             name,
             title,
             custom: false,
             // icon,
         });
-    }, [linkCtx?.name]);
+    }, [linkCtx?.name, name, title, ctx?.form, link]);
     return null;
     return (
         <SidebarMenuSubItem>

@@ -121,6 +121,7 @@ enum SalesExtraCostType {
     Labor
     CustomTaxxable
     CustomNonTaxxable
+    Delivery
 }
 
 model SalesOrderItems {
