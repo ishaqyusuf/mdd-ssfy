@@ -295,9 +295,7 @@ export class CostingClass {
             ? percentageValue(taxxable, taxProfile.percentage)
             : 0;
         const subGrandTot = sum([subTotalAfterDiscount, estimate.taxValue]);
-        if (data.metaData.paymentMethod == "Credit Card") {
-            estimate.ccc = percentageValue(subGrandTot, 3);
-        } else estimate.ccc = 0;
+
         const Labor = sum(
             Object.entries(data.kvFormItem).map(([itemUid, itemData]) => {
                 return sum(
@@ -319,6 +317,12 @@ export class CostingClass {
                 )
                 .map((a) => a.amount),
         );
+        if (data.metaData.paymentMethod == "Credit Card") {
+            estimate.ccc = percentageValue(
+                sum([subGrandTot, extraCosts, Labor]),
+                3,
+            );
+        } else estimate.ccc = 0;
         estimate.grandTotal = formatMoney(
             sum([
                 estimate.labour,
