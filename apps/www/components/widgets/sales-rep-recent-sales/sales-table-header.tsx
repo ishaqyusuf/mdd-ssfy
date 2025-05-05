@@ -43,7 +43,7 @@ export function SalesTableHeader({}) {
                             variant="ghost"
                             onClick={() => createSortQuery("invoice_number")}
                         >
-                            <span>{column.header}</span>
+                            {/* <span>{column.header}</span> */}
                             {"invoice_number" === column.id &&
                                 value === "asc" && <ArrowDown size={16} />}
                             {"invoice_number" === column.id &&
