@@ -1,22 +1,38 @@
-import { GetSalesListDta } from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
+"use client";
+
+import {
+    GetSalesListDta,
+    GetSalesOrdersDta,
+} from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
+import { columns } from "@/components/tables/sales-orders/columns";
+import { useSimpleTable } from "@/hooks/use-simple-table";
+
+import { Table, TableBody } from "@gnd/ui/table";
 
 import { EmptyState } from "./empty-state";
-import { SalesRow } from "./sales-row";
+import { SalesRow, SalesTableRow } from "./sales-row";
+import { SalesTableHeader } from "./sales-table-header";
 
 type Props = {
-    sales: GetSalesListDta["data"];
+    sales: GetSalesOrdersDta["data"];
 };
 
 export function Sales({ sales }: Props) {
-    if (!sales.length) {
-        return <EmptyState />;
-    }
-
+    const { table } = useSimpleTable({
+        initialData: sales,
+        columns,
+    });
+    // table.getAllColumns().map(a => a.id == )
     return (
-        <ul className="bullet-none scrollbar-hide mt-4 aspect-square cursor-pointer divide-y overflow-auto pb-32">
-            {sales?.map((invoice) => {
-                return <SalesRow key={invoice.id} sale={invoice} />;
-            })}
-        </ul>
+        <div>
+            <Table>
+                <SalesTableHeader />
+                <TableBody>
+                    {table.getRowModel().rows.map((row) => (
+                        <SalesTableRow key={row.id} row={row} />
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
     );
 }

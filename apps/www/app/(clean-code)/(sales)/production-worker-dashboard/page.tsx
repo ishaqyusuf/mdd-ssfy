@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import DevOnly from "@/_v2/components/common/dev-only";
+import { DataTable } from "@/components/examples/block-featured-outline-table";
 import ProductionWorkerDashboard from "@/components/production-worker-dashboard";
 
 export const metadata: Metadata = {
@@ -7,6 +9,12 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-    return <ProductionWorkerDashboard />;
+    return (
+        <>
+            <ProductionWorkerDashboard />
+            <DevOnly>
+                <DataTable />
+            </DevOnly>
+        </>
+    );
 }
-

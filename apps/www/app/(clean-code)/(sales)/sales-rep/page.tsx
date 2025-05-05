@@ -101,7 +101,7 @@ export default async function SalesRepProfile({
                 </div>
 
                 <Tabs defaultValue="recent-sales" className="space-y-4">
-                    <TabsList>
+                    <TabsList className="bg-muted">
                         <TabsTrigger value="recent-sales">
                             Recent Sales
                         </TabsTrigger>

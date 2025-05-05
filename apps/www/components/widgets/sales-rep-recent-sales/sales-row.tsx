@@ -1,9 +1,13 @@
 "use client";
 
 import { GetSalesListDta } from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { flexRender } from "@tanstack/react-table";
 
 import { Badge } from "@gnd/ui/badge";
+import { cn } from "@gnd/ui/cn";
 import { Skeleton } from "@gnd/ui/skeleton";
+import { TableCell, TableRow } from "@gnd/ui/table";
 
 export function SalesRowSkeleton() {
     return (
@@ -27,6 +31,42 @@ export function SalesRowSkeleton() {
                 </div>
             </div>
         </li>
+    );
+}
+export function SalesTableRow({ row }) {
+    const overviewQuery = useSalesOverviewQuery();
+    return (
+        <>
+            <TableRow
+                className="h-[57px] cursor-pointer hover:bg-transparent"
+                key={row.id}
+                onClick={(e) => {
+                    overviewQuery?.open2(row?.original?.uuid, "sales");
+                }}
+            >
+                {row.getVisibleCells().map((cell, index) => (
+                    <TableCell
+                        key={cell.id}
+                        className={cn(
+                            index === 2 && "w-[50px]",
+                            (cell.column.id === "actions" ||
+                                cell.column.id === "recurring" ||
+                                cell.column.id === "invoice_number" ||
+                                cell.column.id === "issue_date") &&
+                                "hidden md:table-cell",
+                        )}
+                        // onClick={() =>
+                        //   index !== row.getVisibleCells().length - 1 && setOpen(row.id)
+                        // }
+                    >
+                        {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                        )}
+                    </TableCell>
+                ))}
+            </TableRow>
+        </>
     );
 }
 export function SalesRow({ sale }: { sale: GetSalesListDta["data"][number] }) {

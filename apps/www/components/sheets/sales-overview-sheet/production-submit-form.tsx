@@ -74,6 +74,7 @@ export function ProductionSubmitForm({}) {
             revalidateTable();
         },
         onError(e) {
+            console.log(e);
             toast.error("Unable to complete");
         },
     });

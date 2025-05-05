@@ -38,6 +38,7 @@ export async function getSalesQuotesDta(query: SearchParamsType) {
     };
 }
 export type GetSalesOrdersDta = AsyncFnType<typeof getSalesOrdersDta>;
+export type SalesListItem = GetSalesOrdersDta["data"][number];
 export async function getSalesOrdersDta(query: SearchParamsType) {
     const resp = await getSalesListDta(query);
 

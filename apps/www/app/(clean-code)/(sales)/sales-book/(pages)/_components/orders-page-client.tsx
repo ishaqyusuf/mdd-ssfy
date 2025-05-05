@@ -62,7 +62,6 @@ export default function OrdersPageClient({
             },
         },
     });
-    const mailClient = useSalesEmailSender();
     const overviewQuery = useSalesOverviewQuery();
     return (
         <div className="bg-white">

@@ -50,7 +50,7 @@ export async function submitSalesAssignment(
                     laborCost: true,
                     assignedToId: true,
                     itemControl: {
-                        select: {},
+                        // select: {},
                     },
                 },
             },

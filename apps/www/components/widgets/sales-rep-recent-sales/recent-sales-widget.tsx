@@ -3,6 +3,7 @@ import { authId } from "@/app/(v1)/_actions/utils";
 
 import { Skeleton } from "@gnd/ui/skeleton";
 
+import { EmptyState } from "./empty-state";
 import { Sales } from "./sales";
 import { SalesRowSkeleton } from "./sales-row";
 
@@ -32,6 +33,7 @@ export async function RecentSalesWidget() {
             size: 5,
         }),
     ]);
+    if (!salesList?.length) return <EmptyState />;
     return (
         <div>
             <Sales sales={salesList} />
