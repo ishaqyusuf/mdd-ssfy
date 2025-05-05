@@ -410,24 +410,6 @@ export function GeneralTab({}) {
                             <Card className="border-border/40">
                                 <CardContent className="p-4">
                                     <div className="space-y-2">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-muted-foreground">
-                                                Total Invoice
-                                            </span>
-                                            <DataSkeleton
-                                                className=""
-                                                placeholder="$3,217.63"
-                                            >
-                                                <span>
-                                                    <Money
-                                                        value={
-                                                            saleData.invoice
-                                                                .total
-                                                        }
-                                                    />
-                                                </span>
-                                            </DataSkeleton>
-                                        </div>
                                         {saleData?.costLines?.map((c) => (
                                             <div
                                                 key={c.id}
@@ -448,6 +430,25 @@ export function GeneralTab({}) {
                                                 </DataSkeleton>
                                             </div>
                                         ))}
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">
+                                                Total Invoice
+                                            </span>
+                                            <DataSkeleton
+                                                className=""
+                                                placeholder="$3,217.63"
+                                            >
+                                                <span>
+                                                    <Money
+                                                        value={
+                                                            saleData.invoice
+                                                                .total
+                                                        }
+                                                    />
+                                                </span>
+                                            </DataSkeleton>
+                                        </div>
+
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">
                                                 Paid Amount
