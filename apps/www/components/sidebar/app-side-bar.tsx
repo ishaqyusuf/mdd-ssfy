@@ -48,7 +48,8 @@ export function AppSideBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <ModuleSwitcher />
             </SidebarHeader>
             <SidebarContent>
-                {linkModules.map((module, mi) => (
+                <></>
+                {/* {linkModules.map((module, mi) => (
                     <SidebarModule
                         name={module.name as any}
                         icon={module.icon}
@@ -94,7 +95,7 @@ export function AppSideBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             </SidebarModuleSection>
                         ))}
                     </SidebarModule>
-                ))}
+                ))} */}
             </SidebarContent>
         </Sidebar>
     );
