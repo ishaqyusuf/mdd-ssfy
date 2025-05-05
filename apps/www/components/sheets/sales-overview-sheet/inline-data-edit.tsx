@@ -13,6 +13,7 @@ export function SalesPO({ value, salesId }) {
     const deb = useDebounce(inputValue, 1000);
     useEffect(() => {
         if (!salesId) return;
+        return;
         if (value != deb) {
             updateSalesMetaAction(salesId, {
                 po: deb?.toUpperCase(),
