@@ -122,6 +122,7 @@ enum SalesExtraCostType {
     CustomTaxxable
     CustomNonTaxxable
     Delivery
+    EXT
 }
 
 model SalesOrderItems {

@@ -82,6 +82,7 @@ export function toastDetail(
                 title: `Generating payment...`,
                 duration: Number.POSITIVE_INFINITY,
                 variant: "spinner",
+                // action
             };
         case "terminal-waiting":
             return {
