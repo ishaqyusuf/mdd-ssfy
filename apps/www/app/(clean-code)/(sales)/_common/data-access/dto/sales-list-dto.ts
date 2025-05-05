@@ -22,6 +22,7 @@ export function salesOrderDto(data: Item) {
     const customer = data.customer;
     return {
         ...commonListData(data),
+
         dispatchList: data.deliveries?.map((d) => {
             return {
                 title: dispatchTitle(d.id),
@@ -98,6 +99,7 @@ function commonListData(data: Item) {
         salesRepInitial: getNameInitials(data.salesRep?.name),
         poNo: meta?.po,
         deliveryOption: data?.deliveryOption,
+        costLines: data.extraCosts,
         customerPhone:
             data.billingAddress?.phoneNo ||
             data.customer?.phoneNo ||

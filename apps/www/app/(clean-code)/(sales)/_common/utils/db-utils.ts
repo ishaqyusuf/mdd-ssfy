@@ -100,6 +100,7 @@ export const notDeleted = excludeDeleted;
 export const SalesListInclude = {
     producer: true,
     pickup: true,
+    extraCosts: true,
     deliveries: {
         select: {
             id: true,

@@ -428,6 +428,26 @@ export function GeneralTab({}) {
                                                 </span>
                                             </DataSkeleton>
                                         </div>
+                                        {saleData?.costLines?.map((c) => (
+                                            <div
+                                                key={c.id}
+                                                className="flex justify-between text-sm"
+                                            >
+                                                <span className="text-muted-foreground">
+                                                    {c.label}
+                                                </span>
+                                                <DataSkeleton
+                                                    className=""
+                                                    placeholder="$0.00"
+                                                >
+                                                    <span>
+                                                        <Money
+                                                            value={c?.amount}
+                                                        />
+                                                    </span>
+                                                </DataSkeleton>
+                                            </div>
+                                        ))}
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">
                                                 Paid Amount
