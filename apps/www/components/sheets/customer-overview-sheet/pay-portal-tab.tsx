@@ -115,6 +115,7 @@ export function PayPortalTab({}) {
 
     const makePayment = useAction(createSalesPaymentAction, {
         onSuccess: (args) => {
+            console.log(args);
             if (args.data?.terminalPaymentSession) {
                 pToast.updateNotification("terminal-waiting");
                 setWaitSeconds(0);
