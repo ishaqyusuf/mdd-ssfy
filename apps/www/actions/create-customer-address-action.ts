@@ -40,6 +40,21 @@ export const createCustomerAddressAction = actionClient
                 },
             } satisfies Prisma.AddressBooksUpdateInput;
             if (addressId) {
+                const ordersOnAddress = await tx?.salesOrders.count({
+                    where: {
+                        OR: [
+                            {
+                                shippingAddressId: addressId,
+                            },
+                            {
+                                billingAddressId: addressId,
+                            },
+                        ],
+                    },
+                });
+                if (ordersOnAddress > 0) addressId = null;
+            }
+            if (addressId) {
                 const address = await tx.addressBooks.update({
                     where: {
                         id: addressId,

@@ -1,13 +1,5 @@
 "use client";
 
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from "@gnd/ui/breadcrumb";
 import { Separator } from "@gnd/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@gnd/ui/sidebar";
 
