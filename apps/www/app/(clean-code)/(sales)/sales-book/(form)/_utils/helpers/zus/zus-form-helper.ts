@@ -30,7 +30,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         dayjs("2025-02-12").diff(dayjs(data._rawData?.createdAt), "days") > 0;
     function customPrice(price) {
         if (!price && isLegacy) {
-            console.log("IS LEGACY");
+            // console.log("IS LEGACY");
             return "";
         }
         return price;
@@ -52,7 +52,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         extraCosts["Delivery"] = {
             label: "Delivery",
             amount: 0,
-            type: "Delivery",
+            type: "Delivery" as any,
         };
     const resp: SalesFormZusData = {
         // data,

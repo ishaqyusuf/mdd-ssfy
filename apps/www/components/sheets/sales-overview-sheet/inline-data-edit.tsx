@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { updateSalesMetaAction } from "@/actions/update-sales-meta-action";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { LabelInput } from "@/components/label-input";
@@ -11,33 +11,34 @@ export function SalesPO({ value, salesId }) {
 
     const [inputValue, setInputValue] = useState<string>(value || "");
     const deb = useDebounce(inputValue, 1000);
+    const hasMounted = useRef(false);
+
     useEffect(() => {
         if (!salesId) return;
-        return;
-        if (value != deb) {
+        if (!hasMounted.current) {
+            hasMounted.current = true;
+            return;
+        }
+        if (value !== deb) {
             updateSalesMetaAction(salesId, {
                 po: deb?.toUpperCase(),
-            }).then((e) => {
+            }).then(() => {
                 ctx.setParams({
                     refreshTok: generateRandomString(),
                 });
             });
         }
     }, [deb, value, salesId]);
+
     return (
         <div>
             <p className="text-muted-foreground">P.O No</p>
             <DataSkeleton className="font-medium" placeholder="Standard">
                 <LabelInput
-                    onChange={(e) => {
-                        const d = e.target.value;
-                        setInputValue(d);
-                    }}
+                    onChange={(e) => setInputValue(e.target.value)}
                     className="w-24 uppercase"
                     value={inputValue}
                 />
-                {value}
-                {inputValue}
             </DataSkeleton>
         </div>
     );
