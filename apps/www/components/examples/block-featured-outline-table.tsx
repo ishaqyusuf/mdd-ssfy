@@ -143,7 +143,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
         id: "select",
         header: ({ table }) => (
             <div className="flex items-center justify-center">
-                <Checkbox
+                {/* <Checkbox
                     checked={
                         table.getIsAllPageRowsSelected() ||
                         (table.getIsSomePageRowsSelected() && "indeterminate")
@@ -152,7 +152,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
                         table.toggleAllPageRowsSelected(!!value)
                     }
                     aria-label="Select all"
-                />
+                /> */}
             </div>
         ),
         cell: ({ row }) => (
