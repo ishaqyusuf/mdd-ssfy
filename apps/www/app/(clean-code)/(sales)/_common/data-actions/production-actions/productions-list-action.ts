@@ -35,9 +35,10 @@ export async function getProductionListPageAction(
         "sort",
         "size",
         "start",
-        "production.assignedToId",
         "sales.type",
     ];
+    if (!admin) excludes.push("production.assignedToId");
+
     const q = Object.entries(query)?.filter(
         ([a, b]) => b && !excludes.includes(a as any),
     );
@@ -74,10 +75,10 @@ export async function getProductionListPageAction(
             ? []
             : await getProductionListAction({
                   ...query,
-                  "production.status": "part assigned",
+                  //   "production.status": "part assigned",
               });
     const others = prodList.filter((p) => !excludesIds?.includes(p.id));
-
+    // console.log({ prodList });
     const result = await inifinitePageInfo(
         query,
         whereSales(query),
