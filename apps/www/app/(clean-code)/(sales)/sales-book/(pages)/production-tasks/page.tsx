@@ -1,10 +1,7 @@
 import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 import { composeFilter } from "@/components/(clean-code)/data-table/filter-command/filters";
 import { dataOptions } from "@/components/(clean-code)/data-table/query-options";
-import {
-    searchParamsCache,
-    SearchParamsType,
-} from "@/components/(clean-code)/data-table/search-params";
+import { searchParamsCache } from "@/components/(clean-code)/data-table/search-params";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { __isProd } from "@/lib/is-prod-server";
