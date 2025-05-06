@@ -8,7 +8,7 @@ import {
     FilterKeys,
     SearchParamsType,
 } from "@/components/(clean-code)/data-table/search-params";
-import { Prisma, prisma } from "@/db";
+import { Prisma, prisma, SalesPriority } from "@/db";
 import { formatDate } from "@/lib/use-day";
 import dayjs from "dayjs";
 
@@ -274,6 +274,15 @@ export function whereSales(query: SearchParamsType) {
                     salesRep: {
                         name: val,
                     },
+                });
+                break;
+            case "sales.priority":
+                if (val == SalesPriority.NORMAL)
+                    whereAnd.push({
+                        OR: [{ priority: null }, { priority: val }],
+                    });
+                whereAnd.push({
+                    priority: val,
                 });
                 break;
             case "production.assignedToId":

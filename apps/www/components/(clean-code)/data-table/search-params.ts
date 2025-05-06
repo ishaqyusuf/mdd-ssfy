@@ -8,6 +8,7 @@ import { PERMISSIONS, ROLES } from "@/data/contants/permissions";
 // Note: import from 'nuqs/server' to avoid the "use client" directive
 import { ARRAY_DELIMITER, SORT_DELIMITER } from "@/lib/delimiters";
 import { noteParamsParser, noteSchema } from "@/modules/notes/constants";
+import { SalesPriority } from "@prisma/client";
 import {
     createParser,
     createSearchParamsCache,
@@ -99,6 +100,10 @@ export const searchParamsParser: {
     "dealer.id": parseAsInteger,
     "sales.id": parseAsInteger,
     "salesRep.id": parseAsInteger,
+    "sales.priority": parseAsArrayOf(
+        parseAsStringLiteral(Object.keys(SalesPriority)),
+        ARRAY_DELIMITER,
+    ),
     _q: parseAsString,
     id: parseAsInteger,
     "user.permissions": parseAsArrayOf(
@@ -142,6 +147,7 @@ export const searchSchema = z
         "sales.tx.id": z.number().optional(),
         "sales.type": z.enum(["order", "quote"]).optional(),
         "salesRep.id": z.number().optional(),
+        "sales.priority": z.nativeEnum(SalesPriority),
         search: z.string().optional(),
         "dealer.id": z.number().optional(),
         "user.permissions": z.enum(PERMISSIONS).optional(),

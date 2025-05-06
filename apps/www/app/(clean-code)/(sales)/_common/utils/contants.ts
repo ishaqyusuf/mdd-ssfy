@@ -3,6 +3,7 @@ import {
     filterFields,
     Filters,
 } from "@/components/(clean-code)/data-table/filter-command/filters";
+import { SalesPriority } from "@prisma/client";
 
 import {
     DeliveryOption,
@@ -110,6 +111,7 @@ export const __filters = (): Filters => ({
             filterFields.invoice,
             filterFields["sales.rep"],
             filterFields.search,
+            filterFields["sales.priority"],
         ],
         filterColumns: [
             filterCol("order.no"),
@@ -120,12 +122,14 @@ export const __filters = (): Filters => ({
             filterCol("invoice"),
             filterCol("sales.rep"),
             filterCol("search"),
+            filterCol("sales.priority"),
         ],
         options: {
             invoice: INVOICE_FILTER_OPTIONS,
             "dispatch.status": DISPATCH_FILTER_OPTIONS,
             production: PRODUCTION_FILTER_OPTIONS,
             "production.assignment": PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
+            "sales.priority": Object.keys(SalesPriority),
         },
     },
     quotes: {
