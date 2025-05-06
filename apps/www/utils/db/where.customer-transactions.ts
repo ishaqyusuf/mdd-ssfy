@@ -63,6 +63,18 @@ export function whereCustomerTx(query: SearchParamsType) {
             },
         });
     }
+    if (query["order.no"])
+        whereAnd.push({
+            salesPayments: {
+                some: {
+                    order: {
+                        orderId: {
+                            in: query["order.no"]?.split(","),
+                        },
+                    },
+                },
+            },
+        });
     if (query["sales.id"])
         whereAnd.push({
             salesPayments: {
