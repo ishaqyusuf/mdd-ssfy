@@ -71,5 +71,38 @@ export function whereCustomerTx(query: SearchParamsType) {
                 },
             },
         });
+    if (query["search"]) whereAnd.push(whereSearch(query["search"]));
     return composeQuery(whereAnd);
+}
+function whereSearch(query) {
+    const inputQ = { contains: query || undefined } as any;
+    return {
+        salesPayments: {
+            some: {
+                order: {
+                    OR: [
+                        { orderId: inputQ },
+                        {
+                            customer: {
+                                OR: [
+                                    {
+                                        businessName: inputQ,
+                                    },
+                                    {
+                                        name: inputQ,
+                                    },
+                                    {
+                                        email: inputQ,
+                                    },
+                                    {
+                                        phoneNo: inputQ,
+                                    },
+                                ],
+                            },
+                        },
+                    ],
+                },
+            },
+        },
+    } satisfies Prisma.CustomerTransactionWhereInput;
 }
