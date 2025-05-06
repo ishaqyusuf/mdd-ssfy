@@ -70,13 +70,14 @@ export async function getProductionListPageAction(
         .filter((a) => !a.completed);
     // const excludesIds = [...dueToday, ...pastDue].map((a) => a.id);
     const excludesIds = customs.map((a) => a.id);
-    const prodList =
-        !admin && !queryCount
-            ? []
-            : await getProductionListAction({
-                  ...query,
-                  //   "production.status": "part assigned",
-              });
+    console.log({ queryCount, admin });
+
+    const prodList = !queryCount
+        ? []
+        : await getProductionListAction({
+              ...query,
+              //   "production.status": "part assigned",
+          });
     const others = prodList.filter((p) => !excludesIds?.includes(p.id));
     // console.log({ prodList });
     const result = await inifinitePageInfo(
