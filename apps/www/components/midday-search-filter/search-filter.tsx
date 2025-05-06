@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
+import { useQueryStates } from "nuqs";
 import { useHotkeys } from "react-hotkeys-hook";
 
 import {
@@ -19,25 +20,34 @@ import {
 import { Input } from "@gnd/ui/input";
 
 import { Icon, Icons } from "../_v1/icons";
+import { searchParamsParser } from "../(clean-code)/data-table/search-params";
 import { SelectTag } from "../select-tag";
 import { FilterList } from "./filter-list";
 import { searchIcons } from "./search-icons";
 
 interface Props {
-    filters;
-    setFilters;
-    defaultSearch;
+    // filters;
+    // setFilters;
+    defaultSearch?;
     placeholder?;
     filterList?;
 }
 
 export function MiddaySearchFilter({
-    filters,
+    // filters,
     placeholder,
-    setFilters,
-    defaultSearch,
+    // setFilters,
+    defaultSearch = {},
     filterList,
 }: Props) {
+    const queryParams = Object.fromEntries(
+        Object.entries(searchParamsParser).filter(([k, v]) =>
+            filterList?.find((a) => a?.value === k),
+        ),
+    );
+    const [filters, setFilters] = useQueryStates(queryParams, {
+        shallow: false,
+    });
     const [prompt, setPrompt] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
     const [isOpen, setIsOpen] = useState(false);

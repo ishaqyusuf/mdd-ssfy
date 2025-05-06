@@ -9,7 +9,6 @@ import {
     DataTable,
     InfiniteDataTablePageProps,
 } from "@/components/(clean-code)/data-table";
-import { DataTableFilterCommand } from "@/components/(clean-code)/data-table/filter-command";
 import {
     BatchBtn,
     BatchDelete,
@@ -18,10 +17,8 @@ import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/i
 import { useInfiniteDataTable } from "@/components/(clean-code)/data-table/use-data-table";
 import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
 import { _modal } from "@/components/common/modal/provider";
+import { MiddaySearchFilter } from "@/components/midday-search-filter/search-filter";
 import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
-import { SalesOrdersFitler } from "@/components/tables/sales-orders/search-filter";
-import { useSalesEmailSender } from "@/hooks/use-sales-email-sender";
-import { useSalesFilterParams } from "@/hooks/use-sales-filter-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 import { Button } from "@gnd/ui/button";
@@ -97,8 +94,10 @@ export default function OrdersPageClient({
                     </div>
                     <div className="flex justify-between">
                         <div className="flex-1">
-                            {/* <DataTableFilterCommand /> */}
-                            <SalesOrdersFitler filterFields={filterFields} />
+                            <MiddaySearchFilter
+                                placeholder={"Search order information"}
+                                filterList={filterFields}
+                            />
                         </div>
                         <DataTableInfinityToolbar />
                     </div>

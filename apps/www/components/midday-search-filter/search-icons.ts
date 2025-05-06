@@ -6,5 +6,11 @@ export const searchIcons: Partial<{
 }> = {
     "order.no": "orders",
     "customer.name": "user",
+    phone: "phone",
+    search: "Search",
+    "production.assignedToId": "production",
+    "production.assignment": "production",
+    "production.status": "production",
+    production: "production",
     // "sales.rep": "r"
 };
