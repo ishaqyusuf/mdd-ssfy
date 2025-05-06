@@ -11,19 +11,19 @@ export default async function TablePage({
     searchParams,
     filterKey,
     PageClient,
-    queryDataPromise,
+    queryData,
 }: {
     PageClient;
     searchParams;
     filterKey: QueryKeys;
-    queryDataPromise?;
+    queryData?;
 }) {
     const search = searchParamsCache.parse(searchParams);
     const queryClient = getQueryClient();
     const props = composeFilter(
         // "production-tasks"
         filterKey,
-        queryDataPromise ? await queryDataPromise : null,
+        queryData,
         // await getSalesPageQueryDataDta()
     );
     const { queryKey, filterFields } = props;

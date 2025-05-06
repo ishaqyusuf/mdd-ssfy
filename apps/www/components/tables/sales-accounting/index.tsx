@@ -12,7 +12,6 @@ import { BatchBtn } from "@/components/(clean-code)/data-table/infinity/batch-ac
 import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/infinity/data-table-toolbar";
 import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
 import { Menu } from "@/components/(clean-code)/menu";
-import { openSalesCustomerTx } from "@/components/sheets/sales-customer-tx-sheet";
 import { useTransactionOverviewModal } from "@/hooks/use-tx-overview-modal";
 
 import {
@@ -25,6 +24,7 @@ import {
     SalesRepCell,
     StatusCell,
 } from "./columns";
+import { SalesAccountingSearchFilter } from "./sales-accounting-search-filter";
 
 export default function SalesAccountingTable({
     filterFields,
@@ -90,6 +90,7 @@ export default function SalesAccountingTable({
                         <div className="">
                             <QueryTab page="orders" />
                         </div>
+                        <SalesAccountingSearchFilter />
                         <div className="flex-1"></div>
                         <QueryTabAction />
                         {/* <Button

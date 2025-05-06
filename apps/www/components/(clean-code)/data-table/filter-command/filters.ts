@@ -83,8 +83,10 @@ export const composeFilter = (queryKey: QueryKeys, loadedFilters?) => {
         }
         return filter;
     });
+
     return {
         queryKey,
+        // queryParams,
         filterFields: f || [],
     };
 };

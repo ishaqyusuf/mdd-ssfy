@@ -87,6 +87,7 @@ function Header({
 export type InfiniteDataTablePageProps = {
     filterFields;
     queryKey;
+    queryParams?;
 };
 function Infinity({
     children,

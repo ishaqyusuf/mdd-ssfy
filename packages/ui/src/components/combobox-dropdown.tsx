@@ -19,6 +19,7 @@ export interface ComboboxItem {
   id: string;
   label: string;
   disabled?: boolean;
+
 }
 
 interface Props<T> {
@@ -38,7 +39,10 @@ interface Props<T> {
   disabled?: boolean;
   onCreate?: (value: string) => void;
   headless?: boolean;
-  className?: string;
+  className?: string;  
+  pageSize?: number;
+  valueKey?: string;
+
 }
 
 export function ComboboxDropdown<T extends ComboboxItem>({
@@ -56,19 +60,33 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   disabled,
   onCreate,
   className,
+  pageSize = 20,
 }: Props<T>) {
   const [open, setOpen] = React.useState(false);
   const [internalSelectedItem, setInternalSelectedItem] = React.useState<
     T | undefined
   >();
-  const [inputValue, setInputValue] = React.useState("");
-
+  
   const selectedItem = incomingSelectedItem ?? internalSelectedItem;
-
+  
+  const [inputValue, setInputValue] = React.useState("");
   const filteredItems = items.filter((item) =>
     item.label.toLowerCase().includes(inputValue.toLowerCase()),
   );
+  const [cursor,setCusor] = React.useState(0)
+  React.useEffect(() => {
+    setCusor(0)
+  },[inputValue])
+  const {__items,hasMore} = React.useMemo(() => {
+    // const PAGE_SIZE = 10;
+  const paginatedItems = filteredItems.slice(0, cursor + pageSize);
+  const hasMoreItems = paginatedItems.length < filteredItems.length;
 
+  return {
+    __items: paginatedItems,
+    hasMore: hasMoreItems,
+  };
+  },[filteredItems,cursor,pageSize])
   const showCreate = onCreate && Boolean(inputValue) && !filteredItems.length;
 
   const Component = (
@@ -82,7 +100,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
 
       <CommandGroup>
         <CommandList className="max-h-[225px] overflow-auto">
-          {filteredItems.map((item) => {
+          {__items.map((item) => {
             const isChecked = selectedItem?.id === item.id;
 
             return (
@@ -92,7 +110,8 @@ export function ComboboxDropdown<T extends ComboboxItem>({
                 key={item.id}
                 value={item.id}
                 onSelect={(id) => {
-                  const foundItem = items.find((item) => item.id === id);
+                  console.log({filteredItems,id})
+                  const foundItem = filteredItems?.find((item) => item.id?.toUpperCase() === id?.toUpperCase());
 
                   if (!foundItem) {
                     console.log("No item found", id);
