@@ -3,6 +3,7 @@
 import { authId } from "@/app/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
+import { payrollUid } from "@/utils/sales-utils";
 
 interface Props {
     userId: number;
@@ -30,15 +31,22 @@ export async function createPayrollAction(data: Props) {
     const commission = data?.salesAmount
         ? formatMoney(data.salesAmount * (salesComissionPercentage / 100))
         : data?.wage;
+    const uid = payrollUid(
+        data.orderId,
+        data.salesPaymentId,
+        data.submissionId,
+    );
     await prisma.payroll.upsert({
         where: {
             // orderId_productionSubmissionId_orderPaymentId: {
-            orderId: data.orderId,
-            orderPaymentId: data.salesPaymentId,
-            productionSubmissionId: data.submissionId || null,
+            // orderId: data.orderId,
+            // orderPaymentId: data.salesPaymentId || undefined,
+            // productionSubmissionId: data.submissionId || undefined,
+            uid,
             // },
         },
         create: {
+            uid,
             amount: commission,
             itemUid: data.itemUid,
             status: "PENDING",

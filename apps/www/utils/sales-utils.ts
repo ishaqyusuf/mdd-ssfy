@@ -121,3 +121,10 @@ export function getDispatchControlType(
             return "dispatchAssigned";
     }
 }
+
+export function payrollUid(oid, pid, submissionId) {
+    return Object.entries({ oid, pid, submissionId })
+        .filter(([a, b]) => !!b)
+        .map(([a, b]) => `${a}:${b}`)
+        .join(",");
+}

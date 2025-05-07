@@ -27,8 +27,8 @@ model PayrollHistory {
 }
 
 model Payroll {
-    id Int @unique @default(autoincrement())
-
+    id          Int          @unique @default(autoincrement())
+    uid         String       @unique
     amount      Float
     type        PayrollType
     headline    String?
