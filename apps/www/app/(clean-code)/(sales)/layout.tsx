@@ -21,8 +21,8 @@ export default async function Layout({ children }) {
             </ContentLayout>
             <CustomerOverviewSheet />
             <SalesPreviewModal />
-            <SalesOverviewSheet />
             <CustomerCreateSheet />
+            <SalesOverviewSheet />
             <TransactionOverviewModal />
             <SalesEmailSender />
         </SidebarLayout>

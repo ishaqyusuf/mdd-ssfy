@@ -35,7 +35,7 @@ export async function createPayrollAction(data: Props) {
             orderId_productionSubmissionId_orderPaymentId: {
                 orderId: data.orderId,
                 orderPaymentId: data.salesPaymentId,
-                productionSubmissionId: data.submissionId,
+                productionSubmissionId: data.submissionId || null,
             },
         },
         create: {

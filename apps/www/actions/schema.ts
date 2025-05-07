@@ -140,7 +140,8 @@ export const createPaymentSchema = z
                 squarePaymentId: z.string().optional(),
                 squareCheckoutId: z.string().optional(),
             })
-            .optional(),
+            .optional()
+            .nullable(),
     })
     .superRefine((data, ctx) => {
         if (data.paymentMethod === "check" && !data.checkNo) {

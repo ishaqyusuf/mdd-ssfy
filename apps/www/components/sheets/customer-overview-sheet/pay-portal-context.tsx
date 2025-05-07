@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { cancelTerminaPaymentAction } from "@/actions/cancel-terminal-payment-action";
 import { createSalesPaymentAction } from "@/actions/create-sales-payment";
 import { getCustomerPayPortalAction } from "@/actions/get-customer-pay-portal-action";
-import { getTerminalPaymentStatusAction } from "@/actions/get-terminal-payment-status";
+import {
+    getTerminalPaymentStatusAction,
+    terminalPaymentStatus,
+} from "@/actions/get-terminal-payment-status";
 import { createPaymentSchema } from "@/actions/schema";
 import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
@@ -12,8 +15,9 @@ import {
 } from "@/hooks/use-data-skeleton";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { timeout } from "@/lib/timeout";
 import { formatMoney } from "@/lib/use-number";
-import { cn, generateRandomString, sum } from "@/lib/utils";
+import { generateRandomString, sum } from "@/lib/utils";
 import { TerminalCheckoutStatus } from "@/modules/square";
 import { printSalesData } from "@/utils/sales-print-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -60,23 +64,9 @@ export function usePayPortal() {
         },
     });
 
-    const [waitSeconds, setWaitSeconds] = useState(null);
-    const [waitTok, setWaitTok] = useState(null);
-    useEffect(() => {
-        if (waitTok) {
-            setWaitTok(null);
-            setWaitSeconds((waitSeconds || 0) + 1);
-            checkTerminalStatus();
-        }
-    }, [waitTok, waitSeconds]);
     // const pToast = usePaymentToast();
     const toast = useLoadingToast();
-    async function terminalPaymentSuccessful() {
-        makePayment.execute({
-            ...form.getValues(),
-            // squarePaymentId,
-        });
-    }
+
     useEffect(() => {
         const selections = query.params?.["pay-selections"];
         form.setValue("salesIds", selections);
@@ -90,23 +80,26 @@ export function usePayPortal() {
     const pm = form.watch("paymentMethod");
     const terminalPaymentSession = form.watch("terminalPaymentSession");
     const salesQ = useSalesOverviewQuery();
-
     const makePayment = useAction(createSalesPaymentAction, {
         onSuccess: (args) => {
-            console.log(args);
             if (args.data?.terminalPaymentSession) {
                 toast.loading("", toastDetail("terminal-waiting"));
-                // pToast.updateNotification("terminal-waiting");
-                setWaitSeconds(0);
                 form.setValue(
                     "terminalPaymentSession",
                     args.data.terminalPaymentSession,
                 );
+                setTimeout(() => {
+                    setWaitSeconds(0);
+                }, 2000);
             } else {
                 if (args.data.status) {
-                    // pToast.updateNotification("payment-success");
+                    form.setValue("terminalPaymentSession", null);
                     toast.success("", toastDetail("payment-success"));
                     revalidateTable();
+                    query.setParams({
+                        "pay-selections": null,
+                        tab: "transactions",
+                    });
                     setTimeout(() => {
                         if (salesQ?.params?.["sales-overview-id"]) {
                             salesQ._refreshToken();
@@ -121,7 +114,6 @@ export function usePayPortal() {
             }
         },
         onError(error) {
-            console.log(error);
             staticPaymentData.description = error.error?.serverError;
             toast.error("", toastDetail("failed"));
         },
@@ -131,75 +123,56 @@ export function usePayPortal() {
             setWaitSeconds(null);
             form.setValue("terminalPaymentSession", null);
             toast.success("", toastDetail("terminal-cancelled"));
+            //  toast.error("", toastDetail("terminal-cancelled"));
+        },
+        onError(e) {
+            toast.error("Unable to cancel payment");
         },
     });
+    const [waitSeconds, setWaitSeconds] = useState(null);
     function terminalManualAcceptPayment(e) {
         toast.loading("", toastDetail("terminal-waiting"));
-        setWaitSeconds(0);
-        setWaitTok(generateRandomString());
     }
-    staticPaymentData.accept = terminalManualAcceptPayment;
     useEffect(() => {
-        if (terminalPaymentSession) checkTerminalStatus();
-    }, [terminalPaymentSession]);
-    function checkTerminalStatus() {
-        setTimeout(
-            () => {
-                if (waitSeconds > 15) {
-                    toast.loading("", toastDetail("terminal-long-waiting"));
-                } else toast.loading("", toastDetail("terminal-waiting"));
-                if (waitSeconds > 17) {
-                    setWaitTok(null);
-                    return;
-                }
-                if (mockStatus) processTerminalPaymentStatus(mockStatus);
-                checkTerminalPaymentStatus.execute({
-                    checkoutId: terminalPaymentSession.squareCheckoutId,
-                    squarePaymentId: terminalPaymentSession.squarePaymentId,
-                });
-            },
-            waitSeconds > 5 ? 2000 : waitSeconds > 10 ? 3000 : 1500,
-        );
-    }
+        if (!terminalPaymentSession) return;
+        async function checkTerminalPaymentStatus() {
+            console.log({ terminalPaymentSession });
+            console.log("CHECKING PAYMENT STATUS", waitSeconds, mockStatus);
+            const rep = mockStatus
+                ? { status: mockStatus }
+                : await terminalPaymentStatus(
+                      terminalPaymentSession?.squareCheckoutId,
+                  );
+            switch (rep.status) {
+                case "COMPLETED":
+                    form.setValue("terminalPaymentSession.status", "COMPLETED");
+                    makePayment.execute({
+                        ...form.getValues(),
+                    });
+                    return null;
+                case "CANCELED":
+                case "CANCEL_REQUESTED":
+                    cancelTerminalPayment.execute({
+                        checkoutId: terminalPaymentSession.squareCheckoutId,
+                        squarePaymentId: terminalPaymentSession.squarePaymentId,
+                    });
+                    return null;
+            }
+            // return generateRandomString();
+            setTimeout(() => {
+                setWaitSeconds(waitSeconds + 1);
+            }, 2000);
+        }
+        if (waitSeconds != null) {
+            checkTerminalPaymentStatus();
+        }
+    }, [waitSeconds, terminalPaymentSession]);
+    staticPaymentData.accept = terminalManualAcceptPayment;
+    // useEffect(() => {
+    //     if (terminalPaymentSession) waitForTerminalPayment();
+    // }, [terminalPaymentSession]);
+
     const [mockStatus, setMockStatus] = useState<TerminalCheckoutStatus>(null);
-    function processTerminalPaymentStatus(status: TerminalCheckoutStatus) {
-        if (status == "COMPLETED") {
-            setWaitSeconds(null);
-            setWaitTok(null);
-        }
-        switch (status) {
-            case "COMPLETED":
-                // form.setValue("terminal.tip", response.tip);
-                form.setValue("terminalPaymentSession.status", "COMPLETED");
-                terminalPaymentSuccessful();
-                break;
-            case "CANCELED":
-            case "CANCEL_REQUESTED":
-                form.setValue("terminalPaymentSession.status", "CANCELED");
-                cancelTerminalPayment.execute({
-                    checkoutId: terminalPaymentSession.squareCheckoutId,
-                });
-                toast.error("", toastDetail("terminal-cancelled"));
-                break;
-            default:
-                setWaitTok(generateRandomString());
-                // setWaitSeconds((waitSeconds || 0) + 1);
-                // checkTerminalStatus();
-                break;
-        }
-    }
-    const checkTerminalPaymentStatus = useAction(
-        getTerminalPaymentStatusAction,
-        {
-            onSuccess: (args) => {
-                processTerminalPaymentStatus(args.data.status);
-            },
-            onError(args) {
-                console.log(args);
-                toast.error("", toastDetail("terminal-cancelled"));
-            },
-        },
-    );
 
     return {
         data,
@@ -278,8 +251,8 @@ function toastDetail(status: Status, description?): Partial<Toast> | null {
             return {
                 // id: toastId,
                 title: `Terminal payment cancelled...`,
-                duration: Number.POSITIVE_INFINITY,
-                variant: "spinner",
+                duration: 1500,
+                variant: "error",
             };
         case "payment-success":
             return {

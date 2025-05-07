@@ -228,14 +228,30 @@ export function PayPortalTab({}) {
                                     label="Terminal"
                                 />
                                 <div className="col-span-2 flex justify-end">
+                                    <DevOnly>
+                                        <Button
+                                            type="button"
+                                            onClick={(e) => {
+                                                form.trigger().then((e) => {
+                                                    console.log(e);
+                                                    console.log(
+                                                        form.formState.errors,
+                                                    );
+                                                });
+                                            }}
+                                        >
+                                            AAA
+                                        </Button>
+                                    </DevOnly>
                                     <SubmitButton
                                         isSubmitting={
                                             makePayment.isExecuting ||
-                                            !!toast?.toast?.toastId
+                                            !!terminalPaymentSession
                                         }
                                         disabled={
                                             makePayment.isExecuting ||
-                                            !form.formState.isValid
+                                            !form.formState.isValid ||
+                                            !!terminalPaymentSession
                                         }
                                     >
                                         Pay
