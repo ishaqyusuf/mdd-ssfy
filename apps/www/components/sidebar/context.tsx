@@ -16,11 +16,14 @@ export const schema = z.object({
                 title: z.string(),
                 subtitle: z.string(),
                 icon: z.string(),
+                index: z.number(),
+                // globalIndex: z.number(),
                 // visibleLinkCount
             }),
         )
         .default({}),
     activeLinkName: z.string(),
+    activeModule: z.string(),
     // {[id in string]: z.object{}}
     subLinks: z
         .record(
@@ -29,6 +32,8 @@ export const schema = z.object({
                 url: z.string(),
                 title: z.string(),
                 custom: z.boolean(),
+                index: z.number(),
+                globalIndex: z.number(),
             }),
         )
         .default({}),
@@ -42,6 +47,8 @@ export const schema = z.object({
             title: z.string(),
             url: z.string(),
             paths: z.array(z.string()),
+            index: z.number(),
+            globalIndex: z.number(),
         }),
     ),
 });
@@ -84,10 +91,14 @@ export const { useContext: useSidebarModule, Provider: SideBarModuleProvider } =
         const store = useSidebarStore();
         // ctx.isMobile;
         // const module = ctx?.data?.siteModules?.[name];
+
         const siteModule = store.siteModules?.[name];
+        const isCurrentModule = ctx.data?.activeModule == name;
+        // ctx.isMobile;
+        // const module = ctx?.data?.siteModules?.[name];
         //  ctx.form.watch(`siteModules.${name}`);
         // const data = useAsyncMemo(loader, []);
-        return { siteModule };
+        return { siteModule, isCurrentModule };
     });
 
 export const {

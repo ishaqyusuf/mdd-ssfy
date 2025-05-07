@@ -115,6 +115,7 @@ export function MiddaySearchFilter({
                 : [...(filters?.[qk] ?? []), value],
         });
     }
+    const __filters = filterList?.filter((a) => a.value != "search");
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <div className="flex items-center space-x-4">
@@ -137,7 +138,10 @@ export function MiddaySearchFilter({
                         autoCorrect="off"
                         spellCheck="false"
                     />
-                    <DropdownMenuTrigger asChild>
+                    <DropdownMenuTrigger
+                        className={cn(__filters.length || "hidden")}
+                        asChild
+                    >
                         <button
                             onClick={() => setIsOpen((prev) => !prev)}
                             type="button"
@@ -153,7 +157,13 @@ export function MiddaySearchFilter({
                 </form>
                 <FilterList
                     loading={streaming}
-                    onRemove={setFilters}
+                    onRemove={(obj) => {
+                        setFilters(obj);
+                        const clearPrompt = Object.entries(obj).find(
+                            ([k, v]) => k == "search" || k == "_q",
+                        );
+                        if (clearPrompt) setPrompt("");
+                    }}
                     filters={filters}
                     filterList={filterList}
                 />
@@ -165,7 +175,7 @@ export function MiddaySearchFilter({
                 side="bottom"
                 align="end"
             >
-                {filterList?.map((f) => (
+                {__filters?.map((f) => (
                     <DropdownMenuGroup key={f.value}>
                         <DropdownMenuSub>
                             <DropdownMenuSubTrigger>

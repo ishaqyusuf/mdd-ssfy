@@ -1,6 +1,8 @@
 import { ICan, Permission } from "@/types/auth";
+import z from "zod";
 
 import { IconKeys } from "../_v1/icons";
+import { schema } from "./context";
 
 type moduleNames = "HRM" | "Sales" | "Community";
 const _module = (
@@ -15,6 +17,7 @@ const _module = (
     title: name,
     subtitle,
     sections,
+    index: -1,
 });
 type sectionNames = "main" | "sales";
 type Link = {
@@ -37,6 +40,8 @@ const _section = (
     title,
     links,
     access,
+    index: -1,
+    globalIndex: -1,
 });
 // type linkNames = "HRM" | "customer-services" | "Dashboard" | "Sales";
 const _subLink = (name, href, access?: Access[]) =>
@@ -56,6 +61,8 @@ const _link = (
         href,
         subLinks,
         access,
+        index: -1,
+        globalIndex: -1,
     };
     const ctx = {
         data: res,
@@ -139,6 +146,7 @@ export const validLinks = ({ role, can }: { role; can: ICan }) => {
         });
     });
 };
+type NavType = z.infer<typeof schema>;
 export const linkModules = [
     _module("HRM", "hrm", "GND HRM", [
         _section("main", null, [
@@ -173,3 +181,32 @@ export const linkModules = [
         ]),
     ]),
 ];
+// satisfies (NavType["siteModules"][number] & {
+//     sections: {
+//         index?;
+//         globalIndex?;
+//     };
+// })[];
+export function getLinkModules() {
+    let i = {
+        section: 0,
+        links: 0,
+        subLinks: 0,
+    };
+    const modules = linkModules.map((m, mi) => {
+        m.index = mi;
+        m.sections = m.sections.map((s, si) => {
+            s.index = si;
+            s.globalIndex = i.section++;
+            // i.section += 1;
+            s.links = s.links.map((l, li) => {
+                l.index = li;
+                l.globalIndex = i.links++;
+                return l;
+            });
+            return s;
+        });
+        return m;
+    });
+    return modules;
+}

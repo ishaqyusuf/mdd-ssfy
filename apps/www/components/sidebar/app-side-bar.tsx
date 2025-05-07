@@ -1,6 +1,9 @@
 import { Fragment, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 
+import { cn } from "@gnd/ui/cn";
 import {
     Collapsible,
     CollapsibleContent,
@@ -13,7 +16,6 @@ import {
     SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
-    SidebarMenuAction,
     SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
@@ -32,24 +34,46 @@ import {
     useSidebarModule,
     useSidebarSection,
 } from "./context";
-import { linkModules } from "./links";
+import { getLinkModules } from "./links";
 import { ModuleSwitcher } from "./module-switcher";
 import { useSidebarStore } from "./store";
 
 export function AppSideBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const store = useSidebarStore((s) => s);
+    const pathname = usePathname();
+
+    useEffect(() => {
+        setTimeout(() => {
+            const links = store.links || {};
+            const entry = Object.entries(links).find(([k, link]) => {
+                return (
+                    link?.url?.toLocaleLowerCase() ===
+                    pathname?.toLocaleLowerCase()
+                );
+            })?.[1];
+
+            if (entry) {
+                // console.log({ entry, links, pathname });
+                store.update("activeLinkName", entry.name);
+                store.update("activeModule", entry.moduleName);
+            } else {
+                store.update("activeLinkName", null);
+                store.update("activeModule", null);
+            }
+        }, 500);
+    }, [pathname, store.links]);
     useEffect(() => {
         store.reset();
     }, []);
+    const linkModules = getLinkModules();
     if (!store.render) return null;
     return (
         <Sidebar collapsible="icon">
             <SidebarHeader>
                 <ModuleSwitcher />
             </SidebarHeader>
-            <SidebarContent>
-                <></>
-                {/* {linkModules.map((module, mi) => (
+            <SidebarContent className="bg-white">
+                {linkModules.map((module, mi) => (
                     <SidebarModule
                         name={module.name as any}
                         icon={module.icon}
@@ -67,18 +91,20 @@ export function AppSideBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                     <Fragment key={li}>
                                         {link?.subLinks?.length ? (
                                             <SidebarLink
-                                                name={li.name}
-                                                title={li.title}
-                                                icon={li.icon}
+                                                name={link.name}
+                                                title={link.title}
+                                                icon={link.icon}
                                             >
-                                                {li.links?.map((sub, si) => (
-                                                    <SubLink
-                                                        name={sub?.name}
-                                                        title={sub?.title}
-                                                        link={sub?.href}
-                                                        key={si}
-                                                    />
-                                                ))}
+                                                {link.subLinks?.map(
+                                                    (sub, si) => (
+                                                        <SubLink
+                                                            name={sub?.name}
+                                                            title={sub?.title}
+                                                            link={sub?.href}
+                                                            key={si}
+                                                        />
+                                                    ),
+                                                )}
                                             </SidebarLink>
                                         ) : (
                                             <>
@@ -95,13 +121,13 @@ export function AppSideBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             </SidebarModuleSection>
                         ))}
                     </SidebarModule>
-                ))} */}
+                ))}
             </SidebarContent>
         </Sidebar>
     );
 }
 interface SidebarModuleProps {
-    name: "sales" | "hrm" | "community";
+    name?: string;
     title;
     subtitle;
     icon: IconKeys;
@@ -124,9 +150,7 @@ function SidebarModule({
             icon,
         });
     }, []);
-    useEffect(() => {
-        console.log(store);
-    }, [store]);
+
     return (
         <SideBarModuleProvider args={[name]}>{children}</SideBarModuleProvider>
     );
@@ -141,15 +165,14 @@ function SidebarModuleSection({
     title,
     children,
 }: SidebarModuleSectionProps) {
-    const ctx = useSidebar();
     const mod = useSidebarModule();
-    useEffect(() => {
-        console.log(ctx?.data);
-    }, [ctx?.data]);
+
     return (
         <SideBarSectionProvider args={[name]}>
-            <SidebarGroup>
-                {!title || <SidebarGroupLabel>{title}</SidebarGroupLabel>}
+            <SidebarGroup className={cn(mod?.isCurrentModule || "hidden")}>
+                {!title || !mod?.isCurrentModule || (
+                    <SidebarGroupLabel>{title}</SidebarGroupLabel>
+                )}
                 <SidebarMenu>{children}</SidebarMenu>
             </SidebarGroup>
         </SideBarSectionProvider>
@@ -165,7 +188,7 @@ interface SidebarLinkProps {
 function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
     const Icon = icon ? Icons[icon] : null;
     const ctx = useSidebar();
-    const { siteModule } = useSidebarModule();
+    const { siteModule, isCurrentModule } = useSidebarModule();
     const sectionCtx = useSidebarSection();
 
     useEffect(() => {
@@ -178,6 +201,7 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
             icon,
         });
     }, [siteModule, sectionCtx?.name]);
+    const store = useSidebarStore();
     const subLinks = useMemo(() => {
         const links = Object.entries(ctx.data?.subLinks ?? {})
             .filter(([key, link]) => {
@@ -202,10 +226,6 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
                                 <span>{title}</span>
                                 <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                             </SidebarMenuButton>
-                            {/* <SidebarMenuAction className="data-[state=open]:rotate-90">
-                                <ChevronRight />
-                                <span className="sr-only">Toggle</span>
-                            </SidebarMenuAction> */}
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                             <SidebarMenuSub>
@@ -214,9 +234,9 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
                                     .map((subItem) => (
                                         <SidebarMenuSubItem key={subItem.title}>
                                             <SidebarMenuSubButton asChild>
-                                                <a href={subItem.url || ""}>
+                                                <Link href={subItem.url || ""}>
                                                     <span>{subItem.title}</span>
-                                                </a>
+                                                </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>
                                     ))}
@@ -226,11 +246,19 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
                 </Collapsible>
             ) : (
                 <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                        <a href={link}>
+                    <SidebarMenuButton
+                        asChild
+                        variant="outline"
+                        className={cn(
+                            store?.activeLinkName == name && "bg-muted",
+                            isCurrentModule || "hidden",
+                        )}
+                    >
+                        <Link href={link || ""}>
                             {!Icon || <Icon className="mr-2 h-4 w-4" />}
                             <span>{title}</span>
-                        </a>
+                            {/* <span>aaa</span> */}
+                        </Link>
                         {/* <File /> */}
                         {/* {!Icon || <Icon className="mr-2 h-4 w-4" />}
                         {title} */}
@@ -262,13 +290,4 @@ function SubLink({ title, name, link }: SubLinkProps) {
         });
     }, [linkCtx?.name, name, title, ctx?.form, link]);
     return null;
-    return (
-        <SidebarMenuSubItem>
-            <SidebarMenuSubButton asChild>
-                <a href={link}>
-                    <span>{title}</span>
-                </a>
-            </SidebarMenuSubButton>
-        </SidebarMenuSubItem>
-    );
 }
