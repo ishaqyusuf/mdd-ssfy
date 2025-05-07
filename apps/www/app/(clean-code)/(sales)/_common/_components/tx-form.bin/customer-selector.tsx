@@ -1,14 +1,10 @@
 import { useEffect, useState } from "react";
 import AutoComplete from "@/components/_v1/common/auto-complete";
 import { useDebounceInput } from "@/hooks/use-debounce";
-import { listFilter } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Form } from "@gnd/ui/form";
-import { Input } from "@gnd/ui/input";
-import { ScrollArea } from "@gnd/ui/scroll-area";
-import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 
 import { getCustomersSelectListUseCase } from "../../use-case/customer-use-case";
 import { txStore } from "./store";
