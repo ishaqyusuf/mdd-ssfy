@@ -59,7 +59,7 @@ model Payroll {
     orderPaymentId Int?           @unique
     orderPayment   SalesPayments? @relation(fields: [orderPaymentId], references: [id])
 
-    @@unique([orderId, productionSubmissionId, orderPaymentId])
+    // @@unique([orderId, orderPaymentId])
     @@index([productionSubmissionId])
     @@index([orderId])
     @@index([userId])

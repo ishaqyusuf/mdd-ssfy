@@ -32,11 +32,11 @@ export async function createPayrollAction(data: Props) {
         : data?.wage;
     await prisma.payroll.upsert({
         where: {
-            orderId_productionSubmissionId_orderPaymentId: {
-                orderId: data.orderId,
-                orderPaymentId: data.salesPaymentId,
-                productionSubmissionId: data.submissionId || null,
-            },
+            // orderId_productionSubmissionId_orderPaymentId: {
+            orderId: data.orderId,
+            orderPaymentId: data.salesPaymentId,
+            productionSubmissionId: data.submissionId || null,
+            // },
         },
         create: {
             amount: commission,
