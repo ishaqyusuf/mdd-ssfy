@@ -15,6 +15,7 @@ import { txStore } from "./store";
 
 export default function CustomerSelector({}) {
     const tx = txStore();
+
     const updateFilter = (value) => {
         setCustomersList(
             // listFilter(tx.customers || [], value, null)?.
