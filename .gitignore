@@ -9,7 +9,7 @@ node_modules
 .contentlayer
 # testing
 coverage
-**/*.bin/**
+**/*.bin
 # next.js
 .next/
 out/
