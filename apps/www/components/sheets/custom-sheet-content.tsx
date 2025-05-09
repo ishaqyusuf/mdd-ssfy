@@ -39,9 +39,8 @@ interface Props
 const { Provider: SheetProvider, useContext: useSheet } = createContextFactory(
     function (sheetName) {
         return {
-            nodeId: ["custom-sheet-content", sheetName]
-                ?.filter(Boolean)
-                .join("-"),
+            nodeId: ["csc", sheetName]?.filter(Boolean).join("-"),
+            scrollContentId: ["cssc", sheetName]?.filter(Boolean).join("-"),
         };
     },
 );
@@ -86,9 +85,17 @@ export function CustomSheetContentPortal({ children, sheetId = null }) {
     );
 }
 export function CustomSheetContent({ children = null, className = "" }) {
+    const sheet = useSheet();
     return (
-        <ScrollArea className={cn("-mx-4 flex-1 px-4", className)}>
-            {children}
+        <ScrollArea
+            className={cn("-mx-4 flex-1  px-4", className, "flex flex-col")}
+        >
+            <div
+                id={sheet.scrollContentId}
+                className="flex flex-col gap-4 pb-36 sm:pb-16"
+            >
+                {children}
+            </div>
         </ScrollArea>
     );
 }
