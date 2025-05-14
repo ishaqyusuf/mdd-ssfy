@@ -73,12 +73,11 @@ export const widthList = [
 export const __filters = (): Filters => ({
     "production-tasks": {
         fields: [
-            filterFields["production.assignedToId"],
+            // filterFields["production.assignedToId"],
             filterFields["order.no"],
-        ],
-        filterColumns: [
-            filterCol("production.assignedToId"),
-            filterCol("order.no"),
+            filterFields["production"],
+            filterFields.search,
+            filterFields["production.dueDate"],
         ],
     },
     "sales-delivery": {
