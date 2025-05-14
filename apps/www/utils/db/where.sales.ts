@@ -12,38 +12,40 @@ import { Prisma, prisma, SalesPriority } from "@/db";
 import { formatDate } from "@/lib/use-day";
 import dayjs from "dayjs";
 
-import { composeQuery } from "../../app/(clean-code)/(sales)/_common/utils/db-utils";
 import { ftToIn } from "../../app/(clean-code)/(sales)/_common/utils/sales-utils";
 import { QtyControlType } from "../../app/(clean-code)/(sales)/types";
 import { transformDate } from "@/lib/db-utils";
+import { composeQuery } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
 
-export function whereSales(query: SearchParamsType) {
-    const whereAnd: Prisma.SalesOrdersWhereInput[] = [];
-    if (query["with.trashed"]) whereAnd.push(withDeleted);
-    if (query["trashed.only"])
-        whereAnd.push({
+type Queries = Prisma.SalesOrdersWhereInput[];
+
+export function whereSales(params: SearchParamsType) {
+    const queries: Queries = [];
+    if (params["with.trashed"]) queries.push(withDeleted);
+    if (params["trashed.only"])
+        queries.push({
             deletedAt: anyDateQuery(),
         });
-    const q = query.search;
+    const q = params.search;
     if (q) {
         const searchQ = whereSearch(q);
-        if (searchQ) whereAnd.push(searchQ);
+        if (searchQ) queries.push(searchQ);
     }
-    if (query["dealer.id"])
-        whereAnd.push({
+    if (params["dealer.id"])
+        queries.push({
             customer: {
                 auth: {
-                    id: query["dealer.id"],
+                    id: params["dealer.id"],
                 },
             },
         });
     const statType = (type: QtyControlType) => type;
-    const status = query["dispatch.status"];
-    const invoice = query["invoice"];
+    const status = params["dispatch.status"];
+    const invoice = params["invoice"];
     if (status) {
-        switch (query["dispatch.status"]) {
+        switch (params["dispatch.status"]) {
             case "backorder":
-                whereAnd.push({
+                queries.push({
                     stat: {
                         some: {
                             type: statType("dispatchCompleted"),
@@ -65,105 +67,17 @@ export function whereSales(query: SearchParamsType) {
                 break;
         }
     }
-    if (query["invoice"]) {
-        switch (query["invoice"]) {
-            case "pending":
-                whereAnd.push({
-                    amountDue: { gt: 0 },
-                });
-                break;
-            case "paid":
-                whereAnd.push({
-                    AND: [
-                        {
-                            amountDue: 0,
-                        },
-                        {
-                            grandTotal: { gt: 0 },
-                        },
-                    ],
-                });
-                break;
-            case "late":
-                whereAnd.push({
-                    AND: [
-                        {
-                            amountDue: { gt: 1 },
-                        },
-                        {
-                            OR: [
-                                {
-                                    AND: [
-                                        {
-                                            paymentTerm: {
-                                                in: salesData.paymentTerms.map(
-                                                    (a) => a.value,
-                                                ),
-                                            },
-                                        },
-                                        {
-                                            paymentDueDate: {
-                                                lte: new Date(),
-                                            },
-                                        },
-                                    ],
-                                },
-                                {
-                                    AND: [
-                                        {
-                                            paymentTerm: null,
-                                        },
-                                        {
-                                            createdAt: {
-                                                lte: dayjs()
-                                                    .subtract(3, "month")
-                                                    .toISOString(),
-                                            },
-                                        },
-                                    ],
-                                },
-                            ],
-                        },
-                    ],
-                });
-                break;
-            case "part-paid":
-                whereAnd.push({
-                    AND: [
-                        {
-                            amountDue: {
-                                gt: 1,
-                            },
-                        },
-                        {
-                            NOT: {
-                                amountDue: {
-                                    equals: prisma.salesOrders.fields
-                                        .grandTotal,
-                                },
-                            },
-                        },
-                    ],
-                });
-            case "overdraft":
-                whereAnd.push({
-                    amountDue: {
-                        lt: 0,
-                    },
-                });
-                break;
-        }
-    }
-    whereAnd.push({
-        type: query["sales.type"],
+
+    queries.push({
+        type: params["sales.type"],
     });
-    const keys = Object.keys(query) as FilterKeys[];
+    const keys = Object.keys(params) as FilterKeys[];
     keys.map((k) => {
-        const val = query?.[k] as any;
-        if (!query?.[k]) return;
+        const val = params?.[k] as any;
+        if (!params?.[k]) return;
         switch (k) {
             case "address.id":
-                whereAnd.push({
+                queries.push({
                     OR: [
                         {
                             billingAddressId: val,
@@ -175,48 +89,50 @@ export function whereSales(query: SearchParamsType) {
                 });
                 break;
             case "id":
-                let id = String(query.id);
+                let id = String(params.id);
                 if (id?.includes(","))
-                    whereAnd.push({
+                    queries.push({
                         id: {
                             in: id?.split(",").map((s) => Number(s)),
                         },
                     });
                 else
-                    whereAnd.push({
-                        id: query.id,
+                    queries.push({
+                        id: params.id,
                     });
                 break;
+            case "invoice":
+                whereInvoice(queries, params);
             case "order.no":
                 if (val?.includes(","))
-                    whereAnd.push({
+                    queries.push({
                         orderId: {
                             in: val?.split(","),
                         },
                     });
                 else
-                    whereAnd.push({
+                    queries.push({
                         orderId: {
                             contains: val,
                         },
                     });
                 break;
             case "po":
-                whereAnd.push({
+                queries.push({
                     meta: {
                         path: "$.po",
-                        // equals: query.po,
+                        // equals: params.po,
                         string_contains: val,
                     },
                 });
                 break;
             case "customer.id":
-                whereAnd.push({
+                queries.push({
                     customerId: val,
                 });
                 break;
             case "customer.name":
-                whereAnd.push({
+                queries.push({
                     OR: [
                         {
                             customer: {
@@ -243,13 +159,13 @@ export function whereSales(query: SearchParamsType) {
                 });
                 break;
             case "phone":
-                const _phoneQuery = {
+                const _phoneparams = {
                     phoneNo: val,
                 };
-                whereAnd.push({
+                queries.push({
                     OR: [
                         {
-                            customer: _phoneQuery,
+                            customer: _phoneparams,
                         },
                         {
                             customer: {
@@ -257,21 +173,21 @@ export function whereSales(query: SearchParamsType) {
                             },
                         },
                         {
-                            billingAddress: _phoneQuery,
+                            billingAddress: _phoneparams,
                         },
                         {
-                            shippingAddress: _phoneQuery,
+                            shippingAddress: _phoneparams,
                         },
                     ],
                 });
                 break;
             case "salesRep.id":
-                whereAnd.push({
+                queries.push({
                     salesRepId: val,
                 });
                 break;
             case "sales.rep":
-                whereAnd.push({
+                queries.push({
                     salesRep: {
                         name: val,
                     },
@@ -279,15 +195,15 @@ export function whereSales(query: SearchParamsType) {
                 break;
             case "sales.priority":
                 if (val == SalesPriority.NORMAL)
-                    whereAnd.push({
+                    queries.push({
                         OR: [{ priority: null }, { priority: val }],
                     });
-                whereAnd.push({
+                queries.push({
                     priority: val,
                 });
                 break;
             case "production.assignedToId":
-                whereAnd.push({
+                queries.push({
                     assignments: {
                         some: {
                             deletedAt: null,
@@ -297,29 +213,15 @@ export function whereSales(query: SearchParamsType) {
                 });
                 break;
             case "production.dueDate":
-                console.log({ val });
-                // return;
-                const date = transformDate(val);
-                if (!date) return;
-                console.log({ date });
-                whereAnd.push({
-                    assignments: {
-                        some: {
-                            deletedAt: null,
-                            dueDate: date,
-                            assignedToId:
-                                query["production.assignedToId"] || undefined,
-                        },
-                    },
-                });
+                whereProductionDueDate(queries, params);
                 break;
         }
     });
-    const prodStatus = query["production.status"];
-    const assignedToId = query["production.assignedToId"];
+    const prodStatus = params["production.status"];
+    const assignedToId = params["production.assignedToId"];
     switch (prodStatus) {
         case "completed":
-            whereAnd.push({
+            queries.push({
                 itemControls: assignedToId
                     ? undefined
                     : {
@@ -358,7 +260,7 @@ export function whereSales(query: SearchParamsType) {
                       },
             });
         case "part assigned":
-            whereAnd.push({
+            queries.push({
                 assignments: {
                     some: {
                         deletedAt: null,
@@ -366,7 +268,7 @@ export function whereSales(query: SearchParamsType) {
                 },
             });
         case "due today":
-            whereAnd.push({
+            queries.push({
                 assignments: {
                     some: {
                         assignedToId: assignedToId || undefined,
@@ -378,7 +280,7 @@ export function whereSales(query: SearchParamsType) {
             });
             break;
         case "past due":
-            whereAnd.push({
+            queries.push({
                 assignments: {
                     some: {
                         assignedToId: assignedToId || undefined,
@@ -394,11 +296,11 @@ export function whereSales(query: SearchParamsType) {
             break;
     }
 
-    switch (query["production.assignment"]) {
+    switch (params["production.assignment"]) {
         case "all assigned":
             break;
         case "not assigned":
-            whereAnd.push({
+            queries.push({
                 assignments: {
                     none: {
                         deletedAt: null,
@@ -410,25 +312,131 @@ export function whereSales(query: SearchParamsType) {
             break;
     }
 
-    if (query["account.no"])
-        whereAnd.push({
+    if (params["account.no"])
+        queries.push({
             customer: {
-                phoneNo: query["account.no"],
+                phoneNo: params["account.no"],
             },
         });
 
-    return composeQuery(whereAnd);
+    return composeQuery(queries);
 }
-function whereSearch(query): Prisma.SalesOrdersWhereInput | null {
-    const inputQ = { contains: query || undefined } as any;
-    const parsedQ = parseSearchQuery(query);
+function whereInvoice(queries: Queries, params: SearchParamsType) {
+    switch (params["invoice"]) {
+        case "pending":
+            queries.push({
+                amountDue: { gt: 0 },
+            });
+            break;
+        case "paid":
+            queries.push({
+                AND: [
+                    {
+                        amountDue: 0,
+                    },
+                    {
+                        grandTotal: { gt: 0 },
+                    },
+                ],
+            });
+            break;
+        case "late":
+            queries.push({
+                AND: [
+                    {
+                        amountDue: { gt: 1 },
+                    },
+                    {
+                        OR: [
+                            {
+                                AND: [
+                                    {
+                                        paymentTerm: {
+                                            in: salesData.paymentTerms.map(
+                                                (a) => a.value,
+                                            ),
+                                        },
+                                    },
+                                    {
+                                        paymentDueDate: {
+                                            lte: new Date(),
+                                        },
+                                    },
+                                ],
+                            },
+                            {
+                                AND: [
+                                    {
+                                        paymentTerm: null,
+                                    },
+                                    {
+                                        createdAt: {
+                                            lte: dayjs()
+                                                .subtract(3, "month")
+                                                .toISOString(),
+                                        },
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            });
+            break;
+        case "part-paid":
+            queries.push({
+                AND: [
+                    {
+                        amountDue: {
+                            gt: 1,
+                        },
+                    },
+                    {
+                        NOT: {
+                            amountDue: {
+                                equals: prisma.salesOrders.fields.grandTotal,
+                            },
+                        },
+                    },
+                ],
+            });
+        case "overdraft":
+            queries.push({
+                amountDue: {
+                    lt: 0,
+                },
+            });
+            break;
+    }
+}
+function whereProductionDueDate(queries: Queries, params: SearchParamsType) {
+    const {
+        "production.dueDate": prodDueDate,
+        "production.assignedToId": assignedToId,
+    } = params;
+    const date = transformDate(prodDueDate);
+    console.log({ date });
+    if (!date) return;
+    queries.push({
+        assignments: {
+            some: {
+                deletedAt: null,
+                dueDate: date,
+                assignedToId: assignedToId || undefined,
+            },
+        },
+    });
+}
+function whereSearch(params): Prisma.SalesOrdersWhereInput | null {
+    const inputQ = { contains: params || undefined } as any;
+    const parsedQ = parseSearchparams(params);
     if (parsedQ) {
         return {
             items: {
                 some: {
                     OR: [
-                        { description: query },
-                        { description: parsedQ.otherQuery },
+                        { description: params },
+                        { description: parsedQ.otherparams },
                         {
                             salesDoors: {
                                 some: {
@@ -444,14 +452,14 @@ function whereSearch(query): Prisma.SalesOrdersWhereInput | null {
                                     {
                                         door: {
                                             title: {
-                                                contains: parsedQ.otherQuery,
+                                                contains: parsedQ.otherparams,
                                             },
                                         },
                                     },
                                     {
                                         molding: {
                                             title: {
-                                                contains: parsedQ.otherQuery,
+                                                contains: parsedQ.otherparams,
                                             },
                                         },
                                     },
@@ -463,7 +471,7 @@ function whereSearch(query): Prisma.SalesOrdersWhereInput | null {
             },
         };
     }
-    if (query) {
+    if (params) {
         return {
             OR: [
                 { orderId: inputQ },
@@ -506,10 +514,10 @@ function whereSearch(query): Prisma.SalesOrdersWhereInput | null {
     }
     return null;
 }
-export function parseSearchQuery(_query) {
+export function parseSearchparams(_params) {
     let itemSearch = null;
-    if (_query?.startsWith("item:")) {
-        itemSearch = _query.split("item:")[1]?.trim();
+    if (_params?.startsWith("item:")) {
+        itemSearch = _params.split("item:")[1]?.trim();
         // return {
         //     itemSearch,
         // };
@@ -519,11 +527,11 @@ export function parseSearchQuery(_query) {
     const match = itemSearch.match(sizePattern);
 
     let size = "";
-    let otherQuery = itemSearch;
+    let otherparams = itemSearch;
 
     if (match) {
         size = match[0];
-        otherQuery = itemSearch.replace(sizePattern, "").trim();
+        otherparams = itemSearch.replace(sizePattern, "").trim();
     }
     const spl = size.trim().split(" ");
     if (size && spl.length == 3) {
@@ -532,7 +540,7 @@ export function parseSearchQuery(_query) {
 
     return {
         size: size,
-        otherQuery: otherQuery,
-        originalQuery: itemSearch,
+        otherparams: otherparams,
+        originalparams: itemSearch,
     };
 }

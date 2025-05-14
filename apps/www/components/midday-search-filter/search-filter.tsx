@@ -31,6 +31,7 @@ import { Calendar } from "@gnd/ui/calendar";
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
     SelectTrigger,
     SelectValue,
@@ -304,10 +305,16 @@ function CalendarForm({ value, filter, setFilters }) {
                     <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent position="popper">
-                    <SelectItem value="last week">Last Week</SelectItem>
+                    <SelectItem value="yesterday">Yesterday</SelectItem>
                     <SelectItem value="today">Today</SelectItem>
                     <SelectItem value="tomorrow">Tomorrow</SelectItem>
-                    <SelectItem value="next week">In a week</SelectItem>
+                    {/* <SelectGroup */}
+                    <SelectItem value="this week">This Week</SelectItem>
+                    <SelectItem value="last week">Last Week</SelectItem>
+                    <SelectItem value="next week">Next Week</SelectItem>
+                    <SelectItem value="this month">This Month</SelectItem>
+                    <SelectItem value="last month">Last Month</SelectItem>
+                    <SelectItem value="next month">Next Month</SelectItem>
                 </SelectContent>
             </Select>
             <Calendar

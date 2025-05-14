@@ -112,11 +112,18 @@ export function transformDate(_dateString): {
     }
 
     if (lower === "tomorrow") {
-        return { gte: today.add(1, "day").toISOString() };
+        return {
+            gte: today.add(1, "day").startOf("day").toISOString(),
+            lte: today.add(1, "day").endOf("day").toISOString(),
+        };
     }
 
     if (lower === "yesterday") {
-        return { gte: today.subtract(1, "day").toISOString() };
+        return {
+            // gte: today.subtract(1, "day").toISOString(),
+            gte: today.subtract(1, "day").startOf("day").toISOString(),
+            lte: today.subtract(1, "day").endOf("day").toISOString(),
+        };
     }
 
     if (lower === "this week") {
