@@ -38,11 +38,10 @@ export function filterCol(name: FilterKeys): FilterColumn {
 }
 function filterField(
     value: FilterKeys,
-    type: "checkbox" | "input" = "input",
+    type: "checkbox" | "input" | "date" | "date-range" = "input",
     options = [],
     label?,
 ) {
-    // if (!label) label = label?.toLowerCase()?.replaceAll(" ", ".");
     return {
         [value]: {
             value,
@@ -66,6 +65,7 @@ export const filterFields: Partial<{
     ...filterField("invoice", "checkbox"),
     ...filterField("sales.rep", "checkbox"),
     ...filterField("search"),
+    ...filterField("production.dueDate", "date-range"),
 };
 const getFilter = (k) => __filters()[k];
 export const composeFilter = (queryKey: QueryKeys, loadedFilters?) => {

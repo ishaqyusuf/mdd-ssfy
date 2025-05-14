@@ -5,7 +5,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 import { useQueryStates } from "nuqs";
 import { useHotkeys } from "react-hotkeys-hook";
-
+import { formatISO } from "date-fns";
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -20,17 +20,33 @@ import {
 import { Input } from "@gnd/ui/input";
 
 import { Icon, Icons } from "../_v1/icons";
-import { searchParamsParser } from "../(clean-code)/data-table/search-params";
+import {
+    FilterKeys,
+    searchParamsParser,
+} from "../(clean-code)/data-table/search-params";
 import { SelectTag } from "../select-tag";
 import { FilterList } from "./filter-list";
 import { searchIcons } from "./search-icons";
+import { Calendar } from "@gnd/ui/calendar";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@gnd/ui/select";
 
 interface Props {
     // filters;
     // setFilters;
     defaultSearch?;
     placeholder?;
-    filterList?;
+    filterList?: {
+        value?: FilterKeys;
+        type: "checkbox" | "input" | "date" | "date-range";
+        options?: any[];
+        label?;
+    }[];
 }
 
 export function MiddaySearchFilter({
@@ -42,7 +58,7 @@ export function MiddaySearchFilter({
 }: Props) {
     const filterList = _filters?.map((s) => {
         if (typeof s === "object") return s;
-        return { value: s, label: s };
+        return { value: s, label: s } as any;
     });
     const queryParams = Object.fromEntries(
         Object.entries(searchParamsParser).filter(([k, v]) =>
@@ -119,6 +135,16 @@ export function MiddaySearchFilter({
                 : [...(filters?.[qk] ?? []), value],
         });
     }
+    const __label = (name) =>
+        name
+            .split(".")
+            .map(
+                (part) =>
+                    part
+                        .replace(/([A-Z])/g, " $1") // insert space before capital letters
+                        .replace(/^./, (c) => c.toUpperCase()), // capitalize first letter
+            )
+            .join(" ");
     const __filters = filterList?.filter((a) => a.value != "search");
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -188,7 +214,7 @@ export function MiddaySearchFilter({
                                     className={"mr-2 size-4"}
                                 />
                                 <span className="capitalize">
-                                    {f.value?.split(".").join(" ")}
+                                    {__label(f.value)}
                                 </span>
                             </DropdownMenuSubTrigger>
                             <DropdownMenuPortal>
@@ -197,38 +223,61 @@ export function MiddaySearchFilter({
                                     alignOffset={-4}
                                     className="p-0"
                                 >
-                                    {f.options?.length > 20 ? (
+                                    {f.type == "date-range" ||
+                                    f.type == "date" ? (
                                         <>
-                                            <SelectTag
-                                                headless
-                                                data={f.options?.map((opt) => ({
-                                                    label: opt.label,
-                                                    id: opt.value,
-                                                }))}
-                                                onChange={(selected) => {
-                                                    optionSelected(f.value, {
-                                                        ...selected,
-                                                        value: selected.id,
-                                                    });
-                                                }}
+                                            <CalendarForm
+                                                value={filters?.[f.value]}
+                                                setFilters={setFilters}
+                                                filter={f}
                                             />
                                         </>
                                     ) : (
-                                        f.options?.map(
-                                            ({ label, value }, _i) => (
-                                                <DropdownMenuCheckboxItem
-                                                    onCheckedChange={() => {
-                                                        optionSelected(
-                                                            f.value,
-                                                            { value, label },
-                                                        );
-                                                    }}
-                                                    key={_i}
-                                                >
-                                                    {label}
-                                                </DropdownMenuCheckboxItem>
-                                            ),
-                                        )
+                                        <>
+                                            {f.options?.length > 20 ? (
+                                                <>
+                                                    <SelectTag
+                                                        headless
+                                                        data={f.options?.map(
+                                                            (opt) => ({
+                                                                label: opt.label,
+                                                                id: opt.value,
+                                                            }),
+                                                        )}
+                                                        onChange={(
+                                                            selected,
+                                                        ) => {
+                                                            optionSelected(
+                                                                f.value,
+                                                                {
+                                                                    ...selected,
+                                                                    value: selected.id,
+                                                                },
+                                                            );
+                                                        }}
+                                                    />
+                                                </>
+                                            ) : (
+                                                f.options?.map(
+                                                    ({ label, value }, _i) => (
+                                                        <DropdownMenuCheckboxItem
+                                                            onCheckedChange={() => {
+                                                                optionSelected(
+                                                                    f.value,
+                                                                    {
+                                                                        value,
+                                                                        label,
+                                                                    },
+                                                                );
+                                                            }}
+                                                            key={_i}
+                                                        >
+                                                            {label}
+                                                        </DropdownMenuCheckboxItem>
+                                                    ),
+                                                )
+                                            )}
+                                        </>
                                     )}
                                 </DropdownMenuSubContent>
                             </DropdownMenuPortal>
@@ -237,5 +286,56 @@ export function MiddaySearchFilter({
                 ))}
             </DropdownMenuContent>
         </DropdownMenu>
+    );
+}
+function CalendarForm({ value, filter, setFilters }) {
+    const { value: filterKey, options } = filter;
+    const [start, end] = value || [];
+    return (
+        <>
+            <Select
+                onValueChange={(value) => {
+                    setFilters({
+                        [filterKey]: [value],
+                    });
+                }}
+            >
+                <SelectTrigger>
+                    <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                    <SelectItem value="last week">Last Week</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="tomorrow">Tomorrow</SelectItem>
+                    <SelectItem value="next week">In a week</SelectItem>
+                </SelectContent>
+            </Select>
+            <Calendar
+                mode="range"
+                initialFocus
+                toDate={new Date()}
+                selected={{
+                    from: start ? new Date(start) : undefined,
+                    to: end ? new Date(end) : undefined,
+                }}
+                onSelect={({ from, to }) => {
+                    const value = [
+                        from
+                            ? formatISO(from, {
+                                  representation: "date",
+                              })
+                            : null,
+                        to
+                            ? formatISO(to, {
+                                  representation: "date",
+                              })
+                            : null,
+                    ];
+                    setFilters({
+                        [filterKey]: value,
+                    });
+                }}
+            />
+        </>
     );
 }

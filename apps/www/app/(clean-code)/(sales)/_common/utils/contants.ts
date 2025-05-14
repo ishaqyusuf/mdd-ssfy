@@ -90,11 +90,7 @@ export const __filters = (): Filters => ({
             filterFields["order.no"],
             filterFields["production"],
             filterFields.search,
-        ],
-        filterColumns: [
-            filterCol("order.no"),
-            filterCol("search"),
-            filterCol("production"),
+            filterFields["production.dueDate"],
         ],
         options: {
             invoice: INVOICE_FILTER_OPTIONS,
@@ -161,9 +157,10 @@ export const __filters = (): Filters => ({
         fields: [
             filterFields.search,
             filterFields["order.no"],
+
             //
         ],
-        filterColumns: [filterCol("search"), filterCol("order.no")],
+        // filterColumns: [filterCol("search"), filterCol("order.no")],
         options: {},
     },
 });

@@ -16,6 +16,7 @@ import {
     parseAsArrayOf,
     parseAsBoolean,
     parseAsInteger,
+    parseAsIsoDateTime,
     parseAsString,
     parseAsStringLiteral,
 } from "nuqs/server";
@@ -89,6 +90,7 @@ export const searchParamsParser: {
     "production.assignment": parseAsString,
     "production.assignedToId": parseAsInteger,
     "production.status": parseAsInteger,
+    "production.dueDate": parseAsArrayOf(parseAsString),
     // ": parseAsString,
     "order.no": parseAsString,
     po: parseAsString,
@@ -135,6 +137,7 @@ export const searchSchema = z
         po: z.string().optional(),
         phone: z.string().optional(),
         "dispatch.status": z.enum(DISPATCH_FILTER_OPTIONS).optional(),
+        "production.dueDate": z.array(z.any()),
         "production.status": z.enum(PRODUCTION_STATUS).optional(),
         "production.assignment": z
             .enum(PRODUCTION_ASSIGNMENT_FILTER_OPTIONS)

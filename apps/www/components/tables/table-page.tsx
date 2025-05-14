@@ -23,12 +23,7 @@ export default async function TablePage({
 }) {
     const search = searchParamsCache.parse(searchParams);
     const queryClient = getQueryClient();
-    const props = composeFilter(
-        // "production-tasks"
-        filterKey,
-        queryData,
-        // await getSalesPageQueryDataDta()
-    );
+    const props = composeFilter(filterKey, queryData);
     const { queryKey, filterFields } = props;
     await queryClient.prefetchInfiniteQuery(dataOptions(search, queryKey));
     return <PageClient queryKey={queryKey} filterFields={filterFields} />;

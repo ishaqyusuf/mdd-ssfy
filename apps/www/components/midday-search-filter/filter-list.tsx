@@ -148,8 +148,11 @@ export function FilterList({ loading, filterList, filters, onRemove }) {
                 //  return null;
                 const opts = filterList?.find((f) => f?.value === key)?.options;
                 if (!opts) return null;
-                return value
-                    ?.map((v) => opts?.find((a) => a?.value == v)?.label)
+                if (!Array.isArray(value)) {
+                    return value;
+                }
+                return (value || [])
+                    ?.map((v) => opts?.find((a) => a?.value == v)?.label || v)
                     ?.join(", ");
         }
     };

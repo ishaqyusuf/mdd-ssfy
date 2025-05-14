@@ -12,5 +12,6 @@ export const searchIcons: Partial<{
     "production.assignment": "production",
     "production.status": "production",
     production: "production",
+    "production.dueDate": "calendar",
     // "sales.rep": "r"
 };

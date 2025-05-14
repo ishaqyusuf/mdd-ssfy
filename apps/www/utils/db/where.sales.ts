@@ -15,6 +15,7 @@ import dayjs from "dayjs";
 import { composeQuery } from "../../app/(clean-code)/(sales)/_common/utils/db-utils";
 import { ftToIn } from "../../app/(clean-code)/(sales)/_common/utils/sales-utils";
 import { QtyControlType } from "../../app/(clean-code)/(sales)/types";
+import { transformDate } from "@/lib/db-utils";
 
 export function whereSales(query: SearchParamsType) {
     const whereAnd: Prisma.SalesOrdersWhereInput[] = [];
@@ -291,6 +292,23 @@ export function whereSales(query: SearchParamsType) {
                         some: {
                             deletedAt: null,
                             assignedToId: val,
+                        },
+                    },
+                });
+                break;
+            case "production.dueDate":
+                console.log({ val });
+                // return;
+                const date = transformDate(val);
+                if (!date) return;
+                console.log({ date });
+                whereAnd.push({
+                    assignments: {
+                        some: {
+                            deletedAt: null,
+                            dueDate: date,
+                            assignedToId:
+                                query["production.assignedToId"] || undefined,
                         },
                     },
                 });
