@@ -147,7 +147,6 @@ export function FilterList({ loading, filterList, filters, onRemove }) {
             default:
                 //  return null;
                 const opts = filterList?.find((f) => f?.value === key)?.options;
-                console.log({ key, value, filterList, opts });
                 if (!opts) return null;
                 return value
                     ?.map((v) => opts?.find((a) => a?.value == v)?.label)

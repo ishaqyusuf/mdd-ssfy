@@ -38,8 +38,12 @@ export function MiddaySearchFilter({
     placeholder,
     // setFilters,
     defaultSearch = {},
-    filterList,
+    filterList: _filters,
 }: Props) {
+    const filterList = _filters?.map((s) => {
+        if (typeof s === "object") return s;
+        return { value: s, label: s };
+    });
     const queryParams = Object.fromEntries(
         Object.entries(searchParamsParser).filter(([k, v]) =>
             filterList?.find((a) => a?.value === k),

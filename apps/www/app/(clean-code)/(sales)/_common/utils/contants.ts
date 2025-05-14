@@ -86,8 +86,23 @@ export const __filters = (): Filters => ({
         filterColumns: [],
     },
     "sales-productions": {
-        fields: [filterFields["order.no"], filterFields.search],
-        filterColumns: [filterCol("order.no"), filterCol("search")],
+        fields: [
+            filterFields["order.no"],
+            filterFields["production"],
+            filterFields.search,
+        ],
+        filterColumns: [
+            filterCol("order.no"),
+            filterCol("search"),
+            filterCol("production"),
+        ],
+        options: {
+            invoice: INVOICE_FILTER_OPTIONS,
+            "dispatch.status": DISPATCH_FILTER_OPTIONS,
+            production: PRODUCTION_FILTER_OPTIONS,
+            "production.assignment": PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
+            "sales.priority": Object.keys(SalesPriority),
+        },
     },
     customers: {
         fields: [
@@ -149,6 +164,7 @@ export const __filters = (): Filters => ({
             //
         ],
         filterColumns: [filterCol("search"), filterCol("order.no")],
+        options: {},
     },
 });
 

@@ -16,6 +16,7 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 import { __filters } from "../../../_common/utils/contants";
 import { Cells } from "./production-page-cells";
+import { MiddaySearchFilter } from "@/components/midday-search-filter/search-filter";
 
 export default function ProductionTasksPageClient({
     filterFields,
@@ -90,7 +91,11 @@ export default function ProductionTasksPageClient({
                     </div>
                     <div className="flex justify-between">
                         <div className="flex-1">
-                            <DataTableFilterCommand />
+                            {/* <DataTableFilterCommand /> */}
+                            <MiddaySearchFilter
+                                placeholder={"Search order information"}
+                                filterList={filterFields}
+                            />
                         </div>
                         <DataTableInfinityToolbar />
                     </div>

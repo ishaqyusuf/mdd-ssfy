@@ -19,7 +19,7 @@ const _module = (
     sections,
     index: -1,
 });
-type sectionNames = "main" | "sales";
+// type sectionNames = "main" | "sales";
 type Link = {
     name;
     title;
@@ -31,7 +31,7 @@ type Link = {
     }[];
 };
 const _section = (
-    name: sectionNames,
+    name: string,
     title?: string,
     links?: ReturnType<typeof _link>["data"][],
     access: Access[] = [],
@@ -147,15 +147,130 @@ export const validLinks = ({ role, can }: { role; can: ICan }) => {
     });
 };
 type NavType = z.infer<typeof schema>;
+const profileSection = _section("settings", null, [
+    _link("Profile Settings", "settings2", "/settings/profile").data,
+]);
 export const linkModules = [
     _module("HRM", "hrm", "GND HRM", [
         _section("main", null, [
             _link("HRM", "hrm", "/").access(_perm.in("viewHrm")).data,
+            _link("Employees", "hrm", "/hrm/employees").access(
+                _perm.some("viewHrm", "viewEmployee"),
+            ).data,
+            _link("Profile", "hrm", "/hrm/profiles").access(
+                _perm.some("viewHrm", "viewEmployee"),
+            ).data,
+            _link("Roles", "hrm", "/hrm/roles").access(
+                _perm.some("viewHrm", "viewEmployee"),
+            ).data,
+            _link("Jobs", "project", "/contractor/jobs").access(
+                _perm.every("viewProject", "viewInvoice"),
+            ).data,
+            _link(
+                "Payment Receipts",
+                "project",
+                "/contractor/jobs/payments",
+            ).access(_perm.every("viewProject", "viewInvoice")).data,
+            _link(
+                "Pending Payments",
+                "project",
+                "/contractor/jobs/payments/pay",
+            ).access(_perm.every("viewProject", "viewInvoice")).data,
+        ]),
+        profileSection,
+    ]),
+    _module("Community", "communityInvoice", "GND Community", [
+        _section("main", null, [
+            _link("Projects", "project", "/community/projects").access(
+                _perm.in("viewProject"),
+            ).data,
+            _link("Units", "units", "/community/units").access(
+                _perm.in("viewProject"),
+            ).data,
+            _link("Productions", "production", "/community/productions").access(
+                _perm.in("viewProduction"),
+                _role.isNot("Production"),
+            ).data,
+            _link("Invoices", "communityInvoice", "/community/invoices").access(
+                _perm.in("viewInvoice"),
+            ).data,
+        ]),
+        _section("main", null, [
+            _link(
+                "Sales Production",
+                "production",
+                "/tasks/sales-productions",
+            ).access(_role.is("Production")).data,
+            _link(
+                "Unit Production",
+                "production",
+                "/tasks/unit-productions",
+            ).access(_role.is("Production")).data,
+            _link("Installations", "tasks", "/tasks/installations").access(
+                _role.isNot("Admin"),
+                _perm.is("viewInstallation"),
+            ).data,
+            _link("Payments", "payment", "/payments").access(
+                _role.isNot("Admin"),
+                _perm.is("viewInstallation"),
+            ).data,
+
+            _link("Punchout", "punchout", "/jobs/punchouts").access(
+                _role.isNot("Admin"),
+                _perm.is("viewTech"),
+            ).data,
+            _link("Payments", "payment", "/payments").access(
+                _role.isNot("Admin"),
+                _perm.is("viewTech"),
+            ).data,
+            _link("Installations", "tasks", "/jobs/installations").access(
+                _role.isNot("Admin"),
+                _perm.is("viewDecoShutterInstall"),
+            ).data,
+            _link("Payments", "payment", "/payments").access(
+                _role.isNot("Admin"),
+                _perm.is("viewDecoShutterInstall"),
+            ).data,
+            _link(
+                "Customer Service",
+                "customerService",
+                "/customer-services",
+            ).access(_perm.is("viewCustomerService")).data,
+
+            _link("Sales Commission", "percent", "/sales/commissions").access(
+                _perm.is("viewCommission"),
+            ).data,
+        ]),
+        _section("settings", "Settings", [
+            _link("Community Setting", "settings", null, [
+                _subLink(
+                    "Install Costs",
+                    "/settings/community/install-costs",
+                ).access(_perm.is("editProject")).data,
+                _subLink(
+                    "Model Costs",
+                    "/settings/community/model-costs",
+                ).access(_perm.is("editProject")).data,
+                _subLink(
+                    "Community Cost",
+                    "/settings/community/community-costs",
+                ).access(_perm.is("editProject")).data,
+                _subLink(
+                    "Community Templates",
+                    "/settings/community/community-templates",
+                ).access(_perm.is("editProject")).data,
+                _subLink("Builders", "/settings/community/builders").access(
+                    _perm.is("viewBuilders"),
+                ).data,
+            ]).data,
         ]),
     ]),
     _module("Sales", "orders", "GND Sales", [
         _section("main", null, [
             _link("Dashboard", "dashboard", "/sales-rep").access(
+                _perm.is("editOrders"),
+            ).data,
+            _link("Accounting", "billing", "/sales-book/accounting").access(
                 _perm.is("editOrders"),
             ).data,
             _link("Sales", "orders", "/sales-books/orders").access(
@@ -179,6 +294,7 @@ export const linkModules = [
                 _perm.is("editOrders"),
             ).data,
         ]),
+        profileSection,
     ]),
 ];
 // satisfies (NavType["siteModules"][number] & {

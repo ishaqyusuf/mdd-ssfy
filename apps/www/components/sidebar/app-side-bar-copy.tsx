@@ -68,8 +68,8 @@ export function AppSideBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const linkModules = getLinkModules();
     if (!store.render) return null;
     return (
-        <Sidebar collapsible="icon" className="">
-            <SidebarHeader className="bg-white">
+        <Sidebar collapsible="icon">
+            <SidebarHeader>
                 <ModuleSwitcher />
             </SidebarHeader>
             <SidebarContent className="bg-white">
@@ -127,7 +127,7 @@ export function AppSideBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     );
 }
 interface SidebarModuleProps {
-    name: "sales" | "hrm" | "community";
+    name?: string;
     title;
     subtitle;
     icon: IconKeys;
@@ -169,7 +169,7 @@ function SidebarModuleSection({
 
     return (
         <SideBarSectionProvider args={[name]}>
-            <SidebarGroup className={cn(!mod?.isCurrentModule || "hidden")}>
+            <SidebarGroup className={cn(mod?.isCurrentModule || "hidden")}>
                 {!title || !mod?.isCurrentModule || (
                     <SidebarGroupLabel>{title}</SidebarGroupLabel>
                 )}
@@ -191,7 +191,6 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
     const { siteModule, isCurrentModule } = useSidebarModule();
     const sectionCtx = useSidebarSection();
 
-    const store = useSidebarStore();
     useEffect(() => {
         ctx.form.setValue(`links.${name}`, {
             moduleName: siteModule?.name,
@@ -202,6 +201,7 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
             icon,
         });
     }, [siteModule, sectionCtx?.name]);
+    const store = useSidebarStore();
     const subLinks = useMemo(() => {
         const links = Object.entries(ctx.data?.subLinks ?? {})
             .filter(([key, link]) => {
@@ -221,16 +221,8 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
                 >
                     <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
-                            <SidebarMenuButton
-                                className={cn(!isCurrentModule || "hidden")}
-                                tooltip={title}
-                            >
-                                {!Icon || (
-                                    <Icon
-                                        name={icon}
-                                        className="mr-2 h-4 w-4"
-                                    />
-                                )}
+                            <SidebarMenuButton tooltip={title}>
+                                <Icon name={icon} className="mr-2 h-4 w-4" />
                                 <span>{title}</span>
                                 <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                             </SidebarMenuButton>
@@ -259,7 +251,7 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
                         variant="outline"
                         className={cn(
                             store?.activeLinkName == name && "bg-muted",
-                            !isCurrentModule || "hidden",
+                            isCurrentModule || "hidden",
                         )}
                     >
                         <Link href={link || ""}>
@@ -269,7 +261,7 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
                         </Link>
                         {/* <File /> */}
                         {/* {!Icon || <Icon className="mr-2 h-4 w-4" />}
-                          {title} */}
+                        {title} */}
                     </SidebarMenuButton>
                     <SidebarMenuBadge>{/* {item.state} */}</SidebarMenuBadge>
                 </SidebarMenuItem>
@@ -290,14 +282,12 @@ function SubLink({ title, name, link }: SubLinkProps) {
     const linkCtx = useSidebarLink();
     useEffect(() => {
         ctx.form.setValue(`subLinks.${linkCtx?.name}|${name}`, {
-            // moduleName: siteModule?.name,
-            // sectionName: sectionCtx?.name,
             url: link,
             name,
             title,
             custom: false,
             // icon,
         });
-    }, [linkCtx?.name]);
+    }, [linkCtx?.name, name, title, ctx?.form, link]);
     return null;
 }

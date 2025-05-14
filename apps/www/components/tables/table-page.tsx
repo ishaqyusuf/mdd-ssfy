@@ -5,7 +5,10 @@ import {
     QueryKeys,
 } from "../(clean-code)/data-table/filter-command/filters";
 import { dataOptions } from "../(clean-code)/data-table/query-options";
-import { searchParamsCache } from "../(clean-code)/data-table/search-params";
+import {
+    FilterKeys,
+    searchParamsCache,
+} from "../(clean-code)/data-table/search-params";
 
 export default async function TablePage({
     searchParams,
@@ -16,7 +19,7 @@ export default async function TablePage({
     PageClient;
     searchParams;
     filterKey: QueryKeys;
-    queryData?;
+    queryData?: Partial<{ [k in FilterKeys]: any }>;
 }) {
     const search = searchParamsCache.parse(searchParams);
     const queryClient = getQueryClient();

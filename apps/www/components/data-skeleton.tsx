@@ -47,7 +47,7 @@ export function DataSkeleton({
     ) : (
         React.createElement(
             as,
-            { className: !ctx?.loading || cn(className) },
+            { className: !ctx?.loading ? "" : cn(className) },
             children,
         )
     );

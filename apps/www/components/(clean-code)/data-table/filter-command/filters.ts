@@ -79,6 +79,7 @@ export const composeFilter = (queryKey: QueryKeys, loadedFilters?) => {
                 value,
                 label: value,
             }));
+
             // .filter((a, b) => b < 10);
         }
         return filter;

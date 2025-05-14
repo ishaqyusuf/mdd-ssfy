@@ -32,7 +32,6 @@ import { OrderCells as Cells } from "./orders-page-cells";
 export default function OrdersPageClient({
     filterFields,
     queryKey,
-    queryParams,
 }: InfiniteDataTablePageProps) {
     // const filters =
     const table = useTableCompose({
