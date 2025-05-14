@@ -181,6 +181,9 @@ export const linkModules = [
     ]),
     _module("Community", "communityInvoice", "GND Community", [
         _section("main", null, [
+            _link("HOME", "project", "/community/home-page").access(
+                _perm.in("viewProject"),
+            ).data,
             _link("Projects", "project", "/community/projects").access(
                 _perm.in("viewProject"),
             ).data,

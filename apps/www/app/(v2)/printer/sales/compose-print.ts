@@ -696,6 +696,7 @@ function printFooter(data: PrintData, notPrintable) {
     if (data.order.taxes?.length) {
         data.order.taxes
             .filter((s) => !s.deletedAt)
+            ?.filter((s, i) => i == 0)
             .map((t) => {
                 const sData = salesData.salesTaxByCode[t.taxCode] as SalesTaxes;
                 if (sData) {

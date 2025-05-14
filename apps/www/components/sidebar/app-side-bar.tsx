@@ -51,7 +51,7 @@ export function AppSideBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     pathname?.toLocaleLowerCase()
                 );
             })?.[1];
-
+            // console.log({ entry, links, pathname });
             if (entry) {
                 // console.log({ entry, links, pathname });
                 store.update("activeLinkName", entry.name);
@@ -169,7 +169,7 @@ function SidebarModuleSection({
 
     return (
         <SideBarSectionProvider args={[name]}>
-            <SidebarGroup className={cn(!mod?.isCurrentModule || "hidden")}>
+            <SidebarGroup className={cn(mod?.isCurrentModule || "hidden")}>
                 {!title || !mod?.isCurrentModule || (
                     <SidebarGroupLabel>{title}</SidebarGroupLabel>
                 )}
@@ -222,7 +222,7 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
                     <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
                             <SidebarMenuButton
-                                className={cn(!isCurrentModule || "hidden")}
+                                className={cn(isCurrentModule || "hidden")}
                                 tooltip={title}
                             >
                                 {!Icon || (
@@ -259,7 +259,7 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
                         variant="outline"
                         className={cn(
                             store?.activeLinkName == name && "bg-muted",
-                            !isCurrentModule || "hidden",
+                            isCurrentModule || "hidden",
                         )}
                     >
                         <Link href={link || ""}>
