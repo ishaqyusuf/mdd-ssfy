@@ -320,7 +320,7 @@ function CalendarForm({ value, filter, setFilters }) {
             <Calendar
                 mode="range"
                 initialFocus
-                toDate={new Date()}
+                // toDate={new Date()}
                 selected={{
                     from: start ? new Date(start) : undefined,
                     to: end ? new Date(end) : undefined,
