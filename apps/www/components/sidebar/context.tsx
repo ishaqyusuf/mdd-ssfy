@@ -65,7 +65,7 @@ const { useContext: useSidebar, Provider: SidebarContext } =
             await timeout(100);
         };
         const pathName = usePathname();
-        const [activeLink, setActiveLink] = useState({});
+        const [activeLink, setActiveLink] = useState<{ name?; module? }>({});
         useEffect(() => {
             const active = Object.entries(linkModules.linksNameMap || {}).find(
                 ([href, data]) =>
@@ -80,6 +80,8 @@ const { useContext: useSidebar, Provider: SidebarContext } =
                 setValue: store.update,
             },
             linkModules,
+            renderMode: linkModules.renderMode,
+            activeLink,
         };
     });
 export { useSidebar, SidebarContext };

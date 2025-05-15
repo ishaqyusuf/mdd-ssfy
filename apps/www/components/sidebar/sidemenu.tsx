@@ -38,8 +38,49 @@ import { ModuleSwitcher } from "./module-switcher";
 import { useSidebarStore } from "./store";
 import { cva } from "class-variance-authority";
 
+const moduleVariants = cva("", {
+    variants: {},
+    defaultVariants: {},
+});
+const linksVariant = cva("", {
+    variants: {
+        renderMode: {
+            suppressed: "",
+            default: "",
+            none: "",
+        },
+    },
+    defaultVariants: {
+        renderMode: "default",
+    },
+});
+const sectionLabel = cva("", {
+    variants: {
+        renderMode: {
+            suppressed: "",
+            default: "hidden",
+            none: "",
+        },
+    },
+    defaultVariants: {
+        renderMode: "default",
+    },
+});
+const sectionGroup = cva("", {
+    variants: {
+        renderMode: {
+            suppressed: "",
+            default: "hidden",
+            none: "",
+        },
+    },
+    defaultVariants: {
+        renderMode: "default",
+    },
+});
 export function SideMenu({}) {
     const sb = useSidebar();
+    const { renderMode, activeLink } = sb;
     return (
         <Sidebar collapsible="icon" className="bg-white">
             <SidebarContent className="">
@@ -56,16 +97,28 @@ export function SideMenu({}) {
                                 >
                                     <SidebarGroupLabel
                                         className={
-                                            cn()
+                                            cn(
+                                                activeLink?.module !=
+                                                    module.name &&
+                                                    sectionLabel({
+                                                        renderMode,
+                                                    }),
+                                            )
                                             // !mod?.isCurrentModule &&
                                             //     sectionLabel({
                                             //         renderMode,
                                             //     }),
                                         }
                                     >
-                                        {module?.name}
-                                        {section?.title || section?.name}
+                                        {section?.title}
                                     </SidebarGroupLabel>
+                                    <SidebarMenu>
+                                        {section?.links
+                                            ?.filter((l) => l?.show)
+                                            ?.map((link, li) => (
+                                                <Fragment key={li}></Fragment>
+                                            ))}
+                                    </SidebarMenu>
                                 </SidebarGroup>
                             ))}
                         </Fragment>
