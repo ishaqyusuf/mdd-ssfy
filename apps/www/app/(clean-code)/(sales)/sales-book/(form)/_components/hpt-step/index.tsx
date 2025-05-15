@@ -226,7 +226,7 @@ function DoorSizeRow({ size, sn }: { size; sn }) {
                 <TableCell>
                     <LineSwitch
                         cls={ctx.ctx}
-                        name="meta.produceable"
+                        name="prodOverride.production"
                         lineUid={lineUid}
                     />
                 </TableCell>

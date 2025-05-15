@@ -469,6 +469,7 @@ export interface SalesFormItem {
                 // id for moulding = `${componentUid}`
                 // id for services = random
                 primaryGroupItem?: boolean;
+                prodOverride?: DykeSalesDoorMeta["prodOverride"];
                 meta: {
                     description?: string;
                     taxxable?: boolean;

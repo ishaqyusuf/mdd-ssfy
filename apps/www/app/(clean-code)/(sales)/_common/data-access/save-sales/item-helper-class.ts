@@ -248,6 +248,7 @@ export class ItemHelperClass {
                 overridePrice: formData.pricing.customPrice,
                 laborQty: formData?.pricing?.laborQty,
                 unitLabor: formData?.pricing?.unitLabor,
+                prodOverride: formData?.prodOverride,
             } satisfies DykeSalesDoorMeta,
             unitPrice: this.ctx.safeInt(formData.pricing.unitPrice),
             lineTotal: this.ctx.safeInt(formData.pricing.totalPrice),

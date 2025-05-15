@@ -267,6 +267,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                                 ),
                                 addon: doorForm.doorPrice,
                             },
+                            prodOverride: doorForm.meta?.prodOverride,
                             meta: {
                                 salesItemId: copy ? null : data.itemId,
                                 // noHandle,
