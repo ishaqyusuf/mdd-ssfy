@@ -14,5 +14,5 @@ export const searchIcons: Partial<{
     production: "production",
     "production.dueDate": "calendar",
     po: "inbound",
-    // "sales.rep": "r"
+    "sales.rep": "user",
 };
