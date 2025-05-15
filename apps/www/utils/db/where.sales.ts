@@ -272,8 +272,10 @@ export function whereSales(params: SearchParamsType) {
             queries.push({
                 itemControls: {
                     some: {
+                        deletedAt: null,
                         qtyControls: {
                             some: {
+                                deletedAt: null,
                                 type: "prodCompleted" as QtyControlType,
                                 percentage: {
                                     not: 100,
