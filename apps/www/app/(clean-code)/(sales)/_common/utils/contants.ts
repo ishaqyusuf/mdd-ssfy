@@ -145,6 +145,17 @@ export const __filters = (): Filters => ({
     quotes: {
         fields: [
             filterFields.search,
+            filterFields["order.no"],
+            filterFields.po,
+            filterFields.phone,
+            filterFields["customer.name"],
+            // filterFields["dispatch.status"],
+            // filterFields["production.assignment"],
+            // filterFields.production,
+            // filterFields.invoice,
+            filterFields["sales.rep"],
+            // filterFields.search,
+            // filterFields["sales.priority"],
             //
         ],
         filterColumns: [

@@ -14,7 +14,11 @@ export async function generateMetadata({}) {
     });
 }
 export default async function SalesBookPage({ searchParams }) {
-    const [queryData] = await Promise.all([getSalesPageQueryData()]);
+    const [queryData] = await Promise.all([
+        getSalesPageQueryData({
+            "sales.type": "order",
+        }),
+    ]);
     return (
         <FPage can={["viewOrders"]} title="Orders">
             <Portal nodeId={"navRightSlot"}>

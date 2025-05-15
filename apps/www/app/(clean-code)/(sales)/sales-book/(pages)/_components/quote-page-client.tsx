@@ -17,6 +17,7 @@ import { OrderOverviewSheet } from "../../../_common/_components/overview-sheet.
 import { openQuoteOVerview } from "../../../_common/_components/sales-overview-sheet.bin";
 import { __filters } from "../../../_common/utils/contants";
 import { QuotesCell } from "./quotes-page-cells";
+import { MiddaySearchFilter } from "@/components/midday-search-filter/search-filter";
 
 interface Props {
     // promise;
@@ -36,7 +37,7 @@ export default function QuotesPageClient({ filterFields, queryKey }: Props) {
                 ctx.Column("Address", "address", QuotesCell.Address),
                 ctx.Column("Rep", "rep", QuotesCell.SalesRep),
                 ctx.Column("Invoice", "invoice", QuotesCell.Invoice),
-                ...__filters().quotes.filterColumns,
+                // ...__filters().quotes.filterColumns,
             ];
         },
         checkable: true,
@@ -81,8 +82,14 @@ export default function QuotesPageClient({ filterFields, queryKey }: Props) {
                         </Button>
                     </div>
                     <div className="flex justify-between">
-                        <div className="w-1/2">
+                        {/* <div className="w-1/2">
                             <DataTableFilterCommand />
+                        </div> */}
+                        <div className="flex-1">
+                            <MiddaySearchFilter
+                                placeholder={"Search quote information"}
+                                filterList={filterFields}
+                            />
                         </div>
                         <DataTableInfinityToolbar />
                     </div>

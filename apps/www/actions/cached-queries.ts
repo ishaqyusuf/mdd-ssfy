@@ -1,7 +1,11 @@
 import { unstable_cache } from "next/cache";
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
-import { FilterKeys } from "@/components/(clean-code)/data-table/search-params";
+import {
+    FilterKeys,
+    SearchParamsType,
+} from "@/components/(clean-code)/data-table/search-params";
 import { prisma } from "@/db";
+import { whereSales } from "@/utils/db/where.sales";
 
 export const getNotes = async () => {
     return unstable_cache(async () => {}, ["notes"], {
@@ -9,13 +13,15 @@ export const getNotes = async () => {
         revalidate: 3600,
     });
 };
-export const getSalesPageQueryData = async (params = {}) => {
+export const getSalesPageQueryData = async (params?: SearchParamsType) => {
     return unstable_cache(
         async (params) => {
+            const where = whereSales(params || {});
             const sales = await prisma.salesOrders.findMany({
-                where: {
-                    type: "order" as SalesType,
-                },
+                where,
+                // where: {
+                //     type: "order" as SalesType,
+                // },
                 select: {
                     orderId: true,
                     meta: true,
