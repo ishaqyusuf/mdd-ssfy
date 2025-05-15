@@ -46,6 +46,7 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
                 qty: baseItem.qty,
                 dykeProduction: baseItem.dykeProduction,
                 swing: baseItem.swing,
+                prodOverride: item.prodOverride,
             });
             item.analytics = composeSalesItemControlStat(
                 item,
@@ -127,7 +128,8 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
                     door.lhQty,
                     door.totalQty,
                 );
-                const unitLabor = (door.meta as DykeSalesDoorMeta)?.unitLabor;
+                const doorMeta = door.meta as DykeSalesDoorMeta;
+                const unitLabor = doorMeta?.unitLabor;
                 addItem({
                     unitLabor,
                     controlUid,
@@ -145,6 +147,7 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
                     qty: qty,
                     noHandle: qty.noHandle,
                     configs,
+                    prodOverride: doorMeta?.prodOverride,
                 });
             });
         }
@@ -208,6 +211,7 @@ export interface ItemControlData {
     noHandle: boolean;
     analytics?: ReturnType<typeof composeSalesItemControlStat>;
     itemConfig?: ReturnType<typeof getItemStatConfig>;
+    prodOverride?: DykeSalesDoorMeta["prodOverride"];
 }
 const select = {
     meta: true,

@@ -1,6 +1,7 @@
 import {
     AddressBookMeta,
     CustomerMeta,
+    DykeSalesDoorMeta,
     QtyControlType,
     SalesDispatchStatus,
     SalesSettingsMeta,
@@ -83,17 +84,21 @@ interface ItemStatConfigProps {
     setting: SalesSettingsMeta;
     dykeProduction?: boolean;
     swing?;
+    prodOverride?: DykeSalesDoorMeta["prodOverride"];
 }
 export function getItemStatConfig({ setting, ...props }: ItemStatConfigProps) {
     const mainStep = props.formSteps?.[0];
     const stepConfigUid = mainStep?.prodUid;
     let config = setting?.route?.[stepConfigUid]?.config;
-    const isService = mainStep?.value?.toLowerCase() == "services";
-    console.log({ config, stepConfigUid, mainStep, setting });
 
+    const isService = mainStep?.value?.toLowerCase() == "services";
     return props.isDyke
         ? {
-              production: isService ? props.dykeProduction : config?.production,
+              production: isService
+                  ? props.dykeProduction
+                  : props?.prodOverride
+                    ? props?.prodOverride?.production
+                    : config?.production,
               shipping: config?.shipping,
           }
         : {

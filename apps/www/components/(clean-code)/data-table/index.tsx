@@ -164,7 +164,34 @@ function _Table({}) {
                         ctx.topBarHeight ? "z-10 bg-muted md:sticky" : "",
                     )}
                     style={{ top: `${ctx.topBarHeight}px` }}
-                ></TableHeader>
+                >
+                    {table.getHeaderGroups().map((headerGroup) => (
+                        <TableRow key={headerGroup.id}>
+                            <CheckboxHeader />
+                            {headerGroup.headers.map((header, index) => {
+                                if (!header.id.includes("__"))
+                                    return (
+                                        <TableHead
+                                            className={cn(
+                                                cellVariants(ctx.cellVariants),
+                                                "whitespace-nowrap",
+                                            )}
+                                            key={`${header.id}_${index}`}
+                                        >
+                                            {header.isPlaceholder
+                                                ? null
+                                                : flexRender(
+                                                      header.column.columnDef
+                                                          .header,
+                                                      header.getContext(),
+                                                  )}
+                                        </TableHead>
+                                    );
+                            })}
+                            <ActionHeader />
+                        </TableRow>
+                    ))}
+                </TableHeader>
                 <TableBody>
                     {table.getRowModel().rows?.length ? (
                         table

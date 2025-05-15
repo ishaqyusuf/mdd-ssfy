@@ -245,6 +245,9 @@ export interface DykeSalesDoorMeta {
     overridePrice?: number | string;
     unitLabor?: number;
     laborQty?: number;
+    prodOverride?: {
+        production?: boolean;
+    };
 }
 export interface HousePackageToolMeta {
     priceTags?: {

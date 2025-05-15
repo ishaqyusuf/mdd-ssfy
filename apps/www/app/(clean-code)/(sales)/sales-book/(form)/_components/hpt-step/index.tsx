@@ -25,7 +25,7 @@ import {
 } from "@gnd/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
-import { LineInput } from "../line-input";
+import { LineInput, LineSwitch } from "../line-input";
 import { Context, HptContext, useCreateContext, useCtx } from "./ctx";
 import { Door } from "./door";
 
@@ -88,9 +88,9 @@ export default function HousePackageTool({ itemStepUid }: Props) {
                             </TabsTrigger>
                         ))}
                     </TabsList>
-                    {ctx.doors?.map((door) => (
+                    {ctx.doors?.map((door, i) => (
                         <TabsContent key={door.uid} value={door.uid}>
-                            <DoorSizeTable door={door} />
+                            <DoorSizeTable door={door} sn={i + 1} />
                         </TabsContent>
                     ))}
                 </Tabs>
@@ -100,19 +100,25 @@ export default function HousePackageTool({ itemStepUid }: Props) {
 }
 interface DoorSizeTable {
     door: HptContext["doors"][number];
+    sn;
 }
 function DoorSizeTable({ door }: DoorSizeTable) {
     const ctx = useCtx();
-
+    const itemType = ctx?.ctx?.getItemForm()?.groupItem?.itemType;
+    const isSlab = itemType === "Door Slabs Only";
     return (
         <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-4">
             <div className="lg:col-span-3">
                 <Table className="table-fixed   p-4 font-medium">
                     <TableHeader className="text-xs">
                         <TableRow className="uppercase">
+                            <TableHead className="font-mono w-8">#</TableHead>
                             <TableHead className="w-full">Size</TableHead>
                             {ctx.config.hasSwing && (
                                 <TableHead className="w-28">Swing</TableHead>
+                            )}
+                            {!isSlab || (
+                                <TableHead className="w-28">PROD</TableHead>
                             )}
                             {ctx.config.noHandle ? (
                                 <TableHead
@@ -138,7 +144,7 @@ function DoorSizeTable({ door }: DoorSizeTable) {
                     </TableHeader>
                     <TableBody>
                         {door.sizeList.map((sl, i) => (
-                            <DoorSizeRow size={sl} key={i} />
+                            <DoorSizeRow sn={i + 1} size={sl} key={i} />
                         ))}
                     </TableBody>
 
@@ -196,11 +202,12 @@ function DoorSizeTable({ door }: DoorSizeTable) {
         </div>
     );
 }
-function DoorSizeRow({ size }: { size }) {
+function DoorSizeRow({ size, sn }: { size; sn }) {
     const lineUid = size.path;
     const ctx = useCtx();
     const sizeForm = ctx.itemForm?.groupItem.form[size.path];
-
+    const itemType = ctx?.ctx?.getItemForm()?.groupItem?.itemType;
+    const isSlab = itemType === "Door Slabs Only";
     const valueChanged = () => {
         ctx.ctx.updateGroupedCost();
         ctx.ctx.calculateTotalPrice();
@@ -211,9 +218,19 @@ function DoorSizeRow({ size }: { size }) {
     );
     return (
         <TableRow className={cn(!sizeForm?.selected && "hidden")}>
+            <TableCell className="font-mono">{sn}.</TableCell>
             <TableCell className="font-mono text-sm font-semibold">
                 {size.title}
             </TableCell>
+            {!isSlab || (
+                <TableCell>
+                    <LineSwitch
+                        cls={ctx.ctx}
+                        name="meta.produceable"
+                        lineUid={lineUid}
+                    />
+                </TableCell>
+            )}
             {ctx.config.hasSwing && (
                 <TableCell>
                     <LineInput cls={ctx.ctx} name="swing" lineUid={lineUid} />
