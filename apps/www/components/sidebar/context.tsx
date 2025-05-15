@@ -1,11 +1,11 @@
 import { timeout } from "@/lib/timeout";
 import { createContextFactory } from "@/utils/context-factory";
-import { useForm } from "react-hook-form";
 import z from "zod";
 
 import { useSidebar as useBaseSidebar } from "@gnd/ui/sidebar";
 
 import { useSidebarStore } from "./store";
+import { getLinkModules } from "./links";
 
 export const schema = z.object({
     render: z.boolean(),
@@ -53,34 +53,23 @@ export const schema = z.object({
     ),
 });
 const { useContext: useSidebar, Provider: SidebarContext } =
-    createContextFactory(function () {
-        // const ctx = useSalesOverviewQuery();
-        // const form = useForm<z.infer<typeof schema>>({
-        //     defaultValues: {
-        //         siteModules: {},
-        //         links: {},
-        //     },
-        // });
+    createContextFactory(function (
+        linkModules: ReturnType<typeof getLinkModules>,
+    ) {
         const store = useSidebarStore();
         const data = store;
         const { isMobile } = useBaseSidebar();
         const loader = async () => {
             await timeout(100);
-            // const res = await getSalesOverviewAction(
-            //     ctx.params["sales-overview-id"],
-            // );
-            // console.log({ res });
-            // return res;
         };
 
-        // const data = useAsyncMemo(loader, []);
         return {
             data,
             isMobile,
             form: {
                 setValue: store.update,
             },
-            // form,
+            linkModules,
         };
     });
 export { useSidebar, SidebarContext };

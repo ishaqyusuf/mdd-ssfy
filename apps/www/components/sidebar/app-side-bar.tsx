@@ -34,14 +34,54 @@ import {
     useSidebarModule,
     useSidebarSection,
 } from "./context";
-import { getLinkModules } from "./links";
 import { ModuleSwitcher } from "./module-switcher";
 import { useSidebarStore } from "./store";
+import { cva } from "class-variance-authority";
 
+const moduleVariants = cva("", {
+    variants: {},
+    defaultVariants: {},
+});
+const linksVariant = cva("", {
+    variants: {
+        renderMode: {
+            suppressed: "",
+            default: "",
+            none: "",
+        },
+    },
+    defaultVariants: {
+        renderMode: "default",
+    },
+});
+const sectionLabel = cva("", {
+    variants: {
+        renderMode: {
+            suppressed: "",
+            default: "hidden",
+            none: "",
+        },
+    },
+    defaultVariants: {
+        renderMode: "default",
+    },
+});
+const sectionGroup = cva("", {
+    variants: {
+        renderMode: {
+            suppressed: "",
+            default: "hidden",
+            none: "",
+        },
+    },
+    defaultVariants: {
+        renderMode: "default",
+    },
+});
 export function AppSideBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const store = useSidebarStore((s) => s);
     const pathname = usePathname();
-
+    const sb = useSidebar();
     useEffect(() => {
         setTimeout(() => {
             const links = store.links || {};
@@ -65,63 +105,88 @@ export function AppSideBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     useEffect(() => {
         store.reset();
     }, []);
-    const linkModules = getLinkModules();
+    // const linkModules = getLinkModules();
     if (!store.render) return null;
+    const renderMode = sb?.linkModules?.renderMode;
     return (
         <Sidebar collapsible="icon" className="">
             <SidebarHeader className="bg-white">
                 <ModuleSwitcher />
             </SidebarHeader>
             <SidebarContent className="bg-white">
-                {linkModules.map((module, mi) => (
-                    <SidebarModule
-                        name={module.name as any}
-                        icon={module.icon}
-                        title={module.title}
-                        subtitle={module.subtitle}
-                        key={mi}
-                    >
-                        {module.sections?.map((section, si) => (
-                            <SidebarModuleSection
-                                title={section.title}
-                                key={si}
-                                name={section.name}
-                            >
-                                {section.links?.map((link, li) => (
-                                    <Fragment key={li}>
-                                        {link?.subLinks?.length ? (
-                                            <SidebarLink
-                                                name={link.name}
-                                                title={link.title}
-                                                icon={link.icon}
-                                            >
-                                                {link.subLinks?.map(
-                                                    (sub, si) => (
-                                                        <SubLink
-                                                            name={sub?.name}
-                                                            title={sub?.title}
-                                                            link={sub?.href}
-                                                            key={si}
-                                                        />
-                                                    ),
-                                                )}
-                                            </SidebarLink>
-                                        ) : (
-                                            <>
-                                                <SidebarLink
-                                                    name={link.name}
-                                                    title={link.title}
-                                                    link={link?.href}
-                                                    icon={link.icon}
-                                                />
-                                            </>
-                                        )}
-                                    </Fragment>
-                                ))}
-                            </SidebarModuleSection>
-                        ))}
-                    </SidebarModule>
-                ))}
+                <div className="">
+                    {sb?.linkModules?.renderMode}
+                    {"|"}
+                </div>
+                {sb?.linkModules?.modules
+                    ?.filter((a) => a.activeLinkCount)
+                    .map((module, mi) => (
+                        <SidebarModule
+                            name={module.name as any}
+                            icon={module.icon}
+                            title={module.title}
+                            subtitle={module.subtitle}
+                            key={mi}
+                        >
+                            {module.sections?.map((section, si) => (
+                                <div
+                                    key={si}
+                                    className={cn(
+                                        !section?.linksCount && "hidden",
+                                    )}
+                                >
+                                    <SidebarModuleSection
+                                        title={section.title}
+                                        name={section.name}
+                                    >
+                                        {section.links
+                                            ?.filter((a) => a.show)
+                                            .map((link, li) => (
+                                                <Fragment key={li}>
+                                                    {link?.subLinks?.length ? (
+                                                        <SidebarLink
+                                                            name={link.name}
+                                                            title={link.title}
+                                                            icon={link.icon}
+                                                        >
+                                                            {link.subLinks?.map(
+                                                                (sub, si) => (
+                                                                    <SubLink
+                                                                        name={
+                                                                            sub?.name
+                                                                        }
+                                                                        title={
+                                                                            sub?.title
+                                                                        }
+                                                                        link={
+                                                                            sub?.href
+                                                                        }
+                                                                        key={si}
+                                                                    />
+                                                                ),
+                                                            )}
+                                                        </SidebarLink>
+                                                    ) : (
+                                                        <>
+                                                            <SidebarLink
+                                                                name={link.name}
+                                                                title={
+                                                                    link.title
+                                                                }
+                                                                link={
+                                                                    link?.href
+                                                                }
+                                                                icon={link.icon}
+                                                            />
+                                                        </>
+                                                    )}
+                                                </Fragment>
+                                            ))}
+                                    </SidebarModuleSection>
+                                </div>
+                            ))}
+                        </SidebarModule>
+                    ))}
             </SidebarContent>
         </Sidebar>
     );
@@ -166,12 +231,29 @@ function SidebarModuleSection({
     children,
 }: SidebarModuleSectionProps) {
     const mod = useSidebarModule();
-
+    const sb = useSidebar();
+    const renderMode = sb?.linkModules?.renderMode;
     return (
         <SideBarSectionProvider args={[name]}>
-            <SidebarGroup className={cn(mod?.isCurrentModule || "hidden")}>
-                {!title || !mod?.isCurrentModule || (
-                    <SidebarGroupLabel>{title}</SidebarGroupLabel>
+            <SidebarGroup
+                className={cn(
+                    !mod?.isCurrentModule &&
+                        sectionGroup({
+                            renderMode,
+                        }),
+                )}
+            >
+                {(!title && !name) || (
+                    <SidebarGroupLabel
+                        className={cn(
+                            !mod?.isCurrentModule &&
+                                sectionLabel({
+                                    renderMode,
+                                }),
+                        )}
+                    >
+                        {title || name}
+                    </SidebarGroupLabel>
                 )}
                 <SidebarMenu>{children}</SidebarMenu>
             </SidebarGroup>
@@ -259,7 +341,7 @@ function SidebarLink({ title, icon, name, link, children }: SidebarLinkProps) {
                         variant="outline"
                         className={cn(
                             store?.activeLinkName == name && "bg-muted",
-                            isCurrentModule || "hidden",
+                            // isCurrentModule || "hidden",
                         )}
                     >
                         <Link href={link || ""}>

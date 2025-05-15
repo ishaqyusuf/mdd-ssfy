@@ -3,6 +3,7 @@ import z from "zod";
 
 import { IconKeys } from "../_v1/icons";
 import { schema } from "./context";
+import { sum } from "@/lib/utils";
 
 type moduleNames = "HRM" | "Sales" | "Community";
 const _module = (
@@ -18,6 +19,8 @@ const _module = (
     subtitle,
     sections,
     index: -1,
+    activeLinkCount: 0,
+    activeSubLinkCount: 0,
 });
 // type sectionNames = "main" | "sales";
 type Link = {
@@ -42,6 +45,7 @@ const _section = (
     access,
     index: -1,
     globalIndex: -1,
+    linksCount: 0,
 });
 // type linkNames = "HRM" | "customer-services" | "Dashboard" | "Sales";
 const _subLink = (name, href, access?: Access[]) =>
@@ -63,6 +67,7 @@ const _link = (
         access,
         index: -1,
         globalIndex: -1,
+        show: false,
     };
     const ctx = {
         data: res,
@@ -103,7 +108,7 @@ const _perm = {
         __access("permission", "every", ...roles),
     some: (...roles: Permission[]) => __access("permission", "some", ...roles),
 };
-export const validLinks = ({ role, can }: { role; can: ICan }) => {
+export const validateLinks = ({ role, can }: { role; can: ICan }) => {
     function validateAccess(accessList: Access[]) {
         return accessList.every((a) => {
             if (a.type == "permission")
@@ -139,11 +144,25 @@ export const validLinks = ({ role, can }: { role; can: ICan }) => {
         lm.sections = lm.sections.map((s) => {
             s.links = s.links.map((lnk) => {
                 const valid = validateAccess(lnk.access);
+                lnk.show = valid;
                 // if(!valid)return
+                if (lnk.subLinks?.length)
+                    lnk.subLinks = lnk.subLinks.map((sl) => {
+                        sl.show = validateAccess(sl.access);
+                        return sl;
+                    });
+                if (
+                    !lnk?.access?.length &&
+                    lnk.subLinks?.length &&
+                    lnk?.subLinks?.every((s) => !s.show)
+                )
+                    lnk.show = false;
                 return lnk;
             });
+
             return s;
         });
+        return lm;
     });
 };
 type NavType = z.infer<typeof schema>;
@@ -300,32 +319,47 @@ export const linkModules = [
         profileSection,
     ]),
 ];
-// satisfies (NavType["siteModules"][number] & {
-//     sections: {
-//         index?;
-//         globalIndex?;
-//     };
-// })[];
-export function getLinkModules() {
+export function getLinkModules(_linkModules = linkModules) {
     let i = {
         section: 0,
         links: 0,
         subLinks: 0,
     };
-    const modules = linkModules.map((m, mi) => {
+    const modules = _linkModules.map((m, mi) => {
         m.index = mi;
+        let moduleLinks = 0;
         m.sections = m.sections.map((s, si) => {
+            let sectionLinks = 0;
             s.index = si;
             s.globalIndex = i.section++;
             // i.section += 1;
             s.links = s.links.map((l, li) => {
-                l.index = li;
-                l.globalIndex = i.links++;
+                if (l.show) {
+                    l.index = li;
+                    l.globalIndex = i.links++;
+                    sectionLinks++;
+                    moduleLinks++;
+                }
+                if (l?.subLinks?.length)
+                    l.subLinks = l.subLinks.map((sl, sli) => {
+                        // if(sl?.show)
+                        return sl;
+                    });
                 return l;
             });
+            s.linksCount = sectionLinks;
             return s;
         });
+        m.activeLinkCount = moduleLinks;
         return m;
     });
-    return modules;
+    let renderMode: "default" | "suppressed" | "none" = "default";
+    const moduleLinksCount = sum(modules, "activeLinkCount");
+    if (modules.every((m) => m.activeLinkCount < 5) && moduleLinksCount < 10)
+        renderMode = "suppressed";
+    if (moduleLinksCount < 6 && renderMode == "default") renderMode = "none";
+    return {
+        modules,
+        renderMode,
+    };
 }

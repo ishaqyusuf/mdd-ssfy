@@ -13,11 +13,11 @@ model ExportConfig {
 }
 
 model PageTabs {
-    id      Int      @unique @default(autoincrement())
-    page    String
-    userId  Int
-    private Boolean? @default(true)
-
+    id         Int            @unique @default(autoincrement())
+    page       String
+    userId     Int
+    private    Boolean?       @default(true)
+    meta       Json?          @db.Json
     title      String
     query      String
     tabIndices PageTabIndex[]

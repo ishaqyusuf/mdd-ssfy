@@ -1,9 +1,10 @@
-import { dotObject, dotSet } from "@/app/(clean-code)/_common/utils/utils";
+import { dotSet } from "@/app/(clean-code)/_common/utils/utils";
 import { FieldPath, FieldPathValue } from "react-hook-form";
 import z from "zod";
 import { create } from "zustand";
 
 import { schema } from "./context";
+import { getLinkModules } from "./links";
 
 const data = {
     render: false,
@@ -11,7 +12,8 @@ const data = {
     activeLinkName: null,
     subLinks: {},
     links: {},
-} as z.infer<typeof schema>;
+    linkModule: {},
+} as z.infer<typeof schema> & { linkModule: ReturnType<typeof getLinkModules> };
 type Action = ReturnType<typeof funcs>;
 type Data = typeof data;
 type Store = Data & Action;

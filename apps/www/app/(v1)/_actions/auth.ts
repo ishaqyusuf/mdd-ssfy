@@ -86,13 +86,6 @@ export async function resetPassword({
             usedAt: new Date(),
         },
     });
-    //   const user = await prisma.users.findFirst({
-    //     where: {
-    //       email,
-    //     },
-    //   });
-    //   if (!user) return null;
-    //   return { id: user.id };
 }
 export async function dealersLogin({ email, password }) {
     let resp = {

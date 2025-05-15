@@ -2,14 +2,19 @@
 
 import { Separator } from "@gnd/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@gnd/ui/sidebar";
-
 import { AppSideBar } from "./app-side-bar";
 import { SidebarContext } from "./context";
+import DevOnly from "@/_v2/components/common/dev-only";
+import QuickLogin from "../quick-login";
 
-export function SideBar({ children }) {
+export function SideBar({ children, validLinks }) {
     return (
         <SidebarProvider>
-            <SidebarContext args={[]}>
+            <SidebarContext
+                // args={[validLinks]}
+                args={[validLinks]}
+                // args={[data.user]}
+            >
                 <AppSideBar />
                 <SidebarInset>
                     <header className="flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
@@ -19,6 +24,9 @@ export function SideBar({ children }) {
                                 orientation="vertical"
                                 className="mr-2 h-4"
                             />
+                            <DevOnly>
+                                <QuickLogin />
+                            </DevOnly>
                             {/* <Breadcrumb>
                                 <BreadcrumbList>
                                     <BreadcrumbItem className="hidden md:block">
