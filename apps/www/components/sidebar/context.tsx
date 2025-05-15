@@ -6,6 +6,8 @@ import { useSidebar as useBaseSidebar } from "@gnd/ui/sidebar";
 
 import { useSidebarStore } from "./store";
 import { getLinkModules } from "./links";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 export const schema = z.object({
     render: z.boolean(),
@@ -62,7 +64,15 @@ const { useContext: useSidebar, Provider: SidebarContext } =
         const loader = async () => {
             await timeout(100);
         };
-        const linksMatcher = {};
+        const pathName = usePathname();
+        const [activeLink, setActiveLink] = useState({});
+        useEffect(() => {
+            const active = Object.entries(linkModules.linksNameMap || {}).find(
+                ([href, data]) =>
+                    href?.toLocaleLowerCase() === pathName?.toLocaleLowerCase(),
+            )?.["1"];
+            setActiveLink(active || {});
+        }, [pathName, linkModules]);
         return {
             data,
             isMobile,

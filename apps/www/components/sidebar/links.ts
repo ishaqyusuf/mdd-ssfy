@@ -325,6 +325,13 @@ export function getLinkModules(_linkModules = linkModules) {
         links: 0,
         subLinks: 0,
     };
+    const moduleMap: {} = {};
+    const linksNameMap: {
+        [href in string]: {
+            name?: string;
+            module?: string;
+        };
+    } = {};
     const modules = _linkModules.map((m, mi) => {
         m.index = mi;
         let moduleLinks = 0;
@@ -335,6 +342,11 @@ export function getLinkModules(_linkModules = linkModules) {
             // i.section += 1;
             s.links = s.links.map((l, li) => {
                 if (l.show) {
+                    if (l.href)
+                        linksNameMap[l.href] = {
+                            name: l.name,
+                            module: m.name,
+                        };
                     l.index = li;
                     l.globalIndex = i.links++;
                     sectionLinks++;
@@ -343,6 +355,11 @@ export function getLinkModules(_linkModules = linkModules) {
                 if (l?.subLinks?.length)
                     l.subLinks = l.subLinks.map((sl, sli) => {
                         // if(sl?.show)
+                        if (sl.href)
+                            linksNameMap[sl.href] = {
+                                name: l.name,
+                                module: m.name,
+                            };
                         return sl;
                     });
                 return l;
@@ -361,5 +378,6 @@ export function getLinkModules(_linkModules = linkModules) {
     return {
         modules,
         renderMode,
+        linksNameMap,
     };
 }

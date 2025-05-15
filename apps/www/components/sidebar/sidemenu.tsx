@@ -53,7 +53,20 @@ export function SideMenu({}) {
                                     className={cn(
                                         !section?.linksCount && "hidden",
                                     )}
-                                ></SidebarGroup>
+                                >
+                                    <SidebarGroupLabel
+                                        className={
+                                            cn()
+                                            // !mod?.isCurrentModule &&
+                                            //     sectionLabel({
+                                            //         renderMode,
+                                            //     }),
+                                        }
+                                    >
+                                        {module?.name}
+                                        {section?.title || section?.name}
+                                    </SidebarGroupLabel>
+                                </SidebarGroup>
                             ))}
                         </Fragment>
                     ))}

@@ -270,6 +270,18 @@ export function whereSales(params: SearchParamsType) {
             });
         case "due today":
             queries.push({
+                itemControls: {
+                    some: {
+                        qtyControls: {
+                            some: {
+                                type: "prodCompleted" as QtyControlType,
+                                percentage: {
+                                    not: 100,
+                                },
+                            },
+                        },
+                    },
+                },
                 assignments: {
                     some: {
                         assignedToId: assignedToId || undefined,
