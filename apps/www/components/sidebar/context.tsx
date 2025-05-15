@@ -62,7 +62,7 @@ const { useContext: useSidebar, Provider: SidebarContext } =
         const loader = async () => {
             await timeout(100);
         };
-
+        const linksMatcher = {};
         return {
             data,
             isMobile,

@@ -6,6 +6,7 @@ import { AppSideBar } from "./app-side-bar";
 import { SidebarContext } from "./context";
 import DevOnly from "@/_v2/components/common/dev-only";
 import QuickLogin from "../quick-login";
+import { SideMenu } from "./sidemenu";
 
 export function SideBar({ children, validLinks }) {
     return (
@@ -15,7 +16,8 @@ export function SideBar({ children, validLinks }) {
                 args={[validLinks]}
                 // args={[data.user]}
             >
-                <AppSideBar />
+                {/* <AppSideBar /> */}
+                <SideMenu />
                 <SidebarInset>
                     <header className="flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
                         <div className="flex items-center gap-2 px-4">
