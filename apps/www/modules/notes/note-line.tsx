@@ -33,7 +33,7 @@ const noteColorVariant = cva(
             },
         },
         defaultVariants: {},
-    }
+    },
 );
 export function NoteLine({ note }: { note: GetNotes[number] }) {
     const event = note?.events?.[0];
@@ -71,7 +71,7 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
             <div className="flex">
                 <span
                     className={cn(
-                        noteColorVariant({ color: _note.color as any })
+                        noteColorVariant({ color: _note.color as any }),
                     )}
                 >
                     {note.note}
@@ -85,7 +85,7 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
                     >
                         {p}
                     </div>
-                ))}{" "}
+                ))}
                 {!event || (
                     <div className="flex gap-2 text-xs font-semibold border p-0.5 rounded shadow-sm bg-red-100 font-mono items-center">
                         <BellIcon className="size-4" />
@@ -106,7 +106,7 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
                                                 className={cn(
                                                     noteColorListVariant({
                                                         color: color as any,
-                                                    })
+                                                    }),
                                                 )}
                                             ></div>
                                         }

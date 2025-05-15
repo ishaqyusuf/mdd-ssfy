@@ -28,6 +28,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { LineInput, LineSwitch } from "../line-input";
 import { Context, HptContext, useCreateContext, useCtx } from "./ctx";
 import { Door } from "./door";
+import { useState } from "react";
+import { doorItemControlUid } from "@/app/(clean-code)/(sales)/_common/utils/item-control-utils";
+import { noteTagFilter } from "@/modules/notes/utils";
+import Note from "@/modules/notes";
 
 interface Props {
     itemStepUid;
@@ -113,12 +117,12 @@ function DoorSizeTable({ door }: DoorSizeTable) {
                     <TableHeader className="text-xs">
                         <TableRow className="uppercase">
                             <TableHead className="font-mono w-8">#</TableHead>
-                            <TableHead className="w-full">Size</TableHead>
+                            <TableHead className="w-36">Size</TableHead>
                             {ctx.config.hasSwing && (
                                 <TableHead className="w-28">Swing</TableHead>
                             )}
                             {!isSlab || (
-                                <TableHead className="w-28">PROD</TableHead>
+                                <TableHead className="w-16">PROD</TableHead>
                             )}
                             {ctx.config.noHandle ? (
                                 <TableHead
@@ -139,7 +143,7 @@ function DoorSizeTable({ door }: DoorSizeTable) {
                             </TableHead>
                             {/* <TableHead className="w-28">Addon/Qty</TableHead> */}
                             <TableHead className="w-28">Line Total</TableHead>
-                            <TableHead className="w-16"></TableHead>
+                            <TableHead className=""></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -147,7 +151,6 @@ function DoorSizeTable({ door }: DoorSizeTable) {
                             <DoorSizeRow sn={i + 1} size={sl} key={i} />
                         ))}
                     </TableBody>
-
                     <TableFooter className="bg-accent">
                         <TableRow>
                             <TableCell>
@@ -216,154 +219,216 @@ function DoorSizeRow({ size, sn }: { size; sn }) {
         lineUid,
         "pricing.unitLabor",
     );
+    const salesId = ctx?.ctx?.zus?.metaData?.id;
+    const itemId = ctx.itemForm?.id;
+    const controlUid = doorItemControlUid(sizeForm?.doorId, size.title);
+    const __noteTagFilter =
+        salesId && itemId && sizeForm?.doorId
+            ? [
+                  noteTagFilter("itemControlUID", controlUid),
+                  noteTagFilter("salesItemId", itemId),
+                  noteTagFilter("salesId", salesId),
+              ]
+            : null;
+    const [showNote, setShowNote] = useState(false);
+    if (!sizeForm?.selected) return null;
+    console.log({ __noteTagFilter, size });
+    const colSpan =
+        6 +
+        (isSlab ? 1 : 0) +
+        (ctx.config.hasSwing ? 1 : 0) +
+        (ctx.config.noHandle ? 1 : 2);
     return (
-        <TableRow className={cn(!sizeForm?.selected && "hidden")}>
-            <TableCell className="font-mono">{sn}.</TableCell>
-            <TableCell className="font-mono text-sm font-semibold">
-                {size.title}
-            </TableCell>
-            {!isSlab || (
-                <TableCell>
-                    <LineSwitch
-                        cls={ctx.ctx}
-                        name="prodOverride.production"
-                        lineUid={lineUid}
-                    />
+        <>
+            <TableRow className={cn(!sizeForm?.selected && "hidden")}>
+                <TableCell className="font-mono">{sn}.</TableCell>
+                <TableCell className="font-mono text-sm font-semibold">
+                    {size.title}
                 </TableCell>
-            )}
-            {ctx.config.hasSwing && (
-                <TableCell>
-                    <LineInput cls={ctx.ctx} name="swing" lineUid={lineUid} />
-                </TableCell>
-            )}
-            {ctx.config.noHandle ? (
-                <TableCell>
-                    <LineInput
-                        cls={ctx.ctx}
-                        name="qty.total"
-                        lineUid={lineUid}
-                        className="w-16 text-center"
-                        type="number"
-                        valueChanged={valueChanged}
-                    />
-                </TableCell>
-            ) : (
-                <>
-                    <TableCell className="">
+                {!isSlab || (
+                    <TableCell>
+                        <LineSwitch
+                            cls={ctx.ctx}
+                            name="prodOverride.production"
+                            lineUid={lineUid}
+                        />
+                    </TableCell>
+                )}
+                {ctx.config.hasSwing && (
+                    <TableCell>
                         <LineInput
                             cls={ctx.ctx}
-                            name="qty.lh"
+                            name="swing"
                             lineUid={lineUid}
+                        />
+                    </TableCell>
+                )}
+                {ctx.config.noHandle ? (
+                    <TableCell>
+                        <LineInput
+                            cls={ctx.ctx}
+                            name="qty.total"
+                            lineUid={lineUid}
+                            className="w-16 text-center"
                             type="number"
                             valueChanged={valueChanged}
                         />
                     </TableCell>
-                    <TableCell className="">
-                        <LineInput
-                            cls={ctx.ctx}
-                            name="qty.rh"
-                            lineUid={lineUid}
-                            type="number"
-                            valueChanged={valueChanged}
-                        />
-                    </TableCell>
-                </>
-            )}
-            <TableCell className="">
-                <Menu
-                    noSize
-                    Icon={null}
-                    triggerSize="xs"
-                    label={<Money value={sizeForm?.pricing?.unitPrice} />}
-                >
-                    <div className="min-w-[300px] p-2">
-                        <div>
-                            <Label>Price Summary</Label>
-                        </div>
-                        <dl>
-                            {ctx.pricedSteps?.map((step) => (
+                ) : (
+                    <>
+                        <TableCell className="">
+                            <LineInput
+                                cls={ctx.ctx}
+                                name="qty.lh"
+                                lineUid={lineUid}
+                                type="number"
+                                valueChanged={valueChanged}
+                            />
+                        </TableCell>
+                        <TableCell className="">
+                            <LineInput
+                                cls={ctx.ctx}
+                                name="qty.rh"
+                                lineUid={lineUid}
+                                type="number"
+                                valueChanged={valueChanged}
+                            />
+                        </TableCell>
+                    </>
+                )}
+                <TableCell className="">
+                    <Menu
+                        noSize
+                        Icon={null}
+                        triggerSize="xs"
+                        label={<Money value={sizeForm?.pricing?.unitPrice} />}
+                    >
+                        <div className="min-w-[300px] p-2">
+                            <div>
+                                <Label>Price Summary</Label>
+                            </div>
+                            <dl>
+                                {ctx.pricedSteps?.map((step) => (
+                                    <DataLine
+                                        size="sm"
+                                        key={step.title}
+                                        label={step.title}
+                                        value={
+                                            <div className="flex items-center justify-end gap-4">
+                                                <span>{step.value}</span>
+                                                <MoneyBadge>
+                                                    {step.price}
+                                                </MoneyBadge>
+                                            </div>
+                                        }
+                                    />
+                                ))}
                                 <DataLine
                                     size="sm"
-                                    key={step.title}
-                                    label={step.title}
+                                    label="Door"
                                     value={
                                         <div className="flex items-center justify-end gap-4">
-                                            <span>{step.value}</span>
+                                            <span>{`${size.title}`}</span>
                                             <MoneyBadge>
-                                                {step.price}
+                                                {
+                                                    sizeForm?.pricing?.itemPrice
+                                                        ?.salesPrice
+                                                }
                                             </MoneyBadge>
                                         </div>
                                     }
                                 />
-                            ))}
-                            <DataLine
-                                size="sm"
-                                label="Door"
-                                value={
-                                    <div className="flex items-center justify-end gap-4">
-                                        <span>{`${size.title}`}</span>
-                                        <MoneyBadge>
-                                            {
-                                                sizeForm?.pricing?.itemPrice
-                                                    ?.salesPrice
-                                            }
-                                        </MoneyBadge>
-                                    </div>
-                                }
+                                <DataLine
+                                    size="sm"
+                                    label="Addon Price"
+                                    value={
+                                        <LineInput
+                                            className="w-28"
+                                            cls={ctx.ctx}
+                                            name="pricing.addon"
+                                            lineUid={lineUid}
+                                            type="number"
+                                            valueChanged={valueChanged}
+                                        />
+                                    }
+                                />
+                                <DataLine
+                                    size="sm"
+                                    label="Custom Price"
+                                    value={
+                                        <LineInput
+                                            className="w-28"
+                                            cls={ctx.ctx}
+                                            name="pricing.customPrice"
+                                            lineUid={lineUid}
+                                            type="number"
+                                            valueChanged={valueChanged}
+                                        />
+                                    }
+                                />
+                            </dl>
+                        </div>
+                    </Menu>
+                </TableCell>
+                <TableCell>
+                    <WageInput
+                        value={unitLabor}
+                        valueChanged={valueChanged}
+                        cls={ctx.ctx}
+                        lineUid={lineUid}
+                    />
+                </TableCell>
+                <TableCell>
+                    <AnimatedNumber
+                        value={sizeForm?.pricing?.totalPrice || 0}
+                    />
+                </TableCell>
+                <TableCell
+                    align="right"
+                    className="flex items-center justify-end"
+                >
+                    <Button
+                        variant={showNote ? "default" : "outline"}
+                        size="xs"
+                        className=""
+                        onClick={(e) => {
+                            setShowNote(!showNote);
+                        }}
+                    >
+                        Note
+                    </Button>
+                    <ConfirmBtn
+                        disabled={ctx.ctx.selectCount == 1}
+                        onClick={() => {
+                            ctx.ctx.removeGroupItem(size.path);
+                        }}
+                        trash
+                        size="icon"
+                    />
+                </TableCell>
+            </TableRow>
+            {!showNote || (
+                <TableRow className="hover:bg-white">
+                    <TableCell colSpan={colSpan} className="">
+                        {__noteTagFilter ? (
+                            <Note
+                                subject={"Production Note"}
+                                headline=""
+                                statusFilters={["public"]}
+                                typeFilters={["production", "general"]}
+                                tagFilters={__noteTagFilter}
                             />
-                            <DataLine
-                                size="sm"
-                                label="Addon Price"
-                                value={
-                                    <LineInput
-                                        className="w-28"
-                                        cls={ctx.ctx}
-                                        name="pricing.addon"
-                                        lineUid={lineUid}
-                                        type="number"
-                                        valueChanged={valueChanged}
-                                    />
-                                }
-                            />
-                            <DataLine
-                                size="sm"
-                                label="Custom Price"
-                                value={
-                                    <LineInput
-                                        className="w-28"
-                                        cls={ctx.ctx}
-                                        name="pricing.customPrice"
-                                        lineUid={lineUid}
-                                        type="number"
-                                        valueChanged={valueChanged}
-                                    />
-                                }
-                            />
-                        </dl>
-                    </div>
-                </Menu>
-            </TableCell>
-            <TableCell>
-                <WageInput
-                    value={unitLabor}
-                    valueChanged={valueChanged}
-                    cls={ctx.ctx}
-                    lineUid={lineUid}
-                />
-            </TableCell>
-            <TableCell>
-                <AnimatedNumber value={sizeForm?.pricing?.totalPrice || 0} />
-            </TableCell>
-            <TableCell align="right">
-                <ConfirmBtn
-                    disabled={ctx.ctx.selectCount == 1}
-                    onClick={() => {
-                        ctx.ctx.removeGroupItem(size.path);
-                    }}
-                    trash
-                    size="icon"
-                />
-            </TableCell>
-        </TableRow>
+                        ) : (
+                            <div className="flex text-center font-mono p-2 items-center text-red-600">
+                                <span>
+                                    To access item note, you need to first save
+                                    your invoice
+                                </span>
+                            </div>
+                        )}
+                    </TableCell>
+                </TableRow>
+            )}
+        </>
     );
 }
