@@ -205,6 +205,17 @@ function SummaryTab({}) {
                         prefix: "$",
                     }}
                 />
+                <Input
+                    onChange={(e) => {
+                        calculateTotal();
+                    }}
+                    label="Discount"
+                    name="metaData.extraCosts.Discount.amount"
+                    value={md.extraCosts?.Discount?.amount}
+                    numberProps={{
+                        prefix: "$",
+                    }}
+                />
                 <LineContainer
                     label={
                         <div className="col-span-3 flex items-center justify-end border-b hover:bg-muted-foreground/30">
