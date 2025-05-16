@@ -592,7 +592,7 @@ export interface SalesFormZusData extends SalesFormFields {
     pricing: GetSalesBookForm["pricing"];
     _taxForm: GetSalesBookForm["_taxForm"];
     profiles: GetSalesBookForm["data"]["profiles"];
-
+    oldGrandTotal?;
     formStatus: "ready" | "loading" | "saving";
     kvFilteredStepComponentList: {
         [stepItemUid in string]: GetStepComponent[];

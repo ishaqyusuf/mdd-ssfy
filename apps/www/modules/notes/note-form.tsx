@@ -44,6 +44,7 @@ export function NoteForm({}) {
             note,
             tags,
         });
+        console.log({ result, tags });
         setNotes((current) => {
             return [result, ...current] as any;
         });

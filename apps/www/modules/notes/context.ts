@@ -33,7 +33,6 @@ export const useNoteContext = (props: NoteProps) => {
                 setNotes(
                     result.filter((note) => {
                         let validations = [];
-
                         let status = note.tags.find(
                             (t) => t.tagName == "status",
                         )?.tagValue;

@@ -694,7 +694,9 @@ export function GeneralTab({}) {
                 {!data?.id || (
                     <Note
                         admin
-                        tagFilters={[noteTagFilter("salesId", data?.id)]}
+                        tagFilters={[
+                            noteTagFilter("salesId", String(data?.id)),
+                        ]}
                         typeFilters={[
                             "general",
                             "dispatch",

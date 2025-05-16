@@ -412,6 +412,7 @@ function DoorSizeRow({ size, sn }: { size; sn }) {
                     <TableCell colSpan={colSpan} className="">
                         {__noteTagFilter ? (
                             <Note
+                                admin
                                 subject={"Production Note"}
                                 headline=""
                                 statusFilters={["public"]}

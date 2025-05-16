@@ -118,6 +118,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
             primaryPhone: data.customer?.phoneNo,
         },
         formStatus: "ready",
+        oldGrandTotal: data?._rawData?.grandTotal,
     };
 
     data.itemArray.map((item) => {

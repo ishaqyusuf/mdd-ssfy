@@ -11,6 +11,7 @@ import useEffectLoader from "@/lib/use-effect-loader";
 import { cn } from "@/lib/utils";
 
 import { SalesMetaForm } from "./sales-meta-form";
+import { FormWatcher } from "./form-watcher";
 
 export function SalesFormClient({ data }) {
     const zus = useFormDataStore();
@@ -50,6 +51,7 @@ export function SalesFormClient({ data }) {
                     </div>
                 </div>
             </div>
+            <FormWatcher />
         </div>
     );
 }
