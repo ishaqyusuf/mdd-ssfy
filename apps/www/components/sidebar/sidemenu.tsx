@@ -32,7 +32,29 @@ import {
 } from "@gnd/ui/dropdown-menu";
 
 const moduleVariants = cva("", {
-    variants: {},
+    variants: {
+        renderMode: {
+            suppressed: "",
+            default: "",
+            none: "",
+        },
+        isCurrent: {
+            true: "",
+            false: "",
+        },
+        moduleType: {
+            global: "",
+            module: "",
+        },
+    },
+    compoundVariants: [
+        {
+            renderMode: "default",
+            isCurrent: false,
+            className: "hidden",
+            moduleType: "module",
+        },
+    ],
     defaultVariants: {},
 });
 const linksVariant = cva("", {
@@ -77,9 +99,6 @@ export function SideMenu({}) {
     return (
         <Sidebar collapsible="icon" className="bg-white">
             <SidebarContent className="">
-                {sb.linkModules?.moduleLinksCount}
-                {sb.linkModules?.renderMode}
-                {/*  */}
                 {sb?.linkModules?.modules
                     ?.filter((a) => a.activeLinkCount)
                     .map((module, mi) => (
@@ -89,27 +108,42 @@ export function SideMenu({}) {
                                     key={si}
                                     className={cn(
                                         !section?.linksCount && "hidden",
+                                        moduleVariants({
+                                            isCurrent:
+                                                activeLink?.module ==
+                                                module?.name,
+                                            renderMode,
+                                            moduleType: module?.name
+                                                ? "module"
+                                                : "global",
+                                        }),
                                     )}
                                 >
-                                    <SidebarGroupLabel
-                                        className={cn(
-                                            "uppercase",
-                                            activeLink?.module != module.name &&
-                                                sectionLabel({
-                                                    renderMode,
-                                                }),
-                                            !section?.title &&
-                                                !section?.name &&
-                                                (si > 0 || !module?.name) &&
-                                                "hidden",
-                                        )}
-                                    >
-                                        {section?.title || section.name}
-                                        {/* ||
-                                        si == 0
-                                            ? module?.name
-                                            : null */}
-                                    </SidebarGroupLabel>
+                                    {renderMode != "default" &&
+                                    si > 0 ? null : (
+                                        <SidebarGroupLabel
+                                            className={cn(
+                                                "uppercase",
+                                                activeLink?.module !=
+                                                    module.name &&
+                                                    sectionLabel({
+                                                        renderMode,
+                                                    }),
+                                                !section?.title &&
+                                                    !section?.name &&
+                                                    (si > 0 || !module?.name) &&
+                                                    "hidden",
+                                                renderMode != "default" &&
+                                                    si > 0 &&
+                                                    "hidden",
+                                            )}
+                                        >
+                                            {si == 0 && renderMode != "default"
+                                                ? module.name
+                                                : section?.title ||
+                                                  section.name}
+                                        </SidebarGroupLabel>
+                                    )}
                                     <SidebarMenu>
                                         {section?.links
                                             ?.filter((l) => l?.show)

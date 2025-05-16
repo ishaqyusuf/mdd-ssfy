@@ -289,6 +289,9 @@ export const linkModules = [
     ]),
     _module("Sales", "orders", "GND Sales", [
         _section("main", null, [
+            _link("HOME", "project", "/sales-book/home-page").access(
+                _perm.in("editOrders"),
+            ).data,
             _link("Dashboard", "dashboard", "/sales-rep").access(
                 _perm.is("editOrders"),
             ).data,

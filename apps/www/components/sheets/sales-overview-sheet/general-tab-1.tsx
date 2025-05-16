@@ -691,19 +691,21 @@ export function GeneralTab({}) {
                         </CardContent>
                     </Card>
                 </div>
-                <Note
-                    admin
-                    tagFilters={[noteTagFilter("salesId", data?.id)]}
-                    typeFilters={[
-                        "general",
-                        "dispatch",
-                        "payment",
-                        "production",
-                    ]}
-                    statusFilters={["public", "private"]}
-                    subject={`Sales Note`}
-                    headline={`${data?.orderId}`}
-                />
+                {!data?.id || (
+                    <Note
+                        admin
+                        tagFilters={[noteTagFilter("salesId", data?.id)]}
+                        typeFilters={[
+                            "general",
+                            "dispatch",
+                            "payment",
+                            "production",
+                        ]}
+                        statusFilters={["public", "private"]}
+                        subject={`Sales Note`}
+                        headline={`${data?.orderId}`}
+                    />
+                )}
                 <GeneralFooter />
             </div>
         </DataSkeletonProvider>
