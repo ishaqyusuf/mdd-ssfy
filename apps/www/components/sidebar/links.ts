@@ -171,7 +171,7 @@ const profileSection = _section("settings", null, [
 ]);
 export const linkModules = [
     _module("HRM", "hrm", "GND HRM", [
-        _section("main", null, [
+        _section("", null, [
             _link("HRM", "hrm", "/").access(_perm.in("viewHrm")).data,
             _link("Employees", "hrm", "/hrm/employees").access(
                 _perm.some("viewHrm", "viewEmployee"),
@@ -196,7 +196,7 @@ export const linkModules = [
                 "/contractor/jobs/payments/pay",
             ).access(_perm.every("viewProject", "viewInvoice")).data,
         ]),
-        profileSection,
+        // profileSection,
     ]),
     _module("Community", "communityInvoice", "GND Community", [
         _section("main", null, [
@@ -316,8 +316,8 @@ export const linkModules = [
                 _perm.is("editOrders"),
             ).data,
         ]),
-        profileSection,
     ]),
+    _module("" as any, null, "", [profileSection]),
 ];
 export function getLinkModules(_linkModules = linkModules) {
     let i = {
@@ -370,14 +370,19 @@ export function getLinkModules(_linkModules = linkModules) {
         m.activeLinkCount = moduleLinks;
         return m;
     });
-    let renderMode: "default" | "suppressed" | "none" = "default";
+    let renderMode: "default" | "suppressed" | "none" = "suppressed";
     const moduleLinksCount = sum(modules, "activeLinkCount");
-    if (modules.every((m) => m.activeLinkCount < 5) && moduleLinksCount < 10)
-        renderMode = "suppressed";
-    if (moduleLinksCount < 6 && renderMode == "default") renderMode = "none";
+    // if (modules.every((m) => m.activeLinkCount < 6) && moduleLinksCount < 15)
+    // renderMode = "suppressed";
+    const moduleLinks = modules
+        .map((m) => m.activeLinkCount)
+        .filter((a) => a > 3);
+    if (moduleLinksCount > 12) renderMode = "default";
+    if (moduleLinksCount < 6) renderMode = "none";
     return {
         modules,
         renderMode,
         linksNameMap,
+        moduleLinksCount,
     };
 }

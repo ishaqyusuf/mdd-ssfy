@@ -1,6 +1,5 @@
-import { Fragment, useEffect, useMemo } from "react";
+import { Fragment } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 
 import { cn } from "@gnd/ui/cn";
@@ -14,7 +13,6 @@ import {
     SidebarContent,
     SidebarGroup,
     SidebarGroupLabel,
-    SidebarHeader,
     SidebarMenu,
     SidebarMenuBadge,
     SidebarMenuButton,
@@ -24,19 +22,14 @@ import {
     SidebarMenuSubItem,
 } from "@gnd/ui/sidebar";
 
-import { IconKeys, Icons } from "../_v1/icons";
-import {
-    SideBarLinkProvider,
-    SideBarModuleProvider,
-    SideBarSectionProvider,
-    useSidebar,
-    useSidebarLink,
-    useSidebarModule,
-    useSidebarSection,
-} from "./context";
-import { ModuleSwitcher } from "./module-switcher";
-import { useSidebarStore } from "./store";
+import { Icon } from "../_v1/icons";
+import { useSidebar } from "./context";
 import { cva } from "class-variance-authority";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from "@gnd/ui/dropdown-menu";
 
 const moduleVariants = cva("", {
     variants: {},
@@ -59,7 +52,7 @@ const sectionLabel = cva("", {
         renderMode: {
             suppressed: "",
             default: "hidden",
-            none: "",
+            none: "hidden",
         },
     },
     defaultVariants: {
@@ -84,6 +77,9 @@ export function SideMenu({}) {
     return (
         <Sidebar collapsible="icon" className="bg-white">
             <SidebarContent className="">
+                {sb.linkModules?.moduleLinksCount}
+                {sb.linkModules?.renderMode}
+                {/*  */}
                 {sb?.linkModules?.modules
                     ?.filter((a) => a.activeLinkCount)
                     .map((module, mi) => (
@@ -96,27 +92,36 @@ export function SideMenu({}) {
                                     )}
                                 >
                                     <SidebarGroupLabel
-                                        className={
-                                            cn(
-                                                activeLink?.module !=
-                                                    module.name &&
-                                                    sectionLabel({
-                                                        renderMode,
-                                                    }),
-                                            )
-                                            // !mod?.isCurrentModule &&
-                                            //     sectionLabel({
-                                            //         renderMode,
-                                            //     }),
-                                        }
+                                        className={cn(
+                                            "uppercase",
+                                            activeLink?.module != module.name &&
+                                                sectionLabel({
+                                                    renderMode,
+                                                }),
+                                            !section?.title &&
+                                                !section?.name &&
+                                                (si > 0 || !module?.name) &&
+                                                "hidden",
+                                        )}
                                     >
-                                        {section?.title}
+                                        {section?.title || section.name}
+                                        {/* ||
+                                        si == 0
+                                            ? module?.name
+                                            : null */}
                                     </SidebarGroupLabel>
                                     <SidebarMenu>
                                         {section?.links
                                             ?.filter((l) => l?.show)
                                             ?.map((link, li) => (
-                                                <Fragment key={li}></Fragment>
+                                                <Fragment key={li}>
+                                                    {/* {link?.subLinks?.length ? } */}
+                                                    <MenuItem
+                                                        link={link}
+                                                        key={li}
+                                                        module={module}
+                                                    />
+                                                </Fragment>
                                             ))}
                                     </SidebarMenu>
                                 </SidebarGroup>
@@ -125,5 +130,78 @@ export function SideMenu({}) {
                     ))}
             </SidebarContent>
         </Sidebar>
+    );
+}
+function MenuItem({ link: _link, module }) {
+    const sb = useSidebar();
+    const { renderMode, activeLink } = sb;
+    const link =
+        _link as (typeof sb.linkModules)["modules"][number]["sections"][number]["links"][number];
+    const isCurrentModule = module?.name == activeLink?.module;
+    const isActiveLink = isCurrentModule && activeLink?.name == link.name;
+    const subLinks = link?.subLinks;
+    const View =
+        sb.state == "collapsed"
+            ? {
+                  Base: DropdownMenu,
+                  Trigger: DropdownMenuTrigger,
+                  Content: DropdownMenuContent,
+              }
+            : {
+                  Base: Collapsible,
+                  Trigger: CollapsibleTrigger,
+                  Content: CollapsibleContent,
+              };
+    return subLinks?.length ? (
+        <View.Base className="group/collapsible" asChild defaultOpen={false}>
+            <SidebarMenuItem>
+                <View.Trigger asChild>
+                    <SidebarMenuButton
+                        className={cn(isCurrentModule || "hidden")}
+                        tooltip={link.title}
+                    >
+                        {!link.icon || (
+                            <Icon name={link.icon} className="mr-2 h-4 w-4" />
+                        )}
+                        <span>{link.title}</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                </View.Trigger>
+                <View.Content>
+                    <SidebarMenuSub>
+                        {subLinks
+                            // ?.filter((a) => a.custom)
+                            .map((subItem) => (
+                                <SidebarMenuSubItem key={subItem.title}>
+                                    <SidebarMenuSubButton asChild>
+                                        <Link href={subItem.href || ""}>
+                                            <span>{subItem.title}</span>
+                                        </Link>
+                                    </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                            ))}
+                    </SidebarMenuSub>
+                </View.Content>
+            </SidebarMenuItem>
+        </View.Base>
+    ) : (
+        <SidebarMenuItem>
+            <SidebarMenuButton
+                asChild
+                variant="outline"
+                className={cn(isActiveLink && "bg-muted")}
+            >
+                <Link href={link.href || ""}>
+                    {!link.icon || (
+                        <Icon name={link.icon} className="mr-2 h-4 w-4" />
+                    )}
+                    <span>{link.title}</span>
+                </Link>
+                {/* <File /> */}
+                {/* {!Icon || <Icon className="mr-2 h-4 w-4" />}
+                          {title} */}
+            </SidebarMenuButton>
+            <SidebarMenuBadge>{/* {item.state} */}</SidebarMenuBadge>
+        </SidebarMenuItem>
     );
 }

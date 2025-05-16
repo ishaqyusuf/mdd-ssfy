@@ -60,7 +60,7 @@ const { useContext: useSidebar, Provider: SidebarContext } =
     ) {
         const store = useSidebarStore();
         const data = store;
-        const { isMobile } = useBaseSidebar();
+        const { isMobile, state } = useBaseSidebar();
         const loader = async () => {
             await timeout(100);
         };
@@ -74,6 +74,7 @@ const { useContext: useSidebar, Provider: SidebarContext } =
             setActiveLink(active || {});
         }, [pathName, linkModules]);
         return {
+            state,
             data,
             isMobile,
             form: {
