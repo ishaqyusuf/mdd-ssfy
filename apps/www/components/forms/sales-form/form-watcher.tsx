@@ -3,7 +3,11 @@ import Portal from "@/components/_v1/portal";
 
 export function FormWatcher({}) {
     const z = useFormDataStore();
-    if (z.metaData?.pricing?.grandTotal === z?.oldGrandTotal) return null;
+    if (
+        z.metaData?.pricing?.grandTotal === z?.oldGrandTotal ||
+        !z?.metaData?.id
+    )
+        return null;
     return (
         <Portal nodeId={"pageTab"}>
             <div className="bg-red-300 text-center w-full">
