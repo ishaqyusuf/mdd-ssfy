@@ -5,7 +5,7 @@ import {
     StepMeta,
 } from "../../types";
 import { transformSalesStepMeta } from "../data-access/dto/sales-step-dto";
-import { LoadSalesFormData } from "../data-access/sales-form-settings.dta";
+import { LoadSalesFormData } from "../../../../../actions/sales-settings";
 
 export function composeStepRouting(fdata: LoadSalesFormData) {
     const sectionKeys = Object.keys(fdata.setting?.data?.route || [])?.map(

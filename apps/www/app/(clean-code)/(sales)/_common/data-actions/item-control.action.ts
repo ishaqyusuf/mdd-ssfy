@@ -7,7 +7,7 @@ import { AsyncFnType } from "@/types";
 import { qtyControlsByType } from "@/utils/sales-utils";
 
 import { QtyControlType, SalesDispatchStatus, StepMeta } from "../../types";
-import { loadSalesSetting } from "../data-access/sales-form-settings.dta";
+import { loadSalesSetting } from "../../../../../actions/sales-settings";
 import {
     composeControls,
     itemControlUidObject,

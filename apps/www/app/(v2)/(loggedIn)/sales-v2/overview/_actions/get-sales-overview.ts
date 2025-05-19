@@ -1,6 +1,6 @@
 "use server";
 
-import { loadSalesSetting } from "@/app/(clean-code)/(sales)/_common/data-access/sales-form-settings.dta";
+import { loadSalesSetting } from "@/actions/sales-settings";
 import { StepComponentMeta } from "@/app/(clean-code)/(sales)/types";
 import { prisma, Prisma } from "@/db";
 import {

@@ -14,7 +14,7 @@ import {
 import {
     loadSalesFormData,
     saveSalesSettingData,
-} from "../data-access/sales-form-settings.dta";
+} from "../../../../../actions/sales-settings";
 import { getPricingListDta } from "../data-access/sales-pricing-dta";
 import { copySalesDta } from "../data-access/save-sales/copy-sales-dta";
 import { saveSalesFormDta } from "../data-access/save-sales/index.dta";
