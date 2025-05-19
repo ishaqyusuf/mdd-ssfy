@@ -594,9 +594,9 @@ export interface SalesFormZusData extends SalesFormFields {
     profiles: GetSalesBookForm["data"]["profiles"];
     oldGrandTotal?;
     formStatus: "ready" | "loading" | "saving";
-    kvFilteredStepComponentList: {
-        [stepItemUid in string]: GetStepComponent[];
-    };
+    // kvFilteredStepComponentList: {
+    //     [stepItemUid in string]: GetStepComponent[];
+    // };
     kvStepComponentList: {
         [stepUid in string]: GetStepComponent[];
     };

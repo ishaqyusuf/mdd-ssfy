@@ -185,7 +185,8 @@ export class StepHelperClass extends SettingsClass {
         return this.zus.kvStepComponentList?.[this.stepUid];
     }
     public get getStepFilteredComponents() {
-        return this.zus.kvFilteredStepComponentList?.[this.itemStepUid];
+        // return this.zus.kvFilteredStepComponentList?.[this.itemStepUid];
+        return [];
     }
     public updateStepComponent(data) {
         this.zus.dotUpdate(
@@ -257,12 +258,12 @@ export class StepHelperClass extends SettingsClass {
         return data;
     }
     public async refreshStepComponentsData(reload = false) {
-        await this.fetchStepComponents(reload).then((result) => {
-            this.zus.dotUpdate(
-                `kvFilteredStepComponentList.${this.itemStepUid}`,
-                result,
-            );
-        });
+        // await this.fetchStepComponents(reload).then((result) => {
+        //     this.zus.dotUpdate(
+        //         `kvFilteredStepComponentList.${this.itemStepUid}`,
+        //         result,
+        //     );
+        // });
     }
     public addStepComponent(component) {
         let _components = this.getStepComponents;
@@ -360,10 +361,10 @@ export class StepHelperClass extends SettingsClass {
                 (a, b) => a._metaData.sortIndex - b._metaData.sortIndex,
             );
         }
-        this.zus.dotUpdate(
-            `kvFilteredStepComponentList.${this.itemStepUid}`,
-            filteredComponents,
-        );
+        // this.zus.dotUpdate(
+        //     `kvFilteredStepComponentList.${this.itemStepUid}`,
+        //     filteredComponents,
+        // );
         return filteredComponents;
     }
     public rootStepFromUid(stepUid) {

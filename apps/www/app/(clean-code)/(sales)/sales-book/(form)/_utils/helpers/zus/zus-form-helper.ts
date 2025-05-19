@@ -73,7 +73,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         },
         kvFormItem: {},
         kvStepForm: {},
-        kvFilteredStepComponentList: {},
+        // kvFilteredStepComponentList: {},
         kvStepComponentList: {},
         currentTab: !data.order?.id ? "info" : "invoice",
         metaData: {
