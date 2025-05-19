@@ -236,7 +236,6 @@ export class ItemHelperClass {
         } satisfies Prisma.DykeStepFormUpdateInput;
     }
     public composeSalesDoorUpdateData(formData, dimension, fid = null) {
-        console.log({ formData });
         return {
             dimension,
             lhQty: this.ctx.safeInt(formData.qty.lh),

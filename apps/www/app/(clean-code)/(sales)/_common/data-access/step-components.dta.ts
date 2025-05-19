@@ -4,6 +4,7 @@ import { generateRandomString } from "@/lib/utils";
 import { dtoStepComponent } from "@/utils/dto-step-component";
 
 import { StepComponentForm, StepComponentMeta } from "../../types";
+import { revalidatePath } from "next/cache";
 
 export interface LoadStepComponentsProps {
     stepId?: number;
@@ -83,23 +84,6 @@ export async function getComponentsDta(props: LoadStepComponentsProps) {
             sorts: true,
         },
     });
-    // .sort((a, b) => {
-    //     if (!a.img || !a.product?.img || !a.door?.img) return -1; // `a` has no image, move it later
-    //     if (!b.img || !b.product?.img || !b.door?.img) return -1; // `b` has no image, move it later
-    //     return 0; // Both have images, keep order
-    // });
-    // if (props.stepId) {
-    //     console.log(stepProducts.length);
-    //     // const filtered = stepProducts.filter((_, i) =>
-    //     //     _.name
-    //     //         ? true
-    //     //         : stepProducts.findIndex(
-    //     //               (p) => p.dykeProductId == _.dykeProductId
-    //     //           ) == i
-    //     // );
-    //     console.log(stepProducts.length);
-    //     return stepProducts;
-    // }
     return stepProducts.map((s) => ({
         ...s,
         meta: s.meta as any as StepComponentMeta,
@@ -139,5 +123,6 @@ export async function createStepComponentDta(data: StepComponentForm) {
                   name: data.title,
               },
           });
+    revalidatePath(`step-components-${data?.stepId}`);
     return c;
 }

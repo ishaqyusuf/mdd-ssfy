@@ -10,7 +10,6 @@ import { Form } from "@gnd/ui/form";
 import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 
 import stepHelpers, { StepProduct } from "../../../_utils/helpers/step-helper";
-import { _deleteStepItem } from "../../../../../../../(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/_actions";
 
 interface Props {
     // lineItemIndex: number;

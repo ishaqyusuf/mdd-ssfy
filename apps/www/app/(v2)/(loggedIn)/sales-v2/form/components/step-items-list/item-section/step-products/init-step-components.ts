@@ -4,7 +4,7 @@ import {
     FormStepArray,
 } from "@/app/(v2)/(loggedIn)/sales-v2/type";
 import { IStepProducts } from ".";
-import { getStepPricings } from "./_actions";
+// import { getStepPricings } from "./_actions";
 import salesFormUtils from "@/app/(clean-code)/(sales)/_common/utils/sales-form-utils";
 
 interface Props {
@@ -15,46 +15,9 @@ interface Props {
 }
 export async function initStepComponents(
     form,
-    { stepProducts, stepForm, stepArray, stepIndex }: Props
+    { stepProducts, stepForm, stepArray, stepIndex }: Props,
 ) {
-    const doorSection = stepForm.step.title == "Door";
-    const depUid = getDepsUid(stepIndex, stepArray, stepForm);
-    const pricings = await getStepPricings(depUid, stepForm.step.id);
-    const _formSteps = getFormSteps(stepArray, stepIndex);
-    const stateDeps = getDykeStepState(_formSteps, stepForm);
-    // console.log({ stateDeps });
-    stepProducts = stepProducts.map((product) => {
-        if (product._metaData) {
-            const basePrice = (product._metaData.basePrice =
-                pricings.pricesByUid[product.uid]);
-            product._metaData.price = salesFormUtils.salesProfileCost(
-                form,
-                basePrice
-            );
-        }
-        const shows = product.meta?.show || {};
-        const _deleted = product.meta?.deleted || {};
-        let hasShow = Object.keys(shows).filter(Boolean).length;
-
-        let showThis = hasShow && stateDeps.some((s) => shows?.[s.key]);
-        // console.log({ showThis, shows });
-        const isHidden = stateDeps.some((s) => _deleted?.[s.key]);
-        product._metaData.hidden =
-            (product.deletedAt || isHidden) && !showThis
-                ? true
-                : doorSection
-                ? !showThis
-                : product.deletedAt
-                ? true
-                : hasShow
-                ? !showThis
-                : isHidden;
-        if (doorSection) {
-            product._metaData.hidden = product.deletedAt != null;
-        }
-        return product;
-    });
-    return stepProducts;
+    return null as any;
 }
 export function getFormSteps(formStepArray: FormStepArray, stepIndex) {
     const dependecies = formStepArray
@@ -69,7 +32,7 @@ export function getFormSteps(formStepArray: FormStepArray, stepIndex) {
 }
 export function getDykeStepState(
     _formSteps: ReturnType<typeof getFormSteps>,
-    stepForm: DykeStep
+    stepForm: DykeStep,
 ) {
     const stateDeps = stepForm.step.meta.stateDeps;
     let states: {
@@ -107,7 +70,7 @@ export function getDykeStepState(
 
 export function getDepsUid(stepIndex, formStepArray, stepForm) {
     const dependecies = getFormSteps(formStepArray, stepIndex).filter(
-        (_, i) => stepForm.step.meta?.priceDepencies?.[_.uid]
+        (_, i) => stepForm.step.meta?.priceDepencies?.[_.uid],
     );
     const uids = dependecies.map((s) => s.prodUid);
     return uids.length ? uids.join("-") : null;

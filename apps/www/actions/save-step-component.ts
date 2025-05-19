@@ -6,6 +6,7 @@ import { dtoStepComponent } from "@/utils/dto-step-component";
 
 import { actionClient } from "./safe-action";
 import { stepComponentSchema } from "./schema";
+import { revalidatePath } from "next/cache";
 
 export const saveStepComponent = actionClient
     .schema(stepComponentSchema)
@@ -47,5 +48,6 @@ export const saveStepComponent = actionClient
                       product: true,
                   },
               });
+        revalidatePath(`step-components-${stepId}`);
         return dtoStepComponent(component);
     });

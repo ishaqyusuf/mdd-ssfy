@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 import { updateDykeStepProductMeta } from "../../_action/dyke-step-setting";
 import { DykeForm, DykeStep } from "../../../type";
 import { IStepProducts } from "../step-items-list/item-section/step-products";
-import { _deleteStepItem } from "../step-items-list/item-section/step-products/_actions";
+
 import {
     getDykeStepState,
     getFormSteps,
@@ -84,7 +84,6 @@ export default function DeleteItemModal({
         modal.close();
     }
     async function deleteItem() {
-        await _deleteStepItem(stepItems);
         // stepItem.deletedAt = new Date();
         onComplete &&
             onComplete(

@@ -36,7 +36,7 @@ import { Label } from "@gnd/ui/label";
 
 import { IStepProducts } from ".";
 import { useDykeCtx, useDykeItemCtx } from "../../../../_hooks/form-context";
-import { updateStepItemPrice } from "./_actions";
+
 import DoorMenuOption from "./door-menu-option";
 
 interface Props {
@@ -99,12 +99,12 @@ Props) {
     async function savePrice() {
         startSaving(async () => {
             // console.log(item.uid);
-            await updateStepItemPrice({
-                stepProductUid: item.uid,
-                price: Number(price),
-                dykeStepId: stepForm.step.id,
-                dependenciesUid,
-            });
+            // await updateStepItemPrice({
+            //     stepProductUid: item.uid,
+            //     price: Number(price),
+            //     dykeStepId: stepForm.step.id,
+            //     dependenciesUid,
+            // });
             stepCtx.reloadComponents();
 
             menuOpenChange(false);
