@@ -11,7 +11,7 @@ export async function generateMetadata({ params }) {
 }
 export default async function Page({ params }) {
     let slug = params.slug;
-    await fixUndefinedOrderIdAction(slug, "order");
+    // await fixUndefinedOrderIdAction(slug, "order");
     const data = await getSalesBookFormUseCase({
         type: "order",
         slug: params.slug,

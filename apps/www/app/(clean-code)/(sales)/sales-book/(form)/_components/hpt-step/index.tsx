@@ -232,7 +232,6 @@ function DoorSizeRow({ size, sn }: { size; sn }) {
             : null;
     const [showNote, setShowNote] = useState(false);
     if (!sizeForm?.selected) return null;
-    console.log({ __noteTagFilter, size });
     const colSpan =
         6 +
         (isSlab ? 1 : 0) +

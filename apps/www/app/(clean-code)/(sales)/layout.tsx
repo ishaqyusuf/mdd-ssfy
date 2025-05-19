@@ -9,16 +9,11 @@ import SalesOverviewSheet from "@/components/sheets/sales-overview-sheet";
 import { ContentLayout } from "../../../components/(clean-code)/content-layout";
 import SidebarLayout from "../../../components/(clean-code)/side-bar-layout";
 import BackwardCompat from "./_backward-compat";
-import SideBarLegacyLayout from "@/components/sidebar/sidebar-layout";
-import { env } from "@/env.mjs";
+import SideBarLayout from "@/app/(sidebar)/layout";
 
-export default async function Layout({ children }) {
+export default async function Layout({ children, ...props }) {
+    // return <SideBarLayout {...props}>{children}</SideBarLayout>;
     return <LegaceLayout>{children}</LegaceLayout>;
-    // return (
-    //     <SideBarLegacyLayout Layout={LegaceLayout}>
-    //         {children}
-    //     </SideBarLegacyLayout>
-    // );
 }
 function LegaceLayout({ children }) {
     // await fixPaymentMethod();

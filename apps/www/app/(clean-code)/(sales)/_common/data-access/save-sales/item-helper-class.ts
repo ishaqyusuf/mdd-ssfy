@@ -62,6 +62,7 @@ export class ItemHelperClass {
         const updateData = {
             meta,
             dykeDescription: formItem?.title,
+            qty: null,
         } satisfies Prisma.SalesOrderItemsUpdateInput;
         if (!salesItemId) {
             const { ...rest } = updateData;
@@ -235,6 +236,7 @@ export class ItemHelperClass {
         } satisfies Prisma.DykeStepFormUpdateInput;
     }
     public composeSalesDoorUpdateData(formData, dimension, fid = null) {
+        console.log({ formData });
         return {
             dimension,
             lhQty: this.ctx.safeInt(formData.qty.lh),
@@ -274,7 +276,6 @@ export class ItemHelperClass {
                 formData,
                 dimension,
             );
-            console.log({ updateDoor, data });
 
             return this.ctx.compare(data, updateDoor) ? false : true;
         }

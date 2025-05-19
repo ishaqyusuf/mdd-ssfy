@@ -39,11 +39,6 @@ export async function createSalesBookFormUseCase(
 ) {
     const resp = await createSalesBookFormDataDta(data);
     return await composeBookForm(resp);
-    // return salesFormZustand(resp);
-    // return {
-    //     ...resp,
-    //     salesSetting: composeStepRouting(await loadSalesFormData()),
-    // };
 }
 export async function saveSalesSettingUseCase(meta) {
     await saveSalesSettingData(meta);

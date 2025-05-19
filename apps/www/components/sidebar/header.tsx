@@ -11,7 +11,7 @@ export function Header({}) {
     const ctx = useSidebar();
 
     return (
-        <header className="flex flex-col bg-white dark:bg-inherit sticky top-0 border-b ">
+        <header className="  z-10 bg-background/95  dark:bg-inherit sticky top-0 border-b shadow backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:shadow-secondary w-full">
             <div className="flex h-16 shrink-0 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12  items-center gap-2 px-4">
                 <div
                     className={cn(
@@ -29,11 +29,11 @@ export function Header({}) {
                     <QuickLogin />
                 </DevOnly>
                 <div className="flex-1"></div>
-                <div className="mx-4 flex gap-4" id="navRightSlot"></div>
+                <div className="mx-4 flex gap-4 " id="navRightSlot"></div>
                 <ModeToggle />
                 <UserNav />
             </div>
-            <div className="" id="pageTab"></div>
+            <div className="bg-white" id="pageTab"></div>
         </header>
     );
 }
