@@ -10,18 +10,16 @@ import { SalesRepSalesWidgetHeader } from "./sales-rep-sales-header";
 
 export function SalesRepRecentSales() {
     return (
-        <div className="">
-            <Card>
-                <SalesRepSalesWidgetHeader />
+        <Card className="">
+            <SalesRepSalesWidgetHeader />
 
-                <CardContent>
-                    <ErrorBoundary errorComponent={ErrorFallback}>
-                        <Suspense fallback={<RecentSalesSkeleton />}>
-                            <RecentSalesWidget />
-                        </Suspense>
-                    </ErrorBoundary>
-                </CardContent>
-            </Card>
-        </div>
+            <CardContent className="">
+                <ErrorBoundary errorComponent={ErrorFallback}>
+                    <Suspense fallback={<RecentSalesSkeleton />}>
+                        <RecentSalesWidget />
+                    </Suspense>
+                </ErrorBoundary>
+            </CardContent>
+        </Card>
     );
 }

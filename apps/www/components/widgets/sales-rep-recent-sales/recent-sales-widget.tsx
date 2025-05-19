@@ -34,9 +34,5 @@ export async function RecentSalesWidget() {
         }),
     ]);
     if (!salesList?.length) return <EmptyState />;
-    return (
-        <div>
-            <Sales sales={salesList} />
-        </div>
-    );
+    return <Sales sales={salesList} />;
 }

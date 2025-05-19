@@ -79,7 +79,7 @@ const _link = (
     return ctx;
 };
 type Access = {
-    type: "role" | "permission";
+    type: "role" | "permission" | "userId";
     equator: "is" | "isNot" | "in" | "notIn" | "every" | "some";
     values: string[];
 };
@@ -108,33 +108,47 @@ const _perm = {
         __access("permission", "every", ...roles),
     some: (...roles: Permission[]) => __access("permission", "some", ...roles),
 };
-export const validateLinks = ({ role, can }: { role; can: ICan }) => {
+export const validateLinks = ({
+    role,
+    can,
+    userId,
+}: {
+    role;
+    can: ICan;
+    userId;
+}) => {
     function validateAccess(accessList: Access[]) {
         return accessList.every((a) => {
-            if (a.type == "permission")
-                switch (a.equator) {
-                    case "every":
-                    case "is":
-                        return a.values?.every((p) => can?.[p]);
-                    case "in":
-                    case "some":
-                        return a.values?.some((p) => can?.[p]);
-                    case "isNot":
-                    case "notIn":
-                        return a.values.every((p) => !can?.[p]);
-                }
-            else if (a.type == "role") {
-                switch (a.equator) {
-                    case "every":
-                    case "is":
-                        return a.values?.every((p) => role === p);
-                    case "in":
-                    case "some":
-                        return a.values?.some((p) => role === p);
-                    case "isNot":
-                    case "notIn":
-                        return a.values.every((p) => role !== p);
-                }
+            switch (a.type) {
+                case "userId":
+                    return Number(a.values[0]) == userId;
+                    break;
+                case "permission":
+                    switch (a.equator) {
+                        case "every":
+                        case "is":
+                            return a.values?.every((p) => can?.[p]);
+                        case "in":
+                        case "some":
+                            return a.values?.some((p) => can?.[p]);
+                        case "isNot":
+                        case "notIn":
+                            return a.values.every((p) => !can?.[p]);
+                    }
+                    break;
+                case "role":
+                    switch (a.equator) {
+                        case "every":
+                        case "is":
+                            return a.values?.every((p) => role === p);
+                        case "in":
+                        case "some":
+                            return a.values?.some((p) => role === p);
+                        case "isNot":
+                        case "notIn":
+                            return a.values.every((p) => role !== p);
+                    }
+                    break;
             }
 
             return true;
@@ -168,6 +182,11 @@ export const validateLinks = ({ role, can }: { role; can: ICan }) => {
 type NavType = z.infer<typeof schema>;
 const profileSection = _section("settings", null, [
     _link("Profile Settings", "settings2", "/settings/profile").data,
+    _link(
+        "Site Actions",
+        "Notification",
+        "/settings/site-action-notifications",
+    ).access(__access("userId", "is", 1)).data,
 ]);
 export const linkModules = [
     _module("HRM", "hrm", "GND HRM", [

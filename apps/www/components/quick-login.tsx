@@ -22,11 +22,15 @@ export default function QuickLogin({}) {
         ]);
 
         return {
-            users: list?.data?.filter(
-                (a, i) =>
-                    i ==
-                    list?.data?.findIndex((b) => b?.role?.id == a?.role?.id),
-            ),
+            users: list?.data
+                ?.sort((a, b) => a.id - b.id)
+                .filter(
+                    (a, i) =>
+                        i ==
+                        list?.data?.findIndex(
+                            (b) => b?.role?.id == a?.role?.id,
+                        ),
+                ),
             user: list?.data?.find((a) => a.id == profile?.userId),
             profile,
         };

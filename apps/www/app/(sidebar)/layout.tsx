@@ -12,6 +12,7 @@ export default async function SideBarLayout({ children }) {
         validateLinks({
             role: user.role,
             can: user.can,
+            userId: user?.userId,
         }),
     );
     return <SideBar validLinks={validLinks}>{children}</SideBar>;

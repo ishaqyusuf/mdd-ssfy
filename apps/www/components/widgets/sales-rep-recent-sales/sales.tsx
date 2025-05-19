@@ -24,15 +24,13 @@ export function Sales({ sales }: Props) {
     });
     // table.getAllColumns().map(a => a.id == )
     return (
-        <div>
-            <Table>
-                <SalesTableHeader />
-                <TableBody>
-                    {table.getRowModel().rows.map((row) => (
-                        <SalesTableRow key={row.id} row={row} />
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
+        <Table className="">
+            <SalesTableHeader />
+            <TableBody>
+                {table.getRowModel().rows.map((row) => (
+                    <SalesTableRow key={row.id} row={row} />
+                ))}
+            </TableBody>
+        </Table>
     );
 }

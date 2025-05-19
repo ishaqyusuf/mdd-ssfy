@@ -186,7 +186,7 @@ export class StepHelperClass extends SettingsClass {
     }
     public get getStepFilteredComponents() {
         // return this.zus.kvFilteredStepComponentList?.[this.itemStepUid];
-        return [];
+        return this.zus.kvStepComponentList[this.stepUid];
     }
     public updateStepComponent(data) {
         this.zus.dotUpdate(
@@ -689,7 +689,8 @@ export class ComponentHelperClass extends StepHelperClass {
             let groupItem = this.getItemForm()?.groupItem;
             groupItem.type = "MOULDING";
             groupItem.stepUid = component.uid;
-            if (!groupItem.form?.[this.componentUid])
+
+            if (!groupItem.form?.[this.componentUid]) {
                 groupItem.form[this.componentUid] = {
                     stepProductId: {
                         id: this.component.id,
@@ -722,7 +723,7 @@ export class ComponentHelperClass extends StepHelperClass {
                     },
                     swing: "",
                 };
-            else {
+            } else {
                 const selected = (groupItem.form[this.componentUid].selected =
                     !groupItem.form?.[this.componentUid].selected);
             }
@@ -734,6 +735,7 @@ export class ComponentHelperClass extends StepHelperClass {
 
             this.dotUpdateItemForm("groupItem", groupItem);
             this.delistGroupForm();
+            return;
             this.updateGroupedCost();
             this.calculateTotalPrice();
         } else {
