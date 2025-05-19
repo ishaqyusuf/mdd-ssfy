@@ -5,7 +5,6 @@ import { usePrintContext } from "../base-printer";
 import { BasePrintProps } from "../sales/order-base-printer";
 import { GeneratCustomerPrintReport } from "../type";
 import Money from "@/components/_v1/money";
-import { Icons } from "@/components/_v1/icons";
 import "./style.css";
 import Header from "./_components/header";
 interface Props {
@@ -19,7 +18,7 @@ interface CustomerReportCtxProps
     // report: GeneratCustomerPrintReport;
 }
 export const CustomerReportCtx = createContext<CustomerReportCtxProps>(
-    null as any
+    null as any,
 );
 export const useCustomerReportCtx = () =>
     useContext<CustomerReportCtxProps>(CustomerReportCtx);

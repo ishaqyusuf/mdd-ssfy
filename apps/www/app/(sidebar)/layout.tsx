@@ -3,7 +3,7 @@ import { loadPageTabs } from "@/actions/cache/load-page-tabs";
 import { getLinkModules, validateLinks } from "@/components/sidebar/links";
 import { SideBar } from "@/components/sidebar/sidebar";
 
-export default async function Layout({ children }) {
+export default async function SideBarLayout({ children }) {
     const [user, pageTabs] = await Promise.all([
         getLoggedInProfile(),
         loadPageTabs(),
@@ -14,11 +14,5 @@ export default async function Layout({ children }) {
             can: user.can,
         }),
     );
-    return (
-        <SideBar validLinks={validLinks}>
-            <div className="flex h-full w-full items-center justify-center">
-                {children}
-            </div>
-        </SideBar>
-    );
+    return <SideBar validLinks={validLinks}>{children}</SideBar>;
 }
