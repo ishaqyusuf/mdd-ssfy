@@ -735,7 +735,7 @@ export class ComponentHelperClass extends StepHelperClass {
 
             this.dotUpdateItemForm("groupItem", groupItem);
             this.delistGroupForm();
-            return;
+
             this.updateGroupedCost();
             this.calculateTotalPrice();
         } else {
