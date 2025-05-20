@@ -32,6 +32,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { searchParamsCache } from "./search-params";
+import { cn } from "@/lib/utils";
+import { env } from "@/env.mjs";
 
 export const metadata: Metadata = {
     title: `My Dashboard | GND`,
@@ -44,8 +46,20 @@ export default async function SalesRepProfile({
     const {} = searchParamsCache.parse(searchParams);
     const user = await authUser();
 
+    const isProd = env.NEXT_PUBLIC_NODE_ENV === "production";
     return (
         <FPage can={["editOrders"]} title="Sales Rep Profile">
+            <div
+                className={cn(
+                    "",
+                    isProd &&
+                        "inset-0 absolute bg-black/60 z-[999] flex items-center justify-center",
+                )}
+            >
+                <div className="bg-white fixed top-1/2 text-black px-6 py-4 rounded-xl shadow-xl text-xl font-semibold animate-pulse">
+                    Coming Soon
+                </div>
+            </div>
             <div className="flex-1 space-y-4 p-4 pt-6 md:p-8 flex flex-col">
                 <div className="flex items-center justify-between">
                     <div>
