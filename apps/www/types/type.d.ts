@@ -16,3 +16,6 @@ export type MakeArray<T> = {
 export type PrimitiveDivProps = React.ComponentPropsWithoutRef<
     typeof Primitive.div
 >;
+export type PageDataMeta = {
+    count?;
+};

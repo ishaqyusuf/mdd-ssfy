@@ -12,7 +12,10 @@ export async function getSalesRepCommissionSummary(query: SearchParamsType) {
         getSalesCommissionSummary,
         ["sales_rep_commission_summary"],
         {
-            tags: [`sales_rep_commission_summary_${query?.["salesRep.id"]}`],
+            tags: [
+                `sales_rep_commission_summary`,
+                `sales_rep_commission_summary_${query?.["salesRep.id"]}`,
+            ],
         },
     )(query);
 }
@@ -22,7 +25,10 @@ export async function getSalesRepTotalSales(query: SearchParamsType) {
         getSalesTotalSalesSummary,
         ["sales_rep_total_sales"],
         {
-            tags: [`sales_rep_total_sales_${query?.["salesRep.id"]}`],
+            tags: [
+                `sales_rep_total_sales`,
+                `sales_rep_total_sales_${query?.["salesRep.id"]}`,
+            ],
         },
     )(query);
 }
@@ -31,7 +37,10 @@ export async function getSalesRepActiveCustomers(query: SearchParamsType) {
         getSalesActiveCustomers,
         ["sales_rep_active_customers"],
         {
-            tags: [`sales_rep_active_customers_${query?.["salesRep.id"]}`],
+            tags: [
+                `sales_rep_active_customers`,
+                `sales_rep_active_customers_${query?.["salesRep.id"]}`,
+            ],
         },
     )(query);
 }

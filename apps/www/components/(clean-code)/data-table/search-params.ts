@@ -108,6 +108,7 @@ export const searchParamsParser: {
     ),
     _q: parseAsString,
     id: parseAsInteger,
+    "user.id": parseAsInteger,
     "user.permissions": parseAsArrayOf(
         parseAsStringLiteral(PERMISSIONS),
         ARRAY_DELIMITER,
@@ -153,6 +154,7 @@ export const searchSchema = z
         "sales.priority": z.nativeEnum(SalesPriority),
         search: z.string().optional(),
         "dealer.id": z.number().optional(),
+        "user.id": z.number().optional(),
         "user.permissions": z.enum(PERMISSIONS).optional(),
         "user.cannot": z.enum(PERMISSIONS).optional(),
         "user.role": z.enum(ROLES).optional(),

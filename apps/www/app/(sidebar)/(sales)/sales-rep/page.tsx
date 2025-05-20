@@ -17,23 +17,16 @@ import {
 } from "@/components/sales-rep-summary-cards";
 import { SummaryCardSkeleton } from "@/components/summary-card";
 import { SalesRepRecentSales } from "@/components/widgets/sales-rep-recent-sales";
-import { CalendarIcon, DollarSign, Plus, Users } from "lucide-react";
+import { Plus } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@gnd/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { searchParamsCache } from "./search-params";
 import { cn } from "@/lib/utils";
-import { env } from "@/env.mjs";
+import ProdOnly from "@/_v2/components/common/prod-only";
 
 export const metadata: Metadata = {
     title: `My Dashboard | GND`,
@@ -46,20 +39,19 @@ export default async function SalesRepProfile({
     const {} = searchParamsCache.parse(searchParams);
     const user = await authUser();
 
-    const isProd = env.NEXT_PUBLIC_NODE_ENV === "production";
     return (
         <FPage can={["editOrders"]} title="Sales Rep Profile">
-            <div
-                className={cn(
-                    "",
-                    isProd &&
+            <ProdOnly>
+                <div
+                    className={cn(
                         "inset-0 absolute bg-black/60 z-[999] flex items-center justify-center",
-                )}
-            >
-                <div className="bg-white fixed top-1/2 text-black px-6 py-4 rounded-xl shadow-xl text-xl font-semibold animate-pulse">
-                    Coming Soon
+                    )}
+                >
+                    <div className="bg-white fixed top-1/2 text-black px-6 py-4 rounded-xl shadow-xl text-xl font-semibold animate-pulse">
+                        Coming Soon
+                    </div>
                 </div>
-            </div>
+            </ProdOnly>
             <div className="flex-1 space-y-4 p-4 pt-6 md:p-8 flex flex-col">
                 <div className="flex items-center justify-between">
                     <div>

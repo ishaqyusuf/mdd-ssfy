@@ -133,3 +133,15 @@ export function payrollUid(oid, pid, submissionId) {
         .map(([a, b]) => `${a}:${b}`)
         .join(",");
 }
+export function transformPayrollUid(uid) {
+    return Object.fromEntries(
+        uid?.split(",").map((a) => {
+            const [k, v] = a?.split(":");
+            return [k, Number(v)];
+        }),
+    ) as any as {
+        oid: number;
+        pid: number;
+        submissionId: number;
+    };
+}

@@ -4,6 +4,7 @@ import { authId } from "@/app/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { payrollUid } from "@/utils/sales-utils";
+import { __salesPayrollUpdated } from "./cache/cache-data-changed";
 
 interface Props {
     userId: number;
@@ -51,6 +52,7 @@ export async function createPayrollAction(data: Props) {
             itemUid: data.itemUid,
             status: "PENDING",
             type: data?.submissionId ? "WAGE" : "COMMISSION",
+            orderId: data.orderId,
             userId,
             description: data.description,
             history: {
@@ -66,5 +68,9 @@ export async function createPayrollAction(data: Props) {
         update: {
             amount: commission,
         },
+    });
+    __salesPayrollUpdated({
+        orderId: data.orderId,
+        userId: data.userId,
     });
 }

@@ -14,7 +14,10 @@ export async function deletePayroll(id: number) {
 
     // If already deleted
     if (payroll.deletedAt) throw new Error("Payroll already deleted");
-
+    //  __salesPayrollUpdated({
+    //         orderId: data.orderId,
+    //         userId: data.userId,
+    //     });
     // if (payroll.status === "PAID") {
     //     // Reverse logic: create a negative payroll
     //     await prisma.payroll.create({
@@ -43,4 +46,3 @@ export async function deletePayroll(id: number) {
     //     });
     // }
 }
-
