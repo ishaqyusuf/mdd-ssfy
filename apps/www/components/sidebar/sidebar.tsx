@@ -1,14 +1,14 @@
 "use client";
 
 import { SidebarInset, SidebarProvider } from "@gnd/ui/sidebar";
-import { SidebarContext } from "./context";
+import { SidebarContext, SidebarProviderRoot } from "./context";
 
 import { SideMenu } from "./sidemenu";
 import { Header } from "./header";
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 
-export function SideBar({ children, validLinks }) {
+export function SideBar({ children, user, menuMode, validLinks }) {
     const { data: session } = useSession({
         required: true,
         onUnauthenticated() {
@@ -17,16 +17,14 @@ export function SideBar({ children, validLinks }) {
     });
     if (!session?.user) return <></>;
     return (
-        <SidebarProvider>
-            <SidebarContext args={[validLinks]}>
+        <SidebarProviderRoot state={menuMode}>
+            <SidebarContext args={[validLinks, user]}>
                 <SideMenu />
-                <SidebarInset>
+                <SidebarInset className="flex-1 overflow-hidden">
                     <Header />
-                    <div className="flex flex-col flex-1 min-h-screen">
-                        {children}
-                    </div>
+                    {children}
                 </SidebarInset>
             </SidebarContext>
-        </SidebarProvider>
+        </SidebarProviderRoot>
     );
 }

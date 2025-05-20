@@ -100,37 +100,46 @@ export default async function SalesRepProfile({
                         </CardContent>
                     </Card>
                 </div>
-
-                <Tabs defaultValue="recent-sales" className="space-y-4">
-                    <TabsList className="bg-muted">
-                        <TabsTrigger value="recent-sales">
-                            Recent Sales
-                        </TabsTrigger>
-                        <TabsTrigger value="recent-quotes">
-                            Recent Quotes
-                        </TabsTrigger>
-                        {/* <TabsTrigger  value="customer-profile">
+                <div className="flex flex-col">
+                    <Tabs defaultValue="recent-sales" className="space-y-4">
+                        <TabsList className="bg-muted">
+                            <TabsTrigger value="recent-sales">
+                                Recent Sales
+                            </TabsTrigger>
+                            <TabsTrigger value="recent-quotes">
+                                Recent Quotes
+                            </TabsTrigger>
+                            {/* <TabsTrigger  value="customer-profile">
                         Customer Profile
                     </TabsTrigger> */}
-                        <TabsTrigger value="commission">Commission</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="recent-sales" className="space-y-4">
-                        <SalesRepRecentSales />
-                        {/* <RecentSales /> */}
-                    </TabsContent>
-                    <TabsContent value="recent-quotes" className="space-y-4">
-                        <RecentQuotes />
-                    </TabsContent>
-                    <TabsContent value="customer-profile" className="space-y-4">
-                        <CustomerProfile />
-                    </TabsContent>
-                    <TabsContent value="commission" className="space-y-4">
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <CommissionPayments />
-                            <PendingCommissions />
-                        </div>
-                    </TabsContent>
-                </Tabs>
+                            <TabsTrigger value="commission">
+                                Commission
+                            </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="recent-sales" className="space-y-4">
+                            <SalesRepRecentSales />
+                            {/* <RecentSales /> */}
+                        </TabsContent>
+                        <TabsContent
+                            value="recent-quotes"
+                            className="space-y-4"
+                        >
+                            <RecentQuotes />
+                        </TabsContent>
+                        <TabsContent
+                            value="customer-profile"
+                            className="space-y-4"
+                        >
+                            <CustomerProfile />
+                        </TabsContent>
+                        <TabsContent value="commission" className="space-y-4">
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <CommissionPayments />
+                                <PendingCommissions />
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+                </div>
             </div>
         </FPage>
     );

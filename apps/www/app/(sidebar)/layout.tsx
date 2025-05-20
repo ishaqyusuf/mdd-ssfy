@@ -1,5 +1,6 @@
 import { getLoggedInProfile } from "@/actions/cache/get-loggedin-profile";
 import { loadPageTabs } from "@/actions/cache/load-page-tabs";
+import { getSideMenuMode } from "@/actions/cookies/sidemenu";
 import { getLinkModules, validateLinks } from "@/components/sidebar/links";
 import { SideBar } from "@/components/sidebar/sidebar";
 
@@ -15,5 +16,10 @@ export default async function SideBarLayout({ children }) {
             userId: user?.userId,
         }),
     );
-    return <SideBar validLinks={validLinks}>{children}</SideBar>;
+    const menuMode = await getSideMenuMode();
+    return (
+        <SideBar user={user} menuMode={menuMode} validLinks={validLinks}>
+            {children}
+        </SideBar>
+    );
 }

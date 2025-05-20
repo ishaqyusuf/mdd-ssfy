@@ -20,39 +20,41 @@ import {
 import { Icon } from "../_v1/icons";
 import { useSidebar } from "./context";
 import { useSidebarStore } from "./store";
+import Link from "next/link";
 
 export function ModuleSwitcher() {
     const sb = useSidebar();
     const store = useSidebarStore();
     const { isMobile } = sb;
     const route = useRouter();
-    function switchModule(moduleName) {
-        const links = Object.values(store.links);
-        const link = links
-            .sort((a, b) => a.globalIndex - b.globalIndex)
-            // .filter((a) => a.visible)
-            .find((a) => a.moduleName == moduleName);
-        console.log({ link, moduleName, links });
-        route?.push(link?.url);
-    }
+
     const { modules, currentModule } = useMemo(() => {
-        const modules = Object.values(store?.siteModules ?? {}).filter(
-            // (module) => module.visible,
-            Boolean,
-        );
+        const modules = sb?.linkModules?.modules
+            ?.filter((a) => a.activeLinkCount && a?.name)
+            .map((module) => {
+                const prim = module?.sections
+                    ?.map((a) => a.links?.filter((l) => l.show))
+                    ?.flat()
+                    ?.sort((a, b) => a.globalIndex - b.globalIndex)?.[0];
+                const href =
+                    prim?.href ||
+                    prim?.subLinks?.filter((a) => a.show)?.[0]?.href;
+                return {
+                    ...module,
+                    href,
+                };
+            });
         const currentModule = modules.find(
-            (module) => module?.name == store.activeModule,
-            // Object.entries(store?.links ?? {}).some(([key, link]) => {
-            //   return link.moduleName === module.name && link.visible;
-            // }),
+            (m) => m.name == sb?.activeLink?.module,
         );
+
         return {
             modules,
             currentModule,
         };
-    }, [store]);
+    }, [sb.linkModules, sb.activeLink]);
 
-    if (!modules?.length) return null;
+    if (modules?.length < 2) return null;
     return (
         <SidebarMenu>
             <SidebarMenuItem>
@@ -60,12 +62,12 @@ export function ModuleSwitcher() {
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuButton
                             size="lg"
-                            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground border"
+                            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                         >
-                            <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary ">
                                 <Icon
                                     name={currentModule?.icon as any}
-                                    className="size-6"
+                                    className="size-4 text-primary-foreground"
                                 />
                             </div>
                             <div className="grid flex-1 text-left text-sm leading-tight">
@@ -90,23 +92,22 @@ export function ModuleSwitcher() {
                         </DropdownMenuLabel>
                         {modules.map((team, index) => (
                             <DropdownMenuItem
-                                onClick={(e) => {
-                                    switchModule(team.name);
-                                }}
+                                asChild
                                 key={team.name}
-                                // onClick={() => setActiveTeam(team)}
                                 className="gap-2 p-2"
                             >
-                                <div className="flex size-6 items-center justify-center rounded-sm border">
-                                    <Icon
-                                        name={team?.icon as any}
-                                        className="size-4 shrink-0"
-                                    />
-                                </div>
-                                {team.title}
-                                <DropdownMenuShortcut>
-                                    ⌘{index + 1}
-                                </DropdownMenuShortcut>
+                                <Link href={team?.href}>
+                                    <div className="flex size-6 items-center justify-center rounded-sm border">
+                                        <Icon
+                                            name={team?.icon as any}
+                                            className="size-4 shrink-0"
+                                        />
+                                    </div>
+                                    {team.title}
+                                    <DropdownMenuShortcut>
+                                        ⌘{index + 1}
+                                    </DropdownMenuShortcut>
+                                </Link>
                             </DropdownMenuItem>
                         ))}
                         <DropdownMenuSeparator />

@@ -103,29 +103,11 @@ export function CustomComponent({ ctx }: Props) {
             await cls.refreshStepComponentsData(true);
             if (!cls)
                 cls = new ComponentHelperClass(ctx.cls.itemStepUid, eProd.uid);
-            // cls.selectComponent();
         }
     }
     return (
         <Form {...form}>
             <div className="group relative flex min-h-[25vh]  flex-col  gap-4 p-2 xl:min-h-[40hv]">
-                {/* {customInputs?.length ? (
-                    <AutoComplete
-                        onSelect={(value: any) => {
-                            form.setValue("salesPrice", value?.salesPrice);
-                            form.setValue("basePrice", value?.basePrice);
-                        }}
-                        itemText={"label"}
-                        allowCreate
-                        itemValue={"value"}
-                        options={customInputs}
-                        size="sm"
-                        form={form}
-                        formKey={"title"}
-                        label={"Custom"}
-                        perPage={10}
-                    />
-                ) : ( */}
                 <LabelInput
                     placeholder="Custom Component"
                     value={title}
@@ -134,14 +116,6 @@ export function CustomComponent({ ctx }: Props) {
                         form.setValue("title", e.target.value);
                     }}
                 />
-                {/* <FormInput
-                    label="Custom"
-                    size="sm"
-                    control={form.control}
-                    name="title"
-                    className="uppercase"
-                /> */}
-                {/* )} */}
                 {hasCost ? (
                     <NumberInput
                         prefix="$"
@@ -151,15 +125,7 @@ export function CustomComponent({ ctx }: Props) {
                             form.setValue("basePrice", values.floatValue);
                         }}
                     />
-                ) : // <FormInput
-                //     label="Price"
-                //     type="number"
-                //     size="sm"
-                //     prefix="$"
-                //     control={form.control}
-                //     name="basePrice"
-                // />
-                null}
+                ) : null}
                 <div className="flex justify-end">
                     <Button size="xs" onClick={_continue}>
                         Continue

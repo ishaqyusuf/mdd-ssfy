@@ -29,6 +29,7 @@ export async function getLoggedInProfile() {
                 select: {
                     id: true,
                     name: true,
+                    email: true,
                     roles: {
                         where: {
                             deletedAt: null,
@@ -77,6 +78,7 @@ export async function getLoggedInProfile() {
                 can,
                 name: user?.name,
                 userId: user?.id,
+                email: user.email,
             };
         },
         [`user_${id}`, `role_${roleId}`, "permissions"],

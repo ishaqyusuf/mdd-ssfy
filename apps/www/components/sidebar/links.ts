@@ -68,11 +68,16 @@ const _link = (
         index: -1,
         globalIndex: -1,
         show: false,
+        paths: [],
     };
     const ctx = {
         data: res,
         access(...access: Access[]) {
             res.access = access;
+            return ctx;
+        },
+        childPaths(...paths) {
+            res.paths = paths?.map((p) => (p?.startsWith("/") ? p : `/${p}`));
             return ctx;
         },
     };
@@ -217,6 +222,13 @@ export const linkModules = [
         ]),
         // profileSection,
     ]),
+    _module(null, null, null, [
+        _section("", null, [
+            _link("Dashboard", "dashboard", "/production/dashboard").access(
+                _role.is("Production"),
+            ).data,
+        ]),
+    ]),
     _module("Community", "communityInvoice", "GND Community", [
         _section("main", null, [
             _link("HOME", "project", "/community/home-page").access(
@@ -307,35 +319,53 @@ export const linkModules = [
         ]),
     ]),
     _module("Sales", "orders", "GND Sales", [
-        _section("main", null, [
-            _link("HOME", "project", "/sales-book/home-page").access(
-                _perm.in("editOrders"),
-            ).data,
+        _section(null, null, [
             _link("Dashboard", "dashboard", "/sales-rep").access(
                 _perm.is("editOrders"),
             ).data,
             _link("Accounting", "billing", "/sales-book/accounting").access(
-                _perm.is("editOrders"),
+                // _perm.is("editOrders"),
+                __access("userId", "is", 1),
             ).data,
-            _link("Sales", "orders", "/sales-books/orders").access(
-                _perm.is("editOrders"),
-            ).data,
-            _link("Quotes", "estimates", "/sales-books/quotes").access(
-                _perm.is("editOrders"),
-            ).data,
-            _link("Productions", "estimates", "/sales-books/quotes").access(
-                _perm.is("editOrders"),
-            ).data,
-            _link("Dispatch", "estimates", "/sales-books/quotes", [
-                _subLink("Delivey", "/sales-book/dispatchs").access(
+        ]),
+        _section("main", null, [
+            // _link("HOME", "project", "/sales-book/home-page").access(
+            //     _perm.in("editOrders"),
+            // ).data,
+
+            _link("Sales", "orders", "/sales-book/orders")
+                .access(_perm.is("editOrders"))
+                .childPaths("sales-book/create-order", "sales-book/edit-order")
+                .data,
+            _link("Quotes", "estimates", "/sales-book/quotes")
+                .access(_perm.is("editOrders"))
+                .childPaths("sales-book/create-quote", "sales-book/edit-quote")
+                .data,
+            // _link("Dispatch", "estimates", "/sales-books/quotes").access(
+            //     _perm.is("editOrders"),
+            // ).data,
+        ]),
+        _section("", "", [
+            _link(
+                "Productions",
+                "production",
+                "/sales-book/productions",
+            ).access(_perm.is("editOrders")).data,
+            _link("Dispatch", "delivery2", "/sales-books/quotes", [
+                _subLink("Delivey", "/sales-book/dispatch").access(
                     _perm.is("editDelivery"),
                 ).data,
                 _subLink("Pickup", "/sales-book/pickups").access(
                     _perm.is("editPickup"),
                 ).data,
             ]).access(_perm.is("editOrders")).data,
-            _link("Dispatch", "estimates", "/sales-books/quotes").access(
-                _perm.is("editOrders"),
+        ]),
+        _section("", "", [
+            _link("Customers", "user", "/sales-book/customers").access(
+                _perm.is("editSalesCustomers"),
+            ).data,
+            _link("Dealers", "user", "/sales-book/dealers").access(
+                __access("userId", "is", 1),
             ).data,
         ]),
     ]),
@@ -352,6 +382,7 @@ export function getLinkModules(_linkModules = linkModules) {
         [href in string]: {
             name?: string;
             module?: string;
+            match?: "part";
         };
     } = {};
     const modules = _linkModules.map((m, mi) => {
@@ -373,6 +404,13 @@ export function getLinkModules(_linkModules = linkModules) {
                     l.globalIndex = i.links++;
                     sectionLinks++;
                     moduleLinks++;
+                    l?.paths?.map((p) => {
+                        linksNameMap[p] = {
+                            name: l.name,
+                            module: m.name,
+                            match: "part",
+                        };
+                    });
                 }
                 if (l?.subLinks?.length)
                     l.subLinks = l.subLinks.map((sl, sli) => {

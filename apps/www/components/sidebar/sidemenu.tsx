@@ -11,8 +11,10 @@ import {
 import {
     Sidebar,
     SidebarContent,
+    SidebarFooter,
     SidebarGroup,
     SidebarGroupLabel,
+    SidebarHeader,
     SidebarMenu,
     SidebarMenuBadge,
     SidebarMenuButton,
@@ -30,6 +32,9 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
+import { ModuleSwitcher } from "./module-switcher";
+import { SidebarNavUser } from "./sidebar-nav-user";
+import { SidebarControl } from "./sidebar-control";
 
 const moduleVariants = cva("", {
     variants: {
@@ -98,6 +103,9 @@ export function SideMenu({}) {
     const { renderMode, activeLink } = sb;
     return (
         <Sidebar collapsible="icon" className="bg-white">
+            <SidebarHeader className="">
+                <ModuleSwitcher />
+            </SidebarHeader>
             <SidebarContent className="">
                 {sb?.linkModules?.modules
                     ?.filter((a) => a.activeLinkCount)
@@ -163,6 +171,10 @@ export function SideMenu({}) {
                         </Fragment>
                     ))}
             </SidebarContent>
+            <SidebarFooter>
+                <SidebarControl />
+                <SidebarNavUser />
+            </SidebarFooter>
         </Sidebar>
     );
 }
@@ -223,11 +235,20 @@ function MenuItem({ link: _link, module }) {
             <SidebarMenuButton
                 asChild
                 variant="outline"
-                className={cn(isActiveLink && "bg-muted")}
+                className={cn(
+                    isActiveLink &&
+                        "bg-destructive text-destructive-foreground",
+                )}
             >
                 <Link href={link.href || ""}>
                     {!link.icon || (
-                        <Icon name={link.icon} className="mr-2 h-4 w-4" />
+                        <Icon
+                            name={link.icon}
+                            className={cn(
+                                "mr-2 h-4 w-4",
+                                isActiveLink && "text-destructive-foreground",
+                            )}
+                        />
                     )}
                     <span>{link.title}</span>
                 </Link>

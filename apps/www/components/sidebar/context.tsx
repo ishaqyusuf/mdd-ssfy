@@ -2,7 +2,7 @@ import { timeout } from "@/lib/timeout";
 import { createContextFactory } from "@/utils/context-factory";
 import z from "zod";
 
-import { useSidebar as useBaseSidebar } from "@gnd/ui/sidebar";
+import { SidebarProvider, useSidebar as useBaseSidebar } from "@gnd/ui/sidebar";
 
 import { useSidebarStore } from "./store";
 import { getLinkModules } from "./links";
@@ -57,22 +57,25 @@ export const schema = z.object({
 const { useContext: useSidebar, Provider: SidebarContext } =
     createContextFactory(function (
         linkModules: ReturnType<typeof getLinkModules>,
+        user,
     ) {
         const store = useSidebarStore();
         const data = store;
         const { isMobile, state } = useBaseSidebar();
-        const loader = async () => {
-            await timeout(100);
-        };
+
         const pathName = usePathname();
         const [activeLink, setActiveLink] = useState<{ name?; module? }>({});
         useEffect(() => {
             const active = Object.entries(linkModules.linksNameMap || {}).find(
                 ([href, data]) =>
-                    href?.toLocaleLowerCase() === pathName?.toLocaleLowerCase(),
+                    data.match == "part"
+                        ? pathName?.toLocaleLowerCase()?.startsWith(href)
+                        : href?.toLocaleLowerCase() ===
+                          pathName?.toLocaleLowerCase(),
             )?.["1"];
             setActiveLink(active || {});
         }, [pathName, linkModules]);
+
         return {
             state,
             data,
@@ -83,47 +86,31 @@ const { useContext: useSidebar, Provider: SidebarContext } =
             linkModules,
             renderMode: linkModules.renderMode,
             activeLink,
+            user,
         };
     });
 export { useSidebar, SidebarContext };
 
-export const { useContext: useSidebarModule, Provider: SideBarModuleProvider } =
-    createContextFactory(function (name) {
-        const ctx = useSidebar();
-        const store = useSidebarStore();
-        // ctx.isMobile;
-        // const module = ctx?.data?.siteModules?.[name];
+export const { useContext: useSidebarState, Provider: SidebarStateProvider } =
+    createContextFactory(function (_state: "expanded" | "collapsed") {
+        const [defaultOpen, setDefaultOpen] = useState(_state == "expanded");
 
-        const siteModule = store.siteModules?.[name];
-        const isCurrentModule = ctx.data?.activeModule == name;
-        // ctx.isMobile;
-        // const module = ctx?.data?.siteModules?.[name];
-        //  ctx.form.watch(`siteModules.${name}`);
-        // const data = useAsyncMemo(loader, []);
-        return { siteModule, isCurrentModule };
+        const [state, setState] = useState(_state);
+        return { defaultOpen, setDefaultOpen, state, setState };
     });
+export function SidebarProviderRoot({ children, state }) {
+    return (
+        <SidebarStateProvider args={[state]}>
+            <ShadSidebarProvider>{children}</ShadSidebarProvider>
+        </SidebarStateProvider>
+    );
+}
+function ShadSidebarProvider({ children }) {
+    const { defaultOpen, state } = useSidebarState();
 
-export const {
-    useContext: useSidebarSection,
-    Provider: SideBarSectionProvider,
-} = createContextFactory(function (name) {
-    const ctx = useSidebar();
-    // const module = ctx?.data?.siteModules?.[name];
-    // const module = ctx.form.watch(`siteModules.${name}` as any);
-    // const data = useAsyncMemo(loader, []);
-    return {
-        // module
-        name,
-    };
-});
-export const { useContext: useSidebarLink, Provider: SideBarLinkProvider } =
-    createContextFactory(function (name) {
-        const ctx = useSidebar();
-        // const module = ctx?.data?.siteModules?.[name];
-        // const module = ctx.form.watch(`siteModules.${name}` as any);
-        // const data = useAsyncMemo(loader, []);
-        return {
-            // module
-            name,
-        };
-    });
+    return (
+        <SidebarProvider open={defaultOpen} defaultOpen={defaultOpen}>
+            {children}
+        </SidebarProvider>
+    );
+}
