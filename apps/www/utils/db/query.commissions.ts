@@ -1,7 +1,7 @@
 import { composeQuery } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
 import { prisma } from "@/db";
-import { Prisma, SearchParameters } from "@prisma/client";
-import { composeQueryData, queryResponse } from "../query-response";
+import { Prisma } from "@prisma/client";
+import { composeQueryData } from "../query-response";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 
 export function whereCommissions(query: SearchParamsType) {
