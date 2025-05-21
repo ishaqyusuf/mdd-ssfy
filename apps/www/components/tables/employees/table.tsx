@@ -18,6 +18,8 @@ import { useEmployeesParams } from "@/hooks/use-employee-params";
 import { PageFilterData } from "@/types/type";
 import { columns, Item } from "./columns";
 import { LoadMore } from "../load-more";
+import FPageContent from "@/components/(clean-code)/fikr-ui/f-page-content";
+import FContentShell from "@/components/(clean-code)/fikr-ui/f-content-shell";
 
 type Props = {
     data: Item[];
@@ -76,23 +78,25 @@ export function DataTable({
             ]}
         >
             <div className="flex flex-col gap-4">
-                <div className="flex">
-                    <MiddaySearchFilter
-                        placeholder={"Search"}
-                        filterList={filterData}
-                    />
-                    <div className="flex-1"></div>
-                    <Button
-                        variant="outline"
-                        onClick={() =>
-                            setParams({
-                                createEmployee: true,
-                            })
-                        }
-                    >
-                        Create
-                    </Button>
-                </div>
+                <FContentShell>
+                    <div className="flex">
+                        <MiddaySearchFilter
+                            placeholder={"Search"}
+                            filterList={filterData}
+                        />
+                        <div className="flex-1"></div>
+                        <Button
+                            variant="outline"
+                            onClick={() =>
+                                setParams({
+                                    createEmployee: true,
+                                })
+                            }
+                        >
+                            Create
+                        </Button>
+                    </div>
+                </FContentShell>
                 <Table>
                     <TableHeaderComponent />
 

@@ -12,7 +12,7 @@ export function Header({}) {
     const { setDefaultOpen, defaultOpen } = useSidebarState();
     return (
         <>
-            <header className="z-10 bg-background/95  dark:bg-inherit sticky top-0 sborder-b sshadow backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:shadow-secondary w-full">
+            <header className="z-10 bg-background/95  dark:bg-inherit sticky top-0  sshadow backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:shadow-secondary w-full border-b">
                 <div className="flex h-16 shrink-0 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12  items-center gap-2 px-4">
                     <div
                         className={cn(
@@ -42,8 +42,8 @@ export function Header({}) {
                     <ModeToggle />
                     <UserNav />
                 </div>
+                <div className="bg-white" id="pageTab"></div>
             </header>
-            <div className="bg-white" id="pageTab"></div>
         </>
     );
 }

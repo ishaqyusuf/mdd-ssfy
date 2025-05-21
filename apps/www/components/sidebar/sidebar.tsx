@@ -20,7 +20,7 @@ export function SideBar({ children, user, menuMode, validLinks }) {
         <SidebarProviderRoot state={menuMode}>
             <SidebarContext args={[validLinks, user]}>
                 <SideMenu />
-                <SidebarInset className="flex-1 overflow-hidden">
+                <SidebarInset className="flex-1 space-y-4 overflow-hidden">
                     <Header />
                     {children}
                 </SidebarInset>
