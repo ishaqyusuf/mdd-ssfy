@@ -43,7 +43,10 @@ export async function createPayrollAction(data: Props) {
             // orderId: data.orderId,
             // orderPaymentId: data.salesPaymentId || undefined,
             // productionSubmissionId: data.submissionId || undefined,
-            uid,
+            uid_deletedAt: {
+                uid,
+                deletedAt: null,
+            },
             // },
         },
         create: {

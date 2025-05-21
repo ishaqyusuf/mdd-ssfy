@@ -3,6 +3,7 @@
 import { authId } from "@/app/(v1)/_actions/utils";
 import { PayoutStatus, prisma } from "@/db";
 import { payrollUidSearch } from "@/utils/sales-utils";
+import { __salesPayrollUpdated } from "./cache/cache-data-changed";
 
 export async function deleteSalesCommission(paymentId) {
     const payroll = await prisma.payroll.findFirst({
@@ -13,8 +14,6 @@ export async function deleteSalesCommission(paymentId) {
     if (payroll) await deletePayroll(payroll.id);
 }
 export async function deletePayroll(id: number) {
-    const actorId = await authId();
-
     const payroll = await prisma.payroll.findUnique({
         where: { id },
     });
@@ -51,4 +50,7 @@ export async function deletePayroll(id: number) {
             },
         });
     }
+    __salesPayrollUpdated({
+        userId: payroll.userId,
+    });
 }
