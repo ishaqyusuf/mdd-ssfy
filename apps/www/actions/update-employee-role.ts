@@ -20,7 +20,11 @@ export async function updateEmployeeRole(id, roleId) {
             // customerTypeId: profileId,
             roles: {
                 create: {
-                    roleId,
+                    role: {
+                        connect: {
+                            id: roleId,
+                        },
+                    },
                 },
             },
         },
