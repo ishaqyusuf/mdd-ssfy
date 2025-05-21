@@ -7,6 +7,7 @@ import {
     useReactTable,
 } from "@tanstack/react-table";
 import { useInView } from "react-intersection-observer";
+import { PageDataMeta, PageFilterData } from "@/types/type";
 export type DataTableProps = {
     data: any[];
     loadMore?: (query) => Promise<any>;
@@ -29,13 +30,14 @@ type TableProps = (WithTable | WithoutTable) & {
     params?;
     loadMore?;
     pageSize?;
-    hasNextPage?;
+    nextMeta?: PageDataMeta["next"];
     columns?;
     checkbox?: boolean;
     tableMeta?: {
         deleteAction?: (id) => any;
         rowClick?: (id: string, rowData?) => any;
         loadMore?;
+        filterData: PageFilterData[];
     };
 };
 export const { useContext: useTable, Provider: TableProvider } =
@@ -47,29 +49,30 @@ export const { useContext: useTable, Provider: TableProvider } =
         columns,
         tableMeta,
         pageSize,
-        hasNextPage: initialHasNextPage,
+        nextMeta: nextPageMeta,
         loadMore,
         checkbox,
     }: TableProps) {
         const [data, setData] = useState(initialData);
-        const [from, setFrom] = useState(pageSize);
+        // const [from, setFrom] = useState(pageSize);
         const { ref, inView } = useInView();
-        const [hasNextPage, setHasNextPage] = useState(initialHasNextPage);
+        const [nextMeta, setNextMeta] = useState(nextPageMeta);
         const loadMoreData = async () => {
-            const formatedFrom = from;
-            const to = formatedFrom + pageSize * 2;
+            // const formatedFrom = from;
+            // const to = formatedFrom + pageSize * 2;
 
             try {
                 const { data, meta } = await loadMore({
-                    from: formatedFrom,
-                    to,
+                    ...nextMeta,
                 });
+                console.log({ nextMeta });
 
+                let _meta = meta as PageDataMeta;
                 setData((prev) => [...prev, ...data]);
-                setFrom(to);
-                setHasNextPage(meta.count > to);
+                // setFrom(to);
+                setNextMeta(_meta?.next);
             } catch {
-                setHasNextPage(false);
+                setNextMeta(null);
             }
         };
         useEffect(() => {
@@ -96,5 +99,7 @@ export const { useContext: useTable, Provider: TableProvider } =
             tableMeta,
             loadMoreData,
             checkbox,
+            moreRef: ref,
+            hasMore: !!nextMeta,
         };
     });

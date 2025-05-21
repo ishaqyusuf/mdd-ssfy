@@ -36,18 +36,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@gnd/ui/select";
+import { PageFilterData } from "@/types/type";
 
 interface Props {
     // filters;
     // setFilters;
     defaultSearch?;
     placeholder?;
-    filterList?: {
-        value?: FilterKeys;
-        type: "checkbox" | "input" | "date" | "date-range";
-        options?: any[];
-        label?;
-    }[];
+    filterList?: PageFilterData[];
 }
 
 export function MiddaySearchFilter({

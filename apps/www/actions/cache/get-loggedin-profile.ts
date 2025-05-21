@@ -19,6 +19,7 @@ export async function getLoggedInProfile() {
         if (userId) id = userId;
         if (_roleId) roleId = _roleId;
     }
+    const tags = [`user_${id}`, `role_${roleId}`, "permissions"];
     return unstable_cache(
         async () => {
             let can: ICan = {} as any;
@@ -81,9 +82,9 @@ export async function getLoggedInProfile() {
                 email: user.email,
             };
         },
-        [`user_${id}`, `role_${roleId}`, "permissions"],
+        tags,
         {
-            tags: [`user_${id}`, `role_${roleId}`, "permissions"],
+            tags,
         },
     )();
 }

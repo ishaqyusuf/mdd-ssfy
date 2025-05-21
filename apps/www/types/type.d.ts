@@ -1,5 +1,8 @@
 declare module "cloudinary";
+import { SearchParamsKeys } from "@/components/(clean-code)/data-table/search-params";
+import { IconKeys } from "@/components/_v1/icons";
 import { Primitive } from "@radix-ui/react-primitive";
+import { ColumnDef as TanColumnDef } from "@tanstack/react-table";
 import React from "react";
 export type Any<T> = Partial<T> & any;
 
@@ -27,3 +30,20 @@ export type PageDataMeta = {
 export type PageItemData<T extends (...args: any) => any> = Awaited<
     ReturnType<T>
 >["data"][number];
+export type PageFilterData = {
+    value?: SearchParamsKeys;
+    icon?: IconKeys;
+    type: "checkbox" | "input" | "date" | "date-range";
+    label?: string;
+    options?: {
+        label: string;
+        value: string;
+    }[];
+};
+export type ColumnMeta = {
+    preventDefault?: boolean;
+    className?: string;
+};
+export type ColumnDef<T, Meta = {}> = TanColumnDef<T> & {
+    meta?: Meta & ColumnMeta;
+};

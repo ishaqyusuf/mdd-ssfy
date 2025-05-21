@@ -4,7 +4,6 @@ import { prisma } from "@/db";
 import { transformData } from "@/lib/utils";
 import { IUser } from "@/types/hrm";
 
-import { clearCacheAction } from "../_cache/clear-cache";
 import { hashPassword } from "../utils";
 
 export async function createEmployeeAction(data: IUser) {
@@ -24,7 +23,6 @@ export async function createEmployeeAction(data: IUser) {
             data: {
                 roleId: role.id,
                 modelId: user.id,
-                modelType: "User",
             },
         });
     }

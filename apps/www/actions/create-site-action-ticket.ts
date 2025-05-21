@@ -16,7 +16,8 @@ export async function createSiteActionTicket(
     // meta: ActionTicketMeta
     props: Props,
 ) {
-    const { meta = {} } = props;
+    let { meta } = props;
+    if (!meta) meta = {};
     const auth = await user();
     meta.authorName = auth.name;
     meta.authorId = auth.id;
@@ -24,6 +25,7 @@ export async function createSiteActionTicket(
         data: {
             description: await generateDescription(props),
             type: props.type,
+
             event: props.event,
             meta,
             SiteActionNotification: {

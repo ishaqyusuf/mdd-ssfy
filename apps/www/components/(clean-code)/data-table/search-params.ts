@@ -72,6 +72,7 @@ export const searchParamsParser: {
     "commission.filter": parseAsString,
     "date.from": parseAsString,
     "date.to": parseAsString,
+    employeeProfileId: parseAsInteger,
     sort: parseAsSort,
     size: parseAsInteger.withDefault(30),
     start: parseAsInteger.withDefault(0),
@@ -118,6 +119,7 @@ export const searchParamsParser: {
         ARRAY_DELIMITER,
     ),
     "user.role": parseAsArrayOf(parseAsStringLiteral(ROLES), ARRAY_DELIMITER),
+    roleId: parseAsInteger,
     ...noteParamsParser,
 };
 export const searchSchema = z
@@ -158,6 +160,8 @@ export const searchSchema = z
         "user.permissions": z.enum(PERMISSIONS).optional(),
         "user.cannot": z.enum(PERMISSIONS).optional(),
         "user.role": z.enum(ROLES).optional(),
+        roleId: z.number().optional(),
+        employeeProfileId: z.number().optional(),
     })
     .merge(noteSchema);
 export const searchParamsCache = createSearchParamsCache(searchParamsParser);

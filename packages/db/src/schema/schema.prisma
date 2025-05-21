@@ -149,16 +149,14 @@ model ModelHasPermissions {
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model ModelHasRoles {
-    roleId    Int
-    modelType String @db.VarChar(255)
-    modelId   Int
+    roleId  Int
+    modelId Int
 
     role      Roles     @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "model_has_roles_role_id_foreign")
     user      Users     @relation(fields: [modelId], references: [id])
     deletedAt DateTime? @db.Timestamp(0)
-    // @@index([createdAt,deletedAt,modelId, modelType], map: "model_has_roles_model_id_model_type_index")
 
-    @@id([roleId, modelId, modelType])
+    @@id([roleId, modelId])
     @@index([modelId])
 }
 

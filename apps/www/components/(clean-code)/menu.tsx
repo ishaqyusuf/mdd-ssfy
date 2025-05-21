@@ -47,6 +47,7 @@ interface RowActionMoreMenuProps {
     Trigger?;
     noSize?: boolean;
     variant?: VariantProps<typeof buttonVariants>["variant"];
+    hoverVariant?: VariantProps<typeof buttonVariants>["variant"];
     triggerSize?: VariantProps<typeof buttonVariants>["size"];
     open?;
     onOpenChanged?;
@@ -64,6 +65,7 @@ function BaseMenu(
         onOpenChanged,
         triggerSize,
         variant = "outline",
+        hoverVariant,
     }: RowActionMoreMenuProps,
     ref,
 ) {
@@ -71,18 +73,28 @@ function BaseMenu(
     useImperativeHandle(ref, () => ({
         _onOpenChanged,
     }));
+    const [hover, setHover] = useState(false);
+
     return (
         <DropdownMenu
             open={onOpenChanged ? open : _open}
             onOpenChange={onOpenChanged || _onOpenChanged}
         >
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger
+                onMouseEnter={(e) => {
+                    setHover(true);
+                }}
+                onMouseLeave={(e) => setHover(false)}
+                asChild
+            >
                 {Trigger ? (
                     Trigger
                 ) : (
                     <Button
                         disabled={disabled}
-                        variant={variant}
+                        variant={
+                            open || hover ? hoverVariant || variant : variant
+                        }
                         className={cn(
                             "flex h-8 space-x-4",
                             !label && "w-8 p-0",

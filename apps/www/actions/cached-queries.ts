@@ -1,5 +1,4 @@
 import { unstable_cache } from "next/cache";
-import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import {
     FilterKeys,
     SearchParamsType,

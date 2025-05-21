@@ -32,11 +32,12 @@ export interface SelectOption {
     data?: any;
 }
 
-export type ActionTicketType = "sales-customer-transaction";
+export type ActionTicketType = "sales-customer-transaction" | "employee-role";
 export type ActionTicketEvents = "deleted" | "created" | "edited";
 
 export interface ActionTicketMeta {
     id?: string | number;
     authorName?: string;
     authorId?: number;
+    description?: string;
 }

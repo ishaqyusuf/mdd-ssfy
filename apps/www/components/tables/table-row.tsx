@@ -6,6 +6,7 @@ import { cn } from "@gnd/ui/cn";
 import { TableRow as BaseTableRow, TableCell } from "@gnd/ui/table";
 
 import { useTable } from ".";
+import { ColumnMeta } from "@/types/type";
 
 type Props = {
     // row: Row<any>;
@@ -22,7 +23,13 @@ export function TableRow({}: Props) {
                         <TableCell
                             key={cell.id}
                             onClick={(e) => {
-                                if (cell.column.id == "actions") return;
+                                const meta = cell.column.columnDef
+                                    .meta as ColumnMeta;
+                                if (
+                                    cell.column.id == "actions" ||
+                                    meta?.preventDefault
+                                )
+                                    return;
                                 tableMeta?.rowClick?.(
                                     row.original?.id,
                                     row.original,
@@ -45,4 +52,3 @@ export function TableRow({}: Props) {
         </>
     );
 }
-

@@ -7,19 +7,6 @@ import { commissionQueryMetaData } from "@/utils/db/query.commissions";
 import { __salesPayrollUpdated } from "./cache/cache-data-changed";
 
 export async function getCommissionsList(query: SearchParamsType) {
-    await prisma.payrollHistory.deleteMany({
-        where: {
-            payroll: {
-                orderId: null,
-            },
-        },
-    });
-    await prisma.payroll.deleteMany({
-        where: {
-            orderId: null,
-        },
-    });
-    __salesPayrollUpdated({});
     const { model, response, where, searchMeta } =
         await commissionQueryMetaData(query);
     const payments = await model.findMany({
