@@ -38,43 +38,14 @@ export const columns: ColumnDef<Item>[] = [
             </div>
         ),
     },
-    // {
-    //     header: "Role",
-    //     accessorKey: "role",
-    //     meta: {
-    //         preventDefault: true,
-    //     },
-    //     cell: ({ row: { original: item } }) => {
-    //         const ctx = useTable();
-    //         const roles = ctx.tableMeta?.filterData?.find(
-    //             (a) => a.value == "roleId",
-    //         )?.options;
-    //         const loader = useLoadingToast();
-    //         async function updateRole(roleId) {
-    //             loader.loading("Updating...");
-    //             await updateEmployeeRole(item.id, roleId);
-    //             loader.success("Updated.");
-    //         }
-    //         return (
-    //             <Menu
-    //                 label={item.role?.name || "Role not set"}
-    //                 Icon={null}
-    //                 variant="secondary"
-    //                 hoverVariant="default"
-    //             >
-    //                 {roles?.map((role) => (
-    //                     <Menu.Item
-    //                         onClick={(e) => updateRole(Number(role.value))}
-    //                         key={role.value}
-    //                     >
-    //                         {role?.label}
-    //                     </Menu.Item>
-    //                 ))}
-    //             </Menu>
-    //         );
-    //         return <div>{item.role?.name}</div>;
-    //     },
-    // },
+    {
+        header: "Role",
+        accessorKey: "role",
+        meta: {
+            preventDefault: true,
+        },
+        cell: ({ row: { original: item } }) => <Role item={item} />,
+    },
     {
         header: "Profile",
         accessorKey: "profile",
@@ -96,3 +67,33 @@ export const columns: ColumnDef<Item>[] = [
         },
     },
 ];
+function Role({ item }: { item: Item }) {
+    const ctx = useTable();
+    const roles = ctx.tableMeta?.filterData?.find(
+        (a) => a.value == "roleId",
+    )?.options;
+    const loader = useLoadingToast();
+    async function updateRole(roleId) {
+        loader.loading("Updating...");
+        await updateEmployeeRole(item.id, roleId);
+        loader.success("Updated.");
+    }
+    return (
+        <Menu
+            label={item.role?.name || "Role not set"}
+            Icon={null}
+            variant="secondary"
+            hoverVariant="default"
+        >
+            {roles?.map((role) => (
+                <Menu.Item
+                    onClick={(e) => updateRole(Number(role.value))}
+                    key={role.value}
+                >
+                    {role?.label}
+                </Menu.Item>
+            ))}
+        </Menu>
+    );
+    return <div>{item.role?.name}</div>;
+}
