@@ -37,19 +37,8 @@ export async function createPayrollAction(data: Props) {
         data.salesPaymentId,
         data.submissionId,
     );
-    await prisma.payroll.upsert({
-        where: {
-            // orderId_productionSubmissionId_orderPaymentId: {
-            // orderId: data.orderId,
-            // orderPaymentId: data.salesPaymentId || undefined,
-            // productionSubmissionId: data.submissionId || undefined,
-            uid_deletedAt: {
-                uid,
-                deletedAt: null,
-            },
-            // },
-        },
-        create: {
+    await prisma.payroll.create({
+        data: {
             uid,
             amount: commission,
             itemUid: data.itemUid,
@@ -68,9 +57,9 @@ export async function createPayrollAction(data: Props) {
                 },
             },
         },
-        update: {
-            amount: commission,
-        },
+        // update: {
+        //     amount: commission,
+        // },
     });
     __salesPayrollUpdated({
         orderId: data.orderId,

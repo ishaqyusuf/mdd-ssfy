@@ -6,6 +6,7 @@ import z from "zod";
 import { createSiteActionTicket } from "./create-site-action-ticket";
 import { actionClient } from "./safe-action";
 import { updateSalesDueAmount } from "./update-sales-due-amount";
+import { deleteSalesCommission } from "./delete-payroll";
 
 const schema = z.object({
     transactionId: z.number(),
@@ -39,13 +40,15 @@ export const deleteCustomerTransactionAction = actionClient
                     salesPayments: {
                         select: {
                             orderId: true,
+                            id: true,
                         },
                     },
                 },
             });
             await Promise.all(
-                resp?.salesPayments?.map(async ({ orderId }) => {
+                resp?.salesPayments?.map(async ({ orderId, id }) => {
                     await updateSalesDueAmount(orderId, prisma);
+                    await deleteSalesCommission(id);
                 }),
             );
             await createSiteActionTicket({

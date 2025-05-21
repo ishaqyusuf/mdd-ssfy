@@ -2,6 +2,7 @@ import { getSalesPageQueryData } from "@/actions/cached-queries";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import SalesAccountingTable from "@/components/tables/sales-accounting";
 import TablePage from "@/components/tables/table-page";
+import { prisma } from "@/db";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 
 export async function generateMetadata({}) {
@@ -10,6 +11,15 @@ export async function generateMetadata({}) {
     });
 }
 export default async function Page({ searchParams }) {
+    await prisma.payrollHistory.deleteMany({
+        where: {},
+    });
+    await prisma.payroll.deleteMany({
+        where: {
+            deletedAt: {},
+        },
+    });
+
     const [queryData] = await Promise.all([getSalesPageQueryData()]);
     return (
         <FPage can={["viewOrders"]} title="Accounting">
