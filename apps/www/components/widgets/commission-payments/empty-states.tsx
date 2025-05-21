@@ -9,7 +9,7 @@ export function EmptyState() {
                 <div className="mb-6 space-y-2 text-center">
                     <h2 className="text-lg font-medium">No commission</h2>
                     <p className="text-sm text-[#606060]">
-                        You haven't created any invoices yet. <br />
+                        You haven{"'"}t created any invoices yet. <br />
                         Go ahead and create your first one.
                     </p>
                 </div>

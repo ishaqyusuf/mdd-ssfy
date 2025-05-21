@@ -3,7 +3,7 @@
 import { prisma, Prisma } from "@/db";
 import { BaseQuery } from "@/types/action";
 
-import { _cache, fetchCache, saveCache } from "../_cache/load-data";
+import { _cache } from "../_cache/load-data";
 import { getPageInfo, queryFilter } from "../action-utils";
 
 export interface EmployeeQueryParamsProps extends BaseQuery {
@@ -16,17 +16,6 @@ export async function getEmployees(query: EmployeeQueryParamsProps) {
         query.sort = "name";
         query.sort_order = "asc";
     }
-    console.log(query._q);
-
-    // const c = await prisma.users.count({
-    //     where: {
-    //         name: {
-    //             contains: "volcan", //query._q
-    //
-    //         },
-    //     },
-    // });
-    // console.log(c);
     const where = whereEmployee(query);
     const items = await prisma.users.findMany({
         where,

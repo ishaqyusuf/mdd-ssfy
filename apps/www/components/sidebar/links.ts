@@ -196,7 +196,7 @@ const profileSection = _section("settings", null, [
 export const linkModules = [
     _module("HRM", "hrm", "GND HRM", [
         _section("", null, [
-            _link("HRM", "hrm", "/").access(_perm.in("viewHrm")).data,
+            // _link("HRM", "hrm", "/").access(_perm.in("viewHrm")).data,
             _link("Employees", "hrm", "/hrm/employees").access(
                 _perm.some("viewHrm", "viewEmployee"),
             ).data,
@@ -206,6 +206,8 @@ export const linkModules = [
             _link("Roles", "hrm", "/hrm/roles").access(
                 _perm.some("viewHrm", "viewEmployee"),
             ).data,
+        ]),
+        _section("", null, [
             _link("Jobs", "project", "/contractor/jobs").access(
                 _perm.every("viewProject", "viewInvoice"),
             ).data,
