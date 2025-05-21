@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/db";
+import { deleteSalesCommission } from "./delete-payroll";
 
 interface Props {
     salesId;
@@ -26,4 +27,5 @@ export async function deleteSalesPaymentAction(salesId, paymentId) {
             transaction: true,
         },
     });
+    await deleteSalesCommission(paymentId);
 }

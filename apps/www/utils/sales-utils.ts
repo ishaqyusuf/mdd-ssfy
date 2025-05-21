@@ -133,6 +133,9 @@ export function payrollUid(oid, pid, submissionId) {
         .map(([a, b]) => `${a}:${b}`)
         .join(",");
 }
+export function payrollUidSearch(value, k: "oid" | "pid" | "submissionId") {
+    return `${k}:${value}`;
+}
 export function transformPayrollUid(uid) {
     return Object.fromEntries(
         uid?.split(",").map((a) => {

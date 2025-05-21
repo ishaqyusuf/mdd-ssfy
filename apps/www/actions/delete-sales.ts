@@ -21,6 +21,7 @@ export async function deleteSaleAction(id) {
         event: "deleted",
         type: data.type as any,
         meta: {
+            id: data.id,
             description: `${data.type} ${data.orderId}`,
         },
     });

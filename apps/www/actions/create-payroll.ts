@@ -18,12 +18,12 @@ interface Props {
     itemUid?: string;
 }
 export async function createPayrollAction(data: Props) {
-    const userId = await authId();
+    // const userId = await authId();
     const profile = await prisma.employeeProfile.findFirst({
         where: {
             employees: {
                 some: {
-                    id: userId,
+                    id: data.userId,
                 },
             },
         },
@@ -53,14 +53,14 @@ export async function createPayrollAction(data: Props) {
             status: "PENDING",
             type: data?.submissionId ? "WAGE" : "COMMISSION",
             orderId: data.orderId,
-            userId,
+            userId: data.userId,
             description: data.description,
             history: {
                 create: {
                     status: "PENDING",
                     note: "created",
                     user: {
-                        connect: { id: userId },
+                        connect: { id: data.userId },
                     },
                 },
             },

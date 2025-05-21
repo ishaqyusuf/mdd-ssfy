@@ -22,6 +22,7 @@ export async function restoreSale(id) {
         event: "restored",
         type: data.type as any,
         meta: {
+            id: data.id,
             description: `${data.type} ${data.orderId} restored`,
         },
     });
