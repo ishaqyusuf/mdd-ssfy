@@ -15,6 +15,7 @@
   "scripts": {
     "build": "prisma db push && prisma generate && tsc",
     "dev": "rm -rf dist .turbo tsc",
+    "dev:prod": "rm -rf dist .turbo tsc",
     "clean": "rm -rf .turbo node_modules",
     "lint": "biome check .",
     "format": "biome format --write .",
@@ -22,7 +23,7 @@
     "db:generate": "bunx with-env prisma generate",
     "db-migrate": "bunx prisma migrate dev",
     "prisma-generate": "bunx prisma generate",
-    "push": "bunx prisma db push",
+    "push": "bunx env-cmd -f .env.production prisma db push",
     "pull": "bunx with-env prisma db pull",
     "studio": "bunx with-env prisma studio --port 5556",
     "with-env": "dotenv -e ../../.env --"

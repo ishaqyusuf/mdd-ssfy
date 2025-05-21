@@ -35,7 +35,6 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # local env files
-.env.local
 
 # vercel
 .vercel
@@ -52,5 +51,7 @@ package-lock.json
 .idea/
 
 .env
+.env.production
+.env.local
 
 sales-form-data.json

@@ -77,3 +77,17 @@ export const salesPaymentMethods: {
 ] as const;
 
 export const CUSTOM_IMG_ID = "ff8zkn817rjqv6ml2qdr";
+
+export const actionTicketTypes = [
+    "sales-customer-transaction",
+    "employee-role",
+    "employee-profile",
+    "order",
+    "quote",
+] as const;
+export const actionTicketEvents = [
+    "deleted",
+    "created",
+    "edited",
+    "restored",
+] as const;

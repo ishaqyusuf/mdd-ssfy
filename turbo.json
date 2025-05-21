@@ -47,6 +47,11 @@
       "persistent": true,
       "cache": false
     },
+    "dev:prod": {
+      "dependsOn": ["^dev:prod"],
+      "persistent": true,
+      "cache": false
+    },
     "format": {
       "outputs": ["node_modules/.cache/.prettiercache"],
       "outputMode": "new-only"

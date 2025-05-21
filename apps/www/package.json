@@ -4,6 +4,7 @@
     "private": true,
     "scripts": {
         "dev": "TZ=UTC next dev -p 3000",
+        "dev:prod": "bunx env-cmd -f .env.production env TZ=UTC next dev -p 3300",
         "build": "NODE_ENV=production next build",
         "start": "next start",
         "lint": "next lint",

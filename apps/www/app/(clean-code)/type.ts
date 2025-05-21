@@ -1,3 +1,5 @@
+import { actionTicketEvents, actionTicketTypes } from "@/utils/constants";
+
 export type AsyncFnType<T extends (...args: any) => any> = Awaited<
     ReturnType<T>
 >;
@@ -32,11 +34,8 @@ export interface SelectOption {
     data?: any;
 }
 
-export type ActionTicketType =
-    | "sales-customer-transaction"
-    | "employee-role"
-    | "employee-profile";
-export type ActionTicketEvents = "deleted" | "created" | "edited";
+export type ActionTicketType = (typeof actionTicketTypes)[number];
+export type ActionTicketEvents = (typeof actionTicketEvents)[number];
 
 export interface ActionTicketMeta {
     id?: string | number;
