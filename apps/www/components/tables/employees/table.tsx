@@ -22,6 +22,7 @@ import FPageContent from "@/components/(clean-code)/fikr-ui/f-page-content";
 import FContentShell from "@/components/(clean-code)/fikr-ui/f-content-shell";
 import { Menu } from "@/components/(clean-code)/menu";
 import { Icons } from "@/components/_v1/icons";
+import { useRolesParams } from "@/hooks/use-roles-params";
 
 type Props = {
     data: Item[];
@@ -42,7 +43,7 @@ export function DataTable({
     const filterData: PageFilterData[] = filterDataPromise
         ? use(filterDataPromise)
         : [];
-
+    const role = useRolesParams();
     const toast = useLoadingToast();
     //   const deleteEmployee = useAction(deleteStudentAction, {
     //     onSuccess(args) {
@@ -99,7 +100,16 @@ export function DataTable({
                             Create
                         </Button>
                         <Menu>
-                            <Menu.Item icon="roles">Roles</Menu.Item>
+                            <Menu.Item
+                                onClick={(e) => {
+                                    role.setParams({
+                                        viewRoles: true,
+                                    });
+                                }}
+                                icon="roles"
+                            >
+                                Roles
+                            </Menu.Item>
                         </Menu>
                     </div>
                 </FContentShell>

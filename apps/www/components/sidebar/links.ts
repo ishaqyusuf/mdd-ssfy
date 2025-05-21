@@ -325,8 +325,8 @@ export const linkModules = [
                 _perm.is("editOrders"),
             ).data,
             _link("Accounting", "billing", "/sales-book/accounting").access(
-                // _perm.is("editOrders"),
-                __access("userId", "is", 1),
+                _perm.is("editOrders"),
+                // __access("userId", "is", 1),
             ).data,
         ]),
         _section("main", null, [

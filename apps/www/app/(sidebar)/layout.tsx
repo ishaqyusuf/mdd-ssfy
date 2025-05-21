@@ -1,6 +1,7 @@
 import { getLoggedInProfile } from "@/actions/cache/get-loggedin-profile";
 import { loadPageTabs } from "@/actions/cache/load-page-tabs";
 import { getSideMenuMode } from "@/actions/cookies/sidemenu";
+import { GlobalSheets } from "@/components/sheets/global-sheets";
 import { getLinkModules, validateLinks } from "@/components/sidebar/links";
 import { SideBar } from "@/components/sidebar/sidebar";
 
@@ -20,6 +21,7 @@ export default async function SideBarLayout({ children }) {
     return (
         <SideBar user={user} menuMode={menuMode} validLinks={validLinks}>
             {children}
+            <GlobalSheets />
         </SideBar>
     );
 }
