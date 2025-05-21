@@ -16,6 +16,7 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
+import { CommissionPaymentsWidget } from "./widgets/commission-payments";
 
 export default function CommissionPayments() {
     const commissionPayments = [
@@ -65,6 +66,7 @@ export default function CommissionPayments() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
+                <CommissionPaymentsWidget />
                 <Table>
                     <TableHeader>
                         <TableRow>

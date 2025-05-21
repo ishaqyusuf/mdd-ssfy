@@ -1,21 +1,15 @@
 "use server";
 
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
-import { prisma } from "@/db";
 import { formatDate, timeAgo } from "@/lib/use-day";
-import { queryResponse } from "@/utils/query-response";
+import { commissionQueryMetaData } from "@/utils/db/query.commissions";
 
 export async function getCommissionsList(query: SearchParamsType) {
-    const userId = query["user.id"];
-
-    const payments = await prisma.payroll.findMany({
-        where: {
-            userId: userId ? +userId : undefined,
-        },
-        take: 20,
-        orderBy: {
-            createdAt: "desc",
-        },
+    const { model, response, where, searchMeta } =
+        await commissionQueryMetaData(query);
+    const payments = await model.findMany({
+        where,
+        ...searchMeta,
         select: {
             uid: true,
             id: true,
@@ -38,7 +32,7 @@ export async function getCommissionsList(query: SearchParamsType) {
             },
         },
     });
-    return await queryResponse(
+    return await response(
         payments.map((payment) => {
             return {
                 id: payment.id,
@@ -46,6 +40,8 @@ export async function getCommissionsList(query: SearchParamsType) {
                 paymentDate: timeAgo(payment.createdAt),
                 amount: payment.amount,
                 paidTo: payment.user?.name,
+                orderNo: payment?.order?.orderId,
+                status: payment.status,
             };
         }),
     );

@@ -18,4 +18,12 @@ export type PrimitiveDivProps = React.ComponentPropsWithoutRef<
 >;
 export type PageDataMeta = {
     count?;
+    page?;
+    next?: {
+        size?;
+        start?;
+    };
 };
+export type PageItemData<T extends (...args: any) => any> = Awaited<
+    ReturnType<T>
+>["data"][number];

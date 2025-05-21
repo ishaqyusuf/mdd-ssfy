@@ -7,6 +7,7 @@ import {
     CardTitle,
 } from "@gnd/ui/card";
 import { Progress } from "@gnd/ui/progress";
+import { ComissionsWidget } from "./widgets/comissions";
 
 export default function PendingCommissions() {
     const pendingCommissions = [
@@ -79,6 +80,7 @@ export default function PendingCommissions() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
+                <ComissionsWidget />
                 <div className="space-y-4">
                     {pendingCommissions.map((commission) => (
                         <div
