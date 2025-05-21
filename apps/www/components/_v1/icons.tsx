@@ -85,6 +85,9 @@ import {
     TrendingDown,
     AlertCircle,
     UserCircle,
+    ShieldIcon,
+    TimerIcon,
+    Users,
 } from "lucide-react";
 import Image from "next/image";
 import logo from "@/public/logo_mini.png";
@@ -99,6 +102,7 @@ export type Icon = LucideIcon;
 export const Icons = {
     profile: UserCircle,
     box: Box,
+    roles: ShieldIcon,
     Filter: Filter,
     Menu: MoreHorizontal,
     pdf: File,
@@ -163,7 +167,8 @@ export const Icons = {
     address: MapPin,
     units: Home,
     tasks: Pin,
-    payment: Pin,
+    payment: CreditCard,
+    pendingPayment: TimerIcon,
     punchout: Cpu,
     hrm: LayoutTemplate,
     communitySettings: LayoutTemplate,
@@ -205,6 +210,7 @@ export const Icons = {
     dollar: BadgeDollarSign,
     inbound: Package,
     warning: AlertTriangle,
+    employees: Users,
     user: User,
     arrowRight: ArrowRight,
     arrowLeft: ArrowLeft,

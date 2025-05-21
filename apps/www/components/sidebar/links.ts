@@ -197,28 +197,27 @@ export const linkModules = [
     _module("HRM", "hrm", "GND HRM", [
         _section("", null, [
             // _link("HRM", "hrm", "/").access(_perm.in("viewHrm")).data,
-            _link("Employees", "hrm", "/hrm/employees").access(
+            _link("Employees", "employees", "/hrm/employees").access(
                 _perm.some("viewHrm", "viewEmployee"),
             ).data,
-            _link("Profile", "profile", "/hrm/profiles").access(
-                _perm.some("viewHrm", "viewEmployee"),
-            ).data,
-            _link("Roles", "hrm", "/hrm/roles").access(
-                _perm.some("viewHrm", "viewEmployee"),
-            ).data,
+            // _link("Profile", "profile", "/hrm/profiles").access(
+            //     _perm.some("viewHrm", "viewEmployee"),
+            // ).data,
+            // _link("Roles", "roles", "/hrm/roles").access(_perm.some("viewRole"))
+            //     .data,
         ]),
         _section("", null, [
-            _link("Jobs", "project", "/contractor/jobs").access(
+            _link("Jobs", "jobs", "/contractor/jobs").access(
                 _perm.every("viewProject", "viewInvoice"),
             ).data,
             _link(
                 "Payment Receipts",
-                "project",
+                "payment",
                 "/contractor/jobs/payments",
             ).access(_perm.every("viewProject", "viewInvoice")).data,
             _link(
                 "Pending Payments",
-                "project",
+                "pendingPayment",
                 "/contractor/jobs/payments/pay",
             ).access(_perm.every("viewProject", "viewInvoice")).data,
         ]),

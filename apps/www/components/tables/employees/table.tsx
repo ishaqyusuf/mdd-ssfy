@@ -20,6 +20,8 @@ import { columns, Item } from "./columns";
 import { LoadMore } from "../load-more";
 import FPageContent from "@/components/(clean-code)/fikr-ui/f-page-content";
 import FContentShell from "@/components/(clean-code)/fikr-ui/f-content-shell";
+import { Menu } from "@/components/(clean-code)/menu";
+import { Icons } from "@/components/_v1/icons";
 
 type Props = {
     data: Item[];
@@ -87,6 +89,7 @@ export function DataTable({
                         <div className="flex-1"></div>
                         <Button
                             variant="outline"
+                            size="sm"
                             onClick={() =>
                                 setParams({
                                     createEmployee: true,
@@ -95,6 +98,9 @@ export function DataTable({
                         >
                             Create
                         </Button>
+                        <Menu>
+                            <Menu.Item icon="roles">Roles</Menu.Item>
+                        </Menu>
                     </div>
                 </FContentShell>
                 <Table>
