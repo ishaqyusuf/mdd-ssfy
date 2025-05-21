@@ -11,14 +11,14 @@ export async function generateMetadata({}) {
     });
 }
 export default async function Page({ searchParams }) {
-    await prisma.payrollHistory.deleteMany({
-        where: {},
-    });
-    await prisma.payroll.deleteMany({
-        where: {
-            deletedAt: {},
-        },
-    });
+    // await prisma.payrollHistory.deleteMany({
+    //     where: {},
+    // });
+    // await prisma.payroll.deleteMany({
+    //     where: {
+    //         deletedAt: {},
+    //     },
+    // });
 
     const [queryData] = await Promise.all([getSalesPageQueryData()]);
     return (
