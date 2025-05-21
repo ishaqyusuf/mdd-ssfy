@@ -84,6 +84,7 @@ import {
     TrendingUp,
     TrendingDown,
     AlertCircle,
+    UserCircle,
 } from "lucide-react";
 import Image from "next/image";
 import logo from "@/public/logo_mini.png";
@@ -96,6 +97,7 @@ import { cva, VariantProps } from "class-variance-authority";
 export type Icon = LucideIcon;
 
 export const Icons = {
+    profile: UserCircle,
     box: Box,
     Filter: Filter,
     Menu: MoreHorizontal,

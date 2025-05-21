@@ -8,6 +8,7 @@ import { Menu } from "@/components/(clean-code)/menu";
 import { useTable } from "..";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { updateEmployeeRole } from "@/actions/update-employee-role";
+import { updateEmployeeProfile } from "@/actions/update-employee-profile";
 
 export type Item = PageItemData<typeof getEmployees>;
 export const columns: ColumnDef<Item>[] = [
@@ -52,9 +53,7 @@ export const columns: ColumnDef<Item>[] = [
         meta: {
             preventDefault: true,
         } as ColumnMeta,
-        cell: ({ row: { original: item } }) => {
-            return <div>{item.profile?.name}</div>;
-        },
+        cell: ({ row: { original: item } }) => <Profile item={item} />,
     },
     {
         header: "",
@@ -67,6 +66,36 @@ export const columns: ColumnDef<Item>[] = [
         },
     },
 ];
+function Profile({ item }: { item: Item }) {
+    const ctx = useTable();
+    const roles = ctx.tableMeta?.filterData?.find(
+        (a) => a.value == "employeeProfileId",
+    )?.options;
+    const loader = useLoadingToast();
+    async function updateRole(roleId) {
+        loader.loading("Updating...");
+        await updateEmployeeProfile(item.id, roleId);
+        loader.success("Updated.");
+    }
+    return (
+        <Menu
+            label={item.profile?.name || "Select Profile"}
+            Icon={null}
+            variant={item?.profile?.id ? "secondary" : "destructive"}
+            hoverVariant="default"
+            triggerSize="xs"
+        >
+            {roles?.map((role) => (
+                <Menu.Item
+                    onClick={(e) => updateRole(Number(role.value))}
+                    key={role.value}
+                >
+                    {role?.label}
+                </Menu.Item>
+            ))}
+        </Menu>
+    );
+}
 function Role({ item }: { item: Item }) {
     const ctx = useTable();
     const roles = ctx.tableMeta?.filterData?.find(
@@ -82,8 +111,9 @@ function Role({ item }: { item: Item }) {
         <Menu
             label={item.role?.name || "Role not set"}
             Icon={null}
-            variant="secondary"
+            variant={item?.role?.id ? "secondary" : "destructive"}
             hoverVariant="default"
+            triggerSize="xs"
         >
             {roles?.map((role) => (
                 <Menu.Item

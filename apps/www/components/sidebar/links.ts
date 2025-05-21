@@ -200,7 +200,7 @@ export const linkModules = [
             _link("Employees", "hrm", "/hrm/employees").access(
                 _perm.some("viewHrm", "viewEmployee"),
             ).data,
-            _link("Profile", "hrm", "/hrm/profiles").access(
+            _link("Profile", "profile", "/hrm/profiles").access(
                 _perm.some("viewHrm", "viewEmployee"),
             ).data,
             _link("Roles", "hrm", "/hrm/roles").access(
