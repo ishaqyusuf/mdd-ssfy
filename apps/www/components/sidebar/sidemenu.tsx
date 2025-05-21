@@ -24,7 +24,7 @@ import {
     SidebarMenuSubItem,
 } from "@gnd/ui/sidebar";
 
-import { Icon } from "../_v1/icons";
+import { Icon, Icons } from "../_v1/icons";
 import { useSidebar } from "./context";
 import { cva } from "class-variance-authority";
 import {
@@ -105,6 +105,7 @@ export function SideMenu({}) {
         <Sidebar collapsible="icon" className="bg-white">
             <SidebarHeader className="">
                 <ModuleSwitcher />
+                <Icons.Logo />
             </SidebarHeader>
             <SidebarContent className="">
                 {sb?.linkModules?.modules
