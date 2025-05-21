@@ -105,7 +105,13 @@ export function SideMenu({}) {
         <Sidebar collapsible="icon" className="bg-white">
             <SidebarHeader className="">
                 <ModuleSwitcher />
-                <Icons.Logo />
+                {sb.state == "expanded" ? (
+                    <div className="flex">
+                        <Icons.logoLg width={100} />
+                    </div>
+                ) : (
+                    <Icons.logo />
+                )}
             </SidebarHeader>
             <SidebarContent className="">
                 {sb?.linkModules?.modules
