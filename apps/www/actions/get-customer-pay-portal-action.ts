@@ -9,8 +9,8 @@ export async function getCustomerPayPortalAction(accountNo) {
     const pendingSales = await getCustomerPendingSales(accountNo);
     const totalPayable = sum(pendingSales, "amountDue");
     const terminals = await getSquareDevices();
-    const lastUsedTerminalId = cookies().get(
-        Cookies.LastSquareTerminalUsed
+    const lastUsedTerminalId = (await cookies()).get(
+        Cookies.LastSquareTerminalUsed,
     )?.value;
     return {
         pendingSales,

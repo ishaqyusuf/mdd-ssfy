@@ -14,7 +14,7 @@ export async function getLoggedInProfile() {
     let roleId = (await serverSession())?.role?.id;
     if (env.NODE_ENV != "production") {
         const { userId, roleId: _roleId } = JSON.parse(
-            cookies().get("side-bar-auth-id")?.value || `{}`,
+            (await cookies()).get("side-bar-auth-id")?.value || `{}`,
         );
         if (userId) id = userId;
         if (_roleId) roleId = _roleId;
@@ -89,7 +89,7 @@ export async function getLoggedInProfile() {
     )();
 }
 export async function setSidebarAuthId(userId, e) {
-    cookies().set(
+    (await cookies()).set(
         "side-bar-auth-id",
         JSON.stringify({
             userId,
