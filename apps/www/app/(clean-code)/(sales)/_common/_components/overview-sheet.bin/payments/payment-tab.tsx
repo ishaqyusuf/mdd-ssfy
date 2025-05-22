@@ -7,8 +7,6 @@ import Button from "@/components/common/button";
 import FormCheckbox from "@/components/common/controls/form-checkbox";
 import FormInput from "@/components/common/controls/form-input";
 import FormSelect from "@/components/common/controls/form-select";
-import { env } from "@/env.mjs";
-import { cn } from "@/lib/utils";
 import { Dot } from "lucide-react";
 
 import { Card, CardContent, CardFooter, CardHeader } from "@gnd/ui/card";
@@ -19,6 +17,7 @@ import { Table, TableBody, TableRow } from "@gnd/ui/table";
 
 import { paymentMethods } from "../../../utils/contants";
 import { useSalesOverview } from "../overview-provider";
+import { cn } from "@/lib/utils";
 
 export function PaymentTab({}) {
     const { payCtx: ctx } = useSalesOverview();
@@ -136,7 +135,8 @@ export function TerminalPay() {
                                             <SelectItem
                                                 value={option.value}
                                                 disabled={
-                                                    env.NEXT_PUBLIC_NODE_ENV ==
+                                                    process.env
+                                                        .NEXT_PUBLIC_NODE_ENV ==
                                                     "production"
                                                         ? option.status !=
                                                           "PAIRED"

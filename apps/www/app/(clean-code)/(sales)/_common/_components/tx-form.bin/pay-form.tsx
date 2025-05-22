@@ -5,7 +5,6 @@ import FormCheckbox from "@/components/common/controls/form-checkbox";
 import FormInput from "@/components/common/controls/form-input";
 import FormSelect from "@/components/common/controls/form-select";
 import { _modal } from "@/components/common/modal/provider";
-import { env } from "@/env.mjs";
 import { cn } from "@/lib/utils";
 import { Dot, FileWarning } from "lucide-react";
 
@@ -72,7 +71,8 @@ export default function PayForm({}) {
                                                     <SelectItem
                                                         value={option.value}
                                                         disabled={
-                                                            env.NEXT_PUBLIC_NODE_ENV ==
+                                                            process.env
+                                                                .NEXT_PUBLIC_NODE_ENV ==
                                                             "production"
                                                                 ? option.status !=
                                                                   "PAIRED"

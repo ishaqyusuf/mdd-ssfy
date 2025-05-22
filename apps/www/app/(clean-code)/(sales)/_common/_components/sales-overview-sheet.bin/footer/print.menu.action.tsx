@@ -1,6 +1,5 @@
 import { salesPdf } from "@/app/(v2)/printer/_action/sales-pdf";
 import { Menu } from "@/components/(clean-code)/menu";
-import { env } from "@/env.mjs";
 import { openLink } from "@/lib/open-link";
 import { SalesPrintProps } from "@/utils/sales-print-utils";
 import QueryString from "qs";
@@ -36,7 +35,7 @@ export function PrintMenuAction({ pdf, data }: Props) {
                     // const pdf = await salesPdf(query);
                     const pdf = await fetch(
                         `${
-                            env.NEXT_PUBLIC_NODE_ENV == "production"
+                            process.env.NEXT_PUBLIC_NODE_ENV == "production"
                                 ? ""
                                 : "https://gnd-prodesk.vercel.app"
                         }/api/pdf/sales?${QueryString.stringify(query)}`,
