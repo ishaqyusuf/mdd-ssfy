@@ -16,7 +16,7 @@ export async function _email({ from, user, subject, react }: Props) {
     const isProd = process.env.NEXT_PUBLIC_NODE_ENV === "production";
     // console.log(isProd,process.env.NEXT_PUBLIC_NODE_ENV);
     // return;
-    // const resend = new Resend(env.RESEND_API_KEY);
+    // const resend = new Resend(process.env.RESEND_API_KEY);
 
     await resend.emails.send({
         from,

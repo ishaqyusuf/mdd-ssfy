@@ -16,7 +16,7 @@ export interface NotifySalesRepPayment {
 export const notifySalesRepPaymentSuccessAction = async (
     props: NotifySalesRepPayment,
 ) => {
-    if (env.NODE_ENV == "development")
+    if (process.env.NODE_ENV == "development")
         props.email = ["ishaqyusuf024@gmail.com", "pcruz321@gmail.com"] as any;
     const { ordersNo } = props;
     const response = await resend.emails.send({

@@ -123,7 +123,7 @@ export default function SquarePaymentModal({ id }: { id: number }) {
             if (data.type == "terminal") {
                 if (!data.deviceId) throw new Error("Select a terminal");
 
-                if (env.NEXT_PUBLIC_NODE_ENV == "production") {
+                if (process.env.NEXT_PUBLIC_NODE_ENV == "production") {
                     const devices = await getSquareDevices();
                     const selectedDevice = devices.find(
                         (d) => d.value == data.deviceId,

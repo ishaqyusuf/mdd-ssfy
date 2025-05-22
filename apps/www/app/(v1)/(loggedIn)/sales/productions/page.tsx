@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 interface Props {}
 export default async function SalesProductionPage(props) {
     const searchParams = await props.searchParams;
-    if (env.NODE_ENV == "production") redirect(`/sales-v2/productions`);
+    if (process.env.NODE_ENV == "production") redirect(`/sales-v2/productions`);
     const response = await getSalesProductionsAction(
         queryParams(searchParams),
         true,
@@ -63,4 +63,3 @@ export default async function SalesProductionPage(props) {
         </AuthGuard>
     );
 }
-

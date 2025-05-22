@@ -11,7 +11,7 @@ export default function ReRender({
     className?;
     children?;
 }) {
-    if (env.NEXT_PUBLIC_NODE_ENV === "production") return null;
+    if (process.env.NEXT_PUBLIC_NODE_ENV === "production") return null;
     reRender++;
 
     return (
@@ -23,4 +23,3 @@ export default function ReRender({
         </div>
     );
 }
-

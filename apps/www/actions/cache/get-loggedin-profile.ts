@@ -12,7 +12,7 @@ import { cookies } from "next/headers";
 export async function getLoggedInProfile() {
     let id = await authId();
     let roleId = (await serverSession())?.role?.id;
-    if (env.NODE_ENV != "production") {
+    if (process.env.NODE_ENV != "production") {
         const { userId, roleId: _roleId } = JSON.parse(
             (await cookies()).get("side-bar-auth-id")?.value || `{}`,
         );
@@ -97,4 +97,3 @@ export async function setSidebarAuthId(userId, e) {
         }),
     );
 }
-

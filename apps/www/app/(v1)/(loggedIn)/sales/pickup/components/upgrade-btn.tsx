@@ -7,7 +7,7 @@ import { Button } from "@gnd/ui/button";
 import { upgradeDeliveries } from "../_action/upgrade-deliveries";
 
 export default function UpgradeBtn() {
-    if (env.NEXT_PUBLIC_NODE_ENV === "production") return null;
+    if (process.env.NEXT_PUBLIC_NODE_ENV === "production") return null;
     return (
         <div>
             <Button

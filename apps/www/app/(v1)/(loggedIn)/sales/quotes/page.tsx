@@ -19,7 +19,7 @@ interface Props {}
 
 export default async function SalesEstimatesPage(props) {
     const searchParams = await props.searchParams;
-    // if (env.NODE_ENV == "production") redirect("/sales/dashboard/quotes");
+    // if (process.env.NODE_ENV == "production") redirect("/sales/dashboard/quotes");
     const response = await getSalesEstimates(queryParams(searchParams));
     return (
         <AuthGuard can={["viewEstimates"]}>
@@ -44,3 +44,4 @@ export default async function SalesEstimatesPage(props) {
         </AuthGuard>
     );
 }
+

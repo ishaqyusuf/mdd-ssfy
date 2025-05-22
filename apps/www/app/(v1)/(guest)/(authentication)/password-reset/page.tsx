@@ -15,7 +15,7 @@ import {
 } from "@gnd/ui/card";
 
 export const metadata: Metadata = {
-    metadataBase: new URL(env.NEXT_PUBLIC_APP_URL),
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL),
     title: "Reset Password",
     description: "Enter your email to reset your password",
 };
