@@ -11,7 +11,7 @@ import {
 } from "@/app/(v1)/(loggedIn)/sales/_actions/sales-production";
 import optionBuilder from "../option-builder";
 import { Icons } from "@/components/_v1/icons";
-import { env } from "@/env.mjs";
+
 import QueryString from "qs";
 import { moveOrderUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
 
@@ -20,7 +20,7 @@ export const sales = {
         const s = await moveOrderUseCase(order.orderId, to);
 
         toast.message(
-            to == "quote" ? "Order moved to quote" : "Quote moved to order"
+            to == "quote" ? "Order moved to quote" : "Quote moved to order",
         );
         if (s.error) toast.error(s.error);
         else router?.push(s.link);
@@ -65,7 +65,7 @@ export const sales = {
                         parentId: row.id,
                     });
                 },
-                Icons.Email
+                Icons.Email,
             ),
             !estimate &&
                 mb.simple(
@@ -73,12 +73,12 @@ export const sales = {
                     () => {
                         assignment.open(row.id);
                     },
-                    Icons.production
+                    Icons.production,
                 ),
             mb.simple(
                 !estimate ? "Move to Quote" : "Move to Order",
                 async () => await this.move(row, estimate ? "order" : "quote"),
-                estimate ? Icons.orders : Icons.estimates
+                estimate ? Icons.orders : Icons.estimates,
             ),
             mb.more(
                 "Copy",
@@ -88,17 +88,17 @@ export const sales = {
                         async () => {
                             await this.copy(row, "order");
                         },
-                        Icons.orders
+                        Icons.orders,
                     ),
                     mb.simple(
                         "As Quote",
                         async () => {
                             await this.copy(row, "quote");
                         },
-                        Icons.estimates
+                        Icons.estimates,
                     ),
                 ],
-                Icons.copy
+                Icons.copy,
             ),
             this.printMenu(row, "Print", false, "main", pdf),
             this.printMenu(row, "Print Mockup", true, "main", pdf),
@@ -113,7 +113,7 @@ export const sales = {
             prints?: boolean;
             pdf?: boolean;
         },
-        pdf
+        pdf,
     ) {
         if (props.pdf) {
             // const { mode, ids } = props;
@@ -145,10 +145,10 @@ export const sales = {
         };
         const link = document.createElement("a");
 
-        let base = env.NEXT_PUBLIC_APP_URL;
+        let base = process.env.NEXT_PUBLIC_APP_URL;
         const href =
             (link.href = `${base}/printer/sales?${QueryString.stringify(
-                query
+                query,
             )}`);
         QueryString.stringify(props);
         // console.log(href);
@@ -166,7 +166,7 @@ export const sales = {
                     pdf: type == "pdf",
                     prints: true,
                 },
-                pdf
+                pdf,
             );
         }
         return optionBuilder.more(
@@ -177,15 +177,15 @@ export const sales = {
                 mb.simple(
                     "Packing List",
                     () => _print("packing list"),
-                    Icons.packingList
+                    Icons.packingList,
                 ),
                 mb.simple(
                     "Production",
                     () => _print("production"),
-                    Icons.production
+                    Icons.production,
                 ),
             ],
-            type == "pdf" ? Icons.edit : Icons.print
+            type == "pdf" ? Icons.edit : Icons.print,
         );
     },
 };

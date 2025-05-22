@@ -6,7 +6,7 @@ import AppProvider from "@/components/_v1/app-provider";
 import { TailwindIndicator } from "@/components/_v1/tailwind-indicator";
 import Upgrader from "@/components/_v1/upgrader";
 import UserAccountUpdateRequiredModal from "@/components/modals/user-account-update-required-modal";
-import { env } from "@/env.mjs";
+
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import PageAnalytics from "@/lib/analytics/page-analytics";
 import { __isProd } from "@/lib/is-prod-server";
@@ -30,7 +30,7 @@ export default async function RootLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const prodDB = env.DATABASE_URL?.includes("pscale");
+    const prodDB = process.envDATABASE_URL?.includes("pscale");
     // trashSoftDeletesAction();
     return (
         <html lang="en">

@@ -15,7 +15,8 @@ export async function generateMetadata({}) {
         title: `Customers - gndprodesk.com`,
     });
 }
-export default async function CustomersPage({ searchParams }) {
+export default async function CustomersPage(props) {
+    const searchParams = await props.searchParams;
     // const search = searchParamsCache.parse(searchParams);
     // const queryClient = getQueryClient();
     // const props = composeFilter("customers");

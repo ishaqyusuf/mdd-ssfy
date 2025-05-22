@@ -16,7 +16,13 @@ export const metadata: Metadata = {
     title: "Order Overview",
     description: "Order Overview",
 };
-export default async function SalesProductionPage({ params: { slug } }) {
+export default async function SalesProductionPage(props) {
+    const params = await props.params;
+
+    const {
+        slug
+    } = params;
+
     const order: ISalesOrder = (await getOrderAction(slug)) as any;
     console.log(order);
     order.ctx = {

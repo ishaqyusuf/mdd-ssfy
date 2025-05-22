@@ -13,7 +13,8 @@ export const metadata: Metadata = {
     title: "Assign Tasks",
 };
 
-export default async function AssignTasksPage({ searchParams }) {
+export default async function AssignTasksPage(props) {
+    const searchParams = await props.searchParams;
     const response = await _getCommunityJobTasks(
         queryParams({
             ...searchParams,

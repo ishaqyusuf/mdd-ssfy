@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { SquarePaymentStatus, validateSquarePayment } from "@/_v2/lib/square";
 import { motion } from "framer-motion";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
@@ -8,7 +8,8 @@ import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardFooter } from "@gnd/ui/card";
 
-export default function SquarePaymentResponse({ params }) {
+export default function SquarePaymentResponse(props) {
+    const params = use(props.params);
     const [paymentState, setPaymentState] =
         useState<SquarePaymentStatus>("PENDING");
     const { paymentId } = params;

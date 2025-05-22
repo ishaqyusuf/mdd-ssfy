@@ -13,7 +13,8 @@ import { getCustomerProfiles } from "./_components/actions";
 export const metadata: Metadata = {
     title: "customer profiles",
 };
-export default async function CustomerProfilesPage({ searchParams }) {
+export default async function CustomerProfilesPage(props) {
+    const searchParams = await props.searchParams;
     const response = getCustomerProfiles(searchParams);
     return (
         <AuthGuard can={["editSalesCustomers"]}>

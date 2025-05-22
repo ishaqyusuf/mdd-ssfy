@@ -4,7 +4,9 @@ import BlogForm from "./blog-form";
 import { realtimeMdx } from "../../_actions/real-time-mdx";
 import { mdxComponents } from "../../mdx-components";
 
-export default async function EditBlog({ searchParams, params }) {
+export default async function EditBlog(props) {
+    const params = await props.params;
+    const searchParams = await props.searchParams;
     const [type, slug] = params.slug;
     // if (slug) redirect(`/blogs`);
     let renderSlug = slug || searchParams?.slug;

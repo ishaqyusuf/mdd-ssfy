@@ -10,7 +10,6 @@ import { Icons } from "@/components/_v1/icons";
 import { useModal } from "@/components/common/modal/provider";
 import { DykeDoorTablePromiseProps } from "./dyke-doors-table";
 import Image from "next/image";
-import { env } from "@/env.mjs";
 
 interface Props {
     item: DykeDoorTablePromiseProps["Item"];

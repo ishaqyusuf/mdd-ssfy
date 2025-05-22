@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { ResetPasswordForm } from "@/components/_v1/forms/reset-password-form";
 import { Shell } from "@/components/_v1/shells/shell";
-import { env } from "@/env.mjs";
+
 import { ArrowLeft } from "lucide-react";
 
 import {

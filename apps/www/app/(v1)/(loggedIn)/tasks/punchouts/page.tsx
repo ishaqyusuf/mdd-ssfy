@@ -15,7 +15,8 @@ import JobTableShell from "../../contractor/jobs/job-table-shell";
 export const metadata: Metadata = {
     title: "Installations",
 };
-export default async function PunchoutPage({ searchParams }) {
+export default async function PunchoutPage(props) {
+    const searchParams = await props.searchParams;
     const response = await getMyJobs(
         queryParams(searchParams, { type: "punchout" })
     );

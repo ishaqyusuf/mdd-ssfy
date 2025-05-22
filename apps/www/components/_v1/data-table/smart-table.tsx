@@ -30,7 +30,7 @@ export function SmartTable<T>(data) {
             content?(data: T): {
                 as?;
                 link?;
-                story: (IStory | ReactElement)[];
+                story: (IStory | ReactElement<any>)[];
             };
         }
     ): IColumn {
@@ -98,7 +98,7 @@ export function SmartTable<T>(data) {
             content: (data: T) => {
                 as?;
                 link?;
-                story: (IStory | ReactElement)[];
+                story: (IStory | ReactElement<any>)[];
             },
             params: Omit<IColumn, "id" | "header"> & { id? } = {}
         ) {

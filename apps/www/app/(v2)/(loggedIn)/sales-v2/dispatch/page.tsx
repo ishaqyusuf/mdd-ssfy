@@ -12,7 +12,8 @@ export async function generateMetadata({ searchParams }) {
         title: `Sales Dispatch`,
     };
 }
-export default async function SalesDispatchPage({ searchParams }) {
+export default async function SalesDispatchPage(props) {
+    const searchParams = await props.searchParams;
     const response = getDispatchSalesAction(searchParams);
     return (
         <FPage title="Sales Dispatch">

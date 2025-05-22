@@ -197,8 +197,8 @@ function AutoComplete2({
             }
         }, 500);
     }
-    const buttonRef = useRef<HTMLButtonElement>();
-    const inputRef = useRef<HTMLInputElement>();
+    const buttonRef = useRef<HTMLButtonElement>(undefined);
+    const inputRef = useRef<HTMLInputElement>(undefined);
 
     const [position, setPosition] = useState<any>({ x: 0, y: 0 });
 

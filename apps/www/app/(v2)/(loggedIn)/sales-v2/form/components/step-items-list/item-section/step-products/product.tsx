@@ -14,7 +14,7 @@ import { Info } from "@/components/_v1/info";
 import Money from "@/components/_v1/money";
 import Img from "@/components/(clean-code)/img";
 import { PlaceholderImage } from "@/components/placeholder-image";
-import { env } from "@/env.mjs";
+
 import { cn, safeFormText } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Dot } from "lucide-react";

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { AspectRatio } from "../ui/aspect-ratio";
 import Image from "next/image";
-import { env } from "@/env.mjs";
+
 import { PlaceholderImage } from "../placeholder-image";
 import SVG from "react-inlinesvg";
 interface Props {

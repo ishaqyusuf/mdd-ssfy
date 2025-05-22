@@ -6,7 +6,7 @@ import { prisma } from "@/db";
 import { _dbUser, userId } from "./utils";
 import { transformEmail } from "@/lib/email-transform";
 import { _generateSalesPdf } from "../(loggedIn)/sales/_actions/save-pdf";
-import { env } from "@/env.mjs";
+
 import { resend } from "@/lib/resend";
 import dayjs from "dayjs";
 import { __isProd } from "@/lib/is-prod-server";

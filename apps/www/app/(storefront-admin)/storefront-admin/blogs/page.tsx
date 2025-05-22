@@ -3,7 +3,8 @@ import { Shell } from "@/components/shell";
 import BlogsTable from "./blogs-table";
 import { getBlogsAction } from "./_actions/get-blogs-action";
 
-export default function BlogsPage({ searchParams }) {
+export default async function BlogsPage(props) {
+    const searchParams = await props.searchParams;
     const promise = getBlogsAction(searchParams);
 
     return (

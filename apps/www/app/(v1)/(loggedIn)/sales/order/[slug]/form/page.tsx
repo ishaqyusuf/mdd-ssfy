@@ -17,10 +17,13 @@ export const metadata: Metadata = {
     title: "Edit Invoice",
     description: "",
 };
-export default async function OrderFormPage({
-    searchParams,
-    params: { slug },
-}) {
+export default async function OrderFormPage(props) {
+    const params = await props.params;
+
+    const {
+        slug
+    } = params;
+
     redirect(`/sales/edit/order/${slug}`);
     const resp: SalesFormResponse = await _getSalesFormAction({
         orderId: slug,

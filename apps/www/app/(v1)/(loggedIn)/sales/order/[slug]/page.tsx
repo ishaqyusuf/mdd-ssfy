@@ -21,7 +21,13 @@ export const metadata: Metadata = {
     description: "Order Overview",
 };
 
-export default async function SalesOrderPage({ params: { slug } }) {
+export default async function SalesOrderPage(props) {
+    const params = await props.params;
+
+    const {
+        slug
+    } = params;
+
     const s = await prisma.salesOrders.findFirst({
         where: {
             id: 3263,

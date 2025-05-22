@@ -11,7 +11,8 @@ export const metadata: Metadata = {
     title: "Create Back Order",
 };
 interface Props {}
-export default async function CreateBackOrderPage({ searchParams }) {
+export default async function CreateBackOrderPage(props) {
+    const searchParams = await props.searchParams;
     const orderIds = searchParams.orderIds?.split(",");
     if (!orderIds.length) redirect("/sales/orders");
     const orders = await prisma.salesOrders.findMany({

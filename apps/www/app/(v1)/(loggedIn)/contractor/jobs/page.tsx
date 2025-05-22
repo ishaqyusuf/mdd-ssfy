@@ -14,7 +14,8 @@ import JobTableShell from "./job-table-shell";
 export const metadata: Metadata = {
     title: "Jobs",
 };
-export default async function ContractorJobsPage({ searchParams }) {
+export default async function ContractorJobsPage(props) {
+    const searchParams = await props.searchParams;
     const response = await getJobs(queryParams(searchParams));
 
     return (

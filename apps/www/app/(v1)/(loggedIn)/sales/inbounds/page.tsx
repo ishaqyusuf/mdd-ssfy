@@ -12,7 +12,8 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
     title: "Inbounds Orders",
 };
-export default async function InboundPage({ searchParams }) {
+export default async function InboundPage(props) {
+    const searchParams = await props.searchParams;
     const response = await _getInboundOrders(queryParams(searchParams));
     const op = await getOrderableItemsCount();
     return (

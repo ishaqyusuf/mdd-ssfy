@@ -14,7 +14,8 @@ export const metadata: Metadata = {
     title: "Customers",
 };
 interface Props {}
-export default async function CustomersPage({ searchParams }) {
+export default async function CustomersPage(props) {
+    const searchParams = await props.searchParams;
     const response = getCustomersAction(queryParams(searchParams));
 
     return (

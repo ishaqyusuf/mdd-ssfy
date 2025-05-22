@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { SalesPrintProps } from "@/app/(v2)/printer/sales/page";
-import { env } from "@/env.mjs";
+
 import QueryString from "qs";
 
 export default function Page({}) {
@@ -27,7 +27,7 @@ export default function Page({}) {
 
             const pdf = await fetch(
                 `${
-                    env.NEXT_PUBLIC_NODE_ENV == "production"
+                    process.env.NEXT_PUBLIC_NODE_ENV == "production"
                         ? ""
                         : "https://gnd-prodesk.vercel.app"
                 }/api/pdf/sales?${QueryString.stringify(query)}`,

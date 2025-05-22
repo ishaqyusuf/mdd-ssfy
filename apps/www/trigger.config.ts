@@ -5,7 +5,7 @@ import { defineConfig } from "@trigger.dev/sdk/v3";
 
 export default defineConfig({
     project: "proj_caklyqpkhwrtmdbtjhjs",
-    // project: env.TRIGGER_PROJECT_ID,
+    // project:process.envTRIGGER_PROJECT_ID,
     runtime: "node",
     logLevel: "log",
     // The max compute seconds a task is allowed to run. If the task run exceeds this duration, it will be stopped.
@@ -25,7 +25,7 @@ export default defineConfig({
     build: {
         extensions: [
             // syncVercelEnvVars({
-            //     projectId: env.VERCEL_PROJECT_ID,
+            //     projectId:process.envVERCEL_PROJECT_ID,
             // }),
             prismaExtension({
                 // version: "5.20.0", // optional, we'll automatically detect the version if not provided

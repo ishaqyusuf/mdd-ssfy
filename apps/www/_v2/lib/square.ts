@@ -3,7 +3,7 @@
 import { userId } from "@/app/(v1)/_actions/utils";
 import { CheckoutStatus } from "@/app/(v2)/(loggedIn)/sales-v2/_components/_square-payment-modal/action";
 import { prisma } from "@/db";
-import { env } from "@/env.mjs";
+
 import { __isProd } from "@/lib/is-prod-server";
 import { SQUARE_LOCATION_ID, squareClient } from "@/utils/square-utils";
 import { ApiError, OrderLineItem, PrePopulatedData } from "square";

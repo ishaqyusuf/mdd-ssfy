@@ -14,7 +14,8 @@ export const metadata: Metadata = {
     title: "Order Pickup",
 };
 interface Props {}
-export default async function SalesPickupPage({ searchParams }) {
+export default async function SalesPickupPage(props) {
+    const searchParams = await props.searchParams;
     const response = await _getSalesPickup(queryParams(searchParams));
     return (
         <AuthGuard can={["viewPickup"]}>

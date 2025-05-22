@@ -1,4 +1,3 @@
-import { env } from "@/env.mjs";
 import { EmailTriggerEventType } from "../templates/events";
 interface MailProps {
     subject: string;

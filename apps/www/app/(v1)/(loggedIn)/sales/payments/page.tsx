@@ -12,7 +12,8 @@ export const metadata: Metadata = {
     title: "Sales Payment",
 };
 interface Props {}
-export default async function SalesPaymentPage({ searchParams }) {
+export default async function SalesPaymentPage(props) {
+    const searchParams = await props.searchParams;
     const response = await getsalesPayments(queryParams(searchParams));
     return (
         <AuthGuard can={["viewOrderPayment"]}>

@@ -12,7 +12,8 @@ export const metadata: Metadata = {
     title: "Ready for Delivery",
 };
 interface Props {}
-export default async function LoadDeliveryPage({ searchParams }) {
+export default async function LoadDeliveryPage(props) {
+    const searchParams = await props.searchParams;
     const orderIds = searchParams.orderIds?.split(",");
     if (!orderIds.length) redirect("/sales/orders");
     const orders = await prisma.salesOrders.findMany({

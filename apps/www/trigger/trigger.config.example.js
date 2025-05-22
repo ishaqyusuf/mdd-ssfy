@@ -5,7 +5,7 @@ import { syncVercelEnvVars } from "@trigger.dev/build/extensions/core";
 import { env } from "process";
 export default defineConfig({
     // project: "proj_caklyqpkhwrtmdbtjhjs", // Your project reference
-    project: env.TRIGGER_PROJECT_ID,
+    project: process.envTRIGGER_PROJECT_ID,
     //
     // Your other config settings...
     build: {

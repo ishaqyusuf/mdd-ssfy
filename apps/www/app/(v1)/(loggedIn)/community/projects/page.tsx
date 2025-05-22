@@ -12,7 +12,8 @@ export const metadata: Metadata = {
     title: "Projects",
 };
 interface Props {}
-export default async function ProjectsPage({ searchParams }) {
+export default async function ProjectsPage(props) {
+    const searchParams = await props.searchParams;
     const response = await getProjectsAction(queryParams(searchParams));
     return (
         <AuthGuard can={["viewProject"]}>

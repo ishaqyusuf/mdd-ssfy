@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { env } from "./env.mjs";
 
 export const config = {
     matcher: [
@@ -21,15 +20,15 @@ export default async function middleware(req: NextRequest) {
 
     // Get hostname of request (e.g. demo.vercel.pub, demo.localhost:3000)
     let hostname = req.headers.get("host");
-    // .replace(".localhost:3002", `.${env.NEXT_PUBLIC_ROOT_DOMAIN}`);
+    // .replace(".localhost:3002", `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`);
 
     // special case for Vercel preview deployment URLs
     // if (
     //   hostname.includes("---") &&
-    //   hostname.endsWith(`.${env.NEXT_PUBLIC_VERCEL_DEPLOYMENT_SUFFIX}`)
+    //   hostname.endsWith(`.${process.env.NEXT_PUBLIC_VERCEL_DEPLOYMENT_SUFFIX}`)
     // ) {
     //   hostname = `${hostname.split("---")[0]}.${
-    //     env.NEXT_PUBLIC_ROOT_DOMAIN
+    //    process.process.env.NEXT_PUBLIC_ROOT_DOMAIN
     //   }`;
     // }
 
@@ -39,10 +38,10 @@ export default async function middleware(req: NextRequest) {
         searchParams.length > 0 ? `?${searchParams}` : ""
     }`;
 
-    // console.log([hostname, env.NEXT_PUBLIC_ROOT_DOMAIN]);
+    // console.log([hostname,process.process.env.NEXT_PUBLIC_ROOT_DOMAIN]);
 
     // rewrites for app pages
-    if (hostname == `shop.${env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
+    if (hostname == `shop.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
         // const session = await getToken({ req });
         // if (!session && path !== "/login") {
         // return NextResponse.redirect(new URL("/login", req.url));
@@ -51,10 +50,10 @@ export default async function middleware(req: NextRequest) {
         // }
         // console.log("=====SAAS=====", path);
         return NextResponse.rewrite(
-            new URL(`/shop${path === "/" ? "" : path}`, req.url)
+            new URL(`/shop${path === "/" ? "" : path}`, req.url),
         );
     }
-    if (hostname == `shop-admin.${env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
+    if (hostname == `shop-admin.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
         // const session = await getToken({ req });
         // if (!session && path !== "/login") {
         // return NextResponse.redirect(new URL("/login", req.url));
@@ -63,10 +62,10 @@ export default async function middleware(req: NextRequest) {
         // }
         // console.log("=====SAAS=====", path);
         return NextResponse.rewrite(
-            new URL(`/shop-admin${path === "/" ? "" : path}`, req.url)
+            new URL(`/shop-admin${path === "/" ? "" : path}`, req.url),
         );
     }
-    if (hostname == `print.${env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
+    if (hostname == `print.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
         // const session = await getToken({ req });
         // if (!session && path !== "/login") {
         // return NextResponse.redirect(new URL("/login", req.url));
@@ -75,10 +74,10 @@ export default async function middleware(req: NextRequest) {
         // }
         // console.log("=====SAAS=====", path);
         return NextResponse.rewrite(
-            new URL(`/printer${path === "/" ? "" : path}`, req.url)
+            new URL(`/printer${path === "/" ? "" : path}`, req.url),
         );
     }
-    if (hostname == `print.${env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
+    if (hostname == `print.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
         // const session = await getToken({ req });
         // if (!session && path !== "/login") {
         // return NextResponse.redirect(new URL("/login", req.url));
@@ -87,10 +86,10 @@ export default async function middleware(req: NextRequest) {
         // }
         // console.log("=====SAAS=====", path);
         return NextResponse.rewrite(
-            new URL(`/printer${path === "/" ? "" : path}`, req.url)
+            new URL(`/printer${path === "/" ? "" : path}`, req.url),
         );
     }
-    if (hostname == `download.${env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
+    if (hostname == `download.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
         // const session = await getToken({ req });
         // if (!session && path !== "/login") {
         // return NextResponse.redirect(new URL("/login", req.url));
@@ -99,7 +98,7 @@ export default async function middleware(req: NextRequest) {
         // }
         // console.log("=====SAAS=====", path);
         return NextResponse.rewrite(
-            new URL(`/download${path === "/" ? "" : path}`, req.url)
+            new URL(`/download${path === "/" ? "" : path}`, req.url),
         );
     }
 
@@ -113,7 +112,7 @@ export default async function middleware(req: NextRequest) {
     // rewrite root application to `/home` folder
     // if (
     //     hostname === "localhost:3002" ||
-    //     hostname === env.NEXT_PUBLIC_ROOT_DOMAIN
+    //     hostname ===process.process.env.NEXT_PUBLIC_ROOT_DOMAIN
     // ) {
     //     // console.log("..");
     //     return NextResponse.rewrite(

@@ -12,7 +12,8 @@ import BuildersTableShell from "./builders-table-shell";
 export const metadata: Metadata = {
     title: "Builders",
 };
-export default async function BuildersPage({ searchParams }) {
+export default async function BuildersPage(props) {
+    const searchParams = await props.searchParams;
     const response = await getBuildersAction(queryParams(searchParams));
     return (
         <AuthGuard can={["viewBuilders"]}>

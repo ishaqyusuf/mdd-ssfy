@@ -1,5 +1,5 @@
 import { Icons } from "@/components/_v1/icons";
-import { env } from "@/env.mjs";
+
 import { ICan } from "@/types/auth";
 import { Session } from "next-auth";
 
@@ -386,7 +386,7 @@ function groupedNavs({
     }
     return { rl, route };
 }
-const isProd = env.NEXT_PUBLIC_NODE_ENV == "production";
+const isProd = process.env.NEXT_PUBLIC_NODE_ENV == "production";
 export const upRoutes = [
     "Dashboard",
     !isProd && "Community",

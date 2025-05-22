@@ -18,7 +18,8 @@ export const metadata: Metadata = {
     description: "",
 };
 interface Props {}
-export default async function SalesProductionPage({ searchParams }) {
+export default async function SalesProductionPage(props) {
+    const searchParams = await props.searchParams;
     // if (env.NODE_ENV == "production")
     redirect(`/sales-book/production-tasks`);
     const response = await getSalesProductionsAction(queryParams(searchParams));

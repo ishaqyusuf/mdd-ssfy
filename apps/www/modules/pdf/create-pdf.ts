@@ -1,7 +1,7 @@
 "use server";
 import { AsyncFnType } from "@/app/(clean-code)/type";
 import { logError } from "../error/report";
-import { env } from "@/env.mjs";
+
 import { uploadPDFToCloudinary } from "../cloudinary";
 import { generateRandomString } from "@/lib/utils";
 
@@ -47,7 +47,7 @@ export async function createPdf(props: Props) {
                         const r = await uploadPDFToCloudinary(
                             pdf,
                             ls.fileName || generateRandomString(),
-                            ls.folder
+                            ls.folder,
                         );
                         resp.cloudinary = r;
                         // r.url
@@ -61,7 +61,7 @@ export async function createPdf(props: Props) {
                         pdf: null,
                     };
                 }
-            })
+            }),
         );
         await ctx?.browser?.close();
         return pdfs;

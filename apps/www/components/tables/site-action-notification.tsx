@@ -161,7 +161,9 @@ function UsersCell({ action, users }: UserCellProps) {
 
                 {
                     <ComboboxContent
-                        ref={(node) => setContent(node)}
+                        ref={node => {
+                            setContent(node);
+                        }}
                         className="relative max-h-[300px] overflow-y-auto overflow-x-hidden"
                     >
                         <ComboboxEmpty>No user found</ComboboxEmpty>

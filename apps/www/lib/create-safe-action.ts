@@ -37,7 +37,7 @@ export const createSafeAction = <TInput = any, TOutput = any>(
             return { ...resp } as any;
         } catch (e) {
             // await _email({
-            //     from: env.EMAIL_FROM_ADDRESS,
+            //     from:process.envEMAIL_FROM_ADDRESS,
             //     user: { email: "ishaqyusuf024@gmail.com" },
             //     subject: "Server error",
             //     react: ErrorMail({

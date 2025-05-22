@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
-import { env } from "@/env.mjs";
+
 import { uploadFile, UploadFolders } from "@/lib/upload-file";
 import { Cloud, Upload, UploadIcon } from "lucide-react";
 import { toast } from "sonner";

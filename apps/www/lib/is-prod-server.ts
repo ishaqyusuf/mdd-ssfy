@@ -1,5 +1,3 @@
 // "use server";
 
-import { env } from "@/env.mjs";
-
-export const __isProd = env.NODE_ENV == "production";
+export const __isProd = process.envNODE_ENV == "production";

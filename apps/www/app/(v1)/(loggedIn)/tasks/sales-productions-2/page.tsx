@@ -13,7 +13,8 @@ import { redirect } from "next/navigation";
 export const metadata: Metadata = {
     title: "Sales Productions",
 };
-export default function SalesProductionPage({ searchParams }) {
+export default async function SalesProductionPage(props) {
+    const searchParams = await props.searchParams;
     redirect(`/sales-book/production-tasks`);
     const p = _getProductionList({ query: searchParams, production: true });
     const dueToday = _getProductionList({

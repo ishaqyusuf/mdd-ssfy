@@ -1,6 +1,5 @@
 "use client";
 
-import { env } from "@/env.mjs";
 import { cn } from "@/lib/utils";
 import { FormProvider, useFormContext } from "react-hook-form";
 
@@ -14,7 +13,7 @@ export default function RenderForm({
     children?;
 } & any) {
     const form = useFormContext();
-    const isProd = env.NEXT_PUBLIC_NODE_ENV === "production";
+    const isProd = process.env.NEXT_PUBLIC_NODE_ENV === "production";
     if (!isProd) reRender++;
     // else return <>{children}</>;
     if (!form)
@@ -45,7 +44,7 @@ export default function RenderForm({
 let reCtxRender = 0;
 function ContextRenderForm({ children, ...props }) {
     reCtxRender++;
-    const isProd = env.NEXT_PUBLIC_NODE_ENV === "production";
+    const isProd = process.env.NEXT_PUBLIC_NODE_ENV === "production";
     return (
         <FormProvider {...(props as any)}>
             <div

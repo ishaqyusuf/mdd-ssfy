@@ -1,6 +1,5 @@
 "use client";
 
-import { env } from "@/env.mjs";
 import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";

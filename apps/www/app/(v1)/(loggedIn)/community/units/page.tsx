@@ -16,7 +16,9 @@ export const metadata: Metadata = {
     title: "All Units",
 };
 interface Props {}
-export default async function CommunityUnitsPage({ searchParams, params }) {
+export default async function CommunityUnitsPage(props) {
+    const params = await props.params;
+    const searchParams = await props.searchParams;
     const response = await getHomesAction(
         queryParams({ ...searchParams, _projectSlug: params.slug })
     );

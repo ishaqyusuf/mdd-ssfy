@@ -8,10 +8,8 @@ import dayjs from "dayjs";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-export default async function RegistrationSubmittedPage({
-    searchParams,
-    params,
-}) {
+export default async function RegistrationSubmittedPage(props) {
+    const params = await props.params;
     const e = await prisma.dealerToken.findFirst({
         where: { token: params.token },
     });

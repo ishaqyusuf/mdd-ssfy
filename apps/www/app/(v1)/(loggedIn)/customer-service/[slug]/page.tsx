@@ -12,7 +12,13 @@ export const metadata: Metadata = {
     description: "",
 };
 
-export default async function CustomerServicePage({ params: { slug } }) {
+export default async function CustomerServicePage(props) {
+    const params = await props.params;
+
+    const {
+        slug
+    } = params;
+
     const workOrder = await getCustomerService(slug);
     metadata.description = workOrder?.homeOwner;
     if (!workOrder) return notFound();

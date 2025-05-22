@@ -7,7 +7,8 @@ import ImgModal from "@/components/_v1/modals/img-modal";
 import ContractorDocuments from "../documents";
 import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 
-export default async function ContractorOverviewPage({ searchParams, params }) {
+export default async function ContractorOverviewPage(props) {
+    const params = await props.params;
     const userId = +params.contractorId;
     const contractor = await getContractorOverviewAction(userId);
 

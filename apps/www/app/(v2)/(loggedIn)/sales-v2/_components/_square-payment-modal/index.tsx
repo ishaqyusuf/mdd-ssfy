@@ -25,7 +25,7 @@ import {
     ModalContextProps,
     useModal,
 } from "@/components/common/modal/provider";
-import { env } from "@/env.mjs";
+
 import { openLink } from "@/lib/open-link";
 import { cn } from "@/lib/utils";
 import { TabsContent } from "@radix-ui/react-tabs";
@@ -288,7 +288,8 @@ export default function SquarePaymentModal({ id }: { id: number }) {
                                         <SelectItem
                                             value={option.value}
                                             disabled={
-                                                env.NEXT_PUBLIC_NODE_ENV ==
+                                                process.env
+                                                    .NEXT_PUBLIC_NODE_ENV ==
                                                 "production"
                                                     ? option.status != "PAIRED"
                                                     : false

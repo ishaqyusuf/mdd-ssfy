@@ -205,7 +205,8 @@ export function PayPortalTab({}) {
                                         <SelectItem
                                             value={option.value}
                                             disabled={
-                                                env.NEXT_PUBLIC_NODE_ENV ==
+                                                process.env
+                                                    .NEXT_PUBLIC_NODE_ENV ==
                                                 "production"
                                                     ? option.status != "PAIRED"
                                                     : false

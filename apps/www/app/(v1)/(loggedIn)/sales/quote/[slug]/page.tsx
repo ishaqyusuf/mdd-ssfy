@@ -18,7 +18,13 @@ export const metadata: Metadata = {
     title: "Order Overview",
     description: "Order Overview",
 };
-export default async function EstimateViewPage({ params: { slug } }) {
+export default async function EstimateViewPage(props) {
+    const params = await props.params;
+
+    const {
+        slug
+    } = params;
+
     const order: ISalesOrder = (await getOrderAction(slug)) as any;
     if (!order) return notFound();
     metadata.description = order.orderId;

@@ -14,7 +14,8 @@ import NewSalesBtn from "../../../orders/components/new-sales-btn";
 export const metadata: Metadata = {
     title: "Customer Overview",
 };
-export default async function CustomerPage({ searchParams, params }) {
+export default async function CustomerPage(props) {
+    const params = await props.params;
     const response = await getCustomerAction(+params.slug);
     const { customer } = response;
     metadata.title = `${customer?.name} | Overview`;

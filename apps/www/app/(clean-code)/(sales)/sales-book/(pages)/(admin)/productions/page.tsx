@@ -12,7 +12,8 @@ export async function generateMetadata({}) {
         title: `Sales Production - gndprodesk.com`,
     });
 }
-export default async function Page({ searchParams }) {
+export default async function Page(props) {
+    const searchParams = await props.searchParams;
     const [orderNos] = await Promise.all([__getSalesOrderNos()]);
     return (
         <FPage can={["viewOrders"]} className="" title="Productions">

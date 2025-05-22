@@ -9,7 +9,8 @@ import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 import { ISalesType } from "@/types/sales";
 import { prisma } from "@/db";
 
-export async function generateMetadata({ params, searchParams }) {
+export async function generateMetadata(props) {
+    const params = await props.params;
     const [type, slug] = params.typeAndSlug;
     const title = `${type} | ${slug}`;
     return {
@@ -17,7 +18,13 @@ export async function generateMetadata({ params, searchParams }) {
     };
 }
 
-export default async function SalesOverviewPage({ params: { typeAndSlug } }) {
+export default async function SalesOverviewPage(props) {
+    const params = await props.params;
+
+    const {
+        typeAndSlug
+    } = params;
+
     const [type, slug]: [ISalesType, string] = typeAndSlug;
 
     const data = getSalesOverview({ type, slug });

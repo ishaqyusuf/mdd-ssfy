@@ -10,7 +10,8 @@ export async function generateMetadata({}) {
         title: `Sales Dispatch - gndprodesk.com`,
     });
 }
-export default async function DispatchPage({ searchParams }) {
+export default async function DispatchPage(props0) {
+    const searchParams = await props0.searchParams;
     const search = searchParamsCache.parse(searchParams);
     const queryClient = getQueryClient();
     const props = composeFilter(

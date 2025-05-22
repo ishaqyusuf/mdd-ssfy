@@ -15,17 +15,18 @@ import { Metadata } from "next";
 import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 import ProductionPageTabs from "@/app/(v2)/(loggedIn)/sales-v2/productions/_components/production-page-tabs";
 import { redirect } from "next/navigation";
-import { env } from "@/env.mjs";
+
 export const metadata: Metadata = {
     title: "Sales Production",
     description: "",
 };
 interface Props {}
-export default async function SalesProductionPage({ searchParams }) {
+export default async function SalesProductionPage(props) {
+    const searchParams = await props.searchParams;
     if (env.NODE_ENV == "production") redirect(`/sales-v2/productions`);
     const response = await getSalesProductionsAction(
         queryParams(searchParams),
-        true
+        true,
     );
     const todaysProd = await prodsDueToday(true);
     return (
@@ -62,3 +63,4 @@ export default async function SalesProductionPage({ searchParams }) {
         </AuthGuard>
     );
 }
+

@@ -22,7 +22,8 @@ import { getCommunityTemplates } from "../_components/home-template";
 export const metadata: Metadata = {
     title: "Community Templates",
 };
-export default async function CommunityTemplatesPage({ searchParams }) {
+export default async function CommunityTemplatesPage(props) {
+    const searchParams = await props.searchParams;
     // const histories = await prisma.communityTemplateHistory.findMany({
     //     where: {},
     // });

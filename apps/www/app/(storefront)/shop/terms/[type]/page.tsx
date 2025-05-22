@@ -7,7 +7,8 @@ import { nextId } from "@/lib/nextId";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-export default async function TermsPage({ params }) {
+export default async function TermsPage(props) {
+    const params = await props.params;
     const term = await prisma.blogs.findUnique({
         where: {
             slug: params.type,

@@ -1,5 +1,5 @@
 // @ts-check
-import "./src/env.mjs";
+// import "./src/env.mjs";
 
 // import "@gnd/auth/env.mjs";
 

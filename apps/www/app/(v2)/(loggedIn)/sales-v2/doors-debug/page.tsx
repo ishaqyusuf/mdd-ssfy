@@ -1,7 +1,8 @@
 import { prisma } from "@/db";
 import Search from "./search";
 
-export default async function DoorsDebug({ searchParams }) {
+export default async function DoorsDebug(props) {
+    const searchParams = await props.searchParams;
     const { q, omit } = searchParams;
 
     const doors = await prisma.dykeShelfProducts.findMany({

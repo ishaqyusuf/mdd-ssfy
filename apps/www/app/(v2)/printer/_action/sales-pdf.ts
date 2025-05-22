@@ -1,5 +1,5 @@
 "use server";
-import { env } from "@/env.mjs";
+
 import { SalesPrintProps } from "../sales/page";
 import QueryString from "qs";
 import { uploadPDFToCloudinary } from "@/modules/cloudinary";
@@ -12,7 +12,7 @@ export async function salesPdf(query: SalesPrintProps["searchParams"]) {
     const cloudinary = await uploadPDFToCloudinary(
         pdf,
         `${query.slugs}-${dayjs().valueOf()}.pdf`,
-        "sales-orders"
+        "sales-orders",
     );
     return {
         // uri: pdfDataUri,
@@ -34,7 +34,7 @@ async function geenrate(query: SalesPrintProps["searchParams"]) {
         {
             ...query,
             rnd: generateRandomString(),
-        }
+        },
     )}`;
 
     await page.goto(url, {

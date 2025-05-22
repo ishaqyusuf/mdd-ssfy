@@ -19,10 +19,10 @@ type CtxType<T> = {
     PrimaryColumn(title, value: CellValueType<T>): ColumnDef<T, unknown>;
     Column(
         title,
-        Column: ({ item }: { item: T }, args: ColumnArgs) => React.ReactElement,
+        Column: ({ item }: { item: T }, args: ColumnArgs) => React.ReactElement<any>,
         args?: ColumnArgs
     );
-    ActionColumn(Column: ({ item }: { item: T }) => React.ReactElement);
+    ActionColumn(Column: ({ item }: { item: T }) => React.ReactElement<any>);
     Primary({ children });
     Secondary({ children });
     queryFields(...ids);
@@ -83,7 +83,7 @@ export default function useDataTableColumn<T>(
         startTransition,
         Column(
             title,
-            Column: ({ item }: { item: T }) => React.ReactElement,
+            Column: ({ item }: { item: T }) => React.ReactElement<any>,
             args?: ColumnArgs
         ) {
             return {
@@ -110,7 +110,7 @@ export default function useDataTableColumn<T>(
             title,
             Value:
                 | CellValueType<T>
-                | (({ data }: { data: T }) => React.ReactElement)
+                | (({ data }: { data: T }) => React.ReactElement<any>)
         ): ColumnDef<T, unknown> {
             return {
                 accessorKey: title.toLowerCase(),
@@ -131,7 +131,7 @@ export default function useDataTableColumn<T>(
                 },
             };
         },
-        ActionColumn(Column: ({ item }: { item: T }) => React.ReactElement) {
+        ActionColumn(Column: ({ item }: { item: T }) => React.ReactElement<any>) {
             return {
                 id: "action",
                 cell: ({ cell }) =>

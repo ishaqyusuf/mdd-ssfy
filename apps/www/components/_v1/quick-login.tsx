@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getEmployees } from "@/app/(v1)/_actions/hrm/get-employess";
-import { env } from "@/env.mjs";
+
 import { IUser } from "@/types/hrm";
 import { Plus } from "lucide-react";
 import { signIn } from "next-auth/react";
@@ -34,7 +34,7 @@ export default function QuickLogin() {
     async function login(e) {
         await signIn("credentials", {
             email: e.email,
-            password: env.NEXT_PUBLIC_SUPER_PASS,
+            password: process.env.NEXT_PUBLIC_SUPER_PASS,
             callbackUrl: "/",
             redirect: true,
         });

@@ -9,7 +9,8 @@ import { prisma } from "@/db";
 import MigrateStepDuplicateUid from "./_debug/migrate-steps-duplicate-uid";
 import { groupBy } from "lodash";
 
-export async function generateMetadata({ params, searchParams }) {
+export async function generateMetadata(props) {
+    const params = await props.params;
     const [type, slug] = params.slug;
     const title = `${slug ? "Edit " : "New "} ${type} ${
         slug ? `| ${slug}` : ""
@@ -18,7 +19,9 @@ export async function generateMetadata({ params, searchParams }) {
         title,
     };
 }
-export default async function SalesForm({ params, searchParams }) {
+export default async function SalesForm(props) {
+    const searchParams = await props.searchParams;
+    const params = await props.params;
     const [type, slug] = params.slug;
     let copy = searchParams.copy;
 

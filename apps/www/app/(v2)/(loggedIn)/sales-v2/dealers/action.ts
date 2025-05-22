@@ -5,7 +5,7 @@ import { _revalidate } from "@/app/(v1)/_actions/_revalidate";
 import { sendMessage } from "@/app/(v1)/_actions/email";
 import { userId } from "@/app/(v1)/_actions/utils";
 import { prisma, Prisma } from "@/db";
-import { env } from "@/env.mjs";
+
 import { generateRandomString } from "@/lib/utils";
 import dayjs from "dayjs";
 

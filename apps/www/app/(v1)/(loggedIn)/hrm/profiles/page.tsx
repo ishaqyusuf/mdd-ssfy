@@ -14,7 +14,8 @@ import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 export const metadata: Metadata = {
     title: "Employee Profiles",
 };
-export default async function EmployeeProfilePage({ searchParams }) {
+export default async function EmployeeProfilePage(props) {
+    const searchParams = await props.searchParams;
     const response = await getProfiles(queryParams(searchParams));
     return (
         <AuthGuard can={["editEmployee"]}>

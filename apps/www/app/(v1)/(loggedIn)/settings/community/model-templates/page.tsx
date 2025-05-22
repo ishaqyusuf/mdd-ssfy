@@ -14,7 +14,8 @@ import { getHomeTemplates } from "../_components/home-template";
 export const metadata: Metadata = {
     title: "Builders",
 };
-export default async function ModelTemplatesPage({ searchParams }) {
+export default async function ModelTemplatesPage(props) {
+    const searchParams = await props.searchParams;
     const response = await getHomeTemplates(queryParams(searchParams));
     return (
         <AuthGuard can={["editProject"]}>

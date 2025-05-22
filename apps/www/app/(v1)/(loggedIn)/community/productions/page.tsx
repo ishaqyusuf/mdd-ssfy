@@ -15,10 +15,8 @@ export const metadata: Metadata = {
     title: "Unit Productions",
 };
 interface Props {}
-export default async function CommunityProductionsPage({
-    searchParams,
-    params,
-}) {
+export default async function CommunityProductionsPage(props) {
+    const searchParams = await props.searchParams;
     const taskNames = await _taskNames({
         produceable: true,
     } as any);

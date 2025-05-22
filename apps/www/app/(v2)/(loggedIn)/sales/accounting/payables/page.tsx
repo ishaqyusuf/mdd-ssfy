@@ -13,7 +13,8 @@ import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 export const metadata: Metadata = {
     title: "Payables",
 };
-export default async function PayablesPage({ searchParams }) {
+export default async function PayablesPage(props) {
+    const searchParams = await props.searchParams;
     const promise = getPayablesAction(searchParams);
     const statCards = await getPayableAnalyticsStats(searchParams);
 

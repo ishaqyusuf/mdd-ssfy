@@ -1,6 +1,5 @@
 "use server";
 
-import { env } from "@/env.mjs";
 import { resend } from "@/lib/resend";
 import { render } from "@react-email/components";
 import { nanoid } from "nanoid";

@@ -14,7 +14,8 @@ import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 export const metadata: Metadata = {
     title: "Documents",
 };
-export default async function DocumentsPage({ searchParams }) {
+export default async function DocumentsPage(props) {
+    const searchParams = await props.searchParams;
     const response = await getEmployees(
         queryParams(searchParams, {
             role: "1099 Contractor",

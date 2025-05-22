@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { finalizeSalesCheckout } from "@/actions/finalize-sales-checkout";
 import { salesPaymentCheckoutResponse } from "@/actions/sales-payment-checkout-response";
@@ -10,7 +10,8 @@ import { formatPaymentParams } from "@/utils/format-payment-params";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle } from "lucide-react";
 
-export default function PaymentResponsePage({ params }) {
+export default function PaymentResponsePage(props) {
+    const params = use(props.params);
     // const { emailToken, slug, paymentId } = params;
     const { emailToken, orderIdsParam, orderIds, paymentId } =
         formatPaymentParams(params);

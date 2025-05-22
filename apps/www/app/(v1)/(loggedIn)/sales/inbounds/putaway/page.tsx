@@ -10,7 +10,8 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
     title: "Inbounds",
 };
-export default async function PutawayPage({ searchParams }) {
+export default async function PutawayPage(props) {
+    const searchParams = await props.searchParams;
     const response = await getPutwaysAction(queryParams(searchParams));
     return (
         <InboundLayout>

@@ -24,7 +24,8 @@ export const metadata: Metadata = {
     title: "Sales Orders",
 };
 interface Props {}
-export default async function SalesOrdersPage({ searchParams }) {
+export default async function SalesOrdersPage(props) {
+    const searchParams = await props.searchParams;
     // if (env.NODE_ENV == "production") redirect("/sales/dashboard/orders");
     // if (dayjs().get("minutes") > 10) throw new Error("paystack error");
     const response = getSalesOrder({

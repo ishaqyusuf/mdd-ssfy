@@ -11,7 +11,8 @@ import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 export const metadata: Metadata = {
     title: "Door Components | GND",
 };
-export default async function ProductsPage({ searchParams }) {
+export default async function ProductsPage(props) {
+    const searchParams = await props.searchParams;
     const response = await getDykeProducts(queryParams(searchParams));
 
     return (

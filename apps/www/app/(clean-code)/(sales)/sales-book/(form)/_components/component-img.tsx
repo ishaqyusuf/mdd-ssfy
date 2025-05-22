@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { PlaceholderImage } from "@/components/placeholder-image";
-import { env } from "@/env.mjs";
+
 import { motion } from "framer-motion";
 import SVG from "react-inlinesvg";
 

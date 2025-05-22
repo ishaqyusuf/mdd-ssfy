@@ -1,7 +1,8 @@
 import { prisma } from "@/db";
 import SalesDownload from "./sales";
 
-export default async function DownloadPage({ params }) {
+export default async function DownloadPage(props) {
+    const params = await props.params;
     console.log(params.slugs);
     const [path, token, slug]: ["sales", string, string] = params.slugs;
 

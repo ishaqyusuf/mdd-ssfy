@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { ROUTE_VERSIONS } from "@/utils/constants";
 
 export async function getCachedRoute(name, currentPage: "old" | "new") {
-    const r = cookies().get(name)?.value;
+    const r = (await cookies()).get(name)?.value;
     if (!r) await setCachedRoute(name, currentPage);
     else {
         if (currentPage != r) {

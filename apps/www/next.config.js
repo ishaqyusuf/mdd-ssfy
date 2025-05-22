@@ -36,9 +36,8 @@ const nextConfig = {
             },
         ],
     },
-    experimental: {
-        serverComponentsExternalPackages: ["puppeteer-core"],
-    },
+    serverExternalPackages: ["puppeteer-core"],
+    experimental: {},
     // webpack: (
     //     config,
     //     { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack }

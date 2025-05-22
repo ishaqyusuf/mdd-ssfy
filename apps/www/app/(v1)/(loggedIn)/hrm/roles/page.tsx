@@ -16,7 +16,8 @@ import RolesTableShell from "./roles-table-shell";
 export const metadata: Metadata = {
     title: "Roles",
 };
-export default async function EmployeeRolesPage({ searchParams }) {
+export default async function EmployeeRolesPage(props) {
+    const searchParams = await props.searchParams;
     const response = await _getRoles(queryParams(searchParams));
     return (
         <AuthGuard can={["viewRole"]}>

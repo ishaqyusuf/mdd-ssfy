@@ -227,7 +227,7 @@ export default function AutoComplete({
             }
         },
     });
-    const listRef = useRef<HTMLDivElement>();
+    const listRef = useRef<HTMLDivElement>(undefined);
     const rowVirtualizer = useVirtualizer({
         count: items.length,
         // parentRef: listRef,
@@ -235,7 +235,7 @@ export default function AutoComplete({
         estimateSize: (index) => 40,
         // overscan: 2,
     });
-    const inputRef = useRef<HTMLInputElement>();
+    const inputRef = useRef<HTMLInputElement>(undefined);
     return (
         <div>
             <div className="relative grid gap-2">

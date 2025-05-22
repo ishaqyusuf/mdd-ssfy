@@ -18,7 +18,8 @@ export const metadata: Metadata = {
     title: "Back Orders",
 };
 interface Props {}
-export default async function BackOrdersPage({ searchParams }) {
+export default async function BackOrdersPage(props) {
+    const searchParams = await props.searchParams;
     // await _restoreSalesOrder();
     const response = await getSalesOrder({
         ...queryParams(searchParams),

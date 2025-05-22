@@ -1,5 +1,5 @@
 import { prisma } from "@/db";
-import { env } from "@/env.mjs";
+
 import { resend } from "@/lib/resend";
 import { render } from "@react-email/render";
 import { nanoid } from "nanoid";
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     });
     let customerEmail: any =
         sales.customer?.email || sales.billingAddress?.email;
-    env.NODE_ENV == "development" &&
+    process.envNODE_ENV == "development" &&
         (customerEmail = ["ishaqyusuf024@gmail.com", "pcruz321@gmail.com"]);
     if (!customerEmail) throw new Error("Customer has no valid email");
     const salesRepEmail = sales.salesRep.email || undefined;

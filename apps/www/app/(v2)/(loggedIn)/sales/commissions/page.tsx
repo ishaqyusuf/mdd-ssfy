@@ -10,7 +10,8 @@ import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 export const metadata: Metadata = {
     title: "Sales Commissions",
 };
-export default async function SalesCommissions({ searchParams }) {
+export default async function SalesCommissions(props) {
+    const searchParams = await props.searchParams;
     const resp = await _getSalesCommissionsAction({
         ...queryParams(searchParams),
     });

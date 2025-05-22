@@ -20,7 +20,8 @@ export const metadata: Metadata = {
     description: "",
 };
 
-export default async function CreatePasswordPage({ params }) {
+export default async function CreatePasswordPage(props) {
+    const params = await props.params;
     const token = params.token;
     const ver = await verifyToken(token);
     let msg = null;

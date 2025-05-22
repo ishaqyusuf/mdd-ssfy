@@ -52,7 +52,7 @@ export default function PickupModal({ order }: Props) {
             meta: {},
         });
     }
-    const sigCanvas = useRef<any>();
+    const sigCanvas = useRef<any>(undefined);
     return (
         <Modal.Content>
             <Modal.Header title="Pickup Form" />

@@ -19,10 +19,13 @@ export const metadata: Metadata = {
     description: "",
 };
 
-export default async function EstimateFormPage({
-    searchParams,
-    params: { slug },
-}) {
+export default async function EstimateFormPage(props) {
+    const params = await props.params;
+
+    const {
+        slug
+    } = params;
+
     redirect(`/sales/edit/quote/${slug}`);
     const resp: SalesFormResponse = await salesFormAction({
         orderId: slug,
@@ -30,6 +33,7 @@ export default async function EstimateFormPage({
     });
     const orderId = resp?.form?.orderId;
     return (
+        // <SalesForm newTitle="New Estimate" slug={slug} data={resp}></SalesForm>
         <AuthGuard can={["editEstimates"]}>
             <DataPageShell data={resp}>
                 <Breadcrumbs>
@@ -50,6 +54,5 @@ export default async function EstimateFormPage({
                 ></SalesForm>
             </DataPageShell>
         </AuthGuard>
-        // <SalesForm newTitle="New Estimate" slug={slug} data={resp}></SalesForm>
     );
 }

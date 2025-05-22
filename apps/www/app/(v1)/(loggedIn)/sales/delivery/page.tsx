@@ -15,7 +15,8 @@ export const metadata: Metadata = {
     title: "Order Delivery",
 };
 interface Props {}
-export default async function SalesDeliveryPage({ searchParams }) {
+export default async function SalesDeliveryPage(props) {
+    const searchParams = await props.searchParams;
     redirect("/sales-v2/dispatch/delivery");
     const response = await getSalesDelivery({
         _deliveryStatus: "queued",

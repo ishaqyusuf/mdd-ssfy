@@ -2,7 +2,7 @@
 
 import { SalesMeta } from "@/app/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
-import { env } from "@/env.mjs";
+
 import { getBaseUrl } from "@/envs";
 import { resend } from "@/lib/resend";
 import { formatCurrency } from "@/lib/use-number";
@@ -84,7 +84,7 @@ export const __sendInvoiceEmailTrigger = async ({
                 const sEmail = a.customer?.email || a?.billingAddress?.email;
                 return customerEmail == sEmail;
             });
-            const isDev = env.NODE_ENV == "development";
+            const isDev = process.envNODE_ENV == "development";
             let emailSlug = customerEmail?.split("@")[0];
             if (matchingSales?.[0]?.id == sales.id) {
                 if (!customerEmail)

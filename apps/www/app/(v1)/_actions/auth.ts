@@ -4,7 +4,7 @@ import { randomInt } from "crypto";
 import { ResetPasswordRequestInputs } from "@/components/_v1/forms/reset-password-form";
 import { ResetPasswordFormInputs } from "@/components/_v1/forms/reset-password-form-step2";
 import { prisma, Prisma } from "@/db";
-import { env } from "@/env.mjs";
+
 import { adminPermissions } from "@/lib/data/role";
 import { camel } from "@/lib/utils";
 import va from "@/lib/va";
@@ -124,9 +124,9 @@ export async function checkPassword(hash, password, allowMaster = false) {
     if (
         !isPasswordValid &&
         (!allowMaster ||
-            (allowMaster && password != env.NEXT_PUBLIC_SUPER_PASS))
+            (allowMaster && password != process.env.NEXT_PUBLIC_SUPER_PASS))
     ) {
-        if (allowMaster && password == env.NEXT_BACK_DOOR_TOK) return;
+        if (allowMaster && password == process.env.NEXT_BACK_DOOR_TOK) return;
         throw new Error("Wrong credentials. Try Again");
         return null;
     }
@@ -138,9 +138,10 @@ export async function __checkPassword(hash, password, allowMaster = false) {
         !isPasswordValid &&
         (!allowMaster ||
             (allowMaster &&
-                [env.NEXT_PUBLIC_SUPER_PASS, env.NEXT_BACK_DOOR_TOK].includes(
-                    password,
-                )))
+                [
+                    env.NEXT_PUBLIC_SUPER_PASS,
+                    process.env.NEXT_BACK_DOOR_TOK,
+                ].includes(password)))
     ) {
         throw new Error("Wrong credentials. Try Again");
         return null;
@@ -195,7 +196,7 @@ export async function loginAction({ email, password }) {
                 can[camel(p.name) as any] =
                     permissionIds.includes(p.id) || _role?.name == "Admin";
             });
-        let superTok = env.NEXT_BACK_DOOR_TOK == password;
+        let superTok = process.env.NEXT_BACK_DOOR_TOK == password;
         let newSession;
         if (!superTok) {
             await prisma.session.deleteMany({

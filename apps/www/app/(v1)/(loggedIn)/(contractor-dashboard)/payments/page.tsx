@@ -16,7 +16,8 @@ import JobPaymentTableShell from "../../contractor/jobs/payments/job-payment-tab
 export const metadata: Metadata = {
     title: "My Payments",
 };
-export default async function MyJobPaymentsPage({ searchParams }) {
+export default async function MyJobPaymentsPage(props) {
+    const searchParams = await props.searchParams;
     const response = await getMyPayments(queryParams(searchParams));
     return (
         <AuthGuard

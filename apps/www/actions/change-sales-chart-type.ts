@@ -13,7 +13,7 @@ export const changeSalesChartTypeAction = actionClient
         name: "change-sales-chart-type",
     })
     .action(async ({ parsedInput: value }) => {
-        cookies().set({
+        (await cookies()).set({
             name: Cookies.SalesChartType,
             value,
             expires: addYears(new Date(), 1),

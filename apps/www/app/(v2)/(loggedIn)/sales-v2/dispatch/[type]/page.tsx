@@ -7,13 +7,16 @@ import { getDispatchSales } from "../action";
 import PageHeader from "@/components/_v1/page-header";
 import SalesTabLayout from "@/components/_v1/tab-layouts/sales-tab-layout";
 
-export async function generateMetadata({ searchParams, params }) {
+export async function generateMetadata(props) {
+    const params = await props.params;
     return {
         title: `gndprodesk - ${capitalizeFirstLetter(params.type)}`,
     };
 }
 
-export default async function DispatchPage({ searchParams, params }) {
+export default async function DispatchPage(props) {
+    const params = await props.params;
+    const searchParams = await props.searchParams;
     const title = capitalizeFirstLetter(params.type);
     const promise = getDispatchSales(params.type, searchParams);
     return (

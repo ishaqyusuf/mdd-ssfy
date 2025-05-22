@@ -1,7 +1,7 @@
 import { user } from "@/app/(v1)/_actions/utils";
 import { SalesPrinterProps } from "@/app/(v2)/printer/type";
 import { prisma } from "@/db";
-import { env } from "@/env.mjs";
+
 import { UploadFolders } from "@/modules/cloudinary";
 import QueryString from "qs";
 
@@ -58,7 +58,7 @@ function _attachables(orderId): Attachables[] {
         {
             label: "sale invoice",
             url: `${
-                env.NEXT_PUBLIC_APP_URL
+                process.env.NEXT_PUBLIC_APP_URL
             }/printer/sales?${QueryString.stringify({
                 mode: "order",
                 pdf: true,

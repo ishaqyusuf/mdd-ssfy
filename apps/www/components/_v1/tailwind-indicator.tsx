@@ -1,5 +1,3 @@
-import { env } from "@/env.mjs";
-
 export function TailwindIndicator() {
     if (env.NODE_ENV === "production") return null;
 
@@ -18,3 +16,4 @@ export function TailwindIndicator() {
         </div>
     );
 }
+

@@ -1,12 +1,12 @@
 import { loginAction } from "@/app/(v1)/_actions/auth";
-import { Prisma, PrismaClient, Roles, Users } from "@/db";
-import { env } from "@/env.mjs";
+import { db as prisma, Roles, Users } from "@/db";
+
 import { ICan } from "@/types/auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import type { DefaultSession, NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 declare module "next-auth" {
     interface User {
         user: Users;
@@ -44,7 +44,7 @@ export const authOptions: NextAuthOptions = {
         secret: "super-secret",
         maxAge: 15 * 24 * 30 * 60,
     },
-    adapter: PrismaAdapter(prisma),
+    adapter: PrismaAdapter(prisma as any),
     secret: process.env.SECRET,
     callbacks: {
         jwt: async ({ token, user: cred }) => {
@@ -57,7 +57,10 @@ export const authOptions: NextAuthOptions = {
             }
             if (!token.sessionId) return null;
             return token;
-            if (token.sessionId && token.sessionId != env.NEXT_BACK_DOOR_TOK) {
+            if (
+                token.sessionId &&
+                token.sessionId != process.env.NEXT_BACK_DOOR_TOK
+            ) {
                 const session = await prisma.session.findUnique({
                     where: { id: token.sessionId as any },
                 });

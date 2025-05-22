@@ -1,5 +1,5 @@
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
-import { env } from "@/env.mjs";
+
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { openLink } from "@/lib/open-link";
 import { timeout } from "@/lib/timeout";
@@ -31,7 +31,7 @@ export function MenuItemPrintAction(props: Props) {
             loader.loading("Downloading...");
             const pdf = await fetch(
                 `${
-                    env.NEXT_PUBLIC_NODE_ENV == "production"
+                    process.env.NEXT_PUBLIC_NODE_ENV == "production"
                         ? ""
                         : "https://gnd-prodesk.vercel.app"
                 }/api/pdf/sales?${QueryString.stringify(query)}`,

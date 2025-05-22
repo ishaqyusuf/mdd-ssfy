@@ -1,5 +1,5 @@
 import { squareSalesPaymentCreatedDta } from "@/app/(clean-code)/(sales)/_common/data-access/wallet/sales-payment-dta";
-import { env } from "@/env.mjs";
+
 import { formatMoney } from "@/lib/use-number";
 import { squareSalesNote } from "@/utils/sales-utils";
 import { Client, Environment } from "square";
@@ -12,16 +12,16 @@ export type TerminalCheckoutStatus =
     | "CANCEL_REQUESTED"
     | "CANCELED"
     | "COMPLETED";
-let devMode = env.NODE_ENV != "production";
+let devMode = process.envNODE_ENV != "production";
 devMode = false;
 const SQUARE_LOCATION_ID = devMode
-    ? env.SQUARE_SANDBOX_LOCATION_ID
-    : env.SQUARE_LOCATION_ID;
+    ? process.envSQUARE_SANDBOX_LOCATION_ID
+    : process.envSQUARE_LOCATION_ID;
 const client = new Client({
     environment: devMode ? Environment.Sandbox : Environment.Production,
     accessToken: devMode
-        ? env.SQUARE_SANDBOX_ACCESS_TOKEN
-        : env.SQUARE_ACCESS_TOKEN,
+        ? process.envSQUARE_SANDBOX_ACCESS_TOKEN
+        : process.envSQUARE_ACCESS_TOKEN,
 });
 
 export async function getSquareDevices() {

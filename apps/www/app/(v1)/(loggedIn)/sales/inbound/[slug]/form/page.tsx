@@ -9,10 +9,13 @@ export const metadata: Metadata = {
     title: "New Inbound",
 };
 
-export default async function InboundFormPage({
-    params: { slug },
-    searchParams,
-}) {
+export default async function InboundFormPage(props) {
+    const params = await props.params;
+
+    const {
+        slug
+    } = params;
+
     const response = {} as any;
     // return <>a</>;
     return (
