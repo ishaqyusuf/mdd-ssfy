@@ -37,7 +37,7 @@ export function ComponentImg({
                 {src ? (
                     <Image
                         draggable={false}
-                        src={`${env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/dyke/${src}`}
+                        src={`${process.env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/dyke/${src}`}
                         alt={alt}
                         className="object-contain"
                         sizes="(min-width: 1024px) 10vw"

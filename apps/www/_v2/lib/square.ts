@@ -114,7 +114,7 @@ async function errorHandler(fn): Promise<{
 }
 export async function createSalesPaymentLink(data: CreateSalesPaymentProps) {
     return await errorHandler(async () => {
-        const redirectUrl = `https://${env.NEXT_PUBLIC_ROOT_DOMAIN}/square-payment-response/${data.salesCheckoutId}`;
+        const redirectUrl = `https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN}/square-payment-response/${data.salesCheckoutId}`;
         const quickPay = !data.items?.length || data.grandTotal != data.amount;
         const resp = await squareClient.checkoutApi.createPaymentLink({
             idempotencyKey: new Date().toISOString(),

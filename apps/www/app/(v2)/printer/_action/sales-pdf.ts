@@ -25,12 +25,12 @@ async function geenrate(query: SalesPrintProps["searchParams"]) {
     // let   page, url;
     const puppeteer = require("puppeteer-core");
     let browser = await puppeteer.connect({
-        browserWSEndpoint: `wss://chrome.browserless.io?token=${env.BLESS_TOKEN}`,
+        browserWSEndpoint: `wss://chrome.browserless.io?token=${process.env.BLESS_TOKEN}`,
     });
     let page = await browser.newPage();
     await page.setCacheEnabled(false);
     // console.log(query);
-    let url = `${env.NEXT_PUBLIC_APP_URL}/printer/sales?${QueryString.stringify(
+    let url = `${process.env.NEXT_PUBLIC_APP_URL}/printer/sales?${QueryString.stringify(
         {
             ...query,
             rnd: generateRandomString(),

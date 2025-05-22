@@ -95,7 +95,7 @@ export function FileUploader({
                                       className=""
                                       width={width}
                                       height={height}
-                                      src={`${env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/${folder}/${assetId}`}
+                                      src={`${process.env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/${folder}/${assetId}`}
                                       alt={alt as any}
                                   />
                               )}

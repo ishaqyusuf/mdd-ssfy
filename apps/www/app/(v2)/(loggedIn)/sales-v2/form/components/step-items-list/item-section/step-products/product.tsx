@@ -370,7 +370,7 @@ export function ProductImage({ item, aspectRatio = 4 / 2 }: ProductImageProps) {
             {item.product?.img || item?.product?.meta?.cld ? (
                 <AspectRatio ratio={item.isDoor ? 4 / 4 : aspectRatio}>
                     <Image
-                        src={`${env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/dyke/${
+                        src={`${process.env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/dyke/${
                             item.product?.img || item?.product?.meta?.cld
                         }`}
                         alt={item.product?.title}

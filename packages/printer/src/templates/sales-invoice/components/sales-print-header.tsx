@@ -18,7 +18,7 @@ export default function SalesPrintHeader({
           })}
         >
           <Image
-            src={`${env.NEXT_PUBLIC_APP_URL}/logo.png`}
+            src={`${process.env.NEXT_PUBLIC_APP_URL}/logo.png`}
             style={cn({
               width: 150,
               height: 150,

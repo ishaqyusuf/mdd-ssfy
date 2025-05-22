@@ -120,7 +120,7 @@ async function initBrowserless() {
     try {
         const puppeteer = require("puppeteer-core");
         const browser = await puppeteer.connect({
-            browserWSEndpoint: `wss://chrome.browserless.io?token=${env.BLESS_TOKEN}`,
+            browserWSEndpoint: `wss://chrome.browserless.io?token=${process.env.BLESS_TOKEN}`,
         });
         // const browser = await puppeteer.launch({
         //     headless: true,

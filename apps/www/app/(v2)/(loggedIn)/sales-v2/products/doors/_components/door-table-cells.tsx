@@ -25,7 +25,7 @@ function Door({ item }: Props) {
                             className="cursor-pointer"
                             width={100}
                             height={100}
-                            src={`${env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/dyke/${item.img}`}
+                            src={`${process.env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/dyke/${item.img}`}
                             alt={""}
                         />
                     </div>
