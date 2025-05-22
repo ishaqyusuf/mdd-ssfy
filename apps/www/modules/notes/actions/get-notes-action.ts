@@ -16,16 +16,20 @@ export async function getNotesAction(query: SearchParamsType) {
     if (!tagQueries.length) throw new Error("Invalid note query");
 
     const notes = await prisma.notePad.findMany({
-        where: {
-            tags: {
-                some:
-                    tagQueries.length == 1
-                        ? tagQueries[0]
-                        : {
-                              AND: tagQueries,
+        where:
+            tagQueries.length == 1
+                ? {
+                      tags: {
+                          some: tagQueries[0],
+                      },
+                  }
+                : {
+                      AND: tagQueries.map((some) => ({
+                          tags: {
+                              some,
                           },
-            },
-        },
+                      })),
+                  },
         include: {
             tags: true,
             comments: {
