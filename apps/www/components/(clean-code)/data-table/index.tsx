@@ -149,7 +149,7 @@ function CheckboxRow({ row }) {
         </TCell>
     );
 }
-function _Table({}) {
+function BaseTable({}) {
     const { table, columns, ...ctx } = useInfiniteDataTable();
 
     return (
@@ -300,7 +300,7 @@ function LoadMore() {
     );
 }
 export let DataTable = Object.assign(BaseDataTable, {
-    Table: _Table,
+    Table: BaseTable,
     Footer,
     Infinity,
     LoadMore,

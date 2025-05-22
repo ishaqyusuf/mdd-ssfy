@@ -1,5 +1,3 @@
-"use client";
-
 import RolesSheet from "./roles-sheet";
 
 type Props = {

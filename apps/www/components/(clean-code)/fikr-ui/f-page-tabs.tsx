@@ -123,7 +123,7 @@ const useCtx = () => {
     };
 };
 const ctx = createContext<ReturnType<typeof useCtx>>({} as any);
-function _FPageTabs({ children, promise, tabs, port }: Props) {
+function BaseFPageTabs({ children, promise, tabs, port }: Props) {
     const _values = useCtx();
     const _tabList: PageTab[] = tabs || promise ? use(promise) : null;
     useEffect(() => {
@@ -232,6 +232,6 @@ function Tab(props: TabProps) {
     );
 }
 const MemoiedTab = typedMemo(Tab, (pre, cur) => pre != cur);
-export let FPageTabs = Object.assign(_FPageTabs, {
+export let FPageTabs = Object.assign(BaseFPageTabs, {
     Tab: MemoiedTab,
 });
