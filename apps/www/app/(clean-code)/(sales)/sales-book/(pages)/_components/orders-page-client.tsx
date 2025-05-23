@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import QueryTab from "@/app/(clean-code)/_common/query-tab";
 import { QueryTabAction } from "@/app/(clean-code)/_common/query-tab/query-tab-edit";
@@ -48,7 +48,6 @@ export default function OrdersPageClient({
                 ctx.Column("Pending", "pending", Cells.InvoicePending),
                 ctx.Column("Dispatch", "dispatch", Cells.Dispatch),
                 ctx.Column("Production", "production", Cells.Production),
-                ...__filters().orders.filterColumns,
             ];
         },
         filterFields,

@@ -6,6 +6,7 @@ import ConfirmBtn from "../confirm-button";
 interface Props {
     Menu?;
     trash?: boolean;
+    disableTrash?: boolean;
     itemId;
     children?;
 }
@@ -18,6 +19,7 @@ export function ActionCell(props: Props) {
                 <div className="hidden sm:block">
                     <ConfirmBtn
                         trash
+                        disabled={props?.disableTrash}
                         size="sm"
                         onClick={(e) => {
                             tableMeta?.deleteAction(props.itemId);

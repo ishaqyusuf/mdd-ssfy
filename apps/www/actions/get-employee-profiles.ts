@@ -1,12 +1,12 @@
 "use server";
 
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
-import { rolesQueryMetaData } from "@/utils/db/query.roles";
+import { employeesProfileQueryMetaData } from "@/utils/db/query.employees-profile";
 
-export async function getRolesList(query: SearchParamsType = {}) {
+export async function getEmployeeProfilesList(query: SearchParamsType = {}) {
     query.sort = "name.asc";
     const { model, searchMeta, where, response } =
-        await rolesQueryMetaData(query);
+        await employeesProfileQueryMetaData(query);
 
     const list = await model.findMany({
         where,
@@ -14,14 +14,11 @@ export async function getRolesList(query: SearchParamsType = {}) {
         select: {
             id: true,
             name: true,
+            discount: true,
+            salesComissionPercentage: true,
             _count: {
                 select: {
-                    RoleHasPermissions: {
-                        where: {
-                            deletedAt: null,
-                        },
-                    },
-                    ModelHasRoles: {
+                    employees: {
                         where: {
                             deletedAt: null,
                         },

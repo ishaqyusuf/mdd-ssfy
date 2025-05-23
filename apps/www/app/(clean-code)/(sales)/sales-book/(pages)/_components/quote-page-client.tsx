@@ -37,7 +37,6 @@ export default function QuotesPageClient({ filterFields, queryKey }: Props) {
                 ctx.Column("Address", "address", QuotesCell.Address),
                 ctx.Column("Rep", "rep", QuotesCell.SalesRep),
                 ctx.Column("Invoice", "invoice", QuotesCell.Invoice),
-                // ...__filters().quotes.filterColumns,
             ];
         },
         checkable: true,

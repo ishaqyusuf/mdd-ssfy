@@ -9,6 +9,7 @@ import { ScrollArea } from "@gnd/ui/scroll-area";
 import { RoleFormContext } from "@/components/hrm/role-form-context";
 import { RoleForm } from "@/components/forms/role-form";
 import { cn } from "@gnd/ui/cn";
+import { ProfilesTab } from "./profiles-tab";
 export default function RolesProfilesSheet({}) {
     const { params, setParams } = useRolesParams();
     const size = params.roleForm ? "5xl" : "xl";
@@ -58,6 +59,12 @@ export default function RolesProfilesSheet({}) {
                         <Tabs defaultValue="roles" value={primaryTab}>
                             <TabsContent className="min-h-screen" value="roles">
                                 <RolesTab />
+                            </TabsContent>
+                            <TabsContent
+                                className="min-h-screen"
+                                value="profiles"
+                            >
+                                <ProfilesTab />
                             </TabsContent>
                         </Tabs>
                     </ScrollArea>

@@ -4,14 +4,14 @@ import { ActionCell } from "../action-cell";
 import { ColumnDef, PageItemData } from "@/types/type";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 
-import { getRolesList } from "@/actions/get-roles";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useRolesParams } from "@/hooks/use-roles-params";
 import { Badge } from "@gnd/ui/badge";
-import { useAction } from "next-safe-action/hooks";
+import { getEmployeeProfilesList } from "@/actions/get-employee-profiles";
+import NumberFlow from "@number-flow/react";
 
-export type Item = PageItemData<typeof getRolesList>;
+export type Item = PageItemData<typeof getEmployeeProfilesList>;
 export const columns: ColumnDef<Item>[] = [
     {
         header: "Title",
@@ -21,20 +21,30 @@ export const columns: ColumnDef<Item>[] = [
             <div>
                 <TCell.Primary className="">{item.name}</TCell.Primary>
                 <TCell.Secondary className="">
-                    {`${item._count?.ModelHasRoles || 0}`} employees
+                    {`${item._count?.employees || 0}`} employees
                 </TCell.Secondary>
             </div>
         ),
     },
     {
-        header: "Permissions",
-        accessorKey: "permissions",
+        header: "Details",
+        accessorKey: "details",
 
         cell: ({ row: { original: item } }) => (
             <div className="flex items-center w-full text-center">
-                <Badge variant="outline" className="">
-                    {item._count?.RoleHasPermissions}
-                </Badge>
+                {!item.salesComissionPercentage || (
+                    <Badge variant="outline" className="">
+                        <NumberFlow
+                            value={item.salesComissionPercentage}
+                            suffix="% commission"
+                        />
+                    </Badge>
+                )}
+                {!item.discount || (
+                    <Badge variant="outline" className="">
+                        <NumberFlow value={item.discount} suffix="% paycut" />
+                    </Badge>
+                )}
             </div>
         ),
     },
@@ -56,7 +66,7 @@ function Action({ item }: { item: Item }) {
     return (
         <ActionCell
             trash
-            disableTrash={!!item?._count?.ModelHasRoles}
+            disableTrash={!!item?._count?.employees}
             itemId={item.id}
         >
             <Button

@@ -41,7 +41,7 @@ export default async function SalesRepProfile({
 
     return (
         <FPage can={["editOrders"]} title="Sales Rep Profile">
-            <ProdOnly>
+            {/* <ProdOnly>
                 <div
                     className={cn(
                         "inset-0 absolute bg-black/60 z-[999] flex items-center justify-center",
@@ -51,7 +51,7 @@ export default async function SalesRepProfile({
                         Coming Soon
                     </div>
                 </div>
-            </ProdOnly>
+            </ProdOnly> */}
             <div className="flex-1 space-y-4 p-4 pt-6 md:p-8 flex flex-col">
                 <div className="flex items-center justify-between">
                     <div>

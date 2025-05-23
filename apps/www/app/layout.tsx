@@ -33,7 +33,7 @@ export default async function RootLayout({
     const prodDB = env.DATABASE_URL?.includes("pscale");
     // trashSoftDeletesAction();
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
             {/* <Suspense> */}
             <ReactQueryProvider>
                 <SpeedInsights />

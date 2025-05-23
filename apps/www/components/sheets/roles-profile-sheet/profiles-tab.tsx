@@ -1,19 +1,20 @@
-import { getRolesList } from "@/actions/get-roles";
-import { RolesDataTable } from "@/components/tables/roles/table";
+import { getEmployeeProfilesList } from "@/actions/get-employee-profiles";
+import { EmployeeProfilesDataTable } from "@/components/tables/employee-profiles/table";
+
 import { useRolesParams } from "@/hooks/use-roles-params";
 import { rndTimeout } from "@/lib/timeout";
 import { useAsyncMemo } from "use-async-memo";
 
-export function RolesTab({}) {
+export function ProfilesTab({}) {
     const { params, setParams } = useRolesParams();
     const roles = useAsyncMemo(async () => {
         await rndTimeout();
-        return await getRolesList();
+        return await getEmployeeProfilesList();
     }, [params.refreshToken]);
     if (!roles?.data) return null;
     return (
-        <>
-            <RolesDataTable data={roles?.data} />
-        </>
+        <div className="space-y-4">
+            <EmployeeProfilesDataTable data={roles?.data} />
+        </div>
     );
 }

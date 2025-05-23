@@ -22,6 +22,7 @@ import { TCell } from "../(clean-code)/data-table/table-cells";
 import FormCheckbox from "../common/controls/form-checkbox";
 import { useEffect } from "react";
 import { Button } from "@gnd/ui/button";
+import { generateRandomString } from "@/lib/utils";
 
 export function RoleForm({}) {
     const { params, setParams } = useRolesParams();
@@ -31,15 +32,19 @@ export function RoleForm({}) {
     }, [params?.roleEditId]);
     useEffect(() => {
         if (!data) return;
-        console.log(data);
         form.reset(data.form);
     }, [data]);
     const action = useAction(createRoleAction, {
         onSuccess(args) {
-            console.log(args);
+            setParams({
+                roleEditId: null,
+                roleForm: null,
+                refreshToken: generateRandomString(),
+            });
         },
         onError(args) {
-            console.log(args);
+            // console.log(args);
+            // toast.error(args.message);
         },
     });
     return (
@@ -99,7 +104,7 @@ export function RoleForm({}) {
                                     <DataSkeleton placeholder={"**"}>
                                         <FormCheckbox
                                             control={form.control}
-                                            name={`permissions.view ${tx}`}
+                                            name={`permissions.view ${tx}.checked`}
                                         />
                                     </DataSkeleton>
                                 </TableCell>
@@ -107,7 +112,7 @@ export function RoleForm({}) {
                                     <DataSkeleton placeholder={"**"}>
                                         <FormCheckbox
                                             control={form.control}
-                                            name={`permissions.edit ${tx}`}
+                                            name={`permissions.edit ${tx}.checked`}
                                         />
                                     </DataSkeleton>
                                 </TableCell>

@@ -14,23 +14,19 @@ import { TableProvider } from "..";
 import { TableHeaderComponent } from "../table-header";
 import { TableRow } from "../table-row";
 
-import { useEmployeesParams } from "@/hooks/use-employee-params";
 import { columns, Item } from "./columns";
 import { LoadMore } from "../load-more";
-import FContentShell from "@/components/(clean-code)/fikr-ui/f-content-shell";
-import { Menu } from "@/components/(clean-code)/menu";
 import { useRolesParams } from "@/hooks/use-roles-params";
 import Portal from "@/components/_v1/portal";
 import { Icons } from "@gnd/ui/icons";
 import { deleteRoleAction } from "@/actions/delete-role-action";
 import { generateRandomString } from "@/lib/utils";
-import { deleteProfileAction } from "@/actions/delete-profile-action";
 
 type Props = {
     data: Item[];
 };
 
-export function RolesDataTable({ data }: Props) {
+export function EmployeeProfilesDataTable({ data }: Props) {
     const { setParams, params } = useRolesParams();
 
     const role = useRolesParams();
@@ -46,7 +42,7 @@ export function RolesDataTable({ data }: Props) {
                     params,
                     tableMeta: {
                         deleteAction(id) {
-                            deleteProfileAction(id).then((e) => {
+                            deleteRoleAction(id).then((e) => {
                                 setParams({
                                     refreshToken: generateRandomString(),
                                 });
@@ -63,8 +59,8 @@ export function RolesDataTable({ data }: Props) {
                         <Button
                             onClick={() =>
                                 setParams({
-                                    roleForm: true,
-                                    roleEditId: null,
+                                    profileForm: true,
+                                    profileEditId: null,
                                 })
                             }
                         >
