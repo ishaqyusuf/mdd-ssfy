@@ -63,94 +63,90 @@ export default function FormInput<
                     )}
                     <FormControl {...inputProps}>
                         {load?.loading ? (
-                            <>
-                                <Skeleton className="h-8 w-full" />
-                            </>
+                            <Skeleton className="h-8 w-full" />
                         ) : (
-                            <>
-                                <div
-                                    className={cn(
-                                        (suffix || prefix) &&
-                                            "flex items-center space-x-1",
-                                        "",
-                                    )}
-                                >
-                                    {prefix && (
-                                        <div
-                                            className={cn(
-                                                size == "sm" && "",
-                                                "sbg-muted-foreground/50 h-full px-1 text-sm",
-                                            )}
-                                        >
-                                            {prefix}
-                                        </div>
-                                    )}
-                                    {type == "textarea" ? (
-                                        <Textarea
-                                            tabIndex={tabIndex}
-                                            placeholder={placeholder}
-                                            className={cn(
-                                                fieldState.error &&
-                                                    "border-red-400",
-                                            )}
-                                            {...(list
-                                                ? {
-                                                      defaultValue: field.value,
-                                                      onChange: field.onChange,
-                                                  }
-                                                : field)}
-                                            // value={""}
-                                        />
-                                    ) : (
-                                        <Input
-                                            tabIndex={tabIndex}
-                                            type={type}
-                                            placeholder={placeholder}
-                                            // {...field}
-                                            // value={""}
-                                            {...inputProps}
-                                            className={cn(
-                                                uppercase && "uppercase",
-                                                fieldState.error &&
-                                                    "border-red-400",
-                                                size == "sm" && "h-8",
-                                            )}
-                                            {...(list
-                                                ? {
-                                                      defaultValue: field.value,
-                                                      //   onChange: field.onChange,
-                                                  }
-                                                : field)}
-                                            // onChange={field.onChange}
-                                            // defaultValue={field.value}
-                                            onChange={(e) => {
-                                                if (type == "number")
-                                                    e.target.value
-                                                        ? field.onChange(
-                                                              e.target.value
-                                                                  ? Number(
-                                                                        e.target
-                                                                            .value,
-                                                                    )
-                                                                  : null,
-                                                          )
-                                                        : field.onChange(null);
-                                                else field.onChange(e);
-                                            }}
-                                        />
-                                    )}
-                                    {suffix && (
-                                        <Button
-                                            type="button"
-                                            size={size as any}
-                                            variant={"outline"}
-                                            className={size == "sm" && "h-8"}
-                                        >
-                                            {suffix}
-                                        </Button>
-                                    )}
-                                </div>
-                            </>
+                            <div
+                                className={cn(
+                                    (suffix || prefix) &&
+                                        "flex items-center space-x-1",
+                                    "",
+                                )}
+                            >
+                                {prefix && (
+                                    <div
+                                        className={cn(
+                                            size == "sm" && "",
+                                            "sbg-muted-foreground/50 h-full px-1 text-sm",
+                                        )}
+                                    >
+                                        {prefix}
+                                    </div>
+                                )}
+                                {type == "textarea" ? (
+                                    <Textarea
+                                        tabIndex={tabIndex}
+                                        placeholder={placeholder}
+                                        className={cn(
+                                            fieldState.error &&
+                                                "border-red-400",
+                                        )}
+                                        {...(list
+                                            ? {
+                                                  defaultValue: field.value,
+                                                  onChange: field.onChange,
+                                              }
+                                            : field)}
+                                        // value={""}
+                                    />
+                                ) : (
+                                    <Input
+                                        tabIndex={tabIndex}
+                                        type={type}
+                                        placeholder={placeholder}
+                                        // {...field}
+                                        // value={""}
+                                        {...inputProps}
+                                        className={cn(
+                                            uppercase && "uppercase",
+                                            fieldState.error &&
+                                                "border-red-400",
+                                            size == "sm" && "h-8",
+                                        )}
+                                        {...(list
+                                            ? {
+                                                  defaultValue: field.value,
+                                                  //   onChange: field.onChange,
+                                              }
+                                            : field)}
+                                        // onChange={field.onChange}
+                                        // defaultValue={field.value}
+                                        onChange={(e) => {
+                                            if (type == "number")
+                                                e.target.value
+                                                    ? field.onChange(
+                                                          e.target.value
+                                                              ? Number(
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                              : null,
+                                                      )
+                                                    : field.onChange(null);
+                                            else field.onChange(e);
+                                        }}
+                                    />
+                                )}
+                                {suffix && (
+                                    <Button
+                                        type="button"
+                                        size={size as any}
+                                        variant={"outline"}
+                                        className={size == "sm" && "h-8"}
+                                    >
+                                        {suffix}
+                                    </Button>
+                                )}
+                            </div>
                         )}
                     </FormControl>
                 </FormItem>

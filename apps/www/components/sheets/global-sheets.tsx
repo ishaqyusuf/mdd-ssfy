@@ -1,15 +1,14 @@
 "use client";
-
-import RolesSheet from "./roles-sheet";
+import RolesProfilesSheet from "./roles-profile-sheet";
 
 type Props = {
     //   defaultCurrency?: string;
 };
 
-export async function GlobalSheets({}: Props) {
+export function GlobalSheets({}) {
     return (
         <>
-            <RolesSheet />
+            <RolesProfilesSheet />
             {/* We preload the invoice data (template, invoice number etc) */}
             {/* <Suspense fallback={null}>
         <InvoiceCreateSheetServer teamId={userData?.team_id} />

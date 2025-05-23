@@ -5,7 +5,7 @@ import ConfirmBtn from "../confirm-button";
 
 interface Props {
     Menu?;
-    trash;
+    trash?: boolean;
     itemId;
     children?;
 }
@@ -41,4 +41,3 @@ export function ActionCell(props: Props) {
         </div>
     );
 }
-

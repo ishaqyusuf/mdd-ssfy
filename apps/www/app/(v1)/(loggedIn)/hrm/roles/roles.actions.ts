@@ -36,7 +36,7 @@ export async function getRoleFormAction(roleId = null) {
         //     },
         // });
         role.RoleHasPermissions.map(
-            (r) => (resp.permission[r.permission.name] = true)
+            (r) => (resp.permission[r.permission.name] = true),
         );
         resp.name = role.name;
         // return {
@@ -62,7 +62,7 @@ export async function saveRoleAction(role: GetRoleFormAction) {
     await Promise.all(
         Object.entries(role.permission).map(async ([k, v]) => {
             if (!v) return;
-            console.log([[k, v]]);
+
             const e = pl.find((p) => p.name == k);
             if (e && v == true) {
                 ids.push(e.id);
@@ -75,9 +75,8 @@ export async function saveRoleAction(role: GetRoleFormAction) {
                 });
                 ids.push(newPermission.id);
             }
-        })
+        }),
     );
-    console.log(ids);
     if (!role.roleId)
         role.roleId = (
             await prisma.roles.create({

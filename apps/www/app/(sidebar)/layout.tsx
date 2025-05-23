@@ -5,7 +5,7 @@ import { GlobalSheets } from "@/components/sheets/global-sheets";
 import { getLinkModules, validateLinks } from "@/components/sidebar/links";
 import { SideBar } from "@/components/sidebar/sidebar";
 
-export default async function SideBarLayout({ children }) {
+export default async function SideBarLayout({ children, searchParams }) {
     const [user, pageTabs] = await Promise.all([
         getLoggedInProfile(),
         loadPageTabs(),

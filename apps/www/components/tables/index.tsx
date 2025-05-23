@@ -37,7 +37,7 @@ type TableProps = (WithTable | WithoutTable) & {
         deleteAction?: (id) => any;
         rowClick?: (id: string, rowData?) => any;
         loadMore?;
-        filterData: PageFilterData[];
+        filterData?: PageFilterData[];
     };
 };
 export const { useContext: useTable, Provider: TableProvider } =

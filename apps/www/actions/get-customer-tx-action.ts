@@ -10,6 +10,7 @@ import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { AsyncFnType } from "@/types";
 import { whereCustomerTx } from "@/utils/db/where.customer-transactions";
+import { ISalesPaymentMeta } from "@/types/sales";
 
 export type GetSalesCustomerTx = AsyncFnType<
     typeof getCustomerTransactionsAction
@@ -27,7 +28,7 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
             description: true,
             status: true,
             paymentMethod: true,
-
+            meta: true,
             author: {
                 select: {
                     name: true,
@@ -63,18 +64,6 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
                     },
                 },
             },
-            // order: {
-            //     select: {
-            //         orderId: true,
-            //         amountDue: true,
-            //         grandTotal: true,
-            //         salesRep: {
-            //             select: {
-            //                 name: true,
-            //             },
-            //         },
-            //     },
-            // },
         },
     });
     const pageInfo = await getPageInfo(
@@ -98,7 +87,10 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
                     item.salesPayments?.map((s) => s.order?.salesRep?.name),
                 ),
             );
+            const meta = item.meta as any as ISalesPaymentMeta;
+            // meta.checkNo
             return {
+                checkNo: meta?.checkNo,
                 uuid: item.id,
                 id: item.id,
                 authorName: item.author?.name,

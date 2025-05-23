@@ -24,7 +24,7 @@ const sheetContentVariant = cva(
                 "2xl": "sm:max-w-5xl md:max-w-2xl",
                 "3xl": "sm:max-w-5xl md:max-w-3xl",
                 "4xl": "sm:max-w-5xl md:max-w-4xl",
-                "5xl": "sm:max-w-5xl md:max-w-5xl",
+                "5xl": "sm:max-w-5xl md:max-w-6xl",
                 default: "",
                 lg: "sm:max-w-lg",
             },

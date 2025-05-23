@@ -56,6 +56,21 @@ export async function getRoles() {
         { tags },
     )();
 }
+export async function getPermissions() {
+    const tags = [`permissions`];
+    return unstable_cache(
+        async () => {
+            return await prisma.permissions.findMany({
+                select: {
+                    id: true,
+                    name: true,
+                },
+            });
+        },
+        tags,
+        { tags },
+    )();
+}
 export async function getEmployeeProfiles() {
     const tags = [`employee-profiles`];
     return unstable_cache(

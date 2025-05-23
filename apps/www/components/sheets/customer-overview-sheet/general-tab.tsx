@@ -210,8 +210,16 @@ export function GeneralTab({ setCustomerName }) {
                                                     <DataSkeleton pok="textSm">
                                                         {tx?.description}
                                                     </DataSkeleton>
-                                                    <DataSkeleton pok="textSm">
-                                                        {tx?.paymentMethod}
+                                                    <DataSkeleton
+                                                        pok="textSm"
+                                                        className="font-mono"
+                                                    >
+                                                        {[
+                                                            tx?.paymentMethod,
+                                                            tx?.checkNo,
+                                                        ]
+                                                            ?.filter(Boolean)
+                                                            .join(" | ")}
                                                     </DataSkeleton>
                                                 </TableCell>
                                                 <TableCell align="right">
