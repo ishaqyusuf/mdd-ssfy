@@ -1,9 +1,9 @@
 {
-  "extends": "@gnd/tsconfig/base.json",
+  "extends": "@gnd/tsconfig/nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./src/*"],
+      "@/*": ["./src/*"],
       "contentlayer/generated": ["./.contentlayer/generated"]
     },
     "plugins": [
@@ -11,7 +11,8 @@
         "name": "next"
       }
     ],
-    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json"
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
+    "noImplicitAny": false
   },
   "include": [
     "next-env.d.ts",
