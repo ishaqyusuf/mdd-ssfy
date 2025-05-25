@@ -36,6 +36,7 @@
     "typescript": "^5.6.3"
   },
   "exports": {
+    "./confirm-button": "./src/components/custom/confirm-button.tsx",
     "./animated-size-container": "./src/components/animated-size-container.tsx",
     "./accordion": "./src/components/accordion.tsx",
     "./alert-dialog": "./src/components/alert-dialog.tsx",

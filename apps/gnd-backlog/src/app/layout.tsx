@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "@/styles/globals.css";
 
 import { cn } from "@gnd/ui/cn";
+import { GlobalModals } from "./components/modals/global-modals";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -32,6 +33,7 @@ export default function RootLayout({
         )}
       >
         {children}
+        <GlobalModals />
         {/* <ThemeProvider
           attribute="class"
           defaultTheme="dark"

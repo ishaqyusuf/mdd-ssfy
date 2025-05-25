@@ -90,11 +90,10 @@ import {
     Users,
 } from "lucide-react";
 import Image from "next/image";
-import logo from "@/public/logo_mini.png";
-import logo2 from "@/public/logo.png";
+ 
 import Link from "next/link";
 import { Cross2Icon } from "@radix-ui/react-icons";
-import { cn } from "@/lib/utils";
+ 
 import { cva, VariantProps } from "class-variance-authority";
 
 export type Icon = LucideIcon;
@@ -116,45 +115,12 @@ export const Icons = {
     TrendingUp: TrendingUp,
     TrendingDown: TrendingDown,
     Notification: AlertCircle,
-    Logo: () => <Image alt="" src={logo2} width={48} height={48} />,
-    LogoLg: () => <Image alt="" src={logo2} width={120} />,
-    logoLg: ({ width = 120 }) => (
-        <Link href="/">
-            <Image alt="" src={logo2} width={width} />
-        </Link>
-    ),
+    
     time: Timer,
     cart: ShoppingBag,
-    logo: () => (
-        <Link href="/">
-            <Image alt="" src={logo} width={48} height={48} />
-        </Link>
-    ),
-    PrintLogo: () => (
-        <Link href="/">
-            <Image
-                alt=""
-                onLoadingComplete={(img) => {}}
-                width={178}
-                height={80}
-                src={logo2}
-            />
-        </Link>
-    ),
-    Transactions2: (props: any) => (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width={40}
-            height={40}
-            fill="none"
-            {...props}
-        >
-            <path
-                fill="currentColor"
-                d="M23.333 16.667H5V20h18.333v-3.333Zm0-6.667H5v3.333h18.333V10ZM5 26.667h11.667v-3.334H5v3.334Zm19 10 4.333-4.334 4.334 4.334L35 34.333 30.667 30 35 25.667l-2.333-2.334-4.334 4.334L24 23.333l-2.333 2.334L26 30l-4.333 4.333L24 36.667Z"
-            />
-        </svg>
-    ),
+     
+     
+   
     delivery2: Send,
     pickup: Package,
     Merge: Merge,
@@ -230,8 +196,9 @@ export const Icons = {
     lineChart: LineChart,
     hide: EyeOff,
     view: Eye,
-
+    
     edit: ClipboardEdit,
+     
 };
 
 export type IconKeys = keyof typeof Icons;
