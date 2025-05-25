@@ -1,0 +1,155 @@
+model GitTasks {
+    id          Int    @id @default(autoincrement())
+    description String
+    status      String
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    todos      Todos[]
+    statusList GitStatus[]
+    tags       GitTags[]
+}
+
+model Todos {
+    id         Int      @unique @default(autoincrement())
+    task       GitTasks @relation(fields: [gitTasksId], references: [id])
+    gitTasksId Int
+    status     String
+
+    statusList GitStatus[]
+    tags       GitTags[]
+    deletedAt  DateTime?   @db.Timestamp(0)
+    createdAt  DateTime?   @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime?   @updatedAt
+
+    @@index([gitTasksId])
+}
+
+model GitStatus {
+    id          Int     @unique @default(autoincrement())
+    current     Boolean @default(false)
+    status      String
+    description String?
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    taskId Int?
+    task   GitTasks? @relation(fields: [taskId], references: [id])
+
+    todo    Todos? @relation(fields: [todosId], references: [id])
+    todosId Int?
+
+    @@index([taskId])
+    @@index([todosId])
+}
+
+model GitTags {
+    id        Int       @unique @default(autoincrement())
+    tagId     Int
+    gitTaskId Int
+    deletedAt DateTime? @db.Timestamp(0)
+
+    task GitTasks? @relation(fields: [gitTaskId], references: [id])
+    tag  Tags?     @relation(fields: [tagId], references: [id])
+
+    todo   Todos? @relation(fields: [todoId], references: [id])
+    todoId Int?
+
+    @@index([gitTaskId])
+    @@index([tagId])
+    @@index([todoId])
+}
+
+model Tags {
+    id    Int    @unique @default(autoincrement())
+    title String
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    taskTags GitTags[]
+}
+
+model ClockinPaymentInvoice {
+    id Int @id @default(autoincrement())
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    sessions      ClockinSession[]
+    totalDuration Float?
+    totalAmount   Float? //total amount for session
+    status        String?           @default("pending") // pending, approved, rejected, paid
+    payments      ClockinPayments[]
+}
+
+model ClockinPayments {
+    id          Int     @id @default(autoincrement())
+    amount      Float? //part invoice payment
+    description String?
+    status      String? @default("pending") // pending, approved, rejected, paid
+
+    invoice   ClockinPaymentInvoice? @relation(fields: [invoiceId], references: [id])
+    invoiceId Int?
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    payout          ClockinPayout? @relation(fields: [clockinPayoutId], references: [id])
+    clockinPayoutId Int?
+
+    @@index([invoiceId])
+    @@index([clockinPayoutId])
+}
+
+model ClockinPayout {
+    id           Int     @id @default(autoincrement())
+    amount       Float?
+    exchangeRate Float?
+    amountInUSD  Float?
+    description  String?
+
+    payments ClockinPayments[]
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+}
+
+model ClockinSession {
+    id        Int                    @id @default(autoincrement())
+    clockIn   DateTime               @db.Timestamp(0)
+    clockOut  DateTime?              @db.Timestamp(0)
+    duration  Float?
+    breaks    ClockinBreak[]
+    deletedAt DateTime?              @db.Timestamp(0)
+    createdAt DateTime?              @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?              @updatedAt
+    invoice   ClockinPaymentInvoice? @relation(fields: [invoiceId], references: [id])
+    invoiceId Int?
+
+    @@unique([invoiceId])
+}
+
+model ClockinBreak {
+    id          Int       @id @default(autoincrement())
+    clockIn     DateTime  @db.Timestamp(0)
+    clockOut    DateTime? @db.Timestamp(0)
+    duration    Float?
+    description String?
+
+    deletedAt DateTime?       @db.Timestamp(0)
+    createdAt DateTime?       @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?       @updatedAt
+    clock     ClockinSession? @relation(fields: [clockinId], references: [id])
+    clockinId Int?
+
+    @@index([clockinId])
+}
