@@ -394,7 +394,7 @@ function DoorSizeRow({ size, sn }: { size; sn }) {
                             setShowNote(!showNote);
                         }}
                     >
-                        Note
+                        {showNote ? "Close Notes" : "Open Notes"}
                     </Button>
                     <ConfirmBtn
                         disabled={ctx.ctx.selectCount == 1}
