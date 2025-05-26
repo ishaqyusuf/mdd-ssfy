@@ -37,6 +37,7 @@ export function ModuleSwitcher() {
                     ?.flat()
                     ?.sort((a, b) => a.globalIndex - b.globalIndex)?.[0];
                 const href =
+                    module.defaultLink ||
                     prim?.href ||
                     prim?.subLinks?.filter((a) => a.show)?.[0]?.href;
                 return {

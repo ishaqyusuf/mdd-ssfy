@@ -21,6 +21,7 @@ const _module = (
     index: -1,
     activeLinkCount: 0,
     activeSubLinkCount: 0,
+    defaultLink: null,
 });
 // type sectionNames = "main" | "sales";
 type Link = {
@@ -392,9 +393,11 @@ export function getLinkModules(_linkModules = linkModules) {
             match?: "part";
         };
     } = {};
-    let defaultLink = null;
-    let rankedLinks: { rank: number; href: string }[] = [];
+    let __defaultLink = null;
+    let __rankedLinks: { rank: number; href: string }[] = [];
     const modules = _linkModules.map((m, mi) => {
+        let rankedLinks: { rank: number; href: string }[] = [];
+        let defaultLink = null;
         m.index = mi;
         let moduleLinks = 0;
         m.sections = m.sections.map((s, si) => {
@@ -450,25 +453,25 @@ export function getLinkModules(_linkModules = linkModules) {
             return s;
         });
         m.activeLinkCount = moduleLinks;
+        __rankedLinks.push(...rankedLinks);
+        m.defaultLink = defaultLink;
+        if (!__defaultLink) __defaultLink = defaultLink;
         return m;
     });
     let renderMode: "default" | "suppressed" | "none" = "suppressed";
     const moduleLinksCount = sum(modules, "activeLinkCount");
-    // if (modules.every((m) => m.activeLinkCount < 6) && moduleLinksCount < 15)
-    // renderMode = "suppressed";
-    const moduleLinks = modules
-        .map((m) => m.activeLinkCount)
-        .filter((a) => a > 3);
+
     if (moduleLinksCount > 12) renderMode = "default";
     if (moduleLinksCount < 6) renderMode = "none";
-    if (rankedLinks?.length) {
-        defaultLink = rankedLinks.sort((a, b) => a.rank - b.rank)?.[0]?.href;
+    if (__rankedLinks?.length) {
+        __defaultLink = __rankedLinks.sort((a, b) => a.rank - b.rank)?.[0]
+            ?.href;
     }
     return {
         modules,
         renderMode,
         linksNameMap,
         moduleLinksCount,
-        defaultLink,
+        defaultLink: __defaultLink,
     };
 }
