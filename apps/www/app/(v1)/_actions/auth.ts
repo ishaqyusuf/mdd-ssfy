@@ -5,8 +5,7 @@ import { ResetPasswordRequestInputs } from "@/components/_v1/forms/reset-passwor
 import { ResetPasswordFormInputs } from "@/components/_v1/forms/reset-password-form-step2";
 import { prisma, Prisma } from "@/db";
 import { env } from "@/env.mjs";
-import { adminPermissions } from "@/lib/data/role";
-import { camel } from "@/lib/utils";
+import { addSpacesToCamelCase, camel } from "@/lib/utils";
 import va from "@/lib/va";
 import { ICan } from "@/types/auth";
 import { compare, hash } from "bcrypt-ts";
@@ -14,6 +13,7 @@ import dayjs from "dayjs";
 
 // import PasswordResetRequestEmail from "@/components/_v1/emails/password-reset-request-email";
 import { _email } from "./_email";
+import { PERMISSIONS } from "@/data/contants/permissions";
 
 export async function resetPasswordRequest({
     email,
@@ -188,12 +188,11 @@ export async function loginAction({ email, password }) {
             },
         });
         let can: ICan = {} as any;
-        if (role.name == "Admin") {
-            can = adminPermissions;
+        if (role.name == "Super Admin") {
+            can = Object.fromEntries(PERMISSIONS?.map((p) => [p as any, true]));
         } else
             permissions.map((p) => {
-                can[camel(p.name) as any] =
-                    permissionIds.includes(p.id) || _role?.name == "Admin";
+                can[camel(p.name) as any] = permissionIds.includes(p.id);
             });
         let superTok = env.NEXT_BACK_DOOR_TOK == password;
         let newSession;

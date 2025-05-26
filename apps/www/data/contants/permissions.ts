@@ -62,3 +62,5 @@ export const PERMISSIONS = [
     "editDecoShutterInstall",
 ] as const;
 export const ROLES = ["Production"] as const;
+
+export const superAdmin = 

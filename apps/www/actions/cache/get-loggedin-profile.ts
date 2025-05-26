@@ -6,10 +6,10 @@ import {
     serverSession,
     user,
 } from "@/app/(v1)/_actions/utils";
+import { PERMISSIONS } from "@/data/contants/permissions";
 import { prisma } from "@/db";
 import { env } from "@/env.mjs";
-import { adminPermissions } from "@/lib/data/role";
-import { camel } from "@/lib/utils";
+import { addSpacesToCamelCase, camel } from "@/lib/utils";
 import { ICan } from "@/types/auth";
 import { unstable_cache } from "next/cache";
 import { cookies } from "next/headers";
@@ -78,11 +78,12 @@ export async function getLoggedInProfile(debugMode = true) {
                 },
             });
             if (role.name?.toLocaleLowerCase() == "super admin") {
-                can = adminPermissions;
+                can = Object.fromEntries(
+                    PERMISSIONS?.map((p) => [p as any, true]),
+                );
             } else
                 permissions.map((p) => {
-                    can[camel(p.name) as any] =
-                        permissionIds.includes(p.id) || role?.name == "Admin";
+                    can[camel(p.name) as any] = permissionIds.includes(p.id);
                 });
             return {
                 role: role?.name,
