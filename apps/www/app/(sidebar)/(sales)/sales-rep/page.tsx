@@ -25,8 +25,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { searchParamsCache } from "./search-params";
-import { cn } from "@/lib/utils";
-import ProdOnly from "@/_v2/components/common/prod-only";
+import { prisma } from "@/db";
+import { revalidateTag } from "next/cache";
 
 export const metadata: Metadata = {
     title: `My Dashboard | GND`,
@@ -38,6 +38,15 @@ export default async function SalesRepProfile({
 }) {
     const {} = searchParamsCache.parse(searchParams);
     const user = await authUser();
+    // await prisma.payrollHistory.deleteMany({
+    //     where: {},
+    // });
+    // await prisma.payroll.deleteMany({
+    //     where: {
+    //         deletedAt: {},
+    //     },
+    // });
+    // revalidateTag(`sales_rep_commission_summary`);
 
     return (
         <FPage can={["editOrders"]} title="Sales Rep Profile">

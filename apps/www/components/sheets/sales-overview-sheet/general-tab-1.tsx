@@ -398,7 +398,7 @@ export function GeneralTab({}) {
                                     });
                                 }}
                             >
-                                <Icons.paypal className="mr-2 size-4" />
+                                <Icons.payment className="mr-2 size-4" />
                                 Pay
                             </Button>
                         )}

@@ -11,7 +11,6 @@ import {
     deleteOrderAction,
 } from "@/app/(v1)/(loggedIn)/sales/_actions/sales";
 import { toast } from "sonner";
-import { Icons } from "../icons";
 import {
     DeleteRowAction,
     MenuItem,
@@ -33,6 +32,7 @@ import {
     copySalesUseCase,
     moveOrderUseCase,
 } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
+import { Icons } from "@gnd/ui/custom/icons";
 
 export interface IOrderRowProps {
     row: ISalesOrder;
@@ -52,7 +52,7 @@ export function OrderRowAction(props: IOrderRowProps) {
             await updateDeliveryModeDac(
                 row.id,
                 delivery,
-                row.type == "order" ? "orders" : "quotes"
+                row.type == "order" ? "orders" : "quotes",
             );
 
             toast.success("Updated");
@@ -196,7 +196,7 @@ export const SendEmailMenuAction = ({ sales }: { sales: any }) => {
                             path: "sales",
                         }}
                         subtitle={`Sales Order | ${sales.orderId}`}
-                    />
+                    />,
                 );
             }}
         >
@@ -211,7 +211,7 @@ export const PrintOrderMenuAction = typedMemo(
             pdf?: Boolean;
             mockup?: Boolean;
             link?: Boolean;
-        }
+        },
     ) => {
         const pdf = useSalesPdf();
         async function _print(mode: IOrderPrintMode) {
@@ -302,7 +302,7 @@ export const PrintOrderMenuAction = typedMemo(
                 {!props.pdf ? <>Print {props.mockup && " Mockup"}</> : "Pdf"}
             </MenuItem>
         );
-    }
+    },
 );
 export const MoveSalesMenuItem = ({ id, orderId, type, isDyke }) => {
     const estimate = type == "quote";
@@ -350,7 +350,7 @@ export const CopyOrderMenuAction = typedMemo((props: IOrderRowProps) => {
                     });
             });
         },
-        [props.row]
+        [props.row],
     );
     function copyLink(as) {
         if (!props.row.isDyke) return null;

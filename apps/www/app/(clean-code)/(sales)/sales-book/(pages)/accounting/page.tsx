@@ -4,6 +4,7 @@ import SalesAccountingTable from "@/components/tables/sales-accounting";
 import TablePage from "@/components/tables/table-page";
 import { prisma } from "@/db";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
+import { revalidateTag } from "next/cache";
 
 export async function generateMetadata({}) {
     return constructMetadata({
@@ -11,15 +12,6 @@ export async function generateMetadata({}) {
     });
 }
 export default async function Page({ searchParams }) {
-    // await prisma.payrollHistory.deleteMany({
-    //     where: {},
-    // });
-    // await prisma.payroll.deleteMany({
-    //     where: {
-    //         deletedAt: {},
-    //     },
-    // });
-
     const [queryData] = await Promise.all([getSalesPageQueryData()]);
     return (
         <FPage can={["viewOrders"]} title="Accounting">
