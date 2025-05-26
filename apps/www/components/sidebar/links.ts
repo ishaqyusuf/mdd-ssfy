@@ -393,6 +393,7 @@ export function getLinkModules(_linkModules = linkModules) {
         };
     } = {};
     let defaultLink = null;
+    let rankedLinks: { rank: number; href: string }[] = [];
     const modules = _linkModules.map((m, mi) => {
         m.index = mi;
         let moduleLinks = 0;
@@ -409,6 +410,11 @@ export function getLinkModules(_linkModules = linkModules) {
                             module: m.name,
                         };
                         if (!defaultLink) defaultLink = l.href;
+                        if (l.level)
+                            rankedLinks.push({
+                                rank: l.level,
+                                href: l.href,
+                            });
                     }
                     l.index = li;
                     l.globalIndex = i.links++;
@@ -426,6 +432,11 @@ export function getLinkModules(_linkModules = linkModules) {
                     l.subLinks = l.subLinks.map((sl, sli) => {
                         if (sl.href && sl.show) {
                             if (!defaultLink) defaultLink = sl.href;
+                            if (sl.level)
+                                rankedLinks.push({
+                                    rank: sl.level,
+                                    href: sl.href,
+                                });
                             linksNameMap[sl.href] = {
                                 name: l.name,
                                 module: m.name,
@@ -450,6 +461,9 @@ export function getLinkModules(_linkModules = linkModules) {
         .filter((a) => a > 3);
     if (moduleLinksCount > 12) renderMode = "default";
     if (moduleLinksCount < 6) renderMode = "none";
+    if (rankedLinks?.length) {
+        defaultLink = rankedLinks.sort((a, b) => a.rank - b.rank)?.[0]?.href;
+    }
     return {
         modules,
         renderMode,

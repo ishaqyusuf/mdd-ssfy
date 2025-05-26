@@ -25,12 +25,9 @@ export function nav(
     session: Session | null,
     isProd = true,
 ): ISidebar | undefined {
-    // {user,role,can}
     if (!session?.user) return undefined;
     const prodQuery = ``;
-    //`?_dateType=prodDueDate&date=${dayjs().format(
-    // "YYYY-MM-DD"
-    // )}`;
+
     const __can = session?.can;
     const role:
         | "Production"
@@ -44,7 +41,6 @@ export function nav(
         viewBuilders,
         viewInvoice,
         viewOrders,
-        viewCost,
         editOrders,
         editProject,
         viewHrm,
