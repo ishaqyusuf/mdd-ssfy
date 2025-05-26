@@ -96,6 +96,7 @@ import Link from "next/link";
 import { Cross2Icon } from "@radix-ui/react-icons";
  
 import { cva, VariantProps } from "class-variance-authority";
+import { cn } from "../../utils";
 
 export type Icon = LucideIcon;
 
@@ -225,7 +226,7 @@ export function Icon({
     name,
     className,
     ...props
-}: { name: IconKeys; className? } & VariantProps<typeof iconVariants>) {
+}: { name: IconKeys; className?:string } & VariantProps<typeof iconVariants>) {
     const RenderIcon = Icons[name];
     if (!RenderIcon) return null;
     return <RenderIcon className={cn("", iconVariants(props), className)} />;

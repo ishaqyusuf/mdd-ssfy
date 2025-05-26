@@ -9,10 +9,12 @@ export async function deleteSalesCommission(paymentId) {
     const payroll = await prisma.payroll.findFirst({
         where: {
             itemUid: {
-                contains: payrollUidSearch(paymentId, "pid"),
+                search: payrollUidSearch(paymentId, "pid"),
             },
         },
     });
+    console.log({ payroll });
+    return;
     if (payroll) await deletePayroll(payroll.id);
 }
 export async function deletePayroll(id: number) {

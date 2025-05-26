@@ -14,7 +14,7 @@ export async function deleteSalesPaymentAction(salesId, paymentId) {
             id: paymentId,
         },
         data: {
-            updatedAt: new Date(),
+            // updatedAt: new Date(),
         },
         include: {
             transaction: true,

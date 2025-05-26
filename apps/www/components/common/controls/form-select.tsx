@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useDataSkeleton } from "@/hooks/use-data-skeleton";
-import { cn } from "@/lib/utils";
+import { cn, generateRandomString } from "@/lib/utils";
 import { CheckIcon, ChevronsUpDown } from "lucide-react";
 import { ControllerProps, FieldPath, FieldValues } from "react-hook-form";
 
@@ -93,6 +93,7 @@ export default function FormSelect<
               ? option[titleKey] || option["text"]
               : option[titleKey];
     }
+    const k = generateRandomString();
     return (
         <FormField
             {...(props as any)}
@@ -109,96 +110,87 @@ export default function FormSelect<
                     )}
                     <FormControl>
                         {load?.loading ? (
-                            <>
-                                <Skeleton className="h-8 w-full" />
-                            </>
-                        ) : (
-                            <>
-                                {type == "combo" ? (
-                                    <ControlledCombox
-                                        size={size}
-                                        field={field}
-                                        placeholder={placeholder}
-                                        onSelect={(s) => {
-                                            let value = itemValue(s);
-                                            if (transformValue)
-                                                value = transformValue(value);
+                            <Skeleton className="h-8 w-full" />
+                        ) : type == "combo" ? (
+                            <ControlledCombox
+                                size={size}
+                                field={field}
+                                key={k}
+                                placeholder={placeholder}
+                                onSelect={(s) => {
+                                    let value = itemValue(s);
+                                    if (transformValue)
+                                        value = transformValue(value);
 
-                                            field?.onChange(value);
-                                            onSelect && onSelect(value);
-                                            // onSelect;
-                                        }}
-                                        options={list}
-                                        itemValue={itemValue}
-                                        itemText={itemText}
-                                    />
-                                ) : (
-                                    <Select
-                                        disabled={props.disabled}
-                                        onValueChange={field.onChange}
-                                        {...(listMode
-                                            ? {
-                                                  defaultValue: field.value,
-                                              }
-                                            : {
-                                                  value: field.value,
-                                              })}
-                                    >
-                                        <SelectTrigger
-                                            className={cn(
-                                                size == "sm" && "h-8",
-                                            )}
-                                        >
-                                            <div className="inline-flex gap-1">
-                                                {prefix && (
-                                                    <span className="text-muted-foreground">
-                                                        {prefix}
-                                                        {": "}
-                                                    </span>
-                                                )}
-                                                <SelectValue
-                                                    className="whitespace-nowrap"
-                                                    placeholder={placeholder}
-                                                ></SelectValue>
-                                            </div>
-                                        </SelectTrigger>
-                                        <SelectContent className="">
-                                            <ScrollArea className="max-h-[40vh] overflow-auto">
-                                                {(loader ? list : options)?.map(
-                                                    (option, index) =>
-                                                        SelItem ? (
-                                                            <SelItem
+                                    field?.onChange(value);
+                                    onSelect && onSelect(value);
+                                    // onSelect;
+                                }}
+                                options={list}
+                                itemValue={itemValue}
+                                itemText={itemText}
+                            />
+                        ) : (
+                            <Select
+                                disabled={props.disabled}
+                                onValueChange={field.onChange}
+                                {...(listMode
+                                    ? {
+                                          defaultValue: field.value,
+                                      }
+                                    : {
+                                          value: field.value,
+                                      })}
+                            >
+                                <SelectTrigger
+                                    className={cn(size == "sm" && "h-8")}
+                                >
+                                    <div className="inline-flex gap-1">
+                                        {prefix && (
+                                            <span className="text-muted-foreground">
+                                                {prefix}
+                                                {": "}
+                                            </span>
+                                        )}
+                                        <SelectValue
+                                            className="whitespace-nowrap"
+                                            placeholder={placeholder}
+                                        ></SelectValue>
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent className="">
+                                    <ScrollArea className="max-h-[40vh] overflow-auto">
+                                        {(loader ? list : options)?.map(
+                                            (option, index) =>
+                                                SelItem ? (
+                                                    <SelItem
+                                                        option={option}
+                                                        key={index}
+                                                    />
+                                                ) : (
+                                                    <SelectItem
+                                                        key={index}
+                                                        value={itemValue(
+                                                            option,
+                                                        )}
+                                                    >
+                                                        {Item ? (
+                                                            <Item
                                                                 option={option}
-                                                                key={index}
                                                             />
                                                         ) : (
-                                                            <SelectItem
-                                                                key={index}
-                                                                value={itemValue(
+                                                            <>
+                                                                {itemText(
                                                                     option,
                                                                 )}
-                                                            >
-                                                                {Item ? (
-                                                                    <Item
-                                                                        option={
-                                                                            option
-                                                                        }
-                                                                    />
-                                                                ) : (
-                                                                    <>
-                                                                        {itemText(
-                                                                            option,
-                                                                        )}
-                                                                    </>
-                                                                )}
-                                                            </SelectItem>
-                                                        ),
-                                                )}
-                                            </ScrollArea>
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            </>
+                                                            </>
+                                                        )}
+                                                    </SelectItem>
+                                                ),
+                                        )}
+                                    </ScrollArea>
+                                </SelectContent>
+                            </Select>
                         )}
                     </FormControl>
                 </FormItem>

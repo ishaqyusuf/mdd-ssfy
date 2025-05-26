@@ -85,16 +85,16 @@ export const columns: ColumnDef<SalesListItem>[] = [
         header: "Invoice",
         accessorKey: "invoice",
         cell: ({ row: { original: item } }) => (
-            <TCell align="right">
+            <div>
                 <TCell.Money value={item.invoice.total} className="font-mono" />
-            </TCell>
+            </div>
         ),
     },
     {
         header: "Pending",
         accessorKey: "pending",
         cell: ({ row: { original: item } }) => (
-            <TCell>
+            <div>
                 <TCell.Money
                     value={Math.abs(item.invoice.pending || 0)}
                     className={cn(
@@ -103,7 +103,7 @@ export const columns: ColumnDef<SalesListItem>[] = [
                         item.invoice.pending < 0 && "bg-emerald-700 text-white",
                     )}
                 />
-            </TCell>
+            </div>
         ),
     },
     {
