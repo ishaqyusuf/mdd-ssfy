@@ -23,6 +23,8 @@ import FContentShell from "@/components/(clean-code)/fikr-ui/f-content-shell";
 import { Menu } from "@/components/(clean-code)/menu";
 import { Icons } from "@/components/_v1/icons";
 import { useRolesParams } from "@/hooks/use-roles-params";
+import { AuthGuard } from "@/components/auth-guard";
+import { _perm } from "@/components/sidebar/links";
 
 type Props = {
     data: Item[];
@@ -88,29 +90,33 @@ export function DataTable({
                             filterList={filterData}
                         />
                         <div className="flex-1"></div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                                setParams({
-                                    createEmployee: true,
-                                })
-                            }
-                        >
-                            Create
-                        </Button>
-                        <Menu>
-                            <Menu.Item
-                                onClick={(e) => {
-                                    role.setParams({
-                                        viewRoles: true,
-                                    });
-                                }}
-                                icon="roles"
+                        <AuthGuard rules={[_perm.is("editEmployee")]}>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                    setParams({
+                                        createEmployee: true,
+                                    })
+                                }
                             >
-                                Roles
-                            </Menu.Item>
-                        </Menu>
+                                Create
+                            </Button>
+                        </AuthGuard>
+                        <AuthGuard rules={[_perm.is("editRole")]}>
+                            <Menu>
+                                <Menu.Item
+                                    onClick={(e) => {
+                                        role.setParams({
+                                            viewRoles: true,
+                                        });
+                                    }}
+                                    icon="roles"
+                                >
+                                    Roles
+                                </Menu.Item>
+                            </Menu>
+                        </AuthGuard>
                     </div>
                 </FContentShell>
                 <Table>
