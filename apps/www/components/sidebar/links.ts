@@ -91,7 +91,7 @@ const _link = (
     return ctx;
 };
 export type Access = {
-    type: "role" | "permission" | "userId";
+    type: "role" | "permission"; // | "userId";
     equator: "is" | "isNot" | "in" | "notIn" | "every" | "some";
     values: string[];
 };
@@ -124,9 +124,9 @@ export function validateRules(accessList: Access[], can?, userId?, role?) {
     if (!can) can = {};
     return accessList.every((a) => {
         switch (a.type) {
-            case "userId":
-                return Number(a.values[0]) == userId;
-                break;
+            // case "userId":
+            //     return Number(a.values[0]) == userId;
+            //     break;
             case "permission":
                 switch (a.equator) {
                     case "every":
@@ -200,7 +200,7 @@ const profileSection = _section("settings", null, [
         "Site Actions",
         "Notification",
         "/settings/site-action-notifications",
-    ).access(__access("userId", "is", 1)).data,
+    ).access(_role.is("Super Admin")).data,
 ]);
 export const linkModules = [
     _module("HRM", "hrm", "GND HRM", [
@@ -332,7 +332,7 @@ export const linkModules = [
     _module("Sales", "orders", "GND Sales", [
         _section(null, null, [
             _link("Sales Dashboard", "dashboard", "/dashboard/sales").access(
-                __access("userId", "is", 1),
+                _role.is("Super Admin"),
             ).data,
         ]),
         _section(null, null, [
@@ -383,7 +383,7 @@ export const linkModules = [
                 _perm.in("editSalesCustomers", "viewOrders"),
             ).data,
             _link("Dealers", "user", "/sales-book/dealers").access(
-                __access("userId", "is", 1),
+                _role.is("Super Admin"),
             ).data,
         ]),
     ]),

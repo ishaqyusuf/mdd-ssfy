@@ -44,7 +44,7 @@ export default async function RootLayout({
                     <div className="print:hidden">
                         <AppProvider>
                             <Suspense>
-                                <SessionProvider args={[]}>
+                                <SessionProvider>
                                     <QueryTabProvider>
                                         {children}
                                         <UserAccountUpdateRequiredModal />
