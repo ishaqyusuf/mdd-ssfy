@@ -17,6 +17,7 @@ import {
     TableRow,
 } from "@gnd/ui/table";
 import { CommissionPaymentsWidget } from "./widgets/commission-payments";
+import DevOnly from "@/_v2/components/common/dev-only";
 
 export default function CommissionPayments() {
     const commissionPayments = [
@@ -67,47 +68,49 @@ export default function CommissionPayments() {
             </CardHeader>
             <CardContent>
                 <CommissionPaymentsWidget />
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Payment ID</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Period</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead className="text-right">
-                                Receipt
-                            </TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {commissionPayments.map((payment) => (
-                            <TableRow key={payment.id}>
-                                <TableCell className="font-medium">
-                                    {payment.id}
-                                </TableCell>
-                                <TableCell>{payment.date}</TableCell>
-                                <TableCell>{payment.salesPeriod}</TableCell>
-                                <TableCell>{payment.amount}</TableCell>
-                                <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon">
-                                        <Download className="h-4 w-4" />
-                                        <span className="sr-only">
-                                            Download receipt
-                                        </span>
-                                    </Button>
-                                </TableCell>
+                <DevOnly>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Payment ID</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Period</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead className="text-right">
+                                    Receipt
+                                </TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-                <div className="mt-4 flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">
-                        Showing 5 of 24 payments
-                    </p>
-                    <Button variant="outline" size="sm">
-                        View All
-                    </Button>
-                </div>
+                        </TableHeader>
+                        <TableBody>
+                            {commissionPayments.map((payment) => (
+                                <TableRow key={payment.id}>
+                                    <TableCell className="font-medium">
+                                        {payment.id}
+                                    </TableCell>
+                                    <TableCell>{payment.date}</TableCell>
+                                    <TableCell>{payment.salesPeriod}</TableCell>
+                                    <TableCell>{payment.amount}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon">
+                                            <Download className="h-4 w-4" />
+                                            <span className="sr-only">
+                                                Download receipt
+                                            </span>
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    <div className="mt-4 flex items-center justify-between">
+                        <p className="text-sm text-muted-foreground">
+                            Showing 5 of 24 payments
+                        </p>
+                        <Button variant="outline" size="sm">
+                            View All
+                        </Button>
+                    </div>
+                </DevOnly>
             </CardContent>
         </Card>
     );

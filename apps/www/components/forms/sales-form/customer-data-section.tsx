@@ -180,7 +180,7 @@ function EditBtn({ address }: EditBtnProps) {
             size="xs"
             variant="outline"
         >
-            <Icons.edit className="size-4" />
+            <Icons.edit2 className="size-4" />
         </Button>
     );
 }

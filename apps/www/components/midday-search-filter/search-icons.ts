@@ -15,4 +15,6 @@ export const searchIcons: Partial<{
     "production.dueDate": "calendar",
     po: "inbound",
     "sales.rep": "user",
+    invoice: "communityInvoice",
+    "salesRep.id": "user",
 };

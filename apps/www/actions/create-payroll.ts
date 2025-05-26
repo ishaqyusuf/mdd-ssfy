@@ -5,6 +5,7 @@ import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { payrollUid } from "@/utils/sales-utils";
 import { __salesPayrollUpdated } from "./cache/cache-data-changed";
+import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 
 interface Props {
     userId: number;
@@ -66,3 +67,4 @@ export async function createPayrollAction(data: Props) {
         userId: data.userId,
     });
 }
+export async function createBackPayrolls(query: SearchParamsType) {}
