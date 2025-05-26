@@ -410,9 +410,9 @@ export function GeneralTab({}) {
                             <Card className="border-border/40">
                                 <CardContent className="p-4">
                                     <div className="space-y-2">
-                                        {saleData?.costLines?.map((c) => (
+                                        {saleData?.costLines?.map((c, ci) => (
                                             <div
-                                                key={c.id}
+                                                key={ci}
                                                 className="flex justify-between text-sm"
                                             >
                                                 <span className="text-muted-foreground">
@@ -497,9 +497,10 @@ export function GeneralTab({}) {
                         {[
                             saleData?.addressData?.billing,
                             saleData?.addressData?.shipping,
-                        ]?.map((address) => (
+                        ]?.map((address, ai) => (
                             <Card
-                                key={address?.title}
+                                key={ai}
+                                // key={address?.title}
                                 className="border-border/40"
                             >
                                 <CardContent className="p-4">

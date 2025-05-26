@@ -1,5 +1,5 @@
 {
-  "extends": "@gnd/tsconfig/base.json",
+  "extends": "@gnd/tsconfig/nextjs.json",
   "compilerOptions": {
     "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json"
   },

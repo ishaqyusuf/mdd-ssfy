@@ -33,7 +33,7 @@ const FormField = <
 }: ControllerProps<TFieldValues, TName>) => {
   return (
     <FormFieldContext.Provider value={{ name: props.name }}>
-      <Controller {...props} />
+      <Controller key="controller" {...props} />
     </FormFieldContext.Provider>
   );
 };

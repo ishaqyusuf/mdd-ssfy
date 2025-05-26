@@ -44,7 +44,7 @@ export default async function middleware(req: NextRequest) {
     }`;
 
     const pathName = req.nextUrl.pathname;
-    if (pathName == "/") {
+    if (pathName == "/" && env.NODE_ENV != "production") {
         const usr = await fetch(`${env.NEXTAUTH_URL}/api/auth-session`, {
             method: "POST",
             headers: req.headers,

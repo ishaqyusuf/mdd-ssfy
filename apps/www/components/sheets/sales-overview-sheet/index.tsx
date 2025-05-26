@@ -66,7 +66,7 @@ function Content() {
                             </DataSkeleton>
                         </SheetTitle>
                     </DataSkeletonProvider>
-                    <SheetDescription>
+                    <SheetDescription asChild>
                         <TabsList className="flex w-full justify-start">
                             {query?.assignedTo ? (
                                 <>

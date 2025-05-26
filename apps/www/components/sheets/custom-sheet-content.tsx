@@ -34,6 +34,7 @@ const sheetContentVariant = cva(
 interface Props
     extends SheetContentProps,
         VariantProps<typeof sheetContentVariant> {
+    floating?: boolean;
     children?;
     open?: boolean;
     onOpenChange?;
@@ -58,6 +59,7 @@ export function CustomSheetBase({
     children,
     open,
     onOpenChange,
+    sheetName,
     ...props
 }: Props) {
     const sheet = useSheet();
