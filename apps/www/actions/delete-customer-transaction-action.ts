@@ -24,16 +24,15 @@ export const deleteCustomerTransactionAction = actionClient
                     id: transactionId,
                 },
                 data: {
-                    // status: "" as SalesPaymentStatus,
-                    deletedAt: new Date(),
-                    salesPayments: {
-                        updateMany: {
-                            where: {},
-                            data: {
-                                deletedAt: new Date(),
-                            },
-                        },
-                    },
+                    // deletedAt: new Date(),
+                    // salesPayments: {
+                    //     updateMany: {
+                    //         where: {},
+                    //         data: {
+                    //             deletedAt: new Date(),
+                    //         },
+                    //     },
+                    // },
                 },
                 select: {
                     id: true,
@@ -45,6 +44,7 @@ export const deleteCustomerTransactionAction = actionClient
                     },
                 },
             });
+            console.log({ resp });
             await Promise.all(
                 resp?.salesPayments?.map(async ({ orderId, id }) => {
                     await updateSalesDueAmount(orderId, prisma);

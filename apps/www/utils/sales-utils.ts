@@ -131,14 +131,14 @@ export function payrollUid(oid, pid, submissionId) {
     return Object.entries({ oid, pid, submissionId })
         .filter(([a, b]) => !!b)
         .map(([a, b]) => `${a}:${b}`)
-        .join(",");
+        .join(" ");
 }
 export function payrollUidSearch(value, k: "oid" | "pid" | "submissionId") {
     return `${k}:${value}`;
 }
 export function transformPayrollUid(uid) {
     return Object.fromEntries(
-        uid?.split(",").map((a) => {
+        uid?.split(" ").map((a) => {
             const [k, v] = a?.split(":");
             return [k, Number(v)];
         }),
