@@ -80,6 +80,7 @@ export const CUSTOM_IMG_ID = "ff8zkn817rjqv6ml2qdr";
 
 export const actionTicketTypes = [
     "sales-customer-transaction",
+    "sales-labor-cost",
     "employee-role",
     "employee-profile",
     "order",

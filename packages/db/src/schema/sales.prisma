@@ -731,3 +731,12 @@ model SalesOrderProducts {
     createdAt        DateTime? @default(now()) @db.Timestamp(0)
     updatedAt        DateTime? @updatedAt
 }
+
+model SalesLaborCosts {
+    id        Int       @unique @default(autoincrement())
+    rate      Float
+    current   Boolean   @default(false)
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+}

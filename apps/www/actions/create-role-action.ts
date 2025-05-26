@@ -46,6 +46,7 @@ export async function createRole(data: CreateRoleForm) {
     });
     revalidateTag(`roles`);
     revalidateTag(`role_${data.id}`);
+    revalidateTag(`employees_filter_data`);
 }
 export const createRoleAction = actionClient
     .schema(createRoleSchema)

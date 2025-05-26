@@ -9,6 +9,7 @@ import { useTable } from "..";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { updateEmployeeRole } from "@/actions/update-employee-role";
 import { updateEmployeeProfile } from "@/actions/update-employee-profile";
+import { useAsyncMemo } from "use-async-memo";
 
 export type Item = PageItemData<typeof getEmployees>;
 export const columns: ColumnDef<Item>[] = [
@@ -102,6 +103,7 @@ function Role({ item }: { item: Item }) {
         (a) => a.value == "roleId",
     )?.options;
     const loader = useLoadingToast();
+    // const session = useAsyncMemo
     async function updateRole(roleId) {
         loader.loading("Updating...");
         await updateEmployeeRole(item.id, roleId);

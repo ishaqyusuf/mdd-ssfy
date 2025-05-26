@@ -3,7 +3,7 @@ import { SettingType } from "@/types/settings";
 import { SalesSettingsMeta } from "../app/(clean-code)/(sales)/types";
 import { getStepsForRoutingDta } from "../app/(clean-code)/(sales)/_common/data-access/sales-form-step-dta";
 import { AsyncFnType } from "@/app/(clean-code)/type";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 
 export const salesSettingsKey: SettingType = "sales-settings";
 export async function loadSalesSetting() {

@@ -6,7 +6,7 @@ import {
 import { user } from "@/app/(v1)/_actions/utils";
 import { prisma } from "@/db";
 
-interface Props {
+export interface SiteTicketProps {
     type: ActionTicketType;
     event: ActionTicketEvents;
     meta?: ActionTicketMeta;
@@ -14,7 +14,7 @@ interface Props {
 export async function createSiteActionTicket(
     // description,type: ActionTicketType,
     // meta: ActionTicketMeta
-    props: Props,
+    props: SiteTicketProps,
 ) {
     let { meta } = props;
     if (!meta) meta = {};
@@ -25,7 +25,6 @@ export async function createSiteActionTicket(
         data: {
             description: await generateDescription(props),
             type: props.type,
-
             event: props.event,
             meta,
             SiteActionNotification: {
@@ -37,7 +36,7 @@ export async function createSiteActionTicket(
     });
 }
 
-async function generateDescription({ type, event }: Props) {
+async function generateDescription({ type, event }: SiteTicketProps) {
     const auth = await user();
     return [type, event, "by", auth.name].join(" ").replaceAll("-", " ");
     switch (type) {

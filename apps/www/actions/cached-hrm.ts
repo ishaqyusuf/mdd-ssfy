@@ -37,7 +37,12 @@ export async function employeesFilterData() {
         ];
         return response;
     };
-    const tags = [`employees_filter_data`];
+    const tags = [
+        `employees_filter_data`,
+        `roles`,
+        `employee-profiles`,
+        "permissions",
+    ];
 
     return unstable_cache(fn, tags, { tags })();
 }
