@@ -43,31 +43,33 @@ export default async function middleware(req: NextRequest) {
         searchParams.length > 0 ? `?${searchParams}` : ""
     }`;
 
-    const usr = await fetch(`${env.NEXTAUTH_URL}/api/auth-session`, {
-        method: "POST",
-        headers: req.headers,
-    });
-    if (usr.ok) {
-        const data = await usr.json();
-        if (data?.roleId) {
-            const validLinks = getLinkModules(
-                validateLinks({
-                    role: data.role,
-                    can: data.can,
-                    userId: data?.userId,
-                }),
-            );
-            const menuMode = await getSideMenuMode();
-            const pathName = req.nextUrl.pathname;
-            // console.log({
-            //     userId: data?.userId,
-            //     pathName,
-            //     defaultPage: validLinks.defaultLink,
-            // });
-            if (pathName == "/" && validLinks.defaultLink) {
-                return NextResponse.redirect(
-                    `${req.nextUrl.origin}${validLinks.defaultLink}`,
+    const pathName = req.nextUrl.pathname;
+    if (pathName == "/") {
+        const usr = await fetch(`${env.NEXTAUTH_URL}/api/auth-session`, {
+            method: "POST",
+            headers: req.headers,
+        });
+        if (usr.ok) {
+            const data = await usr.json();
+            if (data?.roleId) {
+                const validLinks = getLinkModules(
+                    validateLinks({
+                        role: data.role,
+                        can: data.can,
+                        userId: data?.userId,
+                    }),
                 );
+                const menuMode = await getSideMenuMode();
+                // console.log({
+                //     userId: data?.userId,
+                //     pathName,
+                //     defaultPage: validLinks.defaultLink,
+                // });
+                if (pathName == "/" && validLinks.defaultLink) {
+                    return NextResponse.redirect(
+                        `${req.nextUrl.origin}${validLinks.defaultLink}`,
+                    );
+                }
             }
         }
     }
