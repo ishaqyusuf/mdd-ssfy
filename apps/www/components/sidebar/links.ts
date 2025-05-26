@@ -328,12 +328,16 @@ export const linkModules = [
     ]),
     _module("Sales", "orders", "GND Sales", [
         _section(null, null, [
-            _link("Dashboard", "dashboard", "/sales-rep")
+            _link("Sales Dashboard", "dashboard", "/dashboard/sales").access(
+                __access("userId", "is", 1),
+            ).data,
+        ]),
+        _section(null, null, [
+            _link("My Dashboard", "dashboard", "/sales-rep")
                 .access(_perm.is("editOrders"), _role.is("Admin"))
                 .level(1).data,
             _link("Accounting", "billing", "/sales-book/accounting").access(
                 _perm.is("editOrders"),
-                // __access("userId", "is", 1),
             ).data,
         ]),
         _section("main", null, [

@@ -93,7 +93,7 @@ import {
 import Image from "next/image";
  
 import Link from "next/link";
-import { Cross2Icon } from "@radix-ui/react-icons";
+import { Cross2Icon, DashboardIcon } from "@radix-ui/react-icons";
  
 import { cva, VariantProps } from "class-variance-authority";
 import { cn } from "../../utils";
@@ -102,6 +102,7 @@ export type Icon = LucideIcon;
 
 export const Icons = {
     profile: UserCircle,
+    dashbord2: DashboardIcon,
     edit2: Edit2,
     box: Box,
     roles: ShieldIcon,
