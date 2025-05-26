@@ -10,6 +10,9 @@ import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { updateEmployeeRole } from "@/actions/update-employee-role";
 import { updateEmployeeProfile } from "@/actions/update-employee-profile";
 import { useAsyncMemo } from "use-async-memo";
+import { AuthGuard } from "@/components/auth-guard";
+import { _perm } from "@/components/sidebar/links";
+import { Badge } from "@gnd/ui/badge";
 
 export type Item = PageItemData<typeof getEmployees>;
 export const columns: ColumnDef<Item>[] = [
@@ -110,22 +113,26 @@ function Role({ item }: { item: Item }) {
         loader.success("Updated.");
     }
     return (
-        <Menu
-            label={item.role?.name || "Role not set"}
-            Icon={null}
-            variant={item?.role?.id ? "secondary" : "destructive"}
-            hoverVariant="default"
-            triggerSize="xs"
+        <AuthGuard
+            rules={[_perm.is("editRole")]}
+            Fallback={<Badge variant="secondary">{item.role?.name}</Badge>}
         >
-            {roles?.map((role) => (
-                <Menu.Item
-                    onClick={(e) => updateRole(Number(role.value))}
-                    key={role.value}
-                >
-                    {role?.label}
-                </Menu.Item>
-            ))}
-        </Menu>
+            <Menu
+                label={item.role?.name || "Role not set"}
+                Icon={null}
+                variant={item?.role?.id ? "secondary" : "destructive"}
+                hoverVariant="default"
+                triggerSize="xs"
+            >
+                {roles?.map((role) => (
+                    <Menu.Item
+                        onClick={(e) => updateRole(Number(role.value))}
+                        key={role.value}
+                    >
+                        {role?.label}
+                    </Menu.Item>
+                ))}
+            </Menu>
+        </AuthGuard>
     );
-    return <div>{item.role?.name}</div>;
 }

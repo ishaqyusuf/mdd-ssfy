@@ -18,6 +18,7 @@ import { Provider as Analytics } from "@gnd/events/client";
 import { Toaster as MiddayToast, Toaster } from "@gnd/ui/toaster";
 
 import { QueryTabProvider } from "./(clean-code)/_common/query-tab/provider";
+import { SessionProvider } from "@/hooks/use-session";
 
 export async function generateMetadata({}) {
     return constructMetadata({
@@ -43,11 +44,13 @@ export default async function RootLayout({
                     <div className="print:hidden">
                         <AppProvider>
                             <Suspense>
-                                <QueryTabProvider>
-                                    {children}
-                                    <UserAccountUpdateRequiredModal />
-                                    <PageAnalytics />
-                                </QueryTabProvider>
+                                <SessionProvider args={[]}>
+                                    <QueryTabProvider>
+                                        {children}
+                                        <UserAccountUpdateRequiredModal />
+                                        <PageAnalytics />
+                                    </QueryTabProvider>
+                                </SessionProvider>
                             </Suspense>
                         </AppProvider>
                         <div

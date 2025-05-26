@@ -4,6 +4,7 @@ import z from "zod";
 import { IconKeys } from "../_v1/icons";
 import { schema } from "./context";
 import { sum } from "@/lib/utils";
+import va from "@/lib/va";
 
 type moduleNames = "HRM" | "Sales" | "Community";
 const _module = (
@@ -89,19 +90,19 @@ const _link = (
     };
     return ctx;
 };
-type Access = {
+export type Access = {
     type: "role" | "permission" | "userId";
     equator: "is" | "isNot" | "in" | "notIn" | "every" | "some";
     values: string[];
 };
-const __access = (
+export const __access = (
     type: Access["type"],
     equator: Access["equator"],
     ...values
 ) => ({ type, equator, values }) as Access;
 
 type Role = "Admin" | "Production" | "1099 Contractor";
-const _role = {
+export const _role = {
     is: (role: Role) => __access("role", "is", role),
     isNot: (role: Role) => __access("role", "isNot", role),
     in: (...roles: Role[]) => __access("role", "in", ...roles),
@@ -109,7 +110,7 @@ const _role = {
     every: (...roles: Role[]) => __access("role", "every", ...roles),
     some: (...roles: Role[]) => __access("role", "some", ...roles),
 };
-const _perm = {
+export const _perm = {
     is: (role: Permission) => __access("permission", "is", role),
     isNot: (role: Permission) => __access("permission", "isNot", role),
     in: (...roles: Permission[]) => __access("permission", "in", ...roles),
@@ -119,6 +120,44 @@ const _perm = {
         __access("permission", "every", ...roles),
     some: (...roles: Permission[]) => __access("permission", "some", ...roles),
 };
+export function validateRules(accessList: Access[], can?, userId?, role?) {
+    if (!can) can = {};
+    return accessList.every((a) => {
+        switch (a.type) {
+            case "userId":
+                return Number(a.values[0]) == userId;
+                break;
+            case "permission":
+                switch (a.equator) {
+                    case "every":
+                    case "is":
+                        return a.values?.every((p) => can?.[p]);
+                    case "in":
+                    case "some":
+                        return a.values?.some((p) => can?.[p]);
+                    case "isNot":
+                    case "notIn":
+                        return a.values.every((p) => !can?.[p]);
+                }
+                break;
+            case "role":
+                switch (a.equator) {
+                    case "every":
+                    case "is":
+                        return a.values?.every((p) => role === p);
+                    case "in":
+                    case "some":
+                        return a.values?.some((p) => role === p);
+                    case "isNot":
+                    case "notIn":
+                        return a.values.every((p) => role !== p);
+                }
+                break;
+        }
+
+        return true;
+    });
+}
 export const validateLinks = ({
     role,
     can,
@@ -128,43 +167,7 @@ export const validateLinks = ({
     can: ICan;
     userId;
 }) => {
-    function validateAccess(accessList: Access[]) {
-        return accessList.every((a) => {
-            switch (a.type) {
-                case "userId":
-                    return Number(a.values[0]) == userId;
-                    break;
-                case "permission":
-                    switch (a.equator) {
-                        case "every":
-                        case "is":
-                            return a.values?.every((p) => can?.[p]);
-                        case "in":
-                        case "some":
-                            return a.values?.some((p) => can?.[p]);
-                        case "isNot":
-                        case "notIn":
-                            return a.values.every((p) => !can?.[p]);
-                    }
-                    break;
-                case "role":
-                    switch (a.equator) {
-                        case "every":
-                        case "is":
-                            return a.values?.every((p) => role === p);
-                        case "in":
-                        case "some":
-                            return a.values?.some((p) => role === p);
-                        case "isNot":
-                        case "notIn":
-                            return a.values.every((p) => role !== p);
-                    }
-                    break;
-            }
-
-            return true;
-        });
-    }
+    const validateAccess = (al) => validateRules(al, can, userId, role);
     return linkModules.map((lm) => {
         lm.sections = lm.sections.map((s) => {
             s.links = s.links.map((lnk) => {

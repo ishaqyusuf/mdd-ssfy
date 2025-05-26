@@ -60,5 +60,8 @@ export const PERMISSIONS = [
     "editPutaway",
     "viewDecoShutterInstall",
     "editDecoShutterInstall",
+    // sales
+    "viewSalesLaborCost",
+    "editSalesLaborCost",
 ] as const;
 export const ROLES = ["Production"] as const;
