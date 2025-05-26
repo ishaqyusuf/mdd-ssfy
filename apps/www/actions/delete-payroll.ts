@@ -8,7 +8,9 @@ import { __salesPayrollUpdated } from "./cache/cache-data-changed";
 export async function deleteSalesCommission(paymentId) {
     const payroll = await prisma.payroll.findFirst({
         where: {
-            itemUid: payrollUidSearch(paymentId, "pid"),
+            itemUid: {
+                contains: payrollUidSearch(paymentId, "pid"),
+            },
         },
     });
     if (payroll) await deletePayroll(payroll.id);

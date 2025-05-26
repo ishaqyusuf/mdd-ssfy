@@ -59,7 +59,7 @@ import {
     Delete,
     Mail,
     Layers,
-    Eraser,
+    Eraser,Edit2,
     ArrowUp,
     ArrowDown,
     Move,
@@ -101,6 +101,7 @@ export type Icon = LucideIcon;
 
 export const Icons = {
     profile: UserCircle,
+    edit2: Edit2,
     box: Box,
     roles: ShieldIcon,
     Filter: Filter,

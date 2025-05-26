@@ -31,9 +31,9 @@ export function SalesTableHeader({}) {
     return (
         <TableHeader>
             <TableRow>
-                {columns.map((column) => (
+                {columns.map((column, cid) => (
                     <TableHead
-                        key={column.id}
+                        key={cid}
                         className={cn(
                             column.id == "order.no" && "hidden md:table-cell",
                         )}

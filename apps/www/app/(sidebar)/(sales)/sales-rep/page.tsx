@@ -38,14 +38,14 @@ export default async function SalesRepProfile({
 }) {
     const {} = searchParamsCache.parse(searchParams);
     const user = await authUser();
-    // await prisma.payrollHistory.deleteMany({
-    //     where: {},
-    // });
-    // await prisma.payroll.deleteMany({
-    //     where: {
-    //         deletedAt: {},
-    //     },
-    // });
+    await prisma.payrollHistory.deleteMany({
+        where: {},
+    });
+    await prisma.payroll.deleteMany({
+        where: {
+            deletedAt: {},
+        },
+    });
     // revalidateTag(`sales_rep_commission_summary`);
 
     return (
