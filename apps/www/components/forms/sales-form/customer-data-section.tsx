@@ -212,8 +212,8 @@ function DataCard(props: DataCardProps) {
             </div>
             <div
                 className={cn(
-                    "absolute right-0 top-0  gap-2 ",
-                    searching ? "flex" : "hidden group-hover:flex",
+                    "absolute right-0 top-0  gap-2 flex",
+                    // searching ? "flex" : "hidden group-hover:flex",
                 )}
             >
                 <EditBtn address={props.address} />
