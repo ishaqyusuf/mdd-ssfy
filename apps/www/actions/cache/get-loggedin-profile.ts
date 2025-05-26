@@ -77,7 +77,7 @@ export async function getLoggedInProfile(debugMode = true) {
                     name: true,
                 },
             });
-            if (role.name == "Admin") {
+            if (role.name?.toLocaleLowerCase() == "super admin") {
                 can = adminPermissions;
             } else
                 permissions.map((p) => {
