@@ -188,7 +188,7 @@ export async function loginAction({ email, password }) {
             },
         });
         let can: ICan = {} as any;
-        if (role.name == "Super Admin") {
+        if (role.name?.toLocaleLowerCase() == "super admin") {
             can = Object.fromEntries(PERMISSIONS?.map((p) => [p as any, true]));
         } else
             permissions.map((p) => {
