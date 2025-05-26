@@ -11,7 +11,7 @@ import {
     FileText,
     HelpCircle,
     Image as media,
-    Laptop,
+    Laptop, 
     Loader2,
     LucideProps,
     Moon,
@@ -88,6 +88,7 @@ import {
     ShieldIcon,
     TimerIcon,
     Users,
+    Flag,
 } from "lucide-react";
 import Image from "next/image";
  
@@ -196,7 +197,7 @@ export const Icons = {
     lineChart: LineChart,
     hide: EyeOff,
     view: Eye,
-    
+    flag:Flag,
     edit: ClipboardEdit,
      
 };

@@ -59,11 +59,11 @@ export default async function middleware(req: NextRequest) {
             );
             const menuMode = await getSideMenuMode();
             const pathName = req.nextUrl.pathname;
-            console.log({
-                userId: data?.userId,
-                pathName,
-                defaultPage: validLinks.defaultLink,
-            });
+            // console.log({
+            //     userId: data?.userId,
+            //     pathName,
+            //     defaultPage: validLinks.defaultLink,
+            // });
             if (pathName == "/" && validLinks.defaultLink) {
                 return NextResponse.redirect(
                     `${req.nextUrl.origin}${validLinks.defaultLink}`,

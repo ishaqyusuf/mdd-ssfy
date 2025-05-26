@@ -81,7 +81,7 @@ export default function PendingCommissions() {
             </CardHeader>
             <CardContent>
                 <ComissionsWidget />
-                <div className="space-y-4">
+                <div className="space-y-4 hidden">
                     {pendingCommissions.map((commission) => (
                         <div
                             key={commission.id}
