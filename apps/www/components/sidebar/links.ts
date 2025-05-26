@@ -101,7 +101,7 @@ export const __access = (
     ...values
 ) => ({ type, equator, values }) as Access;
 
-type Role = "Admin" | "Production" | "1099 Contractor";
+type Role = "Admin" | "Production" | "1099 Contractor" | "Super Admin";
 export const _role = {
     is: (role: Role) => __access("role", "is", role),
     isNot: (role: Role) => __access("role", "isNot", role),
@@ -337,7 +337,10 @@ export const linkModules = [
         ]),
         _section(null, null, [
             _link("My Dashboard", "dashboard", "/sales-rep")
-                .access(_perm.is("editOrders"), _role.is("Admin"))
+                .access(
+                    _perm.is("editOrders"),
+                    _role.in("Admin", "Super Admin"),
+                )
                 .level(1).data,
             _link("Accounting", "billing", "/sales-book/accounting").access(
                 _perm.is("editOrders"),
