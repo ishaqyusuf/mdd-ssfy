@@ -17,7 +17,6 @@ export default function AuthPage({}) {
         let sb = nav(session);
 
         if (sb) {
-            console.log(sb.homeRoute);
             redirect(sb.homeRoute);
         }
         // else signOut();

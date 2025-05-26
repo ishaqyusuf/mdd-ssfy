@@ -10,6 +10,9 @@ import {
 } from "@/actions/cache/get-loggedin-profile";
 import { useState } from "react";
 import { generateRandomString } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { useLoadingToast } from "@/hooks/use-loading-toast";
+import { Badge } from "@gnd/ui/badge";
 
 export default function QuickLogin({}) {
     const [reload, setReload] = useState(null);
@@ -35,9 +38,11 @@ export default function QuickLogin({}) {
             profile,
         };
     }, [reload]);
+    const route = useRouter();
+    const t = useLoadingToast();
     async function login(e) {
         await setSidebarAuthId(e?.id, e);
-        setReload(generateRandomString());
+        route.push("/", {});
     }
     return (
         <div>
@@ -53,12 +58,21 @@ export default function QuickLogin({}) {
                 }
                 noSize
             >
-                <ScrollArea className="w-56 h-64">
+                <ScrollArea className="w-auto h-64">
                     {ctx?.users?.map((user) => (
                         <Menu.Item onClick={() => login(user)} key={user.id}>
-                            <div className="">
-                                <div className="">{user.name}</div>
-                                <div className="text-xs">{user.role?.name}</div>
+                            <div className="flex flex-col w-full">
+                                <div className="flex gap-4 items-center justify-between">
+                                    <div className="">{user.name}</div>
+                                    <Badge
+                                        className="text-xs h-4"
+                                        variant="outline"
+                                    >
+                                        {user.role?.name}
+                                    </Badge>
+                                </div>
+
+                                <div className="text-xs">{user.email}</div>
                             </div>
                         </Menu.Item>
                     ))}

@@ -1,6 +1,11 @@
 "use server";
 
-import { authId, authUser, serverSession } from "@/app/(v1)/_actions/utils";
+import {
+    authId,
+    authUser,
+    serverSession,
+    user,
+} from "@/app/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { env } from "@/env.mjs";
 import { adminPermissions } from "@/lib/data/role";
@@ -9,10 +14,16 @@ import { ICan } from "@/types/auth";
 import { unstable_cache } from "next/cache";
 import { cookies } from "next/headers";
 
-export async function getLoggedInProfile() {
+export async function getLoggedInProfile(debugMode = true) {
     let id = await authId();
-    let roleId = (await serverSession())?.role?.id;
-    if (env.NODE_ENV != "production") {
+    let roleId = await (async () => {
+        try {
+            const roleId = (await serverSession())?.role?.id;
+            return roleId;
+        } catch (error) {}
+        return null;
+    })();
+    if (env.NODE_ENV != "production" && debugMode) {
         const { userId, roleId: _roleId } = JSON.parse(
             (await cookies()).get("side-bar-auth-id")?.value || `{}`,
         );

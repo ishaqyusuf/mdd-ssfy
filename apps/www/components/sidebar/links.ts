@@ -69,9 +69,14 @@ const _link = (
         globalIndex: -1,
         show: false,
         paths: [],
+        level: null,
     };
     const ctx = {
         data: res,
+        level(level) {
+            res.level = level;
+            return ctx;
+        },
         access(...access: Access[]) {
             res.access = access;
             return ctx;
@@ -94,7 +99,7 @@ const __access = (
     ...values
 ) => ({ type, equator, values }) as Access;
 
-type Role = "Admin" | "Production";
+type Role = "Admin" | "Production" | "1099 Contractor";
 const _role = {
     is: (role: Role) => __access("role", "is", role),
     isNot: (role: Role) => __access("role", "isNot", role),
@@ -208,18 +213,22 @@ export const linkModules = [
         ]),
         _section("", null, [
             _link("Jobs", "jobs", "/contractor/jobs").access(
-                _perm.every("viewProject", "viewInvoice"),
+                _perm.every("viewProject", "viewInvoice", "viewJobs"),
             ).data,
             _link(
                 "Payment Receipts",
                 "payment",
                 "/contractor/jobs/payments",
-            ).access(_perm.every("viewProject", "viewInvoice")).data,
+            ).access(
+                _perm.every("viewProject", "viewInvoice", "viewJobPayment"),
+            ).data,
             _link(
                 "Pending Payments",
                 "pendingPayment",
                 "/contractor/jobs/payments/pay",
-            ).access(_perm.every("viewProject", "viewInvoice")).data,
+            ).access(
+                _perm.every("viewProject", "viewInvoice", "viewJobPayment"),
+            ).data,
         ]),
         // profileSection,
     ]),
@@ -232,9 +241,11 @@ export const linkModules = [
     ]),
     _module("Community", "communityInvoice", "GND Community", [
         _section("main", null, [
-            _link("HOME", "project", "/community/home-page").access(
-                _perm.in("viewProject"),
-            ).data,
+            _link("Customer Service", "customerService", "/customer-services")
+                .access(_perm.is("viewCustomerService"))
+                .level(7).data,
+        ]),
+        _section("main", null, [
             _link("Projects", "project", "/community/projects").access(
                 _perm.in("viewProject"),
             ).data,
@@ -261,11 +272,11 @@ export const linkModules = [
                 "/tasks/unit-productions",
             ).access(_role.is("Production")).data,
             _link("Installations", "tasks", "/tasks/installations").access(
-                _role.isNot("Admin"),
+                _role.is("1099 Contractor"),
                 _perm.is("viewInstallation"),
             ).data,
             _link("Payments", "payment", "/payments").access(
-                _role.isNot("Admin"),
+                _role.is("1099 Contractor"),
                 _perm.is("viewInstallation"),
             ).data,
 
@@ -285,11 +296,6 @@ export const linkModules = [
                 _role.isNot("Admin"),
                 _perm.is("viewDecoShutterInstall"),
             ).data,
-            _link(
-                "Customer Service",
-                "customerService",
-                "/customer-services",
-            ).access(_perm.is("viewCustomerService")).data,
 
             _link("Sales Commission", "percent", "/sales/commissions").access(
                 _perm.is("viewCommission"),
@@ -321,9 +327,9 @@ export const linkModules = [
     ]),
     _module("Sales", "orders", "GND Sales", [
         _section(null, null, [
-            _link("Dashboard", "dashboard", "/sales-rep").access(
-                _perm.is("editOrders"),
-            ).data,
+            _link("Dashboard", "dashboard", "/sales-rep")
+                .access(_perm.is("editOrders"), _role.is("Admin"))
+                .level(1).data,
             _link("Accounting", "billing", "/sales-book/accounting").access(
                 _perm.is("editOrders"),
                 // __access("userId", "is", 1),
@@ -363,7 +369,7 @@ export const linkModules = [
         ]),
         _section("", "", [
             _link("Customers", "user", "/sales-book/customers").access(
-                _perm.is("editSalesCustomers"),
+                _perm.in("editSalesCustomers", "viewOrders"),
             ).data,
             _link("Dealers", "user", "/sales-book/dealers").access(
                 __access("userId", "is", 1),
@@ -386,6 +392,7 @@ export function getLinkModules(_linkModules = linkModules) {
             match?: "part";
         };
     } = {};
+    let defaultLink = null;
     const modules = _linkModules.map((m, mi) => {
         m.index = mi;
         let moduleLinks = 0;
@@ -396,11 +403,13 @@ export function getLinkModules(_linkModules = linkModules) {
             // i.section += 1;
             s.links = s.links.map((l, li) => {
                 if (l.show) {
-                    if (l.href)
+                    if (l.href) {
                         linksNameMap[l.href] = {
                             name: l.name,
                             module: m.name,
                         };
+                        if (!defaultLink) defaultLink = l.href;
+                    }
                     l.index = li;
                     l.globalIndex = i.links++;
                     sectionLinks++;
@@ -415,12 +424,13 @@ export function getLinkModules(_linkModules = linkModules) {
                 }
                 if (l?.subLinks?.length)
                     l.subLinks = l.subLinks.map((sl, sli) => {
-                        // if(sl?.show)
-                        if (sl.href)
+                        if (sl.href && sl.show) {
+                            if (!defaultLink) defaultLink = sl.href;
                             linksNameMap[sl.href] = {
                                 name: l.name,
                                 module: m.name,
                             };
+                        }
                         return sl;
                     });
                 return l;
@@ -445,5 +455,6 @@ export function getLinkModules(_linkModules = linkModules) {
         renderMode,
         linksNameMap,
         moduleLinksCount,
+        defaultLink,
     };
 }

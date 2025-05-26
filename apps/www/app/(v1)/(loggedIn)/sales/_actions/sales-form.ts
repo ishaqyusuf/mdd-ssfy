@@ -6,7 +6,6 @@ import { sum } from "@/lib/utils";
 import { ISalesSettingMeta, PostTypes } from "@/types/post";
 import { ISalesOrder, ISalesType } from "@/types/sales";
 import dayjs from "dayjs";
-import { getServerSession } from "next-auth";
 
 import { user } from "../../../_actions/utils";
 

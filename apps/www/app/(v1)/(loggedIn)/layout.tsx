@@ -1,4 +1,4 @@
-"use client";
+// "use client";
 
 import { redirect } from "next/navigation";
 import SiteHeader from "@/components/_v1/layouts/site-header";
@@ -7,8 +7,15 @@ import Refresher from "@/components/_v1/refresher";
 import { nav } from "@/lib/navs";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
+import SideBarLayout from "@/app/(sidebar)/layout";
 
-export default function AccountLayout({ children }: any) {
+export default async function Layout({ children, ...props }) {
+    return <SideBar>{children}</SideBar>;
+}
+function SideBar({ children }) {
+    return <SideBarLayout>{children}</SideBarLayout>;
+}
+function AccountLayout({ children }: any) {
     const { data: session } = useSession({
         required: true,
         onUnauthenticated() {
