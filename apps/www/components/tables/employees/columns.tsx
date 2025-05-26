@@ -82,22 +82,31 @@ function Profile({ item }: { item: Item }) {
         loader.success("Updated.");
     }
     return (
-        <Menu
-            label={item.profile?.name || "Select Profile"}
-            Icon={null}
-            variant={item?.profile?.id ? "secondary" : "destructive"}
-            hoverVariant="default"
-            triggerSize="xs"
+        <AuthGuard
+            rules={[_perm.is("editRole")]}
+            Fallback={
+                <Badge variant="secondary">
+                    {item.profile?.name || "not set"}
+                </Badge>
+            }
         >
-            {roles?.map((role) => (
-                <Menu.Item
-                    onClick={(e) => updateRole(Number(role.value))}
-                    key={role.value}
-                >
-                    {role?.label}
-                </Menu.Item>
-            ))}
-        </Menu>
+            <Menu
+                label={item.profile?.name || "Select Profile"}
+                Icon={null}
+                variant={item?.profile?.id ? "secondary" : "destructive"}
+                hoverVariant="default"
+                triggerSize="xs"
+            >
+                {roles?.map((role) => (
+                    <Menu.Item
+                        onClick={(e) => updateRole(Number(role.value))}
+                        key={role.value}
+                    >
+                        {role?.label}
+                    </Menu.Item>
+                ))}
+            </Menu>
+        </AuthGuard>
     );
 }
 function Role({ item }: { item: Item }) {
