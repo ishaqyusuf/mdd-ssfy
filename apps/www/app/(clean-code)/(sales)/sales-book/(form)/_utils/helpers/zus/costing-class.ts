@@ -134,7 +134,6 @@ export class CostingClass {
                 else totalFlatRate += stepData?.basePrice || 0;
             }
         });
-        console.log({ totalBasePrice, totalFlatRate });
         const totalSalesPrice = this.calculateSales(totalBasePrice);
 
         const pricing = itemForm?.groupItem?.pricing;
@@ -207,7 +206,6 @@ export class CostingClass {
         groupItem: ZusGroupItem,
         itemUid = this.setting.itemUid,
     ) {
-        // console.log({ pricing: groupItem.pricing });
         groupItem.pricing.total = {
             // flatRate: 0,
             basePrice: 0,
@@ -385,7 +383,7 @@ export class CostingClass {
             "metaData.tax.percentage",
             taxProfile?.percentage,
         );
-        // console.log(taxProfile);
+
         this.calculateTotalPrice();
     }
 }

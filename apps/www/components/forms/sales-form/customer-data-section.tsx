@@ -285,7 +285,7 @@ function AddressDataSearch({
     const { params, setParams } = useCreateCustomerParams();
     return (
         <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger>
+            <PopoverTrigger asChild>
                 {!textTrigger ? (
                     <Button size="xs" variant="secondary">
                         <Icons.Search className="size-4" />

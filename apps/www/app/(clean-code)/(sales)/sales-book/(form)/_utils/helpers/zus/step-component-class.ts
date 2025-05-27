@@ -458,7 +458,6 @@ export class StepHelperClass extends SettingsClass {
             isRoot,
             redirectUid,
         );
-        console.log(nrs);
 
         if (!nrs.nextRoute) {
             toast.error("This Form Step Sequence has no next step.");
@@ -671,7 +670,6 @@ export class ComponentHelperClass extends StepHelperClass {
 
     public async fetchUpdatedPrice() {
         const priceData = await getPricingByUidUseCase(this.componentUid);
-        console.log({ priceData });
 
         Object.entries(priceData).map(([k, d]) =>
             this.zus.dotUpdate(`pricing.${k}`, d),

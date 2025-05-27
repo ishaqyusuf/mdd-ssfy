@@ -36,7 +36,7 @@ export function FormClient({ data }) {
         ? SalesFormClient
         : FormClientOld;
 
-    return <Component data={data} />;
+    return <Component key="component" data={data} />;
     // return <FormClientOld data={data} />;
 }
 function FormClientOld({ data }: FormClientProps) {

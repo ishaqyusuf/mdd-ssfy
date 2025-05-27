@@ -13,7 +13,6 @@ import { cn, toNumber } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import {
     CardContent,
@@ -46,6 +45,8 @@ import { ComponentHelperClass } from "../../../_utils/helpers/zus/step-component
 import AdminControl from "../../admin-control";
 import { Door } from "../door-swap-modal";
 import { DoorSizeSelectContext, useCtx, useInitContext } from "./ctx";
+import { AuthGuard } from "@/components/auth-guard";
+import { _role } from "@/components/sidebar/links";
 
 interface Props {
     cls: ComponentHelperClass;
@@ -161,13 +162,16 @@ function Row({ variant }) {
                 </Label>
             </TableCell>
             <TableCell>
-                <AdminControl fallback={<Money value={salesPrice} />}>
+                <AuthGuard
+                    rules={[_role.is("Super Admin")]}
+                    Fallback={<Money value={salesPrice} />}
+                >
                     <PriceCell
                         salesPrice={salesPrice}
                         basePrice={basePrice}
                         variant={variant}
                     />
-                </AdminControl>
+                </AuthGuard>
             </TableCell>
             {config.hasSwing && (
                 <TableCell>

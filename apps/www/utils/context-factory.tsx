@@ -14,10 +14,10 @@ export function createContextFactory<TArgs extends any[], TReturn>(
         args,
         children,
     }: {
-        args: TArgs;
+        args?: TArgs;
         children: React.ReactNode;
     }) => {
-        const value = fn(...args);
+        const value = fn(...(args || ([] as any)));
         return <Context.Provider value={value}>{children}</Context.Provider>;
     };
 

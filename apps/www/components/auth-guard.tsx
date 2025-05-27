@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Access, validateRules } from "./sidebar/links";
 import type { ReactNode } from "react";
 import { useSession } from "@/hooks/use-session";
+import { rndTimeout } from "@/lib/timeout";
+import { useAsyncMemo } from "use-async-memo";
 
 interface Props {
     children?: ReactNode;
@@ -11,9 +13,9 @@ interface Props {
 
 export function AuthGuard({ children, Fallback = null, rules }: Props) {
     const session = useSession();
-    const [state, setState] = useState<"idle" | "valid" | "invalid">("idle");
-
-    useEffect(() => {
+    // const [__state, setState] = useState<"idle" | "valid" | "invalid">("idle");
+    const state = useAsyncMemo(async () => {
+        await rndTimeout();
         if (!session) return;
         const isValid = validateRules(
             rules,
@@ -21,11 +23,12 @@ export function AuthGuard({ children, Fallback = null, rules }: Props) {
             session.userId,
             session.role,
         );
-        setState(isValid ? "valid" : "invalid");
-    }, [session, rules]);
+        console.log({ isValid });
 
-    if (state === "idle") return null;
-    if (state === "invalid") return Fallback;
+        return isValid;
+    }, [session, rules]);
+    if (state === null) return <span>session not loaded </span>;
+    if (!state) return Fallback;
 
     return children ?? null;
 }

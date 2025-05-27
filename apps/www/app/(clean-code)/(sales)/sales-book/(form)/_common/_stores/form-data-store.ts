@@ -13,7 +13,7 @@ export type ZusGroupItemForm = ZusItemFormData["groupItem"]["form"];
 export type ZusGroupItemFormPath = ZusGroupItemForm[string];
 type SalesFormZusAction = ReturnType<typeof fns>;
 export type SalesFormSet = (
-    update: (state: SalesFormZusData) => Partial<SalesFormZusData>
+    update: (state: SalesFormZusData) => Partial<SalesFormZusData>,
 ) => void;
 function fns(set: SalesFormSet) {
     return {
@@ -40,7 +40,7 @@ function fns(set: SalesFormSet) {
                         sequence: data.sequence,
                     }),
                 };
-                console.log({ newData });
+
                 return newData;
             }),
         newStep: (itemUid, stepUid) =>
@@ -59,7 +59,7 @@ function fns(set: SalesFormSet) {
 
         dotUpdate: <K extends FieldPath<SalesFormZusData>>(
             k: K,
-            stepSq //: FieldPathValue<SalesFormZusData, K>
+            stepSq, //: FieldPathValue<SalesFormZusData, K>
         ) =>
             set((state) => {
                 const newState = {
@@ -78,7 +78,7 @@ function fns(set: SalesFormSet) {
         updateFormItem: (
             uid,
             k: keyof SalesFormZusData["kvFormItem"][number],
-            value
+            value,
         ) =>
             set((state) => {
                 const newState = { ...state };
@@ -97,6 +97,6 @@ export const useFormDataStore = create<ZusSales>(
     (set) =>
         ({
             ...fns(set),
-        } as any)
+        }) as any,
 );
 export const getFormState = () => useFormDataStore.getState();

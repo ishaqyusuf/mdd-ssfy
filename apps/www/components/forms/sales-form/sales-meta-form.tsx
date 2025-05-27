@@ -368,8 +368,7 @@ export function Select<T>({
                 )}
 
                 <SelectValue
-                    asChild
-                    className="whitespace-nowrap border-none p-0 font-mono uppercase"
+                    // className="whitespace-nowrap border-none p-0 font-mono uppercase"
                     placeholder={props.placeholder}
                 >
                     <span>
