@@ -4,6 +4,7 @@ import { Icons } from "@gnd/ui/custom/icons";
 
 export function LaborCostSetting({}) {
     const { setParams } = useLaborCostModal();
+
     return (
         <div>
             <Button

@@ -2,7 +2,6 @@ import { LineInput } from "@/app/(clean-code)/(sales)/sales-book/(form)/_compone
 import { AnimatedNumber } from "@/components/animated-number";
 
 import { Button } from "@gnd/ui/button";
-import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 

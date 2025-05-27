@@ -9,6 +9,9 @@ import { z } from "zod";
 
 export const changeSalesChartTypeSchema = z.enum(["sales"]);
 
+export const saveSalesLaborCostSchema = z.object({
+    rate: z.number().min(0, "Rate must be a positive number"),
+});
 export const createCustomerSchema = z
     .object({
         profileId: z.string().optional().nullable(),
