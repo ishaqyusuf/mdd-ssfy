@@ -187,7 +187,13 @@ function SummaryTab({}) {
                         <AnimatedNumber value={md.pricing?.taxValue || 0} />
                     </div>
                 </LineContainer>
-                <LineContainer label="Labor Cost ($)">
+                <LineContainer
+                    label={
+                        <div className="text-sm">
+                            <span>Labor Cost ($)</span>
+                        </div>
+                    }
+                >
                     <div className="text-right">
                         <AnimatedNumber
                             value={md.extraCosts?.Labor?.amount || 0}
@@ -270,7 +276,7 @@ function Input({ value, label, name, lg, onChange, ...props }: InputProps) {
             {props.type == "date" ? (
                 <>
                     <DatePicker
-                        className=" midday w-auto border-b border-none p-0 uppercase"
+                        className=" midday w-auto border-b border-none p-0 px-1 uppercase whitespace-nowrap"
                         hideIcon
                         value={value as any}
                         setValue={(e) => {
