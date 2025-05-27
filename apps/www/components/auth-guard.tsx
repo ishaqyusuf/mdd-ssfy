@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Access, validateRules } from "./sidebar/links";
+import { _role, Access, validateRules } from "./sidebar/links";
 import type { ReactNode } from "react";
 import { useSessionZusStore } from "@/hooks/use-session";
 
@@ -27,4 +27,11 @@ export function AuthGuard({ children, Fallback = null, rules }: Props) {
     if (!isValid) return Fallback;
 
     return children ?? null;
+}
+export function SuperAdminGuard({ children, Fallback = null }: Props) {
+    return (
+        <AuthGuard rules={[_role.is("Super Admin")]} Fallback={Fallback}>
+            {children}
+        </AuthGuard>
+    );
 }

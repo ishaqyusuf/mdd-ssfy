@@ -30,6 +30,8 @@ import { Footer } from "./footer";
 import { SalesFormEmailMenu } from "./sales-form-email-menu";
 import { SalesFormPrintMenu } from "./sales-form-print-menu";
 import { SalesFormSave } from "./sales-form-save";
+import { LaborCostSetting } from "./labor-cost-setting";
+import { AuthGuard, SuperAdminGuard } from "@/components/auth-guard";
 
 export function SalesMetaForm({}) {
     const zus = useFormDataStore();
@@ -194,10 +196,13 @@ function SummaryTab({}) {
                         </div>
                     }
                 >
-                    <div className="text-right">
+                    <div className="text-right items-center flex gap-2">
                         <AnimatedNumber
                             value={md.extraCosts?.Labor?.amount || 0}
                         />
+                        <SuperAdminGuard>
+                            <LaborCostSetting />
+                        </SuperAdminGuard>
                     </div>
                 </LineContainer>
                 <Input
