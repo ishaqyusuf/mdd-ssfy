@@ -42,7 +42,7 @@ import {
 } from "@gnd/ui/tooltip";
 
 import { ComponentHelperClass } from "../../../_utils/helpers/zus/step-component-class";
-import AdminControl from "../../admin-control";
+
 import { Door } from "../door-swap-modal";
 import { DoorSizeSelectContext, useCtx, useInitContext } from "./ctx";
 import { AuthGuard } from "@/components/auth-guard";
