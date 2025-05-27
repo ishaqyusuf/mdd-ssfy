@@ -117,7 +117,7 @@ function StepSectionHeader({ cls }: { cls: StepHelperClass }) {
         <CollapsibleTrigger asChild>
             <div className="border border-muted-foreground/20">
                 <button
-                    className="flex h-8 w-full items-center gap-4 space-x-2  bg-muted-foreground/5 p-1 px-4 text-sm uppercase hover:bg-muted-foreground/20"
+                    className="flex h-8 w-full items-center gap-4 space-x-2  bg-muted-foreground/5 p-1 px-4 text-sm uppercase hover:bg-muted-foreground hover:text-white"
                     onClick={(e) => {
                         e.preventDefault();
                         cls.toggleStep();
@@ -131,7 +131,7 @@ function StepSectionHeader({ cls }: { cls: StepHelperClass }) {
                             ${formatMoney(stepForm.salesPrice)}
                         </Badge>
                     ) : null}
-                    {stat.hasSelection && (
+                    {!stat.hasSelection || (
                         <>
                             <Badge variant="destructive" className="h-5 px-1">
                                 selection: {stat.selectionCount}
@@ -141,15 +141,6 @@ function StepSectionHeader({ cls }: { cls: StepHelperClass }) {
                             </Badge>
                         </>
                     )}
-                    <div className="">
-                        <DevOnly>
-                            <span>{stepForm?.componentUid}</span>
-                            <span>--</span>
-                            <span>{cls.itemStepUid}</span>
-                            <span>-</span>
-                            <span>{stepForm?.stepId}</span>
-                        </DevOnly>
-                    </div>
                 </button>
             </div>
         </CollapsibleTrigger>
