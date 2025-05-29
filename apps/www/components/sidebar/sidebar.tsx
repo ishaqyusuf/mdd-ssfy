@@ -15,6 +15,7 @@ export function SideBar({ children, user, menuMode, validLinks }) {
             redirect("/login");
         },
     });
+    // adasd
     if (!session?.user) return <></>;
     return (
         <SidebarProviderRoot state={menuMode}>
