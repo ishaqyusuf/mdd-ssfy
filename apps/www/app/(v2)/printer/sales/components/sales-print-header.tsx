@@ -66,9 +66,9 @@ export default function SalesPrintHeader() {
                                 {sale?.address?.map((address, index) => (
                                     <React.Fragment key={address?.title}>
                                         {index == 1 && (
-                                            <td colSpan={6} className="">
+                                            <td colSpan={4} className="">
                                                 {!sale.paymentDate || (
-                                                    <div className="sabsolute watermark-text text-strokes   inline-flex -translate-y-6 translate-x-8 -rotate-45 flex-col font-mono font-bold uppercase ">
+                                                    <div className="sabsolute watermark-text text-strokes   inline-flex -translate-y-16 translate-x-4 -rotate-45 flex-col font-mono font-bold uppercase ">
                                                         <span className="text-5xl">
                                                             Paid
                                                         </span>
@@ -79,7 +79,7 @@ export default function SalesPrintHeader() {
                                                 )}
                                             </td>
                                         )}
-                                        <td colSpan={9} key={address?.title}>
+                                        <td colSpan={10} key={address?.title}>
                                             <div
                                                 className={cn(
                                                     "my-4  mb-4 flex flex-col",
