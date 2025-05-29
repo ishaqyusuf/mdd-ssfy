@@ -19,7 +19,7 @@ export async function getSalesLaborCost() {
         return cost;
     };
     // return await fn();
-    return unstable_cache(fn, [tags], {
+    return unstable_cache(fn, tags, {
         tags,
     })();
 }
