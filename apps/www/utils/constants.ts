@@ -26,6 +26,8 @@ export const Tags = {
     users: "users",
     salesOrderNos: "sales_order_nos",
     quoteSalesNos: "quote_sales_nos",
+    rootStepComponents: "root-step-components",
+    takeOffTemplates: "takeoff-templates",
 };
 export const Events = {
     salesCreated: "sales_created",

@@ -439,6 +439,7 @@ export interface SalesFormItem {
         type?: "MOULDING" | "HPT" | "SERVICE";
         hptId?;
         doorStepProductId?;
+        doorStepProductUid?;
         groupUid?;
         pricing?: {
             flatRate?: number;

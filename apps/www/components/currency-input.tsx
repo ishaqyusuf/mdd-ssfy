@@ -43,7 +43,7 @@ export function NumberInput({
                     // onBlur();
                 }}
                 // className="p-0 border-0 h-6 text-xs !bg-transparent font-mono flex-shrink-0 w-16 text-[11px] text-[#878787]"
-                thousandSeparator={true}
+                thousandSeparator={thousandSeparator}
                 decimalScale={2}
                 // isAllowed={(values) => {
                 //     const { floatValue } = values;

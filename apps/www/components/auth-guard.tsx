@@ -1,3 +1,4 @@
+"use client";
 import { useMemo } from "react";
 import { _role, Access, validateRules } from "./sidebar/links";
 import type { ReactNode } from "react";

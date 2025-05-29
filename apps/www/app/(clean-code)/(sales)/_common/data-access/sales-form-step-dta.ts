@@ -128,49 +128,6 @@ export async function getStepsForRoutingDta() {
             };
         });
 }
-export async function fixStepsDta() {
-    const stepprod = await prisma.dykeSteps.findMany({
-        where: {
-            stepProducts: {
-                some: {
-                    product: {
-                        title: "Wood Stile & Rail",
-                    },
-                },
-            },
-        },
-        include: {
-            stepProducts: {
-                where: {
-                    product: {
-                        title: "Wood Stile & Rail",
-                    },
-                },
-                include: {
-                    product: true,
-                },
-            },
-        },
-    });
-    const species = await prisma.dykeSteps.findFirst({
-        where: {
-            title: "Door Species",
-        },
-    });
-    // console.log(species);
-    await prisma.dykeStepProducts.updateMany({
-        where: {
-            id: {
-                in: stepprod
-                    .map((s) => s.stepProducts.map((s) => s.id).flat())
-                    .flat(),
-            },
-        },
-        data: {
-            nextStepId: species.id,
-        },
-    });
-}
 export async function deleteStepProductsByUidDta(uids: string[]) {
     await prisma.dykeStepProducts.updateMany({
         where: {

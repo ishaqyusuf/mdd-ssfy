@@ -56,6 +56,7 @@ export function Header({}) {
                     <UserNav />
                 </div>
                 <div className="bg-white" id="pageTab"></div>
+                <div className="overflow-auto" id="tab"></div>
             </header>
         </>
     );

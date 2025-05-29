@@ -36,9 +36,18 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         return price;
     }
     // console.log({ itemArray: data.itemArray });
+    const ecs = data.order.extraCosts;
     const extraCosts = Object.fromEntries(
-        (data.order.extraCosts || []).map((c) => [
-            c.label,
+        (data.order.extraCosts || []).map((c, ci) => [
+            c.label == "Labor"
+                ? c.label
+                : [
+                      c.label,
+                      ecs?.filter((a, ai) => a.label == c.label && ai < ci)
+                          ?.length,
+                  ]
+                      .filter(Boolean)
+                      .join(" "),
             c as Partial<typeof c>,
         ]),
     );
@@ -254,6 +263,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                     setType("HPT");
                     resp.kvFormItem[uid].groupItem.doorStepProductId =
                         stepProductId;
+                    resp.kvFormItem[uid].groupItem.doorStepProductUid = sp?.uid;
                     Object.entries(data._doorForm).map(([formId, doorForm]) => {
                         pushItemId(formId);
                         // console.log(doorForm);
@@ -418,6 +428,7 @@ export function zhHarvestDoorSizes(data: SalesFormZusData, itemUid) {
         size: string;
         height: string;
         width: string;
+        takeOffSize: string;
     }[] = [];
     visibleComponents?.map((c) => {
         validSizes.map((s) => {
@@ -426,6 +437,7 @@ export function zhHarvestDoorSizes(data: SalesFormZusData, itemUid) {
                     size: `${w} x ${c.title}`,
                     width: w,
                     height: c.title,
+                    takeOffSize: [w, c.title].join("").split("-").join(""),
                 });
             });
         });

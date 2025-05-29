@@ -12,7 +12,6 @@ import { ScrollArea } from "@gnd/ui/scroll-area";
 
 import { useFormDataStore } from "../../../_common/_stores/form-data-store";
 import { ComponentHelperClass } from "../../../_utils/helpers/zus/step-component-class";
-import { zhHarvestDoorSizes } from "../../../_utils/helpers/zus/zus-form-helper";
 
 interface Props {
     cls: ComponentHelperClass;

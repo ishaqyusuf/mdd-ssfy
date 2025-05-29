@@ -39,7 +39,9 @@ interface Props<T> {
   disabled?: boolean;
   onCreate?: (value: string) => void;
   headless?: boolean;
+  noSearch?: boolean;
   className?: string;  
+  listClassName?: string;  
   pageSize?: number;
   valueKey?: string;
 
@@ -60,7 +62,9 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   disabled,
   onCreate,
   className,
+  listClassName,
   pageSize = 20,
+  noSearch
 }: Props<T>) {
   const [open, setOpen] = React.useState(false);
   const [internalSelectedItem, setInternalSelectedItem] = React.useState<
@@ -91,15 +95,16 @@ export function ComboboxDropdown<T extends ComboboxItem>({
 
   const Component = (
     <Command loop shouldFilter={false}>
-      <CommandInput
+     {noSearch || <CommandInput
         value={inputValue}
         onValueChange={setInputValue}
         placeholder={searchPlaceholder ?? "Search item..."}
         className="px-3"
-      />
+      />}
 
       <CommandGroup>
-        <CommandList className="max-h-[225px] overflow-auto">
+        <CommandList className={cn("", )}>
+          <div className={cn("max-h-[225px] overflow-auto",listClassName)}>
           {__items.map((item) => {
             const isChecked = selectedItem?.id === item.id;
 
@@ -110,11 +115,11 @@ export function ComboboxDropdown<T extends ComboboxItem>({
                 key={item.id}
                 value={item.id}
                 onSelect={(id) => {
-                  console.log({filteredItems,id})
+                  
                   const foundItem = filteredItems?.find((item) => item.id?.toUpperCase() === id?.toUpperCase());
 
                   if (!foundItem) {
-                    console.log("No item found", id);
+                     
                     return;
                   }
 
@@ -159,6 +164,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
               {renderOnCreate ? renderOnCreate(inputValue) : null}
             </CommandItem>
           )}
+          </div>
         </CommandList>
       </CommandGroup>
     </Command>

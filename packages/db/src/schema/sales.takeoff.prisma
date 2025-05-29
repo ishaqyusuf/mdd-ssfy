@@ -1,0 +1,10 @@
+model SalesTakeOffTemplates {
+    id         String @unique @default(uuid())
+    sectionUid String
+    title      String
+    data       Json
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+}

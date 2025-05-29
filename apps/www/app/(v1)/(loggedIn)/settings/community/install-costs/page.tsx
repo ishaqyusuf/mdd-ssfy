@@ -12,15 +12,17 @@ export const metadata: Metadata = {
 export default async function InstallCostsPage({}) {
     const data = await getSettingAction("install-price-chart");
     return (
-        <AuthGuard can={["editProject"]}>
-            <CommunitySettingsLayoutComponent>
-                <Breadcrumbs>
-                    <BreadLink isFirst title="Settings" />
-                    <BreadLink title="Community" />
-                    <BreadLink isLast title="Install Cost" />
-                </Breadcrumbs>
-                <InstallCostForm data={data as any} />
-            </CommunitySettingsLayoutComponent>
-        </AuthGuard>
+        <div className="">
+            <AuthGuard can={["viewProject"]}>
+                <CommunitySettingsLayoutComponent>
+                    <Breadcrumbs>
+                        <BreadLink isFirst title="Settings" />
+                        <BreadLink title="Community" />
+                        <BreadLink isLast title="Install Cost" />
+                    </Breadcrumbs>
+                    <InstallCostForm data={data as any} />
+                </CommunitySettingsLayoutComponent>
+            </AuthGuard>
+        </div>
     );
 }

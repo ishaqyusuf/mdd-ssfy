@@ -10,7 +10,7 @@ import { FormSelectProps } from "@/components/common/controls/form-select";
 import { NumberInput } from "@/components/currency-input";
 import { LabelInput } from "@/components/label-input";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { cn } from "@/lib/utils";
+import { cn, generateRandomString } from "@/lib/utils";
 import { NumericFormatProps } from "react-number-format";
 
 import { Button } from "@gnd/ui/button";
@@ -32,6 +32,10 @@ import { SalesFormPrintMenu } from "./sales-form-print-menu";
 import { SalesFormSave } from "./sales-form-save";
 import { LaborCostSetting } from "./labor-cost-setting";
 import { AuthGuard, SuperAdminGuard } from "@/components/auth-guard";
+import ConfirmBtn from "@/components/confirm-button";
+import { deleteSalesExtraCost } from "@/actions/delete-sales-extra-cost";
+import FormSettingsModal from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/modals/form-settings-modal";
+import { _modal } from "@/components/common/modal/provider";
 
 export function SalesMetaForm({}) {
     const zus = useFormDataStore();
@@ -88,7 +92,14 @@ export function SalesMetaForm({}) {
                         <SalesFormEmailMenu />
                         <Menu.Item Icon={Icons.copy}>Copy</Menu.Item>
                         <Menu.Item Icon={Icons.move2}>Move to</Menu.Item>
-                        <Menu.Item Icon={Icons.settings}>Settings</Menu.Item>
+                        <Menu.Item
+                            onClick={(e) => {
+                                _modal.openSheet(<FormSettingsModal />);
+                            }}
+                            Icon={Icons.settings}
+                        >
+                            Settings
+                        </Menu.Item>
                     </Menu>
                 </div>
             </div>
@@ -205,18 +216,66 @@ function SummaryTab({}) {
                         </SuperAdminGuard>
                     </div>
                 </LineContainer>
-                <Input
-                    onChange={(e) => {
-                        calculateTotal();
-                    }}
-                    label="Delivery"
-                    name="metaData.extraCosts.Delivery.amount"
-                    value={md.extraCosts?.Delivery?.amount}
-                    numberProps={{
-                        prefix: "$",
-                    }}
-                />
-                <Input
+                {Object.entries(md.extraCosts)
+                    .filter(([k, v]) => k != "Labor")
+                    .map(([k, v], i) => (
+                        <Input
+                            key={i}
+                            onChange={(e) => {
+                                calculateTotal();
+                            }}
+                            label={
+                                <span>
+                                    <LabelInput
+                                        value={v.label}
+                                        className="text-end"
+                                        onChange={(e) => {
+                                            zus.dotUpdate(
+                                                `metaData.extraCosts.${k}.label`,
+                                                e.target.value,
+                                            );
+                                        }}
+                                    />
+                                </span>
+                            }
+                            name={`metaData.extraCosts.${k}.amount`}
+                            value={md.extraCosts?.[k]?.amount}
+                            numberProps={{
+                                prefix: "$",
+                            }}
+                        >
+                            <ConfirmBtn
+                                onClick={async (e) => {
+                                    if (v.id) await deleteSalesExtraCost(v.id);
+
+                                    zus.removeKey(`metaData.extraCosts.${k}`);
+                                }}
+                                size="sm"
+                                trash
+                            />
+                        </Input>
+                    ))}
+                <Menu Icon={Icons.add} label={"Add Cost"}>
+                    {["Discount", "Delivery", "Custom"].map((v, i) => (
+                        <Menu.Item
+                            onClick={(e) => {
+                                zus.dotUpdate(
+                                    `metaData.extraCosts.${generateRandomString()}`,
+                                    {
+                                        label: i == 2 ? "Custom" : v,
+                                        amount: 0,
+                                        type: i == 2 ? "CustomNonTaxxable" : v,
+                                    },
+                                );
+                            }}
+                            key={i}
+                        >
+                            {/* {i == 2 ? 'CustomNonTaxxable' : v} */}
+                            {v}
+                        </Menu.Item>
+                    ))}
+                </Menu>
+                {/* <Input
                     onChange={(e) => {
                         calculateTotal();
                     }}
@@ -226,7 +285,7 @@ function SummaryTab({}) {
                     numberProps={{
                         prefix: "$",
                     }}
-                />
+                /> */}
                 <LineContainer
                     label={
                         <div className="col-span-3 flex items-center justify-end border-b hover:bg-muted-foreground/30">
@@ -273,8 +332,17 @@ interface InputProps {
     lg?: boolean;
     readOnly?: boolean;
     onChange?;
+    children?;
 }
-function Input({ value, label, name, lg, onChange, ...props }: InputProps) {
+function Input({
+    value,
+    label,
+    name,
+    lg,
+    onChange,
+    children,
+    ...props
+}: InputProps) {
     const zus = useFormDataStore();
     return (
         <LineContainer lg={lg} label={label}>
@@ -293,7 +361,7 @@ function Input({ value, label, name, lg, onChange, ...props }: InputProps) {
             ) : props.numberProps ? (
                 <NumberInput
                     {...props.numberProps}
-                    className="text-end"
+                    className="text-end min-w-16"
                     value={value as any}
                     readOnly={props.readOnly}
                     onValueChange={(e) => {
@@ -311,6 +379,7 @@ function Input({ value, label, name, lg, onChange, ...props }: InputProps) {
                     }}
                 />
             )}
+            {children}
         </LineContainer>
     );
 }
@@ -330,7 +399,9 @@ function LineContainer({ label, lg = false, className = "", children }) {
                         label
                     ))}
             </div>
-            <div className={cn(lg && "col-span-2")}>{children}</div>
+            <div className={cn(lg && "col-span-2", "flex flex-1")}>
+                {children}
+            </div>
         </div>
     );
 }

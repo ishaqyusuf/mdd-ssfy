@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 import { SalesFormZusData } from "../../../../types";
-import { FieldPath, FieldPathValue } from "react-hook-form";
+import { FieldPath } from "react-hook-form";
 import { dotObject } from "@/app/(clean-code)/_common/utils/utils";
 import { deepCopy } from "@/lib/deep-copy";
 export type ZusSales = SalesFormZusData & SalesFormZusAction;
@@ -57,6 +57,14 @@ function fns(set: SalesFormSet) {
                 return newState;
             }),
 
+        removeKey: <K extends FieldPath<SalesFormZusData>>(k: K) =>
+            set((state) => {
+                const newState = {
+                    ...state,
+                };
+                dotObject.remove(k, newState);
+                return newState;
+            }),
         dotUpdate: <K extends FieldPath<SalesFormZusData>>(
             k: K,
             stepSq, //: FieldPathValue<SalesFormZusData, K>
@@ -68,6 +76,7 @@ function fns(set: SalesFormSet) {
                 dotObject.set(k, stepSq, newState);
                 return newState;
             }),
+
         update: (k: keyof SalesFormZusData, value) =>
             set((state) => {
                 const newState: any = { ...state };

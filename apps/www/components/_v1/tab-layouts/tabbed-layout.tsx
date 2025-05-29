@@ -11,6 +11,7 @@ import { useSession } from "next-auth/react";
 import { createPortal } from "react-dom";
 
 import { Button } from "@gnd/ui/button";
+import Portal from "../portal";
 
 export default function TabbedLayout({
     children,
@@ -35,19 +36,10 @@ export default function TabbedLayout({
     const [tab, setTab] = useState<any>(path);
     // const [tabs, setTabs] = useState<{ label; value }[]>([]);
     const route = useRouter();
-    const [TabElement, setTabElement] = useState(
-        document?.getElementById("tab"),
-    );
-    useEffect(() => {
-        (async () => {
-            await timeout(2000);
-            setTabElement(document?.getElementById("tab"));
-        })();
-    }, []);
-    if (!TabElement) return <></>;
+
     return (
-        <div className="space-y-4 ">
-            {createPortal(
+        <div className="space-y-4">
+            <Portal nodeId={"pageTab"}>
                 <div className="flex ">
                     {(tabKey ? _nav?.[tabKey] : tabs).map((c, i) => (
                         <div className="flex flex-col" key={i}>
@@ -70,9 +62,9 @@ export default function TabbedLayout({
                             ></div>
                         </div>
                     ))}
-                </div>,
-                TabElement,
-            )}
+                </div>
+            </Portal>
+
             {/* <Tabs
         defaultValue={tab}
         onChange={(v) => {

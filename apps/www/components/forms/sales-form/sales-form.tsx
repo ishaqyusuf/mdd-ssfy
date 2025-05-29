@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 import { SalesMetaForm } from "./sales-meta-form";
 import { FormWatcher } from "./form-watcher";
+import TakeOff from "./take-off";
 
 export function SalesFormClient({ data }) {
     const zus = useFormDataStore();
@@ -28,20 +29,21 @@ export function SalesFormClient({ data }) {
     return (
         <div className="min-h-screen w-full bg-white p-4 lg:flex xl:gap-4 xl:p-8">
             <div className="flex-1">
-                <div className={cn()}>
+                {/* <TakeOff /> */}
+                <div className={cn("hiddens")}>
                     {zus.sequence?.formItem?.map((uid) => (
                         <ItemSection key={uid} uid={uid} />
                     ))}
-                    <div className="mt-4 flex justify-end">
-                        <Button
-                            onClick={() => {
-                                zhAddItem();
-                            }}
-                        >
-                            <Icons.add className="mr-2 size-4" />
-                            <span>Add</span>
-                        </Button>
-                    </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                    <Button
+                        onClick={() => {
+                            zhAddItem();
+                        }}
+                    >
+                        <Icons.add className="mr-2 size-4" />
+                        <span>Add</span>
+                    </Button>
                 </div>
             </div>
             <div className="relative lg:w-[350px]">

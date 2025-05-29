@@ -44,9 +44,12 @@ export function TextWithTooltip({ text, className }: TextWithTooltipProps) {
         <TooltipProvider disableHoverableContent delayDuration={100}>
             <Tooltip>
                 <TooltipTrigger asChild>
+                    {/* <div className="inline-flex"> */}
                     <div ref={textRef} className={`truncate ${className}`}>
                         {text}
                     </div>
+                    {/* {String(text)?.slice(-5)} */}
+                    {/* </div> */}
                 </TooltipTrigger>
                 <TooltipContent className="max-w-[20vw]">{text}</TooltipContent>
             </Tooltip>

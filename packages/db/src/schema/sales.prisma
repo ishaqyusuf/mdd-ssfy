@@ -119,7 +119,6 @@ model SalesExtraCosts {
     orderId     Int
     order       SalesOrders        @relation(fields: [orderId], references: [id])
 
-    @@unique([type, orderId])
     @@index([orderId])
 }
 

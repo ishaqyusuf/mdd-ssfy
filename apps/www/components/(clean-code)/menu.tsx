@@ -95,6 +95,7 @@ function BaseMenu(
                         variant={
                             open || hover ? hoverVariant || variant : variant
                         }
+                        size={triggerSize}
                         className={cn(
                             "flex h-8 space-x-4",
                             !label && "w-8 p-0",

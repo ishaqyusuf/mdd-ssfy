@@ -676,7 +676,7 @@ export class ComponentHelperClass extends StepHelperClass {
         );
         this.refreshStepComponentsData();
     }
-    public selectComponent() {
+    public selectComponent(takeOff = false) {
         let component = this.getComponent;
         if (this.isMoulding()) {
             let groupItem = this.getItemForm()?.groupItem;
@@ -761,7 +761,6 @@ export class ComponentHelperClass extends StepHelperClass {
                     //
                 }
             }
-            // stepData.flat
             stepData = {
                 ...stepData,
                 flatRate: component._metaData?.custom,
@@ -782,7 +781,7 @@ export class ComponentHelperClass extends StepHelperClass {
             // if (isRoot) {
             //     this.dotUpdateItemForm("routeUid", this.componentUid);
             // }
-            this.nextStep(isRoot, this.redirectUid);
+            if (!takeOff) this.nextStep(isRoot, this.redirectUid);
             this.updateComponentCost();
         }
     }

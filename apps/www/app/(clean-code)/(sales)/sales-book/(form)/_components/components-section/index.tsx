@@ -331,12 +331,14 @@ export function Component({
     swapDoor,
     sortMode,
     itemIndex,
+    onSelect,
 }: {
     component: ZusComponent;
     ctx: UseStepContext;
     swapDoor?;
     sortMode?;
     itemIndex?;
+    onSelect?;
 }) {
     const { stepUid } = ctx;
     const zus = useFormDataStore();
@@ -373,6 +375,10 @@ export function Component({
         openDoorPriceModal(cls);
     }, [cls]);
     const selectComponent = useCallback(() => {
+        if (onSelect) {
+            onSelect(cls);
+            return;
+        }
         if (selectState.count) {
             ctx.toggleComponent(component.uid);
             return;
