@@ -185,7 +185,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
           <span className="truncate text-ellipsis pr-3">
             {selectedItem ? (
               renderSelectedItem ? (
-                <span className="block flex items-center overflow-hidden text-ellipsis whitespace-nowrap">
+                <span className="  flex items-center overflow-hidden text-ellipsis whitespace-nowrap">
                   {renderSelectedItem?.(selectedItem)}
                 </span>
               ) : (

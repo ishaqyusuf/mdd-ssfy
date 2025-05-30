@@ -283,7 +283,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                                         doorForm.jambSizePrice,
                                     ),
                                 },
-                                unitLabor: null,
+                                unitLabor: doorForm?.meta?.unitLabor,
                                 laborQty: doorForm?.meta?.laborQty,
                                 unitPrice: doorForm.unitPrice,
                                 customPrice: customPrice(

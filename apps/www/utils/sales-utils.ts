@@ -149,5 +149,6 @@ export function transformPayrollUid(uid) {
     };
 }
 export function laborRate(rate, override) {
+    console.log({ rate, override });
     return override ?? (override === 0 ? 0 : rate);
 }
