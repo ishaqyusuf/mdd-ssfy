@@ -148,3 +148,6 @@ export function transformPayrollUid(uid) {
         submissionId: number;
     };
 }
+export function laborRate(rate, override) {
+    return override ?? (override === 0 ? 0 : rate);
+}

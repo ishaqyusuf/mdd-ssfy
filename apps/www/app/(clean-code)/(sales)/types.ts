@@ -118,6 +118,10 @@ export type SalesMeta = {
     priority: SalesPriority;
     ccc_percentage;
     labor_cost;
+    laborConfig?: {
+        id?: number;
+        rate?: number;
+    };
     discount;
     deliveryCost;
     sales_profile;
@@ -515,6 +519,8 @@ export interface SalesFormFields {
     saveAction?: "new" | "close" | "default";
     newFeature?: boolean;
     metaData?: {
+        salesLaborConfig?: SalesMeta["laborConfig"];
+        laborConfig?: SalesMeta["laborConfig"];
         salesRepId;
         type: SalesType;
         id?: number;

@@ -5,6 +5,7 @@ import { sum } from "@/lib/utils";
 import { qtyMatrixDifference, qtyMatrixSum } from "@/utils/sales-control-util";
 
 import { getSalesItemsOverviewAction } from "./get-sales-items-overview-action";
+import { laborRate } from "@/utils/sales-utils";
 
 export async function getSalesDispatchDataAction(orderId) {
     const overview = await getSalesItemsOverviewAction(orderId);
@@ -40,7 +41,10 @@ export async function getSalesDispatchDataAction(orderId) {
             uid: item.controlUid,
             title: item.title,
             itemId: item.itemId,
-            unitLabor: item.unitLabor,
+            unitLabor: laborRate(
+                overview?.orderMeta?.laborConfig?.rate,
+                item.unitLabor,
+            ),
             totalQty: item.qty.qty,
             doorId: item.doorId,
             dispatchStat,

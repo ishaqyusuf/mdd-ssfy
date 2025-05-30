@@ -82,6 +82,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         },
         kvFormItem: {},
         kvStepForm: {},
+
         // kvFilteredStepComponentList: {},
         kvStepComponentList: {},
         currentTab: !data.order?.id ? "info" : "invoice",
@@ -109,7 +110,13 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                 grandTotal: data.order?.grandTotal,
                 paid: copy ? 0 : data.paidAmount || 0,
             },
-
+            laborConfig: data?.laborConfig,
+            salesLaborConfig: data?.order?.id
+                ? data?.order?.meta?.laborConfig || {}
+                : {
+                      rate: data?.laborConfig?.rate,
+                      id: data?.laborConfig?.id,
+                  },
             salesMultiplier,
             deliveryMode: data.order.deliveryOption as any,
             po: data.order?.meta?.po,
@@ -276,7 +283,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                                         doorForm.jambSizePrice,
                                     ),
                                 },
-                                unitLabor: doorForm?.meta?.unitLabor,
+                                unitLabor: null,
                                 laborQty: doorForm?.meta?.laborQty,
                                 unitPrice: doorForm.unitPrice,
                                 customPrice: customPrice(

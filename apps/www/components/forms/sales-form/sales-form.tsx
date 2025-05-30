@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import ItemSection from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/item-section";
 import {
@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { SalesMetaForm } from "./sales-meta-form";
 import { FormWatcher } from "./form-watcher";
 import TakeOff from "./take-off";
+import { TakeoffSwitch } from "./take-off/takeoff-switch";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 export function SalesFormClient({ data }) {
     const zus = useFormDataStore();
@@ -24,17 +26,23 @@ export function SalesFormClient({ data }) {
             wait: 200,
         },
     );
+
+    const [takeOff, takeOffChanged] = useLocalStorage("take-off", false);
     if (!zus.formStatus || zus.currentTab != "invoice") return <></>;
 
     return (
         <div className="min-h-screen w-full bg-white p-4 lg:flex xl:gap-4 xl:p-8">
+            <TakeoffSwitch {...{ takeOff, takeOffChanged }} />
             <div className="flex-1">
-                {/* <TakeOff /> */}
-                <div className={cn("hiddens")}>
-                    {zus.sequence?.formItem?.map((uid) => (
-                        <ItemSection key={uid} uid={uid} />
-                    ))}
-                </div>
+                {takeOff ? (
+                    <TakeOff />
+                ) : (
+                    <div className={cn("hiddens")}>
+                        {zus.sequence?.formItem?.map((uid) => (
+                            <ItemSection key={uid} uid={uid} />
+                        ))}
+                    </div>
+                )}
                 <div className="mt-4 flex justify-end">
                     <Button
                         onClick={() => {

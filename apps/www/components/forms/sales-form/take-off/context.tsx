@@ -37,13 +37,13 @@ export const { Provider: TakeoffItemProvider, useContext: useTakeoffItem } =
         );
         const itemForm = ctx.zus.kvFormItem[itemUid];
         const doorStepProductId = itemForm?.groupItem?.doorStepProductId;
-        const doorImg = useAsyncMemo(async () => {
-            let img = section?.img;
+        const door = useAsyncMemo(async () => {
+            let resp = { img: section?.img, title: null };
             if (doorStepProductId) {
                 const src = await getStepProductImg(doorStepProductId);
-                if (src) img = src;
+                if (src?.title) resp = src;
             }
-            return img;
+            return resp;
         }, [doorStepProductId, section?.img]);
         const doorUid = itemForm?.groupItem?.doorStepProductUid;
         // const sizeList
@@ -52,7 +52,7 @@ export const { Provider: TakeoffItemProvider, useContext: useTakeoffItem } =
             itemUid,
             doorUid,
             stepSequence,
-            doorImg,
+            door,
             section,
             itemForm,
             openTemplateForm,

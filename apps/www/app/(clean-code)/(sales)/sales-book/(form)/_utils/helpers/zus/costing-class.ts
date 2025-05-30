@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { ZusGroupItem } from "../../../_common/_stores/form-data-store";
 import { SettingsClass } from "./settings-class";
+import { laborRate } from "@/utils/sales-utils";
 
 export class CostingClass {
     constructor(public setting?: SettingsClass) {}
@@ -232,10 +233,9 @@ export class CostingClass {
         else staticData.kvFormItem[itemUid].groupItem = groupItem;
     }
     public getEstimatePricing(gi, fd) {
-        let groupItem: (typeof this.setting.staticZus)["kvFormItem"][number]["groupItem"] =
-            gi;
-        let formData: (typeof this.setting.staticZus)["kvFormItem"][number]["groupItem"]["form"][number] =
-            fd;
+        const zus = this.setting.zus;
+        let groupItem: (typeof zus.kvFormItem)[number]["groupItem"] = gi;
+        let formData: (typeof groupItem)["form"][number] = fd;
         const cPrice = formData.pricing?.customPrice as any;
         const customPricing = cPrice || (cPrice == 0 && cPrice !== "");
         const pll = [
@@ -248,10 +248,8 @@ export class CostingClass {
         const priceList = [pl, formData.pricing?.addon];
         const unitPrice = sum(priceList);
         const qty = Number(formData.qty.total);
-        const unitLabor = Number(formData?.pricing.unitLabor || 0);
-        formData.pricing.unitLabor = unitLabor;
+
         formData.pricing.laborQty = qty;
-        // priceList.push(unitLabor);
 
         const totalPrice = formatMoney(sum(priceList) * qty);
         formData.pricing.unitPrice = unitPrice;
@@ -301,11 +299,19 @@ export class CostingClass {
                     Object.entries(itemData?.groupItem?.form).map(
                         ([k, d]) =>
                             sum([d?.pricing?.laborQty]) *
-                            sum([d?.pricing?.unitLabor]),
+                            sum([
+                                laborRate(
+                                    data?.metaData?.salesLaborConfig?.rate,
+                                    d?.pricing?.unitLabor,
+                                ),
+                            ]),
                     ),
                 );
             }),
         );
+        console.log({
+            Labor,
+        });
         const extraCosts = sum(
             Object.values(data.metaData.extraCosts)
                 .filter(

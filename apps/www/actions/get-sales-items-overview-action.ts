@@ -11,6 +11,7 @@ import {
     DykeSalesDoorMeta,
     QtyControlType,
     SalesItemMeta,
+    SalesMeta,
     SalesType,
 } from "@/app/(clean-code)/(sales)/types";
 import { prisma, Prisma } from "@/db";
@@ -32,7 +33,7 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
         },
         select: _select,
     });
-
+    const meta = order.meta as any as SalesMeta;
     const setting = await loadSalesSetting();
     let items: ItemControlData[] = [];
     order.items.map((item) => {
@@ -129,7 +130,8 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
                     door.totalQty,
                 );
                 const doorMeta = door.meta as DykeSalesDoorMeta;
-                const unitLabor = doorMeta?.unitLabor;
+                const unitLabor =
+                    doorMeta?.unitLabor || meta?.laborConfig?.rate;
                 addItem({
                     unitLabor,
                     controlUid,
@@ -175,6 +177,7 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
         orderId: order.id,
         deliveries: order.deliveries,
         order,
+        orderMeta: order.meta as any as SalesMeta,
         // order
     };
 }

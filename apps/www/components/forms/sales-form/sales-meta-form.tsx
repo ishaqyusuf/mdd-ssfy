@@ -30,12 +30,11 @@ import { Footer } from "./footer";
 import { SalesFormEmailMenu } from "./sales-form-email-menu";
 import { SalesFormPrintMenu } from "./sales-form-print-menu";
 import { SalesFormSave } from "./sales-form-save";
-import { LaborCostSetting } from "./labor-cost-setting";
-import { AuthGuard, SuperAdminGuard } from "@/components/auth-guard";
 import ConfirmBtn from "@/components/confirm-button";
 import { deleteSalesExtraCost } from "@/actions/delete-sales-extra-cost";
 import FormSettingsModal from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/modals/form-settings-modal";
 import { _modal } from "@/components/common/modal/provider";
+import { SalesLaborLine } from "./sales-labor-line";
 
 export function SalesMetaForm({}) {
     const zus = useFormDataStore();
@@ -200,22 +199,7 @@ function SummaryTab({}) {
                         <AnimatedNumber value={md.pricing?.taxValue || 0} />
                     </div>
                 </LineContainer>
-                <LineContainer
-                    label={
-                        <div className="text-sm">
-                            <span>Labor Cost ($)</span>
-                        </div>
-                    }
-                >
-                    <div className="text-right items-center flex gap-2">
-                        <AnimatedNumber
-                            value={md.extraCosts?.Labor?.amount || 0}
-                        />
-                        <SuperAdminGuard>
-                            <LaborCostSetting />
-                        </SuperAdminGuard>
-                    </div>
-                </LineContainer>
+                <SalesLaborLine />
                 {Object.entries(md.extraCosts)
                     .filter(([k, v]) => k != "Labor")
                     .map(([k, v], i) => (

@@ -24,7 +24,7 @@ export function AuthGuard({ children, Fallback = null, rules }: Props) {
                 : undefined,
         [rules, session],
     );
-    if (isValid === undefined) return <span>session not loaded </span>;
+    if (isValid === undefined) return <span> </span>;
     if (!isValid) return Fallback;
 
     return children ?? null;

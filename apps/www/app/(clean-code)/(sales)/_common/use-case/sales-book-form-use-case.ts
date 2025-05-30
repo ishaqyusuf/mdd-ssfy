@@ -21,6 +21,7 @@ import { saveSalesFormDta } from "../data-access/save-sales/index.dta";
 import { SaveQuery } from "../data-access/save-sales/save-sales-class";
 import { composeSalesPricing } from "../utils/sales-pricing-utils";
 import { composeStepRouting } from "../utils/sales-step-utils";
+import { getSalesLaborCost } from "@/actions/sales-labor-cost";
 
 export type GetSalesBookForm = AsyncFnType<typeof getSalesBookFormUseCase>;
 export async function getSalesBookFormUseCase(data: GetSalesBookFormDataProps) {
@@ -28,10 +29,12 @@ export async function getSalesBookFormUseCase(data: GetSalesBookFormDataProps) {
     return await composeBookForm(result);
 }
 async function composeBookForm<T>(data: T) {
+    const laborConfig = await getSalesLaborCost();
     return {
         ...data,
         salesSetting: composeStepRouting(await loadSalesFormData()),
         pricing: composeSalesPricing(await getPricingListDta()),
+        laborConfig,
     };
 }
 export async function createSalesBookFormUseCase(

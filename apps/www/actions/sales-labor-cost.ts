@@ -56,7 +56,7 @@ export async function updateSalesLaborCost(rate) {
         await ev.event("created").type("sales-labor-cost").create();
     }
     revalidateTag("sales-labor-cost");
-    return cost?.rate;
+    return cost;
 }
 
 export const saveSalesLaborCost = actionClient
@@ -69,6 +69,6 @@ export const saveSalesLaborCost = actionClient
         },
     })
     .action(async ({ parsedInput: { rate } }) => {
-        await updateSalesLaborCost(rate);
-        return { success: true, rate };
+        const r = await updateSalesLaborCost(rate);
+        return { success: true, rate, id: r.id };
     });

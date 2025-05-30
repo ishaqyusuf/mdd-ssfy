@@ -44,7 +44,13 @@ function Content() {
     const save = useAction(saveSalesLaborCost, {
         onSuccess(args) {
             const rate = args.input.rate;
-            setParams(null);
+            setParams({
+                laborCostModal: null,
+                costUpdate: {
+                    id: args.data?.id,
+                    rate: args.data?.rate,
+                },
+            });
         },
     });
     return (

@@ -12,19 +12,25 @@ export async function getStepProductImg(id) {
                 },
                 select: {
                     img: true,
+                    name: true,
                     product: {
                         select: {
                             img: true,
+                            title: true,
                         },
                     },
                     door: {
                         select: {
                             img: true,
+                            title: true,
                         },
                     },
                 },
             });
-            return step?.img || step?.product?.img || step?.door?.img;
+            return {
+                img: step?.img || step?.product?.img || step?.door?.img,
+                title: step?.name || step?.product?.title || step?.door?.title,
+            };
         },
         [`step-product-${id}`],
         {
