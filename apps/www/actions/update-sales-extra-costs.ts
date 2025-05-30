@@ -7,6 +7,7 @@ export async function updateSalesExtraCosts(
     orderId,
     costs: Partial<Prisma.SalesExtraCostsGetPayload<{}>>[],
 ) {
+    if (!orderId) return null;
     await prisma.$transaction(async (tx) => {
         await tx.salesExtraCosts.deleteMany({
             where: {
