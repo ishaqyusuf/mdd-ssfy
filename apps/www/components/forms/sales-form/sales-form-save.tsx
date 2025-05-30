@@ -24,6 +24,7 @@ export function SalesFormSave({ type = "button", and }: Props) {
     const router = useRouter();
     const newInterfaceQuery = useSalesFormFeatureParams();
     async function save(action: "new" | "close" | "default" = "default") {
+        console.log("SAVING>>>>>>", action);
         const { kvFormItem, kvStepForm, metaData, sequence } = zus;
         const restoreMode = searchParams.get("restoreMode") != null;
         const resp = await saveFormUseCase(

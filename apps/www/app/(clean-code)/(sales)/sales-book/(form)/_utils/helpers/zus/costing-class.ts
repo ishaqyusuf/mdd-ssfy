@@ -296,7 +296,7 @@ export class CostingClass {
         const Labor = sum(
             Object.entries(data.kvFormItem).map(([itemUid, itemData]) => {
                 return sum(
-                    Object.entries(itemData?.groupItem?.form).map(
+                    Object.entries(itemData?.groupItem?.form || {}).map(
                         ([k, d]) =>
                             sum([d?.pricing?.laborQty]) *
                             sum([
