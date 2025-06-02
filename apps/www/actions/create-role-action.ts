@@ -8,6 +8,8 @@ import { revalidateTag } from "next/cache";
 export type CreateRoleForm = z.infer<typeof createRoleSchema>;
 
 export async function createRole(data: CreateRoleForm) {
+    console.log(data);
+
     if (data.id) {
         await prisma.roles.update({
             where: {
@@ -38,7 +40,7 @@ export async function createRole(data: CreateRoleForm) {
     });
     await prisma.roleHasPermissions.createMany({
         data: Object.values(data.permissions)
-            .filter((p) => p.checked && !p.permissionId)
+            .filter((p) => p.checked && !p.roleId)
             .map((d) => ({
                 permissionId: d.permissionId,
                 roleId: data.id,

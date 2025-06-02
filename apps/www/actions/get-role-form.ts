@@ -42,6 +42,7 @@ export async function getRoleForm(id?) {
                   RoleHasPermissions: {
                       select: {
                           permissionId: true,
+                          roleId: true,
                       },
                   },
               },
@@ -54,11 +55,13 @@ export async function getRoleForm(id?) {
         permissions: {},
     };
     permissions?.map((p) => {
+        const current = role?.RoleHasPermissions?.find(
+            (r) => r.permissionId == p.id,
+        );
         form.permissions[p.name] = {
             permissionId: p.id,
-            checked: role?.RoleHasPermissions?.some(
-                (r) => r.permissionId == p.id,
-            ),
+            roleId: current?.roleId,
+            checked: !!current,
         };
     });
     const permissionsList = Array.from(
