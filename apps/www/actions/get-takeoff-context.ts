@@ -32,9 +32,11 @@ export async function getTakeOffContext() {
             };
         })
         .filter((a) =>
-            ["moulding", "shelf items", "services"].every(
-                (t) => a.title?.toLocaleLowerCase() != t,
-            ),
+            [
+                // "moulding",
+                "shelf items",
+                "services",
+            ].every((t) => a.title?.toLocaleLowerCase() != t),
         );
     return {
         sections,

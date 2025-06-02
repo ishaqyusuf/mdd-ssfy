@@ -6,6 +6,7 @@ import { TemplateForm } from "./template-form";
 import { SectionSelector } from "./section-selector";
 import { DoorDisplay, DoorTitle } from "./door-display";
 import { HptForm } from "./hpt-form";
+import { MouldingAndService } from "../moulding-and-service";
 
 interface Props {
     uid: string;
@@ -51,6 +52,10 @@ function TakeOffItemContent({}) {
                         <TemplateForm />
                         <ItemPills />
                         {!ctx.doorUid || <HptForm />}
+                        {ctx?.itemType == "MOULDING" ||
+                        ctx.itemType == "SERVICE" ? (
+                            <MouldingAndService />
+                        ) : null}
                     </div>
                 </div>
             </div>

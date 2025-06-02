@@ -49,6 +49,7 @@ export const { Provider: TakeoffItemProvider, useContext: useTakeoffItem } =
         // const sizeList
         // itemForm.groupItem
         return {
+            itemType: itemForm?.groupItem?.type,
             itemUid,
             doorUid,
             stepSequence,

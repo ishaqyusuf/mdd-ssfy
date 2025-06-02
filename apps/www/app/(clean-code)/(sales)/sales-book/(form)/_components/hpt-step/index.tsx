@@ -225,6 +225,7 @@ function DoorSizeRow({ lineUid, sn }: { lineUid; sn }) {
             args={[
                 {
                     lineUid,
+                    sn,
                 },
             ]}
         >

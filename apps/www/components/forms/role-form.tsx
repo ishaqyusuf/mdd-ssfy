@@ -23,11 +23,13 @@ import FormCheckbox from "../common/controls/form-checkbox";
 import { useEffect } from "react";
 import { Button } from "@gnd/ui/button";
 import { generateRandomString } from "@/lib/utils";
+import { rndTimeout } from "@/lib/timeout";
 
 export function RoleForm({}) {
     const { params, setParams } = useRolesParams();
     const form = useRoleFormContext();
     const data = useAsyncMemo(async () => {
+        await rndTimeout();
         return await getRoleForm(params.roleEditId);
     }, [params?.roleEditId]);
     useEffect(() => {
