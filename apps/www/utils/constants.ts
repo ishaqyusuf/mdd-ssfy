@@ -94,4 +94,4 @@ export const actionTicketEvents = [
     "edited",
     "restored",
 ] as const;
-export const doorSwings = ["IN-SWING", "OUT-SWING", "NONE"] as const;
+export const doorSwings = ["IN-SWING", "OUT-SWING", "NONE"];
