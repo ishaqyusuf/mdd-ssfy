@@ -1,20 +1,21 @@
 import Button from "@/components/common/button";
 import { ComponentImg } from "../component-img";
-import { HptContext, useCtx } from "./ctx";
+
 import { openDoorSwapModal } from "../modals/door-swap-modal";
+import { HptContext, useHpt } from "@/components/forms/sales-form/context";
 
 interface DoorProps {
     door: HptContext["doors"][number];
 }
 export function Door({ door }: DoorProps) {
-    const ctx = useCtx();
+    const ctx = useHpt();
 
     return (
         <div className="flex gap-4s flex-col h-full items-center">
             <div className="">
                 <Button
                     onClick={() => {
-                        openDoorSwapModal(door, ctx.ctx.itemUid);
+                        openDoorSwapModal(door, ctx.hpt.itemUid);
                     }}
                 >
                     Change Door

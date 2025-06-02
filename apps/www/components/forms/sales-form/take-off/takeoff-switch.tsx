@@ -1,5 +1,6 @@
 import DevOnly from "@/_v2/components/common/dev-only";
 import Portal from "@/components/_v1/portal";
+import { SuperAdminGuard } from "@/components/auth-guard";
 import { Switch } from "@gnd/ui/switch";
 
 export function TakeoffSwitch({ takeOff, takeOffChanged }) {
@@ -7,7 +8,7 @@ export function TakeoffSwitch({ takeOff, takeOffChanged }) {
         takeOffChanged(e);
     };
     return (
-        <DevOnly>
+        <SuperAdminGuard>
             <Portal nodeId={"navRightSlot"}>
                 <div>
                     <Switch
@@ -18,6 +19,6 @@ export function TakeoffSwitch({ takeOff, takeOffChanged }) {
                     <label htmlFor="takeOff">Take off</label>
                 </div>
             </Portal>
-        </DevOnly>
+        </SuperAdminGuard>
     );
 }

@@ -31,15 +31,20 @@ export function copySalesTakeOffItem(
         id,
         groupItem: { hptId, ...groupItem },
         title,
+
         ...toForm
     } = kvFormItem[fromUid];
     groupItem.form = Object.fromEntries(
         Object.entries(groupItem.form).map(([k, v]) => {
             v.doorId = null;
             v.hptId = null;
+
             return [k, v];
         }),
     );
+    groupItem.itemIds = groupItem.itemIds.map((uid) => {
+        return uid?.replace(fromUid, toUid);
+    });
     dotUpdate(`kvFormItem.${toUid}`, {
         ...toForm,
         groupItem: {

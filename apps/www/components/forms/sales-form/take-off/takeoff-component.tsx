@@ -14,6 +14,8 @@ import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip"
 import { useState } from "react";
 import { Switch } from "@gnd/ui/switch";
 import { ComponentImg } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/component-img";
+import NumberFlow from "@number-flow/react";
+import { updateComponentsPrice } from "@/lib/sales/update-components-price";
 
 export function TakeOffComponent({ itemStepUid }) {
     const itemCtx = useTakeoffItem();
@@ -23,6 +25,7 @@ export function TakeOffComponent({ itemStepUid }) {
     if (stepForm?.title == "House Package Tool") return null;
     if (stepForm?.title == "Door") return null;
     if (stepForm?.title == "Height") return null;
+    // TODO: when option changes, check all other components to update price.
     return (
         <div>
             <Popover open={open} onOpenChange={setOpen}>
@@ -30,16 +33,40 @@ export function TakeOffComponent({ itemStepUid }) {
                     <Button
                         variant={!stepForm?.value ? "secondary" : "default"}
                         className={cn(
-                            "border border-transparent hover:border-border text-xs uppercase p-1 h-7 rounded font-mono",
+                            "",
+                            "border border-transparent hover:border-border text-xs uppercase p-1 h-7 rounded font-mono overflow-hidden gap-2",
                             stepForm?.value
-                                ? "font-medium"
+                                ? "font-medium bg-blue-900"
                                 : "text-muted-foreground",
                         )}
                     >
+                        <span
+                            className={cn(
+                                !stepForm?.value
+                                    ? ""
+                                    : "hidden xl:inline-block",
+                            )}
+                        >
+                            {stepForm?.title}
+                            {":"}
+                        </span>
                         <TextWithTooltip
-                            className="max-w-[100px] lg:max-w-[150px] xl:max-w-[200px]"
+                            className={cn(
+                                "max-w-[100px] lg:max-w-[150px] xl:max-w-[200px]",
+                                stepForm?.value || "hidden",
+                            )}
                             text={stepForm?.value || `${stepForm?.title}:`}
                         />
+                        {stepForm?.salesPrice && (
+                            <span className="bg-red-600 ml-1 px-1 -mr-1.5">
+                                <div className="my-1">
+                                    <NumberFlow
+                                        value={stepForm?.salesPrice}
+                                        prefix="$"
+                                    />
+                                </div>
+                            </span>
+                        )}
                         {/* {stepForm?.value || stepForm?.title} */}
                     </Button>
                 </PopoverTrigger>
@@ -55,7 +82,6 @@ function Components({ itemStepUid, setOpen }) {
     const data = useAsyncMemo(async () => {
         const stepClass = new StepHelperClass(itemStepUid);
         const components = await stepClass.fetchStepComponents();
-
         return {
             components: components?.filter((a) => a._metaData.visible),
         };
@@ -65,7 +91,7 @@ function Components({ itemStepUid, setOpen }) {
         <div
             className={cn(
                 "transition-all duration-300",
-                grid ? "w-[500px]" : "w-[200px]",
+                grid ? "w-[500px]" : "w-[250px]",
             )}
         >
             <DataSkeletonProvider
@@ -79,7 +105,11 @@ function Components({ itemStepUid, setOpen }) {
                     <></>
                 ) : (
                     <div className="">
-                        <div className="flex justify-end p-2 border-b">
+                        <div className="flex p-2 border-b items-center">
+                            <Label className="uppercase">
+                                {item?.section?.title}
+                            </Label>
+                            <div className="flex-1"></div>
                             <div className="flex items-center space-x-2">
                                 <Switch
                                     checked={!grid}
@@ -87,7 +117,7 @@ function Components({ itemStepUid, setOpen }) {
                                     className="h-5"
                                     id="airplane-mode"
                                 />
-                                <Label htmlFor="airplane-mode">List Mode</Label>
+                                <Label htmlFor="airplane-mode">List</Label>
                             </div>
                         </div>
                         <ComboboxDropdown
@@ -105,6 +135,7 @@ function Components({ itemStepUid, setOpen }) {
                                 );
                                 comp.selectComponent(true);
                                 setOpen(false);
+                                updateComponentsPrice(comp, true);
                             }}
                             headless
                             items={data?.components?.map((c) => ({
@@ -127,9 +158,17 @@ function Components({ itemStepUid, setOpen }) {
                                         </Label>
                                     </div>
                                 ) : (
-                                    <>
+                                    <div className="flex items-center justify-between">
                                         <Label>{item?.item?.label}</Label>
-                                    </>
+                                        <span>
+                                            <NumberFlow
+                                                value={
+                                                    item?.item?.data?.salesPrice
+                                                }
+                                                prefix="$"
+                                            />
+                                        </span>
+                                    </div>
                                 )
                             }
                         />

@@ -47,6 +47,7 @@ import { Door } from "../door-swap-modal";
 import { DoorSizeSelectContext, useCtx, useInitContext } from "./ctx";
 import { AuthGuard } from "@/components/auth-guard";
 import { _role } from "@/components/sidebar/links";
+import { doorSwings } from "@/utils/constants";
 
 interface Props {
     cls: ComponentHelperClass;
@@ -177,7 +178,7 @@ function Row({ variant }) {
                 <TableCell>
                     <FormSelect
                         size="sm"
-                        options={["IN-SWING", "OUT-SWING", "None"]}
+                        options={doorSwings}
                         label={"Swing"}
                         name={`selections.${variant.path}.swing`}
                         control={ctx.form.control}

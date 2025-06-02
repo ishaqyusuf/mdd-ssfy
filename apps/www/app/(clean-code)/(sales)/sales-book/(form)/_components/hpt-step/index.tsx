@@ -6,7 +6,7 @@ import { DataLine } from "@/components/(clean-code)/data-table/Dl";
 import { Menu } from "@/components/(clean-code)/menu";
 import { MoneyBadge } from "@/components/(clean-code)/money-badge";
 import { AnimatedNumber } from "@/components/animated-number";
-import { WageInput } from "@/components/forms/sales-form/wage-input";
+import { WageInput } from "@/components/forms/sales-form/hpt/wage-input";
 import { cn } from "@/lib/utils";
 import { Repeat } from "lucide-react";
 
@@ -26,79 +26,93 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { LineInput, LineSwitch } from "../line-input";
-import { Context, HptContext, useCreateContext, useCtx } from "./ctx";
 import { Door } from "./door";
 import { useState } from "react";
 import { doorItemControlUid } from "@/app/(clean-code)/(sales)/_common/utils/item-control-utils";
 import { noteTagFilter } from "@/modules/notes/utils";
 import Note from "@/modules/notes";
+import {
+    HptContext,
+    HptContextProvider,
+    HptLineContextProvider,
+    useHpt,
+    useHptLine,
+} from "@/components/forms/sales-form/context";
+import { PriceEstimateCell } from "@/components/forms/sales-form/hpt/price-estimate-cell";
+import { HptNote } from "@/components/forms/sales-form/hpt/hpt-note";
+import { DoorSwingSelect } from "@/components/forms/sales-form/take-off/door-swing-select";
 
 interface Props {
     itemStepUid;
 }
 export default function HousePackageTool({ itemStepUid }: Props) {
-    const ctx = useCreateContext(itemStepUid);
+    return (
+        <HptContextProvider args={[itemStepUid]}>
+            <Content />
+        </HptContextProvider>
+    );
+}
+function Content() {
+    const ctx = useHpt();
 
     return (
         <div className="">
-            <Context.Provider value={ctx}>
-                <Tabs
-                    onValueChange={(e) => {
-                        ctx.ctx.tabChanged(e);
-                        // ctx.setTab(e);
-                    }}
-                    value={ctx.ctx.tabUid}
-                >
-                    <TabsList className="bg-transparent">
-                        {ctx.doors?.map((door) => (
-                            <TabsTrigger
-                                asChild
-                                key={door.uid}
-                                value={door.uid}
-                                className="bg-white p-0"
-                            >
-                                <div className="">
-                                    <Button
-                                        size="xs"
-                                        className={cn(
-                                            "border-b-2 border-b-transparent",
-                                            ctx.ctx.tabUid == door.uid &&
-                                                "rounded-b-none border-muted-foreground",
-                                        )}
-                                        variant={
-                                            ctx.ctx.tabUid == door.uid
-                                                ? "secondary"
-                                                : "ghost"
-                                        }
-                                    >
-                                        <TextWithTooltip
-                                            className="max-w-[260px]"
-                                            text={door.title}
-                                        />
-                                    </Button>
-                                    <div
-                                        className={cn(
-                                            // ctx.ctx.tabUid != door.uid &&
-                                            "hidden",
-                                        )}
-                                    >
-                                        <Menu>
-                                            <Menu.Item Icon={Repeat}>
-                                                Swap Door
-                                            </Menu.Item>
-                                        </Menu>
-                                    </div>
+            <Tabs
+                onValueChange={(e) => {
+                    ctx.hpt.tabChanged(e);
+                    // ctx.setTab(e);
+                }}
+                value={ctx.hpt.tabUid}
+            >
+                <TabsList className="bg-transparent">
+                    {ctx.doors?.map((door) => (
+                        <TabsTrigger
+                            asChild
+                            key={door.uid}
+                            value={door.uid}
+                            className="bg-white p-0"
+                        >
+                            <div className="">
+                                <Button
+                                    size="xs"
+                                    className={cn(
+                                        "border-b-2 border-b-transparent",
+                                        ctx.hpt.tabUid == door.uid &&
+                                            "rounded-b-none border-muted-foreground",
+                                    )}
+                                    variant={
+                                        ctx.hpt.tabUid == door.uid
+                                            ? "secondary"
+                                            : "ghost"
+                                    }
+                                >
+                                    <TextWithTooltip
+                                        className="max-w-[260px]"
+                                        text={door.title}
+                                    />
+                                </Button>
+                                <div
+                                    className={cn(
+                                        // ctx.hpt.tabUid != door.uid &&
+                                        "hidden",
+                                    )}
+                                >
+                                    <Menu>
+                                        <Menu.Item Icon={Repeat}>
+                                            Swap Door
+                                        </Menu.Item>
+                                    </Menu>
                                 </div>
-                            </TabsTrigger>
-                        ))}
-                    </TabsList>
-                    {ctx.doors?.map((door, i) => (
-                        <TabsContent key={door.uid} value={door.uid}>
-                            <DoorSizeTable door={door} sn={i + 1} />
-                        </TabsContent>
+                            </div>
+                        </TabsTrigger>
                     ))}
-                </Tabs>
-            </Context.Provider>
+                </TabsList>
+                {ctx.doors?.map((door, i) => (
+                    <TabsContent key={door.uid} value={door.uid}>
+                        <DoorSizeTable door={door} sn={i + 1} />
+                    </TabsContent>
+                ))}
+            </Tabs>
         </div>
     );
 }
@@ -107,8 +121,8 @@ interface DoorSizeTable {
     sn;
 }
 function DoorSizeTable({ door }: DoorSizeTable) {
-    const ctx = useCtx();
-    const itemType = ctx?.ctx?.getItemForm()?.groupItem?.itemType;
+    const ctx = useHpt();
+    const itemType = ctx?.hpt?.getItemForm()?.groupItem?.itemType;
     const isSlab = itemType === "Door Slabs Only";
     return (
         <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-4">
@@ -148,7 +162,7 @@ function DoorSizeTable({ door }: DoorSizeTable) {
                     </TableHeader>
                     <TableBody>
                         {door.sizeList.map((sl, i) => (
-                            <DoorSizeRow sn={i + 1} size={sl} key={i} />
+                            <DoorSizeRow sn={i + 1} lineUid={sl.path} key={i} />
                         ))}
                     </TableBody>
                     <TableFooter className="bg-accent">
@@ -165,7 +179,7 @@ function DoorSizeTable({ door }: DoorSizeTable) {
                                     {door.sizeList.map((sl) => (
                                         <Menu.Item
                                             onClick={() => {
-                                                ctx.ctx.addHeight(sl);
+                                                ctx.hpt.addHeight(sl);
                                             }}
                                             key={sl.path}
                                             disabled={sl.selected}
@@ -205,49 +219,38 @@ function DoorSizeTable({ door }: DoorSizeTable) {
         </div>
     );
 }
-function DoorSizeRow({ size, sn }: { size; sn }) {
-    const lineUid = size.path;
-    const ctx = useCtx();
-    const sizeForm = ctx.itemForm?.groupItem.form[size.path];
-    const itemType = ctx?.ctx?.getItemForm()?.groupItem?.itemType;
-    const isSlab = itemType === "Door Slabs Only";
-    const valueChanged = () => {
-        ctx.ctx.updateGroupedCost();
-        ctx.ctx.calculateTotalPrice();
-    };
-    const unitLabor = ctx.ctx.dotGetGroupItemFormValue(
-        lineUid,
-        "pricing.unitLabor",
+function DoorSizeRow({ lineUid, sn }: { lineUid; sn }) {
+    return (
+        <HptLineContextProvider
+            args={[
+                {
+                    lineUid,
+                },
+            ]}
+        >
+            <DoorSizeRowContent />
+        </HptLineContextProvider>
     );
-    const salesId = ctx?.ctx?.zus?.metaData?.id;
-    const itemId = ctx.itemForm?.id;
-    const controlUid = doorItemControlUid(sizeForm?.doorId, size.title);
-    const __noteTagFilter =
-        salesId && itemId && sizeForm?.doorId
-            ? [
-                  noteTagFilter("itemControlUID", controlUid),
-                  noteTagFilter("salesItemId", itemId),
-                  noteTagFilter("salesId", salesId),
-              ]
-            : null;
-    const [showNote, setShowNote] = useState(false);
+}
+function DoorSizeRowContent() {
+    const ctx = useHpt();
+    const line = useHptLine();
+    const { lineUid, sizeForm, size, sn, valueChanged } = line;
+    const { isSlab, showNote, setShowNote } = ctx;
+
     if (!sizeForm?.selected) return null;
-    const colSpan =
-        6 +
-        (isSlab ? 1 : 0) +
-        (ctx.config.hasSwing ? 1 : 0) +
-        (ctx.config.noHandle ? 1 : 2);
+
     return (
         <>
             <TableRow className={cn(!sizeForm?.selected && "hidden")}>
                 <TableCell className="font-mono">{sn}.</TableCell>
                 <TableCell className="font-mono text-sm font-semibold">
-                    {size.title}
+                    {size.size}
                 </TableCell>
                 {!isSlab || (
                     <TableCell>
                         <LineSwitch
-                            cls={ctx.ctx}
+                            cls={ctx.hpt}
                             name="prodOverride.production"
                             lineUid={lineUid}
                         />
@@ -256,7 +259,7 @@ function DoorSizeRow({ size, sn }: { size; sn }) {
                 {ctx.config.hasSwing && (
                     <TableCell>
                         <LineInput
-                            cls={ctx.ctx}
+                            cls={ctx.hpt}
                             name="swing"
                             lineUid={lineUid}
                         />
@@ -265,7 +268,7 @@ function DoorSizeRow({ size, sn }: { size; sn }) {
                 {ctx.config.noHandle ? (
                     <TableCell>
                         <LineInput
-                            cls={ctx.ctx}
+                            cls={ctx.hpt}
                             name="qty.total"
                             lineUid={lineUid}
                             className="w-16 text-center"
@@ -277,7 +280,7 @@ function DoorSizeRow({ size, sn }: { size; sn }) {
                     <>
                         <TableCell className="">
                             <LineInput
-                                cls={ctx.ctx}
+                                cls={ctx.hpt}
                                 name="qty.lh"
                                 lineUid={lineUid}
                                 type="number"
@@ -286,7 +289,7 @@ function DoorSizeRow({ size, sn }: { size; sn }) {
                         </TableCell>
                         <TableCell className="">
                             <LineInput
-                                cls={ctx.ctx}
+                                cls={ctx.hpt}
                                 name="qty.rh"
                                 lineUid={lineUid}
                                 type="number"
@@ -296,86 +299,10 @@ function DoorSizeRow({ size, sn }: { size; sn }) {
                     </>
                 )}
                 <TableCell className="">
-                    <Menu
-                        noSize
-                        Icon={null}
-                        triggerSize="xs"
-                        label={<Money value={sizeForm?.pricing?.unitPrice} />}
-                    >
-                        <div className="min-w-[300px] p-2">
-                            <div>
-                                <Label>Price Summary</Label>
-                            </div>
-                            <dl>
-                                {ctx.pricedSteps?.map((step) => (
-                                    <DataLine
-                                        size="sm"
-                                        key={step.title}
-                                        label={step.title}
-                                        value={
-                                            <div className="flex items-center justify-end gap-4">
-                                                <span>{step.value}</span>
-                                                <MoneyBadge>
-                                                    {step.price}
-                                                </MoneyBadge>
-                                            </div>
-                                        }
-                                    />
-                                ))}
-                                <DataLine
-                                    size="sm"
-                                    label="Door"
-                                    value={
-                                        <div className="flex items-center justify-end gap-4">
-                                            <span>{`${size.title}`}</span>
-                                            <MoneyBadge>
-                                                {
-                                                    sizeForm?.pricing?.itemPrice
-                                                        ?.salesPrice
-                                                }
-                                            </MoneyBadge>
-                                        </div>
-                                    }
-                                />
-                                <DataLine
-                                    size="sm"
-                                    label="Addon Price"
-                                    value={
-                                        <LineInput
-                                            className="w-28"
-                                            cls={ctx.ctx}
-                                            name="pricing.addon"
-                                            lineUid={lineUid}
-                                            type="number"
-                                            valueChanged={valueChanged}
-                                        />
-                                    }
-                                />
-                                <DataLine
-                                    size="sm"
-                                    label="Custom Price"
-                                    value={
-                                        <LineInput
-                                            className="w-28"
-                                            cls={ctx.ctx}
-                                            name="pricing.customPrice"
-                                            lineUid={lineUid}
-                                            type="number"
-                                            valueChanged={valueChanged}
-                                        />
-                                    }
-                                />
-                            </dl>
-                        </div>
-                    </Menu>
+                    <PriceEstimateCell />
                 </TableCell>
                 <TableCell>
-                    <WageInput
-                        value={unitLabor}
-                        valueChanged={valueChanged}
-                        cls={ctx.ctx}
-                        lineUid={lineUid}
-                    />
+                    <WageInput />
                 </TableCell>
                 <TableCell>
                     <AnimatedNumber
@@ -397,38 +324,16 @@ function DoorSizeRow({ size, sn }: { size; sn }) {
                         {showNote ? "Close Notes" : "Open Notes"}
                     </Button>
                     <ConfirmBtn
-                        disabled={ctx.ctx.selectCount == 1}
+                        disabled={ctx.hpt.selectCount == 1}
                         onClick={() => {
-                            ctx.ctx.removeGroupItem(size.path);
+                            ctx.hpt.removeGroupItem(size.path);
                         }}
                         trash
                         size="icon"
                     />
                 </TableCell>
             </TableRow>
-            {!showNote || (
-                <TableRow className="hover:bg-white">
-                    <TableCell colSpan={colSpan} className="">
-                        {__noteTagFilter ? (
-                            <Note
-                                admin
-                                subject={"Production Note"}
-                                headline=""
-                                statusFilters={["public"]}
-                                typeFilters={["production", "general"]}
-                                tagFilters={__noteTagFilter}
-                            />
-                        ) : (
-                            <div className="flex text-center font-mono p-2 items-center text-red-600">
-                                <span>
-                                    To access item note, you need to first save
-                                    your invoice
-                                </span>
-                            </div>
-                        )}
-                    </TableCell>
-                </TableRow>
-            )}
+            <HptNote />
         </>
     );
 }

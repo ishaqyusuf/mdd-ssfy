@@ -1,17 +1,7 @@
 "use client";
 
-import {
-    BadgeCheck,
-    Bell,
-    ChevronsUpDown,
-    CreditCard,
-    Dot,
-    LogOut,
-    PanelLeft,
-    Sparkles,
-} from "lucide-react";
+import { Dot, PanelLeft } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -28,9 +18,8 @@ import {
 } from "@gnd/ui/sidebar";
 import { useSidebar, useSidebarState } from "./context";
 import { getInitials } from "@/utils/format";
-import Link from "next/link";
-import { cn } from "@gnd/ui/cn";
 import { setSideMenuMode } from "@/actions/cookies/sidemenu";
+import { cn } from "@gnd/ui/cn";
 
 export function SidebarControl({}: {}) {
     const { isMobile } = useSidebar();

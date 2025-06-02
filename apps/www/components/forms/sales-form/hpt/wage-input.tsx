@@ -6,11 +6,21 @@ import { laborRate } from "@/utils/sales-utils";
 import { Button } from "@gnd/ui/button";
 import { Label } from "@gnd/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
+import { useHpt, useHptLine } from "../context";
 
-export function WageInput({ lineUid, value, cls, valueChanged }) {
+export function WageInput({}) {
     const zus = useFormDataStore();
+
     const laborConfig = zus?.metaData?.salesLaborConfig;
-    const __value = laborRate(laborConfig?.rate, value);
+    const line = useHptLine();
+    const ctx = useHpt();
+    const { hpt: cls } = ctx;
+    const { lineUid } = line;
+    const unitLabor = cls.dotGetGroupItemFormValue(
+        lineUid,
+        "pricing.unitLabor",
+    );
+    const __value = laborRate(laborConfig?.rate, unitLabor);
     return (
         <Popover>
             <PopoverTrigger asChild>
@@ -37,7 +47,7 @@ export function WageInput({ lineUid, value, cls, valueChanged }) {
                                 cls={cls}
                                 type="number"
                                 allowZero
-                                valueChanged={valueChanged}
+                                valueChanged={line.valueChanged}
                             />
                         </div>
                     </div>
