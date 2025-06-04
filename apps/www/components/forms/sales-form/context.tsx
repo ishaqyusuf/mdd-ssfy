@@ -1,5 +1,6 @@
 import {
     useFormDataStore,
+    ZusComponent,
     ZusGroupItemFormPath,
 } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { HptClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/hpt-class";
@@ -7,15 +8,21 @@ import {
     ComponentHelperClass,
     StepHelperClass,
 } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
+import { DykeDoorType } from "@/app/(clean-code)/(sales)/types";
 import { composeDoor } from "@/lib/sales/compose-door";
+import { generateRandomString, sum } from "@/lib/utils";
 import { createContextFactory } from "@/utils/context-factory";
 import { useEffect, useMemo, useState } from "react";
 import { FieldPath, FieldPathValue } from "react-hook-form";
 import { useAsyncMemo } from "use-async-memo";
+import { useTakeoffItem } from "./take-off/context";
+import { MouldingClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/moulding-class";
+import { GroupFormClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/group-form-class";
+import { ServiceClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/service-class";
 
 export type HptContext = ReturnType<typeof useHpt>;
 export const { Provider: HptContextProvider, useContext: useHpt } =
-    createContextFactory((itemStepUid) => {
+    createContextFactory((itemStepUid?) => {
         const zus = useFormDataStore();
         const [itemUid] = itemStepUid.split("-");
         const itemForm = zus.kvFormItem?.[itemUid];
@@ -123,7 +130,6 @@ export const { Provider: HptLineContextProvider, useContext: useHptLine } =
             pathName: K,
             value: FieldPathValue<ZusGroupItemFormPath, K>,
         ) => {
-            console.log(ctx.itemUid);
             ctx.zus.dotUpdate(
                 `kvFormItem.${ctx.itemUid}.groupItem.form.${lineUid}.${pathName}`,
                 value as any,
@@ -137,5 +143,121 @@ export const { Provider: HptLineContextProvider, useContext: useHptLine } =
             sizeForm,
             lineUid,
             valueChanged,
+        };
+    });
+interface GroupedItemContextProps {
+    itemType?: DykeDoorType;
+    stepSequence?: string[];
+}
+export const { Provider: GroupedItemContext, useContext: useGroupedItem } =
+    createContextFactory((props: GroupedItemContextProps) => {
+        const [lineUid, mouldingUid] = [...props?.stepSequence]?.reverse();
+        const item = useTakeoffItem();
+        const groupClass = new GroupFormClass(mouldingUid);
+        function addService() {
+            const s = new ServiceClass(mouldingUid);
+            s.addServiceLine();
+        }
+        function addMoulding(selectData) {
+            const data = selectData?.data as ZusComponent;
+
+            const component = new ComponentHelperClass(
+                mouldingUid,
+                data.uid,
+                data,
+            );
+            const groupItem = component.getItemForm()?.groupItem;
+            const formUid = generateRandomString();
+            groupItem.form[formUid] = {
+                stepProductId: {
+                    id: data.id,
+                },
+                mouldingProductId: data.productId,
+                selected: true,
+                meta: {
+                    description: data.title,
+                    taxxable: false,
+                    produceable: false,
+                },
+                qty: {
+                    total: 1,
+                },
+                pricing: {
+                    addon: "",
+                    customPrice: "",
+                    unitPrice: sum([
+                        groupItem?.pricing?.components?.salesPrice,
+                        data?.salesPrice,
+                    ]),
+                    itemPrice: {
+                        salesPrice: data?.salesPrice,
+                        basePrice: data?.basePrice,
+                    },
+                },
+                swing: "",
+            };
+            groupItem.itemIds.push(formUid);
+            component.dotUpdateItemForm("groupItem", groupItem);
+            component?.updateGroupedCost();
+            component?.calculateTotalPrice();
+        }
+        const setValue = <K extends FieldPath<ZusGroupItemFormPath>>(
+            pathName: K,
+            lineUid,
+            value: FieldPathValue<ZusGroupItemFormPath, K>,
+        ) => {
+            item.zus.dotUpdate(
+                `kvFormItem.${item.itemUid}.groupItem.form.${lineUid}.${pathName}`,
+                value as any,
+            );
+        };
+        const mouldings = useAsyncMemo(async () => {
+            if (props.itemType != "Moulding") return [];
+            const stepClass = new StepHelperClass(mouldingUid);
+            const components = await stepClass.fetchStepComponents();
+            const filtered = components?.filter((a) => a._metaData.visible);
+            // console.log(props?.stepSequence);
+            // console.log({ filtered, mouldingUid });
+            return filtered;
+        }, [props.itemType, mouldingUid]);
+        const valueChanged = () => {
+            groupClass.updateGroupedCost();
+            groupClass.calculateTotalPrice();
+        };
+        const mouldingItemStepUid =
+            props.itemType == "Moulding" ? mouldingUid : null;
+        return {
+            addService,
+            setValue,
+            valueChanged,
+            mouldings,
+            addMoulding,
+            itemType: props.itemType,
+            mouldingItemStepUid,
+            groupClass,
+            removeItem(pathUid) {
+                const stepClass = new StepHelperClass(mouldingUid);
+                const itemIds = item.itemForm?.groupItem?.itemIds;
+                stepClass.dotUpdateItemForm(
+                    `groupItem.itemIds`,
+                    itemIds.filter((a) => a !== pathUid),
+                );
+                item.zus.removeKey(
+                    `kvFormItem.${item.itemUid}.groupItem.form.${pathUid}`,
+                );
+                stepClass.calculateTotalPrice();
+            },
+        };
+    });
+export const { Provider: LineItemProvider, useContext: useLineItem } =
+    createContextFactory(({ index, uid }) => {
+        const itemCtx = useTakeoffItem();
+        const groupItem = itemCtx?.itemForm?.groupItem;
+        const lineForm = groupItem?.form?.[uid];
+
+        return {
+            index,
+            lineUid: uid,
+            lineForm,
         };
     });

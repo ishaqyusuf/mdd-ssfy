@@ -279,6 +279,7 @@ export class StepHelperClass extends SettingsClass {
     public async fetchStepComponents(reload = false) {
         const stepData = this.getStepForm();
         const ls = this.getStepComponents;
+        console.log({ stepData });
 
         const components =
             ls?.length && !reload
@@ -622,10 +623,32 @@ export class StepHelperClass extends SettingsClass {
 
     public resetGroupItem(itemType) {
         const itemForm = this.getItemForm();
-        const _itemType = itemForm.groupItem?.itemType;
+        let _itemType = itemForm.groupItem?.itemType;
         if (_itemType != itemType) {
+            _itemType = itemType;
+            if (_itemType == "Shelf Items") {
+                if (!itemForm.shelfItems)
+                    itemForm.shelfItems = {
+                        lineUids: [],
+                        lines: {},
+                        subTotal: 0,
+                        salesItemId: null,
+                    };
+                itemForm.groupItem = {
+                    itemType: _itemType,
+                } as any;
+                return;
+            }
             const basePrice = "" as any;
             const salesPrice = "" as any;
+            const type =
+                _itemType == "Moulding"
+                    ? "MOULDING"
+                    : _itemType == "Services"
+                      ? "SERVICE"
+                      : (_itemType as any) == "Shelf Items"
+                        ? "SHELF"
+                        : "HPT";
             itemForm.groupItem = {
                 pricing: {
                     components: {
@@ -636,6 +659,7 @@ export class StepHelperClass extends SettingsClass {
                 },
                 itemIds: [],
                 itemType,
+                type,
                 form: {},
                 qty: {
                     lh: 0,
@@ -645,6 +669,7 @@ export class StepHelperClass extends SettingsClass {
             };
         }
         this.saveItemForm(itemForm);
+        // if(_itemType=='Shelf Items')
     }
 }
 export class ComponentHelperClass extends StepHelperClass {

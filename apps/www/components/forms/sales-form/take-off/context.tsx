@@ -46,6 +46,7 @@ export const { Provider: TakeoffItemProvider, useContext: useTakeoffItem } =
             return resp;
         }, [doorStepProductId, section?.img]);
         const doorUid = itemForm?.groupItem?.doorStepProductUid;
+
         // const sizeList
         // itemForm.groupItem
         return {

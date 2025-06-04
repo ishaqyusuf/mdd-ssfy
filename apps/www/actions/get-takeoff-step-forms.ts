@@ -87,21 +87,27 @@ export async function getTakeOffStepForms({ configs, itemUid }: Props) {
         ...a,
         meta: a.meta as StepComponentMeta,
     }));
-    return configs.map((c) => {
-        const step = steps.find((s) => s.uid == c.stepUid || s.id == c.stepId);
-        const component = components.find(
-            (s) => s.uid == c.componentUid || s.id == c.componentId,
-        );
-        return {
-            stepFormUid: `${itemUid}-${step.uid}`,
-            stepForm: {
-                componentUid: component?.uid,
-                componentId: component?.id,
-                title: step?.title,
-                value: component?.name || component?.product?.title,
-                meta: step.meta,
-                stepId: step.id,
-            } satisfies SalesFormFields["kvStepForm"][number],
-        };
-    });
+    console.log({ components, configs });
+
+    return configs
+        .map((c) => {
+            const step = steps.find(
+                (s) => s.uid == c.stepUid || s.id == c.stepId,
+            );
+            const component = components.find(
+                (s) => s.uid == c.componentUid || s.id == c.componentId,
+            );
+            return {
+                stepFormUid: `${itemUid}-${step?.uid}`,
+                stepForm: {
+                    componentUid: component?.uid,
+                    componentId: component?.id,
+                    title: step?.title,
+                    value: component?.name || component?.product?.title,
+                    meta: step?.meta,
+                    stepId: step?.id,
+                } satisfies SalesFormFields["kvStepForm"][number],
+            };
+        })
+        ?.filter((a) => a.stepForm?.title);
 }

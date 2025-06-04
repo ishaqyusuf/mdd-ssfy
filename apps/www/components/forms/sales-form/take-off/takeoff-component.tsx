@@ -16,16 +16,37 @@ import { Switch } from "@gnd/ui/switch";
 import { ComponentImg } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/component-img";
 import NumberFlow from "@number-flow/react";
 import { updateComponentsPrice } from "@/lib/sales/update-components-price";
+import { ZusComponent } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 
 export function TakeOffComponent({ itemStepUid }) {
     const itemCtx = useTakeoffItem();
     const tCtx = useTakeoff();
     const stepForm = tCtx.zus.kvStepForm[`${itemStepUid}`];
     const [open, setOpen] = useState(false);
+
+    const components = useAsyncMemo(async () => {
+        const stepClass = new StepHelperClass(itemStepUid);
+        const components = await stepClass.fetchStepComponents();
+        return components?.filter((a) => a._metaData.visible);
+    }, [itemCtx.itemUid, itemStepUid]);
     if (stepForm?.title == "House Package Tool") return null;
     if (stepForm?.title == "Door") return null;
     if (stepForm?.title == "Height") return null;
+    if (stepForm?.title == "Moulding") return null;
+    if (stepForm?.title == "Line Item") return null;
+    if (stepForm?.title == "Shelf Items") return null;
+    if (!stepForm?.title) return null;
     // TODO: when option changes, check all other components to update price.
+    function selectComponent(data) {
+        const comp = new ComponentHelperClass(
+            itemStepUid,
+            data.data.uid,
+            data.data,
+        );
+        comp.selectComponent(true);
+        setOpen(false);
+        updateComponentsPrice(comp, true);
+    }
     return (
         <div>
             <Popover open={open} onOpenChange={setOpen}>
@@ -71,21 +92,24 @@ export function TakeOffComponent({ itemStepUid }) {
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="p-0 w-auto">
-                    <Components setOpen={setOpen} itemStepUid={itemStepUid} />
+                    <Components
+                        onSelect={selectComponent}
+                        components={components}
+                    />
                 </PopoverContent>
             </Popover>
         </div>
     );
 }
-function Components({ itemStepUid, setOpen }) {
+export function Components({
+    components,
+    onSelect,
+}: {
+    onSelect?;
+    components?: ZusComponent[];
+}) {
     const item = useTakeoffItem();
-    const data = useAsyncMemo(async () => {
-        const stepClass = new StepHelperClass(itemStepUid);
-        const components = await stepClass.fetchStepComponents();
-        return {
-            components: components?.filter((a) => a._metaData.visible),
-        };
-    }, [item.itemUid, itemStepUid]);
+
     const [grid, setGrid] = useState(false);
     return (
         <div
@@ -97,11 +121,11 @@ function Components({ itemStepUid, setOpen }) {
             <DataSkeletonProvider
                 value={
                     {
-                        loading: !data?.components,
+                        loading: !components,
                     } as any
                 }
             >
-                {!data?.components ? (
+                {!components ? (
                     <></>
                 ) : (
                     <div className="">
@@ -127,18 +151,9 @@ function Components({ itemStepUid, setOpen }) {
                                 grid &&
                                     "grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
                             )}
-                            onSelect={(data) => {
-                                const comp = new ComponentHelperClass(
-                                    itemStepUid,
-                                    data.data.uid,
-                                    data.data,
-                                );
-                                comp.selectComponent(true);
-                                setOpen(false);
-                                updateComponentsPrice(comp, true);
-                            }}
+                            onSelect={onSelect}
                             headless
-                            items={data?.components?.map((c) => ({
+                            items={components?.map((c) => ({
                                 label: c.title,
                                 id: c.id?.toString(),
                                 data: c,
@@ -153,7 +168,8 @@ function Components({ itemStepUid, setOpen }) {
                                                 src={item?.item?.data?.img}
                                             />
                                         </div>
-                                        <Label className="text-muted-foreground uppercase text-xs font-mono whitespace-nowrap">
+
+                                        <Label className="text-muted-foreground uppercase text-xs font-mono">
                                             {item?.item?.label}
                                         </Label>
                                     </div>

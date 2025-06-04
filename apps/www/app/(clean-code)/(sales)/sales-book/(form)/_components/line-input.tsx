@@ -7,12 +7,14 @@ import { Switch } from "@gnd/ui/switch";
 
 import { ZusGroupItemFormPath } from "../_common/_stores/form-data-store";
 import { GroupFormClass } from "../_utils/helpers/zus/group-form-class";
+import { NumericFormatProps } from "react-number-format";
 
 interface LineInputProps {
     lineUid;
     name: FieldPath<ZusGroupItemFormPath>;
     cls: GroupFormClass;
     valueChanged?;
+    numberProps?: NumericFormatProps;
     allowZero?: boolean;
 }
 export function LineInput({
@@ -21,6 +23,7 @@ export function LineInput({
     cls,
     valueChanged,
     allowZero,
+    numberProps = {},
     ...props
 }: LineInputProps & InputProps) {
     const value = cls.dotGetGroupItemFormValue(lineUid, name);
@@ -38,6 +41,7 @@ export function LineInput({
                     cls.dotUpdateGroupItemFormPath(lineUid, name, value);
                     valueChanged?.(value);
                 }}
+                {...numberProps}
             />
         );
     return (

@@ -9,17 +9,23 @@ export function DoorDisplay({}) {
 
     const Component = <ComponentImg aspectRatio={0.9} src={item.door?.img} />;
     const [open, setOpen] = useState(false);
+    if (item.section?.title?.toLocaleLowerCase() == "services") return null;
     if (!item.section) return Component;
     return (
-        <div className="flex items-center h-full">
-            <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger className="flex-1 hover:shadow hover:rounded-lg hover:border overflow-hidden relative">
-                    {Component}
-                </PopoverTrigger>
-                <PopoverContent align="start" className="w-auto p-0">
-                    <DoorSelect setOpen={setOpen} />
-                </PopoverContent>
-            </Popover>
+        <div className="w-24">
+            <div className="size-24 2xl:size-32 my-4">
+                <div className="flex items-center h-full">
+                    <Popover open={open} onOpenChange={setOpen}>
+                        <PopoverTrigger className="flex-1 hover:shadow hover:rounded-lg hover:border overflow-hidden relative">
+                            {Component}
+                        </PopoverTrigger>
+                        <PopoverContent align="start" className="w-auto p-0">
+                            <DoorSelect setOpen={setOpen} />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+            </div>
+            <DoorTitle />
         </div>
     );
 }

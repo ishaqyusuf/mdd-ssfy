@@ -440,7 +440,7 @@ export interface SalesFormItem {
             tabUid?: string;
         };
         itemType: DykeDoorType;
-        type?: "MOULDING" | "HPT" | "SERVICE";
+        type?: "MOULDING" | "HPT" | "SERVICE" | "SHELF";
         hptId?;
         doorStepProductId?;
         doorStepProductUid?;

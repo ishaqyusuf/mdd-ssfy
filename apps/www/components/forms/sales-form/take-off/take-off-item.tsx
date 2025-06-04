@@ -4,9 +4,10 @@ import { TakeOffComponent } from "./takeoff-component";
 import { ItemMenu } from "./item-menu";
 import { TemplateForm } from "./template-form";
 import { SectionSelector } from "./section-selector";
-import { DoorDisplay, DoorTitle } from "./door-display";
+import { DoorDisplay } from "./door-display";
 import { HptForm } from "./hpt-form";
 import { MouldingAndService } from "../moulding-and-service";
+import { ShelfSection } from "../shelf";
 
 interface Props {
     uid: string;
@@ -42,21 +43,20 @@ function TakeOffItemContent({}) {
                     <ItemMenu />
                 </div>
                 <div className="flex px-4 pb-4">
-                    <div className="w-24">
-                        <div className="size-24 2xl:size-32 my-4">
-                            <DoorDisplay />
+                    <DoorDisplay />
+
+                    {!ctx?.section?.title || (
+                        <div className="flex-1 justify-between flex flex-col">
+                            <TemplateForm />
+                            <ItemPills />
+                            {!ctx.doorUid || <HptForm />}
+                            {ctx?.itemType == "MOULDING" ||
+                            ctx.itemType == "SERVICE" ? (
+                                <MouldingAndService />
+                            ) : null}
+                            {ctx?.itemType != "SHELF" || <ShelfSection />}
                         </div>
-                        <DoorTitle />
-                    </div>
-                    <div className="flex-1 justify-between flex flex-col">
-                        <TemplateForm />
-                        <ItemPills />
-                        {!ctx.doorUid || <HptForm />}
-                        {ctx?.itemType == "MOULDING" ||
-                        ctx.itemType == "SERVICE" ? (
-                            <MouldingAndService />
-                        ) : null}
-                    </div>
+                    )}
                 </div>
             </div>
         </div>

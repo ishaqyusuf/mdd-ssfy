@@ -34,8 +34,8 @@ export async function getTakeOffContext() {
         .filter((a) =>
             [
                 // "moulding",
-                "shelf items",
-                "services",
+                // "shelf items",
+                // "services",
             ].every((t) => a.title?.toLocaleLowerCase() != t),
         );
     return {
