@@ -40,6 +40,7 @@ export function ServiceContent({}) {
                 <TableBody>
                     {groupItem?.itemIds?.map((itemId, sn) => (
                         <LineItemProvider
+                            key={sn}
                             args={[
                                 {
                                     uid: itemId,
