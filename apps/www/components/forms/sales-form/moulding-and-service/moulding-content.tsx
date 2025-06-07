@@ -42,6 +42,7 @@ export function MouldingContent({}) {
                 <TableBody>
                     {groupItem?.itemIds?.map((itemId, sn) => (
                         <LineItemProvider
+                            key={sn}
                             args={[
                                 {
                                     uid: itemId,
@@ -49,7 +50,7 @@ export function MouldingContent({}) {
                                 },
                             ]}
                         >
-                            <TableRow key={itemId}>
+                            <TableRow>
                                 <TableCell className="font-mono">
                                     {sn + 1}.
                                 </TableCell>
