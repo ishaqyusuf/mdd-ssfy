@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetContentProps } from "@gnd/ui/sheet";
 
 import Portal from "../_v1/portal";
 import { ScrollArea } from "../ui/scroll-area";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const sheetContentVariant = cva(
     "flex flex-col h-screen w-full overflow-x-hidden ",
@@ -80,13 +81,18 @@ export function CustomSheetBase({
         </Sheet>
     );
 }
-export function CustomSheetContentPortal({ children, sheetId = null }) {
+export function CustomSheetContentPortal({ children }) {
     // [`customSheetContent`,sheetId]
     const sheet = useSheet();
+    const mobile = useIsMobile();
+    const nodeId = mobile ? sheet.scrollContentId : sheet.nodeId;
+
     return (
-        <Portal nodeId={sheet.nodeId} noDelay>
-            {children}
-        </Portal>
+        <>
+            <Portal nodeId={nodeId} noDelay>
+                {children}
+            </Portal>
+        </>
     );
 }
 export function CustomSheetContent({ children = null, className = "" }) {
