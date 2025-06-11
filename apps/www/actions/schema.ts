@@ -133,6 +133,7 @@ export const createPaymentSchema = z
         accountNo: z.string().optional(),
         paymentMethod: z.enum(paymentMethods),
         amount: z.number(),
+        _amount: z.number(),
         checkNo: z.string().optional(),
         deviceId: z.string().optional(),
         deviceName: z.string().optional(),
@@ -147,6 +148,13 @@ export const createPaymentSchema = z
             .nullable(),
     })
     .superRefine((data, ctx) => {
+        if (data?.amount > data?._amount) {
+            ctx.addIssue({
+                path: ["amount"],
+                message: "Amount cannot be higher than sales due",
+                code: "custom",
+            });
+        }
         if (data.paymentMethod === "check" && !data.checkNo) {
             ctx.addIssue({
                 path: ["checkNo"],

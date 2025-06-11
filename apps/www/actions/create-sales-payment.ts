@@ -63,7 +63,7 @@ async function applySalesPayment(props: z.infer<typeof createPaymentSchema>) {
                 let payAmount =
                     balance > order.amountDue ? order.amountDue : balance;
                 balance -= payAmount;
-                const __tx = await prisma.customerTransaction.create({
+                const __tx = await tx.customerTransaction.create({
                     data: {
                         amount: payAmount,
                         wallet: {
@@ -123,7 +123,6 @@ async function applySalesPayment(props: z.infer<typeof createPaymentSchema>) {
                 });
                 const [sp] = __tx.salesPayments;
                 await updateSalesDueAmount(orderId);
-
                 await createPayrollAction({
                     orderId: sp.order.id,
                     userId: sp.order.salesRepId,

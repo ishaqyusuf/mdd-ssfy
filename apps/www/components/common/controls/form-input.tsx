@@ -129,7 +129,7 @@ export default function FormInput<
                                                                     e.target
                                                                         .value,
                                                                 )
-                                                              : null,
+                                                              : "",
                                                       )
                                                     : field.onChange(null);
                                             else field.onChange(e);

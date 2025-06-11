@@ -44,7 +44,12 @@ export function usePayPortal() {
             data?.pendingSales?.filter((a) => selections?.includes(a.id)),
             "amountDue",
         );
-        form.setValue("amount", formatMoney(amountDue));
+        form.setValue("amount", formatMoney(amountDue), {
+            shouldValidate: true,
+        });
+        form.setValue("_amount", formatMoney(amountDue), {
+            shouldValidate: true,
+        });
     }, [selections, data]);
     const form = useForm<z.infer<typeof createPaymentSchema>>({
         resolver: zodResolver(createPaymentSchema),
@@ -54,6 +59,7 @@ export function usePayPortal() {
             accountNo: query?.params?.accountNo,
             salesIds: query?.params?.["pay-selections"],
             amount: undefined,
+            _amount: undefined,
             // squarePaymentId: undefined,
             // paymentMethod: tx.paymentMethod,
             // amount: tx.totalPay,
@@ -114,6 +120,8 @@ export function usePayPortal() {
             }
         },
         onError(error) {
+            console.log(error);
+
             staticPaymentData.description = error.error?.serverError;
             toast.error("", toastDetail("failed"));
         },
