@@ -16,6 +16,7 @@ import { SalesOverviewProvider, useSaleOverview } from "./context";
 import { DispatchTab } from "./dispatch-tab";
 import { GeneralTab } from "./general-tab-1";
 import { ProductionTab } from "./production-tab";
+import { TransactionsTab } from "../customer-overview-sheet/transactions-tab";
 
 export default function SalesOverviewSheet() {
     const query = useSalesOverviewQuery();
@@ -85,6 +86,9 @@ function Content() {
                                     <TabsTrigger value="production">
                                         Productions
                                     </TabsTrigger>
+                                    <TabsTrigger value="transactions">
+                                        Transactions
+                                    </TabsTrigger>
                                     {/* <TabsTrigger value="payment">
                                         Payment
                                     </TabsTrigger> */}
@@ -123,6 +127,9 @@ function Content() {
                             </TabsContent>
                             <TabsContent value="production">
                                 <ProductionTab />
+                            </TabsContent>
+                            <TabsContent value="transactions">
+                                <TransactionsTab salesId={data?.orderId} />
                             </TabsContent>
                             <TabsContent value="dispatch">
                                 <DispatchTab />

@@ -29,6 +29,7 @@ import {
 import { TCell } from "../(clean-code)/data-table/table-cells";
 import { DataSkeleton } from "../data-skeleton";
 import { DeleteCustomerTxBtn } from "../delete-customer-transaction-btn";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 export function TransactionOverviewModal({}) {
     const ctx = useTransactionOverviewModal();
@@ -50,6 +51,7 @@ export function TransactionOverviewModal({}) {
             loader.error("Failed to update sales due amount.");
         }
     }
+    const salesOverview = useSalesOverviewQuery();
     return (
         <DataSkeletonProvider
             value={
@@ -81,7 +83,16 @@ export function TransactionOverviewModal({}) {
                                     2,
                                     {},
                                 )?.map((tx, i) => (
-                                    <TableRow key={i} className={cn("")}>
+                                    <TableRow
+                                        onClick={(e) => {
+                                            salesOverview.open2(
+                                                tx?.salesNo,
+                                                "sales",
+                                            );
+                                        }}
+                                        key={i}
+                                        className={cn("")}
+                                    >
                                         <TableCell>
                                             <DataSkeleton pok="date">
                                                 <TCell.Date>

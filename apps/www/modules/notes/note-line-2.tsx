@@ -19,7 +19,7 @@ const listVariant = cva(
             color: {
                 default: "bg-white border-gray-300",
                 green: "bg-green-300 border-green-300",
-                red: "bg-red-300 border-red-300",
+                red: "bg-red-200 border-red-600",
                 blue: "bg-blue-300 border-blue-300",
             },
         },
@@ -67,7 +67,6 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
     return (
         <div
             className={cn(
-                "",
                 listVariant({
                     color: _note.color as any,
                 }),

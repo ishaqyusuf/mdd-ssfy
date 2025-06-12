@@ -89,11 +89,18 @@ export function TransactionsTab({ accountNo, salesId }: Props) {
                                             </DataSkeleton>
                                         </TCell.Secondary>
                                     </TableCell>
-
                                     <TableCell className="font-mono">
                                         <DataSkeleton pok="textSm">
                                             <TCell.Status status={tx.status} />
                                         </DataSkeleton>
+                                    </TableCell>
+                                    <TableCell className="inline-flex justify-end">
+                                        <TCell.DeleteRow
+                                            data={tx}
+                                            action={(e) => {
+                                                console.log(tx);
+                                            }}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))}
