@@ -21,7 +21,7 @@ import { GetNotes, getNotesAction } from "./actions/get-notes-action";
 import { NoteTagStatus, NoteTagTypes } from "./constants";
 import { NoteProvider, useNoteContext } from "./context";
 import { NoteForm } from "./note-form";
-import { NoteLine } from "./note-line";
+import { NoteLine } from "./note-line-2";
 import { TagFilters } from "./utils";
 
 export interface NoteProps {
