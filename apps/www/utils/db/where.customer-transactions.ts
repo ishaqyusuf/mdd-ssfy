@@ -9,7 +9,12 @@ export function whereCustomerTx(query: SearchParamsType) {
         {
             OR: [
                 {
-                    status: "success" as any as SquarePaymentStatus,
+                    status: {
+                        in: [
+                            "success",
+                            "cancelled",
+                        ] as any as SquarePaymentStatus[],
+                    },
                     paymentMethod: {
                         not: null,
                     },

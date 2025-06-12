@@ -82,6 +82,7 @@ export const CUSTOM_IMG_ID = "ff8zkn817rjqv6ml2qdr";
 
 export const actionTicketTypes = [
     "sales-customer-transaction",
+    "sales-payment",
     "sales-labor-cost",
     "employee-role",
     "employee-profile",
@@ -93,5 +94,6 @@ export const actionTicketEvents = [
     "created",
     "edited",
     "restored",
+    "cancelled",
 ] as const;
 export const doorSwings = ["IN-SWING", "OUT-SWING", "NONE"];

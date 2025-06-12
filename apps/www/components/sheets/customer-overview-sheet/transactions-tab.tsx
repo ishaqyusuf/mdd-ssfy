@@ -1,14 +1,18 @@
+import { cancelSalesPaymentAction } from "@/actions/cancel-sales-payment";
 import { getSalesPaymentsAction } from "@/actions/get-sales-payment";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
+import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { EmptyState } from "@/components/empty-state";
 import {
     DataSkeletonProvider,
     useCreateDataSkeletonCtx,
 } from "@/hooks/use-data-skeleton";
+import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { cn } from "@/lib/utils";
 
 import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
 import {
     Table,
     TableBody,
@@ -17,6 +21,7 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
+import { useAction } from "next-safe-action/hooks";
 
 interface Props {
     accountNo?: string;
@@ -33,7 +38,26 @@ export function TransactionsTab({ accountNo, salesId }: Props) {
         autoLoad: true,
     });
     const data = skel?.data;
-
+    const toast = useLoadingToast();
+    const cancelTx = useAction(cancelSalesPaymentAction, {
+        onSuccess(args) {
+            toast.display({
+                title: "Cancelled",
+                duration: 2000,
+                variant: "destructive",
+            });
+            revalidateTable();
+            skel?.load();
+            // onDelete?.();
+        },
+        onExecute(args) {
+            toast.display({
+                title: "Unable to complete",
+                duration: 2000,
+                variant: "error",
+            });
+        },
+    });
     return (
         <EmptyState
             empty={data?.status && data?.transactions?.length == 0}
@@ -94,13 +118,28 @@ export function TransactionsTab({ accountNo, salesId }: Props) {
                                             <TCell.Status status={tx.status} />
                                         </DataSkeleton>
                                     </TableCell>
-                                    <TableCell className="inline-flex justify-end">
-                                        <TCell.DeleteRow
+                                    <TableCell className="inline-flex justify-end items-center">
+                                        <Button
+                                            size="xs"
+                                            variant="destructive"
+                                            onClick={(e) => {
+                                                cancelTx.execute({
+                                                    salesPaymentId: tx.id,
+                                                });
+                                            }}
+                                            disabled={
+                                                tx.status == "cancelled" ||
+                                                cancelTx.isExecuting
+                                            }
+                                        >
+                                            cancel
+                                        </Button>
+                                        {/* <TCell.DeleteRow
                                             data={tx}
                                             action={(e) => {
                                                 console.log(tx);
                                             }}
-                                        />
+                                        /> */}
                                     </TableCell>
                                 </TableRow>
                             ))}
