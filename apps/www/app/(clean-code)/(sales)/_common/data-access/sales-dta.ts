@@ -16,6 +16,7 @@ import { salesOverviewDto } from "./dto/sales-item-dto";
 import { salesOrderDto, salesQuoteDto } from "./dto/sales-list-dto";
 import { salesShippingDto } from "./dto/sales-shipping-dto";
 import { statMismatchDta } from "./sales-progress.dta";
+import { salesNotesCount } from "@/actions/sales-note-count";
 
 // import { unstable_noStore } from "next/cache";
 
@@ -32,6 +33,7 @@ export interface GetSalesListQuery extends PageBaseQuery {
 export type GetSalesQuotesDta = AsyncFnType<typeof getSalesQuotesDta>;
 export async function getSalesQuotesDta(query: SearchParamsType) {
     const resp = await getSalesListDta(query);
+
     return {
         ...resp,
         data: resp.data.map(salesQuoteDto),
@@ -58,10 +60,15 @@ export async function getSalesListDta(query: SearchParamsType) {
         include: SalesListInclude,
     });
     const pageInfo = await getPageInfo(query, where, prisma.salesOrders);
+    const notCounts = await salesNotesCount(data?.map((a) => a.id));
+
     return {
         pageCount: pageInfo.pageCount,
         pageInfo,
-        data,
+        data: data.map((data) => ({
+            ...data,
+            ...(notCounts[data.id.toString()] || {}),
+        })),
         meta: {
             totalRowCount: pageInfo.totalItems,
         },

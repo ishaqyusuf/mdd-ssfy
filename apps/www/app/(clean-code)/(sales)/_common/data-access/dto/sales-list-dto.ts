@@ -77,6 +77,7 @@ function commonListData(data: Item) {
           : `cust-${customerId}`;
     const salesStat = composeSalesStat(data.stat);
     return {
+        noteCount: data.noteCount,
         netTerm: data.paymentTerm,
         accountNo,
         dueDate: data.paymentDueDate,

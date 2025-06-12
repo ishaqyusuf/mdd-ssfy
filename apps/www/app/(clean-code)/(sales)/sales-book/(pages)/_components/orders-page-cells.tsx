@@ -11,6 +11,7 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 
 import { GetSalesOrdersDta } from "../../../_common/data-access/sales-dta";
+import { StickyNote } from "lucide-react";
 
 export interface ItemProps {
     item: GetSalesOrdersDta["data"][number];
@@ -29,8 +30,8 @@ function Date({ item }: ItemProps) {
 function Order({ item }: ItemProps) {
     return (
         <TCell>
-            <TCell.Secondary className="whitespace-nowrap  ">
-                {item.orderId}{" "}
+            <TCell.Secondary className="whitespace-nowrap  inline-flex items-center gap-1">
+                <span>{item.orderId}</span>{" "}
                 {item.orderId
                     ?.toLocaleUpperCase()
                     ?.endsWith(item?.salesRepInitial) || (
@@ -39,6 +40,12 @@ function Order({ item }: ItemProps) {
                             {item.salesRepInitial}
                         </Badge>
                     </span>
+                )}
+                {!item.noteCount || (
+                    <Badge className="p-1 h-5" variant="secondary">
+                        <StickyNote className="w-3 mr-1" />
+                        <span className="">{item.noteCount}</span>
+                    </Badge>
                 )}
             </TCell.Secondary>
             {/* <TCell.Secondary>{item.salesDate}</TCell.Secondary> */}

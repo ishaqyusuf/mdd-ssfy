@@ -101,6 +101,14 @@ export const SalesListInclude = {
     producer: true,
     pickup: true,
     extraCosts: true,
+    // itemControls:{
+    //     where: {
+    //         deletedAt: null
+    //     },
+    //     select: {
+
+    //     }
+    // },
     deliveries: {
         select: {
             id: true,
