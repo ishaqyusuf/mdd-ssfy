@@ -20,7 +20,7 @@ export function ProductionItemDetail({}) {
                         "prod-item-tab": e,
                     });
                 }}
-                defaultValue="details"
+                defaultValue="notes"
                 className=" w-full"
             >
                 <TabsList className="grid w-full grid-cols-3">

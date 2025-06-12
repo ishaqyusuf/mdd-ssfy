@@ -223,7 +223,7 @@ function SummaryTab({}) {
                                 </span>
                             }
                             name={`metaData.extraCosts.${k}.amount`}
-                            value={md.extraCosts?.[k]?.amount}
+                            value={md.extraCosts?.[k]?.amount || ""}
                             numberProps={{
                                 prefix: "$",
                             }}
@@ -349,7 +349,7 @@ function Input({
                     value={value as any}
                     readOnly={props.readOnly}
                     onValueChange={(e) => {
-                        const val = e.floatValue || null;
+                        const val = e.floatValue || "";
                         zus.dotUpdate(name, val);
                         onChange?.(val);
                     }}

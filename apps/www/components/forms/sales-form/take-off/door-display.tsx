@@ -10,7 +10,7 @@ export function DoorDisplay({}) {
     const Component = <ComponentImg aspectRatio={0.9} src={item.door?.img} />;
     const [open, setOpen] = useState(false);
     if (item.section?.title?.toLocaleLowerCase() == "services") return null;
-    if (!item.section) return Component;
+    if (!item.section) return <div className="w-24">{Component}</div>;
     return (
         <div className="w-24">
             <div className="size-24 2xl:size-32 my-4">

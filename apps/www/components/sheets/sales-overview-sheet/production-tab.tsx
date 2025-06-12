@@ -87,7 +87,7 @@ function ItemCard({ item }: ItemCardProps) {
         else
             queryCtx.setParams({
                 "prod-item-view": item.controlUid,
-                "prod-item-tab": "details",
+                "prod-item-tab": "notes",
             });
     };
     const opened = item.controlUid == queryCtx["prod-item-view"];
