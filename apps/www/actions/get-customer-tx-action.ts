@@ -11,14 +11,16 @@ import { formatMoney } from "@/lib/use-number";
 import { AsyncFnType } from "@/types";
 import { whereCustomerTx } from "@/utils/db/where.customer-transactions";
 import { ISalesPaymentMeta } from "@/types/sales";
+import { salesAccountingQueryMetaData } from "@/utils/db/query.sales-accounting";
 
 export type GetSalesCustomerTx = AsyncFnType<
     typeof getCustomerTransactionsAction
 >;
 export type CustomerTransactionType = "wallet" | "transaction";
 export async function getCustomerTransactionsAction(query: SearchParamsType) {
-    const where = whereCustomerTx(query);
-    const data = await prisma.customerTransaction.findMany({
+    const { model, response, where, searchMeta } =
+        await salesAccountingQueryMetaData(query);
+    const list = await prisma.customerTransaction.findMany({
         where,
         ...pageQueryFilter(query),
         select: {
@@ -66,14 +68,13 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
             },
         },
     });
-    const pageInfo = await getPageInfo(
-        query,
-        where,
-        prisma.customerTransaction,
-    );
-    return {
-        ...pageInfo,
-        data: data.map((item) => {
+    // const pageInfo = await getPageInfo(
+    //     query,
+    //     where,
+    //     prisma.customerTransaction,
+    // );
+    return await response(
+        list.map((item) => {
             const amount = formatMoney(Math.abs(item.amount));
             const orderIds = item.salesPayments
                 .map((a) => a.order.orderId)
@@ -104,7 +105,41 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
                 sales: item.salesPayments,
             };
         }),
-    };
+    );
+    // return {
+    //     ...pageInfo,
+    //     data: data.map((item) => {
+    //         const amount = formatMoney(Math.abs(item.amount));
+    //         const orderIds = item.salesPayments
+    //             .map((a) => a.order.orderId)
+    //             .join(", ")
+    //             .replace(/,([^,]*)$/, " &$1");
+
+    //         const paymentMethod = item.paymentMethod;
+    //         const description = item.description;
+    //         const salesReps = Array.from(
+    //             new Set(
+    //                 item.salesPayments?.map((s) => s.order?.salesRep?.name),
+    //             ),
+    //         );
+    //         const meta = item.meta as any as ISalesPaymentMeta;
+    //         // meta.checkNo
+    //         return {
+    //             checkNo: meta?.checkNo,
+    //             uuid: item.id,
+    //             id: item.id,
+    //             authorName: item.author?.name,
+    //             status: item.status,
+    //             createdAt: item.createdAt,
+    //             amount,
+    //             paymentMethod,
+    //             description,
+    //             orderIds,
+    //             salesReps,
+    //             sales: item.salesPayments,
+    //         };
+    //     }),
+    // };
 }
 
 export type GetSalesCustomerTxOverview = AsyncFnType<

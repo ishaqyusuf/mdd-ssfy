@@ -8,18 +8,18 @@ export function whereCustomerTx(query: SearchParamsType) {
     let whereAnd: Prisma.CustomerTransactionWhereInput[] = [
         {
             OR: [
-                {
-                    status: {
-                        in: [
-                            "success",
-                            "cancelled",
-                        ] as any as SquarePaymentStatus[],
-                    },
-                    paymentMethod: {
-                        not: null,
-                    },
-                    salesPayments: { some: {} },
-                },
+                // {
+                //     status: {
+                //         in: [
+                //             "success",
+                //             "cancelled",
+                //         ] as any as SquarePaymentStatus[],
+                //     },
+                //     paymentMethod: {
+                //         not: null,
+                //     },
+                //     salesPayments: { some: {} },
+                // },
                 {
                     AND: [
                         { type: {} },

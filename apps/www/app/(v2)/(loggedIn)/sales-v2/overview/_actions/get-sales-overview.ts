@@ -1,7 +1,10 @@
 "use server";
 
 import { loadSalesSetting } from "@/actions/sales-settings";
-import { StepComponentMeta } from "@/app/(clean-code)/(sales)/types";
+import {
+    SalesPaymentStatus,
+    StepComponentMeta,
+} from "@/app/(clean-code)/(sales)/types";
 import { prisma, Prisma } from "@/db";
 import {
     ISalesOrderItemMeta,
@@ -157,9 +160,16 @@ export async function viewSale(type, slug, deletedAt?) {
         },
     });
     // console.log(progress);
-
+    const payments = order.payments.map((p) => {
+        return {
+            ...p,
+            status: p.status as SalesPaymentStatus,
+        };
+    });
     return {
         ...order,
+        payments,
+
         meta: order.meta as any as ISalesOrderMeta,
         items,
         groupings,

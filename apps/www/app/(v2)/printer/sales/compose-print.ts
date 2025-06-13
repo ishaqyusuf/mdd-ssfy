@@ -690,7 +690,9 @@ function header(title, colSpan = 1) {
 function printFooter(data: PrintData, notPrintable) {
     if (notPrintable) return null;
     const totalPaid = sum(
-        data.order.payments.filter((p) => !p.deletedAt).map((p) => p.amount),
+        data.order.payments
+            .filter((p) => !p.deletedAt && p.status == "success")
+            .map((p) => p.amount),
     );
     let taxLines = [];
     if (data.order.taxes?.length) {

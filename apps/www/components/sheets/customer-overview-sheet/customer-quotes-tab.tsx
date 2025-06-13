@@ -1,7 +1,7 @@
 "use client";
 
 import { getCustomerQuoteList } from "@/actions/get-customer-quotes-list";
-import { getCustomerTransactionsAction } from "@/actions/get-customer-tx-action";
+
 import { getSalesOrdersDta } from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
 import { EmptyState } from "@/components/empty-state";
 import {

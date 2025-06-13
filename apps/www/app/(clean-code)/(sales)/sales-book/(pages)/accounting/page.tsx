@@ -1,25 +1,25 @@
-import { getSalesPageQueryData } from "@/actions/cached-queries";
+import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import { searchParamsCache } from "./search-params";
+import { ErrorFallback } from "@/components/error-fallback";
+import { Suspense } from "react";
+import { TableSkeleton } from "@/components/tables/skeleton";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
-import SalesAccountingTable from "@/components/tables/sales-accounting";
-import TablePage from "@/components/tables/table-page";
-import { prisma } from "@/db";
-import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
+import { SalesAccountingTable } from "@/components/tables/sales-accounting";
 
-export async function generateMetadata({}) {
-    return constructMetadata({
-        title: `Accounting - gndprodesk.com`,
+export default async function HomePage({ searchParams }) {
+    const searchQuery = searchParamsCache.parse(await searchParams);
+    const { search } = searchQuery;
+
+    const loadingKey = JSON.stringify({
+        search,
     });
-}
-export default async function Page({ searchParams }) {
-    const [queryData] = await Promise.all([getSalesPageQueryData()]);
     return (
-        <FPage can={["viewOrders"]} title="Accounting">
-            <TablePage
-                filterKey="sales-accounting"
-                searchParams={searchParams}
-                PageClient={SalesAccountingTable}
-                queryData={queryData}
-            />
-        </FPage>
+        <ErrorBoundary errorComponent={ErrorFallback}>
+            <FPage can={["viewOrders"]} title="Sales Accounting">
+                <Suspense fallback={<TableSkeleton />} key={loadingKey}>
+                    <SalesAccountingTable query={searchQuery} />
+                </Suspense>
+            </FPage>
+        </ErrorBoundary>
     );
 }
