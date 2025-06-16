@@ -9,6 +9,7 @@ import { updateSalesDueAmount } from "./update-sales-due-amount";
 import { SalesPaymentStatus } from "@/app/(clean-code)/(sales)/types";
 import { SquarePaymentStatus } from "@/_v2/lib/square";
 import { authUser } from "@/app/(v1)/_actions/utils";
+import { deleteSalesCommission } from "./delete-payroll";
 
 const schema = z.object({
     customerTransactionId: z.number(),
@@ -61,6 +62,7 @@ export const cancelSalesPaymentAction = actionClient
             await Promise.all(
                 tx.salesPayments.map(async (sp) => {
                     await updateSalesDueAmount(sp?.orderId, prisma);
+                    await deleteSalesCommission(sp?.id);
                     await createSiteActionTicket({
                         type: "sales-payment",
                         event: "cancelled",

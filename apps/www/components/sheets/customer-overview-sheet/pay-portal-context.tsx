@@ -99,6 +99,8 @@ export function usePayPortal() {
                 }, 2000);
             } else {
                 if (args.data.status) {
+                    console.log({ args });
+
                     form.setValue("terminalPaymentSession", null);
                     toast.success("", toastDetail("payment-success"));
                     revalidateTable();
@@ -144,8 +146,6 @@ export function usePayPortal() {
     useEffect(() => {
         if (!terminalPaymentSession) return;
         async function checkTerminalPaymentStatus() {
-            console.log({ terminalPaymentSession });
-            console.log("CHECKING PAYMENT STATUS", waitSeconds, mockStatus);
             const rep = mockStatus
                 ? { status: mockStatus }
                 : await terminalPaymentStatus(

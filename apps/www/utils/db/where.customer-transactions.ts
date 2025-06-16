@@ -7,35 +7,37 @@ import {
 } from "@/components/(clean-code)/data-table/search-params";
 import { prisma, Prisma } from "@/db";
 import { SalesHaving } from "../constants";
+import { CustomerTransactionType } from "@/actions/get-customer-tx-action";
 
 export function whereCustomerTx(query: SearchParamsType) {
     let whereAnd: Prisma.CustomerTransactionWhereInput[] = [
         {
             OR: [
-                // {
-                //     status: {
-                //         in: [
-                //             "success",
-                //             "cancelled",
-                //         ] as any as SquarePaymentStatus[],
-                //     },
-                //     paymentMethod: {
-                //         not: null,
-                //     },
-                //     salesPayments: { some: {} },
-                // },
                 {
-                    AND: [
-                        { type: {} },
-                        // { type: "transaction" as CustomerTransactionType },
-                        {
-                            amount: {
-                                lt: 0,
-                            },
-                        },
-                        { salesPayments: { some: {} } },
-                    ],
+                    status: {
+                        in: [
+                            "success",
+                            "cancelled",
+                            "canceled",
+                        ] as any as SquarePaymentStatus[],
+                    },
+                    paymentMethod: {
+                        not: null,
+                    },
+                    salesPayments: { some: {} },
                 },
+                // {
+                //     AND: [
+                //         // { type: {} },
+                //         { type: "transaction" as CustomerTransactionType },
+                //         {
+                //             amount: {
+                //                 gt: 0,
+                //             },
+                //         },
+                //         { salesPayments: { some: {} } },
+                //     ],
+                // },
                 {
                     paymentMethod: "link" as PaymentMethods,
                     amount: {

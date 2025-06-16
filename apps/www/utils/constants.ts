@@ -103,3 +103,13 @@ export const actionTicketEvents = [
     "cancelled",
 ] as const;
 export const doorSwings = ["IN-SWING", "OUT-SWING", "NONE"];
+
+export type CustomerTransactionStatus =
+    (typeof customerTransactionStatus)[number];
+export const customerTransactionStatus = [
+    "cancelled",
+    "canceled",
+    "draft",
+    "completed",
+    "success",
+] as const;

@@ -17,6 +17,8 @@ import { getCustomerWalletAction } from "./get-customer-wallet";
 import { actionClient } from "./safe-action";
 import { createPaymentSchema } from "./schema";
 import { updateSalesDueAmount } from "./update-sales-due-amount";
+import { CustomerTransactionStatus } from "@/utils/constants";
+import { CustomerTransactionType } from "./get-customer-tx-action";
 
 export const createSalesPaymentAction = actionClient
     .schema(createPaymentSchema)
@@ -72,10 +74,11 @@ async function applySalesPayment(props: z.infer<typeof createPaymentSchema>) {
                             },
                         },
                         paymentMethod: props.paymentMethod,
-                        status: "success" as any as SquarePaymentStatus,
+                        status: "success" as any as CustomerTransactionStatus,
                         meta: {
                             checkNo: props.checkNo,
                         },
+                        type: "transaction" as CustomerTransactionType,
                         author: {
                             connect: {
                                 id: await authId(),
@@ -121,7 +124,7 @@ async function applySalesPayment(props: z.infer<typeof createPaymentSchema>) {
                     },
                 });
                 const [sp] = __tx.salesPayments;
-                await updateSalesDueAmount(orderId);
+                await updateSalesDueAmount(orderId, tx);
                 await createPayrollAction({
                     orderId: sp.order.id,
                     userId: sp.order.salesRepId,
