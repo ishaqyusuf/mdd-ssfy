@@ -20,6 +20,7 @@ import { useTransactionOverviewModal } from "@/hooks/use-tx-overview-modal";
 import { SuperAdminGuard } from "@/components/auth-guard";
 import { Button } from "@gnd/ui/button";
 import Link from "next/link";
+import { isProdClient } from "@/lib/is-prod";
 
 type Props = {
     data: Item[];
@@ -85,8 +86,8 @@ export function DataTable({
                         />
                         <div className="flex-1"></div>
                         <SuperAdminGuard>
-                            <Button disabled>
-                                <Link href="/sales-book/accounting-resolution-center">
+                            <Button disabled={isProdClient}>
+                                <Link href="/sales-book/accounting/resolution-center">
                                     Resolution Center
                                 </Link>
                             </Button>

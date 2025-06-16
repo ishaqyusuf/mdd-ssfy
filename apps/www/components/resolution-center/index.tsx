@@ -1,4 +1,3 @@
-import { employeesFilterData } from "@/actions/cached-hrm";
 import { EmptyState, NoResults } from "./empty-states";
 import { DataTable } from "./table";
 import { hasQuery } from "@/utils/has-query";
@@ -6,7 +5,7 @@ import { getCustomerTransactionsAction } from "@/actions/get-customer-tx-action"
 import { salesAccountingFilterData } from "@/actions/cached-sales-accounting";
 
 const pageSize = 25;
-export async function SalesAccountingConflictsTable({ query }) {
+export async function ResolutionCenter({ query }) {
     const filterDataPromise = salesAccountingFilterData();
 
     const loadMore = async (params?) => {

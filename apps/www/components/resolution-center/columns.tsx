@@ -1,6 +1,6 @@
 "use client";
 
-import { ActionCell } from "../action-cell";
+import { ActionCell } from "../tables/action-cell";
 import { ColumnDef, ColumnMeta, PageItemData } from "@/types/type";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { _perm } from "@/components/sidebar/links";

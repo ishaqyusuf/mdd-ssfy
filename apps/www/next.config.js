@@ -3,7 +3,7 @@ const path = require("path");
 // const { NormalModuleReplacementPlugin } = require("webpack");
 const nextConfig = {
     transpilePackages: [
-        // "@gnd/api",
+        "@gnd/api",
         // "@gnd/auth",
         // "@gnd/db",
         // "@gnd/common",

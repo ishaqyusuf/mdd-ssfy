@@ -6,7 +6,7 @@ import { TableSkeleton } from "@/components/tables/skeleton";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import { AuthGuard } from "@/components/auth-guard";
 import { _role } from "@/components/sidebar/links";
-import { SalesAccountingConflictsTable } from "@/components/tables/sales-accounting-conflicts";
+import { ResolutionCenter } from "@/components/resolution-center";
 
 export default async function HomePage({ searchParams }) {
     const searchQuery = searchParamsCache.parse(await searchParams);
@@ -18,9 +18,9 @@ export default async function HomePage({ searchParams }) {
     return (
         <ErrorBoundary errorComponent={ErrorFallback}>
             <AuthGuard rules={[_role.is("Super Admin")]}>
-                <FPage title="Accounting Conflict Resolution">
+                <FPage title="Resolution Center">
                     <Suspense fallback={<TableSkeleton />} key={loadingKey}>
-                        <SalesAccountingConflictsTable query={searchQuery} />
+                        <ResolutionCenter query={searchQuery} />
                     </Suspense>
                 </FPage>
             </AuthGuard>

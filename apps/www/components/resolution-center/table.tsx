@@ -5,14 +5,14 @@ import { MiddaySearchFilter } from "@/components/midday-search-filter/search-fil
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { Table, TableBody } from "@gnd/ui/table";
 
-import { TableProvider } from "..";
-import { TableHeaderComponent } from "../table-header";
-import { TableRow } from "../table-row";
+import { TableProvider } from "../tables";
+import { TableHeaderComponent } from "../tables/table-header";
+import { TableRow } from "../tables/table-row";
 
 import { useEmployeesParams } from "@/hooks/use-employee-params";
 import { PageFilterData } from "@/types/type";
 import { columns, Item } from "./columns";
-import { LoadMore } from "../load-more";
+import { LoadMore } from "../tables/load-more";
 import FContentShell from "@/components/(clean-code)/fikr-ui/f-content-shell";
 import { useRolesParams } from "@/hooks/use-roles-params";
 import { _perm } from "@/components/sidebar/links";
@@ -20,6 +20,7 @@ import { useTransactionOverviewModal } from "@/hooks/use-tx-overview-modal";
 import { SuperAdminGuard } from "@/components/auth-guard";
 import { Button } from "@gnd/ui/button";
 import Link from "next/link";
+import { isProdClient } from "@/lib/is-prod";
 
 type Props = {
     data: Item[];
@@ -85,9 +86,9 @@ export function DataTable({
                         />
                         <div className="flex-1"></div>
                         <SuperAdminGuard>
-                            <Button asChild>
-                                <Link href="/sales-book/accounting-conflicts">
-                                    Resolve Conflicts
+                            <Button disabled={isProdClient}>
+                                <Link href="/sales-book/accounting/resolution-center">
+                                    Resolution Center
                                 </Link>
                             </Button>
                         </SuperAdminGuard>
