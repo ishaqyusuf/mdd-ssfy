@@ -9,7 +9,6 @@ import { PERMISSIONS, ROLES } from "@/data/contants/permissions";
 import { ARRAY_DELIMITER, SORT_DELIMITER } from "@/lib/delimiters";
 import { noteParamsParser, noteSchema } from "@/modules/notes/constants";
 import { paymentMethods } from "@/utils/constants";
-import { SalesPriority } from "@prisma/client";
 import {
     createParser,
     createSearchParamsCache,
@@ -21,7 +20,7 @@ import {
     parseAsStringLiteral,
 } from "nuqs/server";
 import { z } from "zod";
-
+import { SalesPriority } from "@gnd/db";
 // import { REGIONS } from "@/constants/region";
 // import { METHODS } from "@/constants/method";
 

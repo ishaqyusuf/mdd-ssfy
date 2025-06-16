@@ -1,7 +1,6 @@
 "use server";
 
-import { prisma } from "@/db";
-import { Prisma } from "@prisma/client";
+import { Prisma, prisma } from "@/db";
 
 export async function updateSalesExtraCosts(
     orderId,

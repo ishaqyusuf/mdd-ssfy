@@ -1,11 +1,6 @@
 import { StepComponentMeta } from "@/app/(clean-code)/(sales)/types";
 import { prisma, Prisma } from "@/db";
 
-// import { Prisma } from "@prisma/client";
-
-// async function stepFn() {
-//     return await prisma.door
-// }
 export function dtoStepComponent(data) {
     let { door, product, sortIndex, sorts, ...component } =
         data as Prisma.DykeStepProductsGetPayload<{

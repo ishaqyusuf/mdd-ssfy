@@ -138,6 +138,8 @@ export const createPaymentSchema = z
         deviceId: z.string().optional(),
         deviceName: z.string().optional(),
         enableTip: z.boolean().optional(),
+        walletBalance: z.number().optional(),
+        useWallet: z.boolean().optional(),
         terminalPaymentSession: z
             .object({
                 status: z.string(),

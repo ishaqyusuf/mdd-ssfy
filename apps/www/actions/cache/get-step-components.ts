@@ -1,6 +1,5 @@
 import { StepComponentMeta } from "@/app/(clean-code)/(sales)/types";
-import { prisma } from "@/db";
-import { Prisma } from "@prisma/client";
+import { Prisma, prisma } from "@/db";
 import { unstable_cache } from "next/cache";
 
 export async function getStepComponents(stepId, stepTitle) {
