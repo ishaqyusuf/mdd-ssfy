@@ -2,7 +2,6 @@ import { getSalesPageQueryData } from "@/actions/cached-queries";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import SalesAccountingTable from "@/components/tables/sales-accounting.old";
 import TablePage from "@/components/tables/table-page";
-import { prisma } from "@/db";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 
 export async function generateMetadata({}) {
