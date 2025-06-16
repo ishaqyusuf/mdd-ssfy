@@ -6,12 +6,13 @@ import z from "zod";
 import { createSiteActionTicket } from "./create-site-action-ticket";
 import { actionClient } from "./safe-action";
 import { updateSalesDueAmount } from "./update-sales-due-amount";
-import { deleteSalesCommission } from "./delete-payroll";
 import { SalesPaymentStatus } from "@/app/(clean-code)/(sales)/types";
 import { SquarePaymentStatus } from "@/_v2/lib/square";
+import { authUser } from "@/app/(v1)/_actions/utils";
 
 const schema = z.object({
-    salesPaymentId: z.number(),
+    customerTransactionId: z.number(),
+    reason: z.string().optional(),
 });
 export const cancelSalesPaymentAction = actionClient
     .schema(schema)
@@ -19,43 +20,55 @@ export const cancelSalesPaymentAction = actionClient
         name: "cancel-sales-payment",
         track: {},
     })
-    .action(async ({ parsedInput: { salesPaymentId, ...input } }) => {
+    .action(async ({ parsedInput: { customerTransactionId, ...input } }) => {
         return await prisma.$transaction(async (prisma) => {
-            const sp = await prisma.salesPayments.update({
+            const author = await authUser();
+            const tx = await prisma.customerTransaction.update({
                 where: {
-                    id: salesPaymentId,
-                    status: {
-                        not: "cancelled" as SalesPaymentStatus,
+                    id: customerTransactionId,
+                },
+                data: {
+                    status: "CANCELED" as SquarePaymentStatus,
+                    statusNote: input.reason,
+                    history: {
+                        create: {
+                            status: "CANCELED",
+                            description: input.reason,
+                            authorId: author.id,
+                            authorName: author.name,
+                        },
+                    },
+                    salesPayments: {
+                        updateMany: {
+                            where: {
+                                deletedAt: null,
+                            },
+                            data: {
+                                status: "cancelled" as SalesPaymentStatus,
+                            },
+                        },
                     },
                 },
-                data: {
-                    status: "cancelled",
-                },
                 select: {
-                    transactionId: true,
-                    amount: true,
-                    orderId: true,
-                    id: true,
+                    salesPayments: {
+                        select: {
+                            orderId: true,
+                            id: true,
+                        },
+                    },
                 },
             });
-            await prisma.customerTransaction.update({
-                where: {
-                    id: sp.transactionId,
-                },
-                data: {
-                    // amount: {
-                    //     decrement: sp.amount,
-                    // },
-                    status: "CANCELED" as SquarePaymentStatus,
-                },
-            });
-            await updateSalesDueAmount(sp?.orderId, prisma);
-            await createSiteActionTicket({
-                type: "sales-payment",
-                event: "cancelled",
-                meta: {
-                    id: sp.id,
-                },
-            });
+            await Promise.all(
+                tx.salesPayments.map(async (sp) => {
+                    await updateSalesDueAmount(sp?.orderId, prisma);
+                    await createSiteActionTicket({
+                        type: "sales-payment",
+                        event: "cancelled",
+                        meta: {
+                            id: sp.id,
+                        },
+                    });
+                }),
+            );
         });
     });

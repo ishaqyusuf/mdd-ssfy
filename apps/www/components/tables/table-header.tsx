@@ -55,7 +55,6 @@ export function TableHeaderComponent({}) {
                                 </TableHead>
                             );
                     })}
-                    {/* <ActionHeader /> */}
                 </TableRow>
             ))}
         </TableHeader>

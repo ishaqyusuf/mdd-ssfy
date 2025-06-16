@@ -65,6 +65,12 @@ export const paymentMethods = [
     "credit-card",
     "wire",
 ] as const;
+export const salesHaving = [
+    "Single Payment",
+    "Multiple Payments",
+    "Duplicate Payment",
+] as const;
+export type SalesHaving = (typeof salesHaving)[number];
 export const salesPaymentMethods: {
     label?: string;
     value?: PaymentMethods;

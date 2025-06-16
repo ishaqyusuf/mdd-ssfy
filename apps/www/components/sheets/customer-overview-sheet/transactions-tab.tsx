@@ -1,7 +1,9 @@
 import { cancelSalesPaymentAction } from "@/actions/cancel-sales-payment";
+import { getCustomerTransactionsAction } from "@/actions/get-customer-tx-action";
 import { getSalesPaymentsAction } from "@/actions/get-sales-payment";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
+import { CancelSalesTransactionAction } from "@/components/cancel-sales-transaction";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { EmptyState } from "@/components/empty-state";
 import {
@@ -9,6 +11,7 @@ import {
     useCreateDataSkeletonCtx,
 } from "@/hooks/use-data-skeleton";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
+import { formatDate } from "@/lib/use-day";
 import { cn } from "@/lib/utils";
 
 import { Badge } from "@gnd/ui/badge";
@@ -28,11 +31,16 @@ interface Props {
     salesId?: string;
 }
 export function TransactionsTab({ accountNo, salesId }: Props) {
-    const loader = async () =>
-        await getSalesPaymentsAction({
+    const loader = async () => {
+        const resp = await getCustomerTransactionsAction({
             "order.no": salesId,
-            "account.no": accountNo,
+            // "account.no": accountNo,
         });
+        return {
+            status: "Loaded",
+            transactions: resp.data,
+        };
+    };
     const skel = useCreateDataSkeletonCtx({
         loader,
         autoLoad: true,
@@ -85,13 +93,15 @@ export function TransactionsTab({ accountNo, salesId }: Props) {
                                 <TableRow key={i} className={cn("")}>
                                     <TableCell>
                                         <DataSkeleton pok="date">
-                                            <TCell.Date>{tx.date}</TCell.Date>
+                                            <TCell.Date>
+                                                {formatDate(tx.createdAt)}
+                                            </TCell.Date>
                                         </DataSkeleton>
                                     </TableCell>
                                     <TableCell>
                                         <DataSkeleton pok="textLg">
                                             <TCell.Secondary>
-                                                <span>{tx.note}</span>
+                                                <span>{tx.checkNo}</span>
                                             </TCell.Secondary>
                                         </DataSkeleton>
                                         <TCell.Secondary className="inline-flex gap-2">
@@ -104,12 +114,12 @@ export function TransactionsTab({ accountNo, salesId }: Props) {
                                                 </Badge>
                                             </DataSkeleton>
                                             <DataSkeleton pok="textSm">
-                                                {!tx.receivedBy || (
+                                                {/* {!tx.receivedBy || (
                                                     <>
                                                         {" by "}
                                                         {tx.receivedBy}
                                                     </>
-                                                )}
+                                                )} */}
                                             </DataSkeleton>
                                         </TCell.Secondary>
                                     </TableCell>
@@ -119,27 +129,10 @@ export function TransactionsTab({ accountNo, salesId }: Props) {
                                         </DataSkeleton>
                                     </TableCell>
                                     <TableCell className="inline-flex justify-end items-center">
-                                        <Button
-                                            size="xs"
-                                            variant="destructive"
-                                            onClick={(e) => {
-                                                cancelTx.execute({
-                                                    salesPaymentId: tx.id,
-                                                });
-                                            }}
-                                            disabled={
-                                                tx.status == "cancelled" ||
-                                                cancelTx.isExecuting
-                                            }
-                                        >
-                                            cancel
-                                        </Button>
-                                        {/* <TCell.DeleteRow
-                                            data={tx}
-                                            action={(e) => {
-                                                console.log(tx);
-                                            }}
-                                        /> */}
+                                        <CancelSalesTransactionAction
+                                            status={tx.status}
+                                            customerTransactionId={tx?.id}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))}

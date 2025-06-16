@@ -1,8 +1,12 @@
 import { SquarePaymentStatus } from "@/_v2/lib/square";
 import { composeQuery } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
 import { PaymentMethods } from "@/app/(clean-code)/(sales)/types";
-import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
-import { Prisma } from "@/db";
+import {
+    FilterKeys,
+    SearchParamsType,
+} from "@/components/(clean-code)/data-table/search-params";
+import { prisma, Prisma } from "@/db";
+import { SalesHaving } from "../constants";
 
 export function whereCustomerTx(query: SearchParamsType) {
     let whereAnd: Prisma.CustomerTransactionWhereInput[] = [
@@ -89,6 +93,49 @@ export function whereCustomerTx(query: SearchParamsType) {
             },
         });
     if (query["search"]) whereAnd.push(whereSearch(query["search"]));
+    if (query["payment.type"]) {
+        whereAnd.push({
+            // type: query["payment.type"],
+            paymentMethod: query["payment.type"],
+            // salesPayments: {
+            //     some: {
+
+            //     }
+            // }
+        });
+    }
+    const keys = Object.keys(query) as FilterKeys[];
+    keys.map((k) => {
+        const val = query?.[k] as any;
+        if (!query?.[k]) return;
+        switch (k) {
+            case "salesRep.id":
+                whereAnd.push({
+                    salesPayments: {
+                        some: {
+                            order: {
+                                salesRepId: val,
+                                deletedAt: null,
+                            },
+                            deletedAt: null,
+                        },
+                    },
+                });
+                break;
+            case "sales.ids":
+                whereAnd.push({
+                    salesPayments: {
+                        some: {
+                            orderId: {
+                                in: query["sales.ids"],
+                            },
+                        },
+                    },
+                });
+
+                break;
+        }
+    });
     return composeQuery(whereAnd);
 }
 function whereSearch(query) {

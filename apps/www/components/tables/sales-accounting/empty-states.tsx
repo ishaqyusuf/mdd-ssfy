@@ -4,7 +4,8 @@ import { useQueryStates } from "nuqs";
 
 import { Button } from "@gnd/ui/button";
 import { useEmployeesParams } from "@/hooks/use-employee-params";
-import { employeePageQuery } from "@/app/(sidebar)/hrm/employees/search-params";
+
+import { accountingPageQuery } from "@/app/(clean-code)/(sales)/sales-book/(pages)/accounting/search-params";
 
 export function EmptyState({}) {
     const { setParams } = useEmployeesParams();
@@ -37,7 +38,7 @@ export function EmptyState({}) {
 
 export function NoResults() {
     const [params, setParams] = useQueryStates({
-        ...employeePageQuery,
+        ...accountingPageQuery,
     });
     const q = useEmployeesParams();
     return (

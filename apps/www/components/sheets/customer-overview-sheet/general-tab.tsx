@@ -6,14 +6,12 @@ import ConfirmBtn from "@/components/_v1/confirm-btn";
 import Money from "@/components/_v1/money";
 import ProgressStatus from "@/components/_v1/progress-status";
 import { DataSkeleton } from "@/components/data-skeleton";
-import { DeleteCustomerTxBtn } from "@/components/delete-customer-transaction-btn";
+
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import {
     DataSkeletonProvider,
     useCreateDataSkeletonCtx,
 } from "@/hooks/use-data-skeleton";
-import { formatDate } from "@/lib/use-day";
-import { formatMoney } from "@/lib/use-number";
 import { getInitials } from "@/utils/format";
 import { Wallet } from "lucide-react";
 
@@ -26,23 +24,14 @@ import {
     CardHeader,
     CardTitle,
 } from "@gnd/ui/card";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@gnd/ui/table";
 
 import { Footer } from "./footer";
 import { SalesList } from "./sales-list";
 
+import { CustomerTxDataTable } from "@/components/tables/sales-accounting/table.customer-transaction";
+
 export function GeneralTab({ setCustomerName }) {
     const query = useCustomerOverviewQuery();
-
-    // const [data, setData] = useState<CustomerGeneralInfo | null>(null);
-    // const [loading, setLoading] = useState(true);
 
     const loader = async () =>
         await getCustomerGeneralInfoAction(query.accountNo);
@@ -177,87 +166,11 @@ export function GeneralTab({ setCustomerName }) {
                                 </div>
                             </>
                         ) : (
-                            <Table className="table-sm">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead>Description</TableHead>
-                                        <TableHead
-                                            align="right"
-                                            className="text-right"
-                                        >
-                                            Amount
-                                        </TableHead>
-                                        <TableHead>Status</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {skel
-                                        .renderList(data?.recentTx)
-                                        .map((tx, i) => (
-                                            <TableRow key={i}>
-                                                <TableCell>
-                                                    <DataSkeleton pok="date">
-                                                        {formatDate(
-                                                            tx?.createdAt,
-                                                        )}
-                                                    </DataSkeleton>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <DataSkeleton pok="textSm">
-                                                        {tx?.orderIds}
-                                                    </DataSkeleton>
-                                                    <DataSkeleton pok="textSm">
-                                                        {tx?.description}
-                                                    </DataSkeleton>
-                                                    <DataSkeleton
-                                                        pok="textSm"
-                                                        className="font-mono"
-                                                    >
-                                                        {[
-                                                            tx?.paymentMethod,
-                                                            tx?.checkNo,
-                                                        ]
-                                                            ?.filter(Boolean)
-                                                            .join(" | ")}
-                                                    </DataSkeleton>
-                                                </TableCell>
-                                                <TableCell align="right">
-                                                    $
-                                                    <DataSkeleton
-                                                        as="span"
-                                                        pok="moneyLarge"
-                                                    >
-                                                        {formatMoney(
-                                                            tx?.amount,
-                                                        )}
-                                                    </DataSkeleton>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <DataSkeleton
-                                                        as="span"
-                                                        pok="textSm"
-                                                    >
-                                                        <ProgressStatus
-                                                            status={tx?.status}
-                                                        />
-                                                    </DataSkeleton>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <DataSkeleton
-                                                        placeholder={"BTN"}
-                                                    >
-                                                        <DeleteCustomerTxBtn
-                                                            transactionId={
-                                                                tx?.id
-                                                            }
-                                                        />
-                                                    </DataSkeleton>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                </TableBody>
-                            </Table>
+                            <div className="flex flex-col w-full overflow-auto">
+                                <CustomerTxDataTable
+                                    data={data?.recentTx || []}
+                                />
+                            </div>
                         )}
                     </CardContent>
                 </Card>

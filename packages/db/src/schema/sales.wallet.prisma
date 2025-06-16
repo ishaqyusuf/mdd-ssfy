@@ -1,27 +1,45 @@
 model CustomerTransaction {
-    id            Int                  @unique @default(autoincrement())
+    id            Int                         @unique @default(autoincrement())
     authorId      Int?
     txId          String?
     status        String?
+    statusNote    String?
     amount        Float
     walletId      Int?
     paymentMethod String?
     type          String? //wallet, transaction
-    description   String?              @db.LongText
-    meta          Json?                @db.Json
-    createdAt     DateTime?            @default(now()) @db.Timestamp(0)
-    updatedAt     DateTime?            @updatedAt
-    deletedAt     DateTime?            @db.Timestamp(0)
-    wallet        CustomerWallet?      @relation(fields: [walletId], references: [id], onDelete: Cascade)
+    description   String?                     @db.LongText
+    meta          Json?                       @db.Json
+    createdAt     DateTime?                   @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?                   @updatedAt
+    deletedAt     DateTime?                   @db.Timestamp(0)
+    wallet        CustomerWallet?             @relation(fields: [walletId], references: [id], onDelete: Cascade)
+    history       CustomerTransactionStatus[]
     salesPayments SalesPayments[]
     refundTx      RefundTransactions[]
-    squarePayment SquarePayments?      @relation(fields: [squarePID], references: [id])
+    squarePayment SquarePayments?             @relation(fields: [squarePID], references: [id])
     squarePID     String?
-    author        Users?               @relation(fields: [authorId], references: [id])
+    author        Users?                      @relation(fields: [authorId], references: [id])
 
     @@index([authorId])
     @@index([walletId])
     @@index([squarePID])
+}
+
+model CustomerTransactionStatus {
+    id          Int       @unique @default(autoincrement())
+    authorName  String?
+    authorId    Int
+    status      String?
+    description String?
+    createdAt   DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime? @updatedAt
+    deletedAt   DateTime? @db.Timestamp(0)
+
+    transaction   CustomerTransaction @relation(fields: [transactionId], references: [id])
+    transactionId Int
+
+    @@index([transactionId])
 }
 
 model CustomerWallet {

@@ -25,9 +25,7 @@ function Modal() {
 
     const currenTab = ctx.params?.tab;
     const [customerName, setCustomerName] = useState(null);
-    useEffect(() => {
-        console.log("CUSTOMER OVERVIEW SHEET>>>>>>>>>>>>>>");
-    }, []);
+
     useEffect(() => {
         if (!ctx.opened) return;
         function _title(_t) {

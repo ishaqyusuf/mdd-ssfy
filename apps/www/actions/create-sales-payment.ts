@@ -76,7 +76,6 @@ async function applySalesPayment(props: z.infer<typeof createPaymentSchema>) {
                         meta: {
                             checkNo: props.checkNo,
                         },
-
                         author: {
                             connect: {
                                 id: await authId(),

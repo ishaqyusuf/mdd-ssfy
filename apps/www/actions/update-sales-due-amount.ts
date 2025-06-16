@@ -4,6 +4,7 @@ import { SalesPaymentStatus } from "@/app/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
+import { __salesPaymentUpdated } from "./cache/cache-data-changed";
 
 export async function updateSalesDueAmount(salesId, _tx?) {
     let tx: typeof prisma = _tx || prisma;
@@ -37,11 +38,13 @@ export async function updateSalesDueAmount(salesId, _tx?) {
     });
     const totalPaid = formatMoney(sum(order.payments, "amount"));
     const amountDue = formatMoney(order.grandTotal - totalPaid);
-    if (amountDue !== order.amountDue)
+    if (amountDue !== order.amountDue) {
         await tx.salesOrders.update({
             where: { id: order.id },
             data: {
                 amountDue,
             },
         });
+        __salesPaymentUpdated();
+    }
 }

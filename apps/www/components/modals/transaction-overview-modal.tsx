@@ -28,7 +28,7 @@ import {
 
 import { TCell } from "../(clean-code)/data-table/table-cells";
 import { DataSkeleton } from "../data-skeleton";
-import { DeleteCustomerTxBtn } from "../delete-customer-transaction-btn";
+
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 export function TransactionOverviewModal({}) {
@@ -137,7 +137,7 @@ export function TransactionOverviewModal({}) {
                                 ))}
                             </TableBody>
                         </Table>
-                        <div className="mt-2 flex flex-col space-y-2">
+                        {/* <div className="mt-2 flex flex-col space-y-2">
                             <DeleteCustomerTxBtn
                                 transactionId={ctx.transactionId}
                                 btnProps={{
@@ -161,7 +161,7 @@ export function TransactionOverviewModal({}) {
                             >
                                 Update Sales Due Amount
                             </Button>
-                        </div>
+                        </div> */}
                     </div>
                 </DialogContent>
             </Dialog>

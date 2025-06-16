@@ -319,7 +319,10 @@ export interface ISalesPaymentMeta {
     paymentOption;
     checkNo;
 }
-
+export interface CustomerTransactionMeta {
+    cancelReason;
+    checkNo;
+}
 export interface TakeOffTemplateData {
     formSteps: {
         stepId?: number;

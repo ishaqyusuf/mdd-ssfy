@@ -1,6 +1,4 @@
-import { composeQuery } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
 import { prisma } from "@/db";
-import { Prisma } from "@prisma/client";
 import { composeQueryData } from "../query-response";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { whereCustomerTx } from "./where.customer-transactions";

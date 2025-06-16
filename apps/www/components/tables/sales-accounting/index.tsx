@@ -3,10 +3,11 @@ import { EmptyState, NoResults } from "./empty-states";
 import { DataTable } from "./table";
 import { hasQuery } from "@/utils/has-query";
 import { getCustomerTransactionsAction } from "@/actions/get-customer-tx-action";
+import { salesAccountingFilterData } from "@/actions/cached-sales-accounting";
 
 const pageSize = 25;
 export async function SalesAccountingTable({ query }) {
-    const filterDataPromise = employeesFilterData();
+    const filterDataPromise = salesAccountingFilterData();
 
     const loadMore = async (params?) => {
         "use server";

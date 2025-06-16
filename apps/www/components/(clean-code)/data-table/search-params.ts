@@ -8,6 +8,7 @@ import { PERMISSIONS, ROLES } from "@/data/contants/permissions";
 // Note: import from 'nuqs/server' to avoid the "use client" directive
 import { ARRAY_DELIMITER, SORT_DELIMITER } from "@/lib/delimiters";
 import { noteParamsParser, noteSchema } from "@/modules/notes/constants";
+import { paymentMethods } from "@/utils/constants";
 import { SalesPriority } from "@prisma/client";
 import {
     createParser,
@@ -16,7 +17,6 @@ import {
     parseAsArrayOf,
     parseAsBoolean,
     parseAsInteger,
-    parseAsIsoDateTime,
     parseAsString,
     parseAsStringLiteral,
 } from "nuqs/server";
@@ -81,7 +81,9 @@ export const searchParamsParser: {
     "customer.id": parseAsInteger,
     "customer.name": parseAsString,
     "customer.tx.id": parseAsString,
+    "sales.having": parseAsString,
     "sales.tx.id": parseAsString,
+    "sales.ids": parseAsArrayOf(parseAsInteger),
     status: parseAsString,
     search: parseAsString,
     "dispatch.status": parseAsString,
@@ -107,6 +109,7 @@ export const searchParamsParser: {
         parseAsStringLiteral(Object.keys(SalesPriority)),
         ARRAY_DELIMITER,
     ),
+    "payment.type": parseAsString,
     _q: parseAsString,
     id: parseAsInteger,
     "user.id": parseAsInteger,
@@ -148,7 +151,9 @@ export const searchSchema = z
         "production.assignedToId": z.number().optional(),
         production: z.string().optional(),
         invoice: z.enum(INVOICE_FILTER_OPTIONS).optional(),
+        "sales.having": z.string().optional(),
         "sales.id": z.number().optional(),
+        "sales.ids": z.array(z.number()).optional(),
         "sales.rep": z.string().optional(),
         "sales.tx.id": z.number().optional(),
         "sales.type": z.enum(["order", "quote"]).optional(),
@@ -158,6 +163,7 @@ export const searchSchema = z
         "dealer.id": z.number().optional(),
         "user.id": z.number().optional(),
         "user.permissions": z.enum(PERMISSIONS).optional(),
+        "payment.type": z.enum(paymentMethods).optional(),
         "user.cannot": z.enum(PERMISSIONS).optional(),
         "user.role": z.enum(ROLES).optional(),
         roleId: z.number().optional(),

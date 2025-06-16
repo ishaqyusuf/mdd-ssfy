@@ -45,7 +45,7 @@ export async function getCustomerGeneralInfoAction(accountNo) {
         displayName,
         isBusiness: !!customer?.businessName,
         accountNo,
-        walletBalance: wallet?.balance,
+        walletBalance: wallet?.walletBalance,
         pendingPayment,
         recentTx,
         recentSales,
