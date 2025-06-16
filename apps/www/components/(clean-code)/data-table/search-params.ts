@@ -20,12 +20,12 @@ import {
     parseAsStringLiteral,
 } from "nuqs/server";
 import { z } from "zod";
-import { SalesPriority } from "@gnd/db";
+// import { SalesPriority } from "@gnd/db";
 // import { REGIONS } from "@/constants/region";
 // import { METHODS } from "@/constants/method";
 
 // https://logs.run/i?sort=latency.desc
-
+const SalesPriority = [] as any;
 export const parseAsSort = createParser({
     parse(queryValue) {
         const [id, desc] = queryValue.split(SORT_DELIMITER);

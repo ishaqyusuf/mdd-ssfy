@@ -1,10 +1,8 @@
 // import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
-// import { PrismaClient } from "@/db";
-// import { prisma } from "@/db";
+
 import { schedules } from "@trigger.dev/sdk/v3";
 
-// const prisma = new PrismaClient();
 export const salesInvoiceScheduler = schedules.task({
     id: "sales-invoice-scheduler",
     // Every 08:00am

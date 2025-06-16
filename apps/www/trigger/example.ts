@@ -1,8 +1,6 @@
 import { logger, task, wait } from "@trigger.dev/sdk/v3";
 
 import { db } from "@gnd/db";
-
-// const prisma = new PrismaClient();
 export const helloWorldTask = task({
     id: "hello-world",
     // Set an optional maxDuration to prevent tasks from running indefinitely
