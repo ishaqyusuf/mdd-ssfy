@@ -6,7 +6,7 @@ import { getCustomerTransactionsAction } from "@/actions/get-customer-tx-action"
 import { salesAccountingFilterData } from "@/actions/cached-sales-accounting";
 
 const pageSize = 25;
-export async function SalesAccountingTable({ query }) {
+export async function SalesAccountingConflictsTable({ query }) {
     const filterDataPromise = salesAccountingFilterData();
 
     const loadMore = async (params?) => {

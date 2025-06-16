@@ -85,9 +85,9 @@ export function DataTable({
                         />
                         <div className="flex-1"></div>
                         <SuperAdminGuard>
-                            <Button disabled>
-                                <Link href="/sales-book/accounting-resolution-center">
-                                    Resolution Center
+                            <Button asChild>
+                                <Link href="/sales-book/accounting-conflicts">
+                                    Resolve Conflicts
                                 </Link>
                             </Button>
                         </SuperAdminGuard>

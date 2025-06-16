@@ -10,6 +10,7 @@ import { SalesPaymentStatus } from "@/app/(clean-code)/(sales)/types";
 import { SquarePaymentStatus } from "@/_v2/lib/square";
 import { authUser } from "@/app/(v1)/_actions/utils";
 import { deleteSalesCommission } from "./delete-payroll";
+import { revalidatePath } from "next/cache";
 
 const schema = z.object({
     customerTransactionId: z.number(),
@@ -72,5 +73,6 @@ export const cancelSalesPaymentAction = actionClient
                     });
                 }),
             );
+            revalidatePath("/sales-rep");
         });
     });

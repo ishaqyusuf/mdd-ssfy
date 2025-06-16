@@ -15,6 +15,7 @@ export const ROUTE_VERSIONS = {
     },
 };
 export const Tags = {
+    accountConflicts: "accounting-conflicts",
     salesAssignments: "sales_assingments",
     salesDispatchers: "sales_dispatchers",
     salesCustomers: "sales_customers",

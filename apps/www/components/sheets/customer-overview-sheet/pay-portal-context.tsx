@@ -99,8 +99,6 @@ export function usePayPortal() {
                 }, 2000);
             } else {
                 if (args.data.status) {
-                    console.log({ args });
-
                     form.setValue("terminalPaymentSession", null);
                     toast.success("", toastDetail("payment-success"));
                     revalidateTable();
