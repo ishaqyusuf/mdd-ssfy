@@ -17,7 +17,6 @@ async function salesResolveUpdatePayment(salesId) {
     });
     revalidateTag(`sales-resolvables`);
 }
-
 export const salesResolveUpdatePaymentAction = actionClient
     .schema(schema)
     .action(async ({ parsedInput: data }) => {
