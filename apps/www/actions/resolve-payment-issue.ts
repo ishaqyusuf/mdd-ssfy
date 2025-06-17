@@ -11,14 +11,14 @@ import { authUser } from "@/app/(v1)/_actions/utils";
 import { deleteSalesCommission } from "./delete-payroll";
 import { revalidatePath } from "next/cache";
 
-const schema = z.object({
+const __schema = z.object({
     customerTransactionId: z.number(),
     reason: z.string().optional(),
     action: z.string().optional(),
     note: z.string().optional(),
 });
 export const resolvePaymentAction = actionClient
-    .schema(schema)
+    .schema(__schema)
     .metadata({
         name: "resolve-payment-action",
         track: {},
