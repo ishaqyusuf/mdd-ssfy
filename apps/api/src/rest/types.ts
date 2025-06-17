@@ -1,8 +1,6 @@
-import type { Database } from "@gnd/db";
-
 export type Context = {
   Variables: {
-    db: Database;
+    db: any;
     // session: Session;
     // teamId: string;
   };

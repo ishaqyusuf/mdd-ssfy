@@ -1,7 +1,7 @@
 // import type { Database, DatabaseWithPrimary } from "@api/db";
 // import type { Session } from "@api/utils/auth";
 // import { logger } from "@api/utils/logger";
-import type { Database } from "@gnd/db";
+// import type { Database } from "@gnd/db";
 import { LRUCache } from "lru-cache";
 
 // In-memory map to track teams who recently performed mutations.
@@ -23,14 +23,14 @@ export const withPrimaryReadAfterWrite = async <TReturn>(opts: {
   ctx: {
     // session?: Session | null;
     // teamId?: string | null;
-    db: Database;
+    db: any;
   };
   type: "query" | "mutation" | "subscription";
   next: (opts: {
     ctx: {
       // session?: Session | null;
       // teamId?: string | null;
-      db: Database;
+      db: any;
     };
   }) => Promise<TReturn>;
 }) => {

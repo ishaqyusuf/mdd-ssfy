@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { db, type Database } from "@gnd/db";
+import { db } from "@gnd/db";
 import { TRPCError, initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import { withPrimaryReadAfterWrite } from "./middleware/primary-read-after-write";
@@ -7,7 +7,7 @@ import { withPrimaryReadAfterWrite } from "./middleware/primary-read-after-write
 export type TRPCContext = {
   //   session: Session | null;
   //   supabase: SupabaseClient;
-  db: Database;
+  db: any;
   profile: {
     sessionId?;
     schoolId?;

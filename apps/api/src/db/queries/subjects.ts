@@ -3,7 +3,7 @@ import type {
   GetAllSubjects,
   GetClassroomSubjects,
 } from "@api/trpc/schemas/students";
-import { db, type Database } from "@gnd/db";
+import { db } from "@gnd/db";
 
 export async function getAllSubjects(
   { db, profile }: TRPCContext,
@@ -22,7 +22,7 @@ export async function getAllSubjects(
   // return subjects;
 }
 export async function getClassroomSubjects(
-  db: Database,
+  db: any,
   params: GetClassroomSubjects,
 ) {
   // const subjects = await db.departmentSubject.findMany({

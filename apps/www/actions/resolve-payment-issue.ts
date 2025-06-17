@@ -1,6 +1,6 @@
 "use server";
 
-import { CustomerTransactionStatus, prisma } from "@/db";
+import { prisma } from "@/db";
 import z from "zod";
 
 import { createSiteActionTicket } from "./create-site-action-ticket";

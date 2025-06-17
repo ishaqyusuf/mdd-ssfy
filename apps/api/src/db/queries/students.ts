@@ -1,7 +1,5 @@
 import { composeQueryData } from "@api/query-response";
 import { composeQuery } from "@api/utils";
-import type { Database, Prisma } from "@gnd/db";
-// import { Database, Prisma } from "@gnd/db";
 
 type SearchParams = {
   sessionId?: string;
@@ -11,7 +9,7 @@ type SearchParams = {
   sort?;
   start?;
 };
-export async function getStudents(db: Database, query: SearchParams) {
+export async function getStudents(db: any, query: SearchParams) {
   // const model = db.students;
   // const { response, searchMeta, where } = await composeQueryData(
   //   query,
