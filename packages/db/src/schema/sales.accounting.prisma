@@ -1,0 +1,9 @@
+model SalesResolution {
+    id         Int       @unique @default(autoincrement())
+    resolvedBy String
+    salesId    Int
+    action     String
+    createdAt  DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime? @updatedAt
+    deletedAt  DateTime? @db.Timestamp(0)
+}

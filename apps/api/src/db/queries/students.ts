@@ -1,7 +1,7 @@
 import { composeQueryData } from "@api/query-response";
 import { composeQuery } from "@api/utils";
-import type { Database, Prisma } from "@school-clerk/db";
-// import { Database, Prisma } from "@school-clerk/db";
+import type { Database, Prisma } from "@gnd/db";
+// import { Database, Prisma } from "@gnd/db";
 
 type SearchParams = {
   sessionId?: string;
@@ -12,27 +12,28 @@ type SearchParams = {
   start?;
 };
 export async function getStudents(db: Database, query: SearchParams) {
-  const model = db.students;
-  const { response, searchMeta, where } = await composeQueryData(
-    query,
-    whereStudents(query),
-    db.students,
-  );
-  const list = await model.findMany({
-    where,
-    ...searchMeta,
-  });
-  return await response(
-    list.map((item) => {
-      return {
-        ...item,
-      };
-    }),
-  );
+  // const model = db.students;
+  // const { response, searchMeta, where } = await composeQueryData(
+  //   query,
+  //   whereStudents(query),
+  //   db.students,
+  // );
+  // const list = await model.findMany({
+  //   where,
+  //   ...searchMeta,
+  // });
+  // return await response(
+  //   list.map((item) => {
+  //     return {
+  //       ...item,
+  //     };
+  //   }),
+  // );
 }
 
 function whereStudents(query: SearchParams) {
-  const where: Prisma.StudentsWhereInput[] = [
+  const where: // Prisma.StudentsWhereInput[]
+  any[] = [
     {
       sessionForms: {
         some: {

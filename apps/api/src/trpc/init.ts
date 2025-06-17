@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { prisma, type Database } from "@school-clerk/db";
+import { db, type Database } from "@gnd/db";
 import { TRPCError, initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import { withPrimaryReadAfterWrite } from "./middleware/primary-read-after-write";
@@ -25,7 +25,6 @@ export const createTRPCContext = async (
   const [termId, sessionId, schoolId] = (
     c.req.header()["x-tenant-session-term-id"] ?? ""
   )?.split("|");
-  const db = prisma;
   return {
     db,
     profile: {

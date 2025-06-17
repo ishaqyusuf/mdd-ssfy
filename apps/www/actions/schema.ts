@@ -4,7 +4,6 @@ import {
 } from "@/app/(clean-code)/(sales)/types";
 import { DeliveryOption } from "@/types/sales";
 import { paymentMethods } from "@/utils/constants";
-import { Qty } from "@/utils/sales-control-util";
 import { z } from "zod";
 
 export const changeSalesChartTypeSchema = z.enum(["sales"]);

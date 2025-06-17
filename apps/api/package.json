@@ -15,7 +15,6 @@
   "dependencies": {
     "@date-fns/utc": "^2.1.0",
     "@hono/trpc-server": "^0.3.4",
-    "@hono/zod-openapi": "^0.19.8",
     "@hono/zod-validator": "^0.7.0",
     "@scalar/hono-api-reference": "^0.9.1",
     "@gnd/db": "workspace:*",

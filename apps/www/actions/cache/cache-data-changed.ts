@@ -18,4 +18,5 @@ export function __salesPayrollUpdated({ orderId = null, userId = null }) {
 
 export function __salesPaymentUpdated() {
     revalidateTag(`sales-payment-count`);
+    revalidateTag(`sales-resolvables`);
 }

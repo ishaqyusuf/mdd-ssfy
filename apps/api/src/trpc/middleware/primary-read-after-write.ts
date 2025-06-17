@@ -1,7 +1,7 @@
 // import type { Database, DatabaseWithPrimary } from "@api/db";
 // import type { Session } from "@api/utils/auth";
 // import { logger } from "@api/utils/logger";
-import { Database } from "@school-clerk/db";
+import type { Database } from "@gnd/db";
 import { LRUCache } from "lru-cache";
 
 // In-memory map to track teams who recently performed mutations.
