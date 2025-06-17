@@ -16,7 +16,6 @@ import {
     DropdownMenuSeparator,
 } from "@gnd/ui/dropdown-menu";
 import { useAction } from "next-safe-action/hooks";
-import { cancelSalesPaymentAction } from "@/actions/cancel-sales-payment";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import { CancelSalesTransactionAction } from "@/components/cancel-sales-transaction";

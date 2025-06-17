@@ -1,13 +1,12 @@
 "use server";
 
-import { prisma } from "@/db";
+import { CustomerTransactionStatus, prisma } from "@/db";
 import z from "zod";
 
 import { createSiteActionTicket } from "./create-site-action-ticket";
 import { actionClient } from "./safe-action";
 import { updateSalesDueAmount } from "./update-sales-due-amount";
 import { SalesPaymentStatus } from "@/app/(clean-code)/(sales)/types";
-import { SquarePaymentStatus } from "@/_v2/lib/square";
 import { authUser } from "@/app/(v1)/_actions/utils";
 import { deleteSalesCommission } from "./delete-payroll";
 import { revalidatePath } from "next/cache";
@@ -15,11 +14,13 @@ import { revalidatePath } from "next/cache";
 const schema = z.object({
     customerTransactionId: z.number(),
     reason: z.string().optional(),
+    action: z.string().optional(),
+    note: z.string().optional(),
 });
-export const cancelSalesPaymentAction = actionClient
+export const resolvePaymentAction = actionClient
     .schema(schema)
     .metadata({
-        name: "cancel-sales-payment",
+        name: "resolve-payment-action",
         track: {},
     })
     .action(async ({ parsedInput: { customerTransactionId, ...input } }) => {
@@ -30,7 +31,7 @@ export const cancelSalesPaymentAction = actionClient
                     id: customerTransactionId,
                 },
                 data: {
-                    status: "CANCELED" as SquarePaymentStatus,
+                    status: "CANCELED" as CustomerTransactionStatus,
                     statusNote: input.reason,
                     history: {
                         create: {
