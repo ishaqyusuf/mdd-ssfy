@@ -127,6 +127,28 @@ function Action({ item: sale }: { item: Item }) {
                                     >
                                         Update Payment
                                     </Menu.Item>
+                                    <Menu.Item
+                                        onClick={(e) => {
+                                            updatePayment.execute({
+                                                salesId: sale.id,
+                                            });
+                                        }}
+                                        SubMenu={
+                                            <>
+                                                <Menu.Item icon="wallet">
+                                                    Wallet
+                                                </Menu.Item>
+                                                <Menu.Item icon="cash">
+                                                    Cash
+                                                </Menu.Item>
+                                            </>
+                                        }
+                                        disabled={sale?.calculatedDue >= 0}
+                                        icon="pendingPayment"
+                                    >
+                                        Refund{" "}
+                                        <Money value={sale?.calculatedDue} />
+                                    </Menu.Item>
                                 </Menu>
                             </div>
                         </div>
