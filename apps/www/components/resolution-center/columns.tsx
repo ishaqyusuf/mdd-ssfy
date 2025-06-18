@@ -119,9 +119,11 @@ function Action({ item: sale }: { item: Item }) {
                                 >
                                     <Menu.Item
                                         onClick={(e) => {
+ 
                                             // updatePayment.execute({
                                             //     salesId: sale.id,
                                             // });
+ 
                                         }}
                                         icon="pendingPayment"
                                     >
@@ -129,9 +131,11 @@ function Action({ item: sale }: { item: Item }) {
                                     </Menu.Item>
                                     <Menu.Item
                                         onClick={(e) => {
+ 
                                             // updatePayment.execute({
                                             //     salesId: sale.id,
                                             // });
+ 
                                         }}
                                         SubMenu={
                                             <>

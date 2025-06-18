@@ -111,8 +111,10 @@ export const PaymentMethodIcon = {
     zelle: Smartphone,
     terminal: CreditCard,
     check: Building,
+ 
     others: DollarSign,
     wallet: Banknote
+ 
 }
 export const Icons = {
     profile: UserCircle,

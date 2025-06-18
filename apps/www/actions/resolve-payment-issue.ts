@@ -31,7 +31,9 @@ export const resolvePaymentAction = actionClient
                     id: customerTransactionId,
                 },
                 data: {
+ 
                     status: "CANCELED" as any,
+ 
                     statusNote: input.reason,
                     history: {
                         create: {
