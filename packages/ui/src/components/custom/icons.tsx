@@ -89,6 +89,11 @@ import {
     TimerIcon,
     Users,
     Flag,
+    Smartphone,
+    Building,
+    CheckCircle,
+    XCircle,
+    Clock,
 } from "lucide-react";
 import Image from "next/image";
  
@@ -100,6 +105,14 @@ import { cn } from "../../utils";
 
 export type Icon = LucideIcon;
 
+export const PaymentMethodIcon = {
+    link: Smartphone,
+    cash: Banknote,
+    zelle: Smartphone,
+    terminal: CreditCard,
+    check: Building,
+    others: DollarSign
+}
 export const Icons = {
     profile: UserCircle,
     dashbord2: DashboardIcon,
@@ -189,9 +202,7 @@ export const Icons = {
     move2: Move,
     help: HelpCircle,
     pizza: Pizza,
-    delivery: Truck,
-    twitter: Twitter,
-    check: Check,
+    delivery: Truck, 
     copy: Copy,
     copyDone: ClipboardCheck,
     sun: SunMedium,
@@ -202,7 +213,7 @@ export const Icons = {
     view: Eye,
     flag:Flag,
     edit: ClipboardEdit,
-     
+    ...PaymentMethodIcon,
 };
 
 export type IconKeys = keyof typeof Icons;
@@ -231,4 +242,20 @@ export function Icon({
     const RenderIcon = Icons[name];
     if (!RenderIcon) return null;
     return <RenderIcon className={cn("", iconVariants(props), className)} />;
+} 
+export const StatusIcon = ({ status }: { status: string }) => {
+  switch (status) {
+    case "success":
+      return <CheckCircle className="h-4 w-4 text-green-500" />
+    case "failed":
+      return <XCircle className="h-4 w-4 text-red-500" />
+    case "cancelled":
+      return <XCircle className="h-4 w-4 text-gray-500" />
+    case "pending":
+      return <Clock className="h-4 w-4 text-yellow-500" />
+    case "disputed":
+      return <AlertTriangle className="h-4 w-4 text-orange-500" />
+    default:
+      return <Clock className="h-4 w-4" />
+  }
 }
