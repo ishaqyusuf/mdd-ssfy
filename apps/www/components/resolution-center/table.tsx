@@ -21,6 +21,10 @@ import { SuperAdminGuard } from "@/components/auth-guard";
 import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { isProdClient } from "@/lib/is-prod";
+import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
+import { Icons } from "@gnd/ui/custom/icons";
+import { Badge } from "@gnd/ui/badge";
+import { AlertTriangle } from "lucide-react";
 
 type Props = {
     data: Item[];
@@ -28,6 +32,7 @@ type Props = {
     pageSize: number;
     nextMeta;
     filterDataPromise;
+    count;
 };
 
 export function DataTable({
@@ -36,22 +41,13 @@ export function DataTable({
     pageSize,
     nextMeta,
     filterDataPromise,
+    count,
 }: Props) {
-    const { setParams, params } = useEmployeesParams();
     const filterData: PageFilterData[] = filterDataPromise
         ? use(filterDataPromise)
         : [];
-    const role = useRolesParams();
-    const toast = useLoadingToast();
-    //   const deleteEmployee = useAction(deleteStudentAction, {
-    //     onSuccess(args) {
-    //       toast.success("Deleted!", {
-    //         variant: "destructive",
-    //       });
-    //     },
-    //     onError(e) {},
-    //   });
-    const txView = useTransactionOverviewModal();
+
+    const { params, setParams } = useResolutionCenterParams();
     return (
         <TableProvider
             args={[
@@ -64,14 +60,12 @@ export function DataTable({
                     setParams,
                     params,
                     tableMeta: {
+                        rowClassName: "hover:bg-transparent",
                         filterData,
                         deleteAction(id) {
                             //   deleteStudent.execute({
                             //     studentId: id,
                             //   });
-                        },
-                        rowClick(id, rowData) {
-                            txView.viewTx(rowData?.id);
                         },
                     },
                 },
@@ -85,18 +79,15 @@ export function DataTable({
                             filterList={filterData}
                         />
                         <div className="flex-1"></div>
-                        <SuperAdminGuard>
-                            <Button disabled={isProdClient}>
-                                <Link href="/sales-book/accounting/resolution-center">
-                                    Resolution Center
-                                </Link>
-                            </Button>
-                        </SuperAdminGuard>
+                        <div className="flex items-center gap-4">
+                            <Badge variant="destructive" className="text-sm">
+                                <AlertTriangle className="h-4 w-4 mr-1" />
+                                {count} Conflicts
+                            </Badge>
+                        </div>
                     </div>
                 </FContentShell>
                 <Table>
-                    <TableHeaderComponent />
-
                     <TableBody>
                         <TableRow />
                     </TableBody>

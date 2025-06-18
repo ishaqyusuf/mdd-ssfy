@@ -53,6 +53,15 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
             status: true,
             paymentMethod: true,
             meta: true,
+            history: {
+                select: {
+                    id: true,
+                    authorName: true,
+                    status: true,
+                    createdAt: true,
+                    description: true,
+                },
+            },
             author: {
                 select: {
                     name: true,
@@ -122,6 +131,7 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
                 status?.toLocaleLowerCase() == "pending"
             )
                 status = spStatus;
+            const { history } = item;
             return {
                 checkNo: meta?.checkNo || spMeta?.checkNo,
                 reason: item?.statusNote,
@@ -139,6 +149,7 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
                 salesReps,
                 sales: item.salesPayments,
                 meta,
+                history,
             };
         }),
     );
