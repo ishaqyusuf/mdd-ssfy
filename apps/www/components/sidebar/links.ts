@@ -342,9 +342,9 @@ export const linkModules = [
                     _role.in("Admin", "Super Admin"),
                 )
                 .level(1).data,
-            _link("Accounting", "billing", "/sales-book/accounting").access(
-                _perm.is("editOrders"),
-            ).data,
+            _link("Accounting", "billing", "/sales-book/accounting")
+                .access(_perm.is("editOrders"))
+                .childPaths("sales-book/accounting/resolution-center").data,
         ]),
         _section("main", null, [
             // _link("HOME", "project", "/sales-book/home-page").access(
