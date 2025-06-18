@@ -1,4 +1,3 @@
-import { cancelSalesPaymentAction } from "@/actions/cancel-sales-payment";
 import { getCustomerTransactionsAction } from "@/actions/get-customer-tx-action";
 import { getSalesPaymentsAction } from "@/actions/get-sales-payment";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";

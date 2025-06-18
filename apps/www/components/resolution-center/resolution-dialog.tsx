@@ -30,6 +30,8 @@ import {
 import { Icons } from "@gnd/ui/custom/icons";
 import { Textarea } from "@gnd/ui/textarea";
 import { GetSalesResolutionData } from "@/actions/get-sales-resolution-data";
+import { useAction } from "next-safe-action/hooks";
+import { resolvePaymentAction } from "@/actions/resolve-payment-issue";
 
 interface ResolutionFormData {
     action: string;
@@ -90,7 +92,9 @@ export function ResolutionDialog({
         setOpen(false);
         form.reset();
     };
-
+    const resolveAction = useAction(resolvePaymentAction, {
+        onSuccess() {},
+    });
     const handleOpenChange = (newOpen: boolean) => {
         setOpen(newOpen);
         if (!newOpen) {
