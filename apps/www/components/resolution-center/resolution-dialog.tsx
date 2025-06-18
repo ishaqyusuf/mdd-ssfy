@@ -41,17 +41,11 @@ interface ResolutionFormData {
 
 interface ResolutionDialogProps {
     payment: GetSalesResolutionData["payments"][number];
-    // onResolve?: (action: string, reason?: string, note?: string) => void;
 }
 
 const RESOLUTION_ACTIONS = [
     { value: "cancel", label: "Cancel Payment" },
     { value: "refund", label: "Process Refund" },
-    // { value: "adjust", label: "Adjust Amount" },
-    // { value: "merge", label: "Merge Duplicate" },
-    // { value: "split", label: "Split Payment" },
-    // { value: "reprocess", label: "Reprocess Payment" },
-    // { value: "mark-resolved", label: "Mark as Resolved" },
 ];
 
 const CANCELLATION_REASONS = [
