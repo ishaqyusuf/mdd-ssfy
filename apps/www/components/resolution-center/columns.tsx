@@ -1,265 +1,142 @@
 "use client";
 
-import { ActionCell } from "../tables/action-cell";
-import { ColumnDef, ColumnMeta, PageItemData } from "@/types/type";
-import { TCell } from "@/components/(clean-code)/data-table/table-cells";
+import { ColumnDef, PageItemData } from "@/types/type";
 import { _perm } from "@/components/sidebar/links";
-import { getCustomerTransactionsAction } from "@/actions/get-customer-tx-action";
-import { formatMoney } from "@/lib/use-number";
-import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
-import { Progress } from "@/components/(clean-code)/progress";
-import { cn } from "@gnd/ui/cn";
-import { Button } from "@gnd/ui/button";
-import { Menu } from "@/components/(clean-code)/menu";
-import {
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-} from "@gnd/ui/dropdown-menu";
-import { useAction } from "next-safe-action/hooks";
-import { cancelSalesPaymentAction } from "@/actions/cancel-sales-payment";
-import { useLoadingToast } from "@/hooks/use-loading-toast";
-import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
-import { CancelSalesTransactionAction } from "@/components/cancel-sales-transaction";
+import { getSalesResolutions } from "@/actions/get-sales-resolutions";
 
-export type Item = PageItemData<typeof getCustomerTransactionsAction>;
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@gnd/ui/collapsible";
+import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
+import {
+    Calendar,
+    ChevronDown,
+    ChevronRight,
+    DollarSign,
+    User,
+} from "lucide-react";
+import { CardHeader, CardTitle } from "@gnd/ui/card";
+import Money from "../_v1/money";
+import { Badge } from "@gnd/ui/badge";
+import { SalesData } from "./sales-data";
+import { Menu } from "../(clean-code)/menu";
+import { useAction } from "next-safe-action/hooks";
+import { salesResolveUpdatePaymentAction } from "@/actions/sales-resolve-update-payment";
+import StatusBadge from "../_v1/status-badge";
+import { Progress } from "../(clean-code)/progress";
+
+export type Item = PageItemData<typeof getSalesResolutions>;
 export const columns: ColumnDef<Item>[] = [
     {
-        header: "date",
-        accessorKey: "uid",
+        header: "data",
+        accessorKey: "data",
         meta: {
-            className: "w-16",
+            className: "hover:bg-transparent p-0",
         },
-        cell: ({ row: { original: item } }) => (
-            <div>
-                <TCell.Date>{item.createdAt}</TCell.Date>
-            </div>
-        ),
-    },
-    {
-        header: "Amount",
-        accessorKey: "amount",
-        meta: {
-            className: "text-end",
-        },
-        cell: ({ row: { original: item } }) => {
-            const money = formatMoney(Math.abs(item.amount));
-            return (
-                <TCell.Secondary
-                    className={cn(
-                        "font-mono text-sm",
-                        item.amount < 0 && "text-red-700/70",
-                    )}
-                >
-                    {item.amount <= 0 ? `($${money})` : `$${money}`}
-                </TCell.Secondary>
-            );
-        },
-    },
-    {
-        header: "Description",
-        accessorKey: "description",
-        meta: {
-            // preventDefault: true,
-        },
-        cell: ({ row: { original: item } }) => (
-            <>
-                <TCell.Secondary className="whitespace-nowrap uppercase">
-                    <TextWithTooltip
-                        className="max-w-[150px] xl:max-w-[250px]"
-                        text={item.description}
-                    />
-                </TCell.Secondary>
-                <Progress>
-                    <Progress.Status>{item.paymentMethod}</Progress.Status>
-                    <span className="font-mono">{item.checkNo}</span>
-                </Progress>
-            </>
-        ),
-    },
-    {
-        header: "Order #",
-        accessorKey: "orderId",
-        meta: {
-            // preventDefault: true,
-        } as ColumnMeta,
-        cell: ({ row: { original: item } }) => (
-            <TCell.Secondary>
-                <TextWithTooltip
-                    className="max-w-[100px] xl:max-w-[200px]"
-                    text={item.orderIds || "-"}
-                />
-            </TCell.Secondary>
-        ),
-    },
-    {
-        header: "Sales Rep",
-        accessorKey: "salesRep",
-        meta: {
-            // preventDefault: true,
-        } as ColumnMeta,
-        cell: ({ row: { original: item } }) => (
-            <>
-                {item.salesReps.map((rep, repId) => (
-                    <TCell.Secondary key={repId}>{rep}</TCell.Secondary>
-                ))}
-            </>
-        ),
-    },
-    {
-        header: "Processed By",
-        accessorKey: "processedBy",
-        meta: {
-            // preventDefault: true,
-        } as ColumnMeta,
-        cell: ({ row: { original: item } }) => (
-            <>
-                <TCell.Secondary>{item.authorName}</TCell.Secondary>
-            </>
-        ),
-    },
-    {
-        header: "Payment Status",
-        accessorKey: "status",
-        meta: {
-            // preventDefault: true,
-        } as ColumnMeta,
-        cell: ({ row: { original: item } }) => (
-            <>
-                <Progress>
-                    <Progress.Status>{item.status}</Progress.Status>
-                    <span>{item.reason}</span>
-                </Progress>
-            </>
-        ),
-    },
-    {
-        header: "",
-        accessorKey: "actions",
-        meta: {
-            className: "flex-1",
-        },
-        cell: ({ row: { original: item } }) => {
-            return (
-                <ActionCell itemId={item.id}>
-                    <Action item={item} />
-                </ActionCell>
-            );
-        },
+        cell: ({ row: { original: item } }) => <Action item={item} />,
     },
 ];
-export const customerTransactionsColumn: ColumnDef<Item>[] = [
-    {
-        header: "date",
-        accessorKey: "uid",
-        meta: {
-            className: "",
-        },
-        cell: ({ row: { original: item } }) => {
-            const money = formatMoney(Math.abs(item.amount));
-            return (
-                <div>
-                    <TCell.Date>{item.createdAt}</TCell.Date>
-                    <TCell.Secondary
-                        className={cn(
-                            "font-mono text-sm",
-                            item.amount < 0 && "text-red-700/70",
-                        )}
-                    >
-                        {item.amount <= 0 ? `($${money})` : `$${money}`}
-                    </TCell.Secondary>
-                </div>
-            );
-        },
-    },
-
-    {
-        header: "Description",
-        accessorKey: "description",
-        meta: {
-            // preventDefault: true,
-        },
-        cell: ({ row: { original: item } }) => (
-            <>
-                <TCell.Secondary className="whitespace-nowrap uppercase">
-                    <TextWithTooltip
-                        className="max-w-[150px] xl:max-w-[250px]"
-                        text={item.description}
-                    />
-                </TCell.Secondary>
-                <Progress>
-                    <Progress.Status>{item.paymentMethod}</Progress.Status>
-                    <span className="font-mono">{item.checkNo}</span>
-                </Progress>
-            </>
-        ),
-    },
-    // {
-    //     header: "Order #",
-    //     accessorKey: "orderId",
-    //     meta: {
-    //         // preventDefault: true,
-    //     } as ColumnMeta,
-    //     cell: ({ row: { original: item } }) => (
-    //         <TCell.Secondary>
-    //             <TextWithTooltip
-    //                 className="max-w-[100px] xl:max-w-[200px]"
-    //                 text={item.orderIds || "-"}
-    //             />
-    //         </TCell.Secondary>
-    //     ),
-    // },
-    // {
-    //     header: "Sales Rep",
-    //     accessorKey: "salesRep",
-    //     meta: {
-    //         // preventDefault: true,
-    //     } as ColumnMeta,
-    //     cell: ({ row: { original: item } }) => (
-    //         <>
-    //             {item.salesReps.map((rep, repId) => (
-    //                 <TCell.Secondary key={repId}>{rep}</TCell.Secondary>
-    //             ))}
-    //         </>
-    //     ),
-    // },
-
-    {
-        header: "Payment Status",
-        accessorKey: "status",
-        meta: {
-            // preventDefault: true,
-        } as ColumnMeta,
-        cell: ({ row: { original: item } }) => (
-            <>
-                <Progress>
-                    <Progress.Status>{item.status}</Progress.Status>
-                    <span>{item.reason}</span>
-                </Progress>
-            </>
-        ),
-    },
-    {
-        header: "",
-        accessorKey: "actions",
-        meta: {
-            className: "flex-1",
-        },
-        cell: ({ row: { original: item } }) => {
-            return (
-                <ActionCell itemId={item.id}>
-                    <Action item={item} />
-                </ActionCell>
-            );
-        },
-    },
-];
-function Action({ item }: { item: Item }) {
+function Action({ item: sale }: { item: Item }) {
+    const { params, setParams } = useResolutionCenterParams();
+    const ids = params?.resolutionIds || [];
+    const updatePayment = useAction(salesResolveUpdatePaymentAction, {
+        onSuccess(args) {},
+    });
     return (
-        <>
-            <CancelSalesTransactionAction
-                status={item.status}
-                customerTransactionId={item.id}
-            />
-        </>
+        <div className="border-red-200 bg-red-50/50">
+            <Collapsible
+                open={ids.includes(sale.id)}
+                onOpenChange={() => {
+                    let resolutionIds = [...ids];
+                    if (resolutionIds.includes(sale.id))
+                        resolutionIds = resolutionIds.filter(
+                            (a) => a != sale.id,
+                        );
+                    else resolutionIds.push(sale.id);
+                    if (!resolutionIds.length) resolutionIds = null;
+                    setParams({
+                        resolutionIds,
+                    });
+                }}
+            >
+                <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                {ids.includes(sale.id) ? (
+                                    <ChevronDown className="h-5 w-5" />
+                                ) : (
+                                    <ChevronRight className="h-5 w-5" />
+                                )}
+                                <div>
+                                    <CardTitle className="text-lg uppercase">
+                                        Order #{sale.orderId} -{" "}
+                                        {sale?.customer?.businessName ||
+                                            sale?.customer?.name}
+                                    </CardTitle>
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                                        <div className="flex items-center gap-1">
+                                            <User className="h-4 w-4" />
+                                            {sale.salesRep}
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Calendar className="h-4 w-4" />
+                                            {sale.orderDate}
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <DollarSign className="h-4 w-4" />
+                                            Total:
+                                            <Money value={sale.total} />
+                                        </div>
+                                        {/* {sale.due > 0 && (
+                                        <div className="flex items-center gap-1 text-red-600">
+                                            <AlertTriangle className="h-4 w-4" />
+                                            Due: $
+                                            {sale.amountDue.toLocaleString()}
+                                        </div>
+                                    )} */}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {sale.status && (
+                                    <Progress>
+                                        <Progress.Status>
+                                            {sale.status}
+                                        </Progress.Status>
+                                    </Progress>
+                                )}
+                                <Badge variant="outline" className="text-xs">
+                                    {sale.paymentCount} Payment
+                                    {sale.paymentCount !== 1 ? "s" : ""}
+                                </Badge>
+                                <Menu
+                                    disabled={updatePayment?.isExecuting}
+                                    label="Resolve"
+                                    noSize
+                                >
+                                    <Menu.Item
+                                        onClick={(e) => {
+                                            updatePayment.execute({
+                                                salesId: sale.id,
+                                            });
+                                        }}
+                                        icon="pendingPayment"
+                                    >
+                                        Update Payment
+                                    </Menu.Item>
+                                </Menu>
+                            </div>
+                        </div>
+                    </CardHeader>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent>
+                    <SalesData sale={sale} />
+                </CollapsibleContent>
+            </Collapsible>
+        </div>
     );
 }

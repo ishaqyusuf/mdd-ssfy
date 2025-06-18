@@ -38,6 +38,7 @@ type TableProps = (WithTable | WithoutTable) & {
         rowClick?: (id: string, rowData?) => any;
         loadMore?;
         filterData?: PageFilterData[];
+        rowClassName?: string;
     };
 };
 export const { useContext: useTable, Provider: TableProvider } =
