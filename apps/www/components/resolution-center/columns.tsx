@@ -129,9 +129,9 @@ function Action({ item: sale }: { item: Item }) {
                                     </Menu.Item>
                                     <Menu.Item
                                         onClick={(e) => {
-                                            updatePayment.execute({
-                                                salesId: sale.id,
-                                            });
+                                            // updatePayment.execute({
+                                            //     salesId: sale.id,
+                                            // });
                                         }}
                                         SubMenu={
                                             <>
