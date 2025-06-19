@@ -38,6 +38,7 @@ export const resolvePaymentAction = actionClient
                         create: {
                             status: "CANCELED",
                             description: input.note,
+                            // reason: input.reason,
                             authorId: author.id,
                             authorName: author.name,
                         },

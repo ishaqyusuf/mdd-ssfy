@@ -13,7 +13,6 @@ import { unstable_cache } from "next/cache";
 
 export async function getSalesResolvables() {
     const tags = ["sales-resolvables"];
-
     const fn = async () => {
         const resolvedToday = await prisma.salesResolution.findMany({
             where: {

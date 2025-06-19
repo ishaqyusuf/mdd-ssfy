@@ -12,6 +12,7 @@ import { formatDate } from "@/lib/use-day";
 import { ResolutionDialog } from "./resolution-dialog";
 import { DataSkeleton } from "../data-skeleton";
 import { timeout } from "@/lib/timeout";
+import { Progress } from "../(clean-code)/progress";
 
 export function SalesData({ sale }: { sale: Item }) {
     const data = useAsyncMemo(async () => {
@@ -107,23 +108,11 @@ export function SalesData({ sale }: { sale: Item }) {
                                                     as="span"
                                                     pok="textSm"
                                                 >
-                                                    <Badge
-                                                        variant={
-                                                            payment.status ===
-                                                            "success"
-                                                                ? "default"
-                                                                : payment.status ===
-                                                                    "failed"
-                                                                  ? "destructive"
-                                                                  : payment.status ===
-                                                                      "cancelled"
-                                                                    ? "secondary"
-                                                                    : "outline"
-                                                        }
-                                                        className="text-xs"
-                                                    >
-                                                        {payment.status}
-                                                    </Badge>
+                                                    <Progress>
+                                                        <Progress.Status>
+                                                            {payment.status}
+                                                        </Progress.Status>
+                                                    </Progress>
                                                 </DataSkeleton>
                                             </div>
                                         </div>

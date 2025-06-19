@@ -123,5 +123,5 @@ export const conflictType = [
     "resolved",
 ] as const;
 
-export const resolutionActions = ["cancel"] as const;
+export const resolutionActions = ["cancel", "update sales payment"] as const;
 export const resolutionReasons = ["refund-wallet"] as const;
