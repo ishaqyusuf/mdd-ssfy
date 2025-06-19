@@ -246,7 +246,7 @@ export const customerTransactionsColumn: ColumnDef<Item>[] = [
         cell: ({ row: { original: item } }) => {
             return (
                 <ActionCell itemId={item.id}>
-                    <Action item={item} />
+                    {/* <Action item={item} /> */}
                 </ActionCell>
             );
         },
@@ -255,10 +255,10 @@ export const customerTransactionsColumn: ColumnDef<Item>[] = [
 function Action({ item }: { item: Item }) {
     return (
         <>
-            <CancelSalesTransactionAction
+            {/* <CancelSalesTransactionAction
                 status={item.status}
                 customerTransactionId={item.id}
-            />
+            /> */}
         </>
     );
 }

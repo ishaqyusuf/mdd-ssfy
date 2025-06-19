@@ -22,13 +22,17 @@ export async function getCustomerWalletAction(accountNo) {
         where: {
             walletId: wallet?.id,
             OR: [
-                {
-                    status: "CANCELED" as SquarePaymentStatus,
-                    statusNote: "Refund Wallet",
-                },
+                // {
+                //     status: "CANCELED" as SquarePaymentStatus,
+                //     statusNote: "Refund Wallet",
+                // },
                 {
                     type: "wallet" as CustomerTransactionType,
                     status: "COMPLETED" as SquarePaymentStatus,
+                },
+                {
+                    status: "canceled",
+                    statusReason: "refund-wallet",
                 },
             ],
         },
