@@ -37,8 +37,6 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
     }
     // console.log({ itemArray: data.itemArray });
     const ecs = data.order.extraCosts;
-    console.log({ ecs });
-
     const extraCosts = Object.fromEntries(
         (data.order.extraCosts || []).map((c, ci) => [
             c.label == "Labor"
