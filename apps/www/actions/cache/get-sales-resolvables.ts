@@ -23,15 +23,16 @@ export async function getSalesResolvables() {
                 salesId: true,
             },
         });
+
         const list = await prisma.salesOrders.findMany({
             where: {
                 type: "order" as SalesType,
                 payments: {
                     some: {
                         deletedAt: null,
-                        status: {
-                            in: ["success"] as SalesPaymentStatus[],
-                        },
+                        // status: {
+                        //     in: ["success"] as SalesPaymentStatus[],
+                        // },
                     },
                 },
             },
@@ -56,12 +57,13 @@ export async function getSalesResolvables() {
                 payments: {
                     where: {
                         deletedAt: null,
-                        status: {
-                            in: ["success"] as SalesPaymentStatus[],
-                        },
+                        // status: {
+                        //     in: ["success"] as SalesPaymentStatus[],
+                        // },
                     },
                     select: {
                         amount: true,
+                        status: true,
                         updatedAt: true,
                     },
                     orderBy: {
@@ -73,15 +75,16 @@ export async function getSalesResolvables() {
         return list
             .map((ls) => {
                 const { salesRep, orderId, customer } = ls;
-                const paid = sum(ls.payments, "amount");
+                let payments = ls.payments.filter((a) => a.status == "success");
+                const paid = sum(payments, "amount");
                 const date = ls.payments[0]?.updatedAt;
                 const total = ls.grandTotal;
                 const due = ls.amountDue;
                 const calculatedDue = total - paid;
                 let status: SalesResolutionConflictType = "" as any;
                 const hasDuplicate =
-                    ls.payments.length !==
-                    new Set(ls.payments.map((p) => p.amount)).size;
+                    payments.length !==
+                    new Set(payments.map((p) => p.amount)).size;
 
                 if (due < 0) {
                     status = "overpayment";
@@ -102,13 +105,16 @@ export async function getSalesResolvables() {
                     due,
                     status,
                     calculatedDue,
-                    paymentCount: ls.payments.length,
+                    paymentCount: payments.length,
                     salesRep: salesRep?.name,
                     orderDate: formatDate(ls.createdAt),
                     orderId,
                 };
             })
-            .filter((a) => a.status)
+            .filter(
+                (a) =>
+                    a.status || !!resolvedToday?.find((b) => b.salesId == a.id),
+            )
             .sort(
                 (a, b) =>
                     new Date(b.date).getTime() - new Date(a.date).getTime(),

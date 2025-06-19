@@ -4,6 +4,7 @@ model CustomerTransaction {
     txId          String?
     status        String?
     statusNote    String?
+    statusReason  String?
     amount        Float
     walletId      Int?
     paymentMethod String?

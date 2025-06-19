@@ -18,6 +18,7 @@ export async function createResolution(data: z.infer<typeof schema>) {
             salesId: data.salesId,
             action: data.action,
             resolvedBy: auth.name,
+            reason: data.reason,
         },
     });
     revalidatePath("sales-resolvables");

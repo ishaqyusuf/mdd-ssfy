@@ -32,6 +32,8 @@ import { Textarea } from "@gnd/ui/textarea";
 import { GetSalesResolutionData } from "@/actions/get-sales-resolution-data";
 import { useAction } from "next-safe-action/hooks";
 import { resolvePaymentAction } from "@/actions/resolve-payment-issue";
+import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
+import { generateRandomString } from "@/lib/utils";
 
 interface ResolutionFormData {
     action: string;
@@ -80,7 +82,7 @@ export function ResolutionDialog({
     });
 
     const watchedAction = form.watch("action");
-
+    const rcp = useResolutionCenterParams();
     const onSubmit = (data: ResolutionFormData) => {
         // onResolve(data.action, data.reason, data.note);
         // setOpen(false);
@@ -95,6 +97,9 @@ export function ResolutionDialog({
         onSuccess() {
             form.reset();
             setOpen(false);
+            rcp.setParams({
+                refreshToken: generateRandomString(),
+            });
         },
     });
     const handleOpenChange = (newOpen: boolean) => {

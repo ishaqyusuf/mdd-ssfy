@@ -13,13 +13,15 @@ import { ResolutionDialog } from "./resolution-dialog";
 import { DataSkeleton } from "../data-skeleton";
 import { timeout } from "@/lib/timeout";
 import { Progress } from "../(clean-code)/progress";
+import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
 
 export function SalesData({ sale }: { sale: Item }) {
+    const r = useResolutionCenterParams();
     const data = useAsyncMemo(async () => {
         await timeout(300);
         const r = await getSalesResolutionData(sale?.id);
         return r;
-    }, [sale?.id]);
+    }, [sale?.id, r.params?.refreshToken]);
     return (
         <CardContent className="pt-0">
             <div className="space-y-4">
@@ -114,6 +116,9 @@ export function SalesData({ sale }: { sale: Item }) {
                                                         </Progress.Status>
                                                     </Progress>
                                                 </DataSkeleton>
+                                                <span className="mr-4 uppercase text-xs font-semibold">
+                                                    {payment?.reason}
+                                                </span>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-4">
@@ -146,7 +151,11 @@ export function SalesData({ sale }: { sale: Item }) {
                                             </DataSkeleton>
                                         </div>
                                     </div>
-
+                                    <div>
+                                        <span>
+                                            {payment?.history?.[0]?.description}
+                                        </span>
+                                    </div>
                                     {payment.history.length > 0 && (
                                         <div className="mt-3 pt-3 border-t">
                                             <Label className="text-xs text-muted-foreground">

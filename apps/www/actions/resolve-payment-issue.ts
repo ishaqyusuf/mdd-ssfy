@@ -33,12 +33,13 @@ export const resolvePaymentAction = actionClient
                 },
                 data: {
                     status: "CANCELED" as any,
-                    statusNote: input.reason,
+                    statusNote: input.note,
+                    // statusReason: input.reason,
                     history: {
                         create: {
                             status: "CANCELED",
                             description: input.note,
-                            // reason: input.reason,
+                            reason: input.reason,
                             authorId: author.id,
                             authorName: author.name,
                         },

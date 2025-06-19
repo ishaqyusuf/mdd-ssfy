@@ -10,6 +10,7 @@ import { CustomerTransactionMeta, ISalesPaymentMeta } from "@/types/sales";
 import { salesAccountingQueryMetaData } from "@/utils/db/query.sales-accounting";
 import { PaymentMethods, SalesHaving } from "@/utils/constants";
 import { __getPaymentCountBySales } from "./cached-sales-accounting";
+import { padStart } from "lodash";
 
 export type GetSalesCustomerTx = AsyncFnType<
     typeof getCustomerTransactionsAction
@@ -60,6 +61,10 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
                     status: true,
                     createdAt: true,
                     description: true,
+                    reason: true,
+                },
+                orderBy: {
+                    createdAt: "desc",
                 },
             },
             author: {
@@ -134,9 +139,10 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
             const { history } = item;
             return {
                 checkNo: meta?.checkNo || spMeta?.checkNo,
-                reason: item?.statusNote,
+                reason: item?.history?.[0]?.reason,
                 uuid: item.id,
                 id: item.id,
+                paymentNo: padStart(item.id?.toString(), 5, "0"),
                 authorName: item.author?.name,
                 status,
                 // status: ,
