@@ -10,6 +10,7 @@ import { SalesPaymentStatus } from "@/app/(clean-code)/(sales)/types";
 import { authUser } from "@/app/(v1)/_actions/utils";
 import { deleteSalesCommission } from "./delete-payroll";
 import { revalidatePath } from "next/cache";
+import { createResolution } from "./create-resolution";
 
 const __schema = z.object({
     customerTransactionId: z.number(),
@@ -36,7 +37,7 @@ export const resolvePaymentAction = actionClient
                     history: {
                         create: {
                             status: "CANCELED",
-                            description: input.reason,
+                            description: input.note,
                             authorId: author.id,
                             authorName: author.name,
                         },
@@ -72,8 +73,14 @@ export const resolvePaymentAction = actionClient
                             id: sp.id,
                         },
                     });
+                    await createResolution({
+                        action: input.action as any,
+                        reason: input.reason as any,
+                        salesId: sp?.orderId,
+                    });
                 }),
             );
             revalidatePath("/sales-rep");
+            revalidatePath("/sales-book/accounting/resolution-center");
         });
     });

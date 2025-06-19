@@ -45,7 +45,7 @@ interface ResolutionDialogProps {
 
 const RESOLUTION_ACTIONS = [
     { value: "cancel", label: "Cancel Payment" },
-    { value: "refund", label: "Process Refund" },
+    // { value: "refund", label: "Process Refund" },
 ];
 
 const CANCELLATION_REASONS = [
@@ -62,7 +62,7 @@ const REFUND_REASONS = [
     { value: "customer-request", label: "Customer Request" },
     { value: "order-cancelled", label: "Order Cancelled" },
     { value: "duplicate", label: "Duplicate Charge" },
-    { value: "dispute", label: "Dispute Resolution" },
+    // { value: "dispute", label: "Dispute Resolution" },
 ];
 
 export function ResolutionDialog({
@@ -73,7 +73,7 @@ export function ResolutionDialog({
 
     const form = useForm<ResolutionFormData>({
         defaultValues: {
-            action: "",
+            action: "cancel",
             reason: "",
             note: "",
         },
@@ -83,11 +83,19 @@ export function ResolutionDialog({
 
     const onSubmit = (data: ResolutionFormData) => {
         // onResolve(data.action, data.reason, data.note);
-        setOpen(false);
-        form.reset();
+        // setOpen(false);
+        resolveAction.execute({
+            action: data.action,
+            note: data.note,
+            reason: data.reason,
+            customerTransactionId: payment?.id,
+        });
     };
     const resolveAction = useAction(resolvePaymentAction, {
-        onSuccess() {},
+        onSuccess() {
+            form.reset();
+            setOpen(false);
+        },
     });
     const handleOpenChange = (newOpen: boolean) => {
         setOpen(newOpen);
@@ -237,6 +245,7 @@ export function ResolutionDialog({
 
                         <DialogFooter>
                             <Button
+                                disabled={resolveAction?.isExecuting}
                                 type="button"
                                 variant="outline"
                                 onClick={() => setOpen(false)}
@@ -247,10 +256,12 @@ export function ResolutionDialog({
                                 type="submit"
                                 disabled={
                                     !form.formState.isValid ||
-                                    form.formState.isSubmitting
+                                    form.formState.isSubmitting ||
+                                    resolveAction?.isExecuting
                                 }
                             >
-                                {form.formState.isSubmitting
+                                {form.formState.isSubmitting ||
+                                resolveAction?.isExecuting
                                     ? "Applying..."
                                     : "Apply Resolution"}
                             </Button>
