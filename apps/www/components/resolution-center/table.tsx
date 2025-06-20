@@ -14,15 +14,7 @@ import { PageFilterData } from "@/types/type";
 import { columns, Item } from "./resolution-center-content";
 import { LoadMore } from "../tables/load-more";
 import FContentShell from "@/components/(clean-code)/fikr-ui/f-content-shell";
-import { useRolesParams } from "@/hooks/use-roles-params";
-import { _perm } from "@/components/sidebar/links";
-import { useTransactionOverviewModal } from "@/hooks/use-tx-overview-modal";
-import { SuperAdminGuard } from "@/components/auth-guard";
-import { Button } from "@gnd/ui/button";
-import Link from "next/link";
-import { isProdClient } from "@/lib/is-prod";
 import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
-import { Icons } from "@gnd/ui/custom/icons";
 import { Badge } from "@gnd/ui/badge";
 import { AlertTriangle } from "lucide-react";
 

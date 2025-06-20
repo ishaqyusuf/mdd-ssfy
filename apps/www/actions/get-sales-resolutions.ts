@@ -13,7 +13,9 @@ export async function getSalesResolutions(query: SearchParamsType) {
     const { start = 0, size = 10 } = query;
     const meta: PageDataMeta = {};
     const data = resolvables.filter((a, i) => i >= start);
-    meta.count = resolvables.filter((a) => a.status).length;
+    meta.count = resolvables
+        .filter((a) => a.status)
+        .filter((a) => a.status != "resolved").length;
     let nextStart;
     if (data.length > size) nextStart = size + start;
     meta.next = {

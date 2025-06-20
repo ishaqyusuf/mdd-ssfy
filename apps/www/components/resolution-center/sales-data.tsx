@@ -173,6 +173,14 @@ export function SalesData({ sale }: { sale: Item }) {
                                                                     entry.status
                                                                 }
                                                             />
+                                                            <span>
+                                                                <DataSkeleton pok="textSm">
+                                                                    {formatDate(
+                                                                        entry.createdAt,
+                                                                    )}
+                                                                </DataSkeleton>
+                                                            </span>
+                                                            <span>•</span>
                                                             <span className="capitalize">
                                                                 <DataSkeleton pok="textSm">
                                                                     {
@@ -181,11 +189,15 @@ export function SalesData({ sale }: { sale: Item }) {
                                                                 </DataSkeleton>
                                                             </span>
                                                             <span>•</span>
-                                                            <span>
+                                                            <span className="uppercase">
                                                                 <DataSkeleton pok="textSm">
-                                                                    {formatDate(
-                                                                        entry.createdAt,
-                                                                    )}
+                                                                    {entry.reason
+                                                                        ?.split(
+                                                                            "-",
+                                                                        )
+                                                                        ?.join(
+                                                                            " ",
+                                                                        )}
                                                                 </DataSkeleton>
                                                             </span>
                                                             {(entry.authorName ||

@@ -7,6 +7,7 @@ import {
 import { dateEquals } from "@/app/(v1)/_actions/action-utils";
 import { prisma } from "@/db";
 import { formatDate } from "@/lib/use-day";
+import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
 import { SalesResolutionConflictType } from "@/utils/constants";
 import { unstable_cache } from "next/cache";
@@ -46,6 +47,7 @@ export async function getSalesResolvables() {
                     select: {
                         name: true,
                         businessName: true,
+                        phoneNo: true,
                     },
                 },
                 salesRep: {
@@ -64,10 +66,10 @@ export async function getSalesResolvables() {
                     select: {
                         amount: true,
                         status: true,
-                        updatedAt: true,
+                        createdAt: true,
                     },
                     orderBy: {
-                        updatedAt: "desc",
+                        createdAt: "desc",
                     },
                 },
             },
@@ -76,11 +78,12 @@ export async function getSalesResolvables() {
             .map((ls) => {
                 const { salesRep, orderId, customer } = ls;
                 let payments = ls.payments.filter((a) => a.status == "success");
-                const paid = sum(payments, "amount");
-                const date = ls.payments[0]?.updatedAt;
+                const paid = formatMoney(sum(payments, "amount"));
+                const date = ls.payments[0]?.createdAt;
                 const total = ls.grandTotal;
-                const due = ls.amountDue;
-                const calculatedDue = total - paid;
+                const due = formatMoney(ls.amountDue);
+                const calculatedDue = formatMoney(sum([total, -1 * paid]));
+
                 let status: SalesResolutionConflictType = "" as any;
                 const hasDuplicate =
                     payments.length !==
@@ -109,6 +112,7 @@ export async function getSalesResolvables() {
                     salesRep: salesRep?.name,
                     orderDate: formatDate(ls.createdAt),
                     orderId,
+                    accountNo: ls.customer?.phoneNo,
                 };
             })
             .filter(

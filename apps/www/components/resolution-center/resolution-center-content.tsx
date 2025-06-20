@@ -24,8 +24,12 @@ import { SalesData } from "./sales-data";
 import { Menu } from "../(clean-code)/menu";
 import { useAction } from "next-safe-action/hooks";
 import { salesResolveUpdatePaymentAction } from "@/actions/sales-resolve-update-payment";
-import StatusBadge from "../_v1/status-badge";
 import { Progress } from "../(clean-code)/progress";
+import { generateRandomString } from "@/lib/utils";
+import { Button } from "@gnd/ui/button";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
+import DevOnly from "@/_v2/components/common/dev-only";
 
 export type Item = PageItemData<typeof getSalesResolutions>;
 export const columns: ColumnDef<Item>[] = [
@@ -41,9 +45,9 @@ export const columns: ColumnDef<Item>[] = [
 function Content({ item: sale }: { item: Item }) {
     const { params, setParams } = useResolutionCenterParams();
     const ids = params?.resolutionIds || [];
-    const updatePayment = useAction(salesResolveUpdatePaymentAction, {
-        onSuccess(args) {},
-    });
+
+    const salesOverview = useSalesOverviewQuery();
+    const customerQuery = useCustomerOverviewQuery();
     return (
         <div className="border-red-200 bg-red-50/50">
             <Collapsible
@@ -72,9 +76,37 @@ function Content({ item: sale }: { item: Item }) {
                                 )}
                                 <div>
                                     <CardTitle className="text-lg uppercase">
-                                        Order #{sale.orderId} -{" "}
-                                        {sale?.customer?.businessName ||
-                                            sale?.customer?.name}
+                                        <Button
+                                            size="xs"
+                                            className="uppercase"
+                                            variant="secondary"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                salesOverview.open2(
+                                                    sale?.orderId,
+                                                    "sales",
+                                                );
+                                            }}
+                                        >
+                                            Order #{sale.orderId}
+                                        </Button>
+                                        {" - "}
+                                        <Button
+                                            size="xs"
+                                            disabled={!sale?.accountNo}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                // if (sale?.accountNo)
+                                                customerQuery.open(
+                                                    sale?.accountNo,
+                                                );
+                                            }}
+                                            className="uppercase"
+                                            variant="secondary"
+                                        >
+                                            {sale?.customer?.businessName ||
+                                                sale?.customer?.name}
+                                        </Button>
                                     </CardTitle>
                                     <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                                         <div className="flex items-center gap-1">
@@ -90,6 +122,10 @@ function Content({ item: sale }: { item: Item }) {
                                             Total:
                                             <Money value={sale.total} />
                                         </div>
+                                        <DevOnly>
+                                            <div>{sale?.calculatedDue}</div>
+                                            <div>{sale?.due}</div>
+                                        </DevOnly>
                                         {/* {sale.due > 0 && (
                                         <div className="flex items-center gap-1 text-red-600">
                                             <AlertTriangle className="h-4 w-4" />
@@ -113,44 +149,7 @@ function Content({ item: sale }: { item: Item }) {
                                     {sale.paymentCount !== 1 ? "s" : ""}
                                 </Badge>
 
-                                <Menu
-                                    disabled={updatePayment?.isExecuting}
-                                    label="Resolve"
-                                    noSize
-                                >
-                                    <Menu.Item
-                                        onClick={(e) => {
-                                            // updatePayment.execute({
-                                            //     salesId: sale.id,
-                                            // });
-                                        }}
-                                        icon="pendingPayment"
-                                    >
-                                        Update Payment
-                                    </Menu.Item>
-                                    <Menu.Item
-                                        onClick={(e) => {
-                                            // updatePayment.execute({
-                                            //     salesId: sale.id,
-                                            // });
-                                        }}
-                                        SubMenu={
-                                            <>
-                                                <Menu.Item icon="wallet">
-                                                    Wallet
-                                                </Menu.Item>
-                                                <Menu.Item icon="cash">
-                                                    Cash
-                                                </Menu.Item>
-                                            </>
-                                        }
-                                        disabled={sale?.calculatedDue >= 0}
-                                        icon="pendingPayment"
-                                    >
-                                        Refund{" "}
-                                        <Money value={sale?.calculatedDue} />
-                                    </Menu.Item>
-                                </Menu>
+                                <Action item={sale} />
                             </div>
                         </div>
                     </CardHeader>
@@ -162,4 +161,59 @@ function Content({ item: sale }: { item: Item }) {
             </Collapsible>
         </div>
     );
+}
+function Action({ item: sale }: { item: Item }) {
+    const rcp = useResolutionCenterParams();
+    const updatePayment = useAction(salesResolveUpdatePaymentAction, {
+        onSuccess(args) {
+            rcp.setParams({
+                refreshToken: generateRandomString(),
+            });
+        },
+    });
+    const UpdateAmountDue = (
+        <Menu.Item
+            disabled={updatePayment?.isExecuting}
+            onClick={(e) => {
+                e.preventDefault();
+                updatePayment.execute({
+                    salesId: sale.id,
+                });
+            }}
+            icon="pendingPayment"
+        >
+            Calculate due amount
+        </Menu.Item>
+    );
+
+    return (
+        <Menu disabled={updatePayment?.isExecuting} label="Resolve" noSize>
+            {UpdateAmountDue}
+            <Menu.Item
+                onClick={(e) => {
+                    // updatePayment.execute({
+                    //     salesId: sale.id,
+                    // });
+                }}
+                SubMenu={
+                    <>
+                        <Menu.Item icon="wallet">Wallet</Menu.Item>
+                        <Menu.Item icon="cash">Cash</Menu.Item>
+                    </>
+                }
+                disabled={sale?.calculatedDue >= 0}
+                icon="pendingPayment"
+                shortCut={
+                    <>
+                        <Money value={sale?.calculatedDue} />
+                    </>
+                }
+            >
+                Refund
+            </Menu.Item>
+        </Menu>
+    );
+    // return (
+    //     <>{item.due != item.calculatedDue && item.status && UpdateAmountDue}</>
+    // );
 }

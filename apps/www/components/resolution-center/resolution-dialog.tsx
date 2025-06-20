@@ -128,9 +128,9 @@ export function ResolutionDialog({
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 <Button
-                    disabled={
-                        payment?.status?.toLocaleLowerCase() == "canceled"
-                    }
+                    // disabled={
+                    //     payment?.status?.toLocaleLowerCase() == "canceled"
+                    // }
                     variant="outline"
                     size="sm"
                 >
