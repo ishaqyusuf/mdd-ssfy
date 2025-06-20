@@ -3,7 +3,7 @@ import { Badge } from "@gnd/ui/badge";
 import { Card, CardContent } from "@gnd/ui/card";
 import { Label } from "@gnd/ui/label";
 import { useAsyncMemo } from "use-async-memo";
-import { Item } from "./columns";
+import { Item } from "./resolution-center-content";
 import Money from "../_v1/money";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { skeletonListData } from "@/utils/format";

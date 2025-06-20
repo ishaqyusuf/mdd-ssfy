@@ -35,10 +35,10 @@ export const columns: ColumnDef<Item>[] = [
         meta: {
             className: "hover:bg-transparent p-0",
         },
-        cell: ({ row: { original: item } }) => <Action item={item} />,
+        cell: ({ row: { original: item } }) => <Content item={item} />,
     },
 ];
-function Action({ item: sale }: { item: Item }) {
+function Content({ item: sale }: { item: Item }) {
     const { params, setParams } = useResolutionCenterParams();
     const ids = params?.resolutionIds || [];
     const updatePayment = useAction(salesResolveUpdatePaymentAction, {
@@ -112,6 +112,7 @@ function Action({ item: sale }: { item: Item }) {
                                     {sale.paymentCount} Payment
                                     {sale.paymentCount !== 1 ? "s" : ""}
                                 </Badge>
+
                                 <Menu
                                     disabled={updatePayment?.isExecuting}
                                     label="Resolve"

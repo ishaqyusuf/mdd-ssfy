@@ -11,7 +11,7 @@ import { TableRow } from "../tables/table-row";
 
 import { useEmployeesParams } from "@/hooks/use-employee-params";
 import { PageFilterData } from "@/types/type";
-import { columns, Item } from "./columns";
+import { columns, Item } from "./resolution-center-content";
 import { LoadMore } from "../tables/load-more";
 import FContentShell from "@/components/(clean-code)/fikr-ui/f-content-shell";
 import { useRolesParams } from "@/hooks/use-roles-params";
