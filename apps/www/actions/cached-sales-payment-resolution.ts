@@ -18,6 +18,18 @@ export async function salesPaymentResoltionFilters() {
                 icon: "Search",
                 type: "input",
             },
+            {
+                value: "status",
+                type: "checkbox",
+                label: "Status",
+                icon: "save",
+                options: ["Resolved", "Resolved Today", "Unresolved"].map(
+                    (a) => ({
+                        label: a,
+                        value: a,
+                    }),
+                ),
+            },
         ];
         return response;
         response.push({

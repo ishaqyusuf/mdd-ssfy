@@ -10,9 +10,32 @@ export type GetSalesResolutions = AsyncFnType<typeof getSalesResolutions>;
 export async function getSalesResolutions(query: SearchParamsType) {
     const resolvables = await getSalesResolvables();
 
-    const { start = 0, size = 10 } = query;
+    const {
+        start = 0,
+        size = 10,
+        status,
+        "date.filter": dateFilter,
+        "date.from": dateFrom,
+        "date.to": dateTo,
+    } = query;
     const meta: PageDataMeta = {};
     const data = resolvables.filter((a, i) => i >= start);
+    let filteredResolvables = [...resolvables];
+    switch (status) {
+        case "Resolved":
+            filteredResolvables = filteredResolvables?.filter(
+                (a) => a.status == "resolved",
+            );
+            break;
+        case "Resolved Today":
+            break;
+        case "Unresolved":
+            break;
+    }
+    switch (dateFilter) {
+        case "resolvedAt":
+            break;
+    }
     meta.count = resolvables
         .filter((a) => a.status)
         .filter((a) => a.status != "resolved").length;

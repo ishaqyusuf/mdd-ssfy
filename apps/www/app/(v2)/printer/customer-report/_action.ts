@@ -4,7 +4,6 @@ import customerSalesOrderQuery from "@/app/(v1)/(loggedIn)/sales/(customers)/_ac
 import { IGetCustomerActionQuery } from "@/app/(v1)/(loggedIn)/sales/(customers)/_actions/sales-customers";
 import { prisma } from "@/db";
 import { formatDate } from "@/lib/use-day";
-import { ICustomer } from "@/types/customers";
 import { IAddressMeta } from "@/types/sales";
 import dayjs from "dayjs";
 
@@ -43,7 +42,6 @@ export async function generateCustomerPrintReport(
                     createdAt: "desc",
                 },
             },
-
             // payments: true,
         },
     });

@@ -22,6 +22,7 @@ export async function getSalesResolvables() {
             select: {
                 id: true,
                 salesId: true,
+                createdAt: true,
             },
         });
 
@@ -96,7 +97,8 @@ export async function getSalesResolvables() {
                 } else if (calculatedDue !== due) {
                     status = "payment not up to date";
                 }
-                if (!status && resolvedToday?.find((a) => a.salesId == ls.id)) {
+                const rData = resolvedToday?.find((a) => a.salesId == ls.id);
+                if (rData) {
                     status = "resolved";
                 }
                 return {
@@ -113,6 +115,7 @@ export async function getSalesResolvables() {
                     orderDate: formatDate(ls.createdAt),
                     orderId,
                     accountNo: ls.customer?.phoneNo,
+                    resolvedAt: rData?.createdAt,
                 };
             })
             .filter(
