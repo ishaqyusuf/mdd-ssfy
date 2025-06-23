@@ -5,6 +5,7 @@ import "@/styles/globals.css";
 
 import { cn } from "@gnd/ui/cn";
 import { GlobalModals } from "./components/modals/global-modals";
+import { TRPCReactProvider } from "@/trpc/client";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -32,8 +33,10 @@ export default function RootLayout({
           fontHeading.variable,
         )}
       >
-        {children}
-        <GlobalModals />
+        <TRPCReactProvider>
+          {children}
+          <GlobalModals />
+        </TRPCReactProvider>
         {/* <ThemeProvider
           attribute="class"
           defaultTheme="dark"

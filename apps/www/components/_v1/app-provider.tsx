@@ -8,20 +8,23 @@ import { ModalProvider } from "../common/modal/provider";
 import { CommandProvider } from "../cmd/provider";
 import { NavContext, useNavCtx } from "./layouts/site-nav";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { TRPCReactProvider } from "@/trpc/client";
 const AppProvider = ({ children }) => {
     return (
         <SessionProvider>
-            <Provider store={store}>
-                <ModalProvider>
-                    <ThemeProvider attribute="class" defaultTheme="light">
-                        <CommandProvider>
-                            <NavContext.Provider value={useNavCtx()}>
-                                {children}
-                            </NavContext.Provider>
-                        </CommandProvider>
-                    </ThemeProvider>
-                </ModalProvider>
-            </Provider>
+            <TRPCReactProvider>
+                <Provider store={store}>
+                    <ModalProvider>
+                        <ThemeProvider attribute="class" defaultTheme="light">
+                            <CommandProvider>
+                                <NavContext.Provider value={useNavCtx()}>
+                                    {children}
+                                </NavContext.Provider>
+                            </CommandProvider>
+                        </ThemeProvider>
+                    </ModalProvider>
+                </Provider>
+            </TRPCReactProvider>
         </SessionProvider>
     );
 };
