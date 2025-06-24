@@ -1,4 +1,4 @@
-import { Input } from "@/components/ui/input";
+import { Input } from "@gnd/ui/input";
 import { useTakeoffItem } from "./context";
 import { useState } from "react";
 import { Button } from "@gnd/ui/button";

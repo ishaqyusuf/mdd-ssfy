@@ -3,6 +3,8 @@ import type { Context } from "./rest/types";
 import { secureHeaders } from "hono/secure-headers";
 import { cors } from "hono/cors";
 import { trpcServer } from "@hono/trpc-server";
+import { appRouter } from "./trpc/routers/_app";
+import { createTRPCContext } from "./trpc/init";
 // import { appRouter } from "./trpc/routers/_app";
 // import { createTRPCContext } from "./trpc/init";
 
@@ -30,13 +32,13 @@ app.use(
     maxAge: 86400,
   }),
 );
-// app.use(
-//   "/trpc/*",
-//   trpcServer({
-//     // router: appRouter,
-//     // createContext: createTRPCContext,
-//   }),
-// );
+app.use(
+  "/trpc/*",
+  trpcServer({
+    router: appRouter,
+    createContext: createTRPCContext,
+  }),
+);
 export default {
   port: process.env.PORT ? Number.parseInt(process.env.PORT) : 3000,
   fetch: app.fetch,

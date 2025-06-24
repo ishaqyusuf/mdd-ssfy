@@ -1,18 +1,15 @@
 {
   "name": "nextjs-template",
   "devDependencies": {
-    "@turbo/gen": "1.13.3",
+    "@turbo/gen": "2.5.4",
     "check-dependency-version-consistency": "4.1.0",
-    "env-cmd": "^10.1.0",
-    "prettier": "3.2.5",
-    "tailwind-config-viewer": "^2.0.4",
-    "turbo": "1.13.3",
-    "typescript": "^5.6.3"
+    "turbo": "2.5.4",
+    "typescript": "^5.8.3"
   },
   "engines": {
     "node": ">=18"
   },
-  "packageManager": "bun@1.1.38",
+  "packageManager": "bun@1.2.15",
   "prettier": "@gnd/prettier-config",
   "private": true,
   "scripts": {
@@ -25,8 +22,8 @@
     "db:migrate": "turbo -F @gnd/db db-migrate",
     "db:generate": "turbo -F @gnd/db prisma-generate",
     "dev": "turbo dev --parallel",
-    "dev:web": "turbo dev --parallel --filter !dashboard --filter !gnd-backlog --filter !email --filter !site",
-    "dev:backlog": "turbo dev --parallel --filter !dashboard --filter !email --filter !site --filter !www --filter !api",
+    "dev:web": "turbo dev --parallel --filter !@gnd/dashboard --filter !@gnd/gnd-backlog --filter !@gnd/email --filter !@gnd/site",
+    "dev:backlog": "turbo dev --parallel --filter !@gnd/dashboard --filter !@gnd/email --filter !@gnd/site --filter !@gnd/www --filter !@gnd/api",
     "dev:web-prod": "turbo dev:prod --parallel --filter !dashboard --filter !gnd-backlog --filter !email --filter !site",
     "format": "turbo format --continue -- --cache --cache-location='node_modules/.cache/.prettiercache' --ignore-path='../../.gitignore'",
     "format:fix": "turbo format --continue -- --write --cache --cache-location='node_modules/.cache/.prettiercache' --ignore-path='../../.gitignore'",

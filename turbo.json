@@ -1,8 +1,8 @@
 {
   "$schema": "https://turborepo.org/schema.json",
   "globalDependencies": ["**/.env"],
-  "experimentalUI": true,
-  "pipeline": {
+  "ui": "tui",
+  "tasks": {
     "topo": {
       "dependsOn": ["^topo"]
     },
@@ -53,8 +53,7 @@
       "cache": false
     },
     "format": {
-      "outputs": ["node_modules/.cache/.prettiercache"],
-      "outputMode": "new-only"
+      "outputs": ["node_modules/.cache/.prettiercache"]
     },
     "lint": {
       "dependsOn": ["^topo"],

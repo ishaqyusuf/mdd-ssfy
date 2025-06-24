@@ -25,11 +25,9 @@ import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 
 import AutoComplete2 from "../../../../../components/_v1/auto-complete-tw";
-import Btn from "../../../../../components/_v1/btn";
 import ConfirmBtn from "../../../../../components/_v1/confirm-btn";
 import { DatePicker } from "../../../../../components/_v1/date-range-picker";
-import BaseModal from "../../../../../components/_v1/modals/base-modal";
-import { Label } from "../../../../../components/ui/label";
+import { Label } from "@gnd/ui/label";
 
 interface FormProps {
     units: IHome[];

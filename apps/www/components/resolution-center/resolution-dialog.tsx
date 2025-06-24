@@ -26,7 +26,7 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
+} from "@gnd/ui/select";
 import { Icons } from "@gnd/ui/custom/icons";
 import { Textarea } from "@gnd/ui/textarea";
 import { GetSalesResolutionData } from "@/actions/get-sales-resolution-data";

@@ -8,7 +8,7 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
-import { TableHead } from "@/components/ui/table";
+import { TableHead } from "@gnd/ui/table";
 import { useTakeoffItem } from "../take-off/context";
 import ConfirmBtn from "@/components/confirm-button";
 import { QtyInput } from "./qty-input";
