@@ -48,7 +48,15 @@
         "OPENPANEL_SECRET_KEY"
       ],
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "next-env.d.ts"]
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "next-env.d.ts",
+        ".expo/**",
+        "dist/**",
+        "build/**",
+        "lib/**"
+      ]
     },
     "prisma-generate": {
       "cache": false,
