@@ -112,7 +112,7 @@ export function usePayPortal() {
                             query?.setParams(null);
                         }
                         printSalesData({
-                            mode: "order",
+                            mode: "order-packing",
                             slugs: args.input.orderNos?.join(","),
                         });
                     }, 1000);
