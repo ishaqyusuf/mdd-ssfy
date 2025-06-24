@@ -192,12 +192,12 @@ function Sortable<TData extends { id: UniqueIdentifier }>({
             </SortableContext>
             {overlay
                 ? // https://docs.dndkit.com/api-documentation/draggable/drag-overlay#portals
-                  createPortal(
+                  (createPortal(
                       <SortableOverlay activeId={activeId}>
                           {overlay}
                       </SortableOverlay>,
                       document.body,
-                  )
+                  ) as any)
                 : null}
         </DndContext>
     );
@@ -364,4 +364,3 @@ const SortableDragHandle = React.forwardRef<
 SortableDragHandle.displayName = "SortableDragHandle";
 
 export { Sortable, SortableDragHandle, SortableItem, SortableOverlay };
-

@@ -85,6 +85,6 @@ export default function BasePrinter({
                 <WaterMark />
             </div>
         </PrintCtx.Provider>,
-        doc?.body
-    );
+        doc?.body,
+    ) as any;
 }

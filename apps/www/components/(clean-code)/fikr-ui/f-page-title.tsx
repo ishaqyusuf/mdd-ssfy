@@ -9,6 +9,6 @@ export default function FTitle({ children }) {
         <div className="text-lg capitalize xl:text-xl font-medium">
             {children}
         </div>,
-        Element
-    );
+        Element,
+    ) as any;
 }

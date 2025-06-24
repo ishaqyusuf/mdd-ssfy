@@ -18,5 +18,5 @@ export default function FPageNav({ children }) {
             </DropdownMenuTrigger>
         </DropdownMenu>,
         Element,
-    );
+    ) as any;
 }

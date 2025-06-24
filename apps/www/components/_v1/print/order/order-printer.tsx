@@ -71,7 +71,7 @@ export default function OrderPrinter({
             // return;
             const pdf = await printSalesPdf(
                 printer.mode,
-                printer.ids?.join(",")
+                printer.ids?.join(","),
             );
             // console.log("DOWNLOAD PDF");
             // console.log(durl);
@@ -89,7 +89,7 @@ export default function OrderPrinter({
             printer.ids.map((slug) => ({
                 slug,
                 loading: true,
-            })) as any
+            })) as any,
         );
         const _sales: ISalesOrder[] = (await salesPrintAction({
             ids: printer.ids,
@@ -109,19 +109,19 @@ export default function OrderPrinter({
                     sale.tax = addPercentage(sale.tax, mockPercentage);
                     sale.subTotal = addPercentage(
                         sale.subTotal,
-                        mockPercentage
+                        mockPercentage,
                     );
                     sale.meta.ccc = addPercentage(
                         sale.meta.ccc,
-                        mockPercentage
+                        mockPercentage,
                     );
                     sale.grandTotal = addPercentage(
                         sale.grandTotal,
-                        mockPercentage
+                        mockPercentage,
                     );
                 }
                 return sale;
-            }) as any
+            }) as any,
         );
         await timeout(900);
         adjustWatermark(sales?.map((s) => s.orderId));
@@ -169,7 +169,7 @@ export default function OrderPrinter({
         );
     }
     return id ? (
-        createPortal(<PrintData />, document.body)
+        (createPortal(<PrintData />, document.body) as any)
     ) : (
         <BasePrinter preview={id != null} id="orderPrintSection">
             <PrintData />
