@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { Button } from "@gnd/ui/button";
 import { DropdownMenu, DropdownMenuTrigger } from "@gnd/ui/dropdown-menu";
 
-export default Object.assign(({ children }) => {
+export default function FPageNav({ children }) {
     const Element = document?.getElementById("headerNav");
     if (!Element) return;
     return createPortal(
@@ -19,4 +19,4 @@ export default Object.assign(({ children }) => {
         </DropdownMenu>,
         Element,
     );
-}, {});
+}
