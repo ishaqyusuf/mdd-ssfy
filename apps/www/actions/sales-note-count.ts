@@ -3,6 +3,8 @@
 import { prisma } from "@/db";
 
 export async function salesNotesCount(salesIds: number[]) {
+    console.log(salesIds);
+
     const notes = await prisma.notePad.findMany({
         where: {
             deletedAt: null,
@@ -20,9 +22,18 @@ export async function salesNotesCount(salesIds: number[]) {
                     {
                         tags: {
                             some: {
-                                tagName: "type",
-                                deletedAt: null,
-                                tagValue: "production",
+                                OR: [
+                                    {
+                                        tagName: "type",
+                                        deletedAt: null,
+                                        tagValue: "production",
+                                    },
+                                    {
+                                        tagName: "type",
+                                        deletedAt: null,
+                                        tagValue: "general",
+                                    },
+                                ],
                             },
                         },
                     },
@@ -32,7 +43,7 @@ export async function salesNotesCount(salesIds: number[]) {
         select: {
             id: true,
             tags: {
-                take: 1,
+                // take: 1,
                 where: {
                     tagName: "salesId",
                     tagValue: {
@@ -45,16 +56,24 @@ export async function salesNotesCount(salesIds: number[]) {
             },
         },
     });
+    console.log({ noteCount: notes?.length });
+
+    console.log(notes.map((a) => a?.tags?.[0]?.tagValue));
     const resp: {
         [id in string]: {
             noteCount?: number;
         };
     } = {};
+
     salesIds.map((s) => {
-        resp[String(s)] = {
-            noteCount: notes?.filter((a) => a.tags?.[0]?.tagValue == String(s))
-                ?.length,
-        };
+        const noteCount = notes?.filter(
+            (a) => a.tags?.[0]?.tagValue == String(s),
+        )?.length;
+        if (noteCount)
+            resp[String(s)] = {
+                noteCount,
+            };
     });
+    console.log({ resp });
     return resp;
 }

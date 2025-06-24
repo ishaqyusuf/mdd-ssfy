@@ -13,6 +13,7 @@ import { Form } from "@gnd/ui/form";
 import { createNoteAction } from "./actions/create-note-action";
 import { getNoteSuggestionsAction } from "./actions/get-note-suggestions";
 import { useNote } from "./context";
+import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 
 export function NoteForm({}) {
     const { props, setNotes } = useNote();
@@ -44,7 +45,8 @@ export function NoteForm({}) {
             note,
             tags,
         });
-        console.log({ result, tags });
+        revalidateTable();
+        // console.log(result);
         setNotes((current) => {
             return [result, ...current] as any;
         });
