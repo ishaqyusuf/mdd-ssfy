@@ -305,10 +305,10 @@ export function CustomerForm({ data }: Props) {
                                                 "country",
                                                 address.country,
                                             );
-                                            form.setValue(
-                                                "addressId",
-                                                address.id,
-                                            );
+                                            // form.setValue(
+                                            //     "addressId",
+                                            //     address.id,
+                                            // );
                                         }}
                                     />
                                     {!params.address || (
