@@ -86,7 +86,7 @@ export function DataTable({
                         />
                         <div className="flex-1"></div>
                         <SuperAdminGuard>
-                            <Button disabled={isProdClient}>
+                            <Button>
                                 <Link href="/sales-book/accounting/resolution-center">
                                     Resolution Center
                                 </Link>
