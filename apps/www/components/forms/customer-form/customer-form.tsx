@@ -274,43 +274,28 @@ export function CustomerForm({ data }: Props) {
                                 </AccordionContent>
                             </AccordionItem>
                         )}
+                        <AddressAutoComplete
+                            address={{} as any}
+                            searchInput=""
+                            setSearchInput={(value) => {}}
+                            dialogTitle="Search Address"
+                            setAddress={(address) => {
+                                form.setValue("address1", address.address1);
+                                form.setValue("address2", address.address2);
+                                form.setValue("city", address.city);
+                                form.setValue("state", address.state);
+                                form.setValue("zip_code", address.postalCode);
+                                form.setValue("country", address.country);
+                                // form.setValue(
+                                //     "addressId",
+                                //     address.id,
+                                // );
+                            }}
+                        />
                         <AccordionItem value="address">
                             <AccordionTrigger>Address</AccordionTrigger>
                             <AccordionContent>
                                 <div className="space-y-4">
-                                    {/* <AddressAutoComplete
-                                        address={{} as any}
-                                        searchInput=""
-                                        setSearchInput={(value) => {}}
-                                        dialogTitle="Search Address"
-                                        setAddress={(address) => {
-                                            form.setValue(
-                                                "address1",
-                                                address.address1,
-                                            );
-                                            form.setValue(
-                                                "address2",
-                                                address.address2,
-                                            );
-                                            form.setValue("city", address.city);
-                                            form.setValue(
-                                                "state",
-                                                address.state,
-                                            );
-                                            form.setValue(
-                                                "zip_code",
-                                                address.postalCode,
-                                            );
-                                            form.setValue(
-                                                "country",
-                                                address.country,
-                                            );
-                                            // form.setValue(
-                                            //     "addressId",
-                                            //     address.id,
-                                            // );
-                                        }}
-                                    /> */}
                                     {!params.address || (
                                         <>
                                             <FormInput

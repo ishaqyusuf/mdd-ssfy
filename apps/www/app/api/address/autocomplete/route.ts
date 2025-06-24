@@ -39,12 +39,14 @@ export async function GET(req: NextRequest) {
             }),
         });
 
+        console.log(response);
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-
+        console.log(data);
         return NextResponse.json({ data: data.suggestions, error: null });
     } catch (error) {
         console.error("Error fetching autocomplete suggestions:", error);

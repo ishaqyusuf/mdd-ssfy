@@ -151,7 +151,7 @@
         "slugify": "^1.6.6",
         "sonner": "^1.5.0",
         "square": "^38.0.0",
-        "swr": "^2.2.5",
+        "swr": "^2.3.3",
         "tailwind-merge": "^3.0.1",
         "tailwindcss-animate": "^1.0.7",
         "ts-results": "^3.3.0",

@@ -44,6 +44,7 @@ interface Props<T> {
   listClassName?: string;  
   pageSize?: number;
   valueKey?: string;
+  onSearch?: (value: string) => void;
 
 }
 
@@ -64,6 +65,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   className,
   listClassName,
   pageSize = 20,
+  onSearch,
   noSearch
 }: Props<T>) {
   const [open, setOpen] = React.useState(false);
@@ -97,7 +99,10 @@ export function ComboboxDropdown<T extends ComboboxItem>({
     <Command loop shouldFilter={false}>
      {noSearch || <CommandInput
         value={inputValue}
-        onValueChange={setInputValue}
+        onValueChange={e=> {
+          setInputValue(e)
+          onSearch?.(e)
+        }}
         placeholder={searchPlaceholder ?? "Search item..."}
         className="px-3"
       />}

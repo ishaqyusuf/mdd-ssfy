@@ -1,25 +1,7 @@
-import { useState } from "react";
 import { useTakeoffItem } from "./context";
 
-import { ComponentHelperClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
-import { composeDoor } from "@/lib/sales/compose-door";
-import { updateDoorGroupForm } from "@/lib/sales/update-door-form";
-import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
-import { Button } from "@gnd/ui/button";
-import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
-import { cn } from "@gnd/ui/cn";
-import { Badge } from "@gnd/ui/badge";
-import NumberFlow from "@number-flow/react";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-} from "@gnd/ui/select";
-import { NumberInput } from "@/components/currency-input";
 import { AnimatedNumber } from "@/components/animated-number";
-import { HptClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/hpt-class";
-import { LineInput } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
+
 import {
     HptContextProvider,
     HptLineContextProvider,

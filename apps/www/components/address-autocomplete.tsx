@@ -16,6 +16,7 @@ import useSWR from "swr";
 
 import { Command as CommandPrimitive } from "cmdk";
 import { AddressFormMessages } from "./address-form-messages";
+import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export interface AddressType {
     address1: string;
@@ -171,12 +172,27 @@ function AddressAutoCompleteInput(props: CommonProps) {
 
     const { data, isLoading } = useSWR(
         // For real use case: /api/address/autocomplete?input=${debouncedSearchInput}
-        `/api/address/mock-autocomplete?input=${debouncedSearchInput}`,
+        `/api/address/autocomplete?input=${debouncedSearchInput}`,
         fetcher,
     );
 
     const predictions = data?.data || [];
-
+    return (
+        <div>
+            <div>{searchInput}</div>
+            <ComboboxDropdown
+                onSelect={(item) => {}}
+                items={predictions}
+                onSearch={setSearchInput}
+                renderListItem={({ item, isChecked }) => (
+                    <div className="flex w-full">
+                        {/* {item?.data?.placePrediction.text.text} */}
+                        <div className="flex-1"></div>
+                    </div>
+                )}
+            ></ComboboxDropdown>
+        </div>
+    );
     return (
         <Command
             shouldFilter={false}
