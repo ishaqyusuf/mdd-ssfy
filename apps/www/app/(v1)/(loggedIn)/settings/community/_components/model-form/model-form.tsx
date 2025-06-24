@@ -96,7 +96,10 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                         >
                             History
                         </Button>
-                        <ImportModelTemplateSheet data={data} form={form} />
+                        <ImportModelTemplateSheet
+                            data={data}
+                            form={form as any}
+                        />
                         <Btn size="sm" isLoading={isSaving} onClick={save}>
                             Save
                         </Btn>
