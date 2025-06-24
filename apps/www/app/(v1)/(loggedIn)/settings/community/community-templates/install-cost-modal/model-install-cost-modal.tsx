@@ -240,7 +240,7 @@ export default function ModelInstallCostModal({ community = false }) {
                                                     <TableRow
                                                         className={cn(
                                                             form.getValues(
-                                                                `costs.${index}.costings.${l.uid}`,
+                                                                `costs.${index}.costings.${l.uid}` as any,
                                                             ) > 0
                                                                 ? "bg-teal-50"
                                                                 : "",
