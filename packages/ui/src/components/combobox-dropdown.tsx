@@ -100,6 +100,8 @@ export function ComboboxDropdown<T extends ComboboxItem>({
      {noSearch || <CommandInput
         value={inputValue}
         onValueChange={e=> {
+          console.log(e)
+          
           setInputValue(e)
           onSearch?.(e)
         }}

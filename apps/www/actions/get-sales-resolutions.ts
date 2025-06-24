@@ -40,18 +40,33 @@ export async function getSalesResolutions(query: SearchParamsType) {
     if (search) {
         const s = search?.toLocaleLowerCase();
         filteredResolvables = filteredResolvables.filter((a) => {
-            const searchString = [
+            const searchFields = [
                 a.orderId,
                 a?.customer?.name,
                 a?.customer?.businessName,
                 a?.salesRep,
                 a?.accountNo,
             ]
-                ?.filter((a) => a)
-                ?.join(" ")
-                ?.toLocaleLowerCase();
-            return searchString?.includes(s);
+                .filter(Boolean)
+                .map((field) => field.toString().toLocaleLowerCase());
+
+            // Split search into words and require all to match (AND search)
+            const searchWords = s.split(/\s+/).filter(Boolean);
+
+            return searchWords.every((word) => {
+                try {
+                    const regex = new RegExp(word, "i");
+                    return searchFields.some((field) => regex.test(field));
+                } catch {
+                    // fallback to simple includes if regex fails
+                    return searchFields.some((field) => field.includes(word));
+                }
+            });
         });
+        console.log(
+            "Filtered resolvables by search:",
+            filteredResolvables?.length,
+        );
     }
     meta.count = resolvables
         .filter((a) => a.status)

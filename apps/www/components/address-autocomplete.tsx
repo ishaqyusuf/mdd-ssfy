@@ -1,21 +1,14 @@
 "use client";
 
 import { Button } from "@gnd/ui/button";
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandList,
-} from "@gnd/ui/command";
+
 import { Input } from "@gnd/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
-import { Delete, Loader2, Pencil } from "lucide-react";
+import { Delete } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import useSWR from "swr";
 // import AddressDialog from "./address-dialog";
 
-import { Command as CommandPrimitive } from "cmdk";
-import { AddressFormMessages } from "./address-form-messages";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export interface AddressType {
@@ -23,7 +16,7 @@ export interface AddressType {
     address2: string;
     formattedAddress: string;
     city: string;
-    state: string;
+    state?: string;
     region: string;
     postalCode: string;
     country: string;
@@ -41,6 +34,13 @@ interface AddressAutoCompleteProps {
     placeholder?: string;
 }
 
+type Prediction = {
+    placePrediction: {
+        placeId: string;
+        place: string;
+        text: { text: string };
+    };
+};
 export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
     const {
         address,
@@ -59,17 +59,18 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
         // For real use case: /api/address/place?placeId=${selectedPlaceId}
         selectedPlaceId === ""
             ? null
-            : `/api/address/mock-place?placeId=${selectedPlaceId}`,
+            : `/api/address/place?placeId=${selectedPlaceId}`,
         fetcher,
         {
             revalidateOnFocus: false,
         },
     );
 
-    const adrAddress = data?.data.adrAddress;
+    const adrAddress = data?.data?.adrAddress;
 
     useEffect(() => {
-        if (data?.data.address) {
+        console.log({ data });
+        if (data?.data?.address) {
             setAddress(data.data.address as AddressType);
         }
     }, [data, setAddress]);
@@ -79,25 +80,6 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
             {selectedPlaceId !== "" || address.formattedAddress ? (
                 <div className="flex items-center gap-2">
                     <Input value={address?.formattedAddress} readOnly />
-
-                    {/* <AddressDialog
-                        isLoading={isLoading}
-                        dialogTitle={dialogTitle}
-                        adrAddress={adrAddress}
-                        address={address}
-                        setAddress={setAddress}
-                        open={isOpen}
-                        setOpen={setIsOpen}
-                    >
-                        <Button
-                            disabled={isLoading}
-                            size="icon"
-                            variant="outline"
-                            className="shrink-0"
-                        >
-                            <Pencil className="size-4" />
-                        </Button>
-                    </AddressDialog> */}
                     <Button
                         type="reset"
                         onClick={() => {
@@ -156,7 +138,7 @@ function AddressAutoCompleteInput(props: CommonProps) {
         setSearchInput,
         placeholder,
     } = props;
-
+    // const [searchInput, setSearchInput] = useState("");
     const [isOpen, setIsOpen] = useState(false);
 
     const open = useCallback(() => setIsOpen(true), []);
@@ -176,119 +158,21 @@ function AddressAutoCompleteInput(props: CommonProps) {
         fetcher,
     );
 
-    const predictions = data?.data || [];
+    const predictions: Prediction[] = data?.data || [];
     return (
         <div>
-            <div>{searchInput}</div>
             <ComboboxDropdown
-                onSelect={(item) => {}}
-                items={predictions}
+                placeholder="Search Address"
+                onSelect={(item) => {
+                    setSelectedPlaceId(item?.placePrediction?.placeId);
+                }}
+                items={predictions?.map((prediction) => ({
+                    ...prediction,
+                    label: prediction.placePrediction.text.text,
+                    id: prediction.placePrediction.placeId,
+                }))}
                 onSearch={setSearchInput}
-                renderListItem={({ item, isChecked }) => (
-                    <div className="flex w-full">
-                        {/* {item?.data?.placePrediction.text.text} */}
-                        <div className="flex-1"></div>
-                    </div>
-                )}
             ></ComboboxDropdown>
         </div>
-    );
-    return (
-        <Command
-            shouldFilter={false}
-            onKeyDown={handleKeyDown}
-            className="overflow-visible"
-        >
-            <div className="flex w-full items-center justify-between rounded-lg border bg-background ring-offset-background text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-                <CommandPrimitive.Input
-                    value={searchInput}
-                    onValueChange={setSearchInput}
-                    onBlur={close}
-                    onFocus={open}
-                    placeholder={placeholder || "Enter address"}
-                    className="w-full p-3 rounded-lg outline-none"
-                />
-            </div>
-            {searchInput !== "" &&
-                !isOpen &&
-                !selectedPlaceId &&
-                showInlineError && (
-                    <AddressFormMessages
-                        type="error"
-                        className="pt-1 text-sm"
-                        messages={["Select a valid address from the list"]}
-                    />
-                )}
-
-            {isOpen && (
-                <div className="relative animate-in fade-in-0 zoom-in-95 h-auto">
-                    <CommandList>
-                        <div className="absolute top-1.5 z-50 w-full">
-                            <CommandGroup className="relative h-auto z-50 min-w-[8rem] overflow-hidden rounded-md border shadow-md bg-background">
-                                {isLoading ? (
-                                    <div className="h-28 flex items-center justify-center">
-                                        <Loader2 className="size-6 animate-spin" />
-                                    </div>
-                                ) : (
-                                    <>
-                                        {predictions.map(
-                                            (prediction: {
-                                                placePrediction: {
-                                                    placeId: string;
-                                                    place: string;
-                                                    text: { text: string };
-                                                };
-                                            }) => (
-                                                <CommandPrimitive.Item
-                                                    value={
-                                                        prediction
-                                                            .placePrediction
-                                                            .text.text
-                                                    }
-                                                    onSelect={() => {
-                                                        setSearchInput("");
-                                                        setSelectedPlaceId(
-                                                            prediction
-                                                                .placePrediction
-                                                                .place,
-                                                        );
-                                                        setIsOpenDialog(true);
-                                                    }}
-                                                    className="flex select-text flex-col cursor-pointer gap-0.5 h-max p-2 px-3 rounded-md aria-selected:bg-accent aria-selected:text-accent-foreground hover:bg-accent hover:text-accent-foreground items-start"
-                                                    key={
-                                                        prediction
-                                                            .placePrediction
-                                                            .placeId
-                                                    }
-                                                    onMouseDown={(e) =>
-                                                        e.preventDefault()
-                                                    }
-                                                >
-                                                    {
-                                                        prediction
-                                                            .placePrediction
-                                                            .text.text
-                                                    }
-                                                </CommandPrimitive.Item>
-                                            ),
-                                        )}
-                                    </>
-                                )}
-
-                                <CommandEmpty>
-                                    {!isLoading && predictions.length === 0 && (
-                                        <div className="py-4 flex items-center justify-center">
-                                            {searchInput === ""
-                                                ? "Please enter an address"
-                                                : "No address found"}
-                                        </div>
-                                    )}
-                                </CommandEmpty>
-                            </CommandGroup>
-                        </div>
-                    </CommandList>
-                </div>
-            )}
-        </Command>
     );
 }

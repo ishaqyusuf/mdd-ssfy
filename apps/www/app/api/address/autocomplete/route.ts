@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
         }
 
         const data = await response.json();
-        console.log(data);
+
         return NextResponse.json({ data: data.suggestions, error: null });
     } catch (error) {
         console.error("Error fetching autocomplete suggestions:", error);

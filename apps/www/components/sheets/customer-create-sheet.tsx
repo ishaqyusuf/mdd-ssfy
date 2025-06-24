@@ -24,7 +24,6 @@ export function CustomerCreateSheet() {
             params.customerId,
             params.addressId,
         );
-        console.log({ data, params });
 
         if (params.address) {
             if (params.customerId && !params.addressId) {
@@ -34,8 +33,8 @@ export function CustomerCreateSheet() {
                     city: data?.city,
                     country: data?.country,
                     zip_code: data?.zip_code,
-                    address1: undefined,
-                    phoneNo: undefined,
+                    address1: data?.address1,
+                    phoneNo: data?.phoneNo,
                     state: data?.state,
                 };
             }

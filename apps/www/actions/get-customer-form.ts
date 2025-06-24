@@ -56,7 +56,7 @@ export async function getCustomerFormAction(id, addressId?) {
     const [taxProfile] = customer?.taxProfiles;
     return {
         addressId: address?.id,
-        address1: customer?.address,
+        address1: address?.address1 || customer?.address,
         address2: address?.address2,
         businessName: customer?.businessName,
         city: address?.city,
@@ -77,6 +77,7 @@ export async function getCustomerFormAction(id, addressId?) {
         zip_code: addressMeta?.zip_code,
         taxCode: taxProfile?.taxCode,
         taxProfileId: taxProfile?.id,
+        addressMeta,
         // addressList: customer?.addressBooks,
     } satisfies CustomerFormData;
 }

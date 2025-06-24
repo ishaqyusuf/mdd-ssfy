@@ -158,6 +158,8 @@ export type TypedSales = SalesOrders & {
 };
 export interface AddressBookMeta {
     zip_code;
+    placeId?: string;
+    placeSearchText?: string;
 }
 export type CustomerMeta = {
     netTerm?: string;

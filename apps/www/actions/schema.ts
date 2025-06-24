@@ -1,4 +1,5 @@
 import {
+    AddressBookMeta,
     SalesDispatchStatus,
     StepComponentMeta,
 } from "@/app/(clean-code)/(sales)/types";
@@ -36,6 +37,9 @@ export const createCustomerSchema = z
         taxProfileId: z.number().optional(),
         netTerm: z.string().optional(),
         customerType: z.enum(["Personal", "Business"]).optional(),
+        addressMeta: z.object({}).optional() as z.ZodType<
+            Partial<AddressBookMeta>
+        >,
         existingCustomers: z
             .array(z.any())
             .nullable()
