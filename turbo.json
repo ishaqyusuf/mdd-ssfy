@@ -18,6 +18,7 @@
         "SQUARE_APP_ID",
         "SQUARE_ACCESS_TOKEN",
         "NEXTAUTH_SECRET",
+        "NEXT_PUBLIC_API_URL",
         "EMAIL_FROM_ADDRESS",
         "RESEND_API_KEY",
         "BLESS_TOKEN",
