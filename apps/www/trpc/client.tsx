@@ -1,5 +1,5 @@
 import type { AppRouter } from "@gnd/api/trpc/routers/_app";
-import { QueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { createTRPCContext } from "@trpc/tanstack-react-query";
 import { QueryClientProvider, isServer } from "@tanstack/react-query";
 import { makeQueryClient } from "./query-client";
@@ -66,7 +66,7 @@ export function TRPCReactProvider(
         <QueryClientProvider client={queryClient}>
             <TRPCProvider
                 trpcClient={trpcClient as any}
-                queryClient={queryClient}
+                queryClient={queryClient as any}
             >
                 {props.children}
             </TRPCProvider>

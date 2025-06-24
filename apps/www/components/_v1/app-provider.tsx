@@ -12,8 +12,8 @@ import { TRPCReactProvider } from "@/trpc/client";
 const AppProvider = ({ children }) => {
     return (
         <SessionProvider>
-            <TRPCReactProvider>
-                <Provider store={store}>
+            <Provider store={store}>
+                <TRPCReactProvider>
                     <ModalProvider>
                         <ThemeProvider attribute="class" defaultTheme="light">
                             <CommandProvider>
@@ -23,8 +23,8 @@ const AppProvider = ({ children }) => {
                             </CommandProvider>
                         </ThemeProvider>
                     </ModalProvider>
-                </Provider>
-            </TRPCReactProvider>
+                </TRPCReactProvider>
+            </Provider>
         </SessionProvider>
     );
 };

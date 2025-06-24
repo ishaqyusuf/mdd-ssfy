@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "./rest/types";
 import { secureHeaders } from "hono/secure-headers";
 import { cors } from "hono/cors";
@@ -6,7 +6,7 @@ import { trpcServer } from "@hono/trpc-server";
 // import { appRouter } from "./trpc/routers/_app";
 // import { createTRPCContext } from "./trpc/init";
 
-const app = new Hono<Context>();
+const app = new OpenAPIHono<Context>();
 // const app = new Hono<Context>();
 
 app.use(secureHeaders());
