@@ -4,7 +4,7 @@ import { use } from "react";
 import { useSearchParams } from "next/navigation";
 import { DataTable } from "@/app/_components/data-table";
 import { TableToolbar } from "@/app/_components/data-table/toolbar";
-import FPageNav from "@/components/(clean-code)/fikr-ui/f-page-nav";
+
 import { FPageTabs } from "@/components/(clean-code)/fikr-ui/f-page-tabs";
 import { useDataTableColumn2 } from "@/components/common/data-table/columns/use-data-table-columns";
 
@@ -47,9 +47,6 @@ export default function PageClient({ response, tabResp }: Props) {
     );
     return (
         <>
-            <FPageNav>
-                <span></span>
-            </FPageNav>
             <section className="content">
                 <DataTable {...table.props}>
                     <TableToolbar>

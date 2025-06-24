@@ -1,6 +1,5 @@
 "use client";
 
-import FPageNav from "@/components/(clean-code)/fikr-ui/f-page-nav";
 import PageHeader from "@/components/_v1/page-header";
 import { useDataTableColumn2 } from "@/components/common/data-table/columns/use-data-table-columns";
 
@@ -34,13 +33,10 @@ export default function ClientPage({ promise, quote }: Props) {
             ctx.Column("Dispatch", Cells.Dispatch),
             ctx.Column("Status", Cells.Status),
             ctx.ActionColumn(Cells.OrderAction),
-        ]
+        ],
     );
     return (
         <>
-            <FPageNav>
-                <span></span>
-            </FPageNav>
             <section className="content space-y-4">
                 <div className="">
                     <PageHeader

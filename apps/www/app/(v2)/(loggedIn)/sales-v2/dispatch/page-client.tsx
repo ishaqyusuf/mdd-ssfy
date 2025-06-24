@@ -1,5 +1,5 @@
 "use client";
-import FPageNav from "@/components/(clean-code)/fikr-ui/f-page-nav";
+
 import { FPageTabs } from "@/components/(clean-code)/fikr-ui/f-page-tabs";
 import { use } from "react";
 import { GetDispatchSalesAction } from "./_actions/get-dispatchs";
@@ -29,13 +29,10 @@ export default function DispatchPageClient({ response }: Props) {
             ctx.Column("Production", Cells.ProductionStatus),
             ctx.Column("Delivery", Cells.DeliveryStatus),
             ctx.ActionColumn(Cells.Actions),
-        ]
+        ],
     );
     return (
         <>
-            <FPageNav>
-                <span></span>
-            </FPageNav>
             <FPageTabs>
                 <FPageTabs.Tab>All Dispatch</FPageTabs.Tab>
                 <FPageTabs.Tab qk="_type" qv="delivery">
