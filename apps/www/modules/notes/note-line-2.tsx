@@ -11,6 +11,7 @@ import { updateNoteAction } from "./actions/update-note-action";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { cva } from "class-variance-authority";
+import DevOnly from "@/_v2/components/common/dev-only";
 
 const listVariant = cva(
     "cursor-default flex flex-col items-start gap-s2 rounded-lg border p-3 text-left text-sm transition-all my-1.5",
@@ -19,7 +20,8 @@ const listVariant = cva(
             color: {
                 default: "bg-white border-gray-300",
                 green: "bg-green-300 border-green-300",
-                red: "bg-red-200 border-red-600",
+                orange: "bg-orange-300 border-orange-300",
+                red: "bg-red-300 border-red-600",
                 blue: "bg-blue-300 border-blue-300",
             },
         },
@@ -32,6 +34,7 @@ const noteColorListVariant = cva("size-4 rounded", {
             red: "bg-red-500",
             blue: "bg-blue-500",
             green: "bg-green-500",
+            orange: "bg-orange-500",
         },
     },
     defaultVariants: {},
@@ -59,7 +62,7 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
         ctx.deleteNote(note.id);
         toast.success("Note Deleted!");
     }
-    const colors = ["red", "blue", "green"];
+    const colors = ["red", "blue", "default"];
     async function changeColor(color: string) {
         await updateNoteAction(note.id, { color });
         _setNote((on) => ({ ...on, color }));
@@ -72,6 +75,17 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
                 }),
             )}
         >
+            <DevOnly>
+                <div className="bg-red-200">a</div>
+                <p>{_note.color}</p>
+                <p>
+                    {listVariant({
+                        color: _note.color as any,
+                    })}
+                </p>
+                {noteColorVariant({ color: _note.color as any })}
+            </DevOnly>
+
             <div className="flex w-full flex-col gap-1">
                 <div className="flex items-center">
                     <div className="flex items-center gap-2">
