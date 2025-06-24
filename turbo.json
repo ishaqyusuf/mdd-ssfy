@@ -29,6 +29,7 @@
         "CLOUDINARY_API_KEY",
         "CLOUDINARY_API_SECRET",
         "CLOUDINARY_UPLOAD_URL",
+        "PLACE_API",
         "POSTGRES_URL",
         "POSTGRES_URL_NON_POOLING",
         "POSTGRES_URL_NO_SSL",

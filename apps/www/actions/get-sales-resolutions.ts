@@ -17,6 +17,7 @@ export async function getSalesResolutions(query: SearchParamsType) {
         "date.filter": dateFilter,
         "date.from": dateFrom,
         "date.to": dateTo,
+        search,
     } = query;
     const meta: PageDataMeta = {};
     const data = resolvables.filter((a, i) => i >= start);
@@ -35,6 +36,22 @@ export async function getSalesResolutions(query: SearchParamsType) {
     switch (dateFilter) {
         case "resolvedAt":
             break;
+    }
+    if (search) {
+        const s = search?.toLocaleLowerCase();
+        filteredResolvables = filteredResolvables.filter((a) => {
+            const searchString = [
+                a.orderId,
+                a?.customer?.name,
+                a?.customer?.businessName,
+                a?.salesRep,
+                a?.accountNo,
+            ]
+                ?.filter((a) => a)
+                ?.join(" ")
+                ?.toLocaleLowerCase();
+            return searchString?.includes(s);
+        });
     }
     meta.count = resolvables
         .filter((a) => a.status)
