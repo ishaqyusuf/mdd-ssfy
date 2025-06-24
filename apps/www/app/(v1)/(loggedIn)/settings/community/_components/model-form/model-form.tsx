@@ -40,7 +40,7 @@ interface Props {
 }
 export interface ModelFormProps {
     data?: GetCommunityTemplate;
-    form: UseFormReturn<DesignTemplateForm, any, undefined>;
+    form: any; //UseFormReturn<DesignTemplateForm, any, undefined>;
 }
 export interface DesignTemplateForm extends HomeTemplateDesign {
     ctx: {

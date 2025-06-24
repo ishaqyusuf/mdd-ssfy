@@ -8,6 +8,7 @@
         "build": "NODE_ENV=production next build",
         "start": "next start",
         "lint": "next lint",
+        "typecheck": "tsc --noEmit",
         "dump-tsc": "tsc temp.ts --declaration --emitDeclarationOnly"
     },
     "prisma": {
