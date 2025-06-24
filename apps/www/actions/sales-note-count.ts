@@ -3,8 +3,6 @@
 import { prisma } from "@/db";
 
 export async function salesNotesCount(salesIds: number[]) {
-    console.log(salesIds);
-
     const notes = await prisma.notePad.findMany({
         where: {
             deletedAt: null,
@@ -56,9 +54,7 @@ export async function salesNotesCount(salesIds: number[]) {
             },
         },
     });
-    console.log({ noteCount: notes?.length });
 
-    console.log(notes.map((a) => a?.tags?.[0]?.tagValue));
     const resp: {
         [id in string]: {
             noteCount?: number;
@@ -74,6 +70,5 @@ export async function salesNotesCount(salesIds: number[]) {
                 noteCount,
             };
     });
-    console.log({ resp });
     return resp;
 }
