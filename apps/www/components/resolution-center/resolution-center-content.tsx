@@ -30,6 +30,7 @@ import { Button } from "@gnd/ui/button";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import DevOnly from "@/_v2/components/common/dev-only";
+import { isProdClient } from "@/lib/is-prod";
 
 export type Item = PageItemData<typeof getSalesResolutions>;
 export const columns: ColumnDef<Item>[] = [
@@ -201,7 +202,7 @@ function Action({ item: sale }: { item: Item }) {
                         <Menu.Item icon="cash">Cash</Menu.Item>
                     </>
                 }
-                disabled={sale?.calculatedDue >= 0}
+                disabled={sale?.calculatedDue >= 0 || isProdClient}
                 icon="pendingPayment"
                 shortCut={
                     <>
