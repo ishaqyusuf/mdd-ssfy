@@ -278,7 +278,7 @@ export function CustomerForm({ data }: Props) {
                             <AccordionTrigger>Address</AccordionTrigger>
                             <AccordionContent>
                                 <div className="space-y-4">
-                                    <AddressAutoComplete
+                                    {/* <AddressAutoComplete
                                         address={{} as any}
                                         searchInput=""
                                         setSearchInput={(value) => {}}
@@ -310,7 +310,7 @@ export function CustomerForm({ data }: Props) {
                                             //     address.id,
                                             // );
                                         }}
-                                    />
+                                    /> */}
                                     {!params.address || (
                                         <>
                                             <FormInput

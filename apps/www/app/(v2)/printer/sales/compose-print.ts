@@ -478,9 +478,10 @@ function getDoorsTable(
                                 );
                             case "lineTotal":
                             case "totalPrice":
-                                return formatCurrency.format(
-                                    door?.lineTotal || (m.total as any),
-                                );
+                                let total = door?.lineTotal || m.total;
+                                if (!total && door?.unitPrice && door?.totalQty)
+                                    total = door?.unitPrice * door.totalQty;
+                                return formatCurrency.format(total);
                             case "lhQty":
                             case "rhQty":
                                 return door?.[cell as any];
