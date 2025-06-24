@@ -22,7 +22,7 @@
     "db:migrate": "turbo -F @gnd/db db-migrate",
     "db:generate": "turbo -F @gnd/db prisma-generate",
     "dev": "turbo dev --parallel",
-    "dev:web": "turbo dev --parallel --filter !@gnd/dashboard --filter !@gnd/gnd-backlog --filter !@gnd/E --filter !@gnd/site",
+    "dev:web": "turbo dev --parallel --filter !@gnd/dashboard --filter !@gnd/gnd-backlog --filter !@gnd/email --filter !@gnd/site",
     "dev:backlog": "turbo dev --parallel --filter !@gnd/dashboard --filter !@gnd/email --filter !@gnd/site --filter !@gnd/www --filter !@gnd/api",
     "dev:web-prod": "turbo dev:prod --parallel --filter !@gnd/dashboard --filter !@gnd/gnd-backlog --filter !@gnd/email --filter !@gnd/site",
     "format": "turbo format --continue -- --cache --cache-location='node_modules/.cache/.prettiercache' --ignore-path='../../.gitignore'",

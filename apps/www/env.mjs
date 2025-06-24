@@ -83,6 +83,7 @@ const processEnv = {
     NEXT_BACK_DOOR_TOK: process.env.NEXT_BACK_DOOR_TOK,
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
+    PLACE_API: process.env.PLACE_API,
     BLESS_TOKEN: process.env.BLESS_TOKEN,
     CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
     CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
