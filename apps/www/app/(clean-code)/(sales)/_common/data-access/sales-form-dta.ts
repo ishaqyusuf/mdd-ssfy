@@ -43,12 +43,11 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
         ),
     });
 
-    const stepComponents = await getFormStepComponentsDta(
-        order.items
-            .map((item) => item.formSteps.map((fs) => fs.prodUid))
-            .flat()
-            .filter(Boolean),
-    );
+    const prodIds = order?.items
+        ?.map((item) => item.formSteps.map((fs) => fs.prodUid))
+        .flat()
+        .filter(Boolean);
+    const stepComponents = await getFormStepComponentsDta(prodIds || []);
     order.extraCosts;
     return {
         order: {

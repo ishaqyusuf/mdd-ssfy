@@ -13,7 +13,6 @@ import { Repeat } from "lucide-react";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { DropdownMenuShortcut } from "@gnd/ui/dropdown-menu";
-import { Label } from "@gnd/ui/label";
 import {
     Table,
     TableBody,
@@ -40,7 +39,6 @@ import {
 } from "@/components/forms/sales-form/context";
 import { PriceEstimateCell } from "@/components/forms/sales-form/hpt/price-estimate-cell";
 import { HptNote } from "@/components/forms/sales-form/hpt/hpt-note";
-import { DoorSwingSelect } from "@/components/forms/sales-form/take-off/door-swing-select";
 
 interface Props {
     itemStepUid;
