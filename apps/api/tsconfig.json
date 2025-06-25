@@ -20,7 +20,7 @@
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "baseUrl": ".",
-
+    "outDir": "./dist",
     "paths": {
       "@api/*": ["src/*"],
       "@engine/*": ["../engine/src/*"],
