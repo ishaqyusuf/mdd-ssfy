@@ -6,11 +6,8 @@ import { trpcServer } from "@hono/trpc-server";
 import { appRouter } from "./trpc/routers/_app";
 import { createTRPCContext } from "./trpc/init";
 import { handle } from "hono/vercel";
-// import { appRouter } from "./trpc/routers/_app";
-// import { createTRPCContext } from "./trpc/init";
 
 const app = new OpenAPIHono<Context>();
-// const app = new Hono<Context>();
 
 app.use(secureHeaders());
 
