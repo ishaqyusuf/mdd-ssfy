@@ -11,6 +11,9 @@ export const backlogRouters = createTRPCRouter({
   getByClassroom: publicProcedure
     // .input(getClassroomSubjectsSchema)
     .query(async ({ input, ctx: { db } }) => {
+      return {
+        message: "Hello World",
+      };
       //   return await getClassroomSubjects(db, input);
     }),
 });
