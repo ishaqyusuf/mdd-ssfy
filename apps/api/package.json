@@ -2,7 +2,7 @@
   "name": "@gnd/api",
   "scripts": {
     "dev": "TZ=UTC PORT=3300 bun run --hot src/index.ts",
-    "build": "tsc && tsc-alias",
+    "--build": "tsc && tsc-alias",
     "db:pull": "drizzle-kit pull",
     "lint": "biome check .",
     "format": "biome format --write .",

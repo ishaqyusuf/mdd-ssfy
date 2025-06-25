@@ -10,6 +10,8 @@ import { NavContext, useNavCtx } from "./layouts/site-nav";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { TRPCReactProvider } from "@/trpc/client";
 const AppProvider = ({ children }) => {
+    // similar to trpc useQuery and useSwr, get server action data from server action function geSales, await getSales()
+
     return (
         <SessionProvider>
             <Provider store={store}>
@@ -19,7 +21,6 @@ const AppProvider = ({ children }) => {
                             <CommandProvider>
                                 <NavContext.Provider value={useNavCtx()}>
                                     {children}
-                                    {/*  */}
                                 </NavContext.Provider>
                             </CommandProvider>
                         </ThemeProvider>

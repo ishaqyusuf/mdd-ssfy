@@ -1,0 +1,15 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/src",
+      "statusCode": 301
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/src/(.*)",
+      "destination": "/api"
+    }
+  ]
+}
