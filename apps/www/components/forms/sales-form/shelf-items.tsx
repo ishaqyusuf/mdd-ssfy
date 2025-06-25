@@ -42,6 +42,7 @@ export function ShelfItems({ itemStepUid }) {
     const ctx = useShelfContext(itemStepUid);
     return (
         <ShelfContext.Provider value={ctx}>
+            {/*  */}
             <div className="">
                 <Table className="size-sm">
                     <TableBody>
