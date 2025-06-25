@@ -21,8 +21,7 @@ export async function bootstrapShelfItems() {
             } as any);
         });
     });
-    console.log({ prods, cats: categoryUtils.categories });
-    // return { prods, cats: categoryUtils.categories };
+
     let finalProds = await Promise.all(
         prods.map(async (p) => {
             if (p.img) {
