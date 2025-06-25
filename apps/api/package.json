@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "TZ=UTC PORT=3300 bun run --hot src/index.ts",
+    "build": "vercel build src/index.ts",
     "db:pull": "drizzle-kit pull",
     "lint": "biome check .",
     "format": "biome format --write .",
