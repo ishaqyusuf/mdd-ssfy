@@ -7,7 +7,6 @@ import { uploadFile } from "@/lib/upload-file";
 
 export async function bootstrapShelfItems() {
     let prods: DykeShelfProducts[] = [];
-
     dykeShelfItems._prods.map(({ cats, products }) => {
         const cat = categoryUtils.generate(cats);
         products?.map(async (product) => {
