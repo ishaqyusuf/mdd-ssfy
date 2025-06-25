@@ -1,9 +1,11 @@
 {
   "name": "@gnd/api",
+  "main": "src/index.ts",
   "scripts": {
     "dev": "TZ=UTC PORT=3300 bun run --hot src/index.ts",
-    "--build": "tsc && tsc-alias",
-    "build": "bun run src/index.ts --output dist",
+    "build": "tsc && tsc-alias",
+    "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
+    "start": "bun run dist/src/index.js",
     "db:pull": "drizzle-kit pull",
     "lint": "biome check .",
     "format": "biome format --write .",
