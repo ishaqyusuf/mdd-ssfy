@@ -3,7 +3,8 @@
   "type": "module",
   "scripts": {
     "dev": "TZ=UTC PORT=3300 bun run --hot src/index.ts",
-    "build": "vercel build src/index.ts",
+    "build": "tsc && tsc-alias",
+    "start": "node ./dist/src/index.js",
     "db:pull": "drizzle-kit pull",
     "lint": "biome check .",
     "format": "biome format --write .",
@@ -16,6 +17,7 @@
   },
   "dependencies": {
     "@date-fns/utc": "^2.1.0",
+    "@hono/node-server": "^1.14.4",
     "@hono/trpc-server": "^0.3.4",
     "@hono/zod-openapi": "^0.19.8",
     "@hono/zod-validator": "^0.7.0",

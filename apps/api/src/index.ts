@@ -5,8 +5,8 @@ import { cors } from "hono/cors";
 import { trpcServer } from "@hono/trpc-server";
 import { appRouter } from "./trpc/routers/_app";
 import { createTRPCContext } from "./trpc/init";
-import { handle } from "hono/vercel";
 
+import { serve } from "@hono/node-server";
 const app = new OpenAPIHono<Context>();
 
 app.use(secureHeaders());
@@ -37,7 +37,11 @@ app.use(
     createContext: createTRPCContext,
   }),
 );
-export default handle(app);
+serve({
+  port: process.env.PORT ? Number.parseInt(process.env.PORT) : 3000,
+  fetch: app.fetch,
+});
+// export default handle(app);
 // export default {
 //   port: process.env.PORT ? Number.parseInt(process.env.PORT) : 3000,
 //   fetch: app.fetch,
