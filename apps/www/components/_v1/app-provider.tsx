@@ -19,6 +19,7 @@ const AppProvider = ({ children }) => {
                             <CommandProvider>
                                 <NavContext.Provider value={useNavCtx()}>
                                     {children}
+                                    {/*  */}
                                 </NavContext.Provider>
                             </CommandProvider>
                         </ThemeProvider>
