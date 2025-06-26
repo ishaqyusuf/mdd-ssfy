@@ -15,7 +15,7 @@ import { ICan } from "@/types/auth";
 import { unstable_cache } from "next/cache";
 import { cookies } from "next/headers";
 
-export async function getLoggedInProfile(debugMode = true) {
+export async function getLoggedInProfile(debugMode = false) {
     let id = await authId();
     let roleId = await (async () => {
         try {
@@ -32,6 +32,7 @@ export async function getLoggedInProfile(debugMode = true) {
         if (_roleId) roleId = _roleId;
     }
     const tags = [`user_${id}`, `role_${roleId}`, "permissions"];
+
     const fn = async () => {
         let can: ICan = {} as any;
         const user = await prisma.users.findFirst({

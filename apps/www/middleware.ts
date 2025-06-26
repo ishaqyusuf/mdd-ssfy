@@ -45,33 +45,43 @@ export default async function middleware(req: NextRequest) {
 
     const pathName = req.nextUrl.pathname;
     if (pathName == "/") {
-        const usr = await fetch(`${req.nextUrl.origin}/api/auth-session`, {
-            method: "POST",
-            headers: req.headers,
-        });
-        if (usr.ok) {
-            const data = await usr.json();
-            if (data?.roleId) {
-                const validLinks = getLinkModules(
-                    validateLinks({
-                        role: data.role,
-                        can: data.can,
-                        userId: data?.userId,
-                    }),
-                );
-                const menuMode = await getSideMenuMode();
-                // console.log({
-                //     userId: data?.userId,
-                //     pathName,
-                //     defaultPage: validLinks.defaultLink,
-                // });
-                if (pathName == "/" && validLinks.defaultLink) {
-                    return NextResponse.redirect(
-                        `${req.nextUrl.origin}${validLinks.defaultLink}`,
+        try {
+            const userUrl = `${req.nextUrl.origin}/api/auth-session`;
+            console.log(userUrl);
+
+            const usr = await fetch(userUrl, {
+                method: "POST",
+                headers: req.headers,
+            });
+            if (usr.ok) {
+                const data = await usr.json();
+                if (data?.roleId) {
+                    const validLinks = getLinkModules(
+                        validateLinks({
+                            role: data.role,
+                            can: data.can,
+                            userId: data?.userId,
+                        }),
                     );
+                    // const menuMode = await getSideMenuMode();
+                    // console.log({
+                    //     userId: data?.userId,
+                    //     pathName,
+                    //     defaultPage: validLinks.defaultLink,
+                    // });
+                    // console.log(validLinks.defaultLink);
+
+                    if (pathName == "/" && validLinks.defaultLink) {
+                        return NextResponse.redirect(
+                            `${req.nextUrl.origin}${validLinks.defaultLink}`,
+                        );
+                    }
                 }
             }
+        } catch (error) {
+            console.error("Error fetching user data", error);
         }
+        // } catch (error) {}
     }
     // rewrites for app pages
     if (hostname == `shop.${env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
