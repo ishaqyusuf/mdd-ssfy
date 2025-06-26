@@ -37,11 +37,10 @@ app.use(
     createContext: createTRPCContext,
   }),
 );
-// serve({
-//   port: process.env.PORT ? Number.parseInt(process.env.PORT) : 3000,
-//   fetch: app.fetch,
-// });
-export default app;
+serve({
+  port: process.env.PORT ? Number.parseInt(process.env.PORT) : 3000,
+  fetch: app.fetch,
+});
 // export default handle(app);
 // export default {
 //   port: process.env.PORT ? Number.parseInt(process.env.PORT) : 3000,
