@@ -19,7 +19,7 @@
     "noPropertyAccessFromIndexSignature": false,
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "baseUrl": ".",
+    "baseUrl": "./",
     "outDir": "./dist",
     "paths": {
       "@api/*": ["src/*"],
