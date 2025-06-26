@@ -268,7 +268,7 @@ export const linkModules = [
             _link(
                 "Sales Production",
                 "production",
-                "/sales-book/sales-productions",
+                "/sales-book/production-tasks",
             ).access(_role.is("Production")).data,
             _link(
                 "Unit Production",
