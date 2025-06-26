@@ -65,6 +65,8 @@ export function ComboxBox<
                           : [],
                 );
                 const onSelect = (value) => {
+                    console.log(value);
+
                     if (maxSelection > 1) {
                         const currentValue = [...selectedValues];
                         const newValue = currentValue.includes(value)
@@ -75,11 +77,8 @@ export function ComboxBox<
                         return;
                     }
                     const filterField = filterFields.find(
-                        (col) =>
-                            optValue(col)?.toLocaleLowerCase() ===
-                            value?.toLocaleLowerCase(),
+                        (col) => optValue(col) === value,
                     );
-                    // "".toLocaleLowerCase()
 
                     if (!filterField) return;
 
@@ -123,18 +122,12 @@ export function ComboxBox<
                                                 {selectedValues?.size > 0 && (
                                                     <div className="flex items-center gap-1">
                                                         {filterFields
-                                                            ?.filter(
-                                                                (option) =>
-                                                                    selectedValues.has(
-                                                                        optValue(
-                                                                            option,
-                                                                        )?.toLocaleLowerCase(),
-                                                                    ) ||
-                                                                    selectedValues.has(
-                                                                        optValue(
-                                                                            option,
-                                                                        ),
+                                                            ?.filter((option) =>
+                                                                selectedValues.has(
+                                                                    optValue(
+                                                                        option,
                                                                     ),
+                                                                ),
                                                             )
                                                             .filter(
                                                                 (a, i) =>
@@ -209,13 +202,18 @@ export function ComboxBox<
                                                     <FacetedFilterItem
                                                         key={optValue(opt)}
                                                         value={optValue(opt)}
-                                                        onSelect={onSelect}
+                                                        onSelect={(e) => {
+                                                            onSelect(
+                                                                optValue(opt),
+                                                            );
+                                                        }}
                                                         selected={selectedValues?.has(
                                                             optValue(opt),
                                                         )}
                                                     >
                                                         <span>
-                                                            {optLabel(opt)}
+                                                            {optLabel(opt)} -{" "}
+                                                            {optValue(opt)}
                                                         </span>
                                                         {(opt as any).count && (
                                                             <span className="ml-auto flex size-4 items-center justify-center font-mono text-xs">
