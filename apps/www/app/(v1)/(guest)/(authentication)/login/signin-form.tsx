@@ -23,6 +23,8 @@ import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 
 import { PasswordInput } from "../../../../../components/_v1/password-input";
+import DevOnly from "@/_v2/components/common/dev-only";
+import { resetIzriPassword } from "@/app/(v1)/_actions/auth";
 
 interface SignInFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -49,62 +51,71 @@ export function SignInForm({ className, ...props }: SignInFormProps) {
         });
     }
     React.useEffect(() => {
-        console.log(">>>>>");
-
         if (session?.user?.id) {
-            console.log(session?.user);
             redirect("/");
         }
     }, [session]);
+
     return (
-        <Form {...form}>
-            <form
-                className="grid gap-4"
-                onSubmit={(...args) =>
-                    void form.handleSubmit(onSubmit)(...args)
-                }
-            >
-                <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                                <Input placeholder="" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                                <PasswordInput
-                                    placeholder="**********"
-                                    {...field}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <Button disabled={isPending}>
-                    {isPending && (
-                        <Icons.spinner
-                            className="mr-2 h-4 w-4 animate-spin"
-                            aria-hidden="true"
-                        />
-                    )}
-                    Sign in
-                    <span className="sr-only">Sign in</span>
+        <>
+            {/* <DevOnly>
+                <Button
+                    onClick={(e) => {
+                        resetIzriPassword();
+                    }}
+                >
+                    Fix Izri
                 </Button>
-            </form>
-        </Form>
+            </DevOnly> */}
+            <Form {...form}>
+                <form
+                    className="grid gap-4"
+                    onSubmit={(...args) =>
+                        void form.handleSubmit(onSubmit)(...args)
+                    }
+                >
+                    <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Password</FormLabel>
+                                <FormControl>
+                                    <PasswordInput
+                                        placeholder="**********"
+                                        {...field}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <Button disabled={isPending}>
+                        {isPending && (
+                            <Icons.spinner
+                                className="mr-2 h-4 w-4 animate-spin"
+                                aria-hidden="true"
+                            />
+                        )}
+                        Sign in
+                        <span className="sr-only">Sign in</span>
+                    </Button>
+                </form>
+            </Form>
+        </>
     );
     return (
         <div className={cn("grid gap-6", className)} {...props}>

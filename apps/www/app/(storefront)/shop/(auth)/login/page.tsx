@@ -12,6 +12,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@gnd/ui/card";
 import { Form } from "@gnd/ui/form";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
+import DevOnly from "@/_v2/components/common/dev-only";
 
 export default function CustomerLoginPage() {
     const form = useForm({
@@ -31,6 +32,9 @@ export default function CustomerLoginPage() {
     async function submit(data) {}
     return (
         <div className="  bg-gray-50 dark:bg-gray-900">
+            {/* <DevOnly> */}
+
+            {/* </DevOnly> */}
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(submit)}>
                     <div className="mx-auto flex  min-h-[70vh]  max-w-3xl flex-col justify-center space-y-8 px-4">
