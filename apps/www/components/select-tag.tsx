@@ -11,14 +11,6 @@ export function SelectTag({
     selectedId?: string;
     data;
 }) {
-    // const t = useI18n();
-
-    // const data = TAGS.map((tag) => ({
-    //     id: tag,
-    //     label: t(`tags.${tag}`),
-    //     slug: tag,
-    // }));
-
     return (
         <ComboboxDropdown
             headless={headless}

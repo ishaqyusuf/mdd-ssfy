@@ -17,6 +17,7 @@ import { Form } from "@gnd/ui/form";
 
 import { useFormDataStore } from "../../../_common/_stores/form-data-store";
 import { ComponentHelperClass } from "../../../_utils/helpers/zus/step-component-class";
+import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 
 interface Props {
     cls: ComponentHelperClass;
@@ -240,8 +241,6 @@ function ComponentInput({ fieldIndex, index }) {
             <ComboxBox
                 maxSelection={2}
                 options={options || []}
-                // labelKey="title"
-                // valueKey="uid"
                 className="w-full"
                 control={ctx.form.control}
                 name={`variations.${index}.rules.${fieldIndex}.componentsUid`}

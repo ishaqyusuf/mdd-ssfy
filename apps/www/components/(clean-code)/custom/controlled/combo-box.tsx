@@ -66,18 +66,20 @@ export function ComboxBox<
                 );
                 const onSelect = (value) => {
                     if (maxSelection > 1) {
-                        console.log({ selectedValues });
                         const currentValue = [...selectedValues];
                         const newValue = currentValue.includes(value)
                             ? currentValue.filter((v) => v !== value)
                             : [...currentValue, value];
-                        console.log({ newValue });
+
                         field.onChange(newValue);
                         return;
                     }
                     const filterField = filterFields.find(
-                        (col) => optValue(col) === value,
+                        (col) =>
+                            optValue(col)?.toLocaleLowerCase() ===
+                            value?.toLocaleLowerCase(),
                     );
+                    // "".toLocaleLowerCase()
 
                     if (!filterField) return;
 
@@ -125,7 +127,7 @@ export function ComboxBox<
                                                                 selectedValues.has(
                                                                     optValue(
                                                                         option,
-                                                                    ),
+                                                                    )?.toLocaleLowerCase(),
                                                                 ),
                                                             )
                                                             .filter(
