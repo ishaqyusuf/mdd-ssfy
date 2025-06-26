@@ -123,12 +123,18 @@ export function ComboxBox<
                                                 {selectedValues?.size > 0 && (
                                                     <div className="flex items-center gap-1">
                                                         {filterFields
-                                                            ?.filter((option) =>
-                                                                selectedValues.has(
-                                                                    optValue(
-                                                                        option,
-                                                                    )?.toLocaleLowerCase(),
-                                                                ),
+                                                            ?.filter(
+                                                                (option) =>
+                                                                    selectedValues.has(
+                                                                        optValue(
+                                                                            option,
+                                                                        )?.toLocaleLowerCase(),
+                                                                    ) ||
+                                                                    selectedValues.has(
+                                                                        optValue(
+                                                                            option,
+                                                                        ),
+                                                                    ),
                                                             )
                                                             .filter(
                                                                 (a, i) =>

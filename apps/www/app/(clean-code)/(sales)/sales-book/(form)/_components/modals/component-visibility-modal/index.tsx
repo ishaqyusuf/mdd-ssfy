@@ -232,7 +232,7 @@ function ComponentInput({ fieldIndex, index }) {
             })
             .map(({ title: label, uid: value }) => ({ label, value }));
         // .filter((a, i) => i < 2);
-        console.log({ _options });
+
         return _options;
     }, [components]);
 
