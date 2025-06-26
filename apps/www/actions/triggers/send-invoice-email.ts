@@ -115,19 +115,14 @@ export const __sendInvoiceEmailTrigger = async ({
                               pendingAmountSales.map((a) => a.slug),
                           )}`
                         : null;
-
-                const response = await resend.emails.send({
-                    from: `GND Millwork <${
-                        salesRepEmail?.split("@")[0]
-                    }@gndprodesk.com>`,
+                const props = {
+                    from: `GND Millwork <${salesRepEmail?.split("@")[0]}@gndprodesk.com>`,
                     to: customerEmail,
                     reply_to: salesRepEmail,
                     headers: {
                         "X-Entity-Ref-ID": nanoid(),
                     },
-                    subject: `${salesRep} sent you ${
-                        isQuote ? "a quote" : "an invoice"
-                    }`,
+                    subject: `${salesRep} sent you ${isQuote ? "a quote" : "an invoice"}`,
                     html: await render(
                         composeSalesEmail({
                             salesList: isQuote
@@ -153,7 +148,57 @@ export const __sendInvoiceEmailTrigger = async ({
                             salesRep,
                         }),
                     ),
-                });
+                };
+                const response = await resend.batch.send(
+                    [
+                        props,
+                        isDev
+                            ? null
+                            : {
+                                  ...props,
+                                  to: "ishaqyusuf024@gmail.com",
+                              },
+                    ]?.filter((a) => a),
+                );
+                // await resend.emails.send({
+                //     from: `GND Millwork <${
+                //         salesRepEmail?.split("@")[0]
+                //     }@gndprodesk.com>`,
+                //     to: customerEmail,
+                //     reply_to: salesRepEmail,
+                //     headers: {
+                //         "X-Entity-Ref-ID": nanoid(),
+                //     },
+                //     subject: `${salesRep} sent you ${
+                //         isQuote ? "a quote" : "an invoice"
+                //     }`,
+                //     html: await render(
+                //         composeSalesEmail({
+                //             salesList: isQuote
+                //                 ? []
+                //                 : matchingSales?.map((e) => ({
+                //                       amount: formatCurrency(e.grandTotal),
+                //                       orderId: e.orderId,
+                //                       po: e.meta?.po,
+                //                   })),
+                //             type: sales.type as any,
+                //             customerName,
+                //             paymentLink: withPayment ? paymentLink : null,
+                //             link: `${getBaseUrl()}/api/pdf/download?${QueryString.stringify(
+                //                 {
+                //                     id: sales.id,
+                //                     slugs: matchingSales
+                //                         .map((s) => s.slug)
+                //                         .join(","),
+                //                     mode: sales.type,
+                //                     preview: false,
+                //                 },
+                //             )}`,
+                //             salesRep,
+                //         }),
+                //     ),
+                // });
+                // response.data.data.
                 if (response.error) {
                     throw new Error(`Unable to send email`, {
                         cause: response?.error?.message,
