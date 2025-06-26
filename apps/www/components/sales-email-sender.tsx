@@ -13,10 +13,9 @@ export function SalesEmailSender() {
         if (params.ids) {
             if (!r.current) {
                 r.current = true;
-                console.log("RUNNING>>>");
 
-                console.log("SENDING EMAIL>>>>>>>>>");
                 loader.loading("Sending Email...");
+
                 //  loader.display({
                 //     variant: "spinner",
                 //     title: "Sending Email...",

@@ -25,7 +25,7 @@ export const useMailboxContext = (id, type) => {
             z.object({
                 body: z.string(),
                 attachment: z.string(),
-            })
+            }),
         ),
         defaultValues: {
             body: "",
@@ -61,20 +61,19 @@ export const useMailboxContext = (id, type) => {
                     attachments: [dta.attachment]
                         ?.map((a) => {
                             const findA = data.data?.attachables?.find(
-                                (_a) => _a.label == (a as any)
+                                (_a) => _a.label == (a as any),
                             );
 
                             return {
-                                folder: findA.folder,
+                                folder: findA?.folder,
                                 url: findA?.url,
-                                fileName: findA.fileName,
+                                fileName: findA?.fileName,
                             };
                         })
                         ?.filter((s) => s.url),
                     subject,
                     data: data.composeData,
                 });
-                console.log(resp);
                 if (resp?.error) toast?.error(resp?.error);
                 if (resp?.success) toast.success(resp.success);
             }
@@ -83,7 +82,7 @@ export const useMailboxContext = (id, type) => {
     return resp;
 };
 const MailboxContext = createContext<ReturnType<typeof useMailboxContext>>(
-    null as any
+    null as any,
 );
 export const MailboxProvider = MailboxContext.Provider;
 
