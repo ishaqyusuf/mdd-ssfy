@@ -65,8 +65,6 @@ export function ComboxBox<
                           : [],
                 );
                 const onSelect = (value) => {
-                    console.log(value);
-
                     if (maxSelection > 1) {
                         const currentValue = [...selectedValues];
                         const newValue = currentValue.includes(value)

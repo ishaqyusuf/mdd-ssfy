@@ -79,75 +79,7 @@ export default async function middleware(req: NextRequest) {
             new URL(`/shop${path === "/" ? "" : path}`, req.url),
         );
     }
-    if (hostname == `shop-admin.${env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
-        // const session = await getToken({ req });
-        // if (!session && path !== "/login") {
-        // return NextResponse.redirect(new URL("/login", req.url));
-        // } else if (session && path == "/login") {
-        // return NextResponse.redirect(new URL("/", req.url));
-        // }
-        // console.log("=====SAAS=====", path);
-        return NextResponse.rewrite(
-            new URL(`/shop-admin${path === "/" ? "" : path}`, req.url),
-        );
-    }
-    if (hostname == `print.${env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
-        // const session = await getToken({ req });
-        // if (!session && path !== "/login") {
-        // return NextResponse.redirect(new URL("/login", req.url));
-        // } else if (session && path == "/login") {
-        // return NextResponse.redirect(new URL("/", req.url));
-        // }
-        // console.log("=====SAAS=====", path);
-        return NextResponse.rewrite(
-            new URL(`/printer${path === "/" ? "" : path}`, req.url),
-        );
-    }
-    if (hostname == `print.${env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
-        // const session = await getToken({ req });
-        // if (!session && path !== "/login") {
-        // return NextResponse.redirect(new URL("/login", req.url));
-        // } else if (session && path == "/login") {
-        // return NextResponse.redirect(new URL("/", req.url));
-        // }
-        // console.log("=====SAAS=====", path);
-        return NextResponse.rewrite(
-            new URL(`/printer${path === "/" ? "" : path}`, req.url),
-        );
-    }
-    if (hostname == `download.${env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
-        // const session = await getToken({ req });
-        // if (!session && path !== "/login") {
-        // return NextResponse.redirect(new URL("/login", req.url));
-        // } else if (session && path == "/login") {
-        // return NextResponse.redirect(new URL("/", req.url));
-        // }
-        // console.log("=====SAAS=====", path);
-        return NextResponse.rewrite(
-            new URL(`/download${path === "/" ? "" : path}`, req.url),
-        );
-    }
 
-    // special case for `vercel.pub` domain
-    // if (hostname === "vercel.pub") {
-    //   return NextResponse.redirect(
-    //     "https://vercel.com/blog/platforms-starter-kit"
-    //   );
-    // }
-
-    // rewrite root application to `/home` folder
-    // if (
-    //     hostname === "localhost:3002" ||
-    //     hostname === env.NEXT_PUBLIC_ROOT_DOMAIN
-    // ) {
-    //     // console.log("..");
-    //     return NextResponse.rewrite(
-    //         new URL(`/public${path === "/" ? "" : path}`, req.url)
-    //     );
-    // }
-    // console.log(">>>>>>>>>>>>>>>");
-    // rewrite everything else to `/[domain]/[slug] dynamic route
-    // console.log(["+++TENANT+++", hostname, path]);
     const response = NextResponse.next();
     return response;
     // return NextResponse.rewrite(new URL(`/${hostname}${path}`, req.url));
