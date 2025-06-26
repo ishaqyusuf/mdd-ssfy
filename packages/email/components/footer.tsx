@@ -298,7 +298,7 @@ export function Footer() {
 
       <Row>
         <Link
-        // href="https://gnd-prodesk.vercel.app"
+        // href="https://gndprodesk.com"
         >
           <Img
             src={`${baseUrl}/email/logo-footer.png`}

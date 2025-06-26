@@ -29,7 +29,7 @@ export default function Page({}) {
                 `${
                     env.NEXT_PUBLIC_NODE_ENV == "production"
                         ? ""
-                        : "https://gnd-prodesk.vercel.app"
+                        : "https://gndprodesk.com"
                 }/api/pdf/sales?${QueryString.stringify(query)}`,
             ).then((res) => res.json());
             console.log(pdf);

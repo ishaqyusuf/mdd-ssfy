@@ -18,13 +18,13 @@ export const sendInvoiceEmail = schemaTask({
     run: async ({ salesId }) => {
         const resp = await fetch(
             `${env.NEXT_PUBLIC_ROOT_DOMAIN}/api/cron/send-sales-email`,
-            // `https://gnd-prodesk.vercel.app/api/cron/send-sales-email`,
+            // `https://gndprodesk.com/api/cron/send-sales-email`,
             {
                 method: "POST",
                 body: JSON.stringify({
                     salesId,
                 }),
-            }
+            },
         ).then((r) => r.json());
         // .then((r) => r.body)
         // .catch((e) => {

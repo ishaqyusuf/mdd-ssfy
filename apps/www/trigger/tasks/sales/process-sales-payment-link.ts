@@ -16,7 +16,7 @@ export const processSalesPaymentLink = schemaTask({
     run: async (args) => {
         const resp = await fetch(
             `${env.NEXT_PUBLIC_ROOT_DOMAIN}/api/cron/send-sales-email`,
-            // `https://gnd-prodesk.vercel.app/api/cron/send-sales-email`,
+            // `https://gndprodesk.com/api/cron/send-sales-email`,
             {
                 method: "POST",
                 body: JSON.stringify({

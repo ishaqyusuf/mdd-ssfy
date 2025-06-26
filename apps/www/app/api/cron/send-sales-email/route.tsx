@@ -62,7 +62,7 @@ export async function POST(request: Request) {
             composeSalesEmail({
                 type: sales.type as any,
                 customerName,
-                link: `https://gnd-prodesk.vercel.app/api/pdf/download?${QueryString.stringify(
+                link: `https://gndprodesk.com/api/pdf/download?${QueryString.stringify(
                     {
                         id: sales.id,
                         slugs: sales.slug,

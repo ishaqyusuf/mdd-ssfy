@@ -33,7 +33,7 @@ export function MenuItemPrintAction(props: Props) {
                 `${
                     env.NEXT_PUBLIC_NODE_ENV == "production"
                         ? ""
-                        : "https://gnd-prodesk.vercel.app"
+                        : "https://gndprodesk.com"
                 }/api/pdf/sales?${QueryString.stringify(query)}`,
             ).then((res) => res.json());
             const link = document.createElement("a");

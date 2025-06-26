@@ -38,7 +38,7 @@ export async function _generateSalesPdf(mode: SalesPrintModes, ids) {
     // console.log(">>>>>>");
     page = await browser.newPage();
     if (process.env.NODE_ENV == "production") {
-        url = `https://gnd-prodesk.vercel.app/printer/sales?slugs=${ids}&mode=${mode}&preview=true`;
+        url = `https://gndprodesk.com/printer/sales?slugs=${ids}&mode=${mode}&preview=true`;
     } else {
         url = `http://localhost:3000/printer/sales?slugs=${ids}&mode=${mode}&preview=true`;
     }

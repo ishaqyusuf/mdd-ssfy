@@ -37,7 +37,7 @@ export async function sendMessage(data: EmailProps, download?: DownloadProps) {
                 ?.split(":")
                 .join("");
             trs.body = `${trs.body} </br>
-                <a href="gnd-prodesk.vercel.app/download/${download.path}/ptok-${token}/${download.slug}" >Download</a>
+                <a href="gndprodesk.com/download/${download.path}/ptok-${token}/${download.slug}" >Download</a>
                 `;
             // throw new Error("pdf not generated.");
             // if (pdf)
