@@ -162,7 +162,7 @@ function _Table({}) {
             >
                 <TableHeader
                     className={
-                        cn()
+                        cn("bg-muted")
                         // ctx.topBarHeight ? "z-10 bg-muted md:sticky" : "",
                     }
                     // style={{ top: `${ctx.topBarHeight}px` }}
