@@ -41,7 +41,7 @@ export function TRPCReactProvider(
     createTRPCClient<AppRouter>({
       links: [
         httpBatchLink({
-          url: `/api/trpc`,
+          url: `/api/hono-trpc`,
           transformer: superjson as any,
           async headers() {
             // const supabase = createClient();

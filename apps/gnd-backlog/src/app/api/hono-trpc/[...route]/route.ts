@@ -31,10 +31,11 @@ app.use(secureHeaders());
 // );
 
 app.use(
-  "/api/trpc/*",
+  "/api/hono-trpc/*",
   trpcServer({
     router: appRouter,
     createContext: createTRPCContext,
+    endpoint: "/api/hono-trpc", // This should match
   }),
 );
 
@@ -87,7 +88,7 @@ app.openAPIRegistry.registerComponent("securitySchemes", "token", {
 });
 
 app.get(
-  "/",
+  "/api/trpc",
   Scalar({ url: "/openapi", pageTitle: "Midday API", theme: "saturn" }),
 );
 

@@ -1,9 +1,14 @@
-import { getTasks } from "@/actions/get-tasks";
 import { createTRPCRouter, publicProcedure } from "../init";
 import { z } from "zod";
 
 export const tasksRouter = createTRPCRouter({
-  get: publicProcedure.input(z.object({})).query(async ({ ctx }) => {
-    return await getTasks();
-  }),
+  get: publicProcedure
+    .input(z.object({}).optional())
+    .query(async ({ ctx, input }) => {
+      // return await getTasks();
+      return {
+        message: "Hello world",
+        data: [],
+      };
+    }),
 });
