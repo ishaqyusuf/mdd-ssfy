@@ -93,6 +93,18 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
                         select: {
                             orderId: true,
                             id: true,
+                            grandTotal: true,
+                            extraCosts: {
+                                where: {
+                                    type: {
+                                        in: ["Labor", "Delivery"],
+                                    },
+                                },
+                                select: {
+                                    type: true,
+                                    amount: true,
+                                },
+                            },
                             salesRep: {
                                 select: {
                                     name: true,
@@ -137,6 +149,16 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
             )
                 status = spStatus;
             const { history } = item;
+            const orderCount = orderIds?.length;
+            const order = item?.salesPayments?.[0]?.order;
+            const ordersCount = item?.salesPayments?.length;
+            const multiSales = ordersCount > 1;
+            const laborCost = order?.extraCosts?.find(
+                (a) => a.type == "Labor",
+            )?.amount;
+            const deliveryCost = order?.extraCosts?.find(
+                (a) => a.type == "Delivery",
+            )?.amount;
             return {
                 checkNo: meta?.checkNo || spMeta?.checkNo,
                 reason: item?.history?.[0]?.reason,
@@ -150,12 +172,15 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
                 amount,
                 paymentMethod,
                 description,
-                ordersCount: orderIds?.length,
+                ordersCount,
                 orderIds: orderIdsString,
                 salesReps,
                 sales: item.salesPayments,
                 meta,
                 history,
+                laborCost,
+                deliveryCost,
+                grandTotal: order?.grandTotal,
             };
         }),
     );

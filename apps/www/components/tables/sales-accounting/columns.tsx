@@ -19,6 +19,7 @@ import { useAction } from "next-safe-action/hooks";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import { CancelSalesTransactionAction } from "@/components/cancel-sales-transaction";
+import Money from "@/components/_v1/money";
 
 export type Item = PageItemData<typeof getCustomerTransactionsAction>;
 export const columns: ColumnDef<Item>[] = [
@@ -130,6 +131,51 @@ export const columns: ColumnDef<Item>[] = [
                 </Progress>
             </>
         ),
+    },
+    {
+        header: "Labor",
+        accessorKey: "status",
+        meta: {
+            // preventDefault: true,
+        } as ColumnMeta,
+        cell: ({ row: { original: item } }) => {
+            const money = formatMoney(Math.abs(item.laborCost));
+            return (
+                <TCell.Secondary>
+                    <Money value={money} />
+                </TCell.Secondary>
+            );
+        },
+    },
+    {
+        header: "Delivery",
+        accessorKey: "delivery",
+        meta: {
+            // preventDefault: true,
+        } as ColumnMeta,
+        cell: ({ row: { original: item } }) => {
+            const money = formatMoney(Math.abs(item.deliveryCost));
+            return (
+                <TCell.Secondary>
+                    <Money value={money} />
+                </TCell.Secondary>
+            );
+        },
+    },
+    {
+        header: "Total",
+        accessorKey: "total",
+        meta: {
+            // preventDefault: true,
+        } as ColumnMeta,
+        cell: ({ row: { original: item } }) => {
+            const money = formatMoney(Math.abs(item.grandTotal));
+            return (
+                <TCell.Secondary>
+                    <Money value={money} />
+                </TCell.Secondary>
+            );
+        },
     },
     {
         header: "",

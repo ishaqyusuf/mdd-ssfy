@@ -120,7 +120,6 @@ export const { Provider: HptLineContextProvider, useContext: useHptLine } =
                 "pricing.unitLabor",
             );
             const sizeForm = ctx.itemForm?.groupItem.form[size?.path];
-            console.log(size?.path);
 
             return {
                 sizeForm,
