@@ -133,6 +133,21 @@ export const columns: ColumnDef<Item>[] = [
         ),
     },
     {
+        header: "Sub Total",
+        accessorKey: "subTotal",
+        meta: {
+            // preventDefault: true,
+        } as ColumnMeta,
+        cell: ({ row: { original: item } }) => {
+            const money = formatMoney(Math.abs(item.subTotal));
+            return (
+                <TCell.Secondary>
+                    <Money value={money} />
+                </TCell.Secondary>
+            );
+        },
+    },
+    {
         header: "Labor",
         accessorKey: "status",
         meta: {
@@ -162,21 +177,7 @@ export const columns: ColumnDef<Item>[] = [
             );
         },
     },
-    {
-        header: "Total",
-        accessorKey: "total",
-        meta: {
-            // preventDefault: true,
-        } as ColumnMeta,
-        cell: ({ row: { original: item } }) => {
-            const money = formatMoney(Math.abs(item.grandTotal));
-            return (
-                <TCell.Secondary>
-                    <Money value={money} />
-                </TCell.Secondary>
-            );
-        },
-    },
+
     {
         header: "",
         accessorKey: "actions",

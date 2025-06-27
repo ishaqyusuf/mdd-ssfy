@@ -91,6 +91,7 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
                     meta: true,
                     order: {
                         select: {
+                            subTotal: true,
                             orderId: true,
                             id: true,
                             grandTotal: true,
@@ -181,6 +182,7 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
                 laborCost,
                 deliveryCost,
                 grandTotal: order?.grandTotal,
+                subTotal: order?.subTotal,
             };
         }),
     );
