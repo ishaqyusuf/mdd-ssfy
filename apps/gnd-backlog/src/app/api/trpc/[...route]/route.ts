@@ -11,27 +11,27 @@ const app = new OpenAPIHono<any>();
 
 app.use(secureHeaders());
 
-app.use(
-  "/trpc/*",
-  cors({
-    origin: process.env.ALLOWED_API_ORIGINS?.split(",") ?? [],
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allowHeaders: [
-      "Authorization",
-      "Content-Type",
-      "accept-language",
-      "x-trpc-source",
-      "x-user-locale",
-      "x-user-timezone",
-      "x-user-country",
-    ],
-    exposeHeaders: ["Content-Length"],
-    maxAge: 86400,
-  }),
-);
+// app.use(
+//   "/trpc/*",
+//   cors({
+//     origin: process.env.ALLOWED_API_ORIGINS?.split(",") ?? [],
+//     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+//     allowHeaders: [
+//       "Authorization",
+//       "Content-Type",
+//       "accept-language",
+//       "x-trpc-source",
+//       "x-user-locale",
+//       "x-user-timezone",
+//       "x-user-country",
+//     ],
+//     exposeHeaders: ["Content-Length"],
+//     maxAge: 86400,
+//   }),
+// );
 
 app.use(
-  "/trpc/*",
+  "/api/trpc/*",
   trpcServer({
     router: appRouter,
     createContext: createTRPCContext,
