@@ -236,9 +236,10 @@ function DoorSizeRowContent() {
     const line = useHptLine();
     const { lineUid, sizeForm, size, sn, valueChanged } = line;
     const { isSlab, showNote, setShowNote } = ctx;
+    console.log({ lineUid });
 
     if (!sizeForm?.selected) return null;
-
+    console.log({ lineUid });
     return (
         <>
             <TableRow className={cn(!sizeForm?.selected && "hidden")}>

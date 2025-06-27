@@ -65,7 +65,7 @@ export default function ProductionTasksPageClient({
                         <Menu.Trash action={() => {}}>Delete</Menu.Trash>
                     </Menu> */}
                 </DataTable.BatchAction>
-                <DataTable.Header top="sm" className="bg-white">
+                <DataTable.Header top="xs" className="bg-white">
                     <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
                         <div className="">
                             <QueryTab page="orders" />

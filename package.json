@@ -2,7 +2,9 @@
   "name": "nextjs-template",
   "devDependencies": {
     "@turbo/gen": "2.5.4",
+    "@types/node": "^24.0.4",
     "check-dependency-version-consistency": "4.1.0",
+    "knip": "^5.61.2",
     "turbo": "2.5.4",
     "typescript": "^5.8.3"
   },
@@ -32,12 +34,12 @@
     "typecheck": "turbo typecheck",
     "--postinstall": "bun run check-deps",
     "check-deps": "check-dependency-version-consistency .",
-    "gen": "turbo gen --config 'turbo/generators/config.ts'"
+    "gen": "turbo gen --config 'turbo/generators/config.ts'",
+    "knip": "knip"
   },
   "workspaces": [
     "apps/*",
     "packages/*",
     "tooling/*"
-  ],
-  "dependencies": {}
+  ]
 }

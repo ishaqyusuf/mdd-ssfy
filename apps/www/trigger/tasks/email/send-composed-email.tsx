@@ -1,5 +1,5 @@
 import { resend } from "@/lib/resend";
-import EmailTemplate from "@/modules/email/emails/composed-email";
+import { EmailTemplate } from "@/modules/email/emails/composed-email";
 import { triggerIds } from "@/trigger/contants";
 import { SendComposedEmailSchema } from "@/trigger/schema";
 import { render } from "@react-email/components";
@@ -22,7 +22,7 @@ export const sendComposedEmail = schemaTask({
                 "X-Entity-Ref-ID": nanoid(),
             },
             html: await render(
-                <EmailTemplate emailStack={data} preview={props.preview} />
+                <EmailTemplate emailStack={data} preview={props.preview} />,
             ),
         });
     },

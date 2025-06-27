@@ -113,19 +113,21 @@ export const { Provider: HptLineContextProvider, useContext: useHptLine } =
             ctx.hpt.updateGroupedCost();
             ctx.hpt.calculateTotalPrice();
         };
-        const { sizeForm, size, unitLabor } = useMemo(() => {
+        const size = ctx?.door?.sizePrice?.find((s) => s.path == lineUid);
+        const { sizeForm, unitLabor } = useMemo(() => {
             const unitLabor = ctx.hpt.dotGetGroupItemFormValue(
                 lineUid,
                 "pricing.unitLabor",
             );
-            const size = ctx?.door?.sizePrice?.find((s) => s.path == lineUid);
             const sizeForm = ctx.itemForm?.groupItem.form[size?.path];
+            console.log(size?.path);
+
             return {
                 sizeForm,
-                size,
+                // size,
                 unitLabor,
             };
-        }, [lineUid]);
+        }, [lineUid, size?.path]);
         const setValue = <K extends FieldPath<ZusGroupItemFormPath>>(
             pathName: K,
             value: FieldPathValue<ZusGroupItemFormPath, K>,

@@ -108,5 +108,3 @@ export const EmailTemplate = ({ emailStack, preview }) => {
         </Html>
     );
 };
-
-export default EmailTemplate;

@@ -65,13 +65,14 @@ function Header({
 }: {
     className?;
     children;
-    top?: "sm" | "md" | "lg";
+    top?: "sm" | "md" | "lg" | "xs";
 }) {
     const ctx = useInfiniteDataTable();
     return (
         <div
             className={cn(
                 "sm:px-8s sticky  z-10 p-4",
+                top == "xs" && "top-[50px]",
                 top == "md" && "top-[60px]",
                 top == "sm" && "top-[60px]",
                 top == "lg" && "top-24",
@@ -155,15 +156,16 @@ function _Table({}) {
     return (
         <div className="z-0 max-md:w-[100vw] max-md:overflow-auto">
             <Table
-                containerClassName={
-                    ctx.topBarHeight ? "w-full md:overflow-clip" : ""
-                }
+            // containerClassName={
+            //     // ctx.topBarHeight ? "w-full md:overflow-clip" : ""
+            // }
             >
                 <TableHeader
-                    className={cn(
-                        ctx.topBarHeight ? "z-10 bg-muted md:sticky" : "",
-                    )}
-                    style={{ top: `${ctx.topBarHeight}px` }}
+                    className={
+                        cn()
+                        // ctx.topBarHeight ? "z-10 bg-muted md:sticky" : "",
+                    }
+                    // style={{ top: `${ctx.topBarHeight}px` }}
                 >
                     {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow key={headerGroup.id}>

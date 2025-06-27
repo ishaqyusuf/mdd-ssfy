@@ -12,7 +12,7 @@ export class HptClass extends GroupFormClass {
     public getDoorStepForm() {
         return Object.entries(this.zus.kvStepForm).filter(
             ([uid, data]) =>
-                uid.startsWith(`${this.itemUid}-`) && data.title == "Door"
+                uid.startsWith(`${this.itemUid}-`) && data.title == "Door",
         )?.[0]?.[1];
     }
     public tabChanged(value) {
@@ -69,13 +69,13 @@ export class HptClass extends GroupFormClass {
         const doorStep = this.getDoorStepForm();
 
         const selectionComponentUids = Array.from(
-            new Set(itemForm.groupItem?.itemIds?.map((s) => s.split("-")[0]))
+            new Set(itemForm.groupItem?.itemIds?.map((s) => s.split("-")[0])),
         );
         return selectionComponentUids
             .map((componentUid) => {
                 const component = this.getComponentFromSettingsByStepId(
                     doorStep?.stepId,
-                    componentUid
+                    componentUid,
                 );
                 return component;
             })
@@ -92,6 +92,7 @@ export class HptClass extends GroupFormClass {
 
     public addHeight(size: SizeForm) {
         const path = size.path;
+
         const config = this.getRouteConfig();
         if (this.getGroupItemForm(path)) {
             this.dotUpdateGroupItemFormPath(path, "selected", true);
@@ -102,7 +103,7 @@ export class HptClass extends GroupFormClass {
             const componentPrice = this.getComponentPrice();
             const salesPrice = size.salesPrice; //this.calculateSales(size.basePrice?.price);
             const estimatedComponentPrice = formatMoney(
-                salesPrice + componentPrice
+                salesPrice + componentPrice,
             );
             this.dotUpdateGroupItemForm(path, {
                 qty: {

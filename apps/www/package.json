@@ -11,9 +11,6 @@
         "typecheck": "tsc --noEmit",
         "dump-tsc": "tsc temp.ts --declaration --emitDeclarationOnly"
     },
-    "prisma": {
-        "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
-    },
     "dependencies": {
         "@actions/core": "^1.11.1",
         "@actions/github": "^6.0.0",

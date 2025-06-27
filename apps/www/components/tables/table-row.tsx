@@ -19,7 +19,7 @@ export function TableRow({}: Props) {
         <>
             {table.getRowModel().rows.map((row) => (
                 <BaseTableRow
-                    className={cn(tableMeta.rowClassName)}
+                    className={cn(tableMeta?.rowClassName)}
                     key={row.id}
                 >
                     {row.getVisibleCells().map((cell, index) => (
