@@ -5,7 +5,7 @@ import { cors } from "hono/cors";
 import { trpcServer } from "@hono/trpc-server";
 import { appRouter } from "./trpc/routers/_app";
 import { createTRPCContext } from "./trpc/init";
-const app = new OpenAPIHono<Context>();
+const app = new OpenAPIHono<Context>().basePath("/api");
 
 app.use(secureHeaders());
 
@@ -29,7 +29,7 @@ app.use(
   }),
 );
 app.use(
-  "/api/trpc/*",
+  "/trpc/*",
   trpcServer({
     router: appRouter,
     createContext: createTRPCContext,
