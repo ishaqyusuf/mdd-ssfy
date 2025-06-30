@@ -9,7 +9,7 @@
   "redirects": [
     {
       "source": "/",
-      "destination": "/api/hono-trpc/backlogs.getByClassroom",
+      "destination": "/api/trpc",
       "permanent": false
     }
   ],

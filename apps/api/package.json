@@ -45,6 +45,6 @@
   },
   "devDependencies": {
     "@types/bun": "^1.2.17",
-    "vercel": "^37.11.0"
+    "vercel": "^44.2.7"
   }
 }

@@ -29,11 +29,11 @@ app.use(
   }),
 );
 app.use(
-  "/api/hono-trpc/*",
+  "/api/trpc/*",
   trpcServer({
     router: appRouter,
     createContext: createTRPCContext,
-    endpoint: "/api/hono-trpc",
+    endpoint: "/api/trpc",
   }),
 );
 app.get("/", (c) => {
