@@ -1,3 +1,5 @@
+// import { getBacklogs } from "../../db/queries/backlogs";
+import { getBacklogs } from "@api/db/queries/backlogs";
 import { createTRPCRouter, publicProcedure } from "../init";
 
 export const backlogRouters = createTRPCRouter({
@@ -6,7 +8,7 @@ export const backlogRouters = createTRPCRouter({
     //
     .query(async (q) => {
       // console.log(q.ctx.)
-      // return await getAllSubjects(q.ctx, q.input);
+      return await getBacklogs(q.ctx.db, q.input);
     }),
   getByClassroom: publicProcedure
     // .input(getClassroomSubjectsSchema)

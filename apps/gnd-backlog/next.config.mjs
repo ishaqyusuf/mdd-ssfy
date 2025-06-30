@@ -14,7 +14,7 @@ const config = {
   reactStrictMode: true,
   /** Enables hot reloading for local packages without a build step */
   transpilePackages: [
-    // "@gnd/api",
+    "@gnd/api",
     // "@gnd/auth",
     // "@gnd/db",
     // "@gnd/common",

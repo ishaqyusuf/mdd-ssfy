@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@dinero.js/currencies": "2.0.0-alpha.14",
+    "@gnd/api": "workspace:*",
     "@gnd/db": "workspace:*",
     "@gnd/events": "workspace:*",
     "@gnd/printer": "workspace:*",

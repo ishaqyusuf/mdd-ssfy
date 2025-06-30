@@ -11,7 +11,8 @@ import {
 import { cache } from "react";
 import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
-import { AppRouter } from "./routers/_app";
+import { AppRouter } from "@gnd/api/trpc/routers/_app";
+// import { AppRouter } from "./routers/_app";
 
 // IMPORTANT: Create a stable getter for the query client that
 //            will return the same client during the same request.
@@ -22,7 +23,7 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
   client: createTRPCClient({
     links: [
       httpBatchLink({
-        url: `/api/trpc`,
+        url: `/api/hono-trpc`,
         transformer: superjson as any,
         async headers() {
           return {

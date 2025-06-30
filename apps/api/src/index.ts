@@ -5,8 +5,6 @@ import { cors } from "hono/cors";
 import { trpcServer } from "@hono/trpc-server";
 import { appRouter } from "./trpc/routers/_app";
 import { createTRPCContext } from "./trpc/init";
-
-import { serve } from "@hono/node-server";
 const app = new OpenAPIHono<Context>();
 
 app.use(secureHeaders());
@@ -31,25 +29,19 @@ app.use(
   }),
 );
 app.use(
-  "/trpc/*",
+  "/api/hono-trpc/*",
   trpcServer({
     router: appRouter,
     createContext: createTRPCContext,
+    endpoint: "/api/hono-trpc",
   }),
 );
-serve({
+app.get("/", (c) => {
+  return c.json({ message: "Congrats! You've deployed Hono to Vercel" });
+});
+
+export { app };
+export default {
   port: process.env.PORT ? Number.parseInt(process.env.PORT) : 3000,
   fetch: app.fetch,
-});
-// export default handle(app);
-// export default {
-//   port: process.env.PORT ? Number.parseInt(process.env.PORT) : 3000,
-//   fetch: app.fetch,
-// };
-// const handler = handle(app);
-
-// export const GET = handler;
-// export const POST = handler;
-// export const PATCH = handler;
-// export const PUT = handler;
-// export const OPTIONS = handler;
+};
