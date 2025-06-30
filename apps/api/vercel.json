@@ -13,6 +13,5 @@
       "permanent": false
     }
   ],
-  "buildCommand": "bun run build",
   "regions": ["bom1"]
 }
