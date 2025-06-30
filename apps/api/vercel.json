@@ -13,6 +13,6 @@
       "permanent": false
     }
   ],
-  "buildCommand": "bun run build:vc",
+  "buildCommand": "bun run build",
   "regions": ["bom1"]
 }
