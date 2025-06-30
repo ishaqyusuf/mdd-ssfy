@@ -2,118 +2,116 @@
   "$schema": "https://turborepo.org/schema.json",
   "globalDependencies": ["**/.env"],
   "ui": "tui",
-  "tasks": {
-    "topo": {
-      "dependsOn": ["^topo"]
-    },
-    "build": {
-      "env": [
-        "ALLOWED_API_ORIGINS",
-        "DATABASE_URL",
-        "SQUARE_SANDBOX_ACCESS_TOKEN",
-        "TRIGGER_PROJECT_ID",
-        "SQUARE_SANDBOX_LOCATION_ID",
-        "SQUARE_SANDBOX_APP_ID",
-        "SQUARE_LOCATION_ID",
-        "SQUARE_APP_ID",
-        "SQUARE_ACCESS_TOKEN",
-        "NEXTAUTH_SECRET",
-        "NEXT_PUBLIC_API_URL",
-        "EMAIL_FROM_ADDRESS",
-        "RESEND_API_KEY",
-        "BLESS_TOKEN",
-        "TWILIO_ACCOUNT_SID",
-        "TWILIO_ACCOUNT_TOKEN",
-        "TWILIO_PHONE",
-        "POSTGRESS_URL",
-        "CLOUDINARY_CLOUD_NAME",
-        "CLOUDINARY_API_KEY",
-        "CLOUDINARY_API_SECRET",
-        "CLOUDINARY_UPLOAD_URL",
-        "PLACE_API",
-        "POSTGRES_URL",
-        "POSTGRES_URL_NON_POOLING",
-        "POSTGRES_URL_NO_SSL",
-        "POSTGRES_PRISMA_URL",
-        "POSTGRES_USER",
-        "POSTGRES_PASSWORD",
-        "POSTGRES_HOST",
-        "POSTGRES_DATABASE",
-        "SQUARE_TERMINAL_DEVICE_ID",
-        "SENTRY_ORG",
-        "SENTRY_PROJECT",
-        "SENTRY_AUTH_TOKEN",
-        "TRIGGER_SECRET_KEY",
-        "BLOB_READ_WRITE_TOKEN",
-        "CRON_SECRET",
-        "OPENPANEL_SECRET_KEY"
-      ],
-      "dependsOn": ["^build"],
-      "outputs": [
-        ".next/**",
-        "!.next/cache/**",
-        "next-env.d.ts",
-        ".expo/**",
-        "dist/**",
-        "build/**",
-        "lib/**"
-      ]
-    },
-    "prisma-generate": {
-      "cache": false,
-      "interactive": true
-    },
-    "db-generate": {
-      "cache": false,
-      "interactive": true
-    },
-    "db-migrate": {
-      "cache": false,
-      "interactive": true
-    },
-    "generate": {
-      "cache": false,
-      "interactive": true
-    },
-    "migrate": {
-      "cache": false,
-      "interactive": true
-    },
-    "push": {
-      "cache": false,
-      "interactive": true
-    },
-    "pull": {
-      "cache": false,
-      "interactive": true
-    },
-    "studio": {
-      "cache": false,
-      "persistent": true
-    },
-    "dev": {
-      "dependsOn": ["^dev", "^generate"],
-      "persistent": true,
-      "cache": false
-    },
-    "dev:prod": {
-      "dependsOn": ["^dev:prod"],
-      "persistent": true,
-      "cache": false
-    },
-    "format": {
-      "outputs": ["node_modules/.cache/.prettiercache"]
-    },
-    "lint": {
-      "dependsOn": ["^topo"],
-      "outputs": ["node_modules/.cache/.eslintcache"]
-    },
-    "typecheck": {
-      "dependsOn": ["^topo"],
-      "outputs": ["node_modules/.cache/tsbuildinfo.json"]
-    },
-    "clean": {
-      "cache": false
-    }
+  "topo": {
+    "dependsOn": ["^topo"]
+  },
+  "build": {
+    "env": [
+      "ALLOWED_API_ORIGINS",
+      "DATABASE_URL",
+      "SQUARE_SANDBOX_ACCESS_TOKEN",
+      "TRIGGER_PROJECT_ID",
+      "SQUARE_SANDBOX_LOCATION_ID",
+      "SQUARE_SANDBOX_APP_ID",
+      "SQUARE_LOCATION_ID",
+      "SQUARE_APP_ID",
+      "SQUARE_ACCESS_TOKEN",
+      "NEXTAUTH_SECRET",
+      "NEXT_PUBLIC_API_URL",
+      "EMAIL_FROM_ADDRESS",
+      "RESEND_API_KEY",
+      "BLESS_TOKEN",
+      "TWILIO_ACCOUNT_SID",
+      "TWILIO_ACCOUNT_TOKEN",
+      "TWILIO_PHONE",
+      "POSTGRESS_URL",
+      "CLOUDINARY_CLOUD_NAME",
+      "CLOUDINARY_API_KEY",
+      "CLOUDINARY_API_SECRET",
+      "CLOUDINARY_UPLOAD_URL",
+      "PLACE_API",
+      "POSTGRES_URL",
+      "POSTGRES_URL_NON_POOLING",
+      "POSTGRES_URL_NO_SSL",
+      "POSTGRES_PRISMA_URL",
+      "POSTGRES_USER",
+      "POSTGRES_PASSWORD",
+      "POSTGRES_HOST",
+      "POSTGRES_DATABASE",
+      "SQUARE_TERMINAL_DEVICE_ID",
+      "SENTRY_ORG",
+      "SENTRY_PROJECT",
+      "SENTRY_AUTH_TOKEN",
+      "TRIGGER_SECRET_KEY",
+      "BLOB_READ_WRITE_TOKEN",
+      "CRON_SECRET",
+      "OPENPANEL_SECRET_KEY"
+    ],
+    "dependsOn": ["^build"],
+    "outputs": [
+      ".next/**",
+      "!.next/cache/**",
+      "next-env.d.ts",
+      ".expo/**",
+      "dist/**",
+      "build/**",
+      "lib/**"
+    ]
+  },
+  "prisma-generate": {
+    "cache": false,
+    "interactive": true
+  },
+  "db-generate": {
+    "cache": false,
+    "interactive": true
+  },
+  "db-migrate": {
+    "cache": false,
+    "interactive": true
+  },
+  "generate": {
+    "cache": false,
+    "interactive": true
+  },
+  "migrate": {
+    "cache": false,
+    "interactive": true
+  },
+  "push": {
+    "cache": false,
+    "interactive": true
+  },
+  "pull": {
+    "cache": false,
+    "interactive": true
+  },
+  "studio": {
+    "cache": false,
+    "persistent": true
+  },
+  "dev": {
+    "dependsOn": ["^dev", "^generate"],
+    "persistent": true,
+    "cache": false
+  },
+  "dev:prod": {
+    "dependsOn": ["^dev:prod"],
+    "persistent": true,
+    "cache": false
+  },
+  "format": {
+    "outputs": ["node_modules/.cache/.prettiercache"]
+  },
+  "lint": {
+    "dependsOn": ["^topo"],
+    "outputs": ["node_modules/.cache/.eslintcache"]
+  },
+  "typecheck": {
+    "dependsOn": ["^topo"],
+    "outputs": ["node_modules/.cache/tsbuildinfo.json"]
+  },
+  "clean": {
+    "cache": false
   }
 }
