@@ -1,11 +1,5 @@
 {
   "github": {
     "silent": true
-  },
-  "projects": {
-    "api": {
-      "source": "apps/api",
-      "outputDirectory": null
-    }
   }
 }
