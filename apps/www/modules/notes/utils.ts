@@ -1,4 +1,4 @@
-import { NoteTagNames } from "./constants";
+import { NoteTagNames } from "@gnd/utils/constants";
 import { GetNotes } from "./actions/get-notes-action";
 
 export type TagFilters = ReturnType<typeof noteTagFilter>;

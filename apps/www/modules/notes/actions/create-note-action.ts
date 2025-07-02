@@ -2,7 +2,7 @@
 import { user } from "@/app/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { TagFilters } from "../utils";
-import { NoteTagTypes } from "../constants";
+import { NoteTagTypes } from "@gnd/utils/constants";
 
 interface CreateNoteData {
     type?: NoteTagTypes;

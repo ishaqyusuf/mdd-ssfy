@@ -1,4 +1,4 @@
-import { NoteTagStatus, NoteTagTypes } from "./constants";
+import { NoteTagStatus, NoteTagTypes } from "@gnd/utils/constants";
 import { NoteProvider, useNoteContext } from "./context";
 import { NoteForm } from "./note-form";
 import { NoteLine } from "./note-line-2";

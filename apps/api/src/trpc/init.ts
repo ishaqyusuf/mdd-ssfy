@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { db } from "@gnd/db";
+import { db, type Database } from "@gnd/db";
 import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import { withAuthPermission } from "./middleware/auth-permission";
@@ -7,7 +7,7 @@ import { withAuthPermission } from "./middleware/auth-permission";
 export type TRPCContext = {
   //   session: Session | null;
   //   supabase: SupabaseClient;
-  db: any;
+  db: Database;
   profile?: {
     sessionId?;
     schoolId?;

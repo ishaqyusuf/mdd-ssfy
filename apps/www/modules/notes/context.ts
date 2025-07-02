@@ -3,7 +3,7 @@ import { SearchParamsType } from "@/components/(clean-code)/data-table/search-pa
 
 import { NoteProps } from ".";
 import { GetNotes, getNotesAction } from "./actions/get-notes-action";
-import { NoteTagNames } from "./constants";
+import { NoteTagNames } from "@gnd/utils/constants";
 import { timeout } from "@/lib/timeout";
 
 export const noteContext = createContext<ReturnType<typeof useNoteContext>>(

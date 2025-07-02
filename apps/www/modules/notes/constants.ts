@@ -1,27 +1,7 @@
+import { noteStatus, noteTypes } from "@gnd/utils/constants";
 import { parseAsString } from "nuqs";
 import { z } from "zod";
 
-export const noteTypes = [
-    "email",
-    "general",
-    "payment",
-    "production",
-    "dispatch",
-] as const;
-export const noteStatus = ["public", "private"] as const;
-
-export const tagNames = [
-    "itemControlUID",
-    "deliveryId",
-    "salesId",
-    "salesItemId",
-    "salesAssignment",
-    "status",
-    "type",
-] as const;
-export type NoteTagNames = (typeof tagNames)[number];
-export type NoteTagTypes = (typeof noteTypes)[number];
-export type NoteTagStatus = (typeof noteStatus)[number];
 export const noteSchema = z.object({
     "note.status": z.enum(noteStatus).optional(),
     "note.type": z.enum(noteTypes).optional(),

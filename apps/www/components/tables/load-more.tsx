@@ -1,9 +1,16 @@
 import { Spinner } from "@gnd/ui/spinner";
 import { useTable } from ".";
+import { ForwardedRef } from "react";
 
-export function LoadMore({}) {
+export function LoadMore({
+    hasNextPage,
+    ref,
+}: {
+    hasNextPage?: boolean;
+    ref?: ForwardedRef<HTMLDivElement>;
+}) {
     const ctx = useTable();
-    if (!ctx?.hasMore) return null;
+    if ((!ref && !ctx?.hasMore) || (ref && !hasNextPage)) return null;
     return (
         <div
             className="flex items-center justify-center mt-6"

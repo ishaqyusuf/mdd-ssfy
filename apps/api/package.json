@@ -24,6 +24,7 @@
     "@hono/zod-validator": "^0.7.0",
     "@scalar/hono-api-reference": "^0.9.1",
     "@gnd/db": "workspace:*",
+    "@gnd/utils": "workspace:*",
     "@sindresorhus/slugify": "^2.2.1",
     "@trigger.dev/sdk": "3.3.17",
     "@trpc/server": "^11.2.0",

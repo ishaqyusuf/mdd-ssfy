@@ -359,6 +359,12 @@ export const linkModules = [
                 .access(_perm.is("editOrders"))
                 .childPaths("sales-book/create-quote", "sales-book/edit-quote")
                 .data,
+            // .childPaths("sales-book/create-quote", "sales-book/edit-quote")
+            _link(
+                "Inbounds Managment",
+                "inbound",
+                "/sales-book/inbound-management",
+            ).access(_perm.is("viewInboundOrder")).data,
             // _link("Dispatch", "estimates", "/sales-books/quotes").access(
             //     _perm.is("editOrders"),
             // ).data,

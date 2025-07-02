@@ -2,12 +2,12 @@
 
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { prisma } from "@/db";
-import { tagNames } from "../constants";
+import { noteTagNames } from "@gnd/utils/constants";
 import { AsyncFnType } from "@/types";
 
 export type GetNotes = AsyncFnType<typeof getNotesAction>;
 export async function getNotesAction(query: SearchParamsType) {
-    const tagQueries = tagNames
+    const tagQueries = noteTagNames
         .map((tag) => ({
             tagName: tag,
             tagValue: query[`note.${tag}`],
