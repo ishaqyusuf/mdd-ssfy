@@ -1,13 +1,8 @@
-import { RouterInputs } from "@api/trpc/routers/_app";
 import { useQueryStates } from "nuqs";
-import {
-    createLoader,
-    parseAsArrayOf,
-    parseAsString,
-    parseAsStringLiteral,
-} from "nuqs/server";
+import { createLoader, parseAsStringLiteral } from "nuqs/server";
 import { inboundFilterStatus } from "@gnd/utils/constants";
-type FilterKeys = keyof Exclude<RouterInputs["sales"]["inboundSummary"], void>;
+import { InboundQuerySchema } from "@api/schemas/sales";
+type FilterKeys = keyof InboundQuerySchema;
 
 export const inboundFilterParamsSchema = {
     status: parseAsStringLiteral(inboundFilterStatus),

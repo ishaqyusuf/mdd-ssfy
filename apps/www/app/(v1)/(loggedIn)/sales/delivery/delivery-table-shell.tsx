@@ -31,7 +31,6 @@ import {
     RowActionMenuItem,
     RowActionMoreMenu,
 } from "../../../../../components/_v1/data-table/data-table-row-actions";
-import useQueryParams from "@/lib/use-query-params";
 import { TableCol } from "@/components/common/data-table/table-cells";
 import { parseAsStringEnum, useQueryStates } from "nuqs";
 

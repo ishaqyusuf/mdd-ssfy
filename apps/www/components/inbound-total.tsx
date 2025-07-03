@@ -19,7 +19,7 @@ export function InboundTotal() {
             type="button"
             onClick={() =>
                 setFilter({
-                    status: "total",
+                    status: null,
                 })
             }
             className="hidden sm:block text-left"

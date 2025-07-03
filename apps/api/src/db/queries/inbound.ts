@@ -68,7 +68,9 @@ export async function getInboundStatuses(
       };
     })
     .filter((s) => s.orderId);
-  return statuses;
+  return statuses.filter(
+    (a, i) => i == statuses?.findIndex((s) => s.orderId == a.orderId),
+  );
 }
 
 export async function getInbounds(ctx: TRPCContext, query: InboundQuerySchema) {
