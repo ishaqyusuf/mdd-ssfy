@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
         ...Object.fromEntries(_search),
         "sales.type": "order",
     } as SearchParamsType;
-    const search = searchParamsCache.parse(_ as any);
+    // const search = searchParamsCache.parse(_ as any);
 
-    return Response.json(await getSalesOrdersDta(search as any));
+    return Response.json(await getSalesOrdersDta(_ as any));
 }
