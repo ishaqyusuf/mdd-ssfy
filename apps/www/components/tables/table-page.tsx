@@ -20,7 +20,7 @@ export default async function TablePage({
     filterKey: QueryKeys;
     queryData?: Partial<{ [k in FilterKeys]: any }>;
 }) {
-    // const search = searchParamsCache.parse(searchParams);
+    const search = searchParamsCache.parse(searchParams);
     const queryClient = getQueryClient();
     // const props = composeFilter(filterKey, queryData);
     // const { queryKey, filterFields } = props;
