@@ -200,6 +200,7 @@ export function GeneralTab({}) {
                                                         salesFormUrl(
                                                             saleData.type,
                                                             saleData.orderId,
+                                                            saleData.isDyke,
                                                         ),
                                                         {},
                                                         true,

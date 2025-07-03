@@ -12,10 +12,12 @@ import dayjs from "dayjs";
 
 import { Qty } from "./sales-control-util";
 
-export const salesFormUrl = (type, slug?) => {
-    return `/sales-book/${slug ? `edit-${type}` : `create-${type}`}${
-        slug ? `/${slug}` : ""
-    }`;
+export const salesFormUrl = (type, slug?, isDyke = true) => {
+    if (isDyke)
+        return `/sales-book/${slug ? `edit-${type}` : `create-${type}`}${
+            slug ? `/${slug}` : ""
+        }`;
+    return `/sales/edit/${slug}/${slug || "new"}`;
 };
 
 // const date = dayjs().
