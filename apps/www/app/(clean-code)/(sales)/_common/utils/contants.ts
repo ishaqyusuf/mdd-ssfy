@@ -3,7 +3,6 @@ import {
     filterFields,
     Filters,
 } from "@/components/(clean-code)/data-table/filter-command/filters";
-// import { SalesPriority } from "@gnd/db";
 
 import {
     DeliveryOption,
