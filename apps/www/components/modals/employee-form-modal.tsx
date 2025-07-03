@@ -8,12 +8,14 @@ import {
     DialogTitle,
 } from "@gnd/ui/dialog";
 import { Form } from "@gnd/ui/form";
+import { z } from "zod";
 
 export function EmployeeFormModal({}) {
     const { setParams, params, opened } = useEmployeesParams();
     const form = useZodForm(employeeFormSchema, {
         defaultValues: {},
     });
+    function onSubmit(values: z.infer<typeof employeeFormSchema>) {}
     return (
         <Dialog
             open={opened}
