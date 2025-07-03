@@ -33,6 +33,7 @@ import {
 } from "../../../../../components/_v1/data-table/data-table-row-actions";
 import useQueryParams from "@/lib/use-query-params";
 import { TableCol } from "@/components/common/data-table/table-cells";
+import { parseAsStringEnum, useQueryStates } from "nuqs";
 
 export default function DeliveryTableShell({
     data,
@@ -41,8 +42,10 @@ export default function DeliveryTableShell({
 }: TableShellProps) {
     const [isPending, startTransition] = useTransition();
 
-    const { queryParams, setQueryParams } = useQueryParams<any>();
     const [selectedRowIds, setSelectedRowIds] = useState<number[]>([]);
+    const [queryParams, setQueryParams] = useQueryStates({
+        _deliveryStatus: parseAsStringEnum(["queued", "ready"] as const),
+    });
     const columns = useMemo<ColumnDef<ISalesOrder, unknown>[]>(
         () => [
             CheckColumn({ selectedRowIds, setSelectedRowIds, data }),
@@ -79,7 +82,7 @@ export default function DeliveryTableShell({
                 cell: ({ row }) => OrderMemoCell(row.original.shippingAddress),
             },
             ...truthy<any>(
-                queryParams.get("_deliveryStatus") == "ready",
+                queryParams._deliveryStatus == "ready",
                 [
                     {
                         accessorKey: "details",
@@ -100,7 +103,7 @@ export default function DeliveryTableShell({
                         cell: ({ row }) =>
                             OrderProductionStatusCell(row.original),
                     },
-                ]
+                ],
             ),
 
             {
@@ -128,7 +131,7 @@ export default function DeliveryTableShell({
                 ),
             },
         ],
-        [data, isPending]
+        [data, isPending],
     );
     return (
         <DataTable2
