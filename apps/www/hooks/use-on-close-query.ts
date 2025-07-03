@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { parseAsJson } from "nuqs";
 import QueryString from "qs";
 
 export const useOnCloseQuery = () => {

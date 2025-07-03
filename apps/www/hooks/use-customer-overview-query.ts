@@ -11,6 +11,7 @@ import {
 import { useToast } from "@gnd/ui/use-toast";
 
 import { useOnCloseQuery } from "./use-on-close-query";
+import { z } from "zod";
 
 export function useCustomerOverviewQuery() {
     const onClose = useOnCloseQuery();
@@ -24,7 +25,7 @@ export function useCustomerOverviewQuery() {
             "transactions",
             "pay-portal",
         ] as const),
-        onCloseQuery: parseAsJson(),
+        onCloseQuery: parseAsJson(z.any().parse),
         "pay-selections": parseAsArrayOf(parseAsInteger),
     });
     const opened = params.viewCustomer && !!params.accountNo;

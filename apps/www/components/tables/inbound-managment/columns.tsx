@@ -5,6 +5,9 @@ import { ActionCell } from "../action-cell";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Progress } from "@/components/(clean-code)/progress";
+import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
+import { Icons } from "@gnd/ui/icons";
+import { Button } from "@gnd/ui/button";
 
 export type Item = RouterOutputs["sales"]["inboundIndex"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
@@ -60,7 +63,30 @@ export const columns: ColumnDef<Item>[] = [
             className: "flex-1",
         },
         cell: ({ row: { original: item } }) => {
-            return <ActionCell trash itemId={item.id}></ActionCell>;
+            return (
+                <ActionCell itemId={item.id}>
+                    <Action item={item} />
+                </ActionCell>
+            );
         },
     },
 ];
+function Action({ item }: { item: Item }) {
+    const { params, setParams } = useInboundStatusModal();
+    return (
+        <>
+            <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                    setParams({
+                        inboundOrderId: item.id,
+                        inboundOrderNo: item.orderId,
+                    });
+                }}
+            >
+                <Icons.Edit className="h-4 w-4" />
+            </Button>
+        </>
+    );
+}

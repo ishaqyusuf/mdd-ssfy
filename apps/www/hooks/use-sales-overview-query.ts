@@ -15,6 +15,7 @@ import {
 } from "nuqs";
 
 import { useOnCloseQuery } from "./use-on-close-query";
+import { z } from "zod";
 
 const openModes = [
     "quote",
@@ -32,7 +33,7 @@ export function useSalesOverviewQuery() {
         mode: parseAsStringEnum([...openModes]),
         "prod-item-view": parseAsString,
         "prod-item-tab": parseAsStringEnum(["assignments", "details", "notes"]),
-        onCloseQuery: parseAsJson(),
+        onCloseQuery: parseAsJson(z.any().parse),
         salesTab: parseAsStringEnum([
             "general",
             "production",

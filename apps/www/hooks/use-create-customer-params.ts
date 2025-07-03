@@ -8,6 +8,7 @@ import {
 } from "nuqs";
 
 import { useOnCloseQuery } from "./use-on-close-query";
+import { z } from "zod";
 
 export function useCreateCustomerParams() {
     const onClose = useOnCloseQuery();
@@ -17,11 +18,13 @@ export function useCreateCustomerParams() {
         customerId: parseAsInteger,
         search: parseAsString,
         address: parseAsStringEnum(["sad", "bad"]),
-        payload: parseAsJson<{
-            addressId?: number;
-            customerId?: number;
-            address?: "sad" | "bad";
-        }>(),
+        payload: parseAsJson(
+            z.object({
+                addressId: z.number().optional(),
+                customerId: z.number().optional(),
+                address: z.enum(["sad", "bad"] as const),
+            }).parse,
+        ),
     });
     const action = !params.address
         ? !params.customerId
