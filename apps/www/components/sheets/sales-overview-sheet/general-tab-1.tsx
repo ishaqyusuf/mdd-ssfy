@@ -1,5 +1,4 @@
 import React from "react";
-import { getSalesOverviewAction } from "@/actions/get-sales-overview";
 import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";
 import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
