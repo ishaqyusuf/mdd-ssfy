@@ -3,7 +3,7 @@ import {
     ReadonlyURLSearchParams,
     usePathname,
     useRouter,
-    useSearchParams,
+    // useSearchParams,
 } from "next/navigation";
 import { DataTablePagination } from "@/components/_v1/data-table/data-table-pagination";
 import { DataTableToolbar } from "@/components/_v1/data-table/data-table-toolbar";
@@ -260,10 +260,10 @@ export function DataTable2<TData, TValue>({
         setInitialized(true);
     }
 
-    const searchParams = useSearchParams();
-    React.useEffect(() => {
-        __boot(searchParams);
-    }, []);
+    // const searchParams = useSearchParams();
+    // React.useEffect(() => {
+    //     __boot(searchParams);
+    // }, []);
     // function Render({  }) {
     return (
         <div className="w-full space-y-3 overflow-auto">
