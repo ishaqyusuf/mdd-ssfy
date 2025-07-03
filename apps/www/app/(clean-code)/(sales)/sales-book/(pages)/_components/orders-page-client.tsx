@@ -2,8 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import QueryTab from "@/app/(clean-code)/_common/query-tab";
-import { QueryTabAction } from "@/app/(clean-code)/_common/query-tab/query-tab-edit";
+
 import { Icons } from "@/components/_v1/icons";
 import {
     DataTable,
@@ -76,12 +75,7 @@ export default function OrdersPageClient({
                 <BatchActions />
                 <DataTable.Header top="lg" className="bg-white">
                     <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
-                        <div className="">
-                            <QueryTab page="orders" />
-                        </div>
-
                         <div className="flex-1"></div>
-                        <QueryTabAction />
 
                         <Button asChild size="sm">
                             <Link href="/sales-book/create-order">

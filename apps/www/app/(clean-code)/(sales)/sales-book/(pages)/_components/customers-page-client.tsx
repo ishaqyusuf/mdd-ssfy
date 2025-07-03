@@ -1,7 +1,5 @@
 "use client";
 
-import QueryTab from "@/app/(clean-code)/_common/query-tab";
-import { QueryTabAction } from "@/app/(clean-code)/_common/query-tab/query-tab-edit";
 import { Icons } from "@/components/_v1/icons";
 import {
     DataTable,
@@ -54,11 +52,8 @@ export default function CustomersPageClient(props: InfiniteDataTablePageProps) {
                 {/* <DataTable.BatchAction></DataTable.BatchAction> */}
                 <DataTable.Header className="bg-white">
                     <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
-                        <div className="">
-                            <QueryTab page="customers" />
-                        </div>
                         <div className="flex-1"></div>
-                        <QueryTabAction />
+
                         <Button size="sm">
                             <Icons.add className="mr-2 size-4" />
                             <span>New</span>

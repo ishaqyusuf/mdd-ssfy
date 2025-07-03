@@ -1,8 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import QueryTab from "@/app/(clean-code)/_common/query-tab";
-import { QueryTabAction } from "@/app/(clean-code)/_common/query-tab/query-tab-edit";
 import {
     DataTable,
     InfiniteDataTablePageProps,
@@ -66,29 +63,6 @@ export default function ProductionTasksPageClient({
                     </Menu> */}
                 </DataTable.BatchAction>
                 <DataTable.Header top="xs" className="bg-white">
-                    <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
-                        <div className="">
-                            <QueryTab page="orders" />
-                        </div>
-                        <div className="flex-1"></div>
-                        <QueryTabAction />
-                        {/* <Button
-                            onClick={() => {
-                                openTxForm({});
-                            }}
-                            variant="destructive"
-                            size="sm"
-                        >
-                            <Icons.dollar className="size-4 mr-2" />
-                            <span>Pay Portal</span>
-                        </Button>
-                        <Button asChild size="sm">
-                            <Link href="/sales-book/create-order">
-                                <Icons.add className="size-4 mr-2" />
-                                <span>New</span>
-                            </Link>
-                        </Button> */}
-                    </div>
                     <div className="flex justify-between">
                         <div className="flex-1">
                             {/* <DataTableFilterCommand /> */}

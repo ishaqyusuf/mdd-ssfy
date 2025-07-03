@@ -1,7 +1,5 @@
 "use client";
 
-import QueryTab from "@/app/(clean-code)/_common/query-tab";
-import { QueryTabAction } from "@/app/(clean-code)/_common/query-tab/query-tab-edit";
 import { __filters } from "@/app/(clean-code)/(sales)/_common/utils/contants";
 import {
     DataTable,
@@ -87,12 +85,6 @@ export default function SalesAccountingTable({
                 </DataTable.BatchAction>
                 <DataTable.Header top="sm" className="bg-white">
                     <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
-                        <div className="">
-                            <QueryTab page="orders" />
-                        </div>
-
-                        <div className="flex-1"></div>
-                        <QueryTabAction />
                         {/* <Button
                             onClick={() => {
                                 openTxForm({});

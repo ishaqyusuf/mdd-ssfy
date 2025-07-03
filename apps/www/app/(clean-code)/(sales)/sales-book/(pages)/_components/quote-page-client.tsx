@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import QueryTab from "@/app/(clean-code)/_common/query-tab";
-import { QueryTabAction } from "@/app/(clean-code)/_common/query-tab/query-tab-edit";
+
 import { Icons } from "@/components/_v1/icons";
 import { DataTable } from "@/components/(clean-code)/data-table";
 import { DataTableFilterCommand } from "@/components/(clean-code)/data-table/filter-command";
@@ -68,11 +67,6 @@ export default function QuotesPageClient({ filterFields, queryKey }: Props) {
             >
                 <DataTable.Header top="lg" className="bg-white">
                     <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
-                        <div className="">
-                            <QueryTab page="quotes" />
-                        </div>
-                        <div className="flex-1"></div>
-                        <QueryTabAction />
                         <Button asChild size="sm">
                             <Link href="/sales-book/create-quote">
                                 <Icons.add className="mr-2 size-4" />

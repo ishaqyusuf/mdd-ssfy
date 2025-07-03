@@ -9,7 +9,7 @@ import { store } from "@/store";
 import { TRPCReactProvider } from "@/trpc/client";
 import { ReactNode } from "react";
 import { Provider } from "react-redux";
-import { QueryTabProvider } from "./(clean-code)/_common/query-tab/provider";
+
 import { SessionProvider } from "next-auth/react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
@@ -32,9 +32,7 @@ export function Providers({ children }: Props) {
                                         <NavContext.Provider
                                             value={useNavCtx()}
                                         >
-                                            <QueryTabProvider>
-                                                {children}
-                                            </QueryTabProvider>
+                                            {children}
                                         </NavContext.Provider>
                                     </CommandProvider>
                                 </ThemeProvider>
