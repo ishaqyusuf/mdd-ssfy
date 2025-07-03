@@ -28,10 +28,6 @@ import {
 } from "@gnd/ui/dropdown-menu";
 
 import {
-    OrderRowAction,
-    PrintOrderMenuAction,
-} from "../actions/sales-menu-actions";
-import {
     _FilterColumn,
     Cell,
     CheckColumn,

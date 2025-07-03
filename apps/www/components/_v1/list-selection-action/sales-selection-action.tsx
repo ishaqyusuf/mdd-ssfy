@@ -9,8 +9,6 @@ import {
     DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 
-import { PrintOrderMenuAction } from "../actions/sales-menu-actions";
-
 export function SalesBatchAction({ items }) {
     return (
         <>
@@ -27,13 +25,8 @@ export function SalesBatchAction({ items }) {
                         {/* View */}
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[150px]">
-                    <PrintOrderMenuAction
-                        link
-                        row={null as any}
-                        ids={items?.map((i) => i?.slug)}
-                    />
-                </DropdownMenuContent>
+                <DropdownMenuContent
+                
             </DropdownMenu>
         </>
     );

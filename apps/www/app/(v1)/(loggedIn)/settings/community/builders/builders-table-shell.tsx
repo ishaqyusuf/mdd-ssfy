@@ -12,14 +12,9 @@ import {
     SecondaryCellContent,
 } from "../../../../../../components/_v1/columns/base-columns";
 
-import {
-    OrderRowAction,
-    PrintOrderMenuAction,
-} from "../../../../../../components/_v1/actions/sales-menu-actions";
 import { DataTable2 } from "../../../../../../components/_v1/data-table/data-table-2";
 
 import { BuilderFilter } from "../../../../../../components/_v1/filters/builder-filter";
-import { HomeProductionStatus } from "../../../../../../components/_v1/columns/community-columns";
 import { IBuilder, IProject } from "@/types/community";
 import {
     DeleteRowAction,
@@ -140,7 +135,7 @@ export default function BuildersTableShell<T>({
                 ),
             },
         ], //.filter(Boolean) as any,
-        [data, isPending]
+        [data, isPending],
     );
     const modal = useBuilderModal();
     function createBuilder() {

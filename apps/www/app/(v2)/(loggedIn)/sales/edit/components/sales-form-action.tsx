@@ -1,6 +1,5 @@
 import { useContext, useState } from "react";
-import Link from "next/link";
-import { PrintOrderMenuAction } from "@/components/_v1/actions/sales-menu-actions";
+
 import {
     Menu,
     MenuItem,
@@ -95,24 +94,6 @@ export default function SalesFormAction() {
                         onClick={() => saveHook.save("new")}
                     >
                         Save & New
-                    </MenuItem>
-                </Menu>
-                <Menu Icon={Icons.more}>
-                    <PrintOrderMenuAction
-                        link
-                        row={{ slug: form.getValues("slug") } as any}
-                    />
-                    <PrintOrderMenuAction
-                        mockup
-                        link
-                        row={{ slug: form.getValues("slug") } as any}
-                    />
-                    <PrintOrderMenuAction
-                        pdf
-                        row={{ slug: form.getValues("slug") } as any}
-                    />
-                    <MenuItem Icon={Icons.production} onClick={() => {}}>
-                        Production
                     </MenuItem>
                 </Menu>
             </div>

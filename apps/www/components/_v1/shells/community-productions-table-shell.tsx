@@ -1,35 +1,11 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import Link from "next/link";
-import { deleteHome } from "@/app/(v1)/_actions/community/home";
-import { openModal } from "@/lib/modal";
-import { sum } from "@/lib/utils";
-import { dispatchSlice } from "@/store/slicers";
-import {
-    ExtendedHomeTasks,
-    IHome,
-    IHomeTask,
-    IInvoice,
-    IProject,
-} from "@/types/community";
+
+import { ExtendedHomeTasks } from "@/types/community";
 import { TableShellProps } from "@/types/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Printer, View } from "lucide-react";
 
-import { Button } from "@gnd/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@gnd/ui/dropdown-menu";
-
-import {
-    OrderRowAction,
-    PrintOrderMenuAction,
-    ProductionAction,
-} from "../actions/sales-menu-actions";
 import UnitTaskProductionAction from "../actions/unit-task-production-actions";
 import {
     _FilterColumn,

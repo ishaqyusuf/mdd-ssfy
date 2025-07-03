@@ -11,8 +11,6 @@ import {
     DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 
-import { PrintOrderMenuAction } from "../actions/sales-menu-actions";
-
 export function HomesBatchAction({ items }) {
     return (
         <>

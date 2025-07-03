@@ -15,7 +15,6 @@ import {
 } from "@gnd/ui/dropdown-menu";
 
 import { RowActionMenuItem } from "../data-table/data-table-row-actions";
-import { PrintOrderMenuAction } from "./sales-menu-actions";
 
 export interface IOrderRowProps {
     row: ISalesOrder;
@@ -52,7 +51,7 @@ export function ProdActions(props: IOrderRowProps) {
                             View
                         </DropdownMenuItem>
                     </Link>
-                    <PrintOrderMenuAction link myProd={myProd} row={row} />
+
                     <RowActionMenuItem
                         SubMenu={
                             <>
