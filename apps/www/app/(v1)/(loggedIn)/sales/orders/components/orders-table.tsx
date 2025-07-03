@@ -37,7 +37,6 @@ import { useDataTableColumn2 } from "@/components/common/data-table/columns/use-
 import { SalesCells } from "./cells";
 import PageHeader from "@/components/_v1/page-header";
 import NewSalesBtn from "./new-sales-btn";
-import TableExport from "@/app/(clean-code)/_common/export";
 
 type DataServerPromiseType = ServerPromiseType<typeof getSalesOrder>;
 export type SalesTableItem = DataServerPromiseType["Item"];
@@ -70,7 +69,7 @@ export default function OrdersTableShell({ promise, searchParams }) {
                       ctx.Column("Dispatch", SalesCells.Dispatch),
                       ctx.Column("Status", SalesCells.SalesStatus),
                       ctx.ActionColumn(SalesCells.SalesAction),
-                  ]
+                  ],
     );
 
     const cmd = useCmd([
@@ -97,7 +96,7 @@ export default function OrdersTableShell({ promise, searchParams }) {
                           "_q",
                           "_payment",
                           "_customerId",
-                          "_date"
+                          "_date",
                       ),
                   ]
                 : [
@@ -115,7 +114,7 @@ export default function OrdersTableShell({ promise, searchParams }) {
                                   row.original,
                                   row.original.isDyke
                                       ? `/sales-v2/overview/${row.original.type}/slug`
-                                      : "/sales/order/slug"
+                                      : "/sales/order/slug",
                               ),
                           header: ColumnHeader("Order"),
                       },
@@ -189,7 +188,7 @@ export default function OrdersTableShell({ promise, searchParams }) {
                           "_customerId",
                           "_salesRepId",
                           "_dateType",
-                          "_date"
+                          "_date",
                       ),
                       {
                           // accessorKey: "actions",
@@ -204,7 +203,7 @@ export default function OrdersTableShell({ promise, searchParams }) {
                           ),
                       },
                   ],
-        [data, isPending]
+        [data, isPending],
     );
     // return (
     //     <>
@@ -321,9 +320,7 @@ export default function OrdersTableShell({ promise, searchParams }) {
                     },
                 ]}
                 noChild
-            >
-                <TableExport type="order" />
-            </DataTable2>
+            ></DataTable2>
         </>
     );
 }
