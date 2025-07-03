@@ -8,7 +8,7 @@ import { dotSet } from "@/app/(clean-code)/_common/utils/utils";
 import { FieldPath, FieldPathValue } from "react-hook-form";
 import { create } from "zustand";
 
-export function SessionProvider({ children }) {
+export function ZustandSessionProvider({ children }) {
     const store = useSessionZusStore();
     const path = usePathname();
     useEffect(() => {

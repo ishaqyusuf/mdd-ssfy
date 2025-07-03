@@ -18,6 +18,7 @@ import { saveInboundNoteSchema } from "@api/schemas/notes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { useEffect } from "react";
+import { SubmitButton } from "../submit-button";
 
 // get schema from zod input
 const formSchema = saveInboundNoteSchema;
@@ -29,6 +30,7 @@ export function InboundSalesModal({}) {
             orderNo: "",
             status: "" as any,
             note: "",
+            noteColor: "",
         },
     });
     const trpc = useTRPC();
@@ -42,6 +44,7 @@ export function InboundSalesModal({}) {
                 queryClient.invalidateQueries({
                     queryKey: trpc.sales.inboundIndex.queryKey(),
                 });
+                setParams(null);
             },
         }),
     );
@@ -58,6 +61,8 @@ export function InboundSalesModal({}) {
     }, [params]);
     if (!params.inboundOrderId) return null;
     function onSubmit(values: z.infer<typeof formSchema>) {
+        console.log(values);
+        return;
         saveInboundStatus.mutate({
             ...values,
         });
@@ -102,11 +107,13 @@ export function InboundSalesModal({}) {
                             >
                                 Cancel
                             </Button>
-                            <Button
-                            // action={updateAccount}
+                            <SubmitButton
+                                type="submit"
+                                isSubmitting={saveInboundStatus.isPending}
+                                // action={updateAccount}
                             >
                                 Update Status
-                            </Button>
+                            </SubmitButton>
                         </DialogFooter>
                     </form>
                 </FormProvider>

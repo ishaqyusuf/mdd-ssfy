@@ -10,6 +10,8 @@ import { useState } from "react";
 import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
 import { AppRouter } from "@gnd/api/trpc/routers/_app";
+import { useSession } from "next-auth/react";
+import { generateRandomString } from "@/lib/utils";
 
 export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
 
@@ -35,6 +37,7 @@ export function TRPCReactProvider(
         children: React.ReactNode;
     }>,
 ) {
+    const auth = useSession();
     const queryClient = getQueryClient();
     const [trpcClient] = useState(() =>
         createTRPCClient<AppRouter>({
@@ -43,14 +46,8 @@ export function TRPCReactProvider(
                     url: `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
                     transformer: superjson as any,
                     async headers() {
-                        // const supabase = createClient();
-
-                        // const {
-                        //   data: { session },
-                        // } = await supabase.auth.getSession();
-
                         return {
-                            // Authorization: `Bearer ${session?.access_token}`,
+                            Authorization: `Bearer ${generateRandomString(16)}|${auth?.data?.user?.id}`,
                         };
                     },
                 }),
@@ -69,8 +66,6 @@ export function TRPCReactProvider(
             <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
                 {props.children as any}
             </TRPCProvider>
-            {/* <ReactQueryDevtools initialIsOpen={false} /> */}
         </QueryClientProvider>
     );
 }
-

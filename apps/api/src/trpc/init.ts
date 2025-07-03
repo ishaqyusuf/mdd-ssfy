@@ -8,11 +8,7 @@ export type TRPCContext = {
   //   session: Session | null;
   //   supabase: SupabaseClient;
   db: Database;
-  profile?: {
-    sessionId?;
-    schoolId?;
-    termId?;
-  };
+  userId?;
   //   geo: ReturnType<typeof getGeoContext>;
   //   teamId?: string;
 };
@@ -22,16 +18,10 @@ export const createTRPCContext = async (
 ): Promise<TRPCContext> => {
   const accessToken = c.req.header("Authorization")?.split(" ")[1];
   // const session = await verifyAccessToken(accessToken);
-  const [termId, sessionId, schoolId] = (
-    c.req.header()["x-tenant-session-term-id"] ?? ""
-  )?.split("|");
+  const [tok, userId] = (c.req.header()["Authorization"] ?? "")?.split("|");
   return {
     db,
-    profile: {
-      termId,
-      sessionId,
-      schoolId,
-    },
+    userId: Number(userId),
   };
 };
 

@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "./env.mjs";
-import { getLoggedInProfile } from "./actions/cache/get-loggedin-profile";
 import { getLinkModules, validateLinks } from "./components/sidebar/links";
-import { getSideMenuMode } from "./actions/cookies/sidemenu";
-import { getServerSession } from "next-auth";
-import { authOptions } from "./lib/auth-options";
-import { cookies } from "next/headers";
-import { getToken } from "next-auth/jwt";
 
 export const config = {
     matcher: [

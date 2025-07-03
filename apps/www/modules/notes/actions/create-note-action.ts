@@ -64,8 +64,5 @@ export async function createNoteAction(data: CreateNoteData) {
             events: true,
         },
     });
-    console.log({ note });
-    console.log({ data });
-    console.log({ tags: note?.tags });
     return note;
 }

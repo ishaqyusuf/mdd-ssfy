@@ -6,7 +6,6 @@ import useEffectLoader from "@/lib/use-effect-loader";
 import { loadQueryTabsUseCase } from "@/use-cases/query-tab-use-case";
 
 import { useQueryTabStore } from "./data-store";
-import { siteLinks, SiteLinksPage } from "./links";
 import { openQueryTab } from "./query-tab-form";
 
 export const QueryTabContext = createContext<QueryTab>(null as any);

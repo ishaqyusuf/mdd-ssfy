@@ -18,7 +18,10 @@ import { Provider as Analytics } from "@gnd/events/client";
 import { Toaster as MiddayToast, Toaster } from "@gnd/ui/toaster";
 
 import { QueryTabProvider } from "./(clean-code)/_common/query-tab/provider";
-import { SessionProvider } from "@/hooks/use-session";
+import { ZustandSessionProvider } from "@/hooks/use-session";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { SessionProvider } from "next-auth/react";
+import { Providers } from "./providers";
 
 export async function generateMetadata({}) {
     return constructMetadata({
@@ -39,20 +42,15 @@ export default async function RootLayout({
 
             <SpeedInsights />
             <body>
-                <Toaster />
-                <MiddayToast />
                 <div className="print:hidden">
-                    <AppProvider>
-                        <Suspense>
-                            <SessionProvider>
-                                <QueryTabProvider>
-                                    {children}
-                                    <UserAccountUpdateRequiredModal />
-                                    <PageAnalytics />
-                                </QueryTabProvider>
-                            </SessionProvider>
-                        </Suspense>
-                    </AppProvider>
+                    <Toaster />
+                    <MiddayToast />
+
+                    <Providers>
+                        {children}
+                        <PageAnalytics />
+                    </Providers>
+
                     <div
                         className={cn(
                             __isProd
