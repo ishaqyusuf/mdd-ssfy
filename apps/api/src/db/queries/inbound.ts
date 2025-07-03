@@ -12,23 +12,27 @@ export async function getInboundStatuses(
 ) {
   const notes = await ctx.db.notePad.findMany({
     where: {
-      tags: {
-        some: {
-          AND: [
-            {
+      AND: [
+        {
+          tags: {
+            some: {
               tagName: "salesId",
-              tagValue: salesIds?.length
-                ? {
-                    in: salesIds.map((a) => String(a)),
-                  }
-                : undefined,
+              ...(salesIds?.length && {
+                tagValue: {
+                  in: salesIds.map((a) => String(a)),
+                },
+              }),
             },
-            {
+          },
+        },
+        {
+          tags: {
+            some: {
               tagName: "inboundStatus",
             },
-          ],
+          },
         },
-      },
+      ],
     },
     orderBy: {
       createdAt: "desc",
@@ -75,8 +79,18 @@ export async function getInbounds(ctx: TRPCContext, query: InboundQuerySchema) {
   let statusList: any = null;
   if (status != "total" && status) {
     statusList = await getInboundStatuses(ctx);
+    // console.log(statusList);
+
     const matchingSales = statusList.filter((a) => a.status === status);
-    salesQuery.salesIds = matchingSales.map((a) => a.orderId);
+    const salesIds = matchingSales.map((a) => a.orderId);
+    salesQuery.salesIds = salesIds;
+    if (!salesIds.length)
+      return {
+        data: [],
+        meta: {
+          count: 0,
+        },
+      };
   }
   const sales = await getSales(ctx, salesQuery);
   if (!statusList)

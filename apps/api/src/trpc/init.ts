@@ -16,16 +16,12 @@ export const createTRPCContext = async (
   _: unknown,
   c: Context,
 ): Promise<TRPCContext> => {
-  const auth = c.req.header()["Authorization"] ?? "";
+  const header = c.req.header();
+  const auth = header["authorization"] ?? "";
   const accessToken = auth?.split(" ")[1];
 
   const [tok, userId] = auth?.split("|");
-  console.log({
-    tok,
-    bearer: auth,
-    userId,
-    __r: c.req.header()["Authorization"],
-  });
+
   return {
     db,
     userId: Number(userId),
