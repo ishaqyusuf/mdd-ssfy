@@ -4,7 +4,7 @@ import { _modal } from "@/components/common/modal/provider";
 import { generateRandomString } from "@/lib/utils";
 import { toast } from "sonner";
 
-import { SalesItemProp } from "../../../sales-book/(pages)/_components/orders-page-cells";
+import { SalesItemProp } from "../../../sales-book/_(pages)/_components/orders-page-cells";
 import { SalesDispatchListDto } from "../../data-access/dto/sales-shipping-dto";
 import {
     getSalesItemOverviewUseCase,

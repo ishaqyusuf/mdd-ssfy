@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
-import { SalesItemProp } from "../../../sales-book/(pages)/_components/orders-page-cells";
+import { SalesItemProp } from "../../../sales-book/_(pages)/_components/orders-page-cells";
 import { SalesGeneralOverview } from "./general/sales-general-overview";
 import {
     DispatchOverviewProvider,
