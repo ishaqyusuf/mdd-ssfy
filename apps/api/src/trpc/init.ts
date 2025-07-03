@@ -16,9 +16,16 @@ export const createTRPCContext = async (
   _: unknown,
   c: Context,
 ): Promise<TRPCContext> => {
-  const accessToken = c.req.header("Authorization")?.split(" ")[1];
-  // const session = await verifyAccessToken(accessToken);
-  const [tok, userId] = (c.req.header()["Authorization"] ?? "")?.split("|");
+  const auth = c.req.header()["Authorization"] ?? "";
+  const accessToken = auth?.split(" ")[1];
+
+  const [tok, userId] = auth?.split("|");
+  console.log({
+    tok,
+    bearer: auth,
+    userId,
+    __r: c.req.header()["Authorization"],
+  });
   return {
     db,
     userId: Number(userId),

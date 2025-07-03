@@ -15,6 +15,7 @@ import { Provider as Analytics } from "@gnd/events/client";
 import { Toaster as MiddayToast, Toaster } from "@gnd/ui/toaster";
 
 import { Providers } from "./providers";
+import { Suspense } from "react";
 
 export async function generateMetadata({}) {
     return constructMetadata({
@@ -28,7 +29,6 @@ export default async function RootLayout({
     children: React.ReactNode;
 }) {
     const prodDB = env.DATABASE_URL?.includes("pscale");
-    // trashSoftDeletesAction();
     return (
         <html lang="en" suppressHydrationWarning>
             <SpeedInsights />
@@ -38,7 +38,7 @@ export default async function RootLayout({
                     <MiddayToast />
 
                     <Providers>
-                        {children}
+                        <Suspense>{children}</Suspense>
                         <PageAnalytics />
                     </Providers>
                     <div

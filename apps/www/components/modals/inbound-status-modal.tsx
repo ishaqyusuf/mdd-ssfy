@@ -46,6 +46,9 @@ export function InboundSalesModal({}) {
                 });
                 setParams(null);
             },
+            onError(e) {
+                console.log(e);
+            },
         }),
     );
     const statusList = inboundFilterStatus.filter((a) => a != "total");
@@ -61,8 +64,6 @@ export function InboundSalesModal({}) {
     }, [params]);
     if (!params.inboundOrderId) return null;
     function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log(values);
-        return;
         saveInboundStatus.mutate({
             ...values,
         });
