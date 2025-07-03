@@ -5,7 +5,7 @@ import { TailwindIndicator } from "@/components/_v1/tailwind-indicator";
 import Upgrader from "@/components/_v1/upgrader";
 import { env } from "@/env.mjs";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import PageAnalytics from "@/lib/analytics/page-analytics";
+
 import { __isProd } from "@/lib/is-prod-server";
 import { cn } from "@/lib/utils";
 // import { ReactQueryProvider } from "@/providers/react-query";
@@ -38,10 +38,7 @@ export default async function RootLayout({
                     <MiddayToast />
 
                     <Suspense>
-                        <Providers>
-                            {children}
-                            <PageAnalytics />
-                        </Providers>
+                        <Providers>{children}</Providers>
                     </Suspense>
                     <div
                         className={cn(
