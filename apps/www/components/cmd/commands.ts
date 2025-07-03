@@ -1,8 +1,6 @@
 import { Icons } from "../_v1/icons";
 
 export default function useCommands() {
-    const list = commands;
-
     return {
         commands,
     };
@@ -17,7 +15,7 @@ function _new(title, link, Icon, shortCut: any = null) {
     };
 }
 const commands = [
-    _new("Orders", "/sales/orders", Icons.orders, "O"),
+    _new("Orders", "/sales-books/orders", Icons.orders, "O"),
     _new("New Order", "/sales/edit/order/new", Icons.orders),
     _new("Quotes", "/sales/quotes", Icons.estimates),
     _new("New Quote", "/sales/edit/quote/new", Icons.estimates),

@@ -26,8 +26,6 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 import { store } from ".";
 
-// import { IOrderPrintMode } from "@/app/(auth)/sales/orders/components/row-action/print-order-menu";
-
 export interface ISlicer {
     installCostSetting: InstallCostSettings;
     order: ISalesOrder;
