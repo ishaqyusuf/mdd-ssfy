@@ -33,33 +33,33 @@ export default async function RootLayout({
         <html lang="en" suppressHydrationWarning>
             <SpeedInsights />
             <body>
-                <Suspense>
-                    <div className="print:hidden">
-                        <Toaster />
-                        <MiddayToast />
+                <div className="print:hidden">
+                    <Toaster />
+                    <MiddayToast />
 
+                    <Suspense>
                         <Providers>
                             {children}
                             <PageAnalytics />
                         </Providers>
-                        <div
-                            className={cn(
-                                __isProd
-                                    ? "fixed bottom-0 left-0 z-[9999] h-5 w-5 overflow-hidden opacity-0"
-                                    : "fixed bottom-0 right-0 mb-2",
-                            )}
-                        >
-                            <Upgrader />
-                        </div>
-                        <Analytics />
-                        <TailwindIndicator />
-                        {prodDB && !__isProd && (
-                            <div className="fixed left-0 right-0 top-0 z-[999] flex justify-center  bg-red-500 text-sm text-white">
-                                Production Database
-                            </div>
+                    </Suspense>
+                    <div
+                        className={cn(
+                            __isProd
+                                ? "fixed bottom-0 left-0 z-[9999] h-5 w-5 overflow-hidden opacity-0"
+                                : "fixed bottom-0 right-0 mb-2",
                         )}
+                    >
+                        <Upgrader />
                     </div>
-                </Suspense>
+                    <Analytics />
+                    <TailwindIndicator />
+                    {prodDB && !__isProd && (
+                        <div className="fixed left-0 right-0 top-0 z-[999] flex justify-center  bg-red-500 text-sm text-white">
+                            Production Database
+                        </div>
+                    )}
+                </div>
             </body>
         </html>
     );
