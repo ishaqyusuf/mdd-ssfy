@@ -25,5 +25,6 @@ export default async function TablePage({
     const props = composeFilter(filterKey, queryData);
     const { queryKey, filterFields } = props;
     await queryClient.prefetchInfiniteQuery(dataOptions(search, queryKey));
-    return <PageClient queryKey={queryKey} filterFields={filterFields} />;
+    return <></>;
+    // return <PageClient queryKey={queryKey} filterFields={filterFields} />;
 }
