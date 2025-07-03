@@ -13,20 +13,23 @@ import { Menu } from "@/components/(clean-code)/menu";
 import Button from "@/components/common/button";
 import { useSalesFormFeatureParams } from "@/hooks/use-sales-form-feature-params";
 import { toast } from "sonner";
+import { parseAsBoolean, useQueryStates } from "nuqs";
 
 interface Props {
     type: "button" | "menu";
     and?: "default" | "close" | "new";
 }
 export function SalesFormSave({ type = "button", and }: Props) {
-    const searchParams = useSearchParams();
+    const [params, setParams] = useQueryStates({
+        restoreMode: parseAsBoolean,
+    });
     const zus = useFormDataStore();
     const router = useRouter();
     const newInterfaceQuery = useSalesFormFeatureParams();
     async function save(action: "new" | "close" | "default" = "default") {
         console.log("SAVING>>>>>>", action);
         const { kvFormItem, kvStepForm, metaData, sequence } = zus;
-        const restoreMode = searchParams.get("restoreMode") != null;
+        const restoreMode = params.restoreMode;
         const resp = await saveFormUseCase(
             {
                 kvFormItem,
