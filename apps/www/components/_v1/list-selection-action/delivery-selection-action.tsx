@@ -8,9 +8,12 @@ import { Button } from "@gnd/ui/button";
 import { DropdownMenuItem } from "@gnd/ui/dropdown-menu";
 
 import { RowActionMoreMenu } from "../data-table/data-table-row-actions";
+import { parseAsStringEnum, useQueryStates } from "nuqs";
 
 export function DeliveryBatchAction({ items }) {
-    const { queryParams, setQueryParams } = useQueryParams<any>();
+    const [queryParams, setQueryParams] = useQueryStates({
+        _deliveryStatus: parseAsStringEnum(["queued", "ready"] as const),
+    });
     async function _updateSales(status) {
         await updateSalesDelivery(
             items.map((i) => i.id),
@@ -19,7 +22,7 @@ export function DeliveryBatchAction({ items }) {
     }
     return (
         <>
-            {queryParams?.get("_deliveryStatus") == "queued" && (
+            {queryParams?._deliveryStatus == "queued" && (
                 <Button asChild size={"sm"} className="h-8">
                     <Link
                         href={`/sales/delivery/get-ready?orderIds=${items.map(
@@ -30,7 +33,7 @@ export function DeliveryBatchAction({ items }) {
                     </Link>
                 </Button>
             )}
-            {queryParams?.get("_deliveryStatus") == "ready" && (
+            {queryParams?._deliveryStatus == "ready" && (
                 <Button asChild size={"sm"} className="h-8">
                     <Link
                         href={`/sales/delivery/load?orderIds=${items.map(
