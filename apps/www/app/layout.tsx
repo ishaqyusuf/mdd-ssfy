@@ -1,11 +1,8 @@
 import "@gnd/ui/globals.css";
 import "@/styles/globals.css";
 
-import { Suspense } from "react";
-import AppProvider from "@/components/_v1/app-provider";
 import { TailwindIndicator } from "@/components/_v1/tailwind-indicator";
 import Upgrader from "@/components/_v1/upgrader";
-import UserAccountUpdateRequiredModal from "@/components/modals/user-account-update-required-modal";
 import { env } from "@/env.mjs";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import PageAnalytics from "@/lib/analytics/page-analytics";
@@ -17,10 +14,6 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Provider as Analytics } from "@gnd/events/client";
 import { Toaster as MiddayToast, Toaster } from "@gnd/ui/toaster";
 
-import { QueryTabProvider } from "./(clean-code)/_common/query-tab/provider";
-import { ZustandSessionProvider } from "@/hooks/use-session";
-import { NuqsAdapter } from "nuqs/adapters/next/app";
-import { SessionProvider } from "next-auth/react";
 import { Providers } from "./providers";
 
 export async function generateMetadata({}) {
@@ -38,8 +31,6 @@ export default async function RootLayout({
     // trashSoftDeletesAction();
     return (
         <html lang="en" suppressHydrationWarning>
-            {/* <Suspense> */}
-
             <SpeedInsights />
             <body>
                 <div className="print:hidden">
@@ -50,7 +41,6 @@ export default async function RootLayout({
                         {children}
                         <PageAnalytics />
                     </Providers>
-
                     <div
                         className={cn(
                             __isProd
@@ -60,7 +50,6 @@ export default async function RootLayout({
                     >
                         <Upgrader />
                     </div>
-
                     <Analytics />
                     <TailwindIndicator />
                     {prodDB && !__isProd && (
@@ -70,8 +59,6 @@ export default async function RootLayout({
                     )}
                 </div>
             </body>
-
-            {/* </Suspense> */}
         </html>
     );
 }
