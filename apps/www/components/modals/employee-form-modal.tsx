@@ -9,7 +9,7 @@ import { Form } from "@gnd/ui/form";
 
 export function EmployeeFormModal({}) {
     const { setParams, params, opened } = useEmployeesParams();
-
+    // const form = useZodForm
     return (
         <Dialog
             open={opened}
@@ -26,11 +26,12 @@ export function EmployeeFormModal({}) {
                         <DialogTitle>Employee Form</DialogTitle>
                     </DialogHeader>
                 </div>
-                {/* <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-
-                    </form>
-                </Form> */}
+                <Form {...form}>
+                    <form
+                        onSubmit={form.handleSubmit(onSubmit)}
+                        className="space-y-4"
+                    ></form>
+                </Form>
             </DialogContent>
         </Dialog>
     );
