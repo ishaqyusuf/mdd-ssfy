@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from "react";
-import { ReadonlyURLSearchParams, useSearchParams } from "next/navigation";
+// import { ReadonlyURLSearchParams, useSearchParams } from "next/navigation";
 import { useDebounce } from "@/hooks/use-debounce";
 import { formatDate } from "@/lib/use-day";
 import useQueryParams from "@/lib/use-query-params";
@@ -148,85 +148,85 @@ export function useDataTable({
         getFacetedUniqueValues: getFacetedUniqueValues(),
     });
 
-    function __boot(searchParams: ReadonlyURLSearchParams) {
-        const _q: any = {};
-        const filter: ColumnFiltersState = [];
-        // let page: any = 0;
-        const _params: any = {};
-        searchParams.forEach((v, k) => (_params[k] = v));
+    // function __boot(searchParams: ReadonlyURLSearchParams) {
+    //     const _q: any = {};
+    //     const filter: ColumnFiltersState = [];
+    //     // let page: any = 0;
+    //     const _params: any = {};
+    //     searchParams.forEach((v, k) => (_params[k] = v));
 
-        const {
-            date,
-            from,
-            to,
-            sort_order,
-            page,
-            // per_page = 25,
-            sort: __sort,
-            ...params
-        } = _params;
-        // params.per_page = +(params.per_page || 25);
-        _q.page = page ? +page : 1;
-        let sort: { id?; desc? } = __sort
-            ? {
-                  id: __sort,
-                  desc: sort_order == "desc",
-              }
-            : {};
-        if (date)
-            filter.push({
-                id: "_date",
-                value: new Date(date),
-            });
-        if (from && to)
-            filter.push({
-                id: "_date",
-                value: {
-                    from: new Date(from),
-                    to: new Date(to),
-                },
-            });
-        [{ date, from, to }, params].map((e, i) =>
-            Object.entries(e).map(([k, v]) => {
-                if (!v) {
-                    return;
-                } else {
-                    let __value =
-                        typeof v === "string" ? (v as any)?.split(",") : [v];
-                    let value = __value.length > 1 ? __value : __value[0];
-                    if (i == 1) {
-                        filter.push({
-                            id: k as any,
-                            value,
-                        });
-                    }
-                    _q[k as any] = value;
-                }
-            }),
-        );
-        // const _filtered = filters.
-        if (sort.id) {
-            _q.sort = sort.id;
-            _q.sort_order = sort_order;
-        }
-        setSorting([sort as any]);
-        setColumnFilters(filter as any);
-        setIsFiltered(filter.length > 0);
+    //     const {
+    //         date,
+    //         from,
+    //         to,
+    //         sort_order,
+    //         page,
+    //         // per_page = 25,
+    //         sort: __sort,
+    //         ...params
+    //     } = _params;
+    //     // params.per_page = +(params.per_page || 25);
+    //     _q.page = page ? +page : 1;
+    //     let sort: { id?; desc? } = __sort
+    //         ? {
+    //               id: __sort,
+    //               desc: sort_order == "desc",
+    //           }
+    //         : {};
+    //     if (date)
+    //         filter.push({
+    //             id: "_date",
+    //             value: new Date(date),
+    //         });
+    //     if (from && to)
+    //         filter.push({
+    //             id: "_date",
+    //             value: {
+    //                 from: new Date(from),
+    //                 to: new Date(to),
+    //             },
+    //         });
+    //     [{ date, from, to }, params].map((e, i) =>
+    //         Object.entries(e).map(([k, v]) => {
+    //             if (!v) {
+    //                 return;
+    //             } else {
+    //                 let __value =
+    //                     typeof v === "string" ? (v as any)?.split(",") : [v];
+    //                 let value = __value.length > 1 ? __value : __value[0];
+    //                 if (i == 1) {
+    //                     filter.push({
+    //                         id: k as any,
+    //                         value,
+    //                     });
+    //                 }
+    //                 _q[k as any] = value;
+    //             }
+    //         }),
+    //     );
+    //     // const _filtered = filters.
+    //     if (sort.id) {
+    //         _q.sort = sort.id;
+    //         _q.sort_order = sort_order;
+    //     }
+    //     setSorting([sort as any]);
+    //     setColumnFilters(filter as any);
+    //     setIsFiltered(filter.length > 0);
 
-        setPagination({
-            ...pagination,
-            pageIndex: _q.page - 1,
-            pageSize: 20, //_q.per_page || 20,
-        });
+    //     setPagination({
+    //         ...pagination,
+    //         pageIndex: _q.page - 1,
+    //         pageSize: 20, //_q.per_page || 20,
+    //     });
 
-        __updateQuery(_q);
-        setInitialized(true);
-    }
+    //     __updateQuery(_q);
+    //     setInitialized(true);
+    // }
 
-    const searchParams = useSearchParams();
-    React.useEffect(() => {
-        __boot(searchParams);
-    }, []);
+    // const searchParams = useSearchParams();
+    // React.useEffect(() => {
+    //     __boot(searchParams);
+    // }, []);
 
     return {
         table,
