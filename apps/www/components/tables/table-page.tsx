@@ -1,5 +1,4 @@
-import { getQueryClient } from "@/providers/get-query-client";
-
+import { getQueryClient } from "@/trpc/server";
 import {
     composeFilter,
     QueryKeys,

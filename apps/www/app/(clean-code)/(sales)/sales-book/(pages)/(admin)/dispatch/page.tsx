@@ -1,10 +1,11 @@
 import { dataOptions } from "@/components/(clean-code)/data-table/query-options";
 import { searchParamsCache } from "@/components/(clean-code)/data-table/search-params";
-import { getQueryClient } from "@/providers/get-query-client";
+
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import DeliveryPageClient from "../../_components/dispatch-page-client";
 import { composeFilter } from "@/components/(clean-code)/data-table/filter-command/filters";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
+import { getQueryClient } from "@/trpc/server";
 export async function generateMetadata({}) {
     return constructMetadata({
         title: `Sales Dispatch - gndprodesk.com`,
@@ -14,7 +15,7 @@ export default async function DispatchPage({ searchParams }) {
     const search = searchParamsCache.parse(searchParams);
     const queryClient = getQueryClient();
     const props = composeFilter(
-        "sales-dispatch"
+        "sales-dispatch",
         // await getSalesPageQueryDataDta()
     );
     const { queryKey, filterFields } = props;

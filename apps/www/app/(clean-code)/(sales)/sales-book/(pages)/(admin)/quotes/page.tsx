@@ -1,7 +1,4 @@
-import { dataOptions } from "@/components/(clean-code)/data-table/query-options";
-import { searchParamsCache } from "@/components/(clean-code)/data-table/search-params";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
-import { getQueryClient } from "@/providers/get-query-client";
 
 import QuotesPageClient from "../../_components/quote-page-client";
 

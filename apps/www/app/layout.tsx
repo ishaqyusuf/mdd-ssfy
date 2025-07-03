@@ -19,7 +19,6 @@ import { Toaster as MiddayToast, Toaster } from "@gnd/ui/toaster";
 
 import { QueryTabProvider } from "./(clean-code)/_common/query-tab/provider";
 import { SessionProvider } from "@/hooks/use-session";
-import { ReactQueryProvider } from "@/providers/react-query";
 
 export async function generateMetadata({}) {
     return constructMetadata({

@@ -12,19 +12,56 @@ import FormSelect from "../common/controls/form-select";
 import { inboundFilterStatus } from "@gnd/utils/constants";
 import FormInput from "../common/controls/form-input";
 import { Button } from "@gnd/ui/button";
+import { z } from "zod";
+import { useZodForm } from "@/hooks/use-zod-form";
+import { saveInboundNoteSchema } from "@api/schemas/notes";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
+import { useEffect } from "react";
 
+// get schema from zod input
+const formSchema = saveInboundNoteSchema;
 export function InboundSalesModal({}) {
     const { params, setParams } = useInboundStatusModal();
-    const form = useForm({
+    const form = useZodForm(formSchema, {
         defaultValues: {
-            orderId: null,
+            salesId: null,
             orderNo: "",
-            status: "",
+            status: "" as any,
             note: "",
         },
     });
-    if (!params.inboundOrderId) return null;
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
+    const saveInboundStatus = useMutation(
+        trpc.notes.saveInboundNote.mutationOptions({
+            onSuccess: () => {
+                queryClient.invalidateQueries({
+                    queryKey: trpc.sales.inboundSummary.queryKey(),
+                });
+                queryClient.invalidateQueries({
+                    queryKey: trpc.sales.inboundIndex.queryKey(),
+                });
+            },
+        }),
+    );
     const statusList = inboundFilterStatus.filter((a) => a != "total");
+    useEffect(() => {
+        if (params.inboundOrderId) {
+            form.reset({
+                salesId: params.inboundOrderId,
+                orderNo: params.inboundOrderNo,
+                status: "" as any,
+                note: "",
+            });
+        }
+    }, [params]);
+    if (!params.inboundOrderId) return null;
+    function onSubmit(values: z.infer<typeof formSchema>) {
+        saveInboundStatus.mutate({
+            ...values,
+        });
+    }
     return (
         <Dialog
             open={!!params.inboundOrderId}
@@ -39,34 +76,39 @@ export function InboundSalesModal({}) {
                     </DialogDescription>
                 </DialogHeader>
                 <FormProvider {...form}>
-                    <div className="">
-                        <FormSelect
-                            control={form.control}
-                            options={statusList}
-                            label="Status"
-                            name="status"
-                        />
-                        <FormInput
-                            control={form.control}
-                            name="note"
-                            label="Note"
-                            type="textarea"
-                            placeholder="Add Note about the inbound status"
-                        />
-                    </div>
-                    <DialogFooter className="flex justify-end gap-4">
-                        <Button
-                            variant="secondary"
+                    <form
+                        onSubmit={form.handleSubmit(onSubmit)}
+                        className="space-y-4"
+                    >
+                        <div className="">
+                            <FormSelect
+                                control={form.control}
+                                options={statusList}
+                                label="Status"
+                                name="status"
+                            />
+                            <FormInput
+                                control={form.control}
+                                name="note"
+                                label="Note"
+                                type="textarea"
+                                placeholder="Add Note about the inbound status"
+                            />
+                        </div>
+                        <DialogFooter className="flex justify-end gap-4">
+                            <Button
+                                variant="secondary"
+                                // action={updateAccount}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
                             // action={updateAccount}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                        // action={updateAccount}
-                        >
-                            Update Status
-                        </Button>
-                    </DialogFooter>
+                            >
+                                Update Status
+                            </Button>
+                        </DialogFooter>
+                    </form>
                 </FormProvider>
             </DialogContent>
         </Dialog>
