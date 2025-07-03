@@ -12,19 +12,21 @@ export async function generateMetadata({}) {
     });
 }
 export default async function DispatchPage({ searchParams }) {
-    const search = searchParamsCache.parse(searchParams);
-    const queryClient = getQueryClient();
-    const props = composeFilter(
-        "sales-dispatch",
-        // await getSalesPageQueryDataDta()
-    );
-    const { queryKey, filterFields } = props;
-    await queryClient.prefetchInfiniteQuery(dataOptions(search, queryKey));
+    // const search = searchParamsCache.parse(searchParams);
+    // const queryClient = getQueryClient();
+    // const props = composeFilter(
+    //     "sales-dispatch",
+    //     // await getSalesPageQueryDataDta()
+    // );
+    // const { queryKey, filterFields } = props;
+    // await queryClient.prefetchInfiniteQuery(dataOptions(search, queryKey));
     return (
         <FPage can={["viewOrders"]} title="Sales Dispatch">
             <DeliveryPageClient
-                queryKey={queryKey}
-                filterFields={filterFields}
+                queryKey={"sales-dispatch"}
+                filterFields={[]}
+                // queryKey={queryKey}
+                // filterFields={filterFields}
             />
         </FPage>
     );
