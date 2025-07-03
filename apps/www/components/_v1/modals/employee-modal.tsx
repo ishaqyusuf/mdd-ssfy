@@ -30,7 +30,6 @@ export default function EmployeeModal() {
     });
     async function submit(data) {
         startTransition(async () => {
-            // if(!form.getValues)
             try {
                 const isValid = employeeSchema.parse(form.getValues());
                 if (!data?.id)

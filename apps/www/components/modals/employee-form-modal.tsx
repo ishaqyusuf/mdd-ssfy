@@ -1,4 +1,6 @@
 import { useEmployeesParams } from "@/hooks/use-employee-params";
+import { useZodForm } from "@/hooks/use-zod-form";
+import { employeeFormSchema } from "@api/schemas/hrm";
 import {
     Dialog,
     DialogContent,
@@ -9,7 +11,9 @@ import { Form } from "@gnd/ui/form";
 
 export function EmployeeFormModal({}) {
     const { setParams, params, opened } = useEmployeesParams();
-    // const form = useZodForm
+    const form = useZodForm(employeeFormSchema, {
+        defaultValues: {},
+    });
     return (
         <Dialog
             open={opened}
