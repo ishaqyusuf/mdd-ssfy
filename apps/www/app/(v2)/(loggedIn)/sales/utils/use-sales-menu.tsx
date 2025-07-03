@@ -28,10 +28,9 @@ import {
     copyOrderAction,
     deleteOrderAction,
 } from "../../../../(v1)/(loggedIn)/sales/_actions/sales";
-import { SalesTableItem } from "../../../../(v1)/(loggedIn)/sales/orders/components/orders-table-shell";
 
 type Mode = "dealer" | "internal";
-export function useSalesMenu(item: SalesTableItem, mode: Mode = "internal") {
+export function useSalesMenu(item: any, mode: Mode = "internal") {
     const modal = useModal();
     const isEstimate = item.type == "quote";
     const { isDyke, type, slug } = item;

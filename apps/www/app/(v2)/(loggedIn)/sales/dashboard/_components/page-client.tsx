@@ -9,7 +9,6 @@ import { SalesCells } from "./sales-cells";
 import { DataTable } from "@/app/_components/data-table";
 import { TableToolbar } from "@/app/_components/data-table/toolbar";
 import salesData from "../../sales-data";
-import { _getSalesRep } from "@/app/(v1)/(loggedIn)/sales/orders/_actions/get-sales-rep.action";
 import { getStaticCustomers } from "@/app/(v1)/(loggedIn)/sales/(customers)/_actions/sales-customers";
 import { SaleSattBtn } from "../../_components/sale-stat-bootstrap/sale-stat-bootstrap-modal";
 import { SalesPageType } from "../(tabbed)/delivery/page";
@@ -101,7 +100,7 @@ export default function PageClient({
                 "_salesRepId",
             ],
         },
-        (ctx) => renderWebView(ctx)
+        (ctx) => renderWebView(ctx),
     );
     return (
         <>
