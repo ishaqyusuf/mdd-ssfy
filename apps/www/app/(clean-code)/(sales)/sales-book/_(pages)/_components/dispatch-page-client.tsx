@@ -5,7 +5,6 @@ import { DataTableFilterCommand } from "@/components/(clean-code)/data-table/fil
 import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/infinity/data-table-toolbar";
 import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
 
-import { DispatchOverviewSheet } from "../../../_common/_components/overview-sheet.bin/order-overview-sheet";
 import { openDispatchModal } from "../../../_common/_components/sales-overview-sheet.bin";
 import { __filters } from "../../../_common/utils/contants";
 import { DispatchCells } from "./dispatch-page-cells";
@@ -73,7 +72,6 @@ export default function DispatchPageClient({ queryKey, filterFields }: Props) {
                 </DataTable.Header>
                 <DataTable.Table />
                 <DataTable.LoadMore />
-                <DispatchOverviewSheet />
             </DataTable.Infinity>
         </div>
     );

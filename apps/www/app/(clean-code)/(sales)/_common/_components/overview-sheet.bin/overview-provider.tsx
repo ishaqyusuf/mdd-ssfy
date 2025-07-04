@@ -4,7 +4,6 @@ import { _modal } from "@/components/common/modal/provider";
 import { generateRandomString } from "@/lib/utils";
 import { toast } from "sonner";
 
-import { SalesItemProp } from "../../../sales-book/(pages)/_components/orders-page-cells";
 import { SalesDispatchListDto } from "../../data-access/dto/sales-shipping-dto";
 import {
     getSalesItemOverviewUseCase,
@@ -31,7 +30,7 @@ type TabData = {
 export const OverviewContext = createContext<
     ReturnType<typeof useOverviewContext>
 >(null as any);
-export const useOverviewContext = (_item: SalesItemProp) => {
+export const useOverviewContext = (_item: any) => {
     const [item, setItem] = useState(_item);
     const dataKey = generateRandomString();
     const [overview, setOverview] = useState<GetSalesOverview>();
@@ -154,50 +153,3 @@ export const useOverviewContext = (_item: SalesItemProp) => {
     };
 };
 export const useSalesOverview = () => useContext(OverviewContext);
-export function OverviewProvider({
-    children,
-    item,
-}: {
-    children;
-    item: SalesItemProp;
-}) {
-    const value = useOverviewContext(item);
-    return (
-        <OverviewContext.Provider value={value}>
-            {children}
-        </OverviewContext.Provider>
-    );
-}
-export function DispatchOverviewProvider({
-    children,
-    item,
-}: {
-    children;
-    item: SalesDispatchListDto;
-}) {
-    const value = useOverviewContext(null);
-    const [ready, setReady] = useState(false);
-    useEffect(() => {
-        value.setPage("delivery");
-        value.setPageData(item);
-        getSalesListByIdUseCase(item.order.id)
-            .then((result) => {
-                console.log(result);
-
-                value.setItem(result);
-                setTimeout(() => {
-                    value.setPrimaryTab("shipping");
-                    setReady(true);
-                }, 500);
-            })
-            .catch((e) => {
-                toast.error(e.message);
-            });
-    }, []);
-    if (!ready) return null;
-    return (
-        <OverviewContext.Provider value={value}>
-            {children}
-        </OverviewContext.Provider>
-    );
-}

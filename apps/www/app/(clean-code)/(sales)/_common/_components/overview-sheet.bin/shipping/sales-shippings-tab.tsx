@@ -168,15 +168,7 @@ export function Details({ group, show }: { show; group: ItemGroupType }) {
         </div>
     );
 }
-function SectionTitle({ title, children }) {
-    if (!title && !children) return null;
-    return (
-        <div className="-mx-4  flex items-center justify-between p-2 sm:-ml-8">
-            <Label className="uppercase">{title}</Label>
-            <div className="inline-flex space-x-2">{children}</div>
-        </div>
-    );
-}
+
 function Pills({ item }: { item: ItemType }) {
     if (!item.pills.filter((p) => p.value).length) return null;
     return (

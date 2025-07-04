@@ -23,7 +23,7 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { Button } from "@gnd/ui/button";
 
 import { PrintAction } from "../../../_common/_components/overview-sheet.bin/footer/print.action";
-import { OrderOverviewSheet } from "../../../_common/_components/overview-sheet.bin/order-overview-sheet";
+
 import { deleteSalesByOrderIds } from "../../../_common/data-actions/sales-actions";
 import { __filters } from "../../../_common/utils/contants";
 import { OrderCells as Cells } from "./orders-page-cells";
@@ -96,7 +96,6 @@ export default function OrdersPageClient({
                 </DataTable.Header>
                 <DataTable.Table />
                 <DataTable.LoadMore />
-                <OrderOverviewSheet />
             </DataTable.Infinity>
         </div>
     );

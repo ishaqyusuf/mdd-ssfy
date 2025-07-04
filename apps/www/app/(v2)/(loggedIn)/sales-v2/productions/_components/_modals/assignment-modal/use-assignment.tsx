@@ -2,10 +2,6 @@ import { _modal, useModal } from "@/components/common/modal/provider";
 import AssignmentModal, { useAssignmentData } from ".";
 import { getOrderAssignmentData } from "./_action/get-order-assignment-data";
 import { _revalidate } from "@/app/(v1)/_actions/_revalidate";
-import {
-    openAdminProductionModal,
-    openSalesProduction,
-} from "@/app/(clean-code)/(sales)/_common/_components/production";
 
 interface Props {
     // prod?: boolean;
@@ -25,13 +21,7 @@ export function useAssignment({ type }: Props = {}) {
 
         modal.openModal(<AssignmentModal order={data} />);
     }
-    function open(id) {
-        !type
-            ? openAdminProductionModal({ id })
-            : openSalesProduction({
-                  id,
-              });
-    }
+    function open(id) {}
     return {
         async revalidate() {},
         open,
