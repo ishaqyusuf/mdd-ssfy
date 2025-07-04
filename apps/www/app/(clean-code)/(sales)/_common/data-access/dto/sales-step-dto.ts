@@ -1,4 +1,4 @@
-import { DykeStepMeta } from "@/app/(v2)/(loggedIn)/sales-v2/type";
+ 
 import { StepMeta } from "../../../types";
 
 export function transformSalesStepMeta<T>(step: T) {

@@ -142,11 +142,6 @@ export default function PageClient({
                                     variant="outline"
                                     href={`/sales/edit/${createType}/new`}
                                 />
-                                <TableToolbar.ActionBtn
-                                    icon="add"
-                                    label="New"
-                                    href={`/sales-v2/form/${createType}`}
-                                />
                             </>
                         )}
                     </TableToolbar>

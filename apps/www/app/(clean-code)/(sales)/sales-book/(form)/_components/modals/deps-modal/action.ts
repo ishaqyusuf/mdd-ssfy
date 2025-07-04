@@ -1,9 +1,8 @@
 "use server";
 
-import { prisma } from "@/db";
-import { DykeStepMeta } from "../../../../../../../(v2)/(loggedIn)/sales-v2/type";
+import { prisma } from "@/db"; 
 
-export async function saveDykeMeta(id, meta: DykeStepMeta) {
+export async function saveDykeMeta(id, meta: any) {
     const resp = await prisma.dykeSteps.update({
         where: { id },
         data: {

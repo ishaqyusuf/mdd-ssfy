@@ -1,7 +1,5 @@
 "use server";
 
-import { userId } from "@/app/(v1)/_actions/utils";
-import { CheckoutStatus } from "@/app/(v2)/(loggedIn)/sales-v2/_components/_square-payment-modal/action";
 import { prisma } from "@/db";
 import { env } from "@/env.mjs";
 import { __isProd } from "@/lib/is-prod-server";
@@ -55,144 +53,7 @@ export type SquarePaymentStatus =
 export type CreateSalesPaymentProps =
     | CreateSalesPaymentLinkProps
     | CreateSalesPaymentTerminalProps;
-export async function createSalesPayment(data: CreateSalesPaymentProps) {
-    const salesCheckout = await prisma.salesCheckout.create({
-        data: {
-            amount: Number(data.amount),
-            paymentType: `square_${data.type}`,
-            status: "no-status",
-            orderId: data.orderId,
-            terminalId: data.deviceId,
-            userId: await userId(),
-            meta: {
-                email: data.email,
-                phone: data.phone,
-            } as any,
-        },
-    });
-    data.salesCheckoutId = salesCheckout.id;
-    const checkout =
-        data.type == "terminal"
-            ? await ceateTerminalCheckout(data)
-            : await createSalesPaymentLink(data);
-    await prisma.salesCheckout.update({
-        where: {
-            id: salesCheckout.id,
-        },
-        data: {
-            status: "pending",
-            paymentId: checkout.id,
-            meta: checkout.meta as any,
-        },
-    });
-    return {
-        ...checkout,
-        paymentId: checkout.id,
-        salesCheckoutId: salesCheckout.id,
-        squareError: res,
-    };
-}
-async function errorHandler(fn): Promise<{
-    errors?: ApiError["errors"];
-    error?;
-    id?;
-    meta?: SquarePaymentMeta;
-    paymentUrl?: string;
-}> {
-    try {
-        return await fn();
-    } catch (error) {
-        if (error instanceof ApiError) {
-            return {
-                errors: JSON.parse(JSON.stringify(error.errors)),
-            };
-        }
-        console.log(error);
 
-        return { error: `${error?.message} ERROR!` };
-    }
-}
-export async function createSalesPaymentLink(data: CreateSalesPaymentProps) {
-    return await errorHandler(async () => {
-        const redirectUrl = `https://${env.NEXT_PUBLIC_ROOT_DOMAIN}/square-payment-response/${data.salesCheckoutId}`;
-        const quickPay = !data.items?.length || data.grandTotal != data.amount;
-        const resp = await squareClient.checkoutApi.createPaymentLink({
-            idempotencyKey: new Date().toISOString(),
-            quickPay: !quickPay
-                ? undefined
-                : {
-                      locationId: SQUARE_LOCATION_ID,
-                      name:
-                          data.description || `payment for ${data.orderIdStr}`,
-                      priceMoney: {
-                          amount: BigInt(Math.round(data.amount * 100)),
-                          currency: "USD",
-                      },
-                  },
-            order: quickPay
-                ? undefined
-                : {
-                      locationId: SQUARE_LOCATION_ID,
-                      //   serviceCharges: [
-                      //       {
-                      //           name: "Total Amount",
-                      //           calculationPhase: "TOTAL_PHASE",
-                      //           amountMoney: {
-                      //               amount: BigInt(data.amount),
-                      //               currency: "USD",
-                      //           },
-                      //       },
-                      //   ],
-                      //   discounts: [
-                      //       {
-                      //           amountMoney: {
-                      //               amount: BigInt(403400),
-                      //               currency: "USD",
-                      //           },
-                      //           name: "Paid",
-                      //       },
-                      //   ],
-                      //   netAmountDueMoney: {
-                      //       amount: BigInt(Math.ceil(data.amount * 100)),
-                      //       currency: "USD",
-                      //   },
-                      lineItems: data.items
-                          ?.filter((i) => i.basePriceMoney.amount)
-                          ?.map((item) => {
-                              if (typeof item.basePriceMoney.amount != "bigint")
-                                  item.basePriceMoney.amount = BigInt(
-                                      Math.round(item.basePriceMoney.amount),
-                                  );
-                              return item;
-                          }),
-                  },
-            prePopulatedData: {
-                buyerEmail: data.email,
-                buyerPhoneNumber: phone(data.phone),
-                buyerAddress: data.address,
-            },
-            checkoutOptions: {
-                redirectUrl,
-                askForShippingAddress: false,
-                allowTipping: data.allowTip,
-            },
-        });
-        const { result, statusCode, body: _body } = resp;
-        // result.relatedResources.orders
-        const paymentLink = result.paymentLink;
-        // result.relatedResources.orders[0].id
-        const [order] = result.relatedResources.orders;
-        return {
-            paymentUrl: paymentLink.url,
-            id: paymentLink.id,
-            redirectUrl,
-            ...result,
-            meta: {
-                squareOrderId: paymentLink.orderId,
-            },
-        };
-    });
-}
 // const refreshAccessToken = async (refreshToken) => {
 //     try {
 //         const { result } = await client.oAuthApi.obtainToken({
@@ -209,53 +70,7 @@ export async function createSalesPaymentLink(data: CreateSalesPaymentProps) {
 //         console.error("Error refreshing token:", error);
 //     }
 // };
-let res;
-export async function ceateTerminalCheckout(data: CreateSalesPaymentProps) {
-    return await errorHandler(async () => {
-        const s = await squareClient.terminalApi.createTerminalCheckout({
-            // deviceId: process.env.SQUARE_TERMINAL_DEVICE_ID,
-            idempotencyKey: data.salesCheckoutId, // Unique identifier for each transaction
-            checkout: {
-                amountMoney: {
-                    amount: BigInt(Number(data.amount) * 100), // Amount in the smallest currency unit, e.g., cents
-                    currency: "USD",
-                },
-                // deviceId: process.env.SQUARE_TERMINAL_DEVICE_ID , // Your Square Terminal device ID
-                deviceOptions: {
-                    deviceId: data.deviceId,
-                    tipSettings: {
-                        allowTipping: data.allowTip,
-                    },
-                },
-                note: data.description || `Payment for ${data.orderIdStr}`,
-                referenceId: data.orderIdStr,
-                customerId: data.squareCustomerId,
-                paymentOptions: {
-                    // skipReceipt, // Option to skip the receipt
-                },
-            },
-        });
-        res = {
-            res: s.result,
-            statusCode: s.statusCode,
-        };
-        // if (s.result.errors.length) throw s.result;
 
-        const checkoutId = s.result.checkout.id;
-        // s.result.checkout.orderId
-        return {
-            id: checkoutId,
-            meta: {
-                squareOrderId: s.result.checkout.orderId,
-            } as SquarePaymentMeta,
-        };
-    });
-}
-function phone(pg: string) {
-    if (!pg?.includes("+")) pg = `+1 ${pg}`;
-    return pg;
-}
-export type GetSquareDevices = Awaited<ReturnType<typeof getSquareDevices>>;
 export async function getSquareDevices() {
     try {
         const devices = await squareClient.devicesApi.listDeviceCodes();
@@ -272,37 +87,6 @@ export async function getSquareDevices() {
     }
 }
 
-export async function getSquareTerminalPaymentStatus(
-    terminalId,
-    salesCheckoutId,
-) {
-    const payment =
-        await squareClient.terminalApi.getTerminalCheckout(terminalId);
-    const paymentStatus = payment.result.checkout.status as
-        | "PENDING"
-        | "IN_PROGRESS"
-        | "CANCEL_REQUESTED"
-        | "CANCELED"
-        | "COMPLETED";
-    const tipAmount = payment?.result?.checkout?.tipMoney?.amount;
-    if (tipAmount) {
-        const checkout = await prisma.salesCheckout.findUnique({
-            where: {
-                id: salesCheckoutId,
-            },
-        });
-        await prisma.salesCheckout.update({
-            where: {
-                id: salesCheckoutId,
-            },
-            data: {
-                tip: Number(tipAmount) / 100,
-            },
-        });
-    }
-
-    return paymentStatus;
-}
 export async function validateSquarePayment(id) {
     // const resp = await prisma.$transaction((async (tx) => {
     const tx = prisma;
@@ -379,7 +163,7 @@ export async function paymentSuccess(p: {
         },
         data: {
             tip: p.tip,
-            status: "success" as CheckoutStatus,
+            status: "success" as any,
             salesPaymentsId: _p.id,
         },
     });

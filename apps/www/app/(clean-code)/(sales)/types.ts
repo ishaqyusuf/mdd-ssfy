@@ -1,4 +1,3 @@
-import { DykeForm as OldDykeForm } from "@/app/(v2)/(loggedIn)/sales-v2/type";
 import {
     AddressBooks,
     ComponentPrice,
@@ -195,10 +194,10 @@ export interface DykeProductMeta {
     doorPrice?: { [size in string]: number };
 }
 
-export type DykeFormData = OldDykeForm;
-export type OldDykeFormData = OldDykeForm;
+export type DykeFormData = any;
+export type OldDykeFormData = any;
 export type DykeFormDataPath = FieldPath<OldDykeFormData>;
-export type DykeFormItemData = OldDykeForm["itemArray"][number];
+export type DykeFormItemData = any;
 export type DykeFormStepData =
     DykeFormItemData["item"]["formStepArray"][number];
 export type DykeFormStepDataPath = FieldPath<DykeFormStepData>;

@@ -1,6 +1,5 @@
 "use client";
 
-import SquarePaymentModal from "@/app/(v2)/(loggedIn)/sales-v2/_components/_square-payment-modal";
 import {
     SalesCellProps,
     SalesCells,
@@ -21,9 +20,7 @@ function OrderAction({ item }: SalesCellProps) {
     const status = item.status as SalesStatus;
     const noPayStatus: SalesStatus[] = ["Evaluating"];
     const modal = useModal();
-    async function _pay() {
-        modal.openModal(<SquarePaymentModal id={item.id} />);
-    }
+    async function _pay() {}
     return (
         <TableCol>
             {item.amountDue > 0 && status != "Evaluating" && (

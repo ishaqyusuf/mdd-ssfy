@@ -1,9 +1,9 @@
 import { withDeleted } from "@/app/(clean-code)/_common/utils/db-utils";
-import { DykeForm } from "@/app/(v2)/(loggedIn)/sales-v2/type";
+ 
 import { prisma, SalesTaxes, Taxes } from "@/db";
 import { generateRandomString, sum } from "@/lib/utils";
 
-export async function saveSalesTaxDta(data: DykeForm, salesId) {
+export async function saveSalesTaxDta(data: any, salesId) {
     const taxForm = data._taxForm;
     const taxList = Object.values(taxForm.taxByCode);
     const selectTaxes = taxList.filter((s) => s.selected);

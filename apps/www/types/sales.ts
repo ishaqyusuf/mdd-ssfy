@@ -1,4 +1,3 @@
-import { DykeDoorType } from "@/app/(v2)/(loggedIn)/sales-v2/type";
 import {
     AddressBooks,
     CustomerTypes,
@@ -131,7 +130,7 @@ export interface ISalesOrderItemMeta {
     isComponent: Boolean;
     components: WizardKvForm;
     // housePackageTool: HousePackageTool;
-    doorType: DykeDoorType;
+    doorType: any;
 
     _dykeSizes: { [size in string]: boolean };
     // _dykeMulti: { [item in string]: boolean };

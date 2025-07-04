@@ -13,8 +13,7 @@ import {
     StepMeta,
     TypedDykeSalesDoor,
 } from "../../../types";
-import { generateRandomString, inToFt, safeFormText, sum } from "@/lib/utils";
-import { DykeStepMeta } from "@/app/(v2)/(loggedIn)/sales-v2/type";
+import { generateRandomString, inToFt, safeFormText, sum } from "@/lib/utils"; 
 import { transformSalesStepMeta } from "./sales-step-dto";
 
 type SalesFormData = AsyncFnType<typeof getSalesBookFormDataDta>;
@@ -104,7 +103,7 @@ export function typedSalesBookFormItems(data: SalesFormData) {
                         : null,
                     step: {
                         ...item.step,
-                        meta: (item.step.meta || {}) as any as DykeStepMeta &
+                        meta: (item.step.meta || {}) as any  &
                             StepMeta,
                     },
                 }))

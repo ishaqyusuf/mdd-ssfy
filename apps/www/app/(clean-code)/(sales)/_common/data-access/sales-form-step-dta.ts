@@ -1,11 +1,9 @@
-import { AsyncFnType } from "@/app/(clean-code)/type";
-import { DykeStepMeta } from "@/app/(v2)/(loggedIn)/sales-v2/type";
+import { AsyncFnType } from "@/app/(clean-code)/type"; 
 import { ComponentPrice, DykeStepForm, prisma, Prisma } from "@/db";
 
 import { DykeFormStepMeta, StepComponentMeta, StepMeta } from "../../types";
 import { notDeleted } from "../utils/db-utils";
-
-export type GetStepDta = AsyncFnType<typeof getStepDta>;
+ 
 export async function getSalesFormStepByIdDta(id) {
     const step = await prisma.dykeSteps.findUnique({
         where: {
@@ -27,7 +25,7 @@ export async function getSalesFormStepByIdDta(id) {
             meta: (step.meta || {
                 priceDepencies: {},
                 stateDeps: {},
-            }) as DykeStepMeta,
+            }) as any,
         },
         item: {
             stepId: id,

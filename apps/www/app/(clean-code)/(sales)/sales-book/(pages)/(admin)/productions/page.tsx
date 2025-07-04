@@ -16,11 +16,7 @@ export default async function Page({ searchParams }) {
     const [orderNos] = await Promise.all([__getSalesOrderNos()]);
     return (
         <FPage can={["viewOrders"]} className="" title="Productions">
-            <Portal nodeId={"navRightSlot"}>
-                <NewFeatureBtn href="/sales-v2/productions">
-                    Old Site
-                </NewFeatureBtn>
-            </Portal>
+          
             <TablePage
                 queryData={{
                     "order.no": orderNos,

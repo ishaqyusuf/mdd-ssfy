@@ -8,16 +8,11 @@ import { useForm, UseFormReturn } from "react-hook-form";
 
 import { Form } from "@gnd/ui/form";
 import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
-
-import {
-    DykeForm,
-    DykeStep,
-    DykeStepMeta,
-} from "../../../../../../../(v2)/(loggedIn)/sales-v2/type";
+ 
 import { saveDykeMeta } from "./action";
 
 interface Props {
-    settingKey: keyof DykeStepMeta;
+    settingKey?: any;
     stepCtx: LegacyDykeFormStepType;
 }
 export default function DependenciesModal({ settingKey, stepCtx }: Props) {
