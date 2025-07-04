@@ -7,7 +7,6 @@ import {
     createEmployeeAction,
     saveEmployeeAction,
 } from "@/app/(v1)/_actions/hrm/save-employee";
-import { staticRolesAction } from "@/app/(v1)/_actions/hrm/static-roles";
 import { closeModal } from "@/lib/modal";
 import { _useAsync } from "@/lib/use-async";
 import { employeeSchema } from "@/lib/validations/hrm";

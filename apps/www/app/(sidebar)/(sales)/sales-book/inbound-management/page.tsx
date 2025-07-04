@@ -7,7 +7,7 @@ import { InboundTotal } from "@/components/inbound-total";
 import { batchPrefetch, trpc } from "@/trpc/server";
 import { Metadata } from "next";
 import { Suspense } from "react";
-// import { SearchParams } from "nuqs";
+import { SearchParams } from "nuqs";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { ErrorFallback } from "@/components/error-fallback";
 import { TableSkeleton } from "@/components/tables/skeleton";
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     title: "Inbound Managment",
 };
 type Props = {
-    searchParams; //: Promise<SearchParams>;
+    searchParams: Promise<SearchParams>;
 };
 
 export default async function Page(props: Props) {

@@ -1,5 +1,8 @@
 import type { Database } from "@gnd/db";
 
 export async function getBacklogs(db: Database, query) {
-  return {};
+  const abc = db.salesOrders.findFirst();
+  return {
+    abc,
+  };
 }
