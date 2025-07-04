@@ -18,11 +18,10 @@ import { Label } from "@gnd/ui/label";
 
 import { useDykeCtx, useDykeForm } from "../_hooks/form-context";
 import useDykeFormSaver from "../_hooks/useDykeFormSaver";
-import PaymentModal from "../../_components/_payments-modal";
+
 import SalesNoteModal from "../../_components/_sales-note/_modal";
 import { SaveMode } from "../../type";
 import Evaluator from "./evaluator";
-import DykeSettingsModal from "./modals/dyke-settings";
 import SaveErrorsModal from "./modals/save-errors-modal";
 
 export default function HeaderSection({}) {
@@ -116,15 +115,7 @@ export default function HeaderSection({}) {
                             <Btn
                                 size="sm"
                                 // variant={""}
-                                onClick={() => {
-                                    modal.openSheet(
-                                        <PaymentModal
-                                            id={id}
-                                            orderId={orderId}
-                                            form={form}
-                                        />,
-                                    );
-                                }}
+                                onClick={() => {}}
                             >
                                 Payment
                             </Btn>
