@@ -194,12 +194,10 @@ export interface DykeProductMeta {
     mouldingSpecies: { [id in string]: boolean };
     doorPrice?: { [size in string]: number };
 }
-
 export type DykeFormData = OldDykeForm;
 export type OldDykeFormData = OldDykeForm;
 export type DykeFormDataPath = FieldPath<OldDykeFormData>;
 export type DykeFormItemData = OldDykeForm["itemArray"][number];
-export type DykeFormItemData = any;
 export type DykeFormStepData =
     DykeFormItemData["item"]["formStepArray"][number];
 export type DykeFormStepDataPath = FieldPath<DykeFormStepData>;
