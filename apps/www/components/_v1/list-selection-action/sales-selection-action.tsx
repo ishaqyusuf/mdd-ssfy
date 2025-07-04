@@ -25,8 +25,6 @@ export function SalesBatchAction({ items }) {
                         {/* View */}
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent
-                
             </DropdownMenu>
         </>
     );
