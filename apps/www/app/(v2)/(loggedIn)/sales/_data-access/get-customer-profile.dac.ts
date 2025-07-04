@@ -1,6 +1,6 @@
 "use server";
 
-import { ICustomerProfile } from "@/app/(v1)/(loggedIn)/sales/(customers)/customers/profiles/_components/type";
+// import { ICustomerProfile } from "@/app/(v1)/(loggedIn)/sales/(customers)/customers/profiles/_components/type";
 import { prisma } from "@/db";
 
 export async function getCustomerProfileDac(customerId) {
@@ -37,5 +37,5 @@ export async function getCustomerProfileDac(customerId) {
             });
         }
     }
-    return profile as any as ICustomerProfile;
+    return profile as any;
 }
