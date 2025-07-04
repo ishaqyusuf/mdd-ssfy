@@ -1,4 +1,4 @@
-import { exists, mkdir, unlink } from "node:fs/promises";
+import { exists, mkdir, unlink, cp } from "node:fs/promises";
 
 // Ex. ./src/main.ts
 const mainModulePath = process.argv[2];
@@ -7,14 +7,17 @@ const mainModulePath = process.argv[2];
 if ((await exists(mainModulePath)) !== true) {
   throw new Error(`module not found: ${mainModulePath}`);
 }
-
+await cp(
+  "./node_modules/.prisma/client/libquery_engine-rhel-openssl-1.0.x.so.node",
+  "./.vercel/output/functions/App.func/libquery_engine-rhel-openssl-1.0.x.so.node",
+);
 // Get current architecture for build
 const arch = process.arch === "arm64" ? "arm64" : "x86_64";
 
 // Bootstrap source should be in same directory as main
 const bootstrapSourcePath = mainModulePath.replace(
   /\.(ts|js|cjs|mjs)$/,
-  ".bootstrap.ts"
+  ".bootstrap.ts",
 );
 
 // Read in bootstrap source
@@ -27,8 +30,8 @@ await Bun.write(
   bootstrapSourcePath,
   bootstrapSource.replace(
     'import main from "./example/main"',
-    `import main from "./${mainModulePath.split("/").pop()}"`
-  )
+    `import main from "./${mainModulePath.split("/").pop()}"`,
+  ),
 );
 
 // Create output directory
@@ -49,8 +52,8 @@ await Bun.write(
       supportsWrapper: false,
     },
     null,
-    2
-  )
+    2,
+  ),
 );
 
 // Create routing config file
@@ -82,8 +85,8 @@ await Bun.write(
       version: 3,
     },
     null,
-    2
-  )
+    2,
+  ),
 );
 
 // Compile to a single bun executable
