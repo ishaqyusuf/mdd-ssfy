@@ -1,12 +1,7 @@
 "use client";
 
 import { _revalidate } from "@/app/(v1)/_actions/_revalidate";
-import {
-    CopyOrderMenuAction,
-    MoveSalesMenuItem,
-    PrintOrderMenuAction,
-    SendEmailMenuAction,
-} from "@/components/_v1/actions/sales-menu-actions";
+
 import Btn from "@/components/_v1/btn";
 import {
     Menu,
@@ -150,111 +145,6 @@ export default function HeaderSection({}) {
                         </Btn>
                         <SaveBtn />
                         <Evaluator />
-                        <Menu Icon={Icons.more}>
-                            <CopyOrderMenuAction row={{ slug, id } as any} />
-                            {type == "quote" ? (
-                                <>
-                                    <PrintOrderMenuAction
-                                        link
-                                        estimate
-                                        row={
-                                            {
-                                                type,
-                                                slug: form.getValues(
-                                                    "order.slug",
-                                                ),
-                                            } as any
-                                        }
-                                    />
-                                </>
-                            ) : (
-                                <>
-                                    <PrintOrderMenuAction
-                                        link
-                                        row={
-                                            {
-                                                type,
-                                                slug: form.getValues(
-                                                    "order.slug",
-                                                ),
-                                            } as any
-                                        }
-                                    />
-                                    <PrintOrderMenuAction
-                                        mockup
-                                        link
-                                        row={
-                                            {
-                                                slug: form.getValues(
-                                                    "order.slug",
-                                                ),
-                                                type: type,
-                                            } as any
-                                        }
-                                    />
-                                    <PrintOrderMenuAction
-                                        pdf
-                                        row={
-                                            {
-                                                slug: form.getValues(
-                                                    "order.slug",
-                                                ),
-                                                type,
-                                            } as any
-                                        }
-                                    />
-                                </>
-                            )}
-                            {id && (
-                                <MoveSalesMenuItem
-                                    id={id}
-                                    type={type}
-                                    orderId={orderId}
-                                    isDyke={true}
-                                />
-                            )}
-
-                            <MenuItem
-                                onClick={() => {
-                                    modal.openSheet(
-                                        <DykeSettingsModal form={form} />,
-                                    );
-                                }}
-                                Icon={Icons.settings}
-                            >
-                                Settings
-                            </MenuItem>
-                            {slug && (
-                                <>
-                                    <SendEmailMenuAction
-                                        sales={{
-                                            id,
-                                            slug,
-                                            type,
-                                            ...form.getValues(),
-                                        }}
-                                    />
-                                    <MenuItem
-                                        href={`/sales-book/edit-${type}/${orderId}?restore=true`}
-                                        Icon={ArchiveRestore}
-                                        className="bg-red-500 text-white"
-                                    >
-                                        Restore
-                                    </MenuItem>
-                                </>
-                            )}
-                            {!dealerMode && (
-                                <>
-                                    <MenuItem
-                                        onClick={restoreFailed}
-                                        Icon={ArchiveRestore}
-                                        className="bg-red-500 text-white"
-                                    >
-                                        Restore Failed
-                                    </MenuItem>
-                                </>
-                            )}
-                        </Menu>
                     </div>
                     <div className={cn(dealerMode ? "" : "hidden")}>
                         <SaveBtn />
