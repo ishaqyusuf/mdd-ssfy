@@ -44,7 +44,6 @@ export default function CustomersPageClient(props: InfiniteDataTablePageProps) {
                 checkable
                 queryKey={props.queryKey}
                 itemViewFn={(item) => {
-                    console.log(item?.accountNo, item?.id);
                     overview.open(item.accountNo);
                 }}
                 {...table.props}

@@ -40,11 +40,11 @@ async function saveComponent(ctx: CtxProps, formData: StepProduct, form?) {
         let _show = {};
         let valid = false;
         Object.entries(d).map(
-            ([k, v]) => v && (_show[k] = true) && (valid = true),
+            ([k, v]) => v && (_show[k] = true) && (valid = true)
         );
         if (!valid) {
             toast.error(
-                "Select atleast one component tree and use the visible for all button",
+                "Select atleast one component tree and use the visible for all button"
             );
             return;
         }
@@ -87,7 +87,7 @@ function copyProduct(form, root, product: StepProduct) {
         onUpload(form, product.product?.meta?.svg, "product.meta.svg");
     form.setValue(
         root ? "product.value" : "product.title",
-        root ? product?.product?.value : product?.product?.title,
+        root ? product?.product?.value : product?.product?.title
     );
     if (product.door?.meta?.doorPrice)
         form.setValue("product.meta.doorPrice", product.door?.meta?.doorPrice);
@@ -98,7 +98,7 @@ function onUpload(
     path:
         | "product.img"
         | "product.meta.svg"
-        | "product.meta.url" = "product.img",
+        | "product.meta.url" = "product.img"
 ) {
     let paths: (typeof path)[] = [
         "product.img",
@@ -158,3 +158,19 @@ function getDykeStepState(ctx: LegacyDykeFormStepType) {
     return states;
 }
 export default stepHelpers;
+
+// export const profileUpdateStepCtx = {
+//     steps: {},
+//     registerStep(ctx: LegacyDykeFormStepType) {
+//         // console.log("REGISTER");
+//         profileUpdateStepCtx.steps[`item-${ctx.itemCtx.rowIndex}`] =
+//             ctx.reloadComponents;
+//     },
+//     applyUpdates() {
+//         // console.log("APPLY>>>>", Object.keys(profileUpdateStepCtx.steps));
+//         Object.entries(profileUpdateStepCtx.steps).map(([k, v]) => {
+//             // console.log(k);
+//             (v as any)?.();
+//         });
+//     },
+// };

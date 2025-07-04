@@ -1,5 +1,5 @@
 import { LegacyDoorHPTType } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
- 
+import { ProductImage } from "@/app/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/product";
 import Button from "@/components/common/button";
 import Modal from "@/components/common/modal";
 
@@ -24,7 +24,7 @@ export default function DoorsModal({ hptCtx }: Props) {
                             key={item.id}
                         >
                             <div className="h-56">
-                                
+                                <ProductImage item={item} />
                             </div>
                             <div className="">{item.product.description}</div>
                         </Button>
