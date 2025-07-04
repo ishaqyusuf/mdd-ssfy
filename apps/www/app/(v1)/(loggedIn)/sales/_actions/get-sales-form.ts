@@ -8,8 +8,6 @@ import { ISalesSettingMeta, PostTypes } from "@/types/post";
 import { ISalesOrder, ISalesType } from "@/types/sales";
 import dayjs from "dayjs";
 
-import { ICustomerProfile } from "../(customers)/customers/profiles/_components/type";
-
 export interface ICreateOrderFormQuery {
     customerId?;
     addressId?;
@@ -88,20 +86,20 @@ export async function salesFormData(dyke = false) {
                 sections: [],
             } as any,
         };
-    const profiles = (
-        (await prisma.customerTypes.findMany({})) as any as ICustomerProfile[]
-    ).map((profile) => {
-        let goodUntil: any = null;
-        const goodDays = profile.meta?.goodUntil;
-        if (goodDays > 0)
-            goodUntil = dayjs().add(goodDays, "days").toISOString();
-        return {
-            label: profile.title,
-            value: profile.title,
-            ...profile,
-            goodUntil,
-        };
-    });
+    const profiles = ((await prisma.customerTypes.findMany({})) as any[]).map(
+        (profile) => {
+            let goodUntil: any = null;
+            const goodDays = profile.meta?.goodUntil;
+            if (goodDays > 0)
+                goodUntil = dayjs().add(goodDays, "days").toISOString();
+            return {
+                label: profile.title,
+                value: profile.title,
+                ...profile,
+                goodUntil,
+            };
+        },
+    );
 
     const extras = dyke
         ? []
