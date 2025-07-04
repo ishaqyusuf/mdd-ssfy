@@ -36,7 +36,7 @@ export function EmptyState({}) {
 
 export function NoResults() {
     const [params, setParams] = useQueryStates({
-        ...accountingPageQuery,
+        // ...accountingPageQuery,
     });
     const q = useEmployeesParams();
     return (
