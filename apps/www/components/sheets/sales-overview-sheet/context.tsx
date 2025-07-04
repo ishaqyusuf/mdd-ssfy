@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useAsyncMemo } from "use-async-memo";
 import z from "zod";
+import { getSalesOverviewAction } from "@/actions/get-sales-overview";
 
 const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
     createContextFactory(function () {
@@ -26,7 +27,6 @@ const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
             const res = await getSalesOverviewAction(
                 ctx.params["sales-overview-id"],
             );
-            console.log({ res });
             return res;
         };
 
