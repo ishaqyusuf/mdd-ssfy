@@ -1,3 +1,4 @@
+import { CustomerTypes } from "@/db";
 import {
     AddressBooks,
     ComponentPrice,
@@ -659,3 +660,12 @@ export type CustomerProfileMeta = {
     goodUntil: number;
     taxCode?: string;
 };
+
+export interface ICustomerProfile extends Omit<CustomerTypes, "meta"> {
+    meta: ICustomerProfileMeta;
+}
+export interface ICustomerProfileMeta {
+    net: string;
+    goodUntil: number;
+    taxCode?: string;
+}

@@ -2,14 +2,14 @@
 
 import { saveCustomerDta } from "@/app/(clean-code)/(sales)/_common/data-access/customer.dta";
 import { sessionIsDealerMode, user } from "@/app/(v1)/_actions/utils";
-import { ICustomerProfile } from "@/app/(v1)/(loggedIn)/sales/(customers)/customers/profiles/_components/type";
+
 import { CustomerTypes, prisma, Prisma } from "@/db";
 import { nextId } from "@/lib/nextId";
 import { ICustomer } from "@/types/customers";
 import { IAddressBook, ISalesAddressForm } from "@/types/sales";
 
 import { getCustomerProfileDac } from "./get-customer-profile.dac";
-
+import { ICustomerProfile } from "@/app/(clean-code)/(sales)/types";
 export async function _saveSalesAddress({
     billingAddress,
     shippingAddress,
