@@ -43,7 +43,11 @@ export function TRPCReactProvider(
         createTRPCClient<AppRouter>({
             links: [
                 httpBatchLink({
-                    url: `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
+                    // url: `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
+                    url:
+                        process.env.NODE_ENV === "production"
+                            ? `https://daarulhadith.vercel.app/api/trpc`
+                            : `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
                     transformer: superjson as any,
                     async headers() {
                         const auth = await authUser();

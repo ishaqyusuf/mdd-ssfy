@@ -5,8 +5,8 @@ import { dehydrate } from "@tanstack/react-query";
 import { createTRPCClient, loggerLink } from "@trpc/client";
 import { httpBatchLink } from "@trpc/client/links/httpBatchLink";
 import {
-  type TRPCQueryOptions,
-  createTRPCOptionsProxy,
+    type TRPCQueryOptions,
+    createTRPCOptionsProxy,
 } from "@trpc/tanstack-react-query";
 import { cache } from "react";
 import superjson from "superjson";
@@ -19,62 +19,67 @@ import { AppRouter } from "@gnd/api/trpc/routers/_app";
 export const getQueryClient = cache(makeQueryClient);
 
 export const trpc = createTRPCOptionsProxy<AppRouter>({
-  queryClient: getQueryClient,
-  client: createTRPCClient({
-    links: [
-      httpBatchLink({
-        url: `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
-        transformer: superjson as any,
-        async headers() {
-          return {
-            // Authorization: `Bearer ${session?.access_token}`,
-            // "x-user-timezone": await getTimezone(),
-            // "x-user-locale": await getLocale(),
-            // "x-user-country": await getCountryCode(),
-          };
-        },
-      }),
-      loggerLink({
-        enabled: (opts) =>
-          process.env.NODE_ENV === "development" ||
-          (opts.direction === "down" && opts.result instanceof Error),
-      }),
-    ],
-  }),
+    queryClient: getQueryClient,
+    client: createTRPCClient({
+        links: [
+            httpBatchLink({
+                // url: `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
+                url:
+                    process.env.NODE_ENV === "production"
+                        ? `https://daarulhadith.vercel.app/api/trpc`
+                        : `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
+                transformer: superjson as any,
+                async headers() {
+                    return {
+                        // Authorization: `Bearer ${session?.access_token}`,
+                        // "x-user-timezone": await getTimezone(),
+                        // "x-user-locale": await getLocale(),
+                        // "x-user-country": await getCountryCode(),
+                    };
+                },
+            }),
+            loggerLink({
+                enabled: (opts) =>
+                    process.env.NODE_ENV === "development" ||
+                    (opts.direction === "down" && opts.result instanceof Error),
+            }),
+        ],
+    }),
 });
 
 export function HydrateClient(props: { children: React.ReactNode }) {
-  const queryClient = getQueryClient();
+    const queryClient = getQueryClient();
 
-  return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      {props.children as any}
-    </HydrationBoundary>
-  );
+    return (
+        <HydrationBoundary state={dehydrate(queryClient)}>
+            {props.children as any}
+        </HydrationBoundary>
+    );
 }
 
 export function prefetch<T extends ReturnType<TRPCQueryOptions<any>>>(
-  queryOptions: T,
+    queryOptions: T,
 ) {
-  const queryClient = getQueryClient();
+    const queryClient = getQueryClient();
 
-  if (queryOptions.queryKey[1]?.type === "infinite") {
-    void queryClient.prefetchInfiniteQuery(queryOptions as any);
-  } else {
-    void queryClient.prefetchQuery(queryOptions);
-  }
+    if (queryOptions.queryKey[1]?.type === "infinite") {
+        void queryClient.prefetchInfiniteQuery(queryOptions as any);
+    } else {
+        void queryClient.prefetchQuery(queryOptions);
+    }
 }
 
 export function batchPrefetch<T extends ReturnType<TRPCQueryOptions<any>>>(
-  queryOptionsArray: T[],
+    queryOptionsArray: T[],
 ) {
-  const queryClient = getQueryClient();
+    const queryClient = getQueryClient();
 
-  for (const queryOptions of queryOptionsArray) {
-    if (queryOptions.queryKey[1]?.type === "infinite") {
-      void queryClient.prefetchInfiniteQuery(queryOptions as any);
-    } else {
-      void queryClient.prefetchQuery(queryOptions);
+    for (const queryOptions of queryOptionsArray) {
+        if (queryOptions.queryKey[1]?.type === "infinite") {
+            void queryClient.prefetchInfiniteQuery(queryOptions as any);
+        } else {
+            void queryClient.prefetchQuery(queryOptions);
+        }
     }
-  }
 }
+

@@ -5,12 +5,12 @@ import { cors } from "hono/cors";
 import { trpcServer } from "@hono/trpc-server";
 import { appRouter } from "./trpc/routers/_app";
 import { createTRPCContext } from "./trpc/init";
-const app = new OpenAPIHono<Context>().basePath("/api");
+const app = new OpenAPIHono<Context>(); //.basePath("/api");
 
 app.use(secureHeaders());
 
 app.use(
-  "/trpc/*",
+  "/api/trpc/*",
   cors({
     origin: process.env.ALLOWED_API_ORIGINS?.split(",") ?? [],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
@@ -29,7 +29,7 @@ app.use(
   }),
 );
 app.use(
-  "/trpc/*",
+  "/api/trpc/*",
   trpcServer({
     router: appRouter,
     createContext: createTRPCContext,
