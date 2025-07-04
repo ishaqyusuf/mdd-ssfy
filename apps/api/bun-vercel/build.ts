@@ -1,16 +1,31 @@
-import { exists, mkdir, unlink, cp } from "node:fs/promises";
+import { exists, mkdir, unlink, cp, readdir, stat } from "node:fs/promises";
+import path from "node:path";
 
 // Ex. ./src/main.ts
 const mainModulePath = process.argv[2];
-
+async function logDirContents(dirPath: string) {
+  try {
+    const entries = await readdir(dirPath);
+    console.log(`📁 Contents of ${dirPath}:`);
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry);
+      const fileStat = await stat(fullPath);
+      console.log(`  - ${entry}${fileStat.isDirectory() ? "/" : ""}`);
+    }
+  } catch (err) {
+    console.error(`❌ Could not read ${dirPath}:`, err.message);
+  }
+}
+await logDirContents("./node_modules/.prisma/client");
+await logDirContents("./node_modules/@prisma/client");
 // Ensure file exists
 if ((await exists(mainModulePath)) !== true) {
   throw new Error(`module not found: ${mainModulePath}`);
 }
-await cp(
-  "./node_modules/.prisma/client/libquery_engine-rhel-openssl-1.0.x.so.node",
-  "./.vercel/output/functions/App.func/libquery_engine-rhel-openssl-1.0.x.so.node",
-);
+// await cp(
+//   "./node_modules/.prisma/client/libquery_engine-rhel-openssl-1.0.x.so.node",
+//   "./.vercel/output/functions/App.func/libquery_engine-rhel-openssl-1.0.x.so.node",
+// );
 // Get current architecture for build
 const arch = process.arch === "arm64" ? "arm64" : "x86_64";
 
