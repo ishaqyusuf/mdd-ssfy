@@ -15,20 +15,11 @@ export async function generateMetadata({}) {
     });
 }
 export default async function CustomersPage({ searchParams }) {
-    // const search = searchParamsCache.parse(searchParams);
-    // const queryClient = getQueryClient();
-    // const props = composeFilter("customers");
-
-    // await queryClient.prefetchInfiniteQuery(
-    //     dataOptions(search, props.queryKey)
-    // );
-
     return (
         <FPage className="" title="Customers">
             <Portal nodeId={"navRightSlot"}>
                 <NewFeatureBtn href="/sales/customers">Old Site</NewFeatureBtn>
             </Portal>
-            {/* <CustomersPageClient {...props} /> */}
             <TablePage
                 PageClient={CustomersPageClient}
                 searchParams={searchParams}
