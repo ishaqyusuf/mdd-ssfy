@@ -9,6 +9,7 @@ import {
     SalesStat,
 } from "@/db";
 import { FieldPath } from "react-hook-form";
+import { DykeForm as OldDykeForm } from "@/app/(v2)/(loggedIn)/sales-v2/type";
 
 import { GetStepComponent } from "./_common/data-access/step-components.dta";
 import { GetSalesBookForm } from "./_common/use-case/sales-book-form-use-case";
@@ -194,9 +195,10 @@ export interface DykeProductMeta {
     doorPrice?: { [size in string]: number };
 }
 
-export type DykeFormData = any;
-export type OldDykeFormData = any;
+export type DykeFormData = OldDykeForm;
+export type OldDykeFormData = OldDykeForm;
 export type DykeFormDataPath = FieldPath<OldDykeFormData>;
+export type DykeFormItemData = OldDykeForm["itemArray"][number];
 export type DykeFormItemData = any;
 export type DykeFormStepData =
     DykeFormItemData["item"]["formStepArray"][number];
