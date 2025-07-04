@@ -3,7 +3,7 @@ import { UseFormReturn } from "react-hook-form";
 
 export function calculateComponentPrices(
     form: UseFormReturn<DykeForm>,
-    itemIndex,
+    itemIndex
 ) {
     setTimeout(() => {
         //
@@ -18,7 +18,7 @@ export function calculateComponentPrices(
             .reduce((a, b) => a + b, 0);
         form.setValue(
             `itemArray.${itemIndex}.item.housePackageTool.meta.priceTags.components`,
-            total,
+            total
         );
         if (item.multiComponent?.components) {
             Object.entries(item.multiComponent?.components)?.map(
@@ -28,11 +28,10 @@ export function calculateComponentPrices(
                     // console.log({ total, component, safeTitle });
                     form.setValue(
                         `${basePath}.priceTags.components` as any,
-                        total,
+                        total
                     );
-                },
+                }
             );
         }
     }, 500);
 }
-

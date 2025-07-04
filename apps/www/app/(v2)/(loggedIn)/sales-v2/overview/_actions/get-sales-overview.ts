@@ -293,4 +293,3 @@ const SalesIncludes = {
     },
     extraCosts: true,
 } satisfies Prisma.SalesOrdersInclude;
-

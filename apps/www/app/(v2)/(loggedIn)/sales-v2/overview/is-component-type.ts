@@ -18,4 +18,3 @@ export function isComponentType(type: DykeDoorType) {
     // resp.interior || resp.exterior || resp.garage || !type;
     return resp;
 }
-

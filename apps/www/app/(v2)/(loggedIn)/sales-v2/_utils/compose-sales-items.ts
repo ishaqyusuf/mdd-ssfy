@@ -1,3 +1,4 @@
+import { ISalesOrderItemMeta } from "@/types/sales";
 import { viewSale } from "../overview/_actions/get-sales-overview";
 
 export type ViewSaleType = Awaited<ReturnType<typeof viewSale>>;
@@ -29,7 +30,7 @@ export function composeSalesItems(data: ViewSaleType) {
                 };
 
             housePakageTools[dt]?.housePackageTools?.push(
-                item.housePackageTool,
+                item.housePackageTool
             );
             totalDoors += item.housePackageTool?.totalDoors || 0;
         }
@@ -62,7 +63,7 @@ export function composeSalesItems(data: ViewSaleType) {
 
 export function composeDoorDetails(
     steps: ViewSaleType["items"][0]["formSteps"],
-    item: ViewSaleType["items"][0],
+    item: ViewSaleType["items"][0]
 ) {
     if (!steps) steps = [];
 
@@ -70,8 +71,8 @@ export function composeDoorDetails(
         .filter(
             (s) =>
                 !["Door", "Item Type", "Moulding"].some(
-                    (k) => k == s.step.title,
-                ),
+                    (k) => k == s.step.title
+                )
         )
         .map((fs) => {
             return {
