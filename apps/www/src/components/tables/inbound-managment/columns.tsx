@@ -86,7 +86,7 @@ function Action({ item }: { item: Item }) {
                         inboundOrderNo: item.orderId,
                     });
                     setSalesPreviewParams({
-                        previewMode: "order-packing",
+                        previewMode: "packing list",
                         salesPreviewSlug: item.orderId,
                         salesPreviewType: "order",
                     });

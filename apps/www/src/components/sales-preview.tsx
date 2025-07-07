@@ -9,7 +9,7 @@ import { useAsyncMemo } from "use-async-memo";
 
 export function SalesPreview({}) {
     const { params, opened, setParams } = useSalesPreview();
-    const { data } = useAsyncMemo(async () => {
+    const response = useAsyncMemo(async () => {
         if (opened) {
             await rndTimeout();
             const {} = params;
@@ -21,7 +21,8 @@ export function SalesPreview({}) {
         }
         return {} as any;
     }, [opened, params]);
-    if (!data) return null;
+    if (!response?.data) return null;
+    const { data } = response;
     return (
         <div className="">
             <OrderBasePrinter mode={params?.previewMode as any}>

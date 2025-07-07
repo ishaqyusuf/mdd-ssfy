@@ -78,7 +78,7 @@ export function InboundSalesModal({}) {
             open={!!params.inboundOrderId}
             onOpenChange={() => setParams(null)}
         >
-            <DialogContent className="min-w-max max-w-4xl">
+            <DialogContent className="min-w-max h-[90vh] flex flex-col max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>Update Order Inbound</DialogTitle>
                     <DialogDescription>
@@ -86,11 +86,11 @@ export function InboundSalesModal({}) {
                         {params.inboundOrderNo}
                     </DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="h-[90vh] overflow-auto">
+                <ScrollArea className="flex-1 relative overflow-auto max-w-4xl">
                     <FormProvider {...form}>
                         <form
                             onSubmit={form.handleSubmit(onSubmit)}
-                            className="space-y-4"
+                            className="space-y-4 fixed top-0 right-0 left-0 border-b pt-2 z-10 bg-white"
                         >
                             <div className="">
                                 <FormSelect
@@ -124,7 +124,7 @@ export function InboundSalesModal({}) {
                             </DialogFooter>
                         </form>
                     </FormProvider>
-                    <div>
+                    <div className="pt-[150px]">
                         <SalesPreview />
                     </div>
                 </ScrollArea>
