@@ -4,10 +4,8 @@ import PageHeader from "@/components/_v1/page-header";
 import { ExtendedHome, IProject } from "@/types/community";
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
-import { getProjectsAction } from "@/app/(v1)/_actions/community/projects";
-import ProjectModal from "@/components/_v1/modals/project-modal";
+
 import { getProjectHomesAction } from "@/app/(v1)/_actions/community/home";
-import { openModal } from "@/lib/modal";
 import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 import HomesTableShell from "../../units/homes-table-shell";
 import AddBtn from "../../units/add-button";
@@ -18,7 +16,7 @@ export const metadata: Metadata = {
 interface Props {}
 export default async function ProjectHomesPage({ searchParams, params }) {
     const { project, ...response } = (await getProjectHomesAction(
-        queryParams({ ...searchParams, _projectSlug: params.slug })
+        queryParams({ ...searchParams, _projectSlug: params.slug }),
     )) as any;
     metadata.title = `${project.title} | Homes`;
 

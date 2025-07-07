@@ -7,7 +7,7 @@ import { EmployeesTable } from "@/components/tables/employees";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import { Metadata } from "next";
 
-const metadata: Metadata = {
+export const metadata: Metadata = {
     title: "Employees | GND",
 };
 export default async function HomePage({ searchParams }) {

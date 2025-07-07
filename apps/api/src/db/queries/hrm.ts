@@ -1,4 +1,7 @@
-import type { EmployeeFormSchema, GetEmployeeFormData } from "@api/schemas/hrm";
+import type {
+  EmployeeFormSchema,
+  GetEmployeeFormDataSchema,
+} from "@api/schemas/hrm";
 import type { TRPCContext } from "@api/trpc/init";
 import { hash } from "bcrypt-ts";
 
@@ -53,7 +56,7 @@ async function hashPassword(pwrd) {
 }
 export async function getEmployeeFormData(
   ctx: TRPCContext,
-  { id }: GetEmployeeFormData,
+  { id }: GetEmployeeFormDataSchema,
 ): Promise<EmployeeFormSchema> {
   const employee = await ctx.db.users.findUniqueOrThrow({
     where: {
