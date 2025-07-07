@@ -142,6 +142,7 @@ export function FilterList({ loading, filterList, filters, onRemove }) {
             //  }
 
             case "search":
+            case "q":
                 return value;
 
             default:
