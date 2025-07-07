@@ -19,6 +19,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { useEffect } from "react";
 import { SubmitButton } from "../submit-button";
+import { ScrollArea } from "@gnd/ui/scroll-area";
+import { useSalesPreviewModal } from "./sales-preview-modal";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
+import { SalesPreview } from "../sales-preview";
 
 // get schema from zod input
 const formSchema = saveInboundNoteSchema;
@@ -52,6 +56,7 @@ export function InboundSalesModal({}) {
         }),
     );
     const statusList = inboundFilterStatus.filter((a) => a != "total");
+    const salesPreview = useSalesPreview();
     useEffect(() => {
         if (params.inboundOrderId) {
             form.reset({
@@ -73,7 +78,7 @@ export function InboundSalesModal({}) {
             open={!!params.inboundOrderId}
             onOpenChange={() => setParams(null)}
         >
-            <DialogContent className="min-w-max max-w-xl">
+            <DialogContent className="min-w-max max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>Update Order Inbound</DialogTitle>
                     <DialogDescription>
@@ -81,43 +86,48 @@ export function InboundSalesModal({}) {
                         {params.inboundOrderNo}
                     </DialogDescription>
                 </DialogHeader>
-                <FormProvider {...form}>
-                    <form
-                        onSubmit={form.handleSubmit(onSubmit)}
-                        className="space-y-4"
-                    >
-                        <div className="">
-                            <FormSelect
-                                control={form.control}
-                                options={statusList}
-                                label="Status"
-                                name="status"
-                            />
-                            <FormInput
-                                control={form.control}
-                                name="note"
-                                label="Note"
-                                type="textarea"
-                                placeholder="Add Note about the inbound status"
-                            />
-                        </div>
-                        <DialogFooter className="flex justify-end gap-4">
-                            <Button
-                                variant="secondary"
-                                // action={updateAccount}
-                            >
-                                Cancel
-                            </Button>
-                            <SubmitButton
-                                type="submit"
-                                isSubmitting={saveInboundStatus.isPending}
-                                // action={updateAccount}
-                            >
-                                Update Status
-                            </SubmitButton>
-                        </DialogFooter>
-                    </form>
-                </FormProvider>
+                <ScrollArea className="h-[90vh] overflow-auto">
+                    <FormProvider {...form}>
+                        <form
+                            onSubmit={form.handleSubmit(onSubmit)}
+                            className="space-y-4"
+                        >
+                            <div className="">
+                                <FormSelect
+                                    control={form.control}
+                                    options={statusList}
+                                    label="Status"
+                                    name="status"
+                                />
+                                <FormInput
+                                    control={form.control}
+                                    name="note"
+                                    label="Note"
+                                    type="textarea"
+                                    placeholder="Add Note about the inbound status"
+                                />
+                            </div>
+                            <DialogFooter className="flex justify-end gap-4">
+                                <Button
+                                    variant="secondary"
+                                    // action={updateAccount}
+                                >
+                                    Cancel
+                                </Button>
+                                <SubmitButton
+                                    type="submit"
+                                    isSubmitting={saveInboundStatus.isPending}
+                                    // action={updateAccount}
+                                >
+                                    Update Status
+                                </SubmitButton>
+                            </DialogFooter>
+                        </form>
+                    </FormProvider>
+                    <div>
+                        <SalesPreview />
+                    </div>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     );

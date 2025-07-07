@@ -6,7 +6,12 @@ import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import { getSalesPrintData } from "@/app/(v2)/printer/sales/get-sales-print-data";
 import { OrderBasePrinter } from "@/app/(v2)/printer/sales/order-base-printer";
 import SalesPrintDisplay from "@/app/(v2)/printer/sales/sales-print-display";
-import { parseAsString, parseAsStringEnum, useQueryStates } from "nuqs";
+import {
+    parseAsBoolean,
+    parseAsString,
+    parseAsStringEnum,
+    useQueryStates,
+} from "nuqs";
 
 import { SalesInvoicePdfTemplate } from "@gnd/printer/templates/sales-invoice";
 import { Dialog, DialogContent } from "@gnd/ui/dialog";
@@ -17,15 +22,17 @@ export function useSalesPreviewModal() {
     const [q, setQ] = useQueryStates({
         salesPreviewSlug: parseAsString,
         salesPreviewType: parseAsStringEnum(["order", "quote"] as SalesType[]),
+        previewModal: parseAsBoolean,
     });
 
     return {
         q,
-        isOpened: q.salesPreviewSlug != null,
+        isOpened: q.salesPreviewSlug != null && q.previewModal,
         preview(id, salesPreviewType: typeof q.salesPreviewType) {
             setQ({
                 salesPreviewSlug: id,
                 salesPreviewType,
+                previewModal: true,
             });
         },
         close() {

@@ -16,6 +16,8 @@ import { SubmitButton } from "../submit-button";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { useEffect } from "react";
+import { useToast } from "@gnd/ui/use-toast";
+import { useLoadingToast } from "@/hooks/use-loading-toast";
 
 export function EmployeeFormModal({}) {
     const { setParams, params, opened } = useEmployeesParams();
@@ -23,10 +25,16 @@ export function EmployeeFormModal({}) {
         defaultValues: {},
     });
     const trpc = useTRPC();
+    const toast = useLoadingToast();
     const submitAction = useMutation(
         trpc.hrm.saveEmployee.mutationOptions({
-            onSuccess(data, variables, context) {},
-            onError(error, variables, context) {},
+            onSuccess(data, variables, context) {
+                toast.success("Saved");
+                setParams(null);
+            },
+            onError(error, variables, context) {
+                toast.error("Unable to complete");
+            },
         }),
     );
     const q = useQuery(
@@ -43,7 +51,10 @@ export function EmployeeFormModal({}) {
     useEffect(() => {
         form.reset(q.data || {});
     }, [q.data]);
-    function onSubmit(values: z.infer<typeof employeeFormSchema>) {}
+    function onSubmit(values: z.infer<typeof employeeFormSchema>) {
+        toast.loading("Saving employee");
+        submitAction.mutate(values);
+    }
     return (
         <Dialog
             open={opened}

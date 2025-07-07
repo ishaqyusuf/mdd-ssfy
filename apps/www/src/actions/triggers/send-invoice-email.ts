@@ -200,6 +200,8 @@ export const __sendInvoiceEmailTrigger = async ({
                 // });
                 // response.data.data.
                 if (response.error) {
+                    console.log(response.error);
+
                     throw new Error(`Unable to send email`, {
                         cause: response?.error?.message,
                     });

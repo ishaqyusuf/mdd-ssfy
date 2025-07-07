@@ -15,15 +15,8 @@ export async function generateMetadata({}) {
     });
 }
 export default async function SalesBookPage({ searchParams }) {
-    // const s = await prisma.salesOrders.updateMany({
-    //     where: {
-    //         orderId: "03111AD",
-    //         deletedAt: {},
-    //     },
-    //     data: {
-    //         deletedAt: null,
-    //     },
-    // });
+    // const s = await prisma
+
     // const e = await prisma.siteActionTicket.findFirst({
     //     where: {
     //         event: "deleted",

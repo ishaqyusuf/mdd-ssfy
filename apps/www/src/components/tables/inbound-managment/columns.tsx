@@ -8,6 +8,7 @@ import { Progress } from "@/components/(clean-code)/progress";
 import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
 import { Icons } from "@gnd/ui/icons";
 import { Button } from "@gnd/ui/button";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
 
 export type Item = RouterOutputs["sales"]["inboundIndex"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
@@ -73,6 +74,7 @@ export const columns: ColumnDef<Item>[] = [
 ];
 function Action({ item }: { item: Item }) {
     const { params, setParams } = useInboundStatusModal();
+    const { setParams: setSalesPreviewParams } = useSalesPreview();
     return (
         <>
             <Button
@@ -82,6 +84,11 @@ function Action({ item }: { item: Item }) {
                     setParams({
                         inboundOrderId: item.id,
                         inboundOrderNo: item.orderId,
+                    });
+                    setSalesPreviewParams({
+                        previewMode: "order-packing",
+                        salesPreviewSlug: item.orderId,
+                        salesPreviewType: "order",
                     });
                 }}
             >
