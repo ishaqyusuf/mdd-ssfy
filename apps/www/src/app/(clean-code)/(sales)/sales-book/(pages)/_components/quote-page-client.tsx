@@ -66,6 +66,7 @@ export default function QuotesPageClient({ filterFields, queryKey }: Props) {
             >
                 <DataTable.Header top="lg" className="bg-white">
                     <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
+                        <div className=""></div>
                         <Button asChild size="sm">
                             <Link href="/sales-book/create-quote">
                                 <Icons.add className="mr-2 size-4" />

@@ -26,9 +26,6 @@ export default async function SalesBookQuotePage({ searchParams }) {
     ]);
     return (
         <FPage can={["viewEstimates"]} title="Quotes">
-            <Portal nodeId={"navRightSlot"}>
-                <NewFeatureBtn href="/sales/quotes">Old Site</NewFeatureBtn>
-            </Portal>
             <TablePage
                 queryData={queryData}
                 PageClient={QuotesPageClient}
