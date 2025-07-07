@@ -1,3 +1,4 @@
+"use client";
 import { timeout } from "@/lib/timeout";
 import { createContextFactory } from "@/utils/context-factory";
 import { isArrayParser } from "@/utils/nuq-is-array";

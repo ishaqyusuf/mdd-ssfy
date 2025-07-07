@@ -5,6 +5,7 @@ import {
 } from "@/hooks/use-search-filter";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
+import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 
 export function InboundSearchFilter() {
     return (
@@ -28,6 +29,10 @@ function Content({}) {
         ...trpc.sales.inboundFilterData.queryOptions(),
     });
 
-    return <></>;
+    return (
+        <>
+            <SearchFilterTRPC filterList={trpcFilterData} />
+        </>
+    );
 }
 

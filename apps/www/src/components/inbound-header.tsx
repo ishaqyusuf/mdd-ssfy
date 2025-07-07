@@ -1,3 +1,10 @@
+import { InboundSearchFilter } from "./inbound-search-filter";
+
 export function InboundHeader({}) {
-    return <div></div>;
+    return (
+        <div>
+            <InboundSearchFilter />
+        </div>
+    );
 }
+
