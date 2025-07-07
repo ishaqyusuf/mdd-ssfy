@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 
-import { Label } from "../../ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
+import { Label } from "@gnd/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import Btn from "../btn";
 import { RowActionCell } from "../data-table/data-table-row-actions";
 import { Icons } from "../icons";

@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 
-import { Label } from "../../ui/label";
+import { Label } from "@gnd/ui/label";
 import {
     Select,
     SelectContent,
@@ -29,7 +29,7 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "../../ui/select";
+} from "@gnd/ui/select";
 import Btn from "../btn";
 import BaseModal from "./base-modal";
 

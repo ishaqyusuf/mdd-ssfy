@@ -10,18 +10,18 @@ import BaseModal from "./base-modal";
 import { closeModal } from "@/lib/modal";
 import { toast } from "sonner";
 
-import { Label } from "../../ui/label";
+import { Label } from "@gnd/ui/label";
 
 import { ExtendedHome } from "@/types/community";
 import { DatePicker } from "../date-range-picker";
 import { activateHomeProductionAction } from "@/app/(v1)/_actions/community/activate-production";
-import { Table, TableBody, TableCell, TableRow } from "../../ui/table";
-import { Checkbox } from "../../ui/checkbox";
+import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
+import { Checkbox } from "@gnd/ui/checkbox";
 import {
     PrimaryCellContent,
     SecondaryCellContent,
 } from "../columns/base-columns";
-import { ScrollArea } from "../../ui/scroll-area";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 
 export default function ActivateProductionModal() {
     const route = useRouter();
@@ -36,7 +36,7 @@ export default function ActivateProductionModal() {
             try {
                 const ids: number[] = [];
                 Object.entries(checkedIds).map(
-                    ([k, v]) => v && ids.push(Number(k))
+                    ([k, v]) => v && ids.push(Number(k)),
                 );
                 // console.log(ids);
                 await activateHomeProductionAction(ids, dueDate);
@@ -98,7 +98,7 @@ export default function ActivateProductionModal() {
                                                         onCheckedChange={(e) =>
                                                             checkHome(
                                                                 home.id,
-                                                                e
+                                                                e,
                                                             )
                                                         }
                                                     />

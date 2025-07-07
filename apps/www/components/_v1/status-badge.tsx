@@ -5,7 +5,7 @@ import {
     getBadgeColor,
     statusColor,
 } from "@/lib/status-badge";
-import { Badge } from "../ui/badge";
+import { Badge } from "@gnd/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -39,7 +39,7 @@ export default function StatusBadge({
             className={cn(
                 color ? _getStatusColor(color) : _color,
                 "whitespace-nowrap",
-                sm && "p-1 leading-none"
+                sm && "p-1 leading-none",
             )}
         >
             {status}

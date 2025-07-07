@@ -8,7 +8,7 @@ import {
     CommandItem,
     CommandList,
     CommandShortcut,
-} from "../ui/command";
+} from "@gnd/ui/command";
 import Link from "next/link";
 import useCommands from "./commands";
 import { useCmd } from "./provider";

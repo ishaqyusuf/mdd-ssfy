@@ -23,9 +23,9 @@ import {
     DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 
-import { Badge } from "../ui/badge";
-import { ScrollArea } from "../ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Badge } from "@gnd/ui/badge";
+import { ScrollArea } from "@gnd/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import Btn from "./btn";
 import LinkableNode from "./link-node";
 import { ToolTip } from "./tool-tip";

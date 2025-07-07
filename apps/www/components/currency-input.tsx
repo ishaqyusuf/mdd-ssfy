@@ -2,7 +2,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { NumericFormat, type NumericFormatProps } from "react-number-format";
 
-import { Input } from "./ui/input";
+import { Input } from "@gnd/ui/input";
 
 export function CurrencyInput({
     thousandSeparator = true,

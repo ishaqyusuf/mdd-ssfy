@@ -11,8 +11,8 @@ import { Button } from "@gnd/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { Separator } from "@gnd/ui/separator";
 
-import { Calendar } from "../../ui/calendar";
-import { Checkbox } from "../../ui/checkbox";
+import { Calendar } from "@gnd/ui/calendar";
+import { Checkbox } from "@gnd/ui/checkbox";
 import { DataTableFacetedFilter } from "./data-table-faceted-filter";
 import { DataTableFacetedFilter2 } from "./data-table-faceted-filter-2";
 

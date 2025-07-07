@@ -32,7 +32,7 @@ import {
 } from "@gnd/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
-import { ScrollArea } from "../../ui/scroll-area";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 import AutoComplete2 from "../auto-complete-tw";
 import Btn from "../btn";
 

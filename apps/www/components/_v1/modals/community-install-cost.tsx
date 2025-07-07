@@ -22,8 +22,8 @@ import { toast } from "sonner";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 
-import { Label } from "../../ui/label";
-import { ScrollArea } from "../../ui/scroll-area";
+import { Label } from "@gnd/ui/label";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 import {
     Table,
     TableBody,
@@ -31,7 +31,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "../../ui/table";
+} from "@gnd/ui/table";
 import Btn from "../btn";
 import {
     PrimaryCellContent,

@@ -30,8 +30,8 @@ import { toast } from "sonner";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 
-import { Checkbox } from "../../ui/checkbox";
-import { Label } from "../../ui/label";
+import { Checkbox } from "@gnd/ui/checkbox";
+import { Label } from "@gnd/ui/label";
 import AutoComplete from "../auto-complete-tw";
 import Btn from "../btn";
 import BaseModal from "./base-modal";

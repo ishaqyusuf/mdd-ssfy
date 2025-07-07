@@ -2,7 +2,7 @@
 
 import { Progressor, getProgress } from "@/lib/status";
 import { useEffect, useState } from "react";
-import { Progress } from "../ui/progress";
+import { Progress } from "@gnd/ui/progress";
 import StatusBadge from "./status-badge";
 import { cva } from "class-variance-authority";
 

@@ -16,7 +16,7 @@ import { toast } from "sonner";
 
 import { Input } from "@gnd/ui/input";
 
-import { Label } from "../../ui/label";
+import { Label } from "@gnd/ui/label";
 import AutoComplete2 from "../auto-complete-tw";
 import Btn from "../btn";
 import BaseModal from "./base-modal";

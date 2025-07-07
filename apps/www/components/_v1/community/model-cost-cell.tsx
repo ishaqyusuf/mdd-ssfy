@@ -9,7 +9,7 @@ import {
 } from "../columns/base-columns";
 import Money from "../money";
 import { openModal } from "@/lib/modal";
-import { Badge } from "../../ui/badge";
+import { Badge } from "@gnd/ui/badge";
 import { groupArray } from "@/lib/utils";
 import dayjs from "dayjs";
 

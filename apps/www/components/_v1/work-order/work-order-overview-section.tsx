@@ -1,7 +1,7 @@
 "use client";
 import { useAppSelector } from "@/store";
 import { IWorkOrder } from "@/types/customer-service";
-import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { useEffect } from "react";
 import { Info } from "../info";
 import { DateCellContent } from "../columns/base-columns";

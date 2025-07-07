@@ -6,7 +6,7 @@ import {
     SelectItem,
     SelectTrigger,
     Select,
-} from "../ui/select";
+} from "@gnd/ui/select";
 
 type Props = {
     initialValue: string;
@@ -19,7 +19,7 @@ export function ChartType({ initialValue, disabled }: Props) {
         {
             currentState: initialValue,
             updateFn: (_, newState) => newState,
-        }
+        },
     );
 
     return (

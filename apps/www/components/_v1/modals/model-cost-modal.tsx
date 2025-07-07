@@ -23,17 +23,17 @@ import { toast } from "sonner";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 
-import { Badge } from "../../ui/badge";
-import { Checkbox } from "../../ui/checkbox";
+import { Badge } from "@gnd/ui/badge";
+import { Checkbox } from "@gnd/ui/checkbox";
 import {
     Form,
     FormControl,
     FormField,
     FormItem,
     FormLabel,
-} from "../../ui/form";
-import { Label } from "../../ui/label";
-import { ScrollArea } from "../../ui/scroll-area";
+} from "@gnd/ui/form";
+import { Label } from "@gnd/ui/label";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 import Btn from "../btn";
 import ConfirmBtn from "../confirm-btn";
 import { DatePicker } from "../date-range-picker";

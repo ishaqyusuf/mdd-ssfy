@@ -30,8 +30,8 @@ import {
     AccordionContent,
     AccordionItem,
     AccordionTrigger,
-} from "../../ui/accordion";
-import { Form } from "../../ui/form";
+} from "@gnd/ui/accordion";
+import { Form } from "@gnd/ui/form";
 import { ExistingCustomerResolver } from "./existing-customer-resolver";
 import AddressAutoComplete from "@/components/address-autocomplete";
 

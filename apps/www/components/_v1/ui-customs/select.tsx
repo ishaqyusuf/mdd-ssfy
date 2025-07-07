@@ -1,6 +1,6 @@
 "use client";
 
-import { Label } from "../../ui/label";
+import { Label } from "@gnd/ui/label";
 import {
     Select,
     SelectContent,
@@ -8,7 +8,7 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "../../ui/select";
+} from "@gnd/ui/select";
 
 interface Props<T> {
     label?;

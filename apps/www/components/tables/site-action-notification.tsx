@@ -30,7 +30,7 @@ import {
     TableRow,
 } from "@gnd/ui/table";
 
-import { Checkbox } from "../ui/checkbox";
+import { Checkbox } from "@gnd/ui/checkbox";
 
 interface UseData {
     data: AsyncFnType<typeof getActionNotifications>;

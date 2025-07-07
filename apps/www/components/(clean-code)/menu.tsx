@@ -28,7 +28,7 @@ import {
     DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 
-import { ScrollArea } from "../ui/scroll-area";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 
 type MenuItemProps = {
     link?;

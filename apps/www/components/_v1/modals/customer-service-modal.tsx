@@ -23,8 +23,8 @@ import { toast } from "sonner";
 
 import { Input } from "@gnd/ui/input";
 
-import { Label } from "../../ui/label";
-import { ScrollArea } from "../../ui/scroll-area";
+import { Label } from "@gnd/ui/label";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 import {
     Select,
     SelectContent,
@@ -32,8 +32,8 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "../../ui/select";
-import { Textarea } from "../../ui/textarea";
+} from "@gnd/ui/select";
+import { Textarea } from "@gnd/ui/textarea";
 import AutoComplete2 from "../auto-complete-tw";
 import Btn from "../btn";
 import { DatePicker } from "../date-range-picker";

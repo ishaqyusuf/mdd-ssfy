@@ -11,7 +11,7 @@ import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 
 import { Icons } from "../_v1/icons";
-import { Label } from "../ui/label";
+import { Label } from "@gnd/ui/label";
 
 interface Props {
     src?: string | null;

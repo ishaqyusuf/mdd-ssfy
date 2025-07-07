@@ -1,7 +1,7 @@
 "use client";
 
 import { DataTableColumnHeader } from "../data-table/data-table-column-header";
-import { Checkbox } from "../../ui/checkbox";
+import { Checkbox } from "@gnd/ui/checkbox";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -10,7 +10,7 @@ import { formatDate } from "@/lib/use-day";
 import { Info, Trash } from "lucide-react";
 import LinkableNode from "../link-node";
 import { PrimitiveDivProps } from "@/types/type";
-import { Badge } from "../../ui/badge";
+import { Badge } from "@gnd/ui/badge";
 import { getBadgeColor } from "@/lib/status-badge";
 import { Progressor, getProgress } from "@/lib/status";
 import ProgressStatus from "../progress-status";
@@ -33,7 +33,7 @@ export function CheckColumn({ setSelectedRowIds, data }: CheckColumnProps) {
                     setSelectedRowIds((prev) =>
                         prev.length === data.length
                             ? []
-                            : data.map((row) => row.id)
+                            : data.map((row) => row.id),
                     );
                 }}
                 aria-label="Select all"
@@ -48,7 +48,7 @@ export function CheckColumn({ setSelectedRowIds, data }: CheckColumnProps) {
                     setSelectedRowIds((prev) =>
                         value
                             ? [...prev, row.original.id]
-                            : prev.filter((id) => id !== row.original.id)
+                            : prev.filter((id) => id !== row.original.id),
                     );
                 }}
                 aria-label="Select row"
@@ -185,7 +185,7 @@ export function ProgressStatusCell({
     total;
 }) {
     const [progress, setProgress] = useState<Progressor | null>(
-        getProgress(score, total)
+        getProgress(score, total),
     );
 
     if (progress?.score > 0)

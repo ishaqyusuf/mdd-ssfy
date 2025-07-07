@@ -19,8 +19,8 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "../../ui/select";
-import { Textarea } from "../../ui/textarea";
+} from "@gnd/ui/select";
+import { Textarea } from "@gnd/ui/textarea";
 import Btn from "../btn";
 import { Info } from "../info";
 import BaseModal from "./base-modal";

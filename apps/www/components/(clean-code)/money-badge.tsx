@@ -1,6 +1,6 @@
 import { formatMoney } from "@/lib/use-number";
 import { cva } from "class-variance-authority";
-import { Badge, BadgeProps } from "../ui/badge";
+import { Badge, BadgeProps } from "@gnd/ui/badge";
 
 const moneyBadgeVariants = cva("", {
     variants: {},

@@ -18,7 +18,7 @@ import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
 
-import { ScrollArea } from "../../ui/scroll-area";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 import BaseModal from "./base-modal";
 
 export default function AssignTaskModal() {

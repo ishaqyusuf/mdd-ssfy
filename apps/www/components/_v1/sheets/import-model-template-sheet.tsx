@@ -23,10 +23,10 @@ import {
 import { Input } from "@gnd/ui/input";
 
 import { ModelFormProps } from "../../../app/(v1)/(loggedIn)/settings/community/_components/model-form/model-form";
-import { Checkbox } from "../../ui/checkbox";
-import { Command, CommandInput, CommandList } from "../../ui/command";
-import { Label } from "../../ui/label";
-import { ScrollArea } from "../../ui/scroll-area";
+import { Checkbox } from "@gnd/ui/checkbox";
+import { Command, CommandInput, CommandList } from "@gnd/ui/command";
+import { Label } from "@gnd/ui/label";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 import {
     Table,
     TableBody,
@@ -34,7 +34,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "../../ui/table";
+} from "@gnd/ui/table";
 import {
     DateCellContent,
     PrimaryCellContent,

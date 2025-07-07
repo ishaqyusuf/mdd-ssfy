@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 
-import { ScrollArea } from "../../ui/scroll-area";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 import {
     Table,
     TableBody,
@@ -21,7 +21,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "../../ui/table";
+} from "@gnd/ui/table";
 import {
     DateCellContent,
     PrimaryCellContent,

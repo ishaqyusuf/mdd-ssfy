@@ -1,7 +1,7 @@
 "use client";
 
 import { cn, formatCurrency } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { useEffect, useState } from "react";
 import { Icons } from "./icons";
 import LinkableNode from "./link-node";
@@ -90,7 +90,7 @@ export function StartCard({
                         className={cn(
                             "text-2xl font-bold",
                             masked && isMasked && "tracking-wider",
-                            masked && "cursor-pointer"
+                            masked && "cursor-pointer",
                         )}
                     >
                         {displayValue}

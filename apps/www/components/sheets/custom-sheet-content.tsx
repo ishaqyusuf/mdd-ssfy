@@ -7,7 +7,7 @@ import { cva, VariantProps } from "class-variance-authority";
 import { Sheet, SheetContent, SheetContentProps } from "@gnd/ui/sheet";
 
 import Portal from "../_v1/portal";
-import { ScrollArea } from "../ui/scroll-area";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const sheetContentVariant = cva(

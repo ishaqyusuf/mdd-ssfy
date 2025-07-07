@@ -11,7 +11,7 @@ import { CheckIcon } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn, uniqueBy } from "@/lib/utils";
 import { PrimitiveDivProps } from "@/types/type";
-import { Label } from "../ui/label";
+import { Label } from "@gnd/ui/label";
 
 interface Props {
     options?: any[];
@@ -142,7 +142,7 @@ function AutoComplete2({
 
         const pattern = new RegExp(escapedText, "i");
         let filteredOptions = items?.filter((option) =>
-            pattern.test(option.name)
+            pattern.test(option.name),
         );
         // filteredOptions = uniqueBy(filteredOptions, "name").filter(
         //     (a, i) => i < 25
@@ -231,7 +231,7 @@ function AutoComplete2({
             // console.log([typing]);
             if (!typing) setTyping(true);
         },
-        [setTyping, typing]
+        [setTyping, typing],
     );
     return (
         <div className="grid relative gap-2">
@@ -247,7 +247,7 @@ function AutoComplete2({
                             focus &&
                                 "outline-none ring-2  ring-ring  ring-offset-2 ",
                             "relative w-full ring-offset-background cursor-default overflow-hidden rounded-lg bg-white text-left  sm:text-sm border border-input h-8",
-                            className
+                            className,
                         )}
                     >
                         <Combobox.Input
@@ -261,7 +261,7 @@ function AutoComplete2({
                             placeholder={placeholder}
                             className={cn(
                                 "w-full border-none spy-2 h-full focus:outline-none p-1 text-sm leading-5 text-gray-900 focus:ring-0",
-                                uppercase && "uppercase"
+                                uppercase && "uppercase",
                             )}
                             displayValue={(person) =>
                                 (person as any).name || ""
@@ -297,7 +297,7 @@ function AutoComplete2({
                             }}
                             className={cn(
                                 "fixed mt-1 max-h-60  overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-opacity-5 border-input focus:outline-none min-w-au  sm:text-sm z-[9999]",
-                                `min-w-[]`
+                                `min-w-[]`,
                             )}
                         >
                             {results?.length === 0 && !hideEmpty && (
@@ -343,7 +343,7 @@ function AutoComplete2({
                                                             : "font-normal"
                                                     }`,
                                                     uppercase && "uppercase",
-                                                    Item && "w-full"
+                                                    Item && "w-full",
                                                 )}
                                             >
                                                 {Item ? (

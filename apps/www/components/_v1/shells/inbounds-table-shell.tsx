@@ -11,7 +11,7 @@ import { IInboundOrder } from "@/types/sales-inbound";
 import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 
-import { Badge } from "../../ui/badge";
+import { Badge } from "@gnd/ui/badge";
 import {
     Cell,
     ColumnHeader,

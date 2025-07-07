@@ -11,7 +11,7 @@ import { parseAsString, parseAsStringEnum, useQueryStates } from "nuqs";
 import { SalesInvoicePdfTemplate } from "@gnd/printer/templates/sales-invoice";
 import { Dialog, DialogContent } from "@gnd/ui/dialog";
 
-import { ScrollArea } from "../ui/scroll-area";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 
 export function useSalesPreviewModal() {
     const [q, setQ] = useQueryStates({

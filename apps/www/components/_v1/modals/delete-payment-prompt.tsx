@@ -22,9 +22,9 @@ import { toast } from "sonner";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 
-import { Label } from "../../ui/label";
-import { RadioGroup, RadioGroupItem } from "../../ui/radio-group";
-import { ScrollArea } from "../../ui/scroll-area";
+import { Label } from "@gnd/ui/label";
+import { RadioGroup, RadioGroupItem } from "@gnd/ui/radio-group";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 import {
     Select,
     SelectContent,
@@ -32,8 +32,8 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "../../ui/select";
-import { Table, TableBody, TableCell, TableRow } from "../../ui/table";
+} from "@gnd/ui/select";
+import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 import Btn from "../btn";
 import {
     PrimaryCellContent,

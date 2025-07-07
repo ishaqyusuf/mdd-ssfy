@@ -18,7 +18,7 @@ import {
     TableCell,
     TableHead,
     TableRow,
-} from "../../ui/table";
+} from "@gnd/ui/table";
 import AutoComplete2 from "../auto-complete-tw";
 import Btn from "../btn";
 import Money from "../money";

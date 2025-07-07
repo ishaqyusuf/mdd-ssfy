@@ -23,10 +23,10 @@ import {
     ComboboxItem,
     ComboboxLabel,
     ComboboxTrigger,
-} from "../ui/combobox";
-import { CommandInput } from "../ui/command";
-import { Label } from "../ui/label";
-import { Table, TableBody, TableCell, TableRow } from "../ui/table";
+} from "@gnd/ui/combobox";
+import { CommandInput } from "@gnd/ui/command";
+import { Label } from "@gnd/ui/label";
+import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 
 export default function CustomerProfileUpdateModal({ phoneNo, profileId }) {
     const [data, setData] = useState<GetSalesCustomerSystemData>(null);

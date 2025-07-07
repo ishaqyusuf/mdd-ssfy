@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
-import { Input, InputProps } from "./ui/input";
+import { Input, InputProps } from "@gnd/ui/input";
 
 export function LabelInput({ className, ...props }: InputProps) {
     //   const { setValue, watch } = useFormContext();

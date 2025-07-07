@@ -11,7 +11,7 @@ import { useCombobox } from "downshift";
 
 import { Input } from "@gnd/ui/input";
 
-import { Label } from "../../ui/label";
+import { Label } from "@gnd/ui/label";
 
 // import JsonSearch from "search-array";
 export interface AutoCompleteProps {

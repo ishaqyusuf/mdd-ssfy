@@ -10,7 +10,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 import { Button } from "@gnd/ui/button";
 
-import { Badge } from "../../ui/badge";
+import { Badge } from "@gnd/ui/badge";
 import {
     Cell,
     CheckColumn,

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Label } from "../ui/label";
+import { Label } from "@gnd/ui/label";
 import { PrimitiveDivProps } from "@/types/type";
 
 export function Info({

@@ -17,8 +17,8 @@ import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
-} from "../../ui/collapsible";
-import { ScrollArea } from "../../ui/scroll-area";
+} from "@gnd/ui/collapsible";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 import {
     Table,
     TableBody,
@@ -26,7 +26,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "../../ui/table";
+} from "@gnd/ui/table";
 import {
     DateCellContent,
     PrimaryCellContent,

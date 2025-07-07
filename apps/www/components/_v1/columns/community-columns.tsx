@@ -1,7 +1,7 @@
 import { getBadgeColor } from "@/lib/status-badge";
 import { ExtendedHome, IHomeStatus } from "@/types/community";
 import { useEffect, useState } from "react";
-import { Badge } from "../../ui/badge";
+import { Badge } from "@gnd/ui/badge";
 import { cn } from "@/lib/utils";
 import {
     calculateHomeInvoice,
@@ -54,7 +54,7 @@ export function HomeStatus({ home }: Props) {
                 variant={"secondary"}
                 className={cn(
                     `h-5 px-1 whitespace-nowrap  text-xs text-slate-100`,
-                    status.badgeColor
+                    status.badgeColor,
                 )}
             >
                 {status.status}
@@ -71,7 +71,7 @@ export function HomeInstallationStatus({ home }: Props) {
                     `h-5 px-1 whitespace-nowrap  text-xs text-slate-100`,
                     home.jobs?.length > 0
                         ? "bg-green-600 hover:bg-green-600"
-                        : "bg-pink-600 hover:bg-pink-600"
+                        : "bg-pink-600 hover:bg-pink-600",
                 )}
             >
                 {home.jobs?.length} submitted
@@ -81,7 +81,7 @@ export function HomeInstallationStatus({ home }: Props) {
 }
 export function HomeInvoiceColumn({ home }: Props) {
     const [invoice, setInvoice] = useState<{ paid; due; chargeBack }>(
-        {} as any
+        {} as any,
     );
 
     useEffect(() => {

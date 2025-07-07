@@ -21,7 +21,7 @@ import {
 
 import Button from "../common/button";
 import FormInput from "../common/controls/form-input";
-import { Form } from "../ui/form";
+import { Form } from "@gnd/ui/form";
 
 const schema = z.object({
     email: z.string().email({
