@@ -6,6 +6,7 @@ import { useSidebar, useSidebarState } from "./context";
 import { cn } from "@gnd/ui/cn";
 import { ModeToggle } from "./mode-toggle";
 import { UserNav } from "./user-nav";
+import { OpenSearchButton } from "../search/open-search-button";
 
 export function Header({}) {
     const ctx = useSidebar();
@@ -46,6 +47,7 @@ export function Header({}) {
                         id="breadCrumb"
                         className="flex items-center space-x-1"
                     ></div>
+                    <OpenSearchButton />
                     <DevOnly>
                         <QuickLogin />
                     </DevOnly>
