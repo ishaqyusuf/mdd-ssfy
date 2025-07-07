@@ -22,11 +22,10 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 import { Button } from "@gnd/ui/button";
 
-import { PrintAction } from "../../../_common/_components/overview-sheet.bin/footer/print.action";
-
 import { deleteSalesByOrderIds } from "../../../_common/data-actions/sales-actions";
 import { __filters } from "../../../_common/utils/contants";
 import { OrderCells as Cells } from "./orders-page-cells";
+import { PrintAction } from "../../../_common/_components/overview-sheet.bin/footer/print.action";
 
 export default function OrdersPageClient({
     filterFields,

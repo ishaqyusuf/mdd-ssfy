@@ -47,10 +47,10 @@ export function Header({}) {
                         id="breadCrumb"
                         className="flex items-center space-x-1"
                     ></div>
-                    <OpenSearchButton />
                     <DevOnly>
                         <QuickLogin />
                     </DevOnly>
+                    <OpenSearchButton />
                     <div className="flex-1"></div>
                     <div className="mx-4 flex gap-4 " id="navRightSlot"></div>
                     <div className="inline-flex gap-4" id="actionNav"></div>
