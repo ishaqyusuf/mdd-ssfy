@@ -10,7 +10,7 @@ import EditSalesForm from "../../components/form";
 import { Metadata } from "next";
 import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 export const metadata: Metadata = {
-    title: "Edit Sales",
+    title: "Edit Sales | GND",
 };
 export default async function EditSalesPage({ searchParams, params }) {
     const { type, slug } = params;

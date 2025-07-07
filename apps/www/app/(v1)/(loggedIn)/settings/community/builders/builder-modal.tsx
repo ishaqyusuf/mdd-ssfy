@@ -15,7 +15,6 @@ import { closeModal } from "@/lib/modal";
 import { toastArrayAction } from "@/lib/toast-util";
 import { chunkArray, generateRandomString } from "@/lib/utils";
 import { IBuilder } from "@/types/community";
-import { CheckedState } from "@radix-ui/react-checkbox";
 import { Plus, Trash } from "lucide-react";
 import { useFieldArray, useForm, useFormContext } from "react-hook-form";
 import { toast } from "sonner";
@@ -212,7 +211,7 @@ function TasksForm({}) {
                                 render={({ field }) => (
                                     <Checkbox
                                         id="component"
-                                        checked={field.value as CheckedState}
+                                        checked={field.value as any}
                                         onCheckedChange={field.onChange}
                                     />
                                 )}

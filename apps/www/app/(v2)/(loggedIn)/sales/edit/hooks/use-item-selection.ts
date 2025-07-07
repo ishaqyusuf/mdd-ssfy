@@ -1,4 +1,3 @@
-import { CheckedState } from "@radix-ui/react-checkbox";
 import { useState } from "react";
 
 export interface ItemSelectionReturnType {
@@ -6,7 +5,7 @@ export interface ItemSelectionReturnType {
     hasSelection(): Boolean;
     selectionCount(): Number;
     setSelections;
-    select(index, state: CheckedState);
+    select(index, state: any);
     clearSelection();
 }
 export default function useItemSelection(): ItemSelectionReturnType {

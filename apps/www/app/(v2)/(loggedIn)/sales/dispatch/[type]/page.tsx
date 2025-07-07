@@ -11,7 +11,7 @@ import PageAction from "../_components/page-action";
 import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 
 export const metadata: Metadata = {
-    title: "Delivery",
+    title: "Delivery | GND",
 };
 
 export default async function DeliveryPage({ searchParams, params }) {

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Btn from "@/components/_v1/btn";
 import { ISalesWizardForm } from "@/types/post";
-import { CheckedState } from "@radix-ui/react-checkbox";
 import { UseFormReturn } from "react-hook-form";
 
 import { Checkbox } from "@gnd/ui/checkbox";
@@ -136,9 +135,7 @@ export default function WizardForm({
                                     <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                                         <FormControl>
                                             <Checkbox
-                                                checked={
-                                                    field.value as CheckedState
-                                                }
+                                                checked={field.value as any}
                                                 onCheckedChange={field.onChange}
                                             />
                                         </FormControl>

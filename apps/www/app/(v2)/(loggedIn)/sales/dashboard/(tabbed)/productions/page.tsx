@@ -8,7 +8,7 @@ import PageClient from "../../_components/page-client";
 import ServerTab from "../../_components/server-tab";
 
 export const metadata: Metadata = {
-    title: "Sales",
+    title: "Sales | GND",
 };
 export type SalesPageType =
     | "orders"

@@ -7,7 +7,7 @@ import { IUser } from "@/types/hrm";
 import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 
 export const metadata: Metadata = {
-    title: "Email Settings",
+    title: "Email Settings | GND",
 };
 
 export default async function EmailSettingsPage({}) {

@@ -8,7 +8,7 @@ import { Shell } from "@/components/shell";
 import PageHeader from "@/components/_v1/page-header";
 
 export const metadata: Metadata = {
-    title: "Sales Productions",
+    title: "Sales Productions | GND",
 };
 export default function SalesProductionPage({ searchParams }) {
     const p = _getProductionList({ query: searchParams });

@@ -94,6 +94,7 @@ import {
     CheckCircle,
     XCircle,
     Clock,
+    SortDesc,
 } from "lucide-react";
 import Image from "next/image";
  
@@ -159,6 +160,7 @@ export const Icons = {
     component: Layers,
     clear: Eraser,
     Email: Mail,
+    sortDesc: SortDesc,
     jobs: Briefcase,
     dealer: Briefcase,
     customerService: ClipboardList,
@@ -168,6 +170,7 @@ export const Icons = {
     save: Save,
     saveAndClose: FolderClosed,
     estimates: Banknote,
+    send: Send,
     packingList: Package,
     production: Construction,
     open: BookOpen,

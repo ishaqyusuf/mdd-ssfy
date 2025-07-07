@@ -11,7 +11,6 @@ import Money from "@/components/_v1/money";
 import { screens } from "@/lib/responsive";
 import { cn } from "@/lib/utils";
 import { ISalesOrder } from "@/types/sales";
-import { CheckedState } from "@radix-ui/react-checkbox";
 import { Layers } from "lucide-react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 import { useMediaQuery } from "react-responsive";
@@ -366,7 +365,7 @@ function InputHelper({
                     checkbox ? (
                         <Checkbox
                             id="component"
-                            checked={field.value as CheckedState}
+                            checked={field.value}
                             onCheckedChange={field.onChange}
                         />
                     ) : props.options ? (

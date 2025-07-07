@@ -5,7 +5,6 @@ import { Menu } from "@/components/(clean-code)/menu";
 import FormCheckbox from "@/components/common/controls/form-checkbox";
 import FormSelect from "@/components/common/controls/form-select";
 import Modal from "@/components/common/modal";
-import { DragHandleDots2Icon } from "@radix-ui/react-icons";
 import { useFieldArray } from "react-hook-form";
 
 import { Button } from "@gnd/ui/button";
@@ -27,6 +26,7 @@ import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Sortable, SortableDragHandle, SortableItem } from "@gnd/ui/sortable";
 
 import { Context, useSettings, useSettingsContext } from "./ctx";
+import { GripIcon } from "lucide-react";
 
 export default function FormSettingsModal({}) {
     const value = useSettingsContext();
@@ -191,7 +191,7 @@ function RouteSection({ uid }) {
                                         size="icon"
                                         className="size-4 shrink-0"
                                     >
-                                        <DragHandleDots2Icon
+                                        <GripIcon
                                             className="size-4"
                                             aria-hidden="true"
                                         />
