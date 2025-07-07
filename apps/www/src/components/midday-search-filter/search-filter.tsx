@@ -31,7 +31,6 @@ import { Calendar } from "@gnd/ui/calendar";
 import {
     Select,
     SelectContent,
-    SelectGroup,
     SelectItem,
     SelectTrigger,
     SelectValue,
