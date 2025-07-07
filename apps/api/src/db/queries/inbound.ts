@@ -5,6 +5,7 @@ import type {
 import type { TRPCContext } from "@api/trpc/init";
 import type { InboundFilterStatus, NoteTagNames } from "@gnd/utils/constants";
 import { getSales } from "./sales";
+import type { PageFilterData } from "@api/type";
 
 export async function getInboundStatuses(
   ctx: TRPCContext,
@@ -120,4 +121,15 @@ export async function getInboundSummary(
     default:
       return data.filter((a) => a?.status === query.status)?.length;
   }
+}
+
+export async function getInboundFilters(ctx: TRPCContext) {
+  type FilterData = PageFilterData<keyof InboundQuerySchema>;
+  const resp = [
+    {
+      label: "Search",
+      type: "input",
+      value: "q",
+    },
+  ] as FilterData[];
 }

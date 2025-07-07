@@ -4,7 +4,7 @@ export const paginationSchema = z.object({
   size: z.number().nullable().optional(),
   sort: z.string().nullable().optional(),
   start: z.number().nullable().optional(),
-  search: z.string().nullable().optional(),
+  q: z.string().nullable().optional(),
 });
 export const salesQueryParamsSchema = z
   .object({
@@ -15,7 +15,9 @@ export const salesQueryParamsSchema = z
   .merge(paginationSchema);
 export type SalesQueryParamsSchema = z.infer<typeof salesQueryParamsSchema>;
 
-export const inboundQuerySchema = z.object({
-  status: z.enum(inboundFilterStatus).optional().nullable(),
-});
+export const inboundQuerySchema = z
+  .object({
+    status: z.enum(inboundFilterStatus).optional().nullable(),
+  })
+  .merge(paginationSchema);
 export type InboundQuerySchema = z.infer<typeof inboundQuerySchema>;

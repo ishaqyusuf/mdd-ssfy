@@ -3,7 +3,11 @@ import { getBacklogs } from "@api/db/queries/backlogs";
 import { createTRPCRouter, publicProcedure } from "../init";
 import { inboundQuerySchema, salesQueryParamsSchema } from "@api/schemas/sales";
 import { getSales } from "@api/db/queries/sales";
-import { getInbounds, getInboundSummary } from "@api/db/queries/inbound";
+import {
+  getInboundFilters,
+  getInbounds,
+  getInboundSummary,
+} from "@api/db/queries/inbound";
 
 export const salesRouter = createTRPCRouter({
   index: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
@@ -26,4 +30,7 @@ export const salesRouter = createTRPCRouter({
     .query(async (props) => {
       return getInboundSummary(props.ctx, props.input);
     }),
+  inboundFilterData: publicProcedure.query(async (props) => {
+    return getInboundFilters(props.ctx);
+  }),
 });
