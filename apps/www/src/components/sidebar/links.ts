@@ -330,11 +330,11 @@ export const linkModules = [
         ]),
     ]),
     _module("Sales", "orders", "GND Sales", [
-        _section(null, null, [
-            _link("Sales Dashboard", "dashboard", "/dashboard/sales").access(
-                _role.is("Super Admin"),
-            ).data,
-        ]),
+        // _section(null, null, [
+        //     _link("Sales Dashboard", "dashboard", "/dashboard/sales").access(
+        //         _role.is("Super Admin"),
+        //     ).data,
+        // ]),
         _section(null, null, [
             _link("My Dashboard", "dashboard", "/sales-rep")
                 .access(
