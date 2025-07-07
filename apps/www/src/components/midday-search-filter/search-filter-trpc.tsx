@@ -97,13 +97,13 @@ export function SearchFilterTRPC({
             return;
         }
         setFilters({
-            search: deb.length > 0 ? deb : null,
+            q: deb.length > 0 ? deb : null,
         });
     }, [deb]);
     const handleSubmit = async () => {
         // If the user is typing a query with multiple words, we want to stream the results
         // console.log(prompt);
-        setFilters({ search: prompt.length > 0 ? prompt : null });
+        setFilters({ q: prompt.length > 0 ? prompt : null });
     };
     const hasValidFilters =
         Object.entries(filters).filter(
@@ -157,7 +157,7 @@ export function SearchFilterTRPC({
                     onRemove={(obj) => {
                         setFilters(obj);
                         const clearPrompt = Object.entries(obj).find(
-                            ([k, v]) => k == "search" || k == "_q",
+                            ([k, v]) => k == "q" || k == "_q",
                         )?.[0];
                         if (clearPrompt) setPrompt("");
                     }}

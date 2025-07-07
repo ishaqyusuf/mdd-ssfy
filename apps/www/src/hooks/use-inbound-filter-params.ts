@@ -1,4 +1,4 @@
-import { useQueryStates } from "nuqs";
+import { parseAsString, useQueryStates } from "nuqs";
 import { createLoader, parseAsStringLiteral } from "nuqs/server";
 import { inboundFilterStatus } from "@gnd/utils/constants";
 import { InboundQuerySchema } from "@api/schemas/sales";
@@ -7,6 +7,7 @@ type FilterKeys = keyof Exclude<RouterInputs["sales"]["inboundIndex"], void>;
 
 export const inboundFilterParamsSchema = {
     status: parseAsStringLiteral(inboundFilterStatus),
+    q: parseAsString,
 } satisfies Partial<Record<FilterKeys, any>>;
 
 export function useInboundFilterParams() {
