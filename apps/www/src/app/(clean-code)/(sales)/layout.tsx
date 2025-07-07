@@ -6,8 +6,6 @@ import { CustomerCreateSheet } from "@/components/sheets/customer-create-sheet";
 import { CustomerOverviewSheet } from "@/components/sheets/customer-overview-sheet";
 import SalesOverviewSheet from "@/components/sheets/sales-overview-sheet";
 
-import { ContentLayout } from "../../../components/(clean-code)/content-layout";
-import SidebarLayout from "../../../components/(clean-code)/side-bar-layout";
 import BackwardCompat from "./_backward-compat";
 import NewSideBarLayout from "@/app/(sidebar)/layout";
 
@@ -31,23 +29,5 @@ function SideBarLayout1({ children }) {
             <TransactionOverviewModal />
             <SalesEmailSender />
         </NewSideBarLayout>
-    );
-}
-function LegaceLayout({ children }) {
-    // await fixPaymentMethod();
-    return (
-        <SidebarLayout>
-            <ContentLayout>
-                <SalesQuickAction />
-                <BackwardCompat />
-                {children}
-            </ContentLayout>
-            <CustomerOverviewSheet />
-            <SalesPreviewModal />
-            <CustomerCreateSheet />
-            <SalesOverviewSheet />
-            <TransactionOverviewModal />
-            <SalesEmailSender />
-        </SidebarLayout>
     );
 }
