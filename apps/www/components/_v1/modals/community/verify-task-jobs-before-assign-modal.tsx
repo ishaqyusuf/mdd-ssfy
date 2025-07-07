@@ -47,7 +47,7 @@ import {
     TableRow,
 } from "@gnd/ui/table";
 
-import { ScrollArea } from "../../../ui/scroll-area";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 import BaseModal from "../base-modal";
 
 interface Props {
