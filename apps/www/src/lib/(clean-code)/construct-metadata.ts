@@ -4,7 +4,7 @@ import { HOME_DOMAIN } from "./constants";
 const prod = process.env.NODE_ENV == "production";
 export function constructMetadata({
     title = `${process.env.NEXT_PUBLIC_APP_NAME} - Enterprice Management System`,
-    description = `${process.env.NEXT_PUBLIC_APP_NAME} is the open-source link management platform for modern marketing teams to create marketing campaigns, link sharing features, and referral programs.`,
+    description = `${process.env.NEXT_PUBLIC_APP_NAME}`,
     image = "https://assets.gndprodesk.com/thumbnail.png",
     icons = [
         {
