@@ -80,12 +80,10 @@ export async function getInbounds(ctx: TRPCContext, query: InboundQuerySchema) {
     salesType: "order",
     q: query?.q,
   };
-  console.log(salesQuery);
 
   let statusList: any = null;
   if (status != "total" && status) {
     statusList = await getInboundStatuses(ctx);
-    // console.log(statusList);
 
     const matchingSales = statusList.filter((a) => a.status === status);
     const salesIds = matchingSales.map((a) => a.orderId);
