@@ -10,7 +10,6 @@ import { skeletonListData } from "@/utils/format";
 import { useAsyncMemo } from "use-async-memo";
 
 import { Badge } from "@gnd/ui/badge";
-import { Button } from "@gnd/ui/button";
 import {
     Dialog,
     DialogContent,
@@ -33,7 +32,6 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 export function TransactionOverviewModal({}) {
     const ctx = useTransactionOverviewModal();
-
     const txData = useAsyncMemo(async () => {
         return await getCustomerTransactionOverviewAction(ctx.transactionId);
     }, [ctx.transactionId]);

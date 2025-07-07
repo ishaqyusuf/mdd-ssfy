@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { AnimatedNumber } from "./animated-number";
+import { cn } from "@gnd/ui/cn";
 
 type Props = {
     count: RouterOutputs["sales"]["inboundSummary"];
@@ -27,7 +28,7 @@ export function InboundSummarySkeleton() {
 }
 export function InboundSummary({ count, title }: Props) {
     return (
-        <Card>
+        <Card className={cn("bg-inherit")}>
             <CardHeader className="pb-2 relative">
                 <CardTitle className="font-mono font-medium text-2xl">
                     <AnimatedNumber

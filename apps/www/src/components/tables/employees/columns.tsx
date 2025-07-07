@@ -13,6 +13,9 @@ import { useAsyncMemo } from "use-async-memo";
 import { AuthGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";
 import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
+import { useEmployeesParams } from "@/hooks/use-employee-params";
+import { Icons } from "@gnd/ui/icons";
 
 export type Item = PageItemData<typeof getEmployees>;
 export const columns: ColumnDef<Item>[] = [
@@ -66,10 +69,36 @@ export const columns: ColumnDef<Item>[] = [
             className: "flex-1",
         },
         cell: ({ row: { original: item } }) => {
-            return <ActionCell trash itemId={item.id}></ActionCell>;
+            return <Action item={item} />;
         },
     },
 ];
+function Action({ item }: { item: Item }) {
+    const { params, setParams } = useEmployeesParams();
+    return (
+        <ActionCell
+            Menu={
+                <>
+                    <Menu.Item icon="packingList">Reset Password</Menu.Item>
+                </>
+            }
+            trash
+            itemId={item.id}
+        >
+            <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                    setParams({
+                        editEmployeeId: item.id,
+                    });
+                }}
+            >
+                <Icons.Edit className="h-4 w-4" />
+            </Button>
+        </ActionCell>
+    );
+}
 function Profile({ item }: { item: Item }) {
     const ctx = useTable();
     const roles = ctx.tableMeta?.filterData?.find(

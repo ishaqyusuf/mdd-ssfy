@@ -22,6 +22,9 @@ export function InboundTotal() {
                     status: null,
                 })
             }
+            style={{
+                backgroundColor: "#66c8bfd9",
+            }}
             className="hidden sm:block text-left"
         >
             <InboundSummary count={data} title="Total" />

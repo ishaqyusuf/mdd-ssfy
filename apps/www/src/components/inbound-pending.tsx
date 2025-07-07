@@ -16,6 +16,9 @@ export function InboundPending() {
 
     return (
         <button
+            style={{
+                backgroundColor: "#cdeb60",
+            }}
             type="button"
             onClick={() =>
                 setFilter({
@@ -27,7 +30,7 @@ export function InboundPending() {
             <InboundSummary
                 count={data}
                 // totalInvoiceCount={totalInvoiceCount ?? 0}
-                title="Open"
+                title="Pending"
             />
         </button>
     );

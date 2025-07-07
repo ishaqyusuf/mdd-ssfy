@@ -17,6 +17,9 @@ export function InboundMissingItems() {
     return (
         <button
             type="button"
+            style={{
+                backgroundColor: "#eba360",
+            }}
             onClick={() =>
                 setFilter({
                     status: "missing items",

@@ -27,6 +27,9 @@ export function InboundComplete() {
                     status: "complete",
                 })
             }
+            style={{
+                backgroundColor: "#7a60eb",
+            }}
             className="hidden sm:block text-left"
         >
             <InboundSummary

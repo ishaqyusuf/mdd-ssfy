@@ -284,7 +284,6 @@ export function MiddaySearchFilter({
                     ))}
                 </DropdownMenuContent>
             </DropdownMenu>
-            {JSON.stringify(queryParams)}
         </>
     );
 }
