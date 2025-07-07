@@ -19,6 +19,23 @@ export function whereEmployees(query: SearchParamsType) {
         where.push({
             employeeProfileId,
         });
+    const containsSearch = {
+        contains: search,
+    };
+    if (search)
+        where.push({
+            OR: [
+                {
+                    name: containsSearch,
+                },
+                {
+                    email: containsSearch,
+                },
+                {
+                    phoneNo: containsSearch,
+                },
+            ],
+        });
     return composeQuery(where);
 }
 export async function employeeQueryMetaData(query: SearchParamsType) {

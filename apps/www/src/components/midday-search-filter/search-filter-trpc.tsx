@@ -90,8 +90,6 @@ export function SearchFilterTRPC({
     const deb = useDebounce(prompt, 1500);
     const hasMounted = useRef(false);
     useEffect(() => {
-        // console.log({ value, deb });
-
         if (!hasMounted.current) {
             hasMounted.current = true;
             return;

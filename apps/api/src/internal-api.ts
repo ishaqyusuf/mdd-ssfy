@@ -13,6 +13,7 @@ import { app } from ".";
 
 // export default handle(app);
 export const GET = handle(app);
+export const POST = handle(app);
 
 /* -----------------------------------------------------------------------------------------------
  * Serverless

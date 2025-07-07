@@ -21,21 +21,23 @@ export async function EmployeesTable({ query }) {
     });
     const nextMeta = meta?.next;
 
-    if (!data?.length) {
-        if (hasQuery(query)) {
-            return <NoResults />;
-        }
-
+    if (!data?.length && !hasQuery(query)) {
+        // if (hasQuery(query)) {
+        //     return <NoResults />;
+        // }
         return <EmptyState />;
     }
     return (
-        <DataTable
-            filterDataPromise={filterDataPromise}
-            data={data}
-            loadMore={loadMore}
-            pageSize={pageSize}
-            nextMeta={nextMeta}
-            // page={page}
-        />
+        <>
+            <DataTable
+                filterDataPromise={filterDataPromise}
+                data={data}
+                loadMore={loadMore}
+                pageSize={pageSize}
+                nextMeta={nextMeta}
+                // page={page}
+            />
+            {!data?.length && !hasQuery(query) && <NoResults />}
+        </>
     );
 }
