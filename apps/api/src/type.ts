@@ -1,4 +1,4 @@
-import type { IconKeys } from "@ui/components/custom/icons";
+// import type { IconKeys } from "@ui/components/custom/icons";
 export type PageDataMeta = {
   count?;
   page?;
@@ -13,7 +13,7 @@ export type PageDataMeta = {
 
 export type PageFilterData<TValue = string> = {
   value?: TValue;
-  icon?: IconKeys;
+  icon?;
   type: "checkbox" | "input" | "date" | "date-range";
   label?: string;
   options?: {

@@ -110,9 +110,7 @@ export function SearchFilterTRPC({
             ([key, value]) => value !== null && key !== "q",
         ).length > 0;
 
-    const __filters = (filterList || ([] as any))?.filter(
-        (a) => a.value != "search" && a.value != "q",
-    );
+    const __filters = (filterList || [])?.filter((a) => a.value != "q");
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <div className="flex items-center space-x-4">
