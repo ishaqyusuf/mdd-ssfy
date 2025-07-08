@@ -105,7 +105,6 @@ export function pageQueryFilter(query) {
             [sort || "id"]: sort_order,
         };
     }
-    console.log({ skip, perPage });
     return {
         take: Number(perPage || 30),
         skip: Number(skip),

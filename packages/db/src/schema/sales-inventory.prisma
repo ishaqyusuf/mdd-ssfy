@@ -1,43 +1,167 @@
-model Inventory {
-    id    Int    @unique @default(autoincrement())
-    title String
-    type  String // door | etc
+model InventoryType {
+    id          Int                      @id @default(autoincrement())
+    name        String                   @unique
+    attributes  InventoryTypeAttribute[]
+    inventories Inventory[]
 
-    variants  InventoryVariant[]
-    createdAt DateTime?          @default(now()) @db.Timestamp(0)
-    updatedAt DateTime?          @updatedAt
-    deletedAt DateTime?          @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
 }
 
-model InventoryVariant {
-    id           Int     @unique @default(autoincrement())
-    variantTitle String? //null if no variant
-    img          String?
+model VariantAttribute {
+    id        Int                         @id @default(autoincrement())
+    name      String
+    type      String? // e.g., "text", "dropdown"
+    typeLinks InventoryTypeAttribute[]
+    values    InventoryVariantAttribute[]
+
+    @@unique([name])
+}
+
+model InventoryTypeAttribute {
+    id              Int     @id @default(autoincrement())
+    inventoryTypeId Int
+    attributeId     Int
+    isRequired      Boolean @default(false)
+    order           Int     @default(0)
+
+    inventoryType InventoryType    @relation(fields: [inventoryTypeId], references: [id])
+    attribute     VariantAttribute @relation(fields: [attributeId], references: [id])
+
+    @@unique([inventoryTypeId, attributeId])
+    @@index([inventoryTypeId])
+    @@index([attributeId])
+}
+
+model InventoryCategory {
+    id       Int                 @id @default(autoincrement())
+    name     String
+    parentId Int?
+    parent   InventoryCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    children InventoryCategory[] @relation("CategoryHierarchy")
+    items    Inventory[]
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    @@unique([name, parentId])
+    @@index([parentId])
+}
+
+model Inventory {
+    id     Int           @id @default(autoincrement())
+    title  String
+    uid    String //matching dykeProductUid
+    typeId Int
+    type   InventoryType @relation(fields: [typeId], references: [id])
+
+    categoryId Int?
+    category   InventoryCategory? @relation(fields: [categoryId], references: [id])
+    unit       String?
+
+    variants InventoryVariant[]
+    logs     InventoryLog[]
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    inventoryId Int
-    inventory   Inventory @relation(fields: [inventoryId], references: [id])
+    @@index([typeId])
+    @@index([categoryId])
+}
 
-    pricings InventoryVariantPrice[]
+model InventoryVariant {
+    id           Int       @id @default(autoincrement())
+    variantTitle String?
+    img          String?
+    prodUid      String
+    depUid       String?
+    inventoryId  Int
+    inventory    Inventory @relation(fields: [inventoryId], references: [id])
+
+    attributes   InventoryVariantAttribute[]
+    pricings     InventoryVariantPrice[]
+    stockEntries InventoryStock[]
+    logs         InventoryLog[]
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
 
     @@index([inventoryId])
 }
 
-model InventoryVariantPrice {
-    id Int @unique @default(autoincrement())
+model InventoryVariantAttribute {
+    id          Int    @id @default(autoincrement())
+    variantId   Int
+    attributeId Int
+    value       String
 
-    salesPrice Float?
-    costPrice  Float?
+    variant   InventoryVariant @relation(fields: [variantId], references: [id])
+    attribute VariantAttribute @relation(fields: [attributeId], references: [id])
+
+    @@unique([variantId, attributeId])
+    @@index([variantId])
+    @@index([attributeId])
+}
+
+model InventoryVariantPrice {
+    id                 Int              @id @default(autoincrement())
+    salesPrice         Float?
+    costPrice          Float?
+    inventoryVariantId Int
+    inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
+    @@index([inventoryVariantId])
+}
+
+model InventoryStock {
+    id                 Int              @id @default(autoincrement())
     inventoryVariantId Int
+    inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
+
+    quantity   Float
+    location   String?
+    supplierId Int?
+    supplier   Supplier? @relation(fields: [supplierId], references: [id])
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
 
     @@index([inventoryVariantId])
+    @@index([supplierId])
+}
+
+model Supplier {
+    id       Int              @id @default(autoincrement())
+    name     String
+    email    String?
+    phone    String?
+    address  String?
+    supplies InventoryStock[]
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+}
+
+model InventoryLog {
+    id                 Int              @id @default(autoincrement())
+    action             String
+    quantity           Float
+    notes              String?
+    inventoryVariantId Int
+    inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
+    createdBy          String?
+
+    createdAt   DateTime?  @default(now()) @db.Timestamp(0)
+    Inventory   Inventory? @relation(fields: [inventoryId], references: [id])
+    inventoryId Int?
+
+    @@index([inventoryVariantId])
+    @@index([inventoryId])
 }

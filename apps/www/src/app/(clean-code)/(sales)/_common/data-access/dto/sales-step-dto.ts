@@ -1,4 +1,3 @@
- 
 import { StepMeta } from "../../../types";
 
 export function transformSalesStepMeta<T>(step: T) {
@@ -7,11 +6,13 @@ export function transformSalesStepMeta<T>(step: T) {
 
     if (!stepMeta.priceStepDeps) {
         stepMeta.priceStepDeps = Object.entries(
-            (stepMeta as any).priceDepencies || {}
+            (stepMeta as any).priceDepencies || {},
         )
             ?.map(([k, v]) => (v ? k : null))
             .filter(Boolean);
     }
+    console.log(stepMeta);
+
     return {
         ...step,
         meta: stepMeta,

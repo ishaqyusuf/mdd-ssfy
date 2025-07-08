@@ -30,7 +30,6 @@ export function useStepContext(stepUid) {
         setSelectionState((pre) => {
             const uids = {};
             filteredComponents.map((s) => (uids[s.uid] = true));
-            console.log(uids);
 
             return {
                 uids,
@@ -42,11 +41,11 @@ export function useStepContext(stepUid) {
     const tabs = useMemo(() => {
         const tabCounts = {
             main: stepComponents.filter(
-                (s) => s._metaData.visible && !s._metaData.custom
+                (s) => s._metaData.visible && !s._metaData.custom,
             ).length,
             custom: stepComponents.filter((s) => s._metaData.custom).length,
             hidden: stepComponents.filter(
-                (s) => !s._metaData.visible && !s._metaData.custom
+                (s) => !s._metaData.visible && !s._metaData.custom,
             ).length,
         };
 
@@ -80,9 +79,9 @@ export function useStepContext(stepUid) {
                 return tab == "custom"
                     ? md.custom
                     : tab == "hidden"
-                    ? !md.visible
-                    : md.visible;
-            })
+                      ? !md.visible
+                      : md.visible;
+            }),
         );
     }, [tab, stepComponents]);
     useEffect(() => {
@@ -90,7 +89,7 @@ export function useStepContext(stepUid) {
             const filters = [];
             if (q)
                 filters.push(
-                    s.title?.toLowerCase()?.includes(q?.toLowerCase())
+                    s.title?.toLowerCase()?.includes(q?.toLowerCase()),
                 );
             switch (tab) {
                 case "hidden":
@@ -111,7 +110,7 @@ export function useStepContext(stepUid) {
         // console.log(stepComponents.length);
     }, [stepComponents, db, tab]);
     const salesMultiplier = useFormDataStore(
-        (s) => s.metaData?.salesMultiplier
+        (s) => s.metaData?.salesMultiplier,
     );
     const stepHelper = useMemo(() => new StepHelperClass(stepUid), [stepUid]);
     const zusStepComponents = stepHelper.getStepComponents;
