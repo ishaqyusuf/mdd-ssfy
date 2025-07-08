@@ -1,6 +1,6 @@
 import { exampleTaskPayload } from "@jobs/schema";
 import { logger, schemaTask } from "@trigger.dev/sdk/v3";
-import { prisma } from "@school-clerk/db";
+import { db } from "@gnd/db";
 const BATCH_SIZE = 500;
 
 export const example = schemaTask({
@@ -12,7 +12,7 @@ export const example = schemaTask({
   },
   run: async ({}) => {
     await logger.info("Starting example task");
-    const user = await prisma.user.findFirst({});
+    const user = await db.users.findFirst({});
     await logger.log(JSON.stringify(user));
     let offset = 0;
   },

@@ -45,6 +45,15 @@ yarn-error.log*
 # turbo
 .turbo
 
+# react-email
+.react-email
+packages/email/public
+!packages/email/public/.gitkeep
+!packages/email/.react-email/.gitkeep
+
+# Trigger
+.trigger
+
 yarn.lock
 package-lock.json
 

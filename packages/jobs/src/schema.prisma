@@ -2,1325 +2,2603 @@
 
 // ---- schema.prisma (entrypoint) ----
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
-  relationMode    = "prisma"
+    provider        = "prisma-client-js"
+    previewFeatures = ["typedSql"]
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("POSTGRES_URL")
-  directUrl = env("DIRECT_URL")
+    provider     = "mysql"
+    relationMode = "prisma"
+    url          = env("DATABASE_URL")
 }
 
-model account {
-  userId            String  @db.Uuid
-  type              String  @db.VarChar(255)
-  provider          String  @db.VarChar(255)
-  providerAccountId String  @db.VarChar(255)
-  refresh_token     String? @db.VarChar(255)
-  access_token      String?
-  expires_at        Int?
-  token_type        String? @db.VarChar(255)
-  scope             String? @db.VarChar(255)
-  id_token          String?
-  session_state     String? @db.VarChar(255)
-  user              user    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "account_userId_user_id_fk")
-
-  @@id([provider, providerAccountId], map: "account_provider_providerAccountId_pk")
+model AutoCompletes {
+    id        Int       @unique @default(autoincrement())
+    type      String
+    fieldName String
+    deletedAt DateTime?
+    value     String
 }
 
-model guardian {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  school_id  String    @db.Uuid
-  name       String    @db.VarChar(256)
-  created_at DateTime  @default(now()) @db.Timestamp(6)
-  deleted_at DateTime? @db.Timestamp(6)
-  updatedAt  DateTime? @db.Timestamptz(6)
-  school     school    @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "guardian_school_id_school_id_fk")
-  student    student[]
+/// The underlying table does notnpx contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model AddressBooks {
+    id             Int           @unique @default(autoincrement())
+    customerId     Int?
+    name           String?       @db.VarChar(255)
+    address1       String?       @db.VarChar(300)
+    address2       String?       @db.VarChar(300)
+    country        String?       @db.VarChar(255)
+    state          String?       @db.VarChar(255)
+    city           String?       @db.VarChar(255)
+    email          String?       @db.VarChar(255)
+    phoneNo        String?       @db.VarChar(255)
+    phoneNo2       String?       @db.VarChar(255)
+    isPrimary      Boolean?
+    meta           Json?         @db.Json
+    createdAt      DateTime?     @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime?     @updatedAt
+    deletedAt      DateTime?
+    customer       Customers?    @relation(fields: [customerId], references: [id], name: "addressBooks", onDelete: Cascade)
+    billingOrders  SalesOrders[] @relation(name: "billingAddress")
+    shippingOrders SalesOrders[] @relation(name: "shippingAddress")
+    dealerBilling  DealerAuth[]  @relation(name: "primaryBillingAddress")
+    dealerShipping DealerAuth[]  @relation(name: "primaryShippingAddress")
+
+    @@index([createdAt, deletedAt, name, address1])
+    @@index([customerId])
+    @@index([phoneNo])
 }
 
-model school {
-  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                 String                 @db.VarChar(256)
-  sub_domain           String                 @unique(map: "school_sub_domain_unique") @db.VarChar(256)
-  meta                 Json?
-  created_at           DateTime               @default(now()) @db.Timestamp(6)
-  deleted_at           DateTime?              @db.Timestamp(6)
-  updatedAt            DateTime?              @db.Timestamptz(6)
-  Subjects             Subjects[]
-  academic_class       academic_class[]
-  academic_session     academic_session[]
-  academic_term        academic_term[]
-  assessments          assessments[]
-  batch_staff_service  batch_staff_service[]
-  billable_service     billable_service[]
-  class_subject        class_subject[]
-  guardian             guardian[]
-  inventory            inventory[]
-  inventory_sales      inventory_sales[]
-  school_wallet        school_wallet[]
-  session_class        session_class[]
-  staff_session_form   staff_session_form[]
-  staff_term_sheet     staff_term_sheet[]
-  student              student[]
-  student_session_form student_session_form[]
-  transaction          transaction[]
-  user                 user[]
+model ErrorLog {
+    id          Int            @unique @default(autoincrement())
+    userId      Int
+    title       String?
+    description String?
+    data        String?
+    meta        Json           @db.Json
+    status      String
+    deletedAt   DateTime?      @db.Timestamp(0)
+    createdAt   DateTime?      @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime?      @updatedAt
+    Users       Users          @relation(fields: [userId], references: [id])
+    tags        ErrorLogTags[]
 
-  @@unique([name, sub_domain], map: "school_name_sub_domain_unique")
+    @@index([userId])
 }
 
-model session {
-  sessionToken String   @id @db.VarChar(255)
-  userId       String   @db.Uuid
-  expires      DateTime @db.Timestamptz(6)
-  user         user     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "session_userId_user_id_fk")
+model ErrorLogTags {
+    id         Int       @unique @default(autoincrement())
+    errorLogId Int
+    errorTagId Int
+    errorLog   ErrorLog  @relation(fields: [errorLogId], references: [id])
+    errorTags  ErrorTags @relation(fields: [errorTagId], references: [id])
+    deletedAt  DateTime? @db.Timestamp(0)
+
+    @@index([errorLogId])
+    @@index([errorTagId])
 }
 
-model session_class {
-  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  school_id              String                   @db.Uuid
-  academic_session_id    String                   @db.Uuid
-  academic_class_id      String                   @db.Uuid
-  created_at             DateTime                 @default(now()) @db.Timestamp(6)
-  deleted_at             DateTime?                @db.Timestamp(6)
-  updatedAt              DateTime?                @db.Timestamptz(6)
-  class_subject          class_subject[]
-  academic_class         academic_class           @relation(fields: [academic_class_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "session_class_academic_class_id_academic_class_id_fk")
-  academic_session       academic_session         @relation(fields: [academic_session_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "session_class_academic_session_id_academic_session_id_fk")
-  school                 school                   @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "session_class_school_id_school_id_fk")
-  staff_class_role       staff_class_role[]
-  student_day_attendance student_day_attendance[]
-  student_term_sheet     student_term_sheet[]
+model ErrorTags {
+    id           Int            @unique @default(autoincrement())
+    name         String         @unique
+    errorLogTags ErrorLogTags[]
+    deletedAt    DateTime?      @db.Timestamp(0)
 }
 
-model user {
-  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title                  String?                  @db.VarChar(255)
-  name                   String?                  @db.VarChar(255)
-  email                  String                   @db.VarChar(255)
-  username               String?                  @db.VarChar(255)
-  phone_no               String?                  @db.VarChar(255)
-  role                   String?                  @db.VarChar(255)
-  school_id              String                   @db.Uuid
-  emailVerified          DateTime?                @db.Timestamptz(6)
-  image                  String?                  @db.VarChar(255)
-  created_at             DateTime                 @default(now()) @db.Timestamp(6)
-  deleted_at             DateTime?                @db.Timestamp(6)
-  updatedAt              DateTime?                @db.Timestamptz(6)
-  account                account[]
-  assessments            assessments[]
-  session                session[]
-  staff_class_role       staff_class_role[]
-  staff_service          staff_service[]
-  staff_session_form     staff_session_form[]
-  staff_term_sheet       staff_term_sheet[]
-  student_attendance     student_attendance[]
-  student_day_attendance student_day_attendance[]
-  school                 school                   @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_school_id_school_id_fk")
+model PageView {
+    id           Int       @id @default(autoincrement())
+    url          String
+    group        String?
+    searchParams String?
+    createdAt    DateTime? @default(now()) @db.Timestamp(0)
+    deletedAt    DateTime? @db.Timestamp(0)
+    Users        Users?    @relation(fields: [userId], references: [id])
+    userId       Int?
 
-  @@unique([email, school_id], map: "user_email_school_id_unique")
+    @@index([userId])
 }
 
-// ---- .bin/school-sessions.prisma ----
-model academic_class {
-    id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    name          String          @db.VarChar(256)
-    school_id     String          @db.Uuid
-    classLevel    Int             @default(1)
-    created_at    DateTime        @default(now()) @db.Timestamp(6)
-    deleted_at    DateTime?       @db.Timestamp(6)
-    updatedAt     DateTime?       @db.Timestamptz(6)
-    school        school          @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "academic_class_school_id_school_id_fk")
-    class_subject class_subject[]
-    session_class session_class[]
+model Event {
+    id        Int       @id @default(autoincrement())
+    type      String
+    data      Json
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    deletedAt DateTime? @db.Timestamp(0)
+    value     Float?    @default(1)
+    Users     Users?    @relation(fields: [userId], references: [id])
+    userId    Int?
 
-    @@unique([name, school_id], map: "academic_class_name_school_id_unique")
+    @@index([userId])
 }
 
-model academic_session {
-    id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    name                 String                 @db.VarChar(256)
-    start_date           DateTime?              @db.Timestamp(6)
-    end_date             DateTime?              @db.Timestamp(6)
-    school_id            String                 @db.Uuid
-    created_at           DateTime               @default(now()) @db.Timestamp(6)
-    deleted_at           DateTime?              @db.Timestamp(6)
-    updatedAt            DateTime?              @db.Timestamptz(6)
-    school               school                 @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "academic_session_school_id_school_id_fk")
-    academic_term        academic_term[]
-    batch_staff_service  batch_staff_service[]
-    class_subject        class_subject[]
-    session_class        session_class[]
-    staff_session_form   staff_session_form[]
-    student_session_form student_session_form[]
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 
-    @@unique([name, school_id], map: "academic_session_name_school_id_unique")
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Migrations {
+    id        Int    @unique @default(autoincrement())
+    migration String @db.VarChar(255)
+    batch     Int
 }
 
-model academic_term {
-    id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    name                   String                   @db.VarChar(256)
-    school_id              String                   @db.Uuid
-    academic_session_id    String                   @db.Uuid
-    start_date             DateTime?                @db.Timestamp(6)
-    end_date               DateTime?                @db.Timestamp(6)
-    created_at             DateTime                 @default(now()) @db.Timestamp(6)
-    deleted_at             DateTime?                @db.Timestamp(6)
-    updatedAt              DateTime?                @db.Timestamptz(6)
-    academic_session       academic_session         @relation(fields: [academic_session_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "academic_term_academic_session_id_academic_session_id_fk")
-    school                 school                   @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "academic_term_school_id_school_id_fk")
-    assessments            assessments[]
-    batch_staff_service    batch_staff_service[]
-    student_day_attendance student_day_attendance[]
-    student_term_sheet     student_term_sheet[]
-    transaction            transaction[]
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model ModelHasPermissions {
+    permissionId Int
+    modelType    String      @db.VarChar(255)
+    modelId      BigInt      @db.UnsignedBigInt
+    permissions  Permissions @relation(fields: [permissionId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "model_has_permissions_permission_id_foreign")
+    deletedAt    DateTime?   @db.Timestamp(0)
+    // @@index([createdAt,deletedAt,modelId, modelType], map: "model_has_permissions_model_id_model_type_index")
 
-    @@unique([name, school_id, academic_session_id], map: "academic_term_name_school_id_academic_session_id_unique")
+    @@id([permissionId, modelId, modelType])
 }
 
-// ---- .bin/inventory.prisma ----
-model inventory {
-    id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    school_id       String            @db.Uuid
-    title           String?           @db.VarChar
-    type            String?           @db.VarChar
-    amount          Decimal           @db.Decimal
-    created_at      DateTime          @default(now()) @db.Timestamp(6)
-    deleted_at      DateTime?         @db.Timestamp(6)
-    updatedAt       DateTime?         @db.Timestamptz(6)
-    school          school            @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "inventory_school_id_school_id_fk")
-    inventory_sales inventory_sales[]
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model ModelHasRoles {
+    roleId  Int
+    modelId Int
+
+    role      Roles     @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "model_has_roles_role_id_foreign")
+    user      Users     @relation(fields: [modelId], references: [id])
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@id([roleId, modelId])
+    @@index([modelId])
 }
 
-model inventory_sales {
-    id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    school_id      String      @db.Uuid
-    title          String?     @db.VarChar
-    book_id        String      @db.Uuid
-    transaction_id String      @db.Uuid
-    created_at     DateTime    @default(now()) @db.Timestamp(6)
-    deleted_at     DateTime?   @db.Timestamp(6)
-    updatedAt      DateTime?   @db.Timestamptz(6)
-    inventory      inventory   @relation(fields: [book_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "inventory_sales_book_id_inventory_id_fk")
-    school         school      @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "inventory_sales_school_id_school_id_fk")
-    transaction    transaction @relation(fields: [transaction_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "inventory_sales_transaction_id_transaction_id_fk")
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model PasswordResets {
+    id        Int       @unique @default(autoincrement())
+    email     String    @db.VarChar(255)
+    token     String    @db.VarChar(255)
+    usedAt    DateTime? @db.Timestamp(0)
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
 }
 
-// ---- .bin/student.prisma ----
-model student {
-    id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    school_id            String                 @db.Uuid
-    first_name           String                 @db.VarChar(256)
-    other_name           String?                @db.VarChar(256)
-    surname              String                 @db.VarChar(256)
-    guardianId           String?                @db.Uuid
-    created_at           DateTime               @default(now()) @db.Timestamp(6)
-    deleted_at           DateTime?              @db.Timestamp(6)
-    updatedAt            DateTime?              @db.Timestamptz(6)
-    gender               String?                @db.VarChar
-    dob                  DateTime?              @db.Timestamp(6)
-    guardian             guardian?              @relation(fields: [guardianId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_guardianId_guardian_id_fk")
-    school               school                 @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_school_id_school_id_fk")
-    student_session_form student_session_form[]
-    student_term_sheet   student_term_sheet[]
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Permissions {
+    id                    Int                   @unique @default(autoincrement())
+    name                  String                @db.VarChar(255)
+    createdAt             DateTime?             @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime?             @updatedAt
+    deletedAt             DateTime?             @db.Timestamp(0)
+    model_has_permissions ModelHasPermissions[]
+    role_has_permissions  RoleHasPermissions[]
 
-    @@unique([school_id, first_name, other_name, surname], map: "student_school_id_first_name_other_name_surname_unique")
+    // @@unique([name], map: "permissions_name_guard_name_unique")
 }
 
-model student_attendance {
-    id                     String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    attendance_id          String                 @db.Uuid
-    present                Boolean?               @default(false)
-    comment                String?
-    teacher_id             String                 @db.Uuid
-    student_term_sheet_id  String                 @db.Uuid
-    created_at             DateTime               @default(now()) @db.Timestamp(6)
-    deleted_at             DateTime?              @db.Timestamp(6)
-    updatedAt              DateTime?              @db.Timestamptz(6)
-    student_day_attendance student_day_attendance @relation(fields: [attendance_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_attendance_attendance_id_student_day_attendance_id_fk")
-    student_term_sheet     student_term_sheet     @relation(fields: [student_term_sheet_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_attendance_student_term_sheet_id_student_term_sheet_id_")
-    user                   user                   @relation(fields: [teacher_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_attendance_teacher_id_user_id_fk")
-}
-
-model student_day_attendance {
-    id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    session_class_id   String               @db.Uuid
-    teacher_id         String               @db.Uuid
-    class_subject_id   String               @db.Uuid
-    term_id            String               @db.Uuid
-    created_at         DateTime             @default(now()) @db.Timestamp(6)
-    deleted_at         DateTime?            @db.Timestamp(6)
-    updatedAt          DateTime?            @db.Timestamptz(6)
-    student_attendance student_attendance[]
-    class_subject      class_subject        @relation(fields: [class_subject_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_day_attendance_class_subject_id_class_subject_id_fk")
-    session_class      session_class        @relation(fields: [session_class_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_day_attendance_session_class_id_session_class_id_fk")
-    user               user                 @relation(fields: [teacher_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_day_attendance_teacher_id_user_id_fk")
-    academic_term      academic_term        @relation(fields: [term_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_day_attendance_term_id_academic_term_id_fk")
-}
-
-model student_session_form {
-    id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    school_id          String               @db.Uuid
-    student_id         String               @db.Uuid
-    session_id         String               @db.Uuid
-    created_at         DateTime             @default(now()) @db.Timestamp(6)
-    deleted_at         DateTime?            @db.Timestamp(6)
-    updatedAt          DateTime?            @db.Timestamptz(6)
-    school             school               @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_session_form_school_id_school_id_fk")
-    academic_session   academic_session     @relation(fields: [session_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_session_form_session_id_academic_session_id_fk")
-    student            student              @relation(fields: [student_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_session_form_student_id_student_id_fk")
-    student_term_sheet student_term_sheet[]
-
-    @@unique([school_id, student_id], map: "student_session_form_school_id_student_id_unique")
-}
-
-model student_term_sheet {
-    id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    session_sheet_id     String               @db.Uuid
-    academic_term_id     String               @db.Uuid
-    student_id           String               @db.Uuid
-    session_class_id     String               @db.Uuid
-    created_at           DateTime             @default(now()) @db.Timestamp(6)
-    deleted_at           DateTime?            @db.Timestamp(6)
-    updatedAt            DateTime?            @db.Timestamptz(6)
-    assessment_result    assessment_result[]
-    student_attendance   student_attendance[]
-    academic_term        academic_term        @relation(fields: [academic_term_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_term_sheet_academic_term_id_academic_term_id_fk")
-    session_class        session_class        @relation(fields: [session_class_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_term_sheet_session_class_id_session_class_id_fk")
-    student_session_form student_session_form @relation(fields: [session_sheet_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_term_sheet_session_sheet_id_student_session_form_id_fk")
-    student              student              @relation(fields: [student_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "student_term_sheet_student_id_student_id_fk")
-    transaction          transaction[]
-}
-
-// ---- .bin/classroom.prisma ----
-model assessment_result {
-    id                    String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    assessment_id         String             @db.Uuid
-    score                 Decimal?           @db.Decimal
-    percentage            Decimal?           @db.Decimal
-    student_term_sheet_id String             @db.Uuid
-    created_at            DateTime           @default(now()) @db.Timestamp(6)
-    deleted_at            DateTime?          @db.Timestamp(6)
-    updatedAt             DateTime?          @db.Timestamptz(6)
-    assessments           assessments        @relation(fields: [assessment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "assessment_result_assessment_id_assessments_id_fk")
-    student_term_sheet    student_term_sheet @relation(fields: [student_term_sheet_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "assessment_result_student_term_sheet_id_student_term_sheet_id_f")
-}
-
-model assessments {
-    id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    school_id         String              @db.Uuid
-    class_subject_id  String              @db.Uuid
-    description       String?             @db.VarChar
-    obtainable        Decimal?            @db.Decimal
-    teacher_id        String              @db.Uuid
-    term_id           String              @db.Uuid
-    created_at        DateTime            @default(now()) @db.Timestamp(6)
-    deleted_at        DateTime?           @db.Timestamp(6)
-    updatedAt         DateTime?           @db.Timestamptz(6)
-    assessment_result assessment_result[]
-    class_subject     class_subject       @relation(fields: [class_subject_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "assessments_class_subject_id_class_subject_id_fk")
-    school            school              @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "assessments_school_id_school_id_fk")
-    user              user                @relation(fields: [teacher_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "assessments_teacher_id_user_id_fk")
-    academic_term     academic_term       @relation(fields: [term_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "assessments_term_id_academic_term_id_fk")
-}
-
-model class_subject {
-    id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    school_id              String                   @db.Uuid
-    academic_session_id    String                   @db.Uuid
-    academic_class_id      String                   @db.Uuid
-    session_class_id       String                   @db.Uuid
-    subject_id             String                   @db.Uuid
-    created_at             DateTime                 @default(now()) @db.Timestamp(6)
-    deleted_at             DateTime?                @db.Timestamp(6)
-    updatedAt              DateTime?                @db.Timestamptz(6)
-    assessments            assessments[]
-    academic_class         academic_class           @relation(fields: [academic_class_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "class_subject_academic_class_id_academic_class_id_fk")
-    academic_session       academic_session         @relation(fields: [academic_session_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "class_subject_academic_session_id_academic_session_id_fk")
-    school                 school                   @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "class_subject_school_id_school_id_fk")
-    session_class          session_class            @relation(fields: [session_class_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "class_subject_session_class_id_session_class_id_fk")
-    Subjects               Subjects                 @relation(fields: [subject_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "class_subject_subject_id_Subjects_id_fk")
-    student_day_attendance student_day_attendance[]
-
-    @@unique([session_class_id, subject_id], map: "class_subject_session_class_id_subject_id_unique")
-}
-
-model Subjects {
-    id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    name          String          @db.VarChar(256)
-    school_id     String          @db.Uuid
-    created_at    DateTime        @default(now()) @db.Timestamp(6)
-    deleted_at    DateTime?       @db.Timestamp(6)
-    updatedAt     DateTime?       @db.Timestamptz(6)
-    school        school          @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Subjects_school_id_school_id_fk")
-    class_subject class_subject[]
-
-    @@unique([name, school_id], map: "Subjects_name_school_id_unique")
-}
-
-// ---- .bin/example.post.prisma ----
-model ExampleClassRoom {
-    id             Int                           @unique @default(autoincrement())
-    classCode      String                        @unique
-    classTitle     String
-    classGroupCode String
-    students       ExampleStudents[]
-    subjects       ExampleSubjectsOnClassRooms[]
-
-    @@unique([classCode, classTitle, classGroupCode])
-}
-
-model ExampleSubject {
-    id            Int                    @unique @default(autoincrement())
-    title         String
-    code          String                 @unique
-    classSubjects ExampleClassSubjects[]
-
-    @@unique([title])
-}
-
-// model ExampleSubjects {
-//     id            Int                    @unique @default(autoincrement())
-//     title         String
-//     code          String                 @unique
-//     classSubjects ExampleClassSubjects[]
-
-//     @@unique([title])
-// }
-
-model ExampleClassSubjects {
-    id             Int                           @unique @default(autoincrement())
-    classGroupCode String
-    subjectCode    String
-    classRooms     ExampleSubjectsOnClassRooms[]
-    subject        ExampleSubject?               @relation(fields: [subjectCode], references: [code])
-    // assessmentResults ExampleStudentAssessment[]
-
-    @@unique([classGroupCode, subjectCode])
-}
-
-model ExampleSubjectsOnClassRooms {
-    id                        Int                               @unique @default(autoincrement())
-    classRoomSubjectId        Int?
-    classRoomId               Int?
-    classRoom                 ExampleClassRoom?                 @relation(fields: [classRoomId], references: [id])
-    classRoomSubject          ExampleClassSubjects?             @relation(fields: [classRoomSubjectId], references: [id])
-    assessments               ExampleClassSubjectAssessment[]
-    studentSubjectAssessments ExampleStudentSubjectAssessment[]
-    studentAssessment         ExampleStudentAssessment[]
-
-    @@unique([classRoomSubjectId, classRoomId])
-}
-
-model ExampleStudents {
-    id                  Int                                @unique @default(autoincrement())
-    studentCode         String
-    firstName           String
-    fathersName         String
-    otherName           String?
-    classCode           String
-    studentString       String
-    performanceRemarkId Int?
-    exampleClassId      Int?
-    classRoom           ExampleClassRoom?                  @relation(fields: [exampleClassId], references: [id])
-    assessmentResults   ExampleStudentAssessment[]
-    performanceRemark   ExampleRemarkOnStudentPerformance? @relation(fields: [performanceRemarkId], references: [id])
-    payments            ExampleStudentPayments[]
-    subjectAssessments  ExampleStudentSubjectAssessment[]
-
-    @@unique([firstName, fathersName, otherName, classCode])
-}
-
-model ExampleClassSubjectAssessment {
-    id                     Int                          @unique @default(autoincrement())
-    title                  String
-    obtainable             Float
-    assessmentResults      ExampleStudentAssessment[]
-    subjectsOnClassRoomsId Int?
-    subjectsOnClassRoom    ExampleSubjectsOnClassRooms? @relation(fields: [subjectsOnClassRoomsId], references: [id])
-}
-
-model ExampleStudentSubjectAssessment {
-    id                     Int                          @unique @default(autoincrement())
-    subjectsOnClassRoomsId Int?
-    studentId              Int?
-    subjectsOnClassRoom    ExampleSubjectsOnClassRooms? @relation(fields: [subjectsOnClassRoomsId], references: [id])
-    assessments            ExampleStudentAssessment[]
-    obtained               Float?
-    percentageScore        Float?
-    student                ExampleStudents?             @relation(fields: [studentId], references: [id])
-
-    @@unique([studentId, subjectsOnClassRoomsId])
-}
-
-model ExampleStudentAssessment {
-    id                              Int                              @unique @default(autoincrement())
-    obtained                        Float?
-    percentageScore                 Float?
-    classSubjectsId                 Int?
-    studentId                       Int?
-    classSubjectAssessmentId        Int?
-    remarkOnAssementId              Int?
-    studentSubjectAssessmentId      Int?
-    classSubject                    ExampleSubjectsOnClassRooms?     @relation(fields: [classSubjectsId], references: [id])
-    student                         ExampleStudents?                 @relation(fields: [studentId], references: [id])
-    classSubjectAssessment          ExampleClassSubjectAssessment?   @relation(fields: [classSubjectAssessmentId], references: [id])
-    RemarkOnAssessment              ExampleRemarkOnAssessment?       @relation(fields: [remarkOnAssementId], references: [id])
-    ExampleStudentSubjectAssessment ExampleStudentSubjectAssessment? @relation(fields: [studentSubjectAssessmentId], references: [id])
-
-    @@unique([studentId, studentSubjectAssessmentId, classSubjectAssessmentId])
-}
-
-model ExampleRemarkOnSubjectAssessment {
-    id        Int  @unique @default(autoincrement())
-    remarksId Int?
-
-    remarks ExampleRemarks? @relation(fields: [remarksId], references: [id])
-}
-
-model ExampleRemarkOnAssessment {
-    id          Int                        @unique @default(autoincrement())
-    remarksId   Int?
-    assessments ExampleStudentAssessment[]
-    remarks     ExampleRemarks?            @relation(fields: [remarksId], references: [id])
-}
-
-model ExampleRemarkOnStudentPerformance {
-    id         Int               @unique @default(autoincrement())
-    percentage Float?
-    remarksId  Int?
-    remarks    ExampleRemarks?   @relation(fields: [remarksId], references: [id])
-    student    ExampleStudents[]
-}
-
-model ExampleRemarks {
-    id                        Int                                 @unique @default(autoincrement())
-    remarkAr                  String?
-    remarkEn                  String?
-    assmentRemarks            ExampleRemarkOnAssessment[]
-    studentPerformanceRemarks ExampleRemarkOnStudentPerformance[]
-    subjectRemark             ExampleRemarkOnSubjectAssessment[]
-}
-
-model ExampleStudentPayments {
-    id                Int              @unique @default(autoincrement())
-    amount            Float?
-    summary           String?
-    ExampleStudents   ExampleStudents? @relation(fields: [exampleStudentsId], references: [id])
-    exampleStudentsId Int?
-}
-
-// ---- .bin/cashier.prisma ----
-model batch_staff_service {
-    id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    title            String?          @db.VarChar
-    note             String?          @db.VarChar
-    school_id        String           @db.Uuid
-    total_amount     Decimal?         @default(0) @db.Decimal
-    term_id          String           @db.Uuid
-    session_id       String           @db.Uuid
-    created_at       DateTime         @default(now()) @db.Timestamp(6)
-    deleted_at       DateTime?        @db.Timestamp(6)
-    updatedAt        DateTime?        @db.Timestamptz(6)
-    school           school           @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "batch_staff_service_school_id_school_id_fk")
-    academic_session academic_session @relation(fields: [session_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "batch_staff_service_session_id_academic_session_id_fk")
-    academic_term    academic_term    @relation(fields: [term_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "batch_staff_service_term_id_academic_term_id_fk")
-    staff_service    staff_service[]
-}
-
-model billable_service {
-    id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    school_id          String               @db.Uuid
-    title              String?              @db.VarChar
-    amount             Decimal              @db.Decimal
-    created_at         DateTime             @default(now()) @db.Timestamp(6)
-    deleted_at         DateTime?            @db.Timestamp(6)
-    updatedAt          DateTime?            @db.Timestamptz(6)
-    school             school               @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "billable_service_school_id_school_id_fk")
-    staff_service_cost staff_service_cost[]
-}
-
-model school_wallet {
-    id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    school_id  String    @db.Uuid
-    balance    Decimal?  @default(0.00) @db.Decimal
-    created_at DateTime  @default(now()) @db.Timestamp(6)
-    deleted_at DateTime? @db.Timestamp(6)
-    updatedAt  DateTime? @db.Timestamptz(6)
-    school     school    @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "school_wallet_school_id_school_id_fk")
-}
-
-model transaction {
-    id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    school_id          String              @db.Uuid
-    payment_type       String?             @db.VarChar
-    transaction_type   String?             @db.VarChar
-    headline           String?             @db.VarChar
-    description        String?             @db.VarChar
-    amount             Decimal             @db.Decimal
-    coupon             Boolean?            @default(false)
-    academic_term_id   String              @db.Uuid
-    student_term_id    String?             @db.Uuid
-    staff_term_id      String?             @db.Uuid
-    created_at         DateTime            @default(now()) @db.Timestamp(6)
-    deleted_at         DateTime?           @db.Timestamp(6)
-    updatedAt          DateTime?           @db.Timestamptz(6)
-    inventory_sales    inventory_sales[]
-    staff_service      staff_service[]
-    academic_term      academic_term       @relation(fields: [academic_term_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaction_academic_term_id_academic_term_id_fk")
-    school             school              @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaction_school_id_school_id_fk")
-    staff_term_sheet   staff_term_sheet?   @relation(fields: [staff_term_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaction_staff_term_id_staff_term_sheet_id_fk")
-    student_term_sheet student_term_sheet? @relation(fields: [student_term_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transaction_student_term_id_student_term_sheet_id_fk")
-}
-
-// ---- .bin/staff.prisma ----
-model staff_class_role {
-    id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    staff_id           String               @db.Uuid
-    session_class_id   String               @db.Uuid
-    role               String?              @db.VarChar
-    created_at         DateTime             @default(now()) @db.Timestamp(6)
-    deleted_at         DateTime?            @db.Timestamp(6)
-    updatedAt          DateTime?            @db.Timestamptz(6)
-    session_class      session_class        @relation(fields: [session_class_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "staff_class_role_session_class_id_session_class_id_fk")
-    user               user                 @relation(fields: [staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "staff_class_role_staff_id_user_id_fk")
-    staff_subject_role staff_subject_role[]
-}
-
-model staff_service {
-    id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    school_id           String               @db.Uuid
-    note                String?              @db.VarChar
-    amount              Decimal?             @default(0) @db.Decimal
-    staff_id            String               @db.Uuid
-    service_id          String               @db.Uuid
-    term_id             String               @db.Uuid
-    staff_tx_id         String?              @db.Uuid
-    created_at          DateTime             @default(now()) @db.Timestamp(6)
-    deleted_at          DateTime?            @db.Timestamp(6)
-    updatedAt           DateTime?            @db.Timestamptz(6)
-    batch_service_id    String               @db.Uuid
-    batch_staff_service batch_staff_service  @relation(fields: [batch_service_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "staff_service_batch_service_id_batch_staff_service_id_fk")
-    user                user                 @relation(fields: [staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "staff_service_staff_id_user_id_fk")
-    transaction         transaction?         @relation(fields: [staff_tx_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "staff_service_staff_tx_id_transaction_id_fk")
-    staff_service_cost  staff_service_cost[]
-}
-
-model staff_service_cost {
-    id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    note             String?          @db.VarChar
-    title            String?          @db.VarChar
-    amount           Decimal?         @default(0) @db.Decimal
-    staff_service_id String           @db.Uuid
-    service_id       String           @db.Uuid
-    created_at       DateTime         @default(now()) @db.Timestamp(6)
-    deleted_at       DateTime?        @db.Timestamp(6)
-    updatedAt        DateTime?        @db.Timestamptz(6)
-    billable_service billable_service @relation(fields: [service_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "staff_service_cost_service_id_billable_service_id_fk")
-    staff_service    staff_service    @relation(fields: [staff_service_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "staff_service_cost_staff_service_id_staff_service_id_fk")
-}
-
-model staff_session_form {
-    id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    school_id        String           @db.Uuid
-    staff_id         String           @db.Uuid
-    session_id       String           @db.Uuid
-    created_at       DateTime         @default(now()) @db.Timestamp(6)
-    deleted_at       DateTime?        @db.Timestamp(6)
-    updatedAt        DateTime?        @db.Timestamptz(6)
-    school           school           @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "staff_session_form_school_id_school_id_fk")
-    academic_session academic_session @relation(fields: [session_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "staff_session_form_session_id_academic_session_id_fk")
-    user             user             @relation(fields: [staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "staff_session_form_staff_id_user_id_fk")
-
-    @@unique([school_id, staff_id, session_id], map: "staff_session_form_school_id_staff_id_session_id_unique")
-}
-
-model staff_subject_role {
-    id                  String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    staff_class_role_id String           @db.Uuid
-    role                String?          @db.VarChar
-    created_at          DateTime         @default(now()) @db.Timestamp(6)
-    deleted_at          DateTime?        @db.Timestamp(6)
-    updatedAt           DateTime?        @db.Timestamptz(6)
-    staff_class_role    staff_class_role @relation(fields: [staff_class_role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "staff_subject_role_staff_class_role_id_staff_class_role_id_fk")
-}
-
-model staff_term_sheet {
-    id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-    school_id        String        @db.Uuid
-    staff_id         String        @db.Uuid
-    session_sheet_id String        @db.Uuid
-    academic_term_id String        @db.Uuid
-    created_at       DateTime      @default(now()) @db.Timestamp(6)
-    deleted_at       DateTime?     @db.Timestamp(6)
-    updatedAt        DateTime?     @db.Timestamptz(6)
-    school           school        @relation(fields: [school_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "staff_term_sheet_school_id_school_id_fk")
-    user             user          @relation(fields: [staff_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "staff_term_sheet_staff_id_user_id_fk")
-    transaction      transaction[]
-}
-
-// ---- post.prisma ----
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model Posts {
     id        Int       @unique @default(autoincrement())
-    data      Json?
+    title     String?   @db.VarChar(255)
+    slug      String?   @db.VarChar(255)
+    type      String    @db.VarChar(255)
+    content   String?   @db.Text
+    meta      Json?     @db.Json
+    status    String?   @db.VarChar(255)
+    parentId  Int?
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+}
+
+model Settings {
+    id        Int       @unique @default(autoincrement())
+    type      String    @db.VarChar(255)
+    meta      Json?     @db.Json
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model ProductCategories {
+    id         Int       @unique @default(autoincrement())
+    productId  Int
+    categoryId Int
+    createdAt  DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime? @updatedAt
+    deletedAt  DateTime? @db.Timestamp(0)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Products {
+    id          Int       @unique @default(autoincrement())
+    slug        String    @db.VarChar(255)
+    section     String    @db.VarChar(255)
+    name        String    @db.VarChar(255)
+    description String    @db.VarChar(255)
+    size        String?   @db.VarChar(255)
+    type        String?   @db.VarChar(255)
+    box         String?   @db.VarChar(255)
+    price       Float
+    finish      String?   @db.VarChar(255)
+    length      String?   @db.VarChar(255)
+    per         String?   @db.VarChar(255)
+    unitQty     String?   @db.VarChar(255)
+    itemNumber  String?   @db.VarChar(255)
+    lastUpdate  String    @db.VarChar(255)
+    note        String?   @db.Text
+    priceType   String?   @db.VarChar(255)
+    meta        Json?     @db.Json
+    deletedAt   DateTime? @db.Timestamp(0)
+    createdAt   DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime? @updatedAt
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+// model ProductTags {
+//     id        Int       @unique @default(autoincrement())
+//     productId Int
+//     tagId     Int
+//     createdAt    DateTime?         @default(now())    @db.Timestamp(0)
+//     updatedAt DateTime? @updatedAt
+// }
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+model Progress {
+    id               Int       @unique @default(autoincrement())
+    parentId         Int?
+    progressableId   Int?
+    progressableType String?   @db.VarChar(255)
+    userId           Int?
+    status           String?   @db.VarChar(255)
+    type             String?   @db.VarChar(255)
+    headline         String?   @db.VarChar(255)
+    description      String?   @db.Text
+    meta             Json?     @db.Json
+    deletedAt        DateTime? @db.Timestamp(0)
+    createdAt        DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime? @updatedAt
+    user             Users?    @relation(fields: [userId], references: [id])
+
+    @@index([userId])
+}
+
+// model Note {
+//     id             Int        @unique @default(autoincrement())
+//     note           String?
+//     createdById    Int
+//     resolvedById   Int?
+//     visibility     String? //public,production,delivery,admin
+//     flagId         Int
+//     replyToNoteId  Int?
+//     deletedAt      DateTime?  @db.Timestamp(0)
+//     createdAt      DateTime?  @default(now()) @db.Timestamp(0)
+//     updatedAt      DateTime?  @updatedAt
+//     salesNote      SalesNote? @relation(name: "salesNote")
+//     replySalesNote SalesNote? @relation(name: "replySalesNote")
+//     flag           NoteFlags? @relation(fields: [flagId], references: [id])
+
+//     @@index([flagId])
+// }
+
+// model NoteFlags {
+//     id              Int       @unique @default(autoincrement())
+//     title           String
+//     color           String?
+//     resolveRequired Boolean?
+//     notes           Note[]
+//     deletedAt       DateTime? @db.Timestamp(0)
+//     createdAt       DateTime? @default(now()) @db.Timestamp(0)
+//     updatedAt       DateTime? @updatedAt
+// }
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model RoleHasPermissions {
+    permissionId Int
+    roleId       Int
+    permission   Permissions @relation(fields: [permissionId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "role_has_permissions_permission_id_foreign")
+    role         Roles       @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "role_has_permissions_role_id_foreign")
+    deletedAt    DateTime?   @db.Timestamp(0)
+
+    @@id([permissionId, roleId])
+    @@index([roleId], map: "role_has_permissions_role_id_foreign")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Roles {
+    id                 Int                  @unique @default(autoincrement())
+    name               String               @db.VarChar(255)
+    createdAt          DateTime?            @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime?            @updatedAt
+    deletedAt          DateTime?            @db.Timestamp(0)
+    ModelHasRoles      ModelHasRoles[]
+    RoleHasPermissions RoleHasPermissions[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+// model Variants {
+//     id        Int       @unique @default(autoincrement())
+//     name      String    @db.VarChar(255)
+//     value     String    @db.VarChar(255)
+//     meta      Json?     @db.Json
+//     deletedAt DateTime? @db.Timestamp(0)
+//     createdAt    DateTime?         @default(now())    @db.Timestamp(0)
+//     updatedAt DateTime? @updatedAt
+// }
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model WorkOrders {
+    id           Int       @unique @default(autoincrement())
+    techId       Int?
+    slug         String    @unique @db.VarChar(255)
+    description  String?   @db.Text
+    lot          String?   @db.VarChar(255)
+    block        String?   @db.VarChar(255)
+    projectName  String?   @db.VarChar(255)
+    builderName  String?   @db.VarChar(255)
+    requestDate  DateTime?
+    supervisor   String?   @db.VarChar(255)
+    scheduleDate DateTime? @db.Timestamp(0)
+    scheduleTime String?   @db.VarChar(255)
+    homeAddress  String?   @db.VarChar(255)
+    homeOwner    String?   @db.VarChar(255)
+    homePhone    String?   @db.VarChar(255)
+    meta         Json?     @db.Json
+    status       String?   @db.VarChar(255)
+    assignedAt   DateTime? @db.Timestamp(0)
+    completedAt  DateTime  @default(now()) @db.Timestamp(0)
+    deletedAt    DateTime? @db.Timestamp(0)
+    createdAt    DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime? @updatedAt
+    tech         Users?    @relation(fields: [techId], references: [id])
+
+    @@index([techId])
+}
+
+model Notifications {
+    id          Int       @unique @default(autoincrement())
+    meta        Json?     @db.Json
+    type        String
+    fromUserId  Int
+    userId      Int
+    message     String
+    alert       Boolean?
+    deliveredAt Boolean?
+    link        String?   @db.Text()
+    user        Users     @relation(name: "notifications", fields: [userId], references: [id])
+    fromUser    Users     @relation(name: "fromUser", fields: [fromUserId], references: [id])
+    seenAt      DateTime? @db.Timestamp(0)
+    archivedAt  DateTime? @db.Timestamp(0)
+    createdAt   DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime? @updatedAt
+    deletedAt   DateTime?
+
+    @@index([createdAt, deletedAt, userId, seenAt, archivedAt])
+    @@index([userId])
+    @@index([fromUserId])
+}
+
+// Dyke Edge Db
+
+model Cache {
+    id        Int       @unique @default(autoincrement())
+    path      String?
     name      String
-    createdAt DateTime  @default(now()) @db.Timestamp(0)
-    deletedAt DateTime?
-}
-
-// ---- student.prisma ----
-model Students {
-    id              String               @id @default(uuid())
-    name            String
-    surname         String?
-    otherName       String?
-    createdAt       DateTime?            @default(now()) @db.Timestamp(0)
-    updatedAt       DateTime?            @updatedAt
-    deletedAt       DateTime?            @db.Timestamp(0)
-    dob             DateTime?            @db.Timestamp(0)
-    gender          Gender
-    schoolProfile   SchoolProfile?       @relation(fields: [schoolProfileId], references: [id])
-    schoolProfileId String?
-    sessionForms    StudentSessionForm[]
-    termForms       StudentTermForm[]
-    guardians       StudentGuardians[]
-    fees            StudentFee[]
-
-    @@unique([name, surname, otherName, schoolProfileId, deletedAt])
-}
-
-model StudentGuardians {
-    id          String    @id @default(uuid())
-    guardian    Guardians @relation(fields: [guardiansId], references: [id])
-    guardiansId String
-    relation    String?
-
+    group     String?
+    meta      Json?     @db.Json
     createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
-
-    student   Students? @relation(fields: [studentId], references: [id])
-    studentId String
 }
 
-enum Gender {
-    Male
-    Female
-}
+// model Payday {
+//     id        Int            @unique @default(autoincrement())
+//     invoiceId Int?
+//     startedAt DateTime?      @db.Timestamp(0)
+//     endTime   DateTime?      @db.Timestamp(0)
+//     createdAt DateTime?      @default(now()) @db.Timestamp(0)
+//     updatedAt DateTime?      @updatedAt
+//     deletedAt DateTime?      @db.Timestamp(0)
+//     invoice   PaydayInvoice? @relation(fields: [invoiceId], references: [id])
 
-model StudentSessionForm {
-    id                    String               @id @default(uuid())
-    student               Students?            @relation(fields: [studentId], references: [id])
-    studentId             String?
-    createdAt             DateTime?            @default(now()) @db.Timestamp(0)
-    updatedAt             DateTime?            @updatedAt
-    deletedAt             DateTime?            @db.Timestamp(0)
-    schoolSession         SchoolSession?       @relation(fields: [schoolSessionId], references: [id])
-    schoolSessionId       String?
-    schoolProfile         SchoolProfile?       @relation(fields: [schoolProfileId], references: [id])
-    schoolProfileId       String?
-    termForms             StudentTermForm[]
-    classroomDepartment   ClassRoomDepartment? @relation(fields: [classroomDepartmentId], references: [id])
-    classroomDepartmentId String?
-}
+//     @@index([invoiceId])
+// }
 
-model StudentTermForm {
-    id              String              @id @default(uuid())
-    schoolProfile   SchoolProfile?      @relation(fields: [schoolProfileId], references: [id])
-    schoolProfileId String?
-    createdAt       DateTime?           @default(now()) @db.Timestamp(0)
-    updatedAt       DateTime?           @updatedAt
-    deletedAt       DateTime?           @db.Timestamp(0)
-    sessionTerm     SessionTerm?        @relation(fields: [sessionTermId], references: [id])
-    sessionTermId   String?
-    schoolSession   SchoolSession?      @relation(fields: [schoolSessionId], references: [id])
-    schoolSessionId String?
-    attendanceList  StudentAttendance[]
-    studentFees     StudentFee[]
-    paymentReceipts StudentPayment[]
+// model PaydayInvoice {
+//     id        Int       @unique @default(autoincrement())
+//     payments  Payday[]
+//     createdAt DateTime? @default(now()) @db.Timestamp(0)
+//     deletedAt DateTime? @db.Timestamp(0)
+//     updatedAt DateTime? @updatedAt
+// }
 
-    studentSessionFormId String
-    sessionForm          StudentSessionForm @relation(fields: [studentSessionFormId], references: [id])
-
-    student   Students? @relation(fields: [studentId], references: [id])
-    studentId String?
-
-    classroomDepartment   ClassRoomDepartment? @relation(fields: [classroomDepartmentId], references: [id])
-    classroomDepartmentId String?
-}
-
-// ---- classroom.prisma ----
-model ClassRoom {
-    id                   String                @id @default(uuid())
-    name                 String?
-    classLevel           Float?
-    schoolProfileId      String
-    schoolSessionId      String
-    createdAt            DateTime?             @default(now()) @db.Timestamp(0)
-    updatedAt            DateTime?             @updatedAt
-    deletedAt            DateTime?             @db.Timestamp(0)
-    session              SchoolSession         @relation(fields: [schoolSessionId], references: [id])
-    school               SchoolProfile         @relation(fields: [schoolProfileId], references: [id])
-    classRoomDepartments ClassRoomDepartment[]
-
-    @@unique([schoolSessionId, name])
-}
-
-model ClassRoomDepartment {
-    // if a class has multiple sub classes: eg: js 1 A, js 1 B etc.
-    id                    String                                 @id @default(uuid())
-    departmentName        String?
-    classRoomsId          String?
-    schoolProfileId       String?
-    departmentLevel       Float?
-    classRoom             ClassRoom?                             @relation(fields: [classRoomsId], references: [id])
-    createdAt             DateTime?                              @default(now()) @db.Timestamp(0)
-    updatedAt             DateTime?                              @updatedAt
-    deletedAt             DateTime?                              @db.Timestamp(0)
-    schoolProfile         SchoolProfile?                         @relation(fields: [schoolProfileId], references: [id])
-    attendance            ClassRoomAttendance[]
-    studentAttendanceList StudentAttendance[]
-    subjects              DepartmentSubject[]
-    studentSessionForms   StudentSessionForm[]
-    staffTermProfiles     StaffClassroomDepartmentTermProfiles[]
-    StudentTermForm       StudentTermForm[]
-
-    @@unique([classRoomsId, departmentName])
-}
-
-model DepartmentSubject {
-    id String @id @default(uuid())
-
-    classRoomDepartment   ClassRoomDepartment? @relation(fields: [classRoomDepartmentId], references: [id])
-    classRoomDepartmentId String?
-
-    staffSubjects StaffSubject[]
-
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
-
-    sessionTerm   SessionTerm? @relation(fields: [sessionTermId], references: [id])
-    sessionTermId String?
-
-    subject   Subject @relation(fields: [subjectId], references: [id])
-    subjectId String
-}
-
-model Subject {
-    id    String @id @default(uuid())
-    title String
-
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
-
-    schoolProfile   SchoolProfile? @relation(fields: [schoolProfileId], references: [id])
-    schoolProfileId String?
-
-    departmentSubjects DepartmentSubject[]
-}
-
-// ---- school.prisma ----
-model SchoolProfile {
-    id                      String                @id @default(uuid())
-    name                    String
-    slug                    String
-    subDomain               String                @unique
-    createdAt               DateTime?             @default(now()) @db.Timestamp(0)
-    accountId               String
-    updatedAt               DateTime?             @updatedAt
-    deletedAt               DateTime?             @db.Timestamp(0)
-    sessions                SchoolSession[]
-    terms                   SessionTerm[]
-    classRooms              ClassRoom[]
-    classRoomDepartments    ClassRoomDepartment[]
-    classRoomAttendanceList ClassRoomAttendance[]
-    students                Students[]
-    sessionForms            StudentSessionForm[]
-    termForms               StudentTermForm[]
-    studentAttendanceList   StudentAttendance[]
-    staffProfiles           StaffProfile[]
-
-    subjects               Subject[]
-    studentFees            StudentFee[]
-    studentPaymentReceipts StudentPayment[]
-    account                SaasAccount      @relation(fields: [accountId], references: [id])
-    fees                   Fees[]
-    wallets                Wallet[]
-    guardians              Guardians[]
-    billables              Billable[]
-    bills                  Bills[]
-
-    @@unique([name, subDomain, slug, deletedAt])
-}
-
-model SchoolSession {
-    id    String @id @default(uuid())
-    title String
-
-    createdAt DateTime?     @default(now()) @db.Timestamp(0)
-    updatedAt DateTime?     @updatedAt
-    deletedAt DateTime?     @db.Timestamp(0)
-    schoolId  String
-    school    SchoolProfile @relation(fields: [schoolId], references: [id])
-
-    terms             SessionTerm[]
-    classRooms        ClassRoom[]
-    sessionForms      StudentSessionForm[]
-    termForms         StudentTermForm[]
-    studentFees       StudentFee[]
-    feeHistory        FeeHistory[]
-    billableHistory   BillableHistory[]
-    staffTermProfiles StaffTermProfile[]
-    bills             Bills[]
-}
-
-model SessionTerm {
-    id                 String              @id @default(uuid())
-    sessionId          String
-    schoolId           String
-    title              String
-    startDate          DateTime?           @db.Timestamp(0)
-    endDate            DateTime?           @db.Timestamp(0)
-    createdAt          DateTime?           @default(now()) @db.Timestamp(0)
-    updatedAt          DateTime?           @updatedAt
-    deletedAt          DateTime?           @db.Timestamp(0)
-    school             SchoolProfile?      @relation(fields: [schoolId], references: [id])
-    session            SchoolSession?      @relation(fields: [sessionId], references: [id])
-    termForms          StudentTermForm[]
-    departmentSubjects DepartmentSubject[]
-    feeHistory         FeeHistory[]
-    billableHistory    BillableHistory[]
-    wallets            Wallet[]
-    staffTermProfiles  StaffTermProfile[]
-    bills              Bills[]
-}
-
-// ---- student-activity.prisma ----
-model ClassRoomAttendance {
-    id                    String               @id @default(uuid())
-    attendanceTitle       String
-    studentAttendanceList StudentAttendance[]
-    SchoolProfile         SchoolProfile?       @relation(fields: [schoolProfileId], references: [id])
-    schoolProfileId       String?
-    createdAt             DateTime?            @default(now()) @db.Timestamp(0)
-    updatedAt             DateTime?            @updatedAt
-    deletedAt             DateTime?            @db.Timestamp(0)
-    department            ClassRoomDepartment? @relation(fields: [departmentId], references: [id])
-    departmentId          String?
-    staffProfile          StaffProfile?        @relation(fields: [staffProfileId], references: [id])
-    staffProfileId        String?
-}
-
-model StudentAttendance {
-    id                    String               @id @default(uuid())
-    isPresent             Boolean?             @default(false)
-    comment               String?
-    StudentTermForm       StudentTermForm?     @relation(fields: [studentTermFormId], references: [id])
-    schoolProfile         SchoolProfile?       @relation(fields: [schoolProfileId], references: [id])
-    schoolProfileId       String?
-    studentTermFormId     String?
-    createdAt             DateTime?            @default(now()) @db.Timestamp(0)
-    updatedAt             DateTime?            @updatedAt
-    deletedAt             DateTime?            @db.Timestamp(0)
-    classroomAttendance   ClassRoomAttendance? @relation(fields: [classroomAttendanceId], references: [id])
-    classroomAttendanceId String?
-    department            ClassRoomDepartment? @relation(fields: [departmentId], references: [id])
-    departmentId          String?
-}
-
-model Fees {
-    id          String    @id @default(uuid())
+model Blogs {
+    id          Int       @unique @default(autoincrement())
     title       String
-    description String?
-    amount      Float?
+    slug        String    @unique
+    authorId    Int
+    type        String
+    content     String    @db.LongText
+    meta        Json      @db.Json
+    status      String    @default("draft")
+    publishedAt DateTime? @db.Timestamp(0)
     createdAt   DateTime? @default(now()) @db.Timestamp(0)
     updatedAt   DateTime? @updatedAt
     deletedAt   DateTime? @db.Timestamp(0)
+    user        Users?    @relation(fields: [authorId], references: [id])
 
-    feeHistory      FeeHistory[]
-    schoolProfileId String
-    schoolProfile   SchoolProfile @relation(fields: [schoolProfileId], references: [id])
+    @@index([authorId])
 }
 
-model FeeHistory {
-    id              String        @id @default(uuid())
-    amount          Float
-    current         Boolean       @default(false)
-    fee             Fees          @relation(fields: [feeId], references: [id])
-    feeId           String
-    schoolSession   SchoolSession @relation(fields: [schoolSessionId], references: [id])
-    schoolSessionId String
-    term            SessionTerm   @relation(fields: [termId], references: [id])
-    termId          String
-    studentFees     StudentFee[]
-
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
-}
-
-model StudentFee {
-    id String @id @default(uuid())
-
-    createdAt         DateTime?        @default(now()) @db.Timestamp(0)
-    updatedAt         DateTime?        @updatedAt
-    deletedAt         DateTime?        @db.Timestamp(0)
-    feeTitle          String?
-    description       String?
-    billAmount        Float
-    pendingAmount     Float
-    billablePriceId   String?
-    schoolProfile     SchoolProfile?   @relation(fields: [schoolProfileId], references: [id])
-    schoolProfileId   String?
-    studentTermForm   StudentTermForm? @relation(fields: [studentTermFormId], references: [id])
-    studentTermFormId String?
-    schoolSession     SchoolSession?   @relation(fields: [schoolSessionId], references: [id])
-    schoolSessionId   String?
-    receipts          StudentPayment[]
-    price             FeeHistory?      @relation(fields: [feeHistoryId], references: [id])
-    feeHistoryId      String?
-
-    student   Students? @relation(fields: [studentId], references: [id])
-    studentId String?
-}
-
-model StudentPurchase {
-    id          String           @id @default(uuid())
-    description String
-    title       String
-    amount      Float
-    paid        Float
-    createdAt   DateTime?        @default(now()) @db.Timestamp(0)
-    updatedAt   DateTime?        @updatedAt
-    deletedAt   DateTime?        @db.Timestamp(0)
-    payments    StudentPayment[]
-}
-
-model StudentPayment {
-    id          String             @id @default(uuid())
-    amount      Float?
-    paymentType String
+model Gallery {
+    id          Int          @unique @default(autoincrement())
     description String?
-    type        StudentPaymentType
-
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
-
-    studentFee            StudentFee? @relation(fields: [studentBillPaymentsId], references: [id])
-    studentBillPaymentsId String?
-
-    studentTermForm   StudentTermForm @relation(fields: [studentTermFormId], references: [id])
-    studentTermFormId String
-
-    schoolProfile   SchoolProfile @relation(fields: [schoolProfileId], references: [id])
-    schoolProfileId String
-
-    walletTransaction    WalletTransactions? @relation(fields: [walletTransactionsId], references: [id])
-    walletTransactionsId String?             @unique
-
-    studentPurchase   StudentPurchase? @relation(fields: [studentPurchaseId], references: [id])
-    studentPurchaseId String?
+    src         String       @unique
+    tags        GalleryTag[]
+    createdAt   DateTime?    @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime?    @updatedAt
+    deletedAt   DateTime?    @db.Timestamp(0)
 }
 
-enum StudentPaymentType {
-    FEE
-    PURCHASE
-}
-
-// ---- account.prisma ----
-model SaasAccount {
-    id      String  @id @default(uuid())
-    name    String
-    email   String
-    phoneNo String?
-
+model GalleryTag {
+    id        Int             @unique @default(autoincrement())
+    galleryId Int
+    tagId     Int
+    tag       GalleryTagName? @relation(fields: [tagId], references: [id])
+    gallery   Gallery?        @relation(fields: [galleryId], references: [id])
     createdAt DateTime?       @default(now()) @db.Timestamp(0)
     updatedAt DateTime?       @updatedAt
     deletedAt DateTime?       @db.Timestamp(0)
-    schools   SchoolProfile[]
-    users     User[]
+
+    @@index([tagId])
+    @@index([galleryId])
 }
 
-model User {
-    id            String       @id @default(uuid())
-    name          String
-    email         String
-    password      String
-    phoneNo       String?
-    role          String
-    isVerified    Boolean?     @default(false)
-    createdAt     DateTime?    @default(now()) @db.Timestamp(0)
-    updatedAt     DateTime?    @updatedAt
-    deletedAt     DateTime?    @db.Timestamp(0)
-    // schools   SchoolProfile[]
-    tenant        SaasAccount? @relation(fields: [saasAccountId], references: [id])
-    saasAccountId String?
+model GalleryTagName {
+    id          Int          @unique @default(autoincrement())
+    title       String       @unique
+    galleryTags GalleryTag[]
+    createdAt   DateTime?    @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime?    @updatedAt
+    deletedAt   DateTime?    @db.Timestamp(0)
 }
 
-// ---- finance.prisma ----
-model Wallet {
-    id              String               @id @default(uuid())
-    name            String
-    schoolProfile   SchoolProfile?       @relation(fields: [schoolProfileId], references: [id])
-    type            String?
-    schoolProfileId String?
-    sessionTerm     SessionTerm?         @relation(fields: [sessionTermId], references: [id])
-    sessionTermId   String?
-    transactions    WalletTransactions[]
-    bills           Bills[]
-    funds           Funds[]
-    createdAt       DateTime?            @default(now()) @db.Timestamp(0)
-    updatedAt       DateTime?            @updatedAt
-    deletedAt       DateTime?            @db.Timestamp(0)
-
-    @@unique([name, schoolProfileId, sessionTermId])
-}
-
-model WalletTransactions {
-    id       String  @id @default(uuid())
-    wallet   Wallet? @relation(fields: [walletId], references: [id])
-    type     String?
-    summary  String?
-    amount   Float
-    walletId String?
-
-    studentPayment StudentPayment?
-    billPayment    BillPayment?
-
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
-
-    func   Funds?  @relation(fields: [fundId], references: [id])
-    fundId String?
-}
-
-enum WalletType {
-    Bill
-    Fee
-}
-
-model Funds {
-    id            String @id @default(uuid())
-    title         String
-    description   String
+// ---- sales.prisma ----
+model CommissionPayment {
+    id            Int              @unique @default(autoincrement())
     amount        Float
-    pendingAmount Float
+    userId        Int
+    paidBy        Int
+    checkNo       String?
+    paymentMethod String?
+    meta          Json?            @db.Json
+    deletedAt     DateTime?        @db.Timestamp(0)
+    createdAt     DateTime?        @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?        @updatedAt
+    commissions   SalesCommision[]
+    user          Users?           @relation(name: "worker", fields: [userId], references: [id])
+    payer         Users?           @relation(name: "payer", fields: [paidBy], references: [id])
+    Users         Users?           @relation(fields: [usersId], references: [id])
+    usersId       Int?
 
+    @@index([userId])
+    @@index([paidBy])
+    @@index([usersId])
+}
+
+model SalesOrders {
+    id                Int                              @unique @default(autoincrement())
+    title             String?                          @db.VarChar(255)
+    customerId        Int?
+    billingAddressId  Int?
+    shippingAddressId Int?
+    salesRepId        Int?
+    pickupId          Int?
+    prodId            Int?
+    isDyke            Boolean?                         @default(false)
+    summary           String?                          @db.Text
+    instruction       String?                          @db.Text
+    meta              Json?                            @db.Json
+    status            String?                          @db.VarChar(255)
+    inventoryStatus   String?                          @db.VarChar(255)
+    deletedAt         DateTime?                        @db.Timestamp(0)
+    createdAt         DateTime?                        @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime?                        @updatedAt
+    orderId           String                           @db.VarChar(255)
+    slug              String                           @db.VarChar(255)
+    type              String?                          @db.VarChar(255)
+    goodUntil         DateTime?
+    priority          SalesPriority?                   @default(NORMAL)
+    paymentTerm       String?
+    prodQty           Float?
+    builtQty          Float?
+    subTotal          Float?
+    profitMargin      Float?
+    tax               Float?
+    taxPercentage     Float?
+    grandTotal        Float?
+    amountDue         Float?
+    invoiceStatus     String?                          @db.VarChar(255)
+    prodStatus        String?                          @db.VarChar(255)
+    prodDueDate       DateTime?                        @db.Timestamp(0)
+    paymentDueDate    DateTime?                        @db.Timestamp(0)
+    deliveredAt       DateTime?
+    deliveryOption    String?
+    customerProfileId Int?
+    taxes             SalesTaxes[]
+    checkouts         SalesCheckout[]
+    refunds           Refunds[]                        @relation(name: "salesRefunds")
+    refund            Refunds?                         @relation(name: "refund")
+    assignments       OrderItemProductionAssignments[]
+    billingAddress    AddressBooks?                    @relation(name: "billingAddress", fields: [billingAddressId], references: [id])
+    commisions        SalesCommision[]
+    customer          Customers?                       @relation(fields: [customerId], references: [id])
+    deliveries        OrderDelivery[]
+    doors             DykeSalesDoors[]
+    formSteps         DykeStepForm[]
+    housePackageTools HousePackageTools[]
+    items             SalesOrderItems[]
+    itemControls      SalesItemControl[]
+    itemDeliveries    OrderItemDelivery[]
+    payments          SalesPayments[]                  @relation(name: "salesPayment")
+    pickup            SalesPickup?                     @relation(fields: [pickupId], references: [id])
+    pricings          ComponentPrice[]
+    producer          Users?                           @relation(name: "producer", fields: [prodId], references: [id])
+    productions       OrderProductionSubmissions[]
+    requests          DealerSalesRequest[]
+    salesProfile      CustomerTypes?                   @relation(fields: [customerProfileId], references: [id])
+    salesRep          Users?                           @relation(name: "salesRep", fields: [salesRepId], references: [id])
+    shippingAddress   AddressBooks?                    @relation(name: "shippingAddress", fields: [shippingAddressId], references: [id])
+    stat              SalesStat[]
+    // supplies          SalesItemSupply[]
+    extraCosts        SalesExtraCosts[]
+    squarePayOrders   SquarePaymentOrders[]
+    payrolls          Payroll[]
+
+    @@unique([orderId, type])
+    @@index([createdAt, deletedAt, orderId, grandTotal, prodId, type, prodDueDate])
+    @@index([customerProfileId])
+    @@index([customerId])
+    @@index([shippingAddressId])
+    @@index([billingAddressId])
+    @@index([prodId])
+    @@index([salesRepId])
+    @@index([pickupId])
+}
+
+enum SalesPriority {
+    CRITICAL
+    HIGH
+    NORMAL
+    LOW
+}
+
+model SalesExtraCosts {
+    id          Int                @unique @default(autoincrement())
+    label       String
+    type        SalesExtraCostType
+    taxxable    Boolean?
+    amount      Float
+    tax         Float?
+    totalAmount Float?
+    percentage  Float?
+    orderId     Int
+    order       SalesOrders        @relation(fields: [orderId], references: [id])
+
+    @@index([orderId])
+}
+
+enum SalesExtraCostType {
+    Discount
+    DiscountPercentage
+    Labor
+    CustomTaxxable
+    CustomNonTaxxable
+    Delivery
+    EXT
+}
+
+model SalesOrderItems {
+    id                 Int                              @unique @default(autoincrement())
+    description        String?                          @db.VarChar(300)
+    dykeDescription    String?                          @db.VarChar(300)
+    productId          Int?
+    supplier           String?
+    swing              String?                          @db.VarChar(255)
+    price              Float?
+    tax                Float?
+    taxPercenatage     Float?
+    discount           Float?
+    discountPercentage Float?
+    meta               Json?                            @db.Json
+    createdAt          DateTime?                        @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime?                        @updatedAt
+    deletedAt          DateTime?                        @db.Timestamp(0)
+    qty                Float?
+    prebuiltQty        Float?
+    truckLoadQty       Float?
+    salesOrderId       Int
+    profitMargin       Float?
+    rate               Float?
+    total              Float?
+    salesPercentage    Float?
+    prodStatus         String?                          @db.VarChar(255)
+    prodStartedAt      DateTime?                        @db.Timestamp(0)
+    sentToProdAt       DateTime?                        @db.Timestamp(0)
+    prodCompletedAt    DateTime?                        @db.Timestamp(0)
+    multiDyke          Boolean                          @default(false)
+    dykeProduction     Boolean                          @default(false)
+    multiDykeUid       String?
+    salesOrder         SalesOrders?                     @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    shelfItems         DykeSalesShelfItem[]
+    formSteps          DykeStepForm[]
+    housePackageTool   HousePackageTools?
+    salesDoors         DykeSalesDoors[]
+    // supplies           SalesItemSupply[]
+    assignments        OrderItemProductionAssignments[]
+    productions        OrderProductionSubmissions[]
+    itemDeliveries     OrderItemDelivery[]
+    priceList          ComponentPrice[]
+    itemControls       SalesItemControl[]
+
+    @@index([createdAt, description, swing])
+    @@index([salesOrderId], name: "idx_SalesOrderItems_on_salesOrderId")
+}
+
+model QtyControl {
+    // uid            String //@unique // type+uid 
+    itemControlUid String
+    qty            Int?             @default(0)
+    lh             Int?             @default(0)
+    rh             Int?             @default(0)
+    total          Int              @default(0)
+    itemTotal      Int?
+    type           String
+    percentage     Float?
+    autoComplete   Boolean?
+    deletedAt      DateTime?        @db.Timestamp(0)
+    itemControl    SalesItemControl @relation(fields: [itemControlUid], references: [uid])
+
+    // @@index([uid])
+    // @@index([itemControlUid])
+
+    @@unique([itemControlUid, type])
+}
+
+model SalesItemControl {
+    uid          String  @unique // item-1, door-234, moulding-1
+    title        String?
+    subtitle     String?
+    sectionTitle String?
+
+    salesId     Int
+    produceable Boolean?
+    shippable   Boolean?
+    deletedAt   DateTime?                        @db.Timestamp(0)
+    orderItemId Int?
+    sales       SalesOrders?                     @relation(fields: [salesId], references: [id])
+    item        SalesOrderItems?                 @relation(fields: [orderItemId], references: [id])
+    qtyControls QtyControl[]
+    assignments OrderItemProductionAssignments[]
+    payroll     Payroll[]
+
+    @@index([salesId])
+    @@index([orderItemId])
+    @@index([uid])
+}
+
+model HousePackageTools {
+    id             Int                @unique @default(autoincrement())
+    orderItemId    Int                @unique
+    priceId        String?            @unique
+    height         String?
+    doorType       String?
+    doorId         Int?
+    dykeDoorId     Int?
+    jambSizeId     Int?
+    casingId       Int?
+    moldingId      Int?
+    stepProductId  Int?
+    totalPrice     Float?             @default(0)
+    totalDoors     Int?               @default(0)
+    meta           Json?              @db.Json
+    salesOrderId   Int
+    createdAt      DateTime?          @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime?          @updatedAt
+    deletedAt      DateTime?          @db.Timestamp(0)
+    order          SalesOrders        @relation(fields: [salesOrderId], references: [id])
+    salesOrderItem SalesOrderItems    @relation(fields: [orderItemId], references: [id])
+    door           DykeDoors?         @relation(name: "door", fields: [dykeDoorId], references: [id])
+    shelfProd      DykeShelfProducts? @relation(name: "shelfProd", fields: [doorId], references: [id])
+    jambSize       DykeProducts?      @relation(name: "jamb", fields: [jambSizeId], references: [id])
+    casing         DykeProducts?      @relation(name: "casing", fields: [casingId], references: [id])
+    molding        DykeProducts?      @relation(name: "molding", fields: [moldingId], references: [id])
+    doors          DykeSalesDoors[]
+    stepProduct    DykeStepProducts?  @relation(fields: [stepProductId], references: [id])
+    priceData      ComponentPrice?    @relation(fields: [priceId], references: [id], name: "moulding")
+
+    @@index([stepProductId])
+    @@index([salesOrderId])
+    @@index([dykeDoorId])
+    @@index([doorId])
+    @@index([jambSizeId])
+    @@index([casingId])
+    @@index([moldingId])
+}
+
+model ComponentPrice {
+    id             String             @unique
+    salesItemId    Int
+    salesId        Int
+    qty            Float
+    type           String
+    baseUnitCost   Float
+    baseTotalCost  Float
+    salesUnitCost  Float
+    salesTotalCost Float
+    margin         Float              @default(1)
+    salesProfit    Float
+    taxPercentage  Float?
+    totalTax       Float?
+    grandTotal     Float?
+    createdAt      DateTime?          @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime?          @updatedAt
+    deletedAt      DateTime?          @db.Timestamp(0)
+    door           DykeSalesDoors?    @relation(name: "door")
+    moulding       HousePackageTools? @relation(name: "moulding")
+    component      DykeStepForm?      @relation(name: "component")
+    sales          SalesOrders        @relation(fields: [salesId], references: [id])
+    salesItem      SalesOrderItems    @relation(fields: [salesItemId], references: [id])
+
+    @@index([salesId])
+    @@index([salesItemId])
+}
+
+model DykeSalesDoors {
+    id                 Int                              @unique @default(autoincrement())
+    priceId            String?                          @unique
+    dimension          String
+    swing              String?
+    doorType           String?
+    housePackageToolId Int
+    doorPrice          Float? // addon price.
+    jambSizePrice      Float? // total door price
+    casingPrice        Float?
+    unitPrice          Float?
+    lhQty              Int?                             @default(0)
+    rhQty              Int?                             @default(0)
+    totalQty           Int                              @default(0)
+    salesOrderId       Int
+    lineTotal          Float?                           @default(0)
+    salesOrderItemId   Int?
+    stepProductId      Int?
+    meta               Json?                            @db.Json
+    createdAt          DateTime?                        @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime?                        @updatedAt
+    deletedAt          DateTime?                        @db.Timestamp(0)
+    housePackageTool   HousePackageTools                @relation(fields: [housePackageToolId], references: [id])
+    salesOrderItem     SalesOrderItems?                 @relation(fields: [salesOrderItemId], references: [id])
+    order              SalesOrders?                     @relation(fields: [salesOrderId], references: [id])
+    productions        OrderItemProductionAssignments[]
+    priceData          ComponentPrice?                  @relation(fields: [priceId], references: [id], name: "door")
+    stepProduct        DykeStepProducts?                @relation(fields: [stepProductId], references: [id])
+
+    @@index([housePackageToolId])
+    @@index([salesOrderItemId])
+    @@index([salesOrderId])
+    @@index([stepProductId])
+}
+
+model DykeStepForm {
+    id             Int               @unique @default(autoincrement())
+    componentId    Int?
+    value          String?
+    priceId        String?           @unique
+    qty            Int?              @default(0)
+    price          Float?            @default(0)
+    basePrice      Float?            @default(0)
+    prodUid        String?
+    salesId        Int?
+    salesItemId    Int?
+    stepId         Int
+    meta           Json?             @db.Json
+    deletedAt      DateTime?         @db.Timestamp(0)
+    createdAt      DateTime?         @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime?         @updatedAt
+    sales          SalesOrders?      @relation(fields: [salesId], references: [id])
+    salesOrderItem SalesOrderItems?  @relation(fields: [salesItemId], references: [id])
+    step           DykeSteps         @relation(fields: [stepId], references: [id])
+    priceData      ComponentPrice?   @relation(fields: [priceId], references: [id], name: "component")
+    component      DykeStepProducts? @relation(fields: [componentId], references: [id])
+
+    @@index([componentId])
+    @@index([salesId])
+    @@index([salesItemId])
+    @@index([stepId])
+}
+
+model DykeSteps {
+    id              Int                 @unique @default(autoincrement())
+    title           String?
+    uid             String?
+    value           String?             @db.Text
+    createdAt       DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?           @updatedAt
+    stepProducts    DykeStepProducts[]
+    stepValueId     Int?
+    rootStepValueId Int?
+    prevStepValueId Int?
+    stepForms       DykeStepForm[]
+    priceSystem     DykePricingSystem[]
+    meta            Json?               @db.Json
+    deletedAt       DateTime?           @db.Timestamp(0)
+    rootStepValue   DykeStepValues?     @relation(fields: [rootStepValueId], references: [id], name: "rootValue")
+    stepValue       DykeStepValues?     @relation(fields: [stepValueId], references: [id], name: "stepValue")
+    prevStepValue   DykeStepValues?     @relation(fields: [prevStepValueId], references: [id], name: "prevStepValue")
+
+    @@index([rootStepValueId])
+    @@index([stepValueId])
+    @@index([prevStepValueId])
+}
+
+model DykeStepValues {
+    id        Int         @unique @default(autoincrement())
+    title     String?
+    createdAt DateTime?   @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?   @updatedAt
+    deletedAt DateTime?   @db.Timestamp(0)
+    rootSteps DykeSteps[] @relation(name: "rootValue")
+    steps     DykeSteps[] @relation(name: "stepValue")
+    prevStep  DykeSteps[] @relation(name: "prevStepValue")
+}
+
+model DykeCategories {
+    id        Int            @unique @default(autoincrement())
+    title     String         @unique
+    createdAt DateTime?      @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?      @updatedAt
+    deletedAt DateTime?      @db.Timestamp(0)
+    products  DykeProducts[]
+}
+
+model DykeStepProducts {
+    id                Int                 @unique @default(autoincrement())
+    uid               String?             @unique
+    productCode       String?
+    name              String?
+    img               String?
+    redirectUid       String?
+    custom            Boolean?            @default(false)
+    sortIndex         Int?
+    dykeProductId     Int?
+    doorId            Int?
+    dykeStepId        Int
+    nextStepId        Int?
+    housePackageTools HousePackageTools[]
+    meta              Json?               @db.Json
+    createdAt         DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime?           @updatedAt
+    deletedAt         DateTime?           @db.Timestamp(0)
+    product           DykeProducts?       @relation(fields: [dykeProductId], references: [id])
+    door              DykeDoors?          @relation(fields: [doorId], references: [id])
+    salesDoors        DykeSalesDoors[]
+    step              DykeSteps           @relation(fields: [dykeStepId], references: [id])
+    stepForms         DykeStepForm[]
+    sorts             ProductSortIndex[]
+
+    @@index([doorId])
+    @@index([dykeStepId])
+    @@index([dykeProductId])
+}
+
+model ProductSortIndex {
+    id              Int              @unique @default(autoincrement())
+    sortIndex       Int
+    uid             String
+    createdAt       DateTime?        @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?        @updatedAt
+    deletedAt       DateTime?        @db.Timestamp(0)
+    stepComponentId Int
+    stepComponent   DykeStepProducts @relation(fields: [stepComponentId], references: [id])
+
+    @@unique([stepComponentId, uid])
+    @@index([stepComponentId])
+}
+
+model DykePricingSystem {
+    id              Int        @unique @default(autoincrement())
+    dykeStepId      Int
+    dependenciesUid String? //"isdu-ewr-423-dfr23" depencies uid = stepProductUids
+    stepProductUid  String
+    price           Float
+    createdAt       DateTime?  @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?  @updatedAt
+    deletedAt       DateTime?  @db.Timestamp(0)
+    step            DykeSteps? @relation(fields: [dykeStepId], references: [id])
+
+    @@index([dykeStepId])
+}
+
+model DykeDoors {
+    id                Int                 @unique @default(autoincrement())
+    query             String?
+    doorType          String? //GARAGE DOOR
+    title             String
+    img               String?
+    price             Float?
+    meta              Json?               @db.Json
+    createdAt         DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime?           @updatedAt
+    deletedAt         DateTime?           @db.Timestamp(0)
+    housePackageTools HousePackageTools[] @relation(name: "door")
+    stepProducts      DykeStepProducts[]
+}
+
+model DykeProducts {
+    id                      Int                 @unique @default(autoincrement())
+    img                     String?
+    description             String?
+    noteRequired            Boolean?            @default(false)
+    custom                  Boolean?
+    title                   String?
+    price                   Float?
+    categoryId              Int?
+    productCode             String?
+    qty                     Int?                @default(0)
+    meta                    Json?               @db.Json
+    value                   String
+    createdAt               DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt               DateTime?           @updatedAt
+    deletedAt               DateTime?           @db.Timestamp(0)
+    stepProducts            DykeStepProducts[]
+    category                DykeCategories?     @relation(fields: [categoryId], references: [id])
+    jambHousePackageTools   HousePackageTools[] @relation(name: "jamb")
+    casingHousePackageTools HousePackageTools[] @relation(name: "casing")
+    moldingHousePkgTools    HousePackageTools[] @relation(name: "molding")
+
+    @@index([categoryId])
+}
+
+model DykeProductPrices {
+    id        Int       @unique @default(autoincrement())
+    price     Float
+    dimension String // 1-0 x 6-7
+    type      String // door, jamb, casing
+    productId Int
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
-
-    transactions WalletTransactions[]
-
-    wallet   Wallet @relation(fields: [walletId], references: [id])
-    walletId String
 }
 
-model Billable {
-    id          String    @id @default(uuid())
+model DykeShelfCategories {
+    id   Int    @unique @default(autoincrement())
+    name String
+    type String //parent/child
+
+    categoryId       Int?
+    parentCategoryId Int?
+    products         DykeShelfProducts[]  @relation(name: "childCategory")
+    groupedProducts  DykeShelfProducts[]  @relation(name: "parentCategory")
+    shelfItems       DykeSalesShelfItem[]
+    createdAt        DateTime?            @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?            @updatedAt
+    deletedAt        DateTime?            @db.Timestamp(0)
+}
+
+model DykeShelfProducts {
+    id                Int                  @unique @default(autoincrement())
+    title             String
+    unitPrice         Float?
+    categoryId        Int?
+    parentCategoryId  Int?
+    img               String?
+    meta              Json?                @db.Json
+    createdAt         DateTime?            @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime?            @updatedAt
+    deletedAt         DateTime?            @db.Timestamp(0)
+    category          DykeShelfCategories? @relation(name: "childCategory", fields: [categoryId], references: [id])
+    parentCategory    DykeShelfCategories? @relation(name: "parentCategory", fields: [parentCategoryId], references: [id])
+    orderItems        DykeSalesShelfItem[]
+    housePackageTools HousePackageTools[]  @relation(name: "shelfProd")
+
+    // @@fulltext([title])
+
+    @@index([categoryId])
+    @@index([parentCategoryId])
+}
+
+model DykeSalesError {
+    id         Int       @unique @default(autoincrement())
+    errorId    String
+    userId     Int
+    restoredAt DateTime?
+    meta       Json?     @db.Json
+    deletedAt  DateTime? @db.Timestamp(0)
+    createdAt  DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime? @updatedAt
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+// model Refunds {
+
+// }
+model SalesTaxes {
+    id        String      @id @default(cuid())
+    sale      SalesOrders @relation(fields: [salesId], references: [id])
+    salesId   Int
+    taxCode   String
+    taxxable  Float
+    tax       Float       @default(0)
+    createdAt DateTime?   @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?   @updatedAt
+    deletedAt DateTime?   @db.Timestamp(0)
+
+    taxConfig Taxes? @relation(fields: [taxCode], references: [taxCode])
+
+    @@index([salesId])
+    @@index([taxCode])
+}
+
+model Taxes {
+    title               String
+    taxCode             String                @unique
+    percentage          Float                 @default(0.00)
+    taxOn               String                @default("total") //total, first 50000 
+    createdAt           DateTime?             @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime?             @updatedAt
+    deletedAt           DateTime?             @db.Timestamp(0)
+    salesTaxes          SalesTaxes[]
+    customerTaxProfiles CustomerTaxProfiles[]
+}
+
+model SalesStat {
+    salesId    Int
+    status     String?
+    type       String // production, dispatch, payment
+    score      Float?
+    total      Float?
+    percentage Float?
+    sales      SalesOrders @relation(fields: [salesId], references: [id])
+    createdAt  DateTime?   @default(now()) @db.Timestamp(0)
+
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@unique([salesId, type])
+    @@index([salesId])
+}
+
+model OrderItemProductionAssignments {
+    id                  Int                          @unique @default(autoincrement())
+    itemId              Int
+    orderId             Int
+    assignedToId        Int?
+    assignedById        Int
+    qtyAssigned         Int?
+    qtyCompleted        Int?
+    completedAt         DateTime?
+    salesItemControlUid String?
+    lhQty               Int?
+    rhQty               Int?
+    note                String?
+    salesDoorId         Int?
+    startedAt           DateTime?                    @db.Timestamp(0)
+    dueDate             DateTime?                    @db.Timestamp(0)
+    deletedAt           DateTime?                    @db.Timestamp(0)
+    createdAt           DateTime?                    @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime?                    @updatedAt
+    laborCost           Float?
+    submissions         OrderProductionSubmissions[]
+    order               SalesOrders                  @relation(fields: [orderId], references: [id])
+    item                SalesOrderItems              @relation(fields: [itemId], references: [id])
+    assignedTo          Users?                       @relation(name: "orderItemAssignments", fields: [assignedToId], references: [id])
+    assignedBy          Users                        @relation(name: "orderItemAssignedByMe", fields: [assignedById], references: [id])
+    salesDoor           DykeSalesDoors?              @relation(fields: [salesDoorId], references: [id])
+    itemControl         SalesItemControl?            @relation(fields: [salesItemControlUid], references: [uid])
+    shelfItem           DykeSalesShelfItem?          @relation(fields: [shelfItemId], references: [id])
+    shelfItemId         Int?
+
+    @@index([shelfItemId])
+    @@index([salesItemControlUid])
+    @@index([orderId])
+    @@index([itemId])
+    @@index([assignedToId])
+    @@index([assignedById])
+    @@index([salesDoorId])
+}
+
+model OrderProductionSubmissions {
+    id               Int                             @unique @default(autoincrement())
+    salesOrderId     Int?
+    salesOrderItemId Int?
+    qty              Int
+    lhQty            Int?                            @default(0)
+    rhQty            Int?                            @default(0)
+    note             String?                         @db.Text
+    deletedAt        DateTime?                       @db.Timestamp(0)
+    createdAt        DateTime?                       @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?                       @updatedAt
+    assignmentId     Int?
+    submittedById    Int?
+    meta             Json?                           @db.Json
+    order            SalesOrders?                    @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    item             SalesOrderItems?                @relation(fields: [salesOrderItemId], references: [id], onDelete: Cascade)
+    assignment       OrderItemProductionAssignments? @relation(fields: [assignmentId], references: [id])
+    itemDeliveries   OrderItemDelivery[]
+
+    payroll     Payroll?
+    submittedBy Users?   @relation(fields: [submittedById], references: [id])
+
+    @@index([submittedById])
+    @@index([salesOrderId])
+    @@index([salesOrderItemId])
+    @@index([assignmentId])
+}
+
+model DykeSalesShelfItem {
+    id               Int                              @unique @default(autoincrement())
+    salesOrderItemId Int?
+    description      String?
+    productId        Int?
+    categoryId       Int
+    qty              Int?
+    unitPrice        Int?
+    totalPrice       Int?
+    meta             Json?                            @db.Json
+    createdAt        DateTime?                        @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?                        @updatedAt
+    deletedAt        DateTime?                        @db.Timestamp(0)
+    salesOrderItem   SalesOrderItems?                 @relation(fields: [salesOrderItemId], references: [id])
+    shelfProduct     DykeShelfProducts?               @relation(fields: [productId], references: [id])
+    category         DykeShelfCategories?             @relation(fields: [categoryId], references: [id])
+    assignments      OrderItemProductionAssignments[]
+
+    @@index([salesOrderItemId])
+    @@index([productId])
+    @@index([categoryId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+model SalesCommision {
+    id                  Int                @unique @default(autoincrement())
+    amount              Float
+    userId              Int
+    orderId             Int
+    orderPaymentId      Int
+    commissionPaymentId Int?
+    status              String             @db.VarChar(255)
+    deletedAt           DateTime?          @db.Timestamp(0)
+    createdAt           DateTime?          @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime?          @updatedAt
+    order               SalesOrders        @relation(fields: [orderId], references: [id])
+    user                Users              @relation(fields: [userId], references: [id])
+    orderPayment        SalesPayments      @relation(fields: [orderPaymentId], references: [id])
+    commissionPayment   CommissionPayment? @relation(fields: [commissionPaymentId], references: [id])
+
+    @@index([orderId])
+    @@index([userId])
+    @@index([orderPaymentId])
+    @@index([commissionPaymentId])
+}
+
+model SalesOrderProducts {
+    id               Int       @unique @default(autoincrement())
+    salesOrderId     Int
+    salesOrderItemId Int
+    qty              Int?
+    stockQty         Int?
+    shortQty         Int?
+    productVariantId Int?
+    productId        Int?
+    status           String    @db.VarChar(255)
+    deletedAt        DateTime? @db.Timestamp(0)
+    createdAt        DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime? @updatedAt
+}
+
+model SalesLaborCosts {
+    id        Int       @unique @default(autoincrement())
+    rate      Float
+    current   Boolean   @default(false)
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+}
+
+// ---- utils.prisma ----
+model ExportConfig {
+    id          Int       @unique @default(autoincrement())
     title       String
-    description String?
-    type        BillType?
-    amount      Float?
+    type        String
+    meta        Json      @db.Json
+    createdById Int
+    createdBy   Users?    @relation(fields: [createdById], references: [id])
     createdAt   DateTime? @default(now()) @db.Timestamp(0)
     updatedAt   DateTime? @updatedAt
     deletedAt   DateTime? @db.Timestamp(0)
 
-    bills           Bills[]
-    schoolProfileId String
-    schoolProfile   SchoolProfile     @relation(fields: [schoolProfileId], references: [id])
-    billableHistory BillableHistory[]
+    @@index([createdById])
 }
 
-model BillableHistory {
-    id      String  @id @default(uuid())
-    amount  Float
-    current Boolean @default(false)
+model PageTabs {
+    id         Int            @unique @default(autoincrement())
+    page       String
+    userId     Int
+    private    Boolean?       @default(true)
+    meta       Json?          @db.Json
+    title      String
+    query      String
+    tabIndices PageTabIndex[]
+    createdAt  DateTime?      @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime?      @updatedAt
+    deletedAt  DateTime?      @db.Timestamp(0)
+}
 
-    billable Billable @relation(fields: [feeId], references: [id])
-    feeId    String
-
-    schoolSession   SchoolSession @relation(fields: [schoolSessionId], references: [id])
-    schoolSessionId String
-
-    term   SessionTerm @relation(fields: [termId], references: [id])
-    termId String
-
-    bills Bills[]
+model PageTabIndex {
+    id       String   @unique @default(uuid())
+    tabId    Int
+    tabIndex Int
+    userId   Int
+    tab      PageTabs @relation(fields: [tabId], references: [id])
+    default  Boolean? @default(false)
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
+
+    @@index([tabId])
 }
 
-model Bills {
-    id          String  @id @default(uuid())
-    title       String
+model SearchParameters {
+    page  String
+    key   String
+    value String
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@id(name: "uid", [page, key, value])
+}
+
+// ---- sales.accounting.prisma ----
+model SalesResolution {
+    id         Int       @unique @default(autoincrement())
+    resolvedBy String
+    salesId    Int
+    action     String
+    reason     String?
+    createdAt  DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime? @updatedAt
+    deletedAt  DateTime? @db.Timestamp(0)
+}
+
+// ---- sales.refund.prisma ----
+model Refunds {
+    id            String  @unique @default(uuid())
+    refId         String //ref-salesid
+    salesId       Int
+    refundSalesId Int?    @unique
+    walletId      Int
+    total         Float
+    status        String
+    description   String?
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    sales        SalesOrders?         @relation(fields: [salesId], references: [id], name: "salesRefunds")
+    refundSale   SalesOrders?         @relation(name: "refund", fields: [refundSalesId], references: [id])
+    wallet       CustomerWallet       @relation(fields: [walletId], references: [id])
+    transactions RefundTransactions[]
+
+    @@index([salesId])
+    @@index([walletId])
+}
+
+model RefundTransactions {
+    id            String              @unique @default(uuid())
+    refundId      String
+    transactionId Int
+    refund        Refunds?            @relation(fields: [refundId], references: [id])
+    transaction   CustomerTransaction @relation(fields: [transactionId], references: [id])
+    createdAt     DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?           @updatedAt
+    deletedAt     DateTime?           @db.Timestamp(0)
+
+    @@index([refundId])
+    @@index([transactionId])
+}
+
+// ---- backlogs.prisma ----
+model Backlogs {
+    id          Int    @id @default(autoincrement())
+    description String
+    status      String
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    notes BacklogNote[]
+    tags  BacklogTags[]
+}
+
+model BacklogNote {
+    id          Int     @unique @default(autoincrement())
+    current     Boolean @default(false)
+    status      String
     description String?
 
-    amount Float?
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    backlogId Int?
+    backlog   Backlogs? @relation(fields: [backlogId], references: [id])
+
+    // todosId Int?
+    // @@index([todosId])
+
+    @@index([backlogId])
+}
+
+model BacklogTags {
+    id        Int       @unique @default(autoincrement())
+    tagId     Int
+    backlogId Int
+    deletedAt DateTime? @db.Timestamp(0)
+
+    backlog Backlogs?         @relation(fields: [backlogId], references: [id])
+    tag     BacklogTagTitles? @relation(fields: [tagId], references: [id])
+
+    // todo   Todos? @relation(fields: [todoId], references: [id])
+    todoId Int?
+
+    @@index([backlogId])
+    @@index([tagId])
+    @@index([todoId])
+}
+
+model BacklogTagTitles {
+    id    Int    @unique @default(autoincrement())
+    title String
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    tags BacklogTags[]
+}
+
+model ClockinPaymentInvoice {
+    id Int @id @default(autoincrement())
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    sessions      ClockinSession[]
+    totalDuration Float?
+    totalAmount   Float? //total amount for session
+    status        String?           @default("pending") // pending, approved, rejected, paid
+    payments      ClockinPayments[]
+}
+
+model ClockinPayments {
+    id          Int     @id @default(autoincrement())
+    amount      Float? //part invoice payment
+    description String?
+    status      String? @default("pending") // pending, approved, rejected, paid
+
+    invoice   ClockinPaymentInvoice? @relation(fields: [invoiceId], references: [id])
+    invoiceId Int?
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    payout          ClockinPayout? @relation(fields: [clockinPayoutId], references: [id])
+    clockinPayoutId Int?
+
+    @@index([invoiceId])
+    @@index([clockinPayoutId])
+}
+
+model ClockinPayout {
+    id           Int     @id @default(autoincrement())
+    amount       Float?
+    exchangeRate Float?
+    amountInUSD  Float?
+    description  String?
+
+    payments ClockinPayments[]
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+}
+
+model ClockinSession {
+    id        Int                    @id @default(autoincrement())
+    clockIn   DateTime               @db.Timestamp(0)
+    clockOut  DateTime?              @db.Timestamp(0)
+    duration  Float?
+    breaks    ClockinBreak[]
+    deletedAt DateTime?              @db.Timestamp(0)
+    createdAt DateTime?              @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?              @updatedAt
+    invoice   ClockinPaymentInvoice? @relation(fields: [invoiceId], references: [id])
+    invoiceId Int?
+
+    @@unique([invoiceId])
+}
+
+model ClockinBreak {
+    id          Int       @id @default(autoincrement())
+    clockIn     DateTime  @db.Timestamp(0)
+    clockOut    DateTime? @db.Timestamp(0)
+    duration    Float?
+    description String?
+
+    deletedAt DateTime?       @db.Timestamp(0)
+    createdAt DateTime?       @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?       @updatedAt
+    clock     ClockinSession? @relation(fields: [clockinId], references: [id])
+    clockinId Int?
+
+    @@index([clockinId])
+}
+
+// ---- payroll.prisma ----
+enum PayrollType {
+    COMMISSION
+    WAGE
+}
+
+enum PayrollStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    RESUBMITTED
+    PAID
+}
+
+model PayrollHistory {
+    id     Int           @unique @default(autoincrement())
+    status PayrollStatus
+    note   String
+
+    payroll   Payroll @relation(fields: [payrollId], references: [id])
+    payrollId Int
+
+    user   Users @relation(fields: [userId], references: [id])
+    userId Int
+
+    @@index([userId])
+    @@index([payrollId])
+}
+
+model Payroll {
+    id          Int          @unique @default(autoincrement())
+    uid         String
+    amount      Float
+    type        PayrollType
+    headline    String?
+    description String?
+    status      PayoutStatus
+
+    itemUid     String?
+    itemControl SalesItemControl? @relation(fields: [itemUid], references: [uid])
+
+    orderId Int?
+    order   SalesOrders? @relation(fields: [orderId], references: [id])
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    invoice   BillInvoice? @relation(fields: [invoiceId], references: [id])
-    invoiceId String?
+    history PayrollHistory[]
 
-    staffTermProfile   StaffTermProfile? @relation(fields: [staffTermProfileId], references: [id])
-    staffTermProfileId String?
+    user   Users? @relation(fields: [userId], references: [id])
+    userId Int
 
-    wallet   Wallet? @relation(fields: [walletId], references: [id])
-    walletId String?
+    payoutId Int?
+    payout   SalesPayout? @relation(fields: [payoutId], references: [id])
 
-    billPayment   BillPayment? @relation(fields: [billPaymentId], references: [id])
-    billPaymentId String?
+    productionSubmissionId Int?                        @unique
+    productionSubmission   OrderProductionSubmissions? @relation(fields: [productionSubmissionId], references: [id])
 
-    billable   Billable? @relation(fields: [billableId], references: [id])
-    billableId String?
+    orderPaymentId Int?           @unique
+    orderPayment   SalesPayments? @relation(fields: [orderPaymentId], references: [id])
 
-    billableHistory   BillableHistory? @relation(fields: [billableHistoryId], references: [id])
-    billableHistoryId String?
-
-    sessionTerm   SessionTerm @relation(fields: [sessionTermId], references: [id])
-    sessionTermId String
-
-    schoolSession   SchoolSession @relation(fields: [schoolSessionId], references: [id])
-    schoolSessionId String
-
-    schoolProfile   SchoolProfile @relation(fields: [schoolProfileId], references: [id])
-    schoolProfileId String
+    @@unique([uid, deletedAt])
+    @@index([productionSubmissionId])
+    @@index([orderId])
+    @@index([userId])
+    @@index([payoutId])
+    @@index([itemUid])
 }
 
-enum BillType {
-    SALARY
-    MISC
-    OTHER
-}
+model SalesPayout {
+    id        Int    @id @default(autoincrement())
+    reference String @unique
 
-model BillInvoice {
-    id     String  @id @default(uuid())
-    amount Float?
-    bills  Bills[]
+    payoutDate DateTime?
 
-    payment BillPayment?
-
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
-}
-
-model BillPayment {
-    id     String @id @default(uuid())
+    method String? // e.g., 'bank_transfer', 'cash', etc.
+    status PayoutStatus @default(PENDING)
+    note   String?
     amount Float
 
+    payrolls Payroll[]
+
+    createdAt DateTime  @default(now()) @db.Timestamp(0)
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    payerId          Int
+    myIssuedPayments Users? @relation(name: "myIssuedPayouts", fields: [payerId], references: [id])
+
+    payee   Users @relation(name: "myPayouts", fields: [payeeId], references: [id])
+    payeeId Int
+
+    @@index([payeeId])
+    @@index([payerId])
+}
+
+enum PayoutStatus {
+    PENDING
+    PROCESSING
+    COMPLETED
+    FAILED
+}
+
+model Jobs {
+    id          Int       @unique @default(autoincrement())
+    userId      Int
+    coWorkerId  Int?
+    type        String    @db.VarChar(255)
+    homeId      Int?
+    // unitId      Int?
+    projectId   Int?
+    // taskId      Int?
+    amount      Float
+    title       String?   @db.VarChar(255)
+    subtitle    String?   @db.VarChar(255)
+    description String?   @db.LongText
+    note        String?   @db.Text
+    // doneBy      String?      @db.VarChar(255)
+    status      String    @db.VarChar(255)
+    meta        Json?     @db.Json
+    adminNote   String?   @db.Text
+    statusDate  DateTime? @db.Timestamp(0)
+    rejectedAt  DateTime? @db.Timestamp(0)
+    approvedAt  DateTime? @db.Timestamp(0)
+    // paidAt      DateTime?    @db.Timestamp(0)
+    approvedBy  Int?
+    // paidBy      Int?
+    paymentId   Int?
+
+    // checkNo     String?      @db.VarChar(255)
+    deletedAt DateTime?    @db.Timestamp(0)
+    createdAt DateTime?    @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?    @updatedAt
+    payment   JobPayments? @relation(fields: [paymentId], references: [id])
+    home      Homes?       @relation(fields: [homeId], references: [id])
+    user      Users?       @relation(name: "installer", fields: [userId], references: [id])
+    coWorker  Users?       @relation(name: "co-worker", fields: [coWorkerId], references: [id])
+    project   Projects?    @relation(fields: [projectId], references: [id])
+    homeTasks HomeTasks[]
+
+    @@index([createdAt, homeId, type, status, userId])
+    @@index([paymentId])
+    @@index([homeId])
+    @@index([userId])
+    @@index([coWorkerId])
+    @@index([projectId])
+}
+
+model JobPayments {
+    id            Int       @unique @default(autoincrement())
+    amount        Int
+    charges       Int?
+    subTotal      Int?
+    userId        Int
+    paidBy        Int
+    checkNo       String?
+    paymentMethod String?
+    meta          Json?     @db.Json
+    createdAt     DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime? @updatedAt
+    deletedAt     DateTime? @db.Timestamp(0)
+    jobs          Jobs[]
+    user          Users?    @relation(name: "worker", fields: [userId], references: [id])
+    payer         Users?    @relation(name: "payer", fields: [paidBy], references: [id])
+
+    @@index([userId])
+    @@index([paidBy])
+}
+
+// ---- site-action.prisma ----
+model SiteActionTicket {
+    id                       Int                     @unique @default(autoincrement())
+    description              String
+    type                     String?
+    event                    String?
+    userId                   Int?
+    siteActionNotificationId Int
+    meta                     Json?
+    deletedAt                DateTime?               @db.Timestamp(0)
+    createdAt                DateTime?               @default(now()) @db.Timestamp(0)
+    updatedAt                DateTime?               @updatedAt
+    SiteActionNotification   SiteActionNotification? @relation(fields: [siteActionNotificationId], references: [id])
+
+    @@index([siteActionNotificationId])
+}
+
+model SiteActionNotification {
+    id            Int                                    @unique @default(autoincrement())
+    event         String
+    notifications SiteActionTicket[]
+    enabled       Boolean?
+    custom        Boolean?
+    meta          Json?
+    activeUsers   SiteActionNotificationActiveForUsers[]
+    deletedAt     DateTime?                              @db.Timestamp(0)
+    createdAt     DateTime?                              @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?                              @updatedAt
+}
+
+model SiteActionNotificationActiveForUsers {
+    id                       Int                     @unique @default(autoincrement())
+    userId                   Int
+    siteActionNotificationId Int
+    SiteActionNotification   SiteActionNotification? @relation(fields: [siteActionNotificationId], references: [id])
+    deletedAt                DateTime?               @db.Timestamp(0)
+    createdAt                DateTime?               @default(now()) @db.Timestamp(0)
+    updatedAt                DateTime?               @updatedAt
+
+    @@unique([userId, siteActionNotificationId, deletedAt])
+    @@index([siteActionNotificationId])
+}
+
+// ---- notes.prisma ----
+model NotePad {
+    id              Int                  @unique @default(autoincrement())
+    note            String?
+    color           String?
+    subject         String?
+    headline        String?
+    createdById     Int?
+    comments        NoteComments[]
+    deletedAt       DateTime?            @db.Timestamp(0)
+    createdAt       DateTime?            @default(now()) @db.Timestamp(0)
+    commentNote     NoteComments[]       @relation(name: "commentNote")
+    tags            NoteTags[]
+    senderContactId Int
+    recipients      NoteRecipients[]
+    senderContact   NotePadContacts?     @relation(fields: [senderContactId], references: [id])
+    events          NotePadEvent[]
+    readReceipts    NotePadReadReceipt[]
+
+    @@index([senderContactId])
+}
+
+model NoteRecipients {
+    id               Int             @unique @default(autoincrement())
+    notePage         NotePad         @relation(fields: [notePadId], references: [id])
+    deletedAt        DateTime?       @db.Timestamp(0)
+    createdAt        DateTime?       @default(now()) @db.Timestamp(0)
+    notePadId        Int
+    notePadContactId Int
+    contact          NotePadContacts @relation(fields: [notePadContactId], references: [id])
+
+    @@index([notePadId])
+    @@index([notePadContactId])
+}
+
+model NotePadContacts {
+    id            Int                  @unique @default(autoincrement())
+    name          String
+    email         String?
+    phoneNo       String?
+    notesReceived NoteRecipients[]
+    notesSent     NotePad[]
+    deletedAt     DateTime?            @db.Timestamp(0)
+    createdAt     DateTime?            @default(now()) @db.Timestamp(0)
+    readReceipts  NotePadReadReceipt[]
+
+    @@unique([name, email, phoneNo])
+}
+
+model NoteTags {
+    id        Int       @unique @default(autoincrement())
+    tagName   String //itemUID, deliveryId,section=dispatch|production|sales
+    tagValue  String
+    notePad   NotePad?  @relation(fields: [notePadId], references: [id])
+    notePadId Int?
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+
+    @@unique([tagName, tagValue, notePadId])
+    @@index([notePadId])
+}
+
+model NoteComments {
+    id               Int  @unique @default(autoincrement())
+    notePadId        Int?
+    commentNotePadId Int?
+
+    commentToNote NotePad? @relation(fields: [notePadId], references: [id])
+    note          NotePad? @relation(name: "commentNote", fields: [commentNotePadId], references: [id])
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+
+    @@index([notePadId])
+    @@index([commentNotePadId])
+}
+
+model NotePadEvent {
+    id Int @unique @default(autoincrement())
+
+    reminderType String?
+    status       String? //queued,cancelled,notified,completed
+    reminderDate DateTime? @db.Timestamp(0)
+    remindedAt   DateTime? @db.Timestamp(0)
+    eventDate    DateTime? @db.Timestamp(0)
+    deletedAt    DateTime? @db.Timestamp(0)
+    createdAt    DateTime? @default(now()) @db.Timestamp(0)
+    notePad      NotePad   @relation(fields: [notePadId], references: [id])
+    notePadId    Int
+
+    @@index([notePadId])
+}
+
+model NotePadReadReceipt {
+    id Int @unique @default(autoincrement())
+
+    deletedAt        DateTime?        @db.Timestamp(0)
+    createdAt        DateTime?        @default(now()) @db.Timestamp(0)
+    notePadContactId Int
+    notePadId        Int
+    contact          NotePadContacts? @relation(fields: [notePadContactId], references: [id])
+    note             NotePad?         @relation(fields: [notePadId], references: [id])
+
+    @@index([notePadContactId])
+    @@index([notePadId])
+}
+
+// ---- sales-inventory.prisma ----
+
+
+// ---- users.prisma ----
+model Users {
+    id                          Int                              @unique @default(autoincrement())
+    slug                        String?
+    name                        String?                          @db.VarChar(255)
+    username                    String?                          @db.VarChar(255)
+    email                       String                           @db.VarChar(255)
+    phoneNo                     String?                          @db.VarChar(255)
+    phoneCode                   String?                          @db.VarChar(255)
+    country                     String?                          @db.VarChar(255)
+    emailVerifiedAt             DateTime?                        @db.Timestamp(0)
+    password                    String?                          @db.VarChar(255)
+    rememberToken               String?                          @db.VarChar(100)
+    meta                        Json?                            @db.Json
+    deletedAt                   DateTime?                        @db.Timestamp(0)
+    createdAt                   DateTime?                        @default(now()) @db.Timestamp(0)
+    updatedAt                   DateTime?                        @updatedAt
+    employeeProfileId           Int?
+    workOrders                  WorkOrders[]
+    salesProductions            SalesOrders[]                    @relation(name: "producer")
+    reppedProductions           SalesOrders[]                    @relation(name: "salesRep")
+    roles                       ModelHasRoles[]
+    notifications               Notifications[]                  @relation(name: "notifications")
+    sentNotifications           Notifications[]                  @relation(name: "fromUser")
+    inbox                       Inbox[]
+    jobs                        Jobs[]                           @relation(name: "installer")
+    coWorkerJobs                Jobs[]                           @relation(name: "co-worker")
+    myIssuedPayments            JobPayments[]                    @relation(name: "payer")
+    payments                    JobPayments[]                    @relation(name: "worker")
+    templateHistory             CommunityTemplateHistory[]
+    employeeProfile             EmployeeProfile?                 @relation(fields: [employeeProfileId], references: [id])
+    SalesPickup                 SalesPickup[]
+    driverDeliveries            OrderDelivery[]                  @relation(name: "driver")
+    createdDeliveries           OrderDelivery[]                  @relation(name: "createdBy")
+    assignedTasks               HomeTasks[]
+    errors                      ErrorLog[]
+    documents                   UserDocuments[]
+    commissions                 SalesCommision[]
+    commissionPayments          CommissionPayment[]              @relation(name: "payer")
+    myIssuedCommissionPayments  CommissionPayment[]              @relation(name: "worker")
+    CommissionPayment           CommissionPayment[]
+    blogs                       Blogs[]
+    orderItemAssignments        OrderItemProductionAssignments[] @relation(name: "orderItemAssignments")
+    orderItemAssignedByMe       OrderItemProductionAssignments[] @relation(name: "orderItemAssignedByMe")
+    events                      Event[]
+    pageView                    PageView[]
+    notes                       Progress[]
+    approvedDealerStatusHistory DealerStatusHistory[]
+    mailEvents                  MailEventTrigger[]
+    sessions                    Session[]
+    approvedRequests            DealerSalesRequest[]
+    checkouts                   SalesCheckout[]
+    exportConfigs               ExportConfig[]
+    squarePayments              SquarePayments[]
+    customerTransactions        CustomerTransaction[]
+    salesTransactions           SalesPayments[]
+    submissions                 OrderProductionSubmissions[]
+    salesPayrolls               Payroll[]
+    myPayouts                   SalesPayout[]                    @relation(name: "myPayouts")
+    salesPayoutsByMe            SalesPayout[]                    @relation(name: "myIssuedPayouts")
+    payrollHistory              PayrollHistory[]
+
+    @@index([createdAt, deletedAt, name])
+    @@index([employeeProfileId])
+}
+
+model Session {
+    id           String    @id @default(cuid())
+    sessionToken String    @unique @map("session_token")
+    userId       Int
+    expires      DateTime
+    deletedAt    DateTime? @db.Timestamp(0)
+    user         Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+}
+
+model EmployeeProfile {
+    id                       Int       @unique @default(autoincrement())
+    name                     String
+    discount                 Int?
+    salesComissionPercentage Int?
+    meta                     Json?     @db.Json
+    createdAt                DateTime? @default(now()) @db.Timestamp(0)
+    deletedAt                DateTime? @db.Timestamp(0)
+    updatedAt                DateTime? @updatedAt
+    employees                Users[]
+}
+
+model UserDocuments {
+    id          Int       @unique @default(autoincrement())
+    title       String?
+    description String?
+    url         String
+    userId      Int
+    meta        Json?     @db.Json
+    createdAt   DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime? @updatedAt
+    deletedAt   DateTime? @db.Timestamp(0)
+    user        Users?    @relation(fields: [userId], references: [id])
+
+    @@index([userId])
+}
+
+// ---- sales.takeoff.prisma ----
+model SalesTakeOffTemplates {
+    id         String @unique @default(uuid())
+    sectionUid String
+    title      String
+    data       Json
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+}
+
+// ---- sales.customer.prisma ----
+model Customers {
+    id             Int                   @unique @default(autoincrement())
+    addressId      Int?
+    customerTypeId Int?
+    slug           String?               @unique @db.VarChar(255)
+    walletId       Int?                  @unique
+    name           String?               @db.VarChar(255)
+    businessName   String?               @db.VarChar(255)
+    email          String?               @db.VarChar(255)
+    phoneNo        String?               @unique @db.VarChar(255)
+    phoneNo2       String?               @db.VarChar(255)
+    address        String?               @db.Text
+    meta           Json?                 @db.Json
+    deletedAt      DateTime?             @db.Timestamp(0)
+    createdAt      DateTime?             @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime?             @updatedAt
+    salesOrders    SalesOrders[]
+    profile        CustomerTypes?        @relation(fields: [customerTypeId], references: [id])
+    addressBooks   AddressBooks[]        @relation(name: "addressBooks")
+    taxProfiles    CustomerTaxProfiles[]
+    // payments       SalesPayments[] @relation()
+    wallet         CustomerWallet?
+    auth           DealerAuth?
+
+    @@index([createdAt, deletedAt, name, email, phoneNo])
+    @@index([customerTypeId])
+    @@index([phoneNo])
+}
+
+model CustomerTaxProfiles {
+    id         Int       @unique @default(autoincrement())
+    customerId Int
+    customer   Customers @relation(fields: [customerId], references: [id])
+    taxCode    String
+    tax        Taxes     @relation(fields: [taxCode], references: [taxCode])
+    deletedAt  DateTime? @db.Timestamp(0)
+    createdAt  DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime? @updatedAt
+
+    @@unique([taxCode, customerId, deletedAt])
+    @@index([customerId])
+}
+
+model DealerAuth {
+    id                       Int                   @unique @default(autoincrement())
+    dealerId                 Int                   @unique
+    createdAt                DateTime?             @default(now()) @db.Timestamp(0)
+    email                    String                @unique
+    password                 String?               @db.VarChar(255)
+    emailVerifiedAt          DateTime?             @db.Timestamp(0)
+    approvedAt               DateTime?             @db.Timestamp(0)
+    rejectedAt               DateTime?             @db.Timestamp(0)
+    restricted               Boolean?
+    updatedAt                DateTime?             @updatedAt
+    deletedAt                DateTime?             @db.Timestamp(0)
+    status                   String?
+    primaryBillingAddressId  Int?
+    primaryShippingAddressId Int?
+    dealer                   Customers             @relation(fields: [dealerId], references: [id])
+    statusHistory            DealerStatusHistory[]
+    token                    DealerToken[]
+    primaryBillingAddress    AddressBooks?         @relation(name: "primaryBillingAddress", fields: [primaryBillingAddressId], references: [id])
+    primaryShippingAddress   AddressBooks?         @relation(name: "primaryShippingAddress", fields: [primaryShippingAddressId], references: [id])
+
+    @@index([primaryBillingAddressId])
+    @@index([primaryShippingAddressId])
+}
+
+model DealerStatusHistory {
+    id        Int         @unique @default(autoincrement())
+    dealerId  Int
+    status    String // pending-approval, approved, rejected, restricted
+    authorId  Int
+    reason    String?     @db.LongText
+    createdAt DateTime?   @default(now()) @db.Timestamp(0)
+    deletedAt DateTime?   @db.Timestamp(0)
+    auth      DealerAuth? @relation(fields: [dealerId], references: [id])
+    author    Users       @relation(fields: [authorId], references: [id])
+
+    @@index([dealerId])
+    @@index([authorId])
+}
+
+model DealerToken {
+    dealerId   Int
+    token      String      @unique
+    expiredAt  DateTime?   @db.Timestamp(0)
+    consumedAt DateTime?   @db.Timestamp(0)
+    deletedAt  DateTime?   @db.Timestamp(0)
+    auth       DealerAuth? @relation(fields: [dealerId], references: [id])
+
+    @@index([dealerId])
+}
+
+model CustomerTypes {
+    id             Int       @unique @default(autoincrement())
+    title          String    @db.VarChar(255)
+    coefficient    Float?
+    defaultProfile Boolean?
+    meta           Json?     @db.Json
+    deletedAt      DateTime? @db.Timestamp(0)
+    createdAt      DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime? @updatedAt
+
+    customers Customers[]
+    sales     SalesOrders[]
+}
+
+model DealerSalesRequest {
+    id           Int         @unique @default(autoincrement())
+    createdAt    DateTime?   @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime?   @updatedAt
+    salesId      Int
+    request      String
+    status       String
+    deletedAt    DateTime?   @db.Timestamp(0)
+    approvedById Int?
+    sale         SalesOrders @relation(fields: [salesId], references: [id])
+    approvedBy   Users?      @relation(fields: [approvedById], references: [id])
+
+    @@index([salesId])
+    @@index([approvedById])
+}
+
+// ---- sales.wallet.prisma ----
+model CustomerTransaction {
+    id            Int                         @unique @default(autoincrement())
+    authorId      Int?
+    txId          String?
+    status        String?
+    statusNote    String?
+    statusReason  String?
+    amount        Float
+    walletId      Int?
+    paymentMethod String?
+    type          String? //wallet, transaction
+    description   String?                     @db.LongText
+    meta          Json?                       @db.Json
+    createdAt     DateTime?                   @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?                   @updatedAt
+    deletedAt     DateTime?                   @db.Timestamp(0)
+    wallet        CustomerWallet?             @relation(fields: [walletId], references: [id], onDelete: Cascade)
+    history       CustomerTransactionStatus[]
+    salesPayments SalesPayments[]
+    refundTx      RefundTransactions[]
+    squarePayment SquarePayments?             @relation(fields: [squarePID], references: [id])
+    squarePID     String?
+    author        Users?                      @relation(fields: [authorId], references: [id])
+
+    @@index([authorId])
+    @@index([walletId])
+    @@index([squarePID])
+}
+
+model CustomerTransactionStatus {
+    id          Int       @unique @default(autoincrement())
+    authorName  String?
+    authorId    Int
+    status      String?
+    description String?
+    reason      String?
+    createdAt   DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime? @updatedAt
+    deletedAt   DateTime? @db.Timestamp(0)
+
+    transaction   CustomerTransaction @relation(fields: [transactionId], references: [id])
+    transactionId Int
+
+    @@index([transactionId])
+}
+
+model CustomerWallet {
+    id           Int                   @unique @default(autoincrement())
+    balance      Float
+    accountNo    String?               @unique
+    meta         Json?                 @db.Json
+    customer     Customers?            @relation(fields: [id], references: [walletId], onDelete: Cascade)
+    transactions CustomerTransaction[]
+    createdAt    DateTime?             @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime?             @updatedAt
+    deletedAt    DateTime?             @db.Timestamp(0)
+    refunds      Refunds[]
+}
+
+model SalesPayments {
+    id               Int                  @unique @default(autoincrement())
+    note             String?
+    authorId         Int?
+    squarePaymentsId String?
+    // customerId    Int
+    transactionId    Int?
+    orderId          Int
+    amount           Float
+    tip              Float?
+    meta             Json?                @db.Json
+    status           String? // success,pending,paid
+    deletedAt        DateTime?            @db.Timestamp(0)
+    createdAt        DateTime?            @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?            @updatedAt
+    order            SalesOrders          @relation(name: "salesPayment", fields: [orderId], references: [id], onDelete: Cascade)
+    checkout         SalesCheckout?
+    // customer      Customers            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+    transaction      CustomerTransaction? @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+    commissions      SalesCommision[]
+    author           Users?               @relation(fields: [authorId], references: [id])
+    squarePayments   SquarePayments?      @relation(fields: [squarePaymentsId], references: [id])
+    payroll          Payroll?
+
+    @@index([authorId])
+    @@index([orderId])
+    // @@index([customerId])
+    @@index([transactionId])
+    @@index([squarePaymentsId])
+}
+
+model SquarePayments {
+    id              String                @id @default(cuid())
+    paymentId       String?               @unique
+    status          String                @default("created")
+    squareOrderId   String?
+    paymentMethod   String //link,terminal
+    paymentLink     String?
+    terminalId      String?
+    amount          Float
+    tip             Float?
+    meta            Json?                 @db.Json
+    deletedAt       DateTime?             @db.Timestamp(0)
+    createdAt       DateTime?             @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?             @updatedAt
+    createdById     Int?
+    paymentTerminal PaymentTerminals?     @relation(fields: [terminalId], references: [terminalId])
+    customerTxs     CustomerTransaction[]
+    createdBy       Users?                @relation(fields: [createdById], references: [id])
+    orders          SquarePaymentOrders[]
+    salesPayments   SalesPayments[]
+    checkout        SalesCheckout?
+
+    @@index([terminalId])
+    @@index([createdById])
+}
+
+model SquarePaymentOrders {
+    id              String         @id @default(cuid())
+    orderId         Int
+    squarePaymentId String
+    squarePayment   SquarePayments @relation(fields: [squarePaymentId], references: [id])
+    order           SalesOrders?   @relation(fields: [orderId], references: [id])
+
+    @@index([squarePaymentId])
+    @@index([orderId])
+}
+
+model PaymentTerminals {
+    terminalId   String    @unique
+    terminalName String?
+    deletedAt    DateTime? @db.Timestamp(0)
+    createdAt    DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime? @updatedAt
+
+    payments SquarePayments[]
+}
+
+model SalesCheckout {
+    id              String            @id @default(cuid())
+    paymentId       String?           @unique
+    userId          Int?
+    status          String?
+    paymentType     String?
+    terminalId      String?
+    terminalName    String?
+    amount          Float?
+    tip             Float?            @default(0)
+    orderId         Int?
+    meta            Json?             @db.Json
+    deletedAt       DateTime?         @db.Timestamp(0)
+    createdAt       DateTime?         @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?         @updatedAt
+    order           SalesOrders?      @relation(fields: [orderId], references: [id])
+    createdBy       Users?            @relation(fields: [userId], references: [id])
+    salesPaymentsId Int?              @unique
+    squarePaymentId String?           @unique
+    paymentSlip     SalesPayments?    @relation(fields: [salesPaymentsId], references: [id])
+    squarePayment   SquarePayments?   @relation(fields: [squarePaymentId], references: [id])
+    tenders         CheckoutTenders[]
+
+    @@index([orderId])
+    @@index([userId])
+}
+
+model CheckoutTenders {
+    id              String        @id @default(cuid())
+    tenderId        String        @unique
+    // squarePaymentId String
+    // squareOrderId   String
+    salesCheckoutId String
+    status          String
+    amount          Float?
+    tip             Float?
+    deletedAt       DateTime?     @db.Timestamp(0)
+    createdAt       DateTime?     @default(now()) @db.Timestamp(0)
+    checkout        SalesCheckout @relation(fields: [salesCheckoutId], references: [id])
+
+    @@index([salesCheckoutId])
+}
+
+// ---- community.prisma ----
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Projects {
+    id              Int               @unique @default(autoincrement())
+    archived        Boolean?
+    title           String?           @db.VarChar(255)
+    builderId       Int?
+    address         String?           @db.VarChar(255)
+    slug            String?           @unique @db.VarChar(255)
+    meta            Json?             @db.Json
+    refNo           String?           @db.VarChar(255)
+    deletedAt       DateTime?         @db.Timestamp(0)
+    createdAt       DateTime?         @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?         @updatedAt
+    homes           Homes[]
+    builder         Builders?         @relation(fields: [builderId], references: [id])
+    jobs            Jobs[]
+    communityModels CommunityModels[]
+    invoices        Invoices[]
+    homeTasks       HomeTasks[]
+
+    @@index([builderId])
+}
+
+model Homes {
+    id                  Int              @unique @default(autoincrement())
+    archived            Boolean?
+    projectId           Int
+    builderId           Int?
+    homeTemplateId      Int?
+    communityTemplateId Int?
+    homeKey             String?          @db.VarChar(255)
+    slug                String?          @unique @db.VarChar(255)
+    modelName           String?          @db.VarChar(255)
+    modelNo             String?          @db.VarChar(255)
+    lotBlock            String?          @db.VarChar(255)
+    lot                 String?          @db.VarChar(255)
+    block               String?          @db.VarChar(255)
+    status              String?          @db.VarChar(255)
+    address             String?          @db.VarChar(255)
+    meta                Json?            @db.Json
+    sentToProdAt        DateTime?        @db.Timestamp(0)
+    installedAt         DateTime?        @db.Timestamp(0)
+    deletedAt           DateTime?        @db.Timestamp(0)
+    createdAt           DateTime?        @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime?        @updatedAt
+    search              String?          @db.VarChar(255)
+    punchoutAt          DateTime?        @db.Timestamp(0)
+    installCost         Float?
+    punchoutCost        Float?
+    project             Projects         @relation(fields: [projectId], references: [id])
+    homeTemplate        HomeTemplates?   @relation(fields: [homeTemplateId], references: [id])
+    communityTemplate   CommunityModels? @relation(fields: [communityTemplateId], references: [id])
+    tasks               HomeTasks[]
+    jobs                Jobs[]
+    invoices            Invoices[]
+
+    @@index([createdAt, deletedAt, modelName, search, projectId])
+    @@index([projectId])
+    @@index([homeTemplateId])
+    @@index([communityTemplateId])
+}
+
+model HomeTasks {
+    id                   Int       @unique @default(autoincrement())
+    archived             Boolean?
+    homeId               Int?
+    type                 String?   @db.VarChar(255)
+    taskName             String?   @db.VarChar(255)
+    taskUid              String?   @db.VarChar(255)
+    status               String?   @db.VarChar(255)
+    meta                 Json?     @db.Json
+    producerName         String?   @db.VarChar(255)
+    search               String?   @db.VarChar(255)
+    productionStatus     String?   @db.VarChar(255)
+    checkNo              String?   @db.VarChar(255)
+    projectId            Int?
+    assignedToId         Int?
+    billable             Boolean?
+    produceable          Boolean?
+    installable          Boolean?
+    punchout             Boolean?
+    deco                 Boolean?
+    addon                Boolean?
+    taxCost              Float?
+    amountDue            Float?
+    amountPaid           Float?
+    completedAt          DateTime?
+    jobId                Int?
+    checkDate            DateTime? @db.Timestamp(0)
+    statusDate           DateTime? @db.Timestamp(0)
+    sentToProductionAt   DateTime? @db.Timestamp(0)
+    producedAt           DateTime? @db.Timestamp(0)
+    prodStartedAt        DateTime? @db.Timestamp(0)
+    productionStatusDate DateTime? @db.Timestamp(0)
+    productionDueDate    DateTime? @db.Timestamp(0)
+    deletedAt            DateTime? @db.Timestamp(0)
+    createdAt            DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt            DateTime? @updatedAt
+    home                 Homes?    @relation(fields: [homeId], references: [id])
+    project              Projects? @relation(fields: [projectId], references: [id])
+    job                  Jobs?     @relation(fields: [jobId], references: [id])
+    assignedTo           Users?    @relation(fields: [assignedToId], references: [id])
+
+    @@index([createdAt, deletedAt, produceable, billable, addon, deco, punchout, installable, taskName, projectId, jobId])
+    @@index([homeId])
+    @@index([projectId])
+    @@index([jobId])
+    @@index([assignedToId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model HomeTemplates {
+    id        Int          @unique @default(autoincrement())
+    builderId Int?
+    slug      String       @unique @db.VarChar(255)
+    modelNo   String?      @db.VarChar(255)
+    modelName String?      @db.VarChar(255)
+    meta      Json?        @db.Json
+    deletedAt DateTime?    @db.Timestamp(0)
+    createdAt DateTime?    @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?    @updatedAt
+    builder   Builders?    @relation(fields: [builderId], references: [id])
+    homes     Homes[]
+    costs     CostCharts[]
+
+    @@index([builderId])
+}
+
+model Invoices {
+    id        Int       @unique @default(autoincrement())
+    projectId Int?
+    homeId    Int?
+    refNo     String?   @db.VarChar(255)
+    lot       String?   @db.VarChar(255)
+    block     String?   @db.VarChar(255)
+    taskId    Int?
+    checkNo   String?   @db.VarChar(255)
+    amount    Float?
+    taskName  String?   @db.VarChar(255)
+    meta      Json?     @db.Json
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    taskUid   String?   @db.VarChar(255)
+    checkDate DateTime? @db.Timestamp(0)
+    project   Projects? @relation(fields: [projectId], references: [id])
+    home      Homes?    @relation(fields: [homeId], references: [id])
+
+    @@index([projectId])
+    @@index([homeId])
+}
+
+model CommunityModelPivot {
+    id              Int                  @unique @default(autoincrement())
+    model           String               @db.VarChar(255)
+    projectId       Int
+    meta            Json?                @db.Json
+    createdAt       DateTime?            @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?            @updatedAt
+    deletedAt       DateTime?            @db.Timestamp(0)
+    communityModels CommunityModels[]
+    modelCosts      CommunityModelCost[]
+}
+
+model CommunityModelCost {
+    id               Int                  @unique @default(autoincrement())
+    communityModelId Int?
+    pivotId          Int?
+    current          Boolean?
+    title            String               @db.VarChar(255)
+    type             String               @db.VarChar(255)
+    model            String               @db.VarChar(255)
+    meta             Json?                @db.Json
+    startDate        DateTime             @default(now()) @db.Timestamp(0)
+    endDate          DateTime?            @db.Timestamp(0)
+    createdAt        DateTime?            @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?            @updatedAt
+    deletedAt        DateTime?            @db.Timestamp(0)
+    community        CommunityModels?     @relation(fields: [communityModelId], references: [id])
+    pivot            CommunityModelPivot? @relation(fields: [pivotId], references: [id])
+
+    @@index([communityModelId])
+    @@index([pivotId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model Builders {
+    id            Int             @unique @default(autoincrement())
+    name          String?         @db.VarChar(255)
+    slug          String?         @db.VarChar(255)
+    meta          Json?           @db.Json
+    deletedAt     DateTime?       @db.Timestamp(0)
+    createdAt     DateTime?       @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?       @updatedAt
+    projects      Projects[]
+    homeTemplates HomeTemplates[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model CostCharts {
+    id        Int            @unique @default(autoincrement())
+    parentId  Int?
+    current   Boolean?
+    title     String         @db.VarChar(255)
+    type      String         @db.VarChar(255)
+    model     String         @db.VarChar(255)
+    meta      Json?          @db.Json
+    startDate DateTime       @default(now()) @db.Timestamp(0)
+    endDate   DateTime?      @db.Timestamp(0)
+    deletedAt DateTime?      @db.Timestamp(0)
+    createdAt DateTime?      @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?      @updatedAt
+    template  HomeTemplates? @relation(fields: [parentId], references: [id])
+
+    @@index([parentId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model CommunityModels {
+    id        Int       @unique @default(autoincrement())
+    projectId Int
+    pivotId   Int?
+    modelName String    @db.VarChar(255)
+    meta      Json?     @db.Json
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    transactionId String             @unique
-    transaction   WalletTransactions @relation(fields: [transactionId], references: [id])
+    slug    String                     @unique @db.VarChar(255)
+    project Projects                   @relation(fields: [projectId], references: [id])
+    homes   Homes[]
+    history CommunityTemplateHistory[]
+    costs   CommunityModelCost[]
+    pivot   CommunityModelPivot?       @relation(fields: [pivotId], references: [id])
 
-    invoiceId String      @unique
-    invoice   BillInvoice @relation(fields: [invoiceId], references: [id])
-
-    bills Bills[]
+    @@index([pivotId])
+    @@index([projectId])
 }
 
-// ---- staffs.prisma ----
-model StaffProfile {
-    id       String  @id @default(uuid())
-    name     String
-    title    String?
-    email    String?
-    password String?
-    phone    String?
-    phone2   String?
-    address  String?
+model CommunityTemplateHistory {
+    id                Int              @unique @default(autoincrement())
+    userId            Int
+    meta              Json?            @db.Json
+    createdAt         DateTime?        @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime?        @updatedAt
+    deletedAt         DateTime?        @db.Timestamp(0)
+    model             CommunityModels? @relation(fields: [communityModelsId], references: [id])
+    communityModelsId Int?
+    Users             Users            @relation(fields: [userId], references: [id])
 
-    classRoomAttendanceList ClassRoomAttendance[]
-    schoolProfile           SchoolProfile?        @relation(fields: [schoolProfileId], references: [id])
-    schoolProfileId         String?
-    subjects                StaffSubject[]
-    termProfiles            StaffTermProfile[]
-    createdAt               DateTime?             @default(now()) @db.Timestamp(0)
-    updatedAt               DateTime?             @updatedAt
-    deletedAt               DateTime?             @db.Timestamp(0)
+    @@index([userId])
+    @@index([communityModelsId])
 }
 
-model StaffTermProfile {
-    id String @id @default(uuid())
+// ---- mails.prisma ----
+model MailGrids {
+    id        Int                @unique @default(autoincrement())
+    title     String             @db.VarChar(255)
+    subject   String?            @db.VarChar(255)
+    html      String?            @db.Text
+    message   String?            @db.Text
+    design    String?            @db.LongText
+    fromName  String?            @db.VarChar(255)
+    fromEmail String?            @db.VarChar(255)
+    meta      Json?              @db.Json
+    status    String             @db.VarChar(255)
+    deletedAt DateTime?          @db.Timestamp(0)
+    createdAt DateTime?          @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?          @updatedAt
+    slug      String?            @db.VarChar(255)
+    type      String?            @db.VarChar(255)
+    events    MailEventTrigger[]
+}
 
-    bills Bills[]
+model MailEventTrigger {
+    id         Int        @unique @default(autoincrement())
+    when       String
+    mailGridId Int?
+    authorId   Int
+    status     String //draft,active etc
+    mail       MailGrids? @relation(fields: [mailGridId], references: [id])
+    deletedAt  DateTime?  @db.Timestamp(0)
+    createdAt  DateTime?  @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime?  @updatedAt
+    author     Users      @relation(fields: [authorId], references: [id])
 
-    staffProfileId String
-    staffProfile   StaffProfile @relation(fields: [staffProfileId], references: [id])
+    @@index([mailGridId])
+    @@index([authorId])
+}
 
-    schoolSessionId String
-    schoolSession   SchoolSession @relation(fields: [schoolSessionId], references: [id])
-
+model Inbox {
+    id        Int       @unique @default(autoincrement())
+    clientId  Int?
+    senderId  Int
+    parentId  Int?
+    subject   String?   @db.Text()
+    from      String    @db.Text()
+    to        String    @db.Text()
+    type      String    @db.Text()
+    body      String    @db.Text()
+    meta      Json?     @db.Json
+    sentAt    DateTime? @db.Timestamp(0)
+    deletedAt DateTime? @db.Timestamp(0)
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
 
-    classroomsProfiles StaffClassroomDepartmentTermProfiles[]
+    sender      Users              @relation(fields: [senderId], references: [id])
+    attachments InboxAttachments[]
 
-    sessionTerm   SessionTerm @relation(fields: [sessionTermId], references: [id])
-    sessionTermId String
+    @@index([senderId])
 }
 
-model StaffClassroomDepartmentTermProfiles {
-    id String @id @default(uuid())
-
-    classRoomDepartment   ClassRoomDepartment? @relation(fields: [classRoomDepartmentId], references: [id])
-    classRoomDepartmentId String?
-
+model InboxAttachments {
+    id        Int       @unique @default(autoincrement())
+    url       String
+    title     String
+    inboxId   Int
+    deletedAt DateTime? @db.Timestamp(0)
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
+    inbox     Inbox     @relation(fields: [inboxId], references: [id])
 
-    staffTermProfile   StaffTermProfile @relation(fields: [staffTermProfileId], references: [id])
-    staffTermProfileId String
+    @@index([inboxId])
 }
 
-model StaffSubject {
-    id String @id @default(uuid())
+// ---- sales.dispatch.prisma ----
+model OrderDelivery {
+    id           Int                 @unique @default(autoincrement())
+    salesOrderId Int
+    deliveredTo  String?
+    deliveryMode String
+    items        OrderItemDelivery[]
+    driverId     Int?
+    createdById  Int?
+    status       String?
+    dueDate      DateTime?
+    meta         Json?               @db.Json
+    createdAt    DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime            @updatedAt
+    deletedAt    DateTime?           @db.Timestamp(0)
+    order        SalesOrders         @relation(fields: [salesOrderId], references: [id])
+    driver       Users?              @relation(name: "driver", fields: [driverId], references: [id])
+    createdBy    Users?              @relation(name: "createdBy", fields: [createdById], references: [id])
+    // orderDeliveryProgress   OrderDeliveryProgress? @relation(fields: [orderDeliveryProgressId], references: [id])
+    // orderDeliveryProgressId Int?
+    // @@index([orderDeliveryProgressId])
 
-    staffProfilesId String
-    staffProfile    StaffProfile @relation(fields: [staffProfilesId], references: [id])
-
-    departmentSubject   DepartmentSubject? @relation(fields: [departmentSubjectId], references: [id])
-    departmentSubjectId String?
-
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
+    @@index([salesOrderId])
+    @@index([driverId])
+    @@index([createdById])
 }
 
-// ---- guardian.prisma ----
-model Guardians {
-    id String @id @default(uuid())
+model OrderItemDelivery {
+    id                          Int                         @unique @default(autoincrement())
+    orderItemId                 Int
+    orderId                     Int
+    lhQty                       Int?                        @default(0)
+    rhQty                       Int?                        @default(0)
+    qty                         Int                         @default(0)
+    meta                        Json?                       @db.Json
+    status                      String?
+    createdAt                   DateTime?                   @default(now()) @db.Timestamp(0)
+    updatedAt                   DateTime                    @updatedAt
+    deletedAt                   DateTime?                   @db.Timestamp(0)
+    orderDeliveryId             Int?
+    order                       SalesOrders                 @relation(fields: [orderId], references: [id])
+    salesItem                   SalesOrderItems             @relation(fields: [orderItemId], references: [id])
+    delivery                    OrderDelivery?              @relation(fields: [orderDeliveryId], references: [id])
+    orderProductionSubmissionId Int?
+    submission                  OrderProductionSubmissions? @relation(fields: [orderProductionSubmissionId], references: [id])
 
-    name   String
-    phone  String
-    phone2 String?
+    @@index([orderProductionSubmissionId])
+    @@index([orderId])
+    @@index([orderItemId])
+    @@index([orderDeliveryId])
+}
 
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
+model SalesPickup {
+    id               Int           @unique @default(autoincrement())
+    pickupBy         String?
+    pickupApprovedBy Int
+    meta             Json?         @db.Json
+    pickupAt         DateTime?     @db.Timestamp(0)
+    createdAt        DateTime?     @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?     @updatedAt
+    deletedAt        DateTime?     @db.Timestamp(0)
+    sales            SalesOrders[]
+    approvedBy       Users         @relation(fields: [pickupApprovedBy], references: [id])
 
-    schoolProfile   SchoolProfile @relation(fields: [schoolProfileId], references: [id])
-    schoolProfileId String
-
-    wards StudentGuardians[]
-
-    @@unique([name, phone, schoolProfileId])
+    @@index([pickupApprovedBy])
 }
 

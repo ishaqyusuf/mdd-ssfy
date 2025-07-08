@@ -20,10 +20,10 @@ export default defineConfig({
   },
   build: {
     extensions: [
-      syncVercelEnvVars({
-        projectId: process.env.PROJECT_ID_VERCEL!,
-        vercelAccessToken: process.env.VERCEL_TRIGGER_ACCESS_TOKEN!,
-      }),
+      // syncVercelEnvVars({
+      //   projectId: process.env.PROJECT_ID_VERCEL!,
+      //   vercelAccessToken: process.env.VERCEL_TRIGGER_ACCESS_TOKEN!,
+      // }),
       prismaExtension({
         // version: "5.20.0", // optional, we'll automatically detect the version if not provided
         // update this to the path of your Prisma schema file
