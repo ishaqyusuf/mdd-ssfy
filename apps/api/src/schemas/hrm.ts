@@ -9,7 +9,7 @@ export const employeeFormSchema = z
     profileId: z.number().optional().nullable(),
     phoneNo: z.string().optional().nullable(),
     username: z.string().optional().nullable(),
-    password: z.string().nullable().optional(), //.default("Millwork"),
+    password: z.string().nullable().optional().default("Millwork"),
   })
   .superRefine((data, ctx) => {
     if (data.id == null && !data.email) {
