@@ -1,43 +1,43 @@
-// model Inventory {
-//     id    Int    @unique @default(autoincrement())
-//     title String
-//     type  String // door | etc
+model Inventory {
+    id    Int    @unique @default(autoincrement())
+    title String
+    type  String // door | etc
 
-//     variants  InventoryVariant[]
-//     createdAt DateTime?          @default(now()) @db.Timestamp(0)
-//     updatedAt DateTime?          @updatedAt
-//     deletedAt DateTime?          @db.Timestamp(0)
-// }
+    variants  InventoryVariant[]
+    createdAt DateTime?          @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?          @updatedAt
+    deletedAt DateTime?          @db.Timestamp(0)
+}
 
-// model InventoryVariant {
-//     id           Int     @unique @default(autoincrement())
-//     variantTitle String? //null if no variant
-//     img          String?
+model InventoryVariant {
+    id           Int     @unique @default(autoincrement())
+    variantTitle String? //null if no variant
+    img          String?
 
-//     createdAt DateTime? @default(now()) @db.Timestamp(0)
-//     updatedAt DateTime? @updatedAt
-//     deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
 
-//     inventoryId Int
-//     inventory   Inventory @relation(fields: [inventoryId], references: [id])
+    inventoryId Int
+    inventory   Inventory @relation(fields: [inventoryId], references: [id])
 
-//     pricings InventoryVariantPrice[]
+    pricings InventoryVariantPrice[]
 
-//     @@index([inventoryId])
-// }
+    @@index([inventoryId])
+}
 
-// model InventoryVariantPrice {
-//     id Int @unique @default(autoincrement())
+model InventoryVariantPrice {
+    id Int @unique @default(autoincrement())
 
-//     salesPrice Float?
-//     costPrice  Float?
+    salesPrice Float?
+    costPrice  Float?
 
-//     createdAt DateTime? @default(now()) @db.Timestamp(0)
-//     updatedAt DateTime? @updatedAt
-//     deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
 
-//     inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
-//     inventoryVariantId Int
+    inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
+    inventoryVariantId Int
 
-//     @@index([inventoryVariantId])
-// }
+    @@index([inventoryVariantId])
+}

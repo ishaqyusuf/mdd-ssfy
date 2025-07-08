@@ -23,9 +23,10 @@ export async function updateUserProfileAction(
   ctx: TRPCContext,
   data: UpdateUserProfileSchema,
 ) {
-  await saveEmployee(ctx, {
-    id: ctx.userId,
-    name: data.name,
-    username: data.username,
-  });
+  // await saveEmployee(ctx, {
+  //   id: ctx.userId,
+  //   name: data.name,
+  //   username: data.username,
+  //   // email: ctx.db.
+  // });
 }

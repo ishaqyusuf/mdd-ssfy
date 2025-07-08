@@ -55,7 +55,8 @@ export async function inifinitePageInfo<T>(
     };
 }
 export async function getPageInfo(query, where, model) {
-    const { page = 1, perPage = 20 } = query;
+    let { page = 1, perPage = 20 } = query;
+    if (!perPage) perPage = 20;
     const skip = (page - 1) * Number(perPage);
     const count = await model.count({
         where,
