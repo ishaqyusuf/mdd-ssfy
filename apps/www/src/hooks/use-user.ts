@@ -1,5 +1,5 @@
 import { useTRPC } from "@/trpc/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function useUserProfileUpdate() {
     const trp = useTRPC();
@@ -8,3 +8,4 @@ export function useUserProfileUpdate() {
     //     trpc.
     // )
 }
+

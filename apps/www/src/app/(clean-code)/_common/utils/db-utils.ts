@@ -42,7 +42,7 @@ export async function inifinitePageInfo<T>(
     query,
     where,
     model,
-    data: T[] = []
+    data: T[] = [],
 ) {
     const info = await getPageInfo(query, where, model);
     return {
@@ -103,9 +103,9 @@ export function pageQueryFilter(query) {
             [sort || "id"]: sort_order,
         };
     }
-
+    console.log({ skip, perPage });
     return {
-        take: Number(perPage),
+        take: Number(perPage || 30),
         skip: Number(skip),
         orderBy,
     };
