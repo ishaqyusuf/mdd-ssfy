@@ -1,3 +1,4 @@
+"use client";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useSession } from "next-auth/react";
 import { z } from "zod";
