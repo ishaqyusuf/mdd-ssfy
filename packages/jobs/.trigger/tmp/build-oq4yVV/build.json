@@ -1,0 +1,63 @@
+{
+  "contentHash": "6f5a578199b3ab51fe78192cbdcd1d4e",
+  "runtime": "node",
+  "cliPackageVersion": "3.3.17",
+  "packageVersion": "3.3.17",
+  "environment": "dev",
+  "target": "dev",
+  "files": [
+    {
+      "entry": "src/tasks/example.ts",
+      "out": "/Users/M1PRO/Documents/code/_turbo/schoolclerk/packages/jobs/.trigger/tmp/build-oq4yVV/packages/jobs/src/tasks/example.mjs"
+    }
+  ],
+  "sources": {
+    "src/tasks/example.ts": {
+      "contents": "eJxtUU1Pg0AQvfMrJpwgaQE1XiA1fkeNURN68mK2sOAIu1tnl1rS9L+7W6g10ctOMu+9eW9mUSwVGdgAXzOxbPmc6eaF9a1iJWyhIiXAP/9QCx3r4p0L5mce7iWtqmtOExgQpzxIDKEDo5KvYl028erkt3JJqAU7sO0Epdpp0XJq4nJhqYWS2sDlxfzq7i2/f72BGZwmSeZ5fL2bMeBjaAseMgQbDwDLFPwRnRrb9Se2O5DSf3Z1qGDr646YQSVTODpOXO+z4x1PwY0E51l0RFwW/SMKNJa1I23dQ51VMd3LAoLNNoTZ2ahiXwzNeKsIZaUCPzeMDMr6J/8uYZjtXexmneZk1xrEw7ki14sqlOUtkjbOJfvrYEvwkD8/Rdp+gayx6gOnC0duyw2oqtK2zCDJhvRu0DeMTKpZ",
+      "contentHash": "410f95b4fd8df27d8e45bbfb33ffe91b"
+    },
+    "trigger.config.ts": {
+      "contents": "eJyNVMFy2jAQvfMVii8lMx6bJpMcnEspeBhamjDgcOmkjGKtQUWWXEl2QjP8eyVhOybJoRcsdvet3r59Ns0LITV6QQQyymEkeEY36IAyKXLkfdGSbjYgAwJVqMgurC69mx5tMGrP0xXIFFjMqxWW6mPgY0kZCeFZA1dUcBWmQkK3TyGpynHcFPxnlyOq22fuIlOutCxz4Brrk25HQEhP86ZBD55dB6MBLpk+0aL/0kOGoPgNqY7sIQWlAuBVkCymk0m8WM8Xd9/iUbKejs98UytLrmkOEfK4IODZEBObGVTATMwcXSjHz+NSOgIRuh44IJhxQUXI3ogQcPzIgEz5GKoIZZgp8F2iZtnUuV5DrSEvtAFf+k2U8sTwEKWe8h8m8XkwGPiviHe5NpnhVAsZoYsmIDEnIqd/zUxGuJrFwT7cj1tMy7rdT4R+1vh3Nuk3zFtlp+RU21dN16t4MYpnZ34LqVyrYWqLE7EDfgo91q+b7QxHo3i5XCd33+PbtsnhvDm9sV6HWRjam5RbkHcVXAyCgefbqCjs1jDz0RN8YgzhUovcbDLFjO3NdrSZB+ktNHBEM8SFtiQrSoB0bygLgjWYaqqQFg5VYL1FIkN7Ucra0UilWzCPjDLoylCT+3UdXFlybYpQaTjcy1rvW+zsOL9bJpNFvFzfL2Zukq5q42Ey/DpcxjbZ0fp4sQEHoZJpePwb1G+e351E7wsgyz+s65E6ldONcTqcZpoVPPitb6QR1bjGU1ssC8PQSzGvsPIeWquZwayvajYaq12dffNO2yIOTx9/EPrnBnI4v+n9A1S2jg0=",
+      "contentHash": "c517a35440efbdd33bf2447f184e339a"
+    },
+    "tsconfig.json": {
+      "contents": "eJxFTjsOgzAM3TlF5LECsnfiBp06VVUFSVpCQxzFQaJC3L0O/SB5sN/z+yyFEGDmZLwmOApoSPWIrlLOxKdMpNDf7UN2LZl6IPRQZoH1yk3asOACFBWUAupa8qRXMATX8uO6P3nU5jaintyfVjgGyymnkCz6HL4wzETOOkeX29RbHGOhTf3+wkAzYEfy8GvA23Wj1q9goDkbRNOqVOWD4bVYizclP0RM",
+      "contentHash": "dd6aacf9159f742f1e53f7b40e1e8f10"
+    },
+    "package.json": {
+      "contents": "eJxtUstuwjAQvPMVVg49VNghQEHtqYf2NyqZzUIMiW15nRSK+u9dJ+HRqoco9u7M7GQ254kQmdUNZi8ieyWonKsl1BgO+d5tKJumfoeBjLMJMlMzVQxVH0ynYyLG0GJfIgjGR+LSma9cKLFLrE1rjwJtJ6EphdwKxWdmmd0Og0iY6QXua3caGSLww0Oo0SqSeHgQ/8koH1zZQmR/d4q9zCgaTx6hQjgk3UggpLTuvTEx4/537xuP3oV73yrnKLDRicLnAOOdjdxYPAZtiRYM3lFft5qiBOryrQuNjkniiVObX/z8TrncJMCnCwfyGvDl8QYztgxILlQt5VS3O7Pto/mYq/m4gwT7Ml7tKR9eY3+tVtdxwMutQRPKA54GwLMq1OLSr9CABGd5yb3XgtWXl6Z1JcpjTceexx+xVLPr5GE3OdQGbU/9WKmiuFmjSgc//DSLJZfvguve/s1uXKAaf5uFWqhifZ2XFkn5X7+cBXtK2pPvyQ+fb8pl",
+      "contentHash": "3fd998c4079111302bfc745e07821421"
+    }
+  },
+  "externals": [
+    {
+      "name": "import-in-the-middle",
+      "version": "1.11.0"
+    },
+    {
+      "name": "@prisma/client",
+      "version": "6.11.1"
+    }
+  ],
+  "config": {
+    "project": "proj_wiixtfwfyigtsruijbqd",
+    "dirs": [
+      "./src/tasks"
+    ]
+  },
+  "outputPath": "/Users/M1PRO/Documents/code/_turbo/schoolclerk/packages/jobs/.trigger/tmp/build-oq4yVV",
+  "runWorkerEntryPoint": "/Users/M1PRO/Documents/code/_turbo/schoolclerk/packages/jobs/.trigger/tmp/build-oq4yVV/node_modules/trigger.dev/dist/esm/entryPoints/dev-run-worker.mjs",
+  "indexWorkerEntryPoint": "/Users/M1PRO/Documents/code/_turbo/schoolclerk/packages/jobs/.trigger/tmp/build-oq4yVV/node_modules/trigger.dev/dist/esm/entryPoints/dev-index-worker.mjs",
+  "loaderEntryPoint": "/Users/M1PRO/Documents/code/_turbo/schoolclerk/packages/jobs/.trigger/tmp/build-oq4yVV/node_modules/trigger.dev/dist/esm/entryPoints/loader.mjs",
+  "configPath": "/Users/M1PRO/Documents/code/_turbo/schoolclerk/packages/jobs/.trigger/tmp/build-oq4yVV/packages/jobs/trigger.config.mjs",
+  "customConditions": [],
+  "deploy": {
+    "env": {}
+  },
+  "build": {},
+  "otelImportHook": {
+    "include": [
+      "@prisma/client"
+    ]
+  }
+}

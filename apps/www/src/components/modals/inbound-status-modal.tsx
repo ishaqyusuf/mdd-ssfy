@@ -108,12 +108,12 @@ export function InboundSalesModal({}) {
                                 />
                             </div>
                             <DialogFooter className="flex justify-end gap-4">
-                                <Button
+                                {/* <Button
                                     variant="secondary"
                                     // action={updateAccount}
                                 >
                                     Cancel
-                                </Button>
+                                </Button> */}
                                 <SubmitButton
                                     type="submit"
                                     isSubmitting={saveInboundStatus.isPending}
