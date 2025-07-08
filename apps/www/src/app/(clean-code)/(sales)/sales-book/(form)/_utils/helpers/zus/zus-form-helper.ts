@@ -30,12 +30,10 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         dayjs("2025-02-12").diff(dayjs(data._rawData?.createdAt), "days") > 0;
     function customPrice(price) {
         if (!price && isLegacy) {
-            // console.log("IS LEGACY");
             return "";
         }
         return price;
     }
-    // console.log({ itemArray: data.itemArray });
     const ecs = data.order.extraCosts;
     const extraCosts = Object.fromEntries(
         (data.order.extraCosts || []).map((c, ci) => [
@@ -114,8 +112,8 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
             salesLaborConfig: data?.order?.id
                 ? data?.order?.meta?.laborConfig || {}
                 : {
-                      rate: data?.laborConfig?.rate,
-                      id: data?.laborConfig?.id,
+                      //   rate: data?.laborConfig?.rate,
+                      //   id: data?.laborConfig?.id,
                   },
             salesMultiplier,
             deliveryMode: data.order.deliveryOption as any,

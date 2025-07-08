@@ -22,7 +22,7 @@ export async function saveEmployee(ctx: TRPCContext, data: EmployeeFormSchema) {
     : await ctx.db.users.create({
         data: {
           name: formData.name,
-          email: formData.email,
+          email: formData.email!,
           phoneNo: formData.phoneNo,
           password,
         },
