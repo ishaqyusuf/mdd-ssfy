@@ -108,7 +108,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                 grandTotal: data.order?.grandTotal,
                 paid: copy ? 0 : data.paidAmount || 0,
             },
-            laborConfig: data?.laborConfig,
+            laborConfig: data?.order?.id ? data?.laborConfig : ({} as any),
             salesLaborConfig: data?.order?.id
                 ? data?.order?.meta?.laborConfig || {}
                 : {
