@@ -41,7 +41,10 @@ export async function getStepPricings(ctx: TRPCContext, dykeStepId) {
   });
   return pricings;
 }
-export async function getProductsByUids(ctx: TRPCContext, productUids) {
+export async function getProductsByUids(
+  ctx: TRPCContext,
+  productUids: string[],
+) {
   const products = await ctx.db.dykeStepProducts.findMany({
     where: {
       uid: {

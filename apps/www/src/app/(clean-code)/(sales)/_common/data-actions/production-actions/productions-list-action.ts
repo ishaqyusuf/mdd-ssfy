@@ -190,7 +190,9 @@ function transformProductionList(item: GetProductionList[number]) {
         salesRep: item?.salesRep?.name,
         assignedTo: Array.from(
             new Set(item.assignments.map((a) => a.assignedTo?.name)),
-        ).join(" & "),
+        )
+            .filter((a) => !!a)
+            .join(" & "),
         uuid: item.orderId,
         id: item.id,
         stats,

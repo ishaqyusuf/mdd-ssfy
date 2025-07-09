@@ -80,6 +80,18 @@ function Status({ item }: ItemProps) {
         </TCell>
     );
 }
+function AssignedTo({ item }: ItemProps) {
+    return (
+        <TCell>
+            <TCell.Primary className="whitespace-nowrap uppercase">
+                <TextWithTooltip
+                    className="max-w-[185px]"
+                    text={item.assignedTo}
+                />
+            </TCell.Primary>
+        </TCell>
+    );
+}
 function SalesRep({ item }: ItemProps) {
     return (
         <TCell>
@@ -107,6 +119,7 @@ export let Cells = {
     Alert,
     Order,
     SalesRep,
+    AssignedTo,
     Assignments,
     Status,
     Customer({ item }: ItemProps) {

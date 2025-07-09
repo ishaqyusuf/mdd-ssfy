@@ -193,6 +193,7 @@ const AssignmentsInclude = {
     | Prisma.DykeSalesDoors$productionsArgs
     | Prisma.SalesOrderItems$assignmentsArgs;
 export const SalesIncludeAll = {
+    extraCosts: true,
     items: {
         where: { deletedAt: null },
         include: {

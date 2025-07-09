@@ -4,15 +4,14 @@ import { z } from "zod";
 const createInventoryTypeSchema = z.object({
   name: z.string(),
   uid: z.string(),
-  attributes: z.array(
-    z.object({
-      associatedDykeStepId: z.number().nullable().optional(),
-      associatedInventoryTypeId: z.number().nullable().optional(),
-      name: z.string(),
-      type: z.string().optional().nullable(),
-      values: z.array(z.string()).optional().nullable(),
-    }),
-  ),
+  attributes: z
+    .array(
+      z.object({
+        inventoryTypeId: z.number(),
+      }),
+    )
+    .optional()
+    .nullable(),
 });
 type CreateInventoryType = z.infer<typeof createInventoryTypeSchema>;
 export async function createInventoryType(
@@ -21,7 +20,10 @@ export async function createInventoryType(
 ) {
   const inventoryType = await ctx.db.inventoryType.upsert({
     where: {
-      name: data.name,
+      name_uid: {
+        name: data.name,
+        uid: data.uid,
+      },
     },
     create: {
       name: data.name,
@@ -29,33 +31,66 @@ export async function createInventoryType(
     },
     update: {},
   });
-  for (const attribute of data.attributes) {
-    let attributeId = (
-      await ctx.db.variantAttribute.create({
-        data: {
-          name: attribute.name,
-          type: attribute.type,
-          associatedDykeStepId: attribute.associatedDykeStepId || 0,
-          associatedInventoryTypeId: attribute.associatedInventoryTypeId || 0,
-          values: !attribute.values?.length
-            ? undefined
-            : {
-                createMany: {
-                  skipDuplicates: true,
-                  data: attribute.values?.map((value) => ({
-                    value,
-                  })),
-                },
-              },
-        },
-      })
-    ).id;
+  for (const attribute of data.attributes || []) {
     await ctx.db.inventoryTypeAttribute.create({
       data: {
-        attributeId,
         inventoryTypeId: inventoryType.id,
+        attributedInventoryTypeId: attribute.inventoryTypeId,
       },
     });
+    return inventoryType;
   }
 }
-export async function createInventory(ctx: TRPCContext) {}
+const createInventorySchema = z.object({
+  typeId: z.number(),
+  uid: z.string(),
+  title: z.string(),
+  img: z.string().nullable().optional(),
+});
+type CreateInventory = z.infer<typeof createInventorySchema>;
+export async function createInventory(ctx: TRPCContext, data: CreateInventory) {
+  return await ctx.db.inventory.create({
+    data: {
+      typeId: data.typeId,
+      uid: data.uid,
+      title: data.title,
+      img: data.img,
+    },
+  });
+}
+const createInventoryVariantSchema = z.object({
+  inventoryId: z.number(),
+  uid: z.string(),
+  attributes: z
+    .array(
+      z.object({
+        inventoryTypeAttributeId: z.number(),
+        attributedVariantId: z.number(),
+      }),
+    )
+    .optional()
+    .nullable(),
+});
+type CreateInventoryVariant = z.infer<typeof createInventoryVariantSchema>;
+export async function createInventoryVariant(
+  ctx: TRPCContext,
+  data: CreateInventoryVariant,
+) {
+  const variant = await ctx.db.inventoryVariant.create({
+    data: {
+      uid: data.uid,
+      inventoryId: data.inventoryId,
+      attributes: !data?.attributes?.length
+        ? undefined
+        : {
+            createMany: {
+              data: data.attributes?.map((a) => ({
+                inventoryTypeAttributeId: a.inventoryTypeAttributeId,
+                attributedVariantId: a.attributedVariantId,
+              })),
+            },
+          },
+    },
+  });
+  return variant;
+}

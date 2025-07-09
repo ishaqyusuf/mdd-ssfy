@@ -47,6 +47,29 @@ export async function copySalesDta(orderId, as) {
                     subTotal: sale.subTotal,
                     isDyke: sale.isDyke,
                     taxPercentage: sale.taxPercentage,
+                    extraCosts: {
+                        createMany: {
+                            data: sale.extraCosts.map(
+                                ({
+                                    amount,
+                                    label,
+                                    percentage,
+                                    tax,
+                                    taxxable,
+                                    totalAmount,
+                                    type,
+                                }) => ({
+                                    amount,
+                                    label,
+                                    percentage,
+                                    tax,
+                                    taxxable,
+                                    totalAmount,
+                                    type,
+                                }),
+                            ),
+                        },
+                    },
                     taxes: {
                         createMany: {
                             data: sale.taxes.map(
@@ -54,7 +77,7 @@ export async function copySalesDta(orderId, as) {
                                     taxCode,
                                     taxxable,
                                     tax,
-                                })
+                                }),
                             ),
                         },
                     },
@@ -120,7 +143,7 @@ export async function copySalesDta(orderId, as) {
                                                       stepId,
                                                       value,
                                                       salesId: newSales.id,
-                                                  })
+                                                  }),
                                               ),
                                           },
                                       },
@@ -165,7 +188,7 @@ export async function copySalesDta(orderId, as) {
                                                                     swing: d.swing,
                                                                     doorType:
                                                                         d.doorType,
-                                                                })
+                                                                }),
                                                             ),
                                                         },
                                                     },
@@ -181,8 +204,8 @@ export async function copySalesDta(orderId, as) {
                             },
                         });
                         return newItem;
-                    }
-                )
+                    },
+                ),
             );
             response = {
                 id: newSales.id,

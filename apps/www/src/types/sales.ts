@@ -2,6 +2,7 @@ import {
     AddressBooks,
     CustomerTypes,
     OrderProductionSubmissions,
+    Prisma,
     Progress,
     SalesOrderItems,
     SalesOrders,
@@ -38,13 +39,20 @@ export interface IBackOrderForm {
         };
     };
 }
-export type ISalesOrder = OmitMeta<SalesOrders> & {
-    customer?: ICustomer;
-    billingAddress?: any;
-    shippingAddress?: any;
+export type ISalesOrder = OmitMeta<
+    Prisma.SalesOrdersGetPayload<{
+        include: {
+            extraCosts: true;
+            producer: true;
+            salesRep: true;
+            billingAddress: true;
+            shippingAddress: true;
+            customer: true;
+        };
+    }>
+> & {
     progress?: Progress[];
-    producer?: Users;
-    salesRep?: Users;
+
     items: ISalesOrderItem[] | undefined;
     payments: ISalesPayment[] | undefined;
     prodStatus: ProdStatus;

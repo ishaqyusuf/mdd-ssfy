@@ -13,13 +13,6 @@ export const salesRouter = createTRPCRouter({
   index: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
     return getSales(props.ctx, props.input);
   }),
-  getByClassroom: publicProcedure
-    // .input(getClassroomSubjectsSchema)
-    .query(async ({ input, ctx: { db } }) => {
-      return {
-        message: "Hello World",
-      };
-    }),
   inboundIndex: publicProcedure
     .input(inboundQuerySchema)
     .query(async (props) => {

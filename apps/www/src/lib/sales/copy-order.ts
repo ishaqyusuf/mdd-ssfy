@@ -14,10 +14,10 @@ export function cloneOrderItem(item: ISalesOrderItem) {
         ...itemData
     } = item;
     return {
-        item: ({
+        item: {
             ...itemData,
-            meta: { ...itemMeta }
-        } as any) as ISalesOrderItem,
+            meta: { ...itemMeta },
+        } as any as ISalesOrderItem,
         id,
         salesOrderId,
         prodStatus,
@@ -26,7 +26,7 @@ export function cloneOrderItem(item: ISalesOrderItem) {
         prodStartedAt,
         prodCompletedAt,
         truckLoadQty,
-        produced_qty
+        produced_qty,
     };
 }
 export function cloneOrder(order: ISalesOrder) {
@@ -50,32 +50,14 @@ export function cloneOrder(order: ISalesOrder) {
         items,
         payments,
         meta: { truckLoadLocation, ...meta },
+        extraCosts,
         ...newOrder
     } = order;
-    // if (items)
-    //     items = items.map(
-    //         ({
-    //             id,
-    //             salesOrderId,
-    //             prodStatus,
-    //             prebuiltQty,
-    //             sentToProdAt,
-    //             prodStartedAt,
-    //             prodCompletedAt,
-    //             truckLoadQty,
-    //             meta: { produced_qty, ...itemMeta },
-    //             ...itemData
-    //         }) => ({
-    //             id,
-    //             item: {
-    //                 ...itemData,
-    //                 meta: itemMeta
-    //             }
-    //         })
-    //     ) as any;
+
     return {
         newOrder: { ...newOrder, meta } as ISalesOrder,
         orderId,
+        extraCosts,
         id,
         status,
         slug,
@@ -92,6 +74,7 @@ export function cloneOrder(order: ISalesOrder) {
         paymentTerm,
         inventoryStatus,
         items,
-        payments
+        payments,
     };
 }
+
