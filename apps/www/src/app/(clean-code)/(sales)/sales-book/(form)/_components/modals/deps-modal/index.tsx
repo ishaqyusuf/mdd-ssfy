@@ -10,7 +10,6 @@ import { Form } from "@gnd/ui/form";
 import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 
 import {
-    DykeForm,
     DykeStep,
     DykeStepMeta,
 } from "../../../../../../../(v2)/(loggedIn)/sales-v2/type";
