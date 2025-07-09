@@ -55,6 +55,7 @@ export async function getProductsByUids(
       uid: true,
       step: {
         select: {
+          uid: true,
           id: true,
           title: true,
         },

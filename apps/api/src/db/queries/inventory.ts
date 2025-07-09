@@ -28,18 +28,19 @@ export async function createInventoryType(
     create: {
       name: data.name,
       uid: data.uid,
+      attributes: !data?.attributes?.length
+        ? undefined
+        : {
+            createMany: {
+              data: data.attributes.map((atr) => ({
+                attributedInventoryTypeId: atr.inventoryTypeId,
+              })),
+            },
+          },
     },
     update: {},
   });
-  for (const attribute of data.attributes || []) {
-    await ctx.db.inventoryTypeAttribute.create({
-      data: {
-        inventoryTypeId: inventoryType.id,
-        attributedInventoryTypeId: attribute.inventoryTypeId,
-      },
-    });
-    return inventoryType;
-  }
+  return inventoryType;
 }
 const createInventorySchema = z.object({
   typeId: z.number(),
