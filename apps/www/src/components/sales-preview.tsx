@@ -3,7 +3,7 @@ import { getSalesPrintData } from "@/app/(v2)/printer/sales/get-sales-print-data
 import { OrderBasePrinter } from "@/app/(v2)/printer/sales/order-base-printer";
 import SalesPrintDisplay from "@/app/(v2)/printer/sales/sales-print-display";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
-import { rndTimeout, timeout } from "@/lib/timeout";
+import { rndTimeout } from "@/lib/timeout";
 import { SalesInvoicePdfTemplate } from "@gnd/printer/templates/sales-invoice";
 import { useAsyncMemo } from "use-async-memo";
 

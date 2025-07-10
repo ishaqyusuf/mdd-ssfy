@@ -48,7 +48,7 @@ export default async function Page(props: Props) {
             // description="Manage inbound orders"
         >
             <div className="flex flex-col gap-6">
-                <InboundHeader />
+                {/* <InboundHeader /> */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 pt-6">
                     <Suspense fallback={<InboundSummarySkeleton />}>
                         <InboundTotal />

@@ -4,7 +4,7 @@ import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";
 import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import { Menu } from "@/components/(clean-code)/menu";
-import { useSalesPreviewModal } from "@/components/modals/sales-preview-modal";
+
 import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { RefreshCcw } from "lucide-react";
@@ -22,10 +22,11 @@ import { salesOverviewStore } from "../store";
 import { CopyMenuAction } from "./copy.menu.action";
 import { MoveMenuAction } from "./move.menu.action";
 import { PrintMenuAction } from "./print.menu.action";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
 
 export function Footer({}) {
     const store = salesOverviewStore();
-    const sPreview = useSalesPreviewModal();
+    const sPreview = useSalesPreview();
     function preview() {
         sPreview.preview(store.overview?.orderId, store.overview.type as any);
     }

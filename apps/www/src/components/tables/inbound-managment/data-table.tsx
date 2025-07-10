@@ -10,7 +10,7 @@ import { columns } from "./columns";
 import { Table, TableBody } from "@gnd/ui/table";
 import { TableHeaderComponent } from "../table-header";
 import { TableRow } from "../table-row";
-import { LoadMore } from "../load-more";
+import { LoadMoreTRPC } from "../load-more";
 
 export function DataTable({}) {
     const trpc = useTRPC();
@@ -25,7 +25,7 @@ export function DataTable({}) {
         },
         {
             getNextPageParam: ({ meta }) => {
-                return meta?.cusor?.toString();
+                return meta?.cusor; //?.toString();
             },
         },
     );
@@ -45,11 +45,6 @@ export function DataTable({}) {
                 {
                     columns: columns,
                     data: tableData,
-                    // hasNextPage,
-                    // loadMore,
-                    // pageSize,
-                    // setParams,
-                    // params,
                     tableMeta: {
                         deleteAction(id) {
                             // deleteStudent.execute({
@@ -68,12 +63,15 @@ export function DataTable({}) {
             <div className="flex flex-col gap-4">
                 <Table>
                     <TableHeaderComponent />
-
                     <TableBody>
                         <TableRow />
                     </TableBody>
                 </Table>
-                <LoadMore ref={ref} hasNextPage={hasNextPage} />
+                {/* {JSON.stringify(data?.pages?.[0]?.meta)} */}
+                {hasNextPage ? "Load More" : "No more data"}
+                {!hasNextPage || (
+                    <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />
+                )}
             </div>
         </TableProvider>
     );

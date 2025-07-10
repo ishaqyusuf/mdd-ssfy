@@ -15,7 +15,7 @@ export function generateDownloadLink(publicId) {
 export async function uploadPDFToCloudinary(
     buffer: Buffer,
     public_id: string,
-    folder: UploadFolders
+    folder: UploadFolders,
 ) {
     try {
         return new Promise<UploadApiResponse & { downloadUrl?: string }>(
@@ -41,16 +41,16 @@ export async function uploadPDFToCloudinary(
                                 //     result.asset_id
                                 // }/download`,
                                 downloadUrl: generateDownloadLink(
-                                    result.public_id
+                                    result.public_id,
                                 ),
                             });
                         } else {
                             reject(error);
                         }
-                    }
+                    },
                 );
                 uploadStream.end(buffer);
-            }
+            },
         );
     } catch (error) {}
 }

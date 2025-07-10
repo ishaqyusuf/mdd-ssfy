@@ -11,7 +11,6 @@ import { Menu } from "@/components/(clean-code)/menu";
 import { MenuItemSalesCopy } from "@/components/menu-item-sales-copy";
 import { MenuItemSalesMove } from "@/components/menu-item-sales-move";
 import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
-import { useSalesPreviewModal } from "@/components/modals/sales-preview-modal";
 import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -25,6 +24,7 @@ import { ToastAction } from "@gnd/ui/toast";
 
 import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { useSaleOverview } from "./context";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
 
 export function GeneralFooter({}) {
     const { data } = useSaleOverview();
@@ -48,7 +48,7 @@ export function GeneralFooter({}) {
         });
     }
     const [menuOpen, setMenuOpen] = useState(false);
-    const sPreview = useSalesPreviewModal();
+    const sPreview = useSalesPreview();
     function preview() {
         sPreview.preview(data?.orderId, data?.type);
     }

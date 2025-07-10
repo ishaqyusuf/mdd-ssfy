@@ -19,6 +19,16 @@ export function useSalesPreview() {
         params,
         opened,
         setParams,
+        close() {
+            setParams(null);
+        },
+        preview(id, salesPreviewType: typeof params.salesPreviewType) {
+            setParams({
+                salesPreviewSlug: id,
+                salesPreviewType,
+                previewMode: "order",
+            });
+        },
     };
 }
 

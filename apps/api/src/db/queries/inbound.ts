@@ -102,6 +102,7 @@ export async function getInbounds(ctx: TRPCContext, query: InboundQuerySchema) {
       ctx,
       sales.data.map((a) => a.id),
     );
+  // console.log(sales.meta);
   return {
     ...sales,
     data: sales.data.map((sale) => ({

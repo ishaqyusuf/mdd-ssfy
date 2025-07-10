@@ -20,9 +20,9 @@ import { useTRPC } from "@/trpc/client";
 import { useEffect } from "react";
 import { SubmitButton } from "../submit-button";
 import { ScrollArea } from "@gnd/ui/scroll-area";
-import { useSalesPreviewModal } from "./sales-preview-modal";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { SalesPreview } from "../sales-preview";
+import { InboundDocumentUploadZone } from "../sales-inbound/inbound-document-upload-zone";
 
 // get schema from zod input
 const formSchema = saveInboundNoteSchema;
@@ -75,10 +75,14 @@ export function InboundSalesModal({}) {
     }
     return (
         <Dialog
-            open={!!params.inboundOrderId}
-            onOpenChange={() => setParams(null)}
+            open={!!params.inboundOrderId && params.updateInboundStatus}
+            onOpenChange={() =>
+                setParams({
+                    updateInboundStatus: null,
+                })
+            }
         >
-            <DialogContent className="min-w-max h-[90vh] flex flex-col max-w-4xl">
+            <DialogContent className="min-w-max   flex flex-col max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Update Order Inbound</DialogTitle>
                     <DialogDescription>
@@ -86,11 +90,11 @@ export function InboundSalesModal({}) {
                         {params.inboundOrderNo}
                     </DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="flex-1 relative overflow-auto max-w-4xl">
+                <ScrollArea className="flex-1 relative overflow-auto">
                     <FormProvider {...form}>
                         <form
                             onSubmit={form.handleSubmit(onSubmit)}
-                            className="space-y-4 fixed top-0 right-0 left-0 border-b pt-2 z-10 bg-white"
+                            className="space-y-4"
                         >
                             <div className="">
                                 <FormSelect
@@ -124,9 +128,22 @@ export function InboundSalesModal({}) {
                             </DialogFooter>
                         </form>
                     </FormProvider>
-                    <div className="pt-[150px]">
+                    <InboundDocumentUploadZone
+                        onUploadComplete={(e) => {
+                            console.log(e);
+                        }}
+                    >
+                        <Button
+                            onClick={() =>
+                                document.getElementById("upload-files")?.click()
+                            }
+                        >
+                            Upload
+                        </Button>
+                    </InboundDocumentUploadZone>
+                    {/* <div className="pt-[150px]">
                         <SalesPreview />
-                    </div>
+                    </div> */}
                 </ScrollArea>
             </DialogContent>
         </Dialog>
