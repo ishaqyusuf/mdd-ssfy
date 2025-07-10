@@ -42,7 +42,7 @@ export interface IBackOrderForm {
 export type ISalesOrder = OmitMeta<
     Prisma.SalesOrdersGetPayload<{
         include: {
-            // extraCosts: true;
+            extraCosts: true;
             // producer: true;
             // salesRep: true;
             // billingAddress: true;
