@@ -22,3 +22,15 @@ export type PageFilterData<TValue = string> = {
     value: string;
   }[];
 };
+export type StepMeta = {
+  custom: boolean;
+  priceStepDeps: string[];
+  doorSizeVariation?: {
+    rules: {
+      stepUid: string;
+      operator: "is" | "isNot";
+      componentsUid: string[];
+    }[];
+    widthList?: string[];
+  }[];
+};

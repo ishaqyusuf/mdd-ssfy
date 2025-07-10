@@ -59,12 +59,16 @@ model Inventory {
     category   InventoryCategory? @relation(fields: [categoryId], references: [id])
     unit       String?
 
+    variantPricings InventoryVariantPrice[]
+
     variants InventoryVariant[]
     logs     InventoryLog[]
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
+
+    variantAttributes InventoryVariantAttribute[]
 
     @@index([typeId])
     @@index([categoryId])
@@ -78,11 +82,11 @@ model InventoryVariant {
     inventoryId  Int
     inventory    Inventory @relation(fields: [inventoryId], references: [id])
 
-    attributes       InventoryVariantAttribute[] @relation(name: "attributes")
-    attributedValues InventoryVariantAttribute[] @relation(name: "attributedValues")
-    pricings         InventoryVariantPrice[]
-    stockEntries     InventoryStock[]
-    logs             InventoryLog[]
+    attributes InventoryVariantAttribute[]
+
+    pricings     InventoryVariantPrice[]
+    stockEntries InventoryStock[]
+    logs         InventoryLog[]
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
@@ -95,10 +99,10 @@ model InventoryVariantAttribute {
     id Int @id @default(autoincrement())
 
     variantId Int
-    variant   InventoryVariant @relation(name: "attributes", fields: [variantId], references: [id])
+    variant   InventoryVariant @relation(fields: [variantId], references: [id])
 
-    attributedVariantId Int
-    attributedVariant   InventoryVariant @relation(name: "attributedValues", fields: [attributedVariantId], references: [id])
+    attributedInventoryId Int
+    attributedInventory   Inventory @relation(fields: [attributedInventoryId], references: [id])
 
     inventoryTypeAttribute   InventoryTypeAttribute @relation(fields: [inventoryTypeAttributeId], references: [id])
     inventoryTypeAttributeId Int
@@ -108,22 +112,26 @@ model InventoryVariantAttribute {
     deletedAt DateTime? @db.Timestamp(0)
 
     @@index([variantId])
-    @@index([attributedVariantId])
+    @@index([attributedInventoryId])
     @@index([inventoryTypeAttributeId])
 }
 
 model InventoryVariantPrice {
-    id                 Int              @id @default(autoincrement())
+    id                 Int               @id @default(autoincrement())
     salesPrice         Float?
     costPrice          Float?
-    inventoryVariantId Int
-    inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
+    inventoryVariantId Int?
+    inventoryVariant   InventoryVariant? @relation(fields: [inventoryVariantId], references: [id])
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
+    inventory   Inventory @relation(fields: [inventoryId], references: [id])
+    inventoryId Int
+
     @@index([inventoryVariantId])
+    @@index([inventoryId])
 }
 
 model InventoryStock {

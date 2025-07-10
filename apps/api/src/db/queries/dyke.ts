@@ -1,7 +1,8 @@
 import type { TRPCContext } from "@api/trpc/init";
+import type { StepMeta } from "@api/type";
 
 export async function getDykeStep(ctx: TRPCContext, stepId) {
-  const step = await ctx.db.dykeSteps.findFirst({
+  const step = await ctx.db.dykeSteps.findUniqueOrThrow({
     where: {
       id: stepId,
     },
@@ -12,6 +13,10 @@ export async function getDykeStep(ctx: TRPCContext, stepId) {
       meta: true,
     },
   });
+  return {
+    ...step,
+    meta: step.meta as StepMeta,
+  };
 }
 export async function getStepProducts(ctx: TRPCContext, dykeStepId) {
   const products = await ctx.db.dykeStepProducts.findMany({
@@ -45,6 +50,7 @@ export async function getProductsByUids(
   ctx: TRPCContext,
   productUids: string[],
 ) {
+  if (!productUids.length) return [];
   const products = await ctx.db.dykeStepProducts.findMany({
     where: {
       uid: {
@@ -53,6 +59,8 @@ export async function getProductsByUids(
     },
     select: {
       uid: true,
+      name: true,
+      img: true,
       step: {
         select: {
           uid: true,
@@ -63,4 +71,19 @@ export async function getProductsByUids(
     },
   });
   return products;
+}
+export async function getStepsByUids(ctx: TRPCContext, stepUids: string[]) {
+  const steps = await ctx.db.dykeSteps.findMany({
+    where: {
+      uid: {
+        in: stepUids,
+      },
+    },
+    select: {
+      uid: true,
+      id: true,
+      title: true,
+    },
+  });
+  return steps;
 }
