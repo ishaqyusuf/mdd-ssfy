@@ -227,7 +227,7 @@ export default function AutoComplete({
             }
         },
     });
-    const listRef = useRef<HTMLDivElement>();
+    const listRef = useRef<HTMLDivElement>(undefined);
     const rowVirtualizer = useVirtualizer({
         count: items.length,
         // parentRef: listRef,

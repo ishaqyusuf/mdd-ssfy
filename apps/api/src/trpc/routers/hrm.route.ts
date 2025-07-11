@@ -4,7 +4,6 @@ import {
   saveEmployee,
 } from "@api/db/queries/hrm";
 import { createTRPCRouter, publicProcedure } from "../init";
-import { saveInboundNoteSchema } from "@api/schemas/notes";
 import {
   employeeFormSchema,
   employeesQueryParamsSchema,

@@ -9,7 +9,19 @@ import { hash } from "bcrypt-ts";
 export async function getEmployees(
   ctx: TRPCContext,
   data: EmployeesQueryParams,
-) {}
+) {
+  const users = await ctx.db.users.findMany({
+    where: {},
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  });
+  return {
+    data: users,
+  };
+}
 export async function saveEmployee(ctx: TRPCContext, data: EmployeeFormSchema) {
   const { id, password: passwordString, ...formData } = data;
   const password = await hashPassword(passwordString);
