@@ -17,10 +17,11 @@ export type SalesPageType =
     | "quotes"
     | "productions";
 interface Props {
-    searchParams: SalesQueryParams;
-    params: { type: SalesPageType };
+    searchParams: Promise<SalesQueryParams>;
+    params: Promise<{ type: SalesPageType }>;
 }
-export default async function SalesPage({ searchParams, params }: Props) {
+export default async function SalesPage(props: Props) {
+    const searchParams = await props.searchParams;
     const promise = getSalesAction({
         ...searchParams,
         // type: "order",

@@ -3,7 +3,8 @@ import PageClient from "./page-client";
 import { getDealersAction } from "./action";
 import PageTabsServer from "./page-tabs-server";
 
-export default async function DealersPage({ searchParams }) {
+export default async function DealersPage(props) {
+    const searchParams = await props.searchParams;
     const resp = getDealersAction(searchParams);
 
     return (

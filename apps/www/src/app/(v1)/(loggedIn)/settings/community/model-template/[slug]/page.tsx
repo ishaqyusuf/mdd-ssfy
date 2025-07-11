@@ -11,7 +11,8 @@ export const metadata: Metadata = {
     title: "Edit Model Template",
 };
 
-export default async function ModelTemplatePage({ params }) {
+export default async function ModelTemplatePage(props) {
+    const params = await props.params;
     const response = await getHomeTemplate(params.slug);
     console.log(response);
     return (

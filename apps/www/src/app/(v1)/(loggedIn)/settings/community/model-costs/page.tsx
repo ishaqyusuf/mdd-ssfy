@@ -13,7 +13,8 @@ import { getHomeTemplates } from "../_components/home-template";
 export const metadata: Metadata = {
     title: "Model Costs",
 };
-export default async function ModelCosts({ searchParams }) {
+export default async function ModelCosts(props) {
+    const searchParams = await props.searchParams;
     const response = await getHomeTemplates(queryParams(searchParams));
     return (
         <AuthGuard can={["editProject"]}>

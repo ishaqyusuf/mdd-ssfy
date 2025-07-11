@@ -14,7 +14,8 @@ export async function generateMetadata({ params }) {
         title: `Quotes List - gndprodesk.com`,
     });
 }
-export default async function SalesBookQuotePage({ searchParams }) {
+export default async function SalesBookQuotePage(props) {
+    const searchParams = await props.searchParams;
     // const search = searchParamsCache.parse(searchParams);
     // const queryClient = getQueryClient();
     // const { queryKey, filterFields } = composeFilter("quotes");

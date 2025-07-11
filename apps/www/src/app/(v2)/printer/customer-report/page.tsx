@@ -2,11 +2,12 @@ import BasePrinter from "../base-printer";
 import { generateCustomerPrintReport } from "./_action";
 import ReportCtx from "./report-ctx";
 
-export default async function CustomerReportPage({
-    searchParams,
-}: {
-    searchParams;
-}) {
+export default async function CustomerReportPage(
+    props: {
+        searchParams;
+    }
+) {
+    const searchParams = await props.searchParams;
     const ids = searchParams.slugs
         ?.split(",")
         .map((v) => Number(v))

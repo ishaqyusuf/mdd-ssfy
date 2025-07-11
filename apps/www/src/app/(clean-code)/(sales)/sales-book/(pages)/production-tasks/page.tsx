@@ -11,7 +11,8 @@ export async function generateMetadata({}) {
         title: `Sales Production - gndprodesk.com`,
     });
 }
-export default async function SalesBookPage({ searchParams }) {
+export default async function SalesBookPage(props) {
+    const searchParams = await props.searchParams;
     const [orderNos] = await Promise.all([__getSalesOrderNos()]);
     return (
         <AuthGuard can={["viewProduction"]}>

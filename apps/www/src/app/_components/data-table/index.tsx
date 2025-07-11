@@ -50,7 +50,7 @@ function BaseDataTable<TData, TValue>({
         </dataTableContext.Provider>
     );
 }
-function _Table({}) {
+function CustomTable({}) {
     const { table, columns } = useDataTableContext();
     return (
         <div className="sm:rounded-lg sm:border">
@@ -129,6 +129,6 @@ function Footer() {
     return <DataTablePagination table={table} />;
 }
 export let DataTable = Object.assign(BaseDataTable, {
-    Table: _Table,
+    Table: CustomTable,
     Footer,
 });

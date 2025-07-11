@@ -15,7 +15,8 @@ import JobPaymentTableShell from "./job-payment-table-shell";
 export const metadata: Metadata = {
     title: "Payment Receipts",
 };
-export default async function JobPaymentsPage({ searchParams }) {
+export default async function JobPaymentsPage(props) {
+    const searchParams = await props.searchParams;
     const response = await getJobPayments(queryParams(searchParams));
     return (
         <TabbedLayout tabKey="Job">

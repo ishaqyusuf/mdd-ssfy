@@ -31,11 +31,12 @@ import { revalidateTag } from "next/cache";
 export const metadata: Metadata = {
     title: `My Dashboard | GND`,
 };
-export default async function SalesRepProfile({
-    searchParams,
-}: {
-    searchParams: Record<string, string | string[] | undefined>;
-}) {
+export default async function SalesRepProfile(
+    props: {
+        searchParams: Promise<Record<string, string | string[] | undefined>>;
+    }
+) {
+    const searchParams = await props.searchParams;
     const {} = searchParamsCache.parse(searchParams);
     const user = await authUser();
     // await prisma.payrollHistory.deleteMany({

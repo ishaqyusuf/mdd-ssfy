@@ -12,9 +12,10 @@ export const metadata: Metadata = {
     title: "Shelf Items | GND",
 };
 interface Props {
-    searchParams: SearchParams;
+    searchParams: Promise<SearchParams>;
 }
-export default function DykeDoorsPage({ searchParams }: Props) {
+export default async function DykeDoorsPage(props: Props) {
+    const searchParams = await props.searchParams;
     const query = queryParams(searchParams);
     const promise = _getDykeDoors(query);
     return (

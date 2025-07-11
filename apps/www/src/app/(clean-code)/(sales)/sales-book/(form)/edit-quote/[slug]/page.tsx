@@ -5,12 +5,15 @@ import { prisma } from "@/db";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { fixUndefinedOrderIdAction } from "@/actions/--fix/fix-undefined-order-id";
 
-export async function generateMetadata({ params }) {
+export async function generateMetadata(props) {
+    const params = await props.params;
     return constructMetadata({
         title: `Edit Quote | ${params.slug} - gndprodesk.com`,
     });
 }
-export default async function EditQuotePage({ params, searchParams }) {
+export default async function EditQuotePage(props) {
+    const searchParams = await props.searchParams;
+    const params = await props.params;
     let slug = params.slug;
     await fixUndefinedOrderIdAction(slug, "quote");
 

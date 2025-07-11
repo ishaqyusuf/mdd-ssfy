@@ -1,7 +1,8 @@
 import { prisma } from "@/db";
 import SalesDownload from "./sales";
 
-export default async function DownloadPage({ params }) {
+export default async function DownloadPage(props) {
+    const params = await props.params;
     const [path, token, slug]: ["sales", string, string] = params.slugs;
 
     const order = await prisma.salesOrders.findFirst({

@@ -10,9 +10,8 @@ import SalesPrintBlock from "./sales-print-block";
 export interface SalesPrintProps {
     searchParams: BaseSalesPrintProps;
 }
-export default async function PrintOrderPage({
-    searchParams,
-}: SalesPrintProps) {
+export default async function PrintOrderPage(props0) {
+    const searchParams = await props0.searchParams;
     const slugs = searchParams.slugs?.split(",");
     let mode = searchParams.mode;
     if (mode == "order-packing") searchParams.mode = "order";
@@ -53,3 +52,4 @@ export default async function PrintOrderPage({
         </BasePrinter>
     );
 }
+
