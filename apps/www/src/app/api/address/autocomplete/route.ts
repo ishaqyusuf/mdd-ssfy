@@ -35,11 +35,12 @@ export async function GET(req: NextRequest) {
                 input: input,
                 includedPrimaryTypes: primaryTypes,
                 // Location biased towards the user's country
-                includedRegionCodes: [country || "US"],
+                includedRegionCodes: [
+                    // country ||
+                    "US",
+                ],
             }),
         });
-
-        console.log(response);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

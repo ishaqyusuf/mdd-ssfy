@@ -25,7 +25,7 @@ export interface AddressType {
 }
 
 interface AddressAutoCompleteProps {
-    address: AddressType;
+    address?: AddressType;
     setAddress: (address: AddressType) => void;
     searchInput: string;
     setSearchInput: (searchInput: string) => void;
@@ -43,7 +43,6 @@ type Prediction = {
 };
 export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
     const {
-        address,
         setAddress,
         dialogTitle,
         showInlineError = true,
@@ -69,12 +68,12 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
     const adrAddress = data?.data?.adrAddress;
 
     useEffect(() => {
-        console.log({ data });
         if (data?.data?.address) {
             setAddress(data.data.address as AddressType);
+            __setAddress(data.data.address as AddressType);
         }
     }, [data, setAddress]);
-
+    const [address, __setAddress] = useState<any>({});
     return (
         <>
             {selectedPlaceId !== "" || address.formattedAddress ? (
@@ -84,17 +83,8 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
                         type="reset"
                         onClick={() => {
                             setSelectedPlaceId("");
-                            // setAddress({
-                            //     address1: "",
-                            //     address2: "",
-                            //     formattedAddress: "",
-                            //     city: "",
-                            //     region: "",
-                            //     postalCode: "",
-                            //     country: "",
-                            //     lat: 0,
-                            //     lng: 0,
-                            // });
+                            __setAddress({});
+                            setAddress({} as any);
                         }}
                         size="icon"
                         variant="outline"

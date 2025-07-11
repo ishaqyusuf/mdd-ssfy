@@ -25,6 +25,7 @@ export const createCustomerSchema = z
         phoneNo2: z.string().optional(),
         email: z.string().optional(),
         address1: z.string().optional().nullable(),
+        formattedAddress: z.string().optional().nullable(),
         address2: z.string().optional(),
         name: z.string().optional(),
         businessName: z.string().optional(),

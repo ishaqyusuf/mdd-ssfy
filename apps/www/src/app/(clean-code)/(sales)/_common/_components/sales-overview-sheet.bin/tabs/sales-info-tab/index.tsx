@@ -30,121 +30,122 @@ export function SalesInfoTab({}) {
     const customerOverviewQuery = useCustomerOverviewQuery();
 
     if (!overview) return;
-    return (
-        <div>
-            <InfoLine label="Order #" value={overview.orderId}>
-                <Link
-                    className={cn(
-                        buttonVariants({
-                            size: "xs",
-                            variant: "link",
-                        }),
-                    )}
-                    href={composeSalesUrl(overview)}
-                    target="_blank"
-                >
-                    Edit
-                    <ExternalLink className="ml-2 size-4" />
-                </Link>
-            </InfoLine>
-            <InfoLine
-                label="Customer"
-                value={
-                    <div>
-                        <Button
-                            size="xs"
-                            disabled={!overview?.phoneNo}
-                            onClick={() => {
-                                _modal.close();
-                                customerOverviewQuery.open(overview.phoneNo);
-                            }}
-                            variant={
-                                overview?.phoneNo ? "destructive" : "outline"
-                            }
-                        >
-                            {overview?.displayName || overview?.phoneNo}
-                        </Button>
-                    </div>
-                }
-            ></InfoLine>
-            <SalesDateInline />
-            <InfoLine
-                label="Sales Rep"
-                value={overview.salesRep?.name}
-            ></InfoLine>
+    return null;
+    // return (
+    //     <div>
+    //         <InfoLine label="Order #" value={overview.orderId}>
+    //             <Link
+    //                 className={cn(
+    //                     buttonVariants({
+    //                         size: "xs",
+    //                         variant: "link",
+    //                     }),
+    //                 )}
+    //                 href={composeSalesUrl(overview)}
+    //                 target="_blank"
+    //             >
+    //                 Edit
+    //                 <ExternalLink className="ml-2 size-4" />
+    //             </Link>
+    //         </InfoLine>
+    //         <InfoLine
+    //             label="Customer"
+    //             value={
+    //                 <div>
+    //                     <Button
+    //                         size="xs"
+    //                         disabled={!overview?.phoneNo}
+    //                         onClick={() => {
+    //                             _modal.close();
+    //                             customerOverviewQuery.open(overview.phoneNo);
+    //                         }}
+    //                         variant={
+    //                             overview?.phoneNo ? "destructive" : "outline"
+    //                         }
+    //                     >
+    //                         {overview?.displayName || overview?.phoneNo}
+    //                     </Button>
+    //                 </div>
+    //             }
+    //         ></InfoLine>
+    //         <SalesDateInline />
+    //         <InfoLine
+    //             label="Sales Rep"
+    //             value={overview.salesRep?.name}
+    //         ></InfoLine>
 
-            <PoInline />
-            <LaborCostInline />
-            <SalesDeliveryCostInline />
-            <InfoLine
-                label="Total Invoice"
-                value={<Money value={overview?.invoice?.total} />}
-            ></InfoLine>
-            <InfoLine
-                label="Paid"
-                value={<Money value={overview?.invoice?.paid} />}
-            ></InfoLine>
-            <InfoLine
-                label="Pending"
-                value={
-                    <span>
-                        <SalesInvoiceDueStatus
-                            amountDue={overview?.invoice?.pending}
-                            dueDate={overview?.paymentDueDate}
-                        />
-                    </span>
-                }
-            ></InfoLine>
+    //         <PoInline />
+    //         <LaborCostInline />
+    //         <SalesDeliveryCostInline />
+    //         <InfoLine
+    //             label="Total Invoice"
+    //             value={<Money value={overview?.invoice?.total} />}
+    //         ></InfoLine>
+    //         <InfoLine
+    //             label="Paid"
+    //             value={<Money value={overview?.invoice?.paid} />}
+    //         ></InfoLine>
+    //         <InfoLine
+    //             label="Pending"
+    //             value={
+    //                 <span>
+    //                     <SalesInvoiceDueStatus
+    //                         amountDue={overview?.invoice?.pending}
+    //                         dueDate={overview?.paymentDueDate}
+    //                     />
+    //                 </span>
+    //             }
+    //         ></InfoLine>
 
-            <div className="my-4 grid gap-4 sm:grid-cols-2">
-                {[overview.billing, overview.shipping].map((address, i) => (
-                    <div key={i}>
-                        <Label>
-                            {i == 0 ? "Billing" : "Shipping"}
-                            {" Address"}
-                        </Label>
+    //         <div className="my-4 grid gap-4 sm:grid-cols-2">
+    //             {[overview.billing, overview.shipping].map((address, i) => (
+    //                 <div key={i}>
+    //                     <Label>
+    //                         {i == 0 ? "Billing" : "Shipping"}
+    //                         {" Address"}
+    //                     </Label>
 
-                        {!address?.length ? (
-                            <div className="flex min-h-16 flex-col items-center justify-center">
-                                No Address
-                            </div>
-                        ) : (
-                            <address className="text-sm not-italic text-muted-foreground">
-                                {address?.filter(Boolean).map((line, li) => (
-                                    <React.Fragment key={li}>
-                                        {line}
-                                        <br />
-                                    </React.Fragment>
-                                ))}
-                            </address>
-                        )}
-                    </div>
-                ))}
-            </div>
-            <DevOnly>
-                <Button
-                    onClick={() => {
-                        _modal.close();
-                        salesQuery.open2(overview.orderId, "sales");
-                    }}
-                >
-                    V2
-                </Button>
-            </DevOnly>
-            <Note
-                admin
-                tagFilters={[
-                    // noteTagFilter("itemControlUID", itemView?.itemControlUid),
-                    // noteTagFilter("salesItemId", itemView?.itemId),
-                    noteTagFilter("salesId", store?.salesId),
-                ]}
-                typeFilters={["general", "dispatch", "payment", "production"]}
-                statusFilters={["public", "private"]}
-                subject={`Sales Note`}
-                headline={`${overview?.orderId}`}
-            />
-        </div>
-    );
+    //                     {!address?.length ? (
+    //                         <div className="flex min-h-16 flex-col items-center justify-center">
+    //                             No Address
+    //                         </div>
+    //                     ) : (
+    //                         <address className="text-sm not-italic text-muted-foreground">
+    //                             {address?.filter(Boolean).map((line, li) => (
+    //                                 <React.Fragment key={li}>
+    //                                     {line}
+    //                                     <br />
+    //                                 </React.Fragment>
+    //                             ))}
+    //                         </address>
+    //                     )}
+    //                 </div>
+    //             ))}
+    //         </div>
+    //         <DevOnly>
+    //             <Button
+    //                 onClick={() => {
+    //                     _modal.close();
+    //                     salesQuery.open2(overview.orderId, "sales");
+    //                 }}
+    //             >
+    //                 V2
+    //             </Button>
+    //         </DevOnly>
+    //         <Note
+    //             admin
+    //             tagFilters={[
+    //                 // noteTagFilter("itemControlUID", itemView?.itemControlUid),
+    //                 // noteTagFilter("salesItemId", itemView?.itemId),
+    //                 noteTagFilter("salesId", store?.salesId),
+    //             ]}
+    //             typeFilters={["general", "dispatch", "payment", "production"]}
+    //             statusFilters={["public", "private"]}
+    //             subject={`Sales Note`}
+    //             headline={`${overview?.orderId}`}
+    //         />
+    //     </div>
+    // );
 }
 export function InfoLine({
     label,

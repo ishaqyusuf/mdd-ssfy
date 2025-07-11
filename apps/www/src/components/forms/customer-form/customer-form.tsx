@@ -47,6 +47,7 @@ export function CustomerForm({ data }: Props) {
         resolver: zodResolver(createCustomerSchema),
         defaultValues: {
             address1: undefined,
+            formattedAddress: undefined,
             address2: undefined,
             addressId: undefined,
             businessName: undefined,
@@ -281,11 +282,14 @@ export function CustomerForm({ data }: Props) {
                             <AccordionContent>
                                 <div className="space-y-4">
                                     <AddressAutoComplete
-                                        address={{} as any}
                                         searchInput={searchInput}
                                         setSearchInput={setSearchInput}
                                         dialogTitle="Search Address"
                                         setAddress={(address) => {
+                                            form.setValue(
+                                                "formattedAddress",
+                                                address.formattedAddress,
+                                            );
                                             form.setValue(
                                                 "address1",
                                                 address.address1,
