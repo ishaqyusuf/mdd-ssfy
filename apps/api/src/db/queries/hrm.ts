@@ -1,10 +1,15 @@
 import type {
   EmployeeFormSchema,
+  EmployeesQueryParams,
   GetEmployeeFormDataSchema,
 } from "@api/schemas/hrm";
 import type { TRPCContext } from "@api/trpc/init";
 import { hash } from "bcrypt-ts";
 
+export async function getEmployees(
+  ctx: TRPCContext,
+  data: EmployeesQueryParams,
+) {}
 export async function saveEmployee(ctx: TRPCContext, data: EmployeeFormSchema) {
   const { id, password: passwordString, ...formData } = data;
   const password = await hashPassword(passwordString);

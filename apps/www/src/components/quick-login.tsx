@@ -1,9 +1,9 @@
+"use client";
 import { getEmployees } from "@/app/(v1)/_actions/hrm/get-employess";
 import { useAsyncMemo } from "use-async-memo";
 import { Menu } from "./(clean-code)/menu";
 import { ScrollArea } from "@gnd/ui/scroll-area";
-import { signIn, signOut } from "next-auth/react";
-import { env } from "process";
+
 import {
     getLoggedInProfile,
     setSidebarAuthId,

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const employeesQueryParamsSchema = z.object({});
+export type EmployeesQueryParams = z.infer<typeof employeesQueryParamsSchema>;
 export const employeeFormSchema = z
   .object({
     id: z.number().nullable().optional(),
