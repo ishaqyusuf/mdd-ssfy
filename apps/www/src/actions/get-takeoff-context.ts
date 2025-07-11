@@ -23,7 +23,7 @@ export async function getTakeOffContext() {
                     component.name,
                 img: component.img || component?.product?.img,
                 templates: templates.filter((t) => t.sectionUid == k),
-                routeSequence: v.routeSequence,
+                routeSequence: (v as any).routeSequence,
                 // routeUid: k,
                 componentUid: component?.uid,
                 stepUid: component.step?.uid,
