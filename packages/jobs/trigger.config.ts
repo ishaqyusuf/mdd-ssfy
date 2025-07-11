@@ -34,7 +34,7 @@ export default defineConfig({
         // migrate: true,
       }),
     ],
-    external: ["sharp", "canvas"],
+    external: ["canvas"],
   },
   dirs: ["./src/tasks"],
   instrumentations: [new PrismaInstrumentation()],
