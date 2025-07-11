@@ -2,7 +2,9 @@ import { useTRPC } from "@/trpc/client";
 import {
     Command,
     CommandEmpty,
+    CommandGroup,
     CommandInput,
+    CommandItem,
     CommandList,
 } from "@gnd/ui/command";
 import { useQuery } from "@tanstack/react-query";
@@ -35,6 +37,278 @@ interface SearchItem {
     };
     action?: () => void;
 }
+const formatGroupName = (name: string): string | null => {
+    switch (name) {
+        case "shortcut":
+            return "Shortcuts";
+        case "customer":
+            return "Customers";
+        case "vault":
+            return "Vault";
+        case "invoice":
+            return "Invoices";
+        case "tracker_project":
+            return "Tracker Projects";
+        case "transaction":
+            return "Transactions";
+        case "inbox":
+            return "Inbox";
+
+        default:
+            return null;
+    }
+};
+const SearchResultItemDisplay = ({
+    item,
+    dateFormat,
+}: {
+    item: SearchItem;
+    dateFormat?: string;
+}) => {
+    // const nav = useSearchNavigation();
+
+    // let icon: ReactNode | undefined;
+    // let resultDisplay: ReactNode;
+    // let onSelect: () => void;
+
+    // if (!item.data) {
+    //     // This is an action item (e.g., "Create Invoice", "View Documents")
+    //     icon = (
+    //         <Icons.Shortcut className="size-4 dark:text-[#666] text-primary" />
+    //     );
+    //     resultDisplay = item.title;
+    // } else {
+    //     icon = null;
+    //     resultDisplay = item.title;
+
+    //     switch (item.type) {
+    //         case "vault": {
+    //             onSelect = () =>
+    //                 nav.navigateToDocument({ documentId: item.id });
+
+    //             icon = (
+    //                 <FilePreviewIcon
+    //                     mimetype={item.data?.metadata?.mimetype}
+    //                     className="size-4 dark:text-[#666] text-primary"
+    //                 />
+    //             );
+    //             resultDisplay = (
+    //                 <div className="flex items-center justify-between w-full">
+    //                     <span className="flex-grow truncate">
+    //                         {
+    //                             (item.data?.title ||
+    //                                 (item.data?.name as string)
+    //                                     ?.split("/")
+    //                                     .at(-1) ||
+    //                                 "") as string
+    //                         }
+    //                     </span>
+    //                     <div className="flex items-center gap-2 invisible group-hover/item:visible group-focus/item:visible group-aria-selected/item:visible">
+    //                         <CopyButton path={`?documentId=${item.id}`} />
+    //                         <DownloadButton
+    //                             href={`/api/download/file?path=${item.data?.path_tokens?.join("/")}&filename=${
+    //                                 (item.data?.title ||
+    //                                     (item.data?.name as string)
+    //                                         ?.split("/")
+    //                                         .at(-1) ||
+    //                                     "") as string
+    //                             }`}
+    //                             filename={
+    //                                 (item.data?.title ||
+    //                                     (item.data?.name as string)
+    //                                         ?.split("/")
+    //                                         .at(-1) ||
+    //                                     "") as string
+    //                             }
+    //                         />
+    //                         <Icons.ArrowOutward className="size-4 dark:text-[#666] text-primary hover:!text-primary cursor-pointer" />
+    //                     </div>
+    //                 </div>
+    //             );
+    //             break;
+    //         }
+    //         case "customer": {
+    //             onSelect = () =>
+    //                 nav.navigateToCustomer({ customerId: item.id });
+
+    //             icon = (
+    //                 <Icons.Customers className="size-4 dark:text-[#666] text-primary" />
+    //             );
+    //             resultDisplay = (
+    //                 <div className="flex items-center w-full">
+    //                     <div className="flex-grow truncate flex gap-2 items-center">
+    //                         <span>{item.data.name as string}</span>
+    //                         <span className="text-xs text-muted-foreground">
+    //                             {item.data.email as string}
+    //                         </span>
+    //                     </div>
+    //                     <div className="flex items-center gap-2 invisible group-hover/item:visible group-focus/item:visible group-aria-selected/item:visible">
+    //                         <CopyButton path={`?customerId=${item.id}`} />
+    //                         <Icons.ArrowOutward className="size-4 dark:text-[#666] text-primary hover:!text-primary cursor-pointer" />
+    //                     </div>
+    //                 </div>
+    //             );
+
+    //             break;
+    //         }
+    //         case "invoice": {
+    //             onSelect = () =>
+    //                 nav.navigateToInvoice({
+    //                     invoiceId: item.id,
+    //                     type: "details",
+    //                 });
+
+    //             icon = (
+    //                 <Icons.Invoice className="size-4 dark:text-[#666] text-primary" />
+    //             );
+    //             resultDisplay = (
+    //                 <div className="flex items-center w-full">
+    //                     <div className="flex-grow truncate flex gap-2 items-center">
+    //                         <span>{item.data.invoice_number as string}</span>
+    //                         {/* @ts-expect-error - Unstructured data */}
+    //                         <InvoiceStatus status={item.data?.status} />
+    //                     </div>
+    //                     <div className="flex items-center gap-2 invisible group-hover/item:visible group-focus/item:visible group-aria-selected/item:visible">
+    //                         <CopyButton
+    //                             path={`?invoiceId=${item.id}&type=details`}
+    //                         />
+    //                         <DownloadButton
+    //                             href={`/api/download/invoice?id=${item.id}&size=${item?.data?.template?.size}`}
+    //                             filename={`${item.data.invoice_number || "invoice"}.pdf`}
+    //                         />
+    //                         <Icons.ArrowOutward className="size-4 dark:text-[#666] text-primary hover:!text-primary cursor-pointer" />
+    //                     </div>
+    //                 </div>
+    //             );
+    //             break;
+    //         }
+    //         case "inbox": {
+    //             onSelect = () =>
+    //                 nav.navigateToPath(`/inbox?inboxId=${item.id}`);
+
+    //             icon = (
+    //                 <Icons.Inbox2
+    //                     size={14}
+    //                     className="dark:text-[#666] text-primary"
+    //                 />
+    //             );
+    //             resultDisplay = (
+    //                 <div className="flex items-center justify-between w-full">
+    //                     <div className="flex-grow truncate flex gap-2 items-center">
+    //                         <span>
+    //                             {
+    //                                 (item.data?.display_name ||
+    //                                     (item.data?.file_name as string)
+    //                                         ?.split("/")
+    //                                         .at(-1) ||
+    //                                     "") as string
+    //                             }
+    //                         </span>
+    //                         {item.data?.amount && item.data?.currency && (
+    //                             <span className="text-xs text-muted-foreground">
+    //                                 <FormatAmount
+    //                                     currency={item.data.currency}
+    //                                     amount={item.data.amount}
+    //                                 />
+    //                             </span>
+    //                         )}
+    //                         <span className="text-xs text-muted-foreground">
+    //                             {item.data?.date &&
+    //                                 formatDate(item.data.date, dateFormat)}
+    //                         </span>
+    //                     </div>
+    //                     <div className="flex items-center gap-2 invisible group-hover/item:visible group-focus/item:visible group-aria-selected/item:visible">
+    //                         <CopyButton path={`/inbox?inboxId=${item.id}`} />
+    //                         <DownloadButton
+    //                             href={`/api/download/file?path=${item.data?.file_path?.join("/")}&filename=${item.data?.file_name || ""}`}
+    //                             filename={item.data?.file_name || "download"}
+    //                         />
+    //                         <Icons.ArrowOutward className="size-4 dark:text-[#666] text-primary hover:!text-primary cursor-pointer" />
+    //                     </div>
+    //                 </div>
+    //             );
+    //             break;
+    //         }
+    //         case "tracker_project": {
+    //             onSelect = () =>
+    //                 nav.navigateToTracker({ projectId: item.id, update: true });
+
+    //             icon = (
+    //                 <Icons.Tracker className="size-4 dark:text-[#666] text-primary" />
+    //             );
+    //             resultDisplay = (
+    //                 <div className="flex items-center w-full">
+    //                     <div className="flex-grow truncate flex gap-2 items-center">
+    //                         <span>{item.data.name as string}</span>
+    //                     </div>
+    //                     <div className="flex items-center gap-2 invisible group-hover/item:visible group-focus/item:visible group-aria-selected/item:visible">
+    //                         <CopyButton
+    //                             path={`?projectId=${item.id}&update=true`}
+    //                         />
+    //                         <Icons.ArrowOutward className="size-4 dark:text-[#666] text-primary hover:!text-primary cursor-pointer" />
+    //                     </div>
+    //                 </div>
+    //             );
+    //             break;
+    //         }
+    //         case "transaction": {
+    //             onSelect = () =>
+    //                 nav.navigateToTransaction({ transactionId: item.id });
+
+    //             icon = (
+    //                 <Icons.Transactions className="size-4 dark:text-[#666] text-primary" />
+    //             );
+    //             resultDisplay = (
+    //                 <div className="flex items-center justify-between w-full">
+    //                     <div className="flex-grow truncate flex gap-2 items-center">
+    //                         <span>{(item.data?.name || "") as string}</span>
+    //                         <span className="text-xs text-muted-foreground">
+    //                             <FormatAmount
+    //                                 currency={item.data?.currency as string}
+    //                                 amount={item.data?.amount as number}
+    //                             />
+    //                         </span>
+    //                         <span className="text-xs text-muted-foreground">
+    //                             {item.data?.date
+    //                                 ? formatDate(item.data.date, dateFormat)
+    //                                 : null}
+    //                         </span>
+    //                     </div>
+    //                     <div className="flex items-center gap-2 invisible group-hover/item:visible group-focus/item:visible group-aria-selected/item:visible">
+    //                         <CopyButton path={item.data?.url as string} />
+    //                         <Icons.ArrowOutward className="size-4 dark:text-[#666] text-primary hover:!text-primary cursor-pointer" />
+    //                     </div>
+    //                 </div>
+    //             );
+    //             break;
+    //         }
+    //         default:
+    //             // For types not explicitly handled but have data,
+    //             // icon remains the default data icon, and resultDisplay remains item.title.
+    //             // This is fine.
+    //             break;
+    //     }
+    // }
+
+    // const handleSelect = () => {
+    //     item.action?.();
+    //     onSelect?.();
+    // };
+    const handleSelect = () => {};
+    return (
+        <CommandItem
+            key={item.id}
+            value={item.id}
+            onSelect={handleSelect}
+            className="text-sm flex flex-col items-start gap-1 py-2 group/item"
+        >
+            <div className="flex items-center gap-2 w-full">
+                {/* {icon}
+                {resultDisplay} */}
+            </div>
+        </CommandItem>
+    );
+};
 export function Search({}) {
     const searchInputRef = useRef<HTMLInputElement>(null);
     const ref = useRef<HTMLDivElement>(null);
@@ -46,12 +320,12 @@ export function Search({}) {
     );
     const trpc = useTRPC();
     const sectionActions: SearchItem[] = [
-        // {
-        //     id: "sc-create-invoice",
-        //     type: "invoice",
-        //     title: "Create invoice",
-        //     action: nav.createInvoice,
-        // },
+        {
+            id: "sc-create-invoice",
+            type: "invoice",
+            title: "Create invoice",
+            // action: nav.createInvoice,
+        },
         // {
         //     id: "sc-create-customer",
         //     type: "customer",
@@ -238,7 +512,7 @@ export function Search({}) {
                                 {`"`}.
                             </CommandEmpty>
                         )}
-                    {/* {!isLoading &&
+                    {!isLoading &&
                         Object.entries(groupedData).map(
                             ([groupName, items]) => (
                                 <CommandGroup
@@ -249,14 +523,14 @@ export function Search({}) {
                                         <SearchResultItemDisplay
                                             key={item.id}
                                             item={item}
-                                            dateFormat={
-                                                user?.dateFormat ?? undefined
-                                            }
+                                            // dateFormat={
+                                            //     user?.dateFormat ?? undefined
+                                            // }
                                         />
                                     ))}
                                 </CommandGroup>
                             ),
-                        )} */}
+                        )}
                 </CommandList>
             </div>
         </Command>
