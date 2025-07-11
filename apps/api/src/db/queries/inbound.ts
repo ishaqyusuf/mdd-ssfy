@@ -97,6 +97,8 @@ export async function getInbounds(ctx: TRPCContext, query: InboundQuerySchema) {
         },
       };
   }
+  console.log(salesQuery);
+
   const sales = await getSales(ctx, salesQuery);
   if (!statusList)
     statusList = await getInboundStatuses(

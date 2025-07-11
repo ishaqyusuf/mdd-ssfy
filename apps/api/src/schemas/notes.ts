@@ -7,10 +7,12 @@ export const saveInboundNoteSchema = z.object({
   salesId: z.number(),
   orderNo: z.string(),
   status: z.enum(inboundFilterStatus),
-  attachments: z.array(
-    z.object({
-      pathname: z.string(),
-    }),
-  ),
+  attachments: z
+    .array(
+      z.object({
+        pathname: z.string(),
+      }),
+    )
+    .optional(),
 });
 export type SaveInboundNoteSchema = z.infer<typeof saveInboundNoteSchema>;

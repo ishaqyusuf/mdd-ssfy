@@ -13,6 +13,7 @@ export async function getSales(
     whereSales(query),
     db.salesOrders,
   );
+
   const data = await db.salesOrders.findMany({
     where,
     ...searchMeta,
