@@ -1,7 +1,6 @@
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 import { Separator } from "@gnd/ui/separator";
 import { SidebarTrigger } from "@gnd/ui/sidebar";
-import QuickLogin from "../quick-login";
 import { useSidebar, useSidebarState } from "./context";
 import { cn } from "@gnd/ui/cn";
 import { ModeToggle } from "./mode-toggle";
@@ -47,9 +46,7 @@ export function Header({}) {
                         id="breadCrumb"
                         className="flex items-center space-x-1"
                     ></div>
-                    <DevOnly>
-                        <QuickLogin />
-                    </DevOnly>
+
                     <OpenSearchButton />
                     <div className="flex-1"></div>
                     <div className="mx-4 flex gap-4 " id="navRightSlot"></div>

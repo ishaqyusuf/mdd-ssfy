@@ -13,7 +13,7 @@ import { DoorSizeSelect } from "./door-size-select";
 import { DoorSwingSelect } from "./door-swing-select";
 import { DoorQtyInput } from "./door-qty-input";
 import { WageInput } from "../hpt/wage-input";
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 
 export function HptForm({}) {
     const item = useTakeoffItem();
@@ -49,9 +49,9 @@ function Content() {
     const { isSlab } = ctx;
     return (
         <div className="gap-2 flex justify-end">
-            <DevOnly>
+            <Env isDev>
                 <span>{item.itemUid}</span>
-            </DevOnly>
+            </Env>
             <table className="">
                 <thead className="text-sm uppercase font-mono tracking-wider font-medium text-muted-foreground">
                     <tr className="text-xs">

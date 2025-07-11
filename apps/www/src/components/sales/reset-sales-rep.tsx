@@ -1,14 +1,14 @@
 "use client";
 
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 import { Button } from "@gnd/ui/button";
 
 export function ResetSalesRep({}) {
     return (
-        <DevOnly>
+        <Env isDev>
             <div className="">
                 <Button>Reset Sales Rep</Button>
             </div>
-        </DevOnly>
+        </Env>
     );
 }

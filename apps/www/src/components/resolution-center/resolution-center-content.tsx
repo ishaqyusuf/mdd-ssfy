@@ -29,7 +29,7 @@ import { generateRandomString } from "@/lib/utils";
 import { Button } from "@gnd/ui/button";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 import { isProdClient } from "@/lib/is-prod";
 
 export type Item = PageItemData<typeof getSalesResolutions>;
@@ -123,10 +123,10 @@ function Content({ item: sale }: { item: Item }) {
                                             Total:
                                             <Money value={sale.total} />
                                         </div>
-                                        <DevOnly>
+                                        <Env isDev>
                                             <div>{sale?.calculatedDue}</div>
                                             <div>{sale?.due}</div>
-                                        </DevOnly>
+                                        </Env>
                                         {/* {sale.due > 0 && (
                                         <div className="flex items-center gap-1 text-red-600">
                                             <AlertTriangle className="h-4 w-4" />

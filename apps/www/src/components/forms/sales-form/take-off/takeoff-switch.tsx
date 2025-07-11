@@ -1,4 +1,4 @@
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 import Portal from "@/components/_v1/portal";
 import { SuperAdminGuard } from "@/components/auth-guard";
 import { Switch } from "@gnd/ui/switch";

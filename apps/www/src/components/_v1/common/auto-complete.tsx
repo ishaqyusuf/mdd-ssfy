@@ -235,7 +235,7 @@ export default function AutoComplete({
         estimateSize: (index) => 40,
         // overscan: 2,
     });
-    const inputRef = useRef<HTMLInputElement>();
+    const inputRef = useRef<HTMLInputElement>(undefined);
     return (
         <div>
             <div className="relative grid gap-2">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 import { getSalesPrintData } from "@/app/(v2)/printer/sales/get-sales-print-data";
 import { OrderBasePrinter } from "@/app/(v2)/printer/sales/order-base-printer";
 import SalesPrintDisplay from "@/app/(v2)/printer/sales/sales-print-display";

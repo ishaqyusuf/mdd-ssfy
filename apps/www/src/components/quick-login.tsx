@@ -9,7 +9,6 @@ import {
     setSidebarAuthId,
 } from "@/actions/cache/get-loggedin-profile";
 import { useState } from "react";
-import { generateRandomString } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { Badge } from "@gnd/ui/badge";

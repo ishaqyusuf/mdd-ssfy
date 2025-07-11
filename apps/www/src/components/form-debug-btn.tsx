@@ -1,13 +1,13 @@
 import { useFormContext } from "react-hook-form";
 
 import { Button } from "@gnd/ui/button";
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 
 export function FormDebugBtn({}) {
     const { trigger, formState } = useFormContext();
 
     return (
-        <DevOnly>
+        <Env isDev>
             <div className="px-4">
                 <Button
                     type="button"
@@ -21,7 +21,6 @@ export function FormDebugBtn({}) {
                     Debug Submit
                 </Button>
             </div>
-        </DevOnly>
+        </Env>
     );
 }
-

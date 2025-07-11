@@ -1,5 +1,5 @@
 import { env } from "process";
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import FormInput from "@/components/common/controls/form-input";
 import FormSelect from "@/components/common/controls/form-select";
@@ -140,7 +140,7 @@ export function PayPortalTab({}) {
                     </TableBody>
                 </Table>
                 {!terminalPaymentSession || (
-                    <DevOnly>
+                    <Env isDev>
                         <div className="flex gap-4">
                             <Button
                                 onClick={(e) => setMockStatus("CANCELED")}
@@ -152,7 +152,7 @@ export function PayPortalTab({}) {
                                 Success
                             </Button>
                         </div>
-                    </DevOnly>
+                    </Env>
                 )}
                 <CustomSheetContentPortal>
                     <SheetFooter className="-m-4 -mb-2 border-t p-4 shadow-xl">
@@ -229,7 +229,7 @@ export function PayPortalTab({}) {
                                     label="Terminal"
                                 />
                                 <div className="col-span-2 flex justify-end">
-                                    <DevOnly>
+                                    <Env isDev>
                                         <Button
                                             type="button"
                                             onClick={(e) => {
@@ -243,7 +243,7 @@ export function PayPortalTab({}) {
                                         >
                                             AAA
                                         </Button>
-                                    </DevOnly>
+                                    </Env>
                                     <SubmitButton
                                         isSubmitting={
                                             makePayment.isExecuting ||

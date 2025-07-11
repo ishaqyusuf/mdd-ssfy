@@ -1,4 +1,4 @@
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";
@@ -90,7 +90,7 @@ export function Footer({}) {
                 <PrintMenuAction pdf />
                 <CopyMenuAction />
                 <MoveMenuAction />
-                {/* <DevOnly> */}
+                {/* <Env isDev> */}
                 <Menu.Item
                     Icon={RefreshCcw}
                     onClick={async () => {
@@ -101,7 +101,7 @@ export function Footer({}) {
                 >
                     Reset Item Stats
                 </Menu.Item>
-                {/* </DevOnly> */}
+                {/* </Env> */}
             </Menu>
         </div>
     );

@@ -17,7 +17,7 @@ import {
     TableRow,
 } from "@gnd/ui/table";
 import { CommissionPaymentsWidget } from "./widgets/commission-payments";
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 
 export default function CommissionPayments() {
     const commissionPayments = [
@@ -68,7 +68,7 @@ export default function CommissionPayments() {
             </CardHeader>
             <CardContent>
                 <CommissionPaymentsWidget />
-                <DevOnly>
+                <Env isDev>
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -110,7 +110,7 @@ export default function CommissionPayments() {
                             View All
                         </Button>
                     </div>
-                </DevOnly>
+                </Env>
             </CardContent>
         </Card>
     );

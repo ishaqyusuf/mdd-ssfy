@@ -1,6 +1,6 @@
 "use client";
 
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 import { Icons } from "@/components/_v1/icons";
 import Portal from "@/components/_v1/portal";
 
@@ -15,7 +15,7 @@ import SalesStat from "./sales-stat";
 
 export default function BackwardCompat({}) {
     return (
-        <DevOnly>
+        <Env isDev>
             <Portal nodeId={"navRightSlot"}>
                 <Menu Icon={Icons.X}>
                     <SalesStat />
@@ -27,6 +27,6 @@ export default function BackwardCompat({}) {
                     <AssignmentCompleteDate />
                 </Menu>
             </Portal>
-        </DevOnly>
+        </Env>
     );
 }

@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";
 import Button from "@/components/common/button";
@@ -122,7 +122,7 @@ export function SalesInfoTab({}) {
     //                 </div>
     //             ))}
     //         </div>
-    //         <DevOnly>
+    //         <Env isDev>
     //             <Button
     //                 onClick={() => {
     //                     _modal.close();
@@ -131,7 +131,7 @@ export function SalesInfoTab({}) {
     //             >
     //                 V2
     //             </Button>
-    //         </DevOnly>
+    //         </Env>
     //         <Note
     //             admin
     //             tagFilters={[

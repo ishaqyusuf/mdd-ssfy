@@ -11,7 +11,7 @@ import { updateNoteAction } from "./actions/update-note-action";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { cva } from "class-variance-authority";
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 
 const listVariant = cva(
     "cursor-default flex flex-col items-start gap-s2 rounded-lg border p-3 text-left text-sm transition-all my-1.5",
@@ -75,7 +75,7 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
                 }),
             )}
         >
-            <DevOnly>
+            <Env isDev>
                 <div className="bg-red-200">a</div>
                 <p>{_note.color}</p>
                 <p>
@@ -84,7 +84,7 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
                     })}
                 </p>
                 {noteColorVariant({ color: _note.color as any })}
-            </DevOnly>
+            </Env>
 
             <div className="flex w-full flex-col gap-1">
                 <div className="flex items-center">

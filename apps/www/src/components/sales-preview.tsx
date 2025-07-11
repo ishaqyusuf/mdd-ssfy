@@ -1,4 +1,4 @@
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 import { getSalesPrintData } from "@/app/(v2)/printer/sales/get-sales-print-data";
 import { OrderBasePrinter } from "@/app/(v2)/printer/sales/order-base-printer";
 import SalesPrintDisplay from "@/app/(v2)/printer/sales/sales-print-display";
@@ -26,14 +26,14 @@ export function SalesPreview({}) {
     return (
         <div className="">
             <OrderBasePrinter mode={params?.previewMode as any}>
-                <DevOnly>
+                <Env isDev>
                     <SalesInvoicePdfTemplate
                         printData={{
                             sale: data,
                             mode: params?.previewMode,
                         }}
                     />
-                </DevOnly>
+                </Env>
                 <SalesPrintDisplay data={data} slug={params.salesPreviewSlug} />
             </OrderBasePrinter>
         </div>

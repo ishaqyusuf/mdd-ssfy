@@ -1,5 +1,7 @@
+import { Env } from "@/components/env";
 import { Icons } from "@/components/_v1/icons";
 import { LoginForm } from "@/components/login-form";
+import QuickLogin from "@/components/quick-login";
 import { Card, CardDescription, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Metadata } from "next";
 
@@ -25,7 +27,9 @@ export default async function Page() {
                         Enter your credentials to access your account
                     </CardDescription>
                 </CardHeader>
-
+                <Env isDev>
+                    <QuickLogin />
+                </Env>
                 <LoginForm />
             </Card>
         </div>

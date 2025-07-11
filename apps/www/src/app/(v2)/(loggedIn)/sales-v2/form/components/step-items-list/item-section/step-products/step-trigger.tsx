@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { MenuItem } from "@/components/_v1/data-table/data-table-row-actions";
 import { Icons } from "@/components/_v1/icons";
 import { Menu } from "@/components/(clean-code)/menu";
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 import { DykeStepMeta } from "@/app/(v2)/(loggedIn)/sales-v2/type";
 import { cn } from "@/lib/utils";
 import DependenciesModal from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/modals/deps-modal";
@@ -41,7 +41,7 @@ export default function StepMenu({ stepActionNodeId }) {
 
     function conditionSettings(settingKey: keyof DykeStepMeta) {
         _modal.openModal(
-            <DependenciesModal settingKey={settingKey} stepCtx={stepCtx} />
+            <DependenciesModal settingKey={settingKey} stepCtx={stepCtx} />,
         );
     }
     async function toggleStepSetting(key: keyof typeof stepForm.step.meta) {
@@ -50,7 +50,7 @@ export default function StepMenu({ stepActionNodeId }) {
         await updateDykeStepMeta(stepForm.step.id, meta);
         form.setValue(
             `itemArray.${rowIndex}.item.formStepArray.${stepIndex}.step.meta.${key}` as any,
-            state
+            state,
         );
     }
     return (
@@ -68,7 +68,7 @@ export default function StepMenu({ stepActionNodeId }) {
                     <MenuItem
                         onClick={() => {
                             _modal.openModal(
-                                <RestoreComponentsModal stepCtx={stepCtx} />
+                                <RestoreComponentsModal stepCtx={stepCtx} />,
                             );
                         }}
                     >
@@ -93,7 +93,7 @@ export default function StepMenu({ stepActionNodeId }) {
                         <MenuItem
                             onClick={() => {
                                 _modal.openSheet(
-                                    <HeightSettingsModal ctx={stepCtx} />
+                                    <HeightSettingsModal ctx={stepCtx} />,
                                 );
                             }}
                         >

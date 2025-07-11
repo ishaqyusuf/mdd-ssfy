@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
@@ -144,7 +144,7 @@ function ItemCard({ item }: ItemCardProps) {
                                 <p className="font-mono text-sm font-semibold uppercase text-muted-foreground">
                                     {item.subtitle}
                                 </p>
-                                <DevOnly>{item.controlUid}</DevOnly>
+                                <Env isDev>{item.controlUid}</Env>
                             </div>
 
                             <div className="flex items-center space-x-2">

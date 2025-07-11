@@ -1,4 +1,4 @@
-import DevOnly from "@/_v2/components/common/dev-only";
+import { Env } from "@/components/env";
 import Money from "@/components/_v1/money";
 import { _modal } from "@/components/common/modal/provider";
 import { cn } from "@/lib/utils";
@@ -76,11 +76,11 @@ export function DykeInvoiceItemStepSection({
                                 <Money value={stepCost} />
                             </Badge>
                         )}
-                        <DevOnly>
+                        <Env isDev>
                             <span>
                                 {stepForm?.step?.id}-{stepForm?.step.uid}
                             </span>
-                        </DevOnly>
+                        </Env>
                     </button>
                     <div className="" id={stepActionNodeId}></div>
                 </div>
