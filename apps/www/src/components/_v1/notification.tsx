@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useEffect, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import Link from "next/link";
 import {
     archiveAction,

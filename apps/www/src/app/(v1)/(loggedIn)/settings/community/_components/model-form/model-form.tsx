@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { _revalidate } from "@/app/(v1)/_actions/_revalidate";
 import { getHomeTemplateSuggestions } from "@/app/(v1)/_actions/community/home-template-suggestion";
 import Btn from "@/components/_v1/btn";

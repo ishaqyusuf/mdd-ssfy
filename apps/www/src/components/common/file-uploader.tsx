@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import Image from "next/image";
 import { env } from "@/env.mjs";
 import { uploadFile, UploadFolders } from "@/lib/upload-file";

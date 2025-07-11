@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import {} from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import Btn from "@/components/_v1/btn";
 import { Icons } from "@/components/_v1/icons";
 import StatusBadge from "@/components/_v1/status-badge";

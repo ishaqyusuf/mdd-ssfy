@@ -2,7 +2,8 @@
 
 import { TableShellProps } from "@/types/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import {
     CheckColumn,
     ColumnHeader,
@@ -177,7 +178,7 @@ export default function CommunityTemplateTableShell<T>({
                                                     async () => {
                                                         await _synchronizeModelCost(
                                                             _cost,
-                                                            row.original.id
+                                                            row.original.id,
                                                         );
                                                         await timeout(1000);
                                                         return true;
@@ -187,16 +188,16 @@ export default function CommunityTemplateTableShell<T>({
                                                         loading: `Updating Costs: ${_cost.title}`,
                                                         success: (data) => {
                                                             updateCosts(
-                                                                index + 1
+                                                                index + 1,
                                                             );
                                                             return `Updated`;
                                                         },
-                                                    }
+                                                    },
                                                 );
                                         }
                                         console.log(
                                             row.original.project.builder.meta
-                                                .tasks
+                                                .tasks,
                                         );
                                         const _ = await _importModelCostData(
                                             row.original.id,
@@ -204,12 +205,12 @@ export default function CommunityTemplateTableShell<T>({
                                             row.original.project.builderId,
                                             row.original.meta,
                                             row.original.project.builder.meta
-                                                .tasks
+                                                .tasks,
                                         );
                                         if (!_) toast.error("No Import found");
                                         else {
                                             toast.success(
-                                                "Cost Import Successfully"
+                                                "Cost Import Successfully",
                                             );
                                             await updateCosts(0);
                                         }
@@ -223,7 +224,7 @@ export default function CommunityTemplateTableShell<T>({
                                                     onClick: async () =>
                                                         await __importCost(),
                                                 },
-                                            }
+                                            },
                                         );
                                     } else await __importCost();
                                 }}
@@ -245,7 +246,7 @@ export default function CommunityTemplateTableShell<T>({
                 ),
             },
         ], //.filter(Boolean) as any,
-        [data, isPending]
+        [data, isPending],
     );
     return (
         <DataTable2

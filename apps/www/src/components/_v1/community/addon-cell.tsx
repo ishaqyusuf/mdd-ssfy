@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { updateProjectMeta } from "@/app/(v1)/_actions/community/projects";
 import { IProject } from "@/types/community";
 

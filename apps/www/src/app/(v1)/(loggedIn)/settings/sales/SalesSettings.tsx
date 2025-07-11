@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import {} from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { saveSettingAction } from "@/app/(v1)/_actions/settings";
 import Btn from "@/components/_v1/btn";
 import { ISalesSetting } from "@/types/post";

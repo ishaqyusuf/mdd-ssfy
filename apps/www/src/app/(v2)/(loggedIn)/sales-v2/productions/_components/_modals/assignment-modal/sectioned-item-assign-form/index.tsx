@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { useStaticProducers } from "@/_v2/hooks/use-static-data";
 import Btn from "@/components/_v1/btn";
 import { DatePicker } from "@/components/_v1/date-range-picker";

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { deleteCustomerService } from "@/app/(v1)/_actions/customer-services/crud";
 import { staticEmployees } from "@/app/(v1)/_actions/hrm/get-employess";
 import { openModal } from "@/lib/modal";

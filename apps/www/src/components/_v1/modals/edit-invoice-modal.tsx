@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useEffect, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import { deleteInvoiceTasks } from "@/app/(v1)/_actions/community-invoice/delete-invoice-task";
 import {

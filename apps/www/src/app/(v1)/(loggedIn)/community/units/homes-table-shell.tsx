@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { deactivateProduction } from "@/app/(v1)/_actions/community/activate-production";

@@ -2,7 +2,8 @@
 
 import { TableShellProps } from "@/types/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import {
     CheckColumn,
     ColumnHeader,
@@ -141,7 +142,7 @@ export default function JobPaymentTableShell({
                 enableHiding: false,
             },
         ], //.filter(Boolean) as any,
-        [data, isPending]
+        [data, isPending],
     );
     return (
         <DataTable2

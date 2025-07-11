@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import { useEmployeeProfiles } from "@/_v2/hooks/use-static-data";
 import {

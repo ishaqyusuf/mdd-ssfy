@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useTransition } from "react";
+import React from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { EmployeeProfile } from "@/db";

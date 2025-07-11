@@ -1,7 +1,8 @@
 "use client";
 
 // import cloudinary from "@/lib/cloudinary";
-import { useRef, useTransition } from "react";
+import { useRef } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { _saveDocUpload } from "@/app/(v2)/(loggedIn)/contractors/overview/_actions/upload-contractor-doc";
 import { ContractorOverview } from "@/app/(v2)/(loggedIn)/contractors/overview/type";
 import Btn from "@/components/_v1/btn";

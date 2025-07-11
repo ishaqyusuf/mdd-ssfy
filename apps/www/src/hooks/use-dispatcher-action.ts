@@ -1,4 +1,5 @@
-import { useTransition } from "react";
+import {} from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { redirect } from "next/navigation";
 import { createSalesAssignment } from "@/actions/create-sales-assignment";
 import { createSalesDispatch } from "@/actions/create-sales-dispatch-action";

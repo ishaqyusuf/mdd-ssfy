@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useEffect, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import { getSettingAction } from "@/app/(v1)/_actions/settings";
 import SubmitJobModal from "@/app/(v2)/(loggedIn)/contractors/_modals/submit-job-modal";

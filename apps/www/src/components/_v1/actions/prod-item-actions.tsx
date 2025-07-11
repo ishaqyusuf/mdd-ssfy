@@ -3,7 +3,8 @@ import Btn from "@/components/_v1/btn";
 import { ToolTip } from "@/components/_v1/tool-tip";
 import { CheckCircle, Play, StopCircle, Undo } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useCallback, useState, useTransition } from "react";
+import { useEffect, useCallback, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { ISalesOrder, ISalesOrderItem, ProdActions } from "@/types/sales";
 import { orderItemProductionAction } from "@/app/(v1)/(loggedIn)/sales/_actions/sales-production";
 import { openModal } from "@/lib/modal";
@@ -42,7 +43,7 @@ export const ProdItemActions = ({ item }: IProp) => {
             router.refresh();
             toast.success("Success");
         },
-        [item, router]
+        [item, router],
     );
     useEffect(() => {
         if (qty == produced_qty) setProdState("Completed");

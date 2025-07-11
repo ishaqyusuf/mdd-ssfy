@@ -1,4 +1,5 @@
-import { useCallback, useContext, useTransition } from "react";
+import { useCallback, useContext } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import usePersistDirtyForm from "@/_v2/hooks/use-persist-dirty-form";
 import { resetSalesStatAction } from "@/app/(clean-code)/(sales)/_common/data-actions/sales-stat-control.action";

@@ -9,7 +9,8 @@ import {
     _stopUnitTaskProduction,
 } from "@/app/(v1)/_actions/community-production/prod-actions";
 import Btn from "../btn";
-import { useTransition } from "react";
+import {} from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -59,7 +60,7 @@ function ActionButton({ itemId, disabled, Icon, color, _action }) {
             }
             className={cn(
                 "p-2 h-8 w-8",
-                `bg-${color}-500 hover:bg-${color}-600`
+                `bg-${color}-500 hover:bg-${color}-600`,
             )}
             size="icon"
         >

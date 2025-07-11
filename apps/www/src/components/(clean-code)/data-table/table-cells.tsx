@@ -1,6 +1,7 @@
 "use client";
 
-import { TdHTMLAttributes, useState, useTransition } from "react";
+import { TdHTMLAttributes, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import Link from "next/link";
 import { MenuItem } from "@/components/_v1/data-table/data-table-row-actions";
 import { Icons } from "@/components/_v1/icons";

@@ -1,4 +1,5 @@
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { usePathname } from "next/navigation";
 import InputControl from "@/_v2/components/common/input-control";
 import Btn from "@/components/_v1/btn";

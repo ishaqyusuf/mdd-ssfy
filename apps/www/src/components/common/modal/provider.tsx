@@ -1,12 +1,8 @@
 "use client";
 
-import {
-    ReactNode,
-    createContext,
-    useContext,
-    useState,
-    useTransition,
-} from "react";
+import { ReactNode, createContext, useContext, useState } from "react";
+
+import { useTransition } from "@/utils/use-safe-transistion";
 import Modal, { openSecondaryPane } from ".";
 
 export interface ModalContextProps {
@@ -58,7 +54,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     const show = (
         content: ReactNode,
         type: ModalType = "modal",
-        extras = {}
+        extras = {},
     ) => {
         setModalContent(content);
         setShowModal(true);

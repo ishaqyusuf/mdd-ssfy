@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import {} from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { _saveCommunitModelCostData } from "@/app/(v1)/_actions/community/community-model-cost";
 import Btn from "@/components/_v1/btn";
 import { IUser } from "@/types/hrm";

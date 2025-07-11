@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useTransition } from "react";
+import React from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import {
     _assignJob,
     AssignJobActions,

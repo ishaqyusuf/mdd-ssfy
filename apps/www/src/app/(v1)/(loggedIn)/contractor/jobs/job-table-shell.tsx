@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { deleteJobAction } from "@/app/(v1)/_actions/hrm-jobs/delete-job";
 import {
     approveJob,

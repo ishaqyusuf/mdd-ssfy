@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import {} from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import { makePayment } from "@/app/(v1)/_actions/hrm-jobs/make-payment";
 import { EmployeeProfile, JobPayments } from "@/db";

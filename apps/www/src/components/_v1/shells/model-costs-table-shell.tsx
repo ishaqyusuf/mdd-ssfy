@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { deleteHomeTemplateAction } from "@/app/(v1)/(loggedIn)/settings/community/_components/home-template";
 import { openModal } from "@/lib/modal";
 import { cn } from "@/lib/utils";

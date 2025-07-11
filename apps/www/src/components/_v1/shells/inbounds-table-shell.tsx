@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import { deleteEmployeeProfile } from "@/app/(v1)/_actions/hrm/employee-profiles";
 import { updateInboundStatusAction } from "@/app/(v1)/_actions/sales-inbound/update-inbound-status";

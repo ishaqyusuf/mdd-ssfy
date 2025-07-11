@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import Btn from "@/components/_v1/btn";
 import { SecondaryCellContent } from "@/components/_v1/columns/base-columns";

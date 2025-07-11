@@ -1,4 +1,5 @@
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { PaymentMethods } from "@/app/(clean-code)/(sales)/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";

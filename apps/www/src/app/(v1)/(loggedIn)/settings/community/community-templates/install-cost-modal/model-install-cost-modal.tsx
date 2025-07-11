@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useEffect, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import { updateCommunityModelInstallCost } from "@/app/(v1)/_actions/community/community-template";
 import { updateModelInstallCost } from "@/app/(v1)/_actions/community/install-costs";

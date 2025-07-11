@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 
 import { Button, ButtonProps } from "@gnd/ui/button";
@@ -82,4 +83,3 @@ export default function ConfirmBtn({
         </Button>
     );
 }
-

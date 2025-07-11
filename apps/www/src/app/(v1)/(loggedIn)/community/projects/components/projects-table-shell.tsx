@@ -2,7 +2,8 @@
 
 import { TableShellProps } from "@/types/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import {
     CheckColumn,
     ColumnHeader,
@@ -96,7 +97,7 @@ export default function ProjectsTableShell<T>({
                     table.simpleColumn("Addons", (data) => ({
                         story: [<AddonCell key={1} project={data} />],
                     })),
-                ]
+                ],
             ),
             ..._FilterColumn("_q", "_builderId", "_status"),
 
@@ -111,7 +112,7 @@ export default function ProjectsTableShell<T>({
                         <EditRowAction
                             onClick={() => {
                                 modal.openModal(
-                                    <ProjectModal data={row.original} />
+                                    <ProjectModal data={row.original} />,
                                 );
                             }}
                         />
@@ -124,7 +125,7 @@ export default function ProjectsTableShell<T>({
                 // cell: ({ row }) => <OrderRowAction row={row.original} />,
             },
         ], //.filter(Boolean) as any,
-        [data, isPending]
+        [data, isPending],
     );
     return (
         <>

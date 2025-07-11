@@ -1,6 +1,7 @@
 "use client";
 
-import React, { memo, useEffect, useState, useTransition } from "react";
+import React, { memo, useEffect, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import { _getModelCostStat } from "@/app/(v1)/_actions/community/_model-cost-stat";
 import {

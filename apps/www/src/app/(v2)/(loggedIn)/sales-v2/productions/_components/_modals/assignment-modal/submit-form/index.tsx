@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import Btn from "@/components/_v1/btn";
 import FormInput from "@/components/common/controls/form-input";
 import { OrderProductionSubmissions } from "@/db";

@@ -2,7 +2,8 @@
 
 // import fs from "fs";
 // import dbUpgrade from "@/app/actions/upgrade/upgrade";
-import { useCallback, useTransition } from "react";
+import { useCallback } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { insertJobs } from "@/app/(v1)/_actions/hrm-jobs/restore-jobs";
 import {
     _debugUnitsWithNoProjects,

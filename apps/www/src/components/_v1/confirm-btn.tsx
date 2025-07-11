@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import {} from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import { useBool } from "@/lib/use-loader";
 import { cn } from "@/lib/utils";

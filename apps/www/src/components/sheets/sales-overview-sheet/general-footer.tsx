@@ -1,4 +1,5 @@
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import {
     deleteSalesUseCase,

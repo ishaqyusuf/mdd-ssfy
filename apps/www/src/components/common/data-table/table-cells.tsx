@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import Link from "next/link";
 import ProgressStatus from "@/components/_v1/progress-status";
 import { DateFormats, formatDate } from "@/lib/use-day";

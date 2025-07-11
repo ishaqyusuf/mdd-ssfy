@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { _getModelCostStat } from "@/app/(v1)/_actions/community/_model-cost-stat";
 import {
     _deleteCommunityModelCost,

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import { assignTech } from "@/app/(v1)/_actions/customer-services/assign-tech";
 import { updateWorkOrderStatus } from "@/app/(v1)/_actions/customer-services/update-status";

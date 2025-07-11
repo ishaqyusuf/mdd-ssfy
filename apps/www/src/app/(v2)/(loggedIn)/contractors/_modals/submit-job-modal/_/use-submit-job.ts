@@ -11,7 +11,8 @@ import {
 } from "@/app/(v1)/_actions/hrm-jobs/create-job";
 import { toast } from "sonner";
 import { _revalidate } from "@/app/(v1)/_actions/_revalidate";
-import { createContext, useContext, useState, useTransition } from "react";
+import { createContext, useContext, useState } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { getJobCostList } from "../../../_actions/job-cost-list";
 import submitJobUtils from "./submit-job-utils";
 import { InstallCostLine } from "@/types/settings";
@@ -23,7 +24,7 @@ import {
 } from "@/_v2/hooks/use-static-data";
 
 export const JobSubmitContext = createContext<ReturnType<typeof useSubmitJob>>(
-    {} as any
+    {} as any,
 );
 export const useJobSubmitCtx = () => useContext(JobSubmitContext);
 export default function useSubmitJob(form) {
@@ -68,7 +69,7 @@ export default function useSubmitJob(form) {
             job.amount = 0;
             if (!job.homeId) job.meta.addon = 0;
             [job.meta.addon, job.meta.taskCost, job.meta.additional_cost].map(
-                (n) => n > 0 && (job.amount += Number(n))
+                (n) => n > 0 && (job.amount += Number(n)),
             );
             if (job.coWorkerId) job.amount /= 2;
             if (!job.id) await createJobAction(job as any);
@@ -90,7 +91,7 @@ export default function useSubmitJob(form) {
     async function _initialize(
         _job: IJobs,
         // form: UseFormReturn<SubmitJobForm>,
-        { isAdmin, action }
+        { isAdmin, action },
     ) {
         const _costs = await getJobCostList(_job?.type);
         setCosts(_costs as any);
@@ -111,7 +112,7 @@ export default function useSubmitJob(form) {
         const unitJobs = await getUnitJobs(
             _job.projectId,
             type,
-            _job.homeId ? false : true
+            _job.homeId ? false : true,
         );
 
         const homes = unitJobs.homeList;
@@ -130,7 +131,7 @@ export default function useSubmitJob(form) {
     async function updateCostList(
         cost,
         home: HomeJobList,
-        updateCostData = false
+        updateCostData = false,
     ) {
         const cData = {};
 
@@ -145,7 +146,7 @@ export default function useSubmitJob(form) {
                     }
                     return null;
                 })
-                .filter(Boolean) || []
+                .filter(Boolean) || [],
         );
         // console.log(cost, cl.length, home);
         if (updateCostData) form.setValue("job.meta.costData", cData as any);

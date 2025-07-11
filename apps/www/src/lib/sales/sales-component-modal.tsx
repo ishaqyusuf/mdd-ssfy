@@ -1,10 +1,6 @@
-import {
-    Dispatch,
-    SetStateAction,
-    useEffect,
-    useState,
-    useTransition,
-} from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
+
+import { useTransition } from "@/utils/use-safe-transistion";
 import { searchOrderInventoryAction } from "@/app/(v1)/(loggedIn)/sales/_actions/inventory";
 import { saveSalesComponentAction } from "@/app/(v1)/(loggedIn)/sales/_actions/sales-components";
 import { SalesFormCtx } from "@/app/(v1)/(loggedIn)/sales/_actions/sales-form";

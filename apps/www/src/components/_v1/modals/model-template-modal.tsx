@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useTransition } from "react";
+import React, { useEffect } from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import { useBuilders, useStaticProjects } from "@/_v2/hooks/use-static-data";
 import {

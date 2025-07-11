@@ -1,4 +1,5 @@
-import { useTransition } from "react";
+import {} from "react";
+import { useTransition } from "@/utils/use-safe-transistion";
 import { cn } from "@/lib/utils";
 
 import { Button as BaseButton, ButtonProps } from "@gnd/ui/button";
