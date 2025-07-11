@@ -22,14 +22,27 @@ export default function QuickLogin({}) {
     async function login(email) {
         await signIn("credentials", {
             email,
-            password: process.env.NEXT_BACK_DOOR_TOK,
+            password: env.NEXT_PUBLIC_BACK_DOOR_TOK,
             callbackUrl: "/",
             redirect: true,
         });
     }
     return (
         <div>
-            <span>...</span>
+            <Menu label={"Quick Login"} noSize>
+                <ScrollArea className="max-h-[200px]  overflow-auto">
+                    {data?.data?.data?.map((user) => (
+                        <Menu.Item
+                            onClick={(e) => {
+                                login(user.email);
+                            }}
+                            key={user?.id}
+                        >
+                            <span>{user?.name}</span>
+                        </Menu.Item>
+                    ))}
+                </ScrollArea>
+            </Menu>
         </div>
     );
 }
