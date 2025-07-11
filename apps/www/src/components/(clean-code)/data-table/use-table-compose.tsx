@@ -52,7 +52,7 @@ export function useTableCompose<T>(props: Props<T>) {
     const [dynamicCols, setDynamicCols] = useState([]);
     const [isPending, startTransition] = useTransition();
     const ctx: CtxType<T> = {
-        Column(title, key, Column, args?: ColumnArgs) {
+        Column(title, key, Col, args?: ColumnArgs) {
             return {
                 accessorKey: key,
                 // key,
@@ -63,7 +63,7 @@ export function useTableCompose<T>(props: Props<T>) {
                     />
                 ),
                 cell: ({ cell }) =>
-                    Column ? <Column item={cell.row.original} /> : null,
+                    Col ? <Col item={cell.row.original} /> : (null as any),
             };
         },
         ActionCell(Col: ({ item }: { item: T }) => React.ReactElement) {

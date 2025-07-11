@@ -118,49 +118,4 @@ export function SignInForm({ className, ...props }: SignInFormProps) {
             </Form>
         </>
     );
-    return (
-        <div className={cn("grid gap-6", className)} {...props}>
-            <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="grid gap-2">
-                    <div className="grid gap-2">
-                        <Label className="" htmlFor="email">
-                            Email
-                        </Label>
-                        <Input
-                            id="email"
-                            {...register("email")}
-                            placeholder="name@example.com"
-                            type="email"
-                            autoCapitalize="none"
-                            autoComplete="email"
-                            autoCorrect="off"
-                            disabled={isLoading}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label className="mt-2" htmlFor="password">
-                            Password
-                        </Label>
-                        <Input
-                            id="password"
-                            {...register("password")}
-                            placeholder="password"
-                            type="password"
-                            autoCapitalize="none"
-                            autoComplete="password"
-                            autoCorrect="off"
-                            disabled={isLoading}
-                        />
-                    </div>
-                    <Button className="mt-2" disabled={isLoading}>
-                        {isLoading && (
-                            <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        Sign In
-                        <span className="sr-only">Sign in</span>
-                    </Button>
-                </div>
-            </form>
-        </div>
-    );
 }
