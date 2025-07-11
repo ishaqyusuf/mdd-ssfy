@@ -1,5 +1,3 @@
-// import { getBacklogs } from "../../db/queries/backlogs";
-import { getBacklogs } from "@api/db/queries/backlogs";
 import { createTRPCRouter, publicProcedure } from "../init";
 import { inboundQuerySchema, salesQueryParamsSchema } from "@api/schemas/sales";
 import { getSales } from "@api/db/queries/sales";

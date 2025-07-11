@@ -34,6 +34,7 @@ export function DataTable({}) {
     }, [data]);
     useEffect(() => {
         if (inView) {
+            console.log("FETCH NEXT PAGE");
             fetchNextPage();
         }
     }, [inView]);

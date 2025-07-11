@@ -140,35 +140,35 @@ const usePaymentContext = (ctx) => {
     async function terminalCheckout() {
         const e = await form.trigger(); //.then((e) => {
         const formData = form.getValues();
-        startTransition(async () => {
-            if (e) {
-                if (!formData.deviceId && isTerminal()) {
-                    form.setError("deviceId", {});
-                    return;
-                }
-                // if (isTerminal()) {
-                //     const resp = await createTerminalPaymentUseCase({
-                //         salesPayment: {
-                //             amount: Number(formData.amount),
-                //             orderId,
-                //             terminalId: formData.deviceId,
-                //             paymentType: "square_terminal",
-                //         },
-                //         terminal: {
-                //             amount: Number(formData.amount),
-                //             deviceId: formData.deviceId,
-                //             allowTipping: formData.enableTip,
-                //         },
-                //     });
+        // startTransition(async () => {
+        //     if (e) {
+        //         if (!formData.deviceId && isTerminal()) {
+        //             form.setError("deviceId", {});
+        //             return;
+        //         }
+        //         // if (isTerminal()) {
+        //         //     const resp = await createTerminalPaymentUseCase({
+        //         //         salesPayment: {
+        //         //             amount: Number(formData.amount),
+        //         //             orderId,
+        //         //             terminalId: formData.deviceId,
+        //         //             paymentType: "square_terminal",
+        //         //         },
+        //         //         terminal: {
+        //         //             amount: Number(formData.amount),
+        //         //             deviceId: formData.deviceId,
+        //         //             allowTipping: formData.enableTip,
+        //         //         },
+        //         //     });
 
-                //     if (resp.error) toast.error(resp.error.message);
-                //     else {
-                //         form.setValue("checkoutId", resp.resp.salesPayment.id);
-                //         // setWaitingForPayment(true);
-                //     }
-                // }
-            }
-        });
+        //         //     if (resp.error) toast.error(resp.error.message);
+        //         //     else {
+        //         //         form.setValue("checkoutId", resp.resp.salesPayment.id);
+        //         //         // setWaitingForPayment(true);
+        //         //     }
+        //         // }
+        //     }
+        // });
         // });
     }
     const _ctx = {
