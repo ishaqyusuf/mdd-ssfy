@@ -15,7 +15,7 @@ type CtxType<T> = {
         key?: string,
         Column?: (
             { item }: { item: T },
-            args: ColumnArgs,
+            // args: ColumnArgs,
         ) => React.ReactElement,
         args?: ColumnArgs,
     );
@@ -52,7 +52,7 @@ export function useTableCompose<T>(props: Props<T>) {
     const [dynamicCols, setDynamicCols] = useState([]);
     const [isPending, startTransition] = useTransition();
     const ctx: CtxType<T> = {
-        Column(title, key, Col, args?: ColumnArgs) {
+        Column(title, key, Cell, args?: ColumnArgs) {
             return {
                 accessorKey: key,
                 // key,
@@ -63,7 +63,7 @@ export function useTableCompose<T>(props: Props<T>) {
                     />
                 ),
                 cell: ({ cell }) =>
-                    Col ? <Col item={cell.row.original} /> : (null as any),
+                    Cell ? <Cell item={cell.row.original} /> : null,
             };
         },
         ActionCell(Col: ({ item }: { item: T }) => React.ReactElement) {

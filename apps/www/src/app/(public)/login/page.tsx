@@ -1,7 +1,11 @@
 import { Icons } from "@/components/_v1/icons";
 import { LoginForm } from "@/components/login-form";
 import { Card, CardDescription, CardHeader, CardTitle } from "@gnd/ui/card";
+import { Metadata } from "next";
 
+export const metadata: Metadata = {
+    title: "Login | GND",
+};
 export default async function Page() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
@@ -12,7 +16,7 @@ export default async function Page() {
                     </div>
                 </div>
             </header>
-            <Card className="shadow-xl border-0">
+            <Card className="shadow-xl sborder-0">
                 <CardHeader className="space-y-1 pb-6">
                     <CardTitle className="text-xl font-semibold text-center">
                         Sign In
