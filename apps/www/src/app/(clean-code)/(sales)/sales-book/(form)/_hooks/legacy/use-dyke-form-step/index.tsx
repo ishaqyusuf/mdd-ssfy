@@ -1,17 +1,12 @@
 import { DykeStep } from "@/app/(v2)/(loggedIn)/sales-v2/type";
-import {
-    createContext,
-    useContext,
-    useEffect,
-    useState,
-    useTransition,
-} from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useLegacyDykeForm, useLegacyDykeFormItem } from "../../legacy-hooks";
 import { useDykeComponentStore } from "../../data-store";
 import { IStepProducts } from "@/app/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products";
 import legacyDykeFormHelper from "../../../_utils/helpers/legacy-dyke-form-helper";
 import stepHelpers from "../../../_utils/helpers/step-helper";
 import { toast } from "sonner";
+import { useTransition } from "@/utils/use-safe-transistion";
 export type LegacyDykeFormStepType = ReturnType<
     typeof useLegacyDykeFormStepContext
 >;
@@ -28,7 +23,7 @@ export function useLegacyDykeFormStepContext(stepIndex, _step: DykeStep) {
     const ctx = useLegacyDykeForm();
     const itemCtx = useLegacyDykeFormItem();
     const priceRefresher = ctx.form.watch(
-        `itemArray.${itemCtx.rowIndex}.priceRefresher`
+        `itemArray.${itemCtx.rowIndex}.priceRefresher`,
     );
     const dependencies = itemCtx
         .formSteps()
@@ -40,7 +35,7 @@ export function useLegacyDykeFormStepContext(stepIndex, _step: DykeStep) {
         }))
         .filter(
             (_, i) =>
-                i < stepIndex && _step?.step?.meta?.priceDepencies?.[_.uid]
+                i < stepIndex && _step?.step?.meta?.priceDepencies?.[_.uid],
         );
     const uids = dependencies.map((s) => s.prodUid);
     const dependenciesUid = uids.length ? uids.join("-") : null;
@@ -48,11 +43,11 @@ export function useLegacyDykeFormStepContext(stepIndex, _step: DykeStep) {
         stepCtx.reloadComponents();
     }, [priceRefresher]);
     const componentsByTitle = useDykeComponentStore(
-        (state) => state.loadedComponentsByStepTitle
+        (state) => state.loadedComponentsByStepTitle,
     );
     const [sortMode, setSortMode] = useState(false);
     const updateComponent = useDykeComponentStore(
-        (state) => state.updateComponent
+        (state) => state.updateComponent,
     );
     type Product = IStepProducts[number] & {
         _selected?: boolean;
@@ -69,7 +64,7 @@ export function useLegacyDykeFormStepContext(stepIndex, _step: DykeStep) {
             const { cache, data, key } =
                 await legacyDykeFormHelper.step.loadComponents(
                     componentsByTitle,
-                    stepCtx
+                    stepCtx,
                 );
         });
     }
@@ -79,7 +74,7 @@ export function useLegacyDykeFormStepContext(stepIndex, _step: DykeStep) {
                 await legacyDykeFormHelper.step.loadComponents(
                     componentsByTitle,
                     stepCtx,
-                    true
+                    true,
                 );
         });
     }
@@ -87,7 +82,7 @@ export function useLegacyDykeFormStepContext(stepIndex, _step: DykeStep) {
         fetchStepComponents();
     }, []);
     const formStepRootPath = itemCtx.getPath.item(
-        `item.formStepArray.${stepIndex}`
+        `item.formStepArray.${stepIndex}`,
     ) as any;
     async function updateStep(stepForm) {
         setStep(stepForm);
@@ -180,7 +175,7 @@ export function useLegacyDoorHPTContext(title) {
     if (!doorStepIndex) throw new Error("Door Not found");
     const doorStepCtx = useLegacyDykeFormStepContext(
         doorStepIndex,
-        formSteps[doorStepIndex] as any
+        formSteps[doorStepIndex] as any,
     );
 
     const [showSelection, setShowSelection] = useState(false);
