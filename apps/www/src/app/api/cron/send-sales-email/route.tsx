@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const response = await resend.emails.send({
         from: `GND Millwork <${salesRepEmail?.split("@")[0]}@gndprodesk.com>`,
         to: customerEmail,
-        reply_to: salesRepEmail,
+        // reply_to: salesRepEmail,
         headers: {
             "X-Entity-Ref-ID": nanoid(),
         },
