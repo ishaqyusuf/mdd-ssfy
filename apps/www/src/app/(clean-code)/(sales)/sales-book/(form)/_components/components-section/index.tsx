@@ -64,7 +64,7 @@ export function ComponentsSection({ itemStepUid }: Props) {
     const sortMode = useSortControl();
     const [savingSort, startSavingSort] = useTransition();
     const onSorted = async (e: typeof items) => {
-        startSavingSort(async () => {
+        startSavingSort((async () => {
             ctx.setItems(e);
             const data = e
                 // .filter((item, i) => item._metaData.sortIndex !== i)
@@ -85,7 +85,7 @@ export function ComponentsSection({ itemStepUid }: Props) {
                 list: data,
             });
             cls.refreshStepComponentsData(true);
-        });
+        }) as any);
     };
     return (
         <ScrollArea
