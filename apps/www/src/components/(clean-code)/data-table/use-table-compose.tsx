@@ -66,10 +66,10 @@ export function useTableCompose<T>(props: Props<T>) {
                     Column ? <Column item={cell.row.original} /> : null,
             };
         },
-        ActionCell(Column: ({ item }: { item: T }) => React.ReactElement) {
+        ActionCell(Col: ({ item }: { item: T }) => React.ReactElement) {
             return {
                 id: "action",
-                cell: ({ cell }) => <Column item={cell.row.original} />,
+                cell: ({ cell }) => <Col item={cell.row.original} />,
             };
         },
     };
