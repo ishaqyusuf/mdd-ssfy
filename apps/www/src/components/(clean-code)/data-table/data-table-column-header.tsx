@@ -14,7 +14,7 @@ import {
     ArrowDownIcon,
     ArrowUpIcon,
     ChevronUpIcon,
-    EyeClosedIcon,
+    EyeOffIcon,
 } from "lucide-react";
 
 interface DataTableColumnHeaderProps<TData, TValue>
@@ -93,7 +93,7 @@ export function DataTableColumnHeader<TData, TValue>({
                         aria-label="Hide column"
                         onClick={() => column.toggleVisibility(false)}
                     >
-                        <EyeClosedIcon
+                        <EyeOffIcon
                             className="mr-2 h-3.5 w-3.5 text-muted-foreground/70"
                             aria-hidden="true"
                         />

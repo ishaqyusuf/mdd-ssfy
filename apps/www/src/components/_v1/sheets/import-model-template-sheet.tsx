@@ -10,7 +10,7 @@ import { transformCommunityTemplate } from "@/lib/community/community-template";
 import { closeModal, openModal } from "@/lib/modal";
 import { cn, labelValue } from "@/lib/utils";
 import { IJobPayment } from "@/types/hrm";
-import { Import, WindArrowDownIcon } from "lucide-react";
+import { ExternalLink, Import } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
@@ -165,7 +165,7 @@ export default function ImportModelTemplateSheet({
                                                                         t.modelName
                                                                     }
                                                                 </PrimaryCellContent>
-                                                                <WindArrowDownIcon />
+                                                                <ExternalLink />
                                                             </span>
 
                                                             <SecondaryCellContent>
