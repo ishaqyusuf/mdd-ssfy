@@ -17,7 +17,7 @@ export function constructMetadata({
             type: "image/png",
             sizes: "32x32",
 
-            url: `/favicon-32x32{prod ? ".png" : ".dev.jpg"}`,
+            url: `/favicon-32x32${prod ? ".png" : ".dev.jpg"}`,
         },
         {
             rel: "icon",
