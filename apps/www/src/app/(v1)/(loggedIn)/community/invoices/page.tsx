@@ -14,7 +14,8 @@ export const metadata: Metadata = {
     title: "All Unit Invoices",
 };
 interface Props {}
-export default async function InvoicesPage({ searchParams, params }) {
+export default async function InvoicesPage(props) {
+    const searchParams = await props.searchParams;
     const response = await getHomeInvoices(queryParams({ ...searchParams }));
     // metadata.title = `${project.title} | Homes`;
 

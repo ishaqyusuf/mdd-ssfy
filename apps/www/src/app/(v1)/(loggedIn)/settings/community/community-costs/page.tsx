@@ -13,7 +13,8 @@ import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 export const metadata: Metadata = {
     title: "Community Costs",
 };
-export default async function CommunityCostsPage({ searchParams }) {
+export default async function CommunityCostsPage(props) {
+    const searchParams = await props.searchParams;
     const response = await getProjectsAction(queryParams(searchParams));
     return (
         <AuthGuard can={["editProject"]}>

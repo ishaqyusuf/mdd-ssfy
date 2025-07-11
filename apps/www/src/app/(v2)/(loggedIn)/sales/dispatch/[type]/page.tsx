@@ -14,7 +14,9 @@ export const metadata: Metadata = {
     title: "Delivery | GND",
 };
 
-export default async function DeliveryPage({ searchParams, params }) {
+export default async function DeliveryPage(props) {
+    const params = await props.params;
+    const searchParams = await props.searchParams;
     const type = params.type as DeliveryOption;
     const promise = getDispatchSales({
         ...searchParams,

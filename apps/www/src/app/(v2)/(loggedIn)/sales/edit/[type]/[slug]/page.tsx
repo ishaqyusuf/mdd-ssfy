@@ -12,7 +12,8 @@ import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 export const metadata: Metadata = {
     title: "Edit Sales | GND",
 };
-export default async function EditSalesPage({ searchParams, params }) {
+export default async function EditSalesPage(props) {
+    const params = await props.params;
     const { type, slug } = params;
     const resp: SalesFormResponse = await _getSalesFormAction({
         orderId: slug,

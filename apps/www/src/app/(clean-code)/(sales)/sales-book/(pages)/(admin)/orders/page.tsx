@@ -14,7 +14,8 @@ export async function generateMetadata({}) {
         title: `Sales List - gndprodesk.com`,
     });
 }
-export default async function SalesBookPage({ searchParams }) {
+export default async function SalesBookPage(props) {
+    const searchParams = await props.searchParams;
     // const s = await prisma
 
     // const e = await prisma.siteActionTicket.findFirst({

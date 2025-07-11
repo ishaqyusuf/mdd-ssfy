@@ -15,7 +15,8 @@ import JobTableShell from "../../../job-table-shell";
 export const metadata: Metadata = {
     title: "Payment Portal",
 };
-export default async function PaymentPage({ params }) {
+export default async function PaymentPage(props) {
+    const params = await props.params;
     const userId = params?.id?.[0];
     const { payables, jobs } = await getPayableUsers(userId);
     const user = payables?.find((u) => u.id == userId);

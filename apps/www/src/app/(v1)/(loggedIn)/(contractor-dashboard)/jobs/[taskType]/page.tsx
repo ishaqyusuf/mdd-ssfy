@@ -15,7 +15,8 @@ import JobTableShell from "../../../contractor/jobs/job-table-shell";
 export const metadata: Metadata = {
     title: "Installations",
 };
-export default async function TaskInstallationPage({ searchParams }) {
+export default async function TaskInstallationPage(props) {
+    const searchParams = await props.searchParams;
     const response = await getMyJobs(queryParams(searchParams));
     return (
         <AuthGuard

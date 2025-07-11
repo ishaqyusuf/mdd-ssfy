@@ -16,10 +16,11 @@ export const metadata: Metadata = {
 //     | "quotes"
 //     | "productions";
 interface Props {
-    searchParams: SalesQueryParams;
+    searchParams: Promise<SalesQueryParams>;
     params;
 }
-export default async function SalesPage({ searchParams, params }: Props) {
+export default async function SalesPage(props: Props) {
+    const searchParams = await props.searchParams;
     const promise = getSalesAction({
         ...searchParams,
         type: "order",

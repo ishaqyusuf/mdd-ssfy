@@ -10,7 +10,8 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
     title: "Employees | GND",
 };
-export default async function HomePage({ searchParams }) {
+export default async function HomePage(props) {
+    const searchParams = await props.searchParams;
     const searchQuery = searchParamsCache.parse(searchParams);
     const { search } = searchQuery;
 

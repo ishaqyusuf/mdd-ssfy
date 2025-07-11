@@ -10,7 +10,8 @@ import PageHeader from "@/components/_v1/page-header";
 export const metadata: Metadata = {
     title: "Sales Productions | GND",
 };
-export default function SalesProductionPage({ searchParams }) {
+export default async function SalesProductionPage(props) {
+    const searchParams = await props.searchParams;
     const p = _getProductionList({ query: searchParams });
     const dueToday = _getProductionList({
         query: {

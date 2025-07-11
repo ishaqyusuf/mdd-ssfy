@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { createSalesCheckoutLinkAction } from "@/actions/create-sales-payment-checkout";
 import {
     GetSalesPaymentCheckoutInfo,
@@ -29,7 +29,8 @@ import {
 //         title: `Create Quote - gndprodesk.com`,
 //     });
 // }
-export default function Page({ params }) {
+export default function Page(props) {
+    const params = use(props.params);
     const { emailToken, orderIdsParam, orderIds } = formatPaymentParams(params);
     const [data, setData] = useState<GetSalesPaymentCheckoutInfo>(null);
     const [loading, setLoading] = useState(true);

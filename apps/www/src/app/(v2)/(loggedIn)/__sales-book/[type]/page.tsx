@@ -5,7 +5,8 @@ import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 import { capitalizeFirstLetter } from "@/lib/utils";
 
-export async function generateMetadata({ params, searchParams }) {
+export async function generateMetadata(props) {
+    const params = await props.params;
     const type = params.type;
     // const title = `${type}`;
     const title = `${capitalizeFirstLetter(type)}s`;
@@ -14,7 +15,9 @@ export async function generateMetadata({ params, searchParams }) {
     };
 }
 
-export default async function SalesPage({ searchParams, params }) {
+export default async function SalesPage(props) {
+    const params = await props.params;
+    const searchParams = await props.searchParams;
     const type: ISalesType = params.type;
 
     const promise = getSalesAction({
