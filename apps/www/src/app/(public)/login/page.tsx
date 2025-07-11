@@ -25,6 +25,7 @@ export default async function Page() {
                         Enter your credentials to access your account
                     </CardDescription>
                 </CardHeader>
+
                 <LoginForm />
             </Card>
         </div>

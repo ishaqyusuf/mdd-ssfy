@@ -7,6 +7,9 @@ import FormInput from "./common/controls/form-input";
 import { SubmitButton } from "./submit-button";
 import { signIn } from "next-auth/react";
 import { useTransition } from "@/utils/use-safe-transistion";
+import { Checkbox } from "@gnd/ui/checkbox";
+import { Label } from "@gnd/ui/label";
+import Link from "next/link";
 
 const loginSchema = z.object({
     email: z.string().email(),
@@ -21,13 +24,12 @@ export function LoginForm({}) {
     });
     const [isPending, startTransition] = useTransition();
     const onSubmit = form.handleSubmit(async (data) => {
-        console.log(data);
         startTransition(async () => {
-            // await signIn("credentials", {
-            //     ...data,
-            //     callbackUrl: "/",
-            //     redirect: true,
-            // });
+            await signIn("credentials", {
+                ...data,
+                callbackUrl: "/",
+                redirect: true,
+            });
         });
     });
     return (
@@ -45,6 +47,32 @@ export function LoginForm({}) {
                             control={form.control}
                             name="password"
                         />
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                                {/* <Checkbox
+                                    id="remember"
+                                    checked={formData.rememberMe}
+                                    onCheckedChange={(checked) =>
+                                        handleInputChange(
+                                            "rememberMe",
+                                            checked as boolean,
+                                        )
+                                    }
+                                />
+                                <Label
+                                    htmlFor="remember"
+                                    className="text-sm text-slate-600"
+                                >
+                                    Remember me
+                                </Label> */}
+                            </div>
+                            <Link
+                                href="/login/password-reset"
+                                className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
+                            >
+                                Forgot password?
+                            </Link>
+                        </div>
                     </CardContent>
                     <CardFooter className="flex flex-col space-y-4 pt-6">
                         <SubmitButton
