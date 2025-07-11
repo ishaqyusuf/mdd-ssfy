@@ -47,12 +47,12 @@ export async function sendEmail(props: EmailProps) {
                       from: props.from,
                       html,
                       subject,
-                      reply_to: props.replyTo,
+                      //   reply_to: props.replyTo,
                       //   attachments: attachments?.map((a) => ({
                       //       filename: a.cloudinary?.public_id,
                       //       content: a.pdf,
                       //   })),
-                  }))
+                  })),
               )
             : await resend.emails.send({
                   from: props.from,
@@ -61,7 +61,7 @@ export async function sendEmail(props: EmailProps) {
                   // react:,
                   html,
                   subject,
-                  reply_to: props.replyTo,
+                  //   reply_to: props.replyTo,
 
                   // attachments: attachments?.map((a) => ({
                   //     filename: a.cloudinary?.public_id?.split("/")[1],

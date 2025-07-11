@@ -75,17 +75,6 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
                 }),
             )}
         >
-            <Env isDev>
-                <div className="bg-red-200">a</div>
-                <p>{_note.color}</p>
-                <p>
-                    {listVariant({
-                        color: _note.color as any,
-                    })}
-                </p>
-                {noteColorVariant({ color: _note.color as any })}
-            </Env>
-
             <div className="flex w-full flex-col gap-1">
                 <div className="flex items-center">
                     <div className="flex items-center gap-2">
