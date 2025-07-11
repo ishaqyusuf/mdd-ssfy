@@ -9,6 +9,7 @@ import {
 import * as React from "react";
 import { cn } from "../utils";
 
+export type {DropdownMenuItemProps} from "@radix-ui/react-dropdown-menu"
 const DropdownMenu = DropdownMenuPrimitive.Root;
 
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;

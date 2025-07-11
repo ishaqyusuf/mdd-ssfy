@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { typedMemo } from "@/lib/hocs/typed-memo";
 import { useBool } from "@/lib/use-loader";
 import { cn } from "@/lib/utils";
-import { DropdownMenuItemProps } from "@radix-ui/react-dropdown-menu";
+
 import { VariantProps } from "class-variance-authority";
 import { Info, MoreHorizontal, Trash } from "lucide-react";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuItemProps,
     DropdownMenuShortcut,
     DropdownMenuSub,
     DropdownMenuSubContent,

@@ -9,8 +9,7 @@ import { transformCommunityTemplate } from "@/lib/community/community-template";
 import { closeModal, openModal } from "@/lib/modal";
 import { cn, labelValue } from "@/lib/utils";
 import { IJobPayment } from "@/types/hrm";
-import { OpenInNewWindowIcon } from "@radix-ui/react-icons";
-import { Import } from "lucide-react";
+import { Import, WindArrowDownIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
@@ -165,7 +164,7 @@ export default function ImportModelTemplateSheet({
                                                                         t.modelName
                                                                     }
                                                                 </PrimaryCellContent>
-                                                                <OpenInNewWindowIcon />
+                                                                <WindArrowDownIcon />
                                                             </span>
 
                                                             <SecondaryCellContent>

@@ -7,7 +7,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@gnd/ui/dialog";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useFieldArray, useForm } from "react-hook-form";
 import FormSelect from "../common/controls/form-select";
 import { inboundFilterStatus } from "@gnd/utils/constants";
 import FormInput from "../common/controls/form-input";
@@ -21,8 +21,11 @@ import { useEffect } from "react";
 import { SubmitButton } from "../submit-button";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
-import { SalesPreview } from "../sales-preview";
+import { del } from "@vercel/blob";
 import { InboundDocumentUploadZone } from "../sales-inbound/inbound-document-upload-zone";
+import Image from "next/image";
+import { env } from "@/env.mjs";
+import ConfirmBtn from "../confirm-button";
 
 // get schema from zod input
 const formSchema = saveInboundNoteSchema;
@@ -35,7 +38,13 @@ export function InboundSalesModal({}) {
             status: "" as any,
             note: "",
             noteColor: "",
+            attachments: [],
         },
+    });
+    const attachments = useFieldArray({
+        control: form.control,
+        name: "attachments",
+        keyName: "_id",
     });
     const trpc = useTRPC();
     const queryClient = useQueryClient();
@@ -111,6 +120,56 @@ export function InboundSalesModal({}) {
                                     placeholder="Add Note about the inbound status"
                                 />
                             </div>
+                            <div className="flex gap-4">
+                                {attachments.fields.map((a, ai) => (
+                                    <div key={a._id}>
+                                        <Image
+                                            src={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${a.pathname}`}
+                                            alt={a.pathname}
+                                            width={75}
+                                            height={75}
+                                        />
+                                        <div className="flex gap-4">
+                                            <ConfirmBtn
+                                                trash
+                                                onClick={(e) => {
+                                                    del(a.pathname)
+                                                        .then((e) => {
+                                                            console.log(e);
+                                                            attachments.remove(
+                                                                ai,
+                                                            );
+                                                        })
+                                                        .catch((e) => {
+                                                            console.log(e);
+                                                        });
+                                                }}
+                                                type="button"
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                                <InboundDocumentUploadZone
+                                    onUploadComplete={(e) => {
+                                        e.map((a) => {
+                                            attachments.append({
+                                                pathname: a.pathname,
+                                            });
+                                        });
+                                    }}
+                                >
+                                    <Button
+                                        type="button"
+                                        onClick={() =>
+                                            document
+                                                .getElementById("upload-files")
+                                                ?.click()
+                                        }
+                                    >
+                                        Upload
+                                    </Button>
+                                </InboundDocumentUploadZone>
+                            </div>
                             <DialogFooter className="flex justify-end gap-4">
                                 {/* <Button
                                     variant="secondary"
@@ -128,19 +187,7 @@ export function InboundSalesModal({}) {
                             </DialogFooter>
                         </form>
                     </FormProvider>
-                    <InboundDocumentUploadZone
-                        onUploadComplete={(e) => {
-                            console.log(e);
-                        }}
-                    >
-                        <Button
-                            onClick={() =>
-                                document.getElementById("upload-files")?.click()
-                            }
-                        >
-                            Upload
-                        </Button>
-                    </InboundDocumentUploadZone>
+
                     {/* <div className="pt-[150px]">
                         <SalesPreview />
                     </div> */}

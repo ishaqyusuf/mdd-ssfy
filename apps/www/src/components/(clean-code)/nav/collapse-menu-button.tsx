@@ -1,8 +1,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { DropdownMenuArrow } from "@radix-ui/react-dropdown-menu";
-import { ChevronDown, Dot, LucideIcon } from "lucide-react";
+import { ArrowDownIcon, ChevronDown, Dot, LucideIcon } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import {
@@ -173,7 +172,7 @@ export function CollapseMenuButton({
                         </Link>
                     </DropdownMenuItem>
                 ))}
-                <DropdownMenuArrow className="fill-border" />
+                <ArrowDownIcon className="fill-border" />
             </DropdownMenuContent>
         </DropdownMenu>
     );

@@ -17,9 +17,7 @@ export function DataTable({}) {
     const { filter, setFilter } = useInboundFilterParams();
     const { ref, inView } = useInView();
 
-    const infiniteQueryOptions = (
-        trpc.sales.inboundIndex as any
-    ).infiniteQueryOptions(
+    const infiniteQueryOptions = trpc.sales.inboundIndex.infiniteQueryOptions(
         {
             ...filter,
         },

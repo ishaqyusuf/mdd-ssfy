@@ -1,15 +1,13 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { DataTableViewOptions } from "@/components/_v1/data-table/data-table-view-options";
-import { cn } from "@/lib/utils";
 import type {
     DataTableDateFilterColumn,
     DataTableFilterableColumn,
     DataTableSearchableColumn,
 } from "@/types/data-table";
-import { Cross2Icon, PlusCircledIcon, TrashIcon } from "@radix-ui/react-icons";
+
 import type { Table } from "@tanstack/react-table";
 
 import { Button, buttonVariants } from "@gnd/ui/button";
@@ -18,6 +16,7 @@ import { Input } from "@gnd/ui/input";
 import { DataTableFacetedFilter } from "./data-table-faceted-filter";
 import { DataTableFacetedFilter2 } from "./data-table-faceted-filter-2";
 import { DataTableFacetedDate } from "./data-table-facetted-date";
+import { CrossIcon, TrashIcon } from "lucide-react";
 
 interface DataTableToolbarProps<TData, TValue> {
     table: Table<TData>;
@@ -114,7 +113,7 @@ export function DataTableToolbar<TData, TValue>({
                         onClick={() => table.resetColumnFilters()}
                     >
                         Reset
-                        <Cross2Icon className="ml-2 h-4 w-4" />
+                        <CrossIcon className="ml-2 h-4 w-4" />
                     </Button>
                 )}
             </div>

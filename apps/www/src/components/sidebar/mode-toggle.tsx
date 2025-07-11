@@ -1,6 +1,5 @@
 "use client";
 
-import { LaptopIcon, MoonIcon, SunIcon } from "@radix-ui/react-icons";
 import { useTheme } from "next-themes";
 
 import { Button } from "@gnd/ui/button";
@@ -10,6 +9,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
+import { Laptop2, MoonIcon, SunIcon } from "lucide-react";
 
 export function ModeToggle() {
     const { setTheme } = useTheme();
@@ -33,7 +33,7 @@ export function ModeToggle() {
                     <span>Dark</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTheme("system")}>
-                    <LaptopIcon className="mr-2 size-4" />
+                    <Laptop2 className="mr-2 size-4" />
                     <span>System</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>

@@ -25,7 +25,7 @@ export async function queryResponse<T>(
         size: size,
         start,
       };
-    meta.cursor = meta.next?.start;
+    meta.cursor = meta.next?.start?.toString();
     meta.hasNextPage = start < count;
     meta.hasPreviousePage = start > 0;
   }

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { CheckIcon, PlusCircledIcon } from "@radix-ui/react-icons";
+
 import { type Column } from "@tanstack/react-table";
 
 import { Badge } from "@gnd/ui/badge";
@@ -16,6 +16,7 @@ import {
 } from "@gnd/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { Separator } from "@gnd/ui/separator";
+import { CheckIcon, PlusCircleIcon } from "lucide-react";
 
 export interface Option {
     label: string;
@@ -46,7 +47,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                     size="sm"
                     className="h-8 border-dashed"
                 >
-                    <PlusCircledIcon
+                    <PlusCircleIcon
                         className="mr-2 h-4 w-4"
                         aria-hidden="true"
                     />

@@ -5,6 +5,8 @@ import { put, PutBlobResult } from "@vercel/blob";
 import { useDropzone } from "react-dropzone";
 import { cn } from "@gnd/ui/cn";
 import { stripSpecialCharacters } from "@gnd/utils";
+import { env } from "@/env.mjs";
+import { generateRandomString } from "@/lib/utils";
 type Props = {
     children: ReactNode;
     onUploadComplete?: (results: PutBlobResult[]) => void;
@@ -55,13 +57,18 @@ export function InboundDocumentUploadZone({
             const results = await Promise.all(
                 files.map(async (file: File, idx: number) => {
                     const filename = stripSpecialCharacters(file.name);
+                    const [ext, ...nameReverse] = filename
+                        .split(".")
+                        ?.reverse();
+                    const name = nameReverse.reverse().join(".");
+                    const rnd = `-uid-${generateRandomString(6)}`;
                     const fullPath = decodeURIComponent(
-                        [...path, filename].join("/"),
+                        [...path, `${name}${rnd}.${ext}`].join("/"),
                     );
-                    console.log({ fullPath, filename });
-                    return put(`/${filename}`, file, {
+                    const token = env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN;
+                    return put(`/${fullPath}`, file, {
                         access: "public",
-                        token: process.env.BLOB_READ_WRITE_TOKEN,
+                        token,
                         onUploadProgress({
                             loaded: bytesUploaded,
                             total: bytesTotal,

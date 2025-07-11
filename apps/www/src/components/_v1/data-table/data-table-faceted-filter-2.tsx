@@ -1,7 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { DataTableFilterableColumn } from "@/types/data-table";
-import { CheckIcon, PlusCircledIcon } from "@radix-ui/react-icons";
 import { Table, type Column } from "@tanstack/react-table";
 import { Check } from "lucide-react";
 

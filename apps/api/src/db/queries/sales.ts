@@ -35,5 +35,6 @@ export async function getSales(
       },
     },
   });
+
   return await response(data);
 }

@@ -93,6 +93,7 @@ export async function getInbounds(ctx: TRPCContext, query: InboundQuerySchema) {
         data: [],
         meta: {
           count: 0,
+          cursor: null,
         },
       };
   }

@@ -1,7 +1,6 @@
 declare module "cloudinary";
 import { SearchParamsKeys } from "@/components/(clean-code)/data-table/search-params";
 import { IconKeys } from "@/components/_v1/icons";
-import { Primitive } from "@radix-ui/react-primitive";
 import { ColumnDef as TanColumnDef } from "@tanstack/react-table";
 import React from "react";
 export type Any<T> = Partial<T> & any;
@@ -16,9 +15,7 @@ export type MakeArray<T> = {
     [P in keyof T]: T[P][];
 };
 
-export type PrimitiveDivProps = React.ComponentPropsWithoutRef<
-    typeof Primitive.div
->;
+export type PrimitiveDivProps = React.ComponentPropsWithoutRef<any>;
 export type PageDataMeta = {
     count?;
     page?;

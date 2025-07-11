@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { Icon, IconKeys, Icons } from "@/components/_v1/icons";
 import { cn } from "@/lib/utils";
 import { PrimitiveDivProps } from "@/types/type";
-import { DropdownMenuItemProps } from "@radix-ui/react-dropdown-menu";
+
 import { VariantProps } from "class-variance-authority";
 import { toast } from "sonner";
 
@@ -19,6 +19,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuItemProps,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuShortcut,

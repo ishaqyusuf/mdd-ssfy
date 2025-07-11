@@ -31,6 +31,11 @@ const nextConfig = {
             },
             {
                 protocol: "https",
+                hostname: "wbycmglit0cmqbex.public.blob.vercel-storage.com",
+                port: "",
+            },
+            {
+                protocol: "https",
                 hostname: "gndmillwork.com",
                 port: "",
             },

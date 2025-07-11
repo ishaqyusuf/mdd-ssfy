@@ -1,11 +1,6 @@
 import { cn } from "@/lib/utils";
 import { TablePageInfo } from "@/types/data-table";
-import {
-    ChevronLeftIcon,
-    ChevronRightIcon,
-    DoubleArrowLeftIcon,
-    DoubleArrowRightIcon,
-} from "@radix-ui/react-icons";
+
 import { type Table } from "@tanstack/react-table";
 
 import { Button } from "@gnd/ui/button";
@@ -16,6 +11,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@gnd/ui/select";
+import {
+    ArrowLeftIcon,
+    ArrowRightIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+} from "lucide-react";
 
 interface DataTablePaginationProps<TData> {
     table: Table<TData>;
@@ -87,10 +88,7 @@ export function DataTablePagination<TData>({
                         onClick={() => table.setPageIndex(0)}
                         disabled={!table.getCanPreviousPage()}
                     >
-                        <DoubleArrowLeftIcon
-                            className="h-4 w-4"
-                            aria-hidden="true"
-                        />
+                        <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
                     </Button>
                     <Button
                         aria-label="Go to previous page"
@@ -128,7 +126,7 @@ export function DataTablePagination<TData>({
                         }
                         disabled={!table.getCanNextPage()}
                     >
-                        <DoubleArrowRightIcon
+                        <ArrowRightIcon
                             className="h-4 w-4"
                             aria-hidden="true"
                         />
@@ -138,4 +136,3 @@ export function DataTablePagination<TData>({
         </div>
     );
 }
-

@@ -1,10 +1,5 @@
 import { cn } from "@/lib/utils";
-import {
-    ArrowDownIcon,
-    ArrowUpIcon,
-    CaretSortIcon,
-    EyeNoneIcon,
-} from "@radix-ui/react-icons";
+
 import { type Column } from "@tanstack/react-table";
 
 import { Button } from "@gnd/ui/button";
@@ -15,6 +10,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
+import { ArrowDownIcon, ArrowUpIcon, EyeClosedIcon } from "lucide-react";
+import { CaretUpIcon } from "@radix-ui/react-icons";
 
 interface DataTableColumnHeaderProps<TData, TValue>
     extends React.HTMLAttributes<HTMLDivElement> {
@@ -59,7 +56,7 @@ export function DataTableColumnHeader<TData, TValue>({
                                 aria-hidden="true"
                             />
                         ) : (
-                            <CaretSortIcon
+                            <CaretUpIcon
                                 className="ml-2 h-4 w-4"
                                 aria-hidden="true"
                             />
@@ -92,7 +89,7 @@ export function DataTableColumnHeader<TData, TValue>({
                         aria-label="Hide column"
                         onClick={() => column.toggleVisibility(false)}
                     >
-                        <EyeNoneIcon
+                        <EyeClosedIcon
                             className="mr-2 h-3.5 w-3.5 text-muted-foreground/70"
                             aria-hidden="true"
                         />
@@ -103,4 +100,3 @@ export function DataTableColumnHeader<TData, TValue>({
         </div>
     );
 }
-

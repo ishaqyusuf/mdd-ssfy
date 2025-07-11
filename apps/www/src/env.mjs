@@ -55,6 +55,8 @@ const client = z.object({
     NEXT_PUBLIC_ROOT_DOMAIN: z.string(),
     // CLOUDINARY_API_KEY: z.string(),
     NEXT_PUBLIC_CLOUDINARY_BASE_URL: z.string(),
+    NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN: z.string(),
+    NEXT_PUBLIC_VERCEL_BLOB_URL: z.string(),
     NEXT_PUBLIC_NODE_ENV: z.enum(["development", "test", "production"]),
     // NEXT_PUBLIC_CLIENTVAR: z.string().min(1),
 });
@@ -99,6 +101,9 @@ const processEnv = {
     NEXT_PUBLIC_CLOUDINARY_BASE_URL:
         process.env.NEXT_PUBLIC_CLOUDINARY_BASE_URL,
     NEXT_PUBLIC_ROOT_DOMAIN: process.env.NEXT_PUBLIC_ROOT_DOMAIN,
+    NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN:
+        process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
+    NEXT_PUBLIC_VERCEL_BLOB_URL: process.env.NEXT_PUBLIC_VERCEL_BLOB_URL,
     // DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
     // DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,

@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { DateFormats, formatDate } from "@/lib/use-day";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "@radix-ui/react-icons";
 import { DateRange } from "react-day-picker";
 
 import { Button } from "@gnd/ui/button";
 import { Calendar, CalendarProps } from "@gnd/ui/calendar";
 
 import { Menu } from "../(clean-code)/menu";
+import { CalendarIcon } from "lucide-react";
 
 interface Props {
     range?: boolean;
