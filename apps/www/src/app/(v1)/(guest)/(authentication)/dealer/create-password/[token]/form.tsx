@@ -18,6 +18,7 @@ import {
     createDealerPasswordSchema,
     CreateDealerPasswordSchema,
 } from "./validation";
+import { useTransition } from "@/utils/use-safe-transistion";
 
 interface SignInFormProps extends React.HTMLAttributes<HTMLDivElement> {
     val: VerifyToken;
@@ -38,7 +39,7 @@ export default function ClientForm({ className, ...props }: SignInFormProps) {
     });
     const { data: session } = useSession();
 
-    const [isPending, startTransition] = React.useTransition();
+    const [isPending, startTransition] = useTransition();
     const { register, handleSubmit } = form;
     const [submitted, setSubmitted] = React.useState(false);
 

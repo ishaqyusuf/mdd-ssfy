@@ -19,12 +19,13 @@ import { Checkbox } from "@gnd/ui/checkbox";
 import { Form, FormControl, FormField, FormItem } from "@gnd/ui/form";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
+import { useTransition } from "@/utils/use-safe-transistion";
 
 export type ResetPasswordFormInputs = z.infer<typeof resetPasswordSchema>;
 
 export function InstallCostForm({ data }: { data: InstallCostSettings }) {
     const router = useRouter();
-    const [isPending, startTransition] = React.useTransition();
+    const [isPending, startTransition] = useTransition();
 
     // react-hook-form
     const form = useForm<InstallCostMeta>({

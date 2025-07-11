@@ -21,12 +21,13 @@ import {
     FormMessage,
 } from "@gnd/ui/form";
 import { Input } from "@gnd/ui/input";
+import { useTransition } from "@/utils/use-safe-transistion";
 
 export type ResetPasswordFormInputs = z.infer<typeof resetPasswordSchema>;
 
 export function ResetPasswordStep2Form() {
     const router = useRouter();
-    const [isPending, startTransition] = React.useTransition();
+    const [isPending, startTransition] = useTransition();
 
     // react-hook-form
     const form = useForm<ResetPasswordFormInputs>({

@@ -17,6 +17,7 @@ import { DataTableFacetedFilter } from "./data-table-faceted-filter";
 import { DataTableFacetedFilter2 } from "./data-table-faceted-filter-2";
 import { DataTableFacetedDate } from "./data-table-facetted-date";
 import { CrossIcon, TrashIcon } from "lucide-react";
+import { useTransition } from "@/utils/use-safe-transistion";
 
 interface DataTableToolbarProps<TData, TValue> {
     table: Table<TData>;
@@ -40,7 +41,7 @@ export function DataTableToolbar<TData, TValue>({
     Toolbar,
 }: DataTableToolbarProps<TData, TValue>) {
     const isFiltered = table.getState().columnFilters.length > 0;
-    const [isPending, startTransition] = React.useTransition();
+    const [isPending, startTransition] = useTransition();
 
     return (
         <div className="flex w-full items-center justify-between space-x-2 overflow-auto p-1">

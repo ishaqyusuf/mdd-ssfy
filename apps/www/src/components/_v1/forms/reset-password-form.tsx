@@ -23,6 +23,7 @@ import {
     FormMessage,
 } from "@gnd/ui/form";
 import { Input } from "@gnd/ui/input";
+import { useTransition } from "@/utils/use-safe-transistion";
 
 export type ResetPasswordRequestInputs = z.infer<typeof checkEmailSchema>;
 export function ResetPasswordForm() {
@@ -33,7 +34,7 @@ export function ResetPasswordForm() {
         resolver: zodResolver(checkEmailSchema),
     });
 
-    const [isPending, startTransition] = React.useTransition();
+    const [isPending, startTransition] = useTransition();
 
     const router = useRouter();
     async function onSubmit(data: ResetPasswordRequestInputs) {

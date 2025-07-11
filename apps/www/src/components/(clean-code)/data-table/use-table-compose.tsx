@@ -3,6 +3,7 @@ import { TableCellProps } from "./table-cells";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { SearchParamsKeys } from "./search-params";
+import { useTransition } from "@/utils/use-safe-transistion";
 
 interface ColumnArgs {
     noTitle?: boolean;
@@ -14,9 +15,9 @@ type CtxType<T> = {
         key?: string,
         Column?: (
             { item }: { item: T },
-            args: ColumnArgs
+            args: ColumnArgs,
         ) => React.ReactElement,
-        args?: ColumnArgs
+        args?: ColumnArgs,
     );
     ActionCell(Column: ({ item }: { item: T }) => React.ReactElement);
     // Primary({ children });
@@ -49,7 +50,7 @@ export type TableProps = ReturnType<typeof useTableCompose>["props"] & {
 };
 export function useTableCompose<T>(props: Props<T>) {
     const [dynamicCols, setDynamicCols] = useState([]);
-    const [isPending, startTransition] = React.useTransition();
+    const [isPending, startTransition] = useTransition();
     const ctx: CtxType<T> = {
         Column(title, key, Column, args?: ColumnArgs) {
             return {
@@ -88,7 +89,7 @@ export function useTableCompose<T>(props: Props<T>) {
                     };
                 }) as any),
             ].filter(Boolean) as any,
-        [isPending, dynamicCols]
+        [isPending, dynamicCols],
     );
     function addFilterCol(col) {
         setDynamicCols((current) => {

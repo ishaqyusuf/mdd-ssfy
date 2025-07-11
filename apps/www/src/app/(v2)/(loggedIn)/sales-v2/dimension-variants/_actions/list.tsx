@@ -21,13 +21,14 @@ import { Label } from "@gnd/ui/label";
 
 import { HousePackageToolSettings } from "../type";
 import { saveHousePackageTool } from "./save-house-package-tool";
+import { useTransition } from "@/utils/use-safe-transistion";
 
 export type ResetPasswordFormInputs = z.infer<typeof resetPasswordSchema>;
 
 export function DimensionList({ data }: { data: HousePackageToolSettings }) {
     // console.log(data);
     const router = useRouter();
-    const [isPending, startTransition] = React.useTransition();
+    const [isPending, startTransition] = useTransition();
 
     // react-hook-form
     const form = useForm<HousePackageToolSettings>({

@@ -25,6 +25,7 @@ import { Label } from "@gnd/ui/label";
 import { PasswordInput } from "../../../../../components/_v1/password-input";
 import DevOnly from "@/_v2/components/common/dev-only";
 import { resetIzriPassword } from "@/app/(v1)/_actions/auth";
+import { useTransition } from "@/utils/use-safe-transistion";
 
 interface SignInFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -36,7 +37,7 @@ export function SignInForm({ className, ...props }: SignInFormProps) {
     });
     const { data: session } = useSession();
 
-    const [isPending, startTransition] = React.useTransition();
+    const [isPending, startTransition] = useTransition();
     const { register, handleSubmit } = form;
     const router = useRouter();
     async function onSubmit(loginData: ILogin) {

@@ -10,6 +10,7 @@ import {
     TableCell,
     TableCellProps,
 } from "@/app/_components/data-table/table-cells";
+import { useTransition } from "@/utils/use-safe-transistion";
 
 type CellValueType<T> = ((item: T) => any) | keyof T;
 interface ColumnArgs {
@@ -20,7 +21,7 @@ type CtxType<T> = {
     Column(
         title,
         Column: ({ item }: { item: T }, args: ColumnArgs) => React.ReactElement,
-        args?: ColumnArgs
+        args?: ColumnArgs,
     );
     ActionColumn(Column: ({ item }: { item: T }) => React.ReactElement);
     Primary({ children });
@@ -57,7 +58,7 @@ export function useDataTableColumn3<T>(data: T) {
 export function useDataTableColumn2<T>(
     data: T[],
     props: Props<T>,
-    cells: (ctx: CtxType<T>) => ColumnDef<T, unknown>[]
+    cells: (ctx: CtxType<T>) => ColumnDef<T, unknown>[],
 ) {
     props.v2 = true;
     return useDataTableColumn(data, cells, props?.checkable, props);
@@ -66,9 +67,9 @@ export default function useDataTableColumn<T>(
     data: T[],
     cells: (ctx: CtxType<T>) => ColumnDef<T, unknown>[],
     checkable = true,
-    props?: Props<T>
+    props?: Props<T>,
 ) {
-    const [isPending, startTransition] = React.useTransition();
+    const [isPending, startTransition] = useTransition();
     // type ValueType = typeof keyof T;
     const checkBox = useDatableCheckbox(data, props.v2);
     const [dynamicCols, setDynamicCols] = useState([]);
@@ -84,7 +85,7 @@ export default function useDataTableColumn<T>(
         Column(
             title,
             Column: ({ item }: { item: T }) => React.ReactElement,
-            args?: ColumnArgs
+            args?: ColumnArgs,
         ) {
             return {
                 accessorKey: title.toLowerCase(),
@@ -110,7 +111,7 @@ export default function useDataTableColumn<T>(
             title,
             Value:
                 | CellValueType<T>
-                | (({ data }: { data: T }) => React.ReactElement)
+                | (({ data }: { data: T }) => React.ReactElement),
         ): ColumnDef<T, unknown> {
             return {
                 accessorKey: title.toLowerCase(),
@@ -179,7 +180,7 @@ export default function useDataTableColumn<T>(
                     };
                 }) as any),
             ].filter(Boolean) as any,
-        [data, isPending, dynamicCols]
+        [data, isPending, dynamicCols],
     );
     return {
         ...ctx,
@@ -187,15 +188,15 @@ export default function useDataTableColumn<T>(
         ...checkBox,
         addDynamicCol(col) {
             setDynamicCols((current) =>
-                Array.from(new Set(...dynamicCols, current))
+                Array.from(new Set(...dynamicCols, current)),
             );
         },
         deleteSelectedRow() {
             toast.promise(
                 Promise.all(
                     checkBox.selectedRowIds.map((id) =>
-                        props?.deleteAction?.(id)
-                    )
+                        props?.deleteAction?.(id),
+                    ),
                 ),
                 {
                     loading: "Deleting...",
@@ -208,7 +209,7 @@ export default function useDataTableColumn<T>(
                         //  return catchError(err);
                         return "";
                     },
-                }
+                },
             );
         },
         props: {

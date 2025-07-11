@@ -15,6 +15,7 @@ import { Form } from "@gnd/ui/form";
 
 import { signupDealerAction } from "./action";
 import { RegisterSchema, registerSchema } from "./validation";
+import { useTransition } from "@/utils/use-safe-transistion";
 
 interface SignInFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -25,7 +26,7 @@ export default function SignupForm({ className, ...props }: SignInFormProps) {
         resolver: zodResolver(registerSchema),
     });
 
-    const [isPending, startTransition] = React.useTransition();
+    const [isPending, startTransition] = useTransition();
 
     const router = useRouter();
     async function onSubmit() {
