@@ -8,6 +8,11 @@ export function whereSales(query: SalesQueryParamsSchema) {
   Object.entries(query).map(([k, v]) => {
     if (v === null) return;
     switch (k as keyof SalesQueryParamsSchema) {
+      case "salesType":
+        where.push({
+          type: query.salesType,
+        });
+        break;
       case "salesNo":
         break;
       case "q":

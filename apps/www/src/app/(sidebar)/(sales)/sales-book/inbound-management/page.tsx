@@ -13,10 +13,13 @@ import { ErrorFallback } from "@/components/error-fallback";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { DataTable } from "@/components/tables/inbound-managment/data-table";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
+import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 
-export const metadata: Metadata = {
-    title: "Inbound Managment | GND",
-};
+export async function generateMetadata(props) {
+    return constructMetadata({
+        title: "Inbound Management | GND",
+    });
+}
 type Props = {
     searchParams: Promise<SearchParams>;
 };
