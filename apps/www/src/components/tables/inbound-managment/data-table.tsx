@@ -25,7 +25,7 @@ export function DataTable({}) {
         },
         {
             getNextPageParam: ({ meta }) => {
-                return meta?.cusor; //?.toString();
+                return meta?.cursor;
             },
         },
     );

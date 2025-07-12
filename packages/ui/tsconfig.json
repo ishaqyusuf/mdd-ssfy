@@ -1,8 +1,11 @@
 {
-  "extends": "@gnd/tsconfig/nextjs.json",
+  "extends": "@gnd/tsconfig/react-library.json",
   "compilerOptions": {
-    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json"
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["*.ts", "src"],
+  "include": ["src"],
   "exclude": ["node_modules"]
 }

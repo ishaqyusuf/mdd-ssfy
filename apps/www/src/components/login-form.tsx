@@ -44,7 +44,8 @@ export function LoginForm({}) {
                         />
                         <FormInput
                             type="password"
-                            control={form.control}
+                            control={form.control} 
+                            label="Password"
                             name="password"
                         />
                         <div className="flex items-center justify-between">

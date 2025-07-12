@@ -3,9 +3,9 @@ import type { Config } from "tailwindcss";
 
 export default {
     content: [
-        "./src/app/**/*.{ts,tsx}",
-        "./src/components/**/*.{ts,tsx}",
+        "./src/**/*.{ts,tsx}",
         "../../packages/ui/src/**/*.{ts,tsx}",
+        "../../packages/invoice/src/**/*.{ts,tsx}",
     ],
     presets: [baseConfig],
     plugins: [],

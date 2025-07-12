@@ -77,9 +77,9 @@ export function AmountRange() {
         const rangeMin = minValue + index * amountStep;
         const rangeMax = minValue + (index + 1) * amountStep;
         return (
-            countItemsInRange(sliderValue[0], sliderValue[1]) > 0 &&
-            rangeMin <= sliderValue[1] &&
-            rangeMax >= sliderValue[0]
+            countItemsInRange(sliderValue?.[0]!!, sliderValue?.[1]!) > 0 &&
+            rangeMin <= sliderValue[1]! &&
+            rangeMax >= sliderValue[0]!
         );
     };
 
@@ -156,10 +156,12 @@ export function AmountRange() {
                         inputMode="decimal"
                         value={inputValues[0]}
                         onChange={(e) => handleInputChange(e, 0)}
-                        onBlur={() => validateAndUpdateValue(inputValues[0], 0)}
+                        onBlur={() =>
+                            validateAndUpdateValue(inputValues[0]!, 0)
+                        }
                         onKeyDown={(e) => {
                             if (e.key === "Enter") {
-                                validateAndUpdateValue(inputValues[0], 0);
+                                validateAndUpdateValue(inputValues[0]!, 0);
                             }
                         }}
                         aria-label="Enter minimum amount"
@@ -177,10 +179,12 @@ export function AmountRange() {
                         inputMode="decimal"
                         value={inputValues[1]}
                         onChange={(e) => handleInputChange(e, 1)}
-                        onBlur={() => validateAndUpdateValue(inputValues[1], 1)}
+                        onBlur={() =>
+                            validateAndUpdateValue(inputValues[1]!, 1)
+                        }
                         onKeyDown={(e) => {
                             if (e.key === "Enter") {
-                                validateAndUpdateValue(inputValues[1], 1);
+                                validateAndUpdateValue(inputValues[1]!, 1);
                             }
                         }}
                         aria-label="Enter maximum amount"

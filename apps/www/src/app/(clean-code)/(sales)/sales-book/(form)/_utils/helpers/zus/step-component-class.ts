@@ -36,10 +36,10 @@ export class StepHelperClass extends SettingsClass {
     }
 
     public isShelfItems() {
-        return this.getStepForm().title == "Shelf Items";
+        return this.getStepForm()!.title == "Shelf Items";
     }
     public isHtp() {
-        return this.getStepForm().title == "House Package Tool";
+        return this.getStepForm()!.title == "House Package Tool";
     }
     public isDoor() {
         return this.getStepForm().title == "Door";
