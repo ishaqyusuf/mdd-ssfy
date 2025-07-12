@@ -1,43 +1,23 @@
 {
+    "extends": "@gnd/tsconfig/nextjs.json",
     "compilerOptions": {
-        "target": "es2017",
-        "lib": ["dom", "dom.iterable", "esnext"],
-        "allowJs": true,
-        "checkJs": true,
-        "skipLibCheck": true,
-        "strict": false,
-        "forceConsistentCasingInFileNames": true,
-        "noEmit": true,
-        "esModuleInterop": true,
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
-        "resolveJsonModule": true,
-        "isolatedModules": true,
-        "jsx": "preserve",
-        "incremental": true,
-        "noUncheckedIndexedAccess": true,
         "baseUrl": ".",
-        "noImplicitAny": false,
-        "plugins": [
-            {
-                "name": "next"
-            }
-        ],
         "paths": {
             "@/*": ["./src/*"],
             "@api/*": ["../api/src/*"],
+            "@engine/*": ["../engine/src/*"],
             "@jobs/*": ["../../packages/jobs/src/*"]
-        }
+        },
+        "strict": true
     },
     "include": [
-        ".eslintrc.cjs",
-        "next-env.d.ts",
         "**/*.ts",
         "**/*.tsx",
-        "**/*.cjs",
-        "**/*.mjs",
-        ".next/types/**/*.ts",
-        "trigger.config.ts"
+        "../../types",
+        "next-env.d.ts",
+        "next.config.js",
+        "tailwind.config.ts",
+        ".next/types/**/*.ts"
     ],
-    "exclude": ["node_modules"]
+    "exclude": ["node_modules", ".next"]
 }

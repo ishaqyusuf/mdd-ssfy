@@ -79,7 +79,6 @@
         "framer-motion": "^12.18.1",
         "fs-extra": "^11.2.0",
         "i": "^0.3.7",
-        "inter-ui": "^3.19.3",
         "libphonenumber-js": "^1.11.4",
         "little-date": "^1.0.0",
         "lodash": "^4.17.21",
@@ -137,6 +136,7 @@
         "zustand": "^5.0.5"
     },
     "devDependencies": {
+        "@gnd/tsconfig": "workspace:*",
         "@tailwindcss/typography": "^0.5.10",
         "@types/dot-object": "^2.1.6",
         "@types/mdx": "^2.0.11",
