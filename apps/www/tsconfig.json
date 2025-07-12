@@ -22,7 +22,6 @@
 //     ],
 //     "exclude": ["node_modules", ".next"]
 // }
-
 {
     "compilerOptions": {
         // OLD
@@ -30,7 +29,7 @@
         // "moduleResolution": "NodeNext",
         "target": "es2017",
         // "noImplicitAny": false,
-        // "lib": ["dom", "dom.iterable", "esnext"],
+        "lib": ["dom", "dom.iterable", "esnext"],
         "strict": false,
         // "incremental": true,
         // MIDDAY
@@ -41,7 +40,11 @@
         // "target": "ES2022", ////Property 'stepUid' will overwrite the base
         "moduleDetection": "force",
         "incremental": false,
-        "lib": ["es2022", "DOM", "DOM.Iterable"],
+        // "lib": [
+        //   "es2022",
+        //   "DOM",
+        //   "DOM.Iterable"
+        // ],
         // -------------------------------
         "allowJs": true,
         "jsx": "preserve",
@@ -49,18 +52,24 @@
         "baseUrl": ".",
         "skipLibCheck": true,
         "resolveJsonModule": true,
-        "plugins": [{ "name": "next" }],
+        "plugins": [
+            {
+                "name": "next"
+            }
+        ],
         "paths": {
             "@/*": ["./src/*"],
             "@api/*": ["../api/src/*"],
             "@jobs/*": ["../../packages/jobs/src/*"]
-        }
+        },
         // --------------------------------
         // "checkJs": true,
         // "forceConsistentCasingInFileNames": true,
         // "esModuleInterop": true,
         // "isolatedModules": true,
         // "noUncheckedIndexedAccess": true,
+        "esModuleInterop": true,
+        "isolatedModules": true
     },
     "include": [
         "**/*.ts",
@@ -73,3 +82,4 @@
     ],
     "exclude": ["node_modules"]
 }
+
