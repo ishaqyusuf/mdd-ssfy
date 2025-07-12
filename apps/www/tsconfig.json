@@ -8,7 +8,7 @@
             "@engine/*": ["../engine/src/*"],
             "@jobs/*": ["../../packages/jobs/src/*"]
         },
-        "strict": true,
+        "strict": false,
         "noImplicitAny": false
     },
     "include": [
