@@ -1,43 +1,75 @@
+// {
+//     "extends": "@gnd/tsconfig/nextjs.json",
+//     "compilerOptions": {
+//         "baseUrl": ".",
+//         "paths": {
+//             "@/*": ["./src/*"],
+//             "@api/*": ["../api/src/*"],
+//             "@engine/*": ["../engine/src/*"],
+//             "@jobs/*": ["../../packages/jobs/src/*"]
+//         },
+//         "strict": false,
+//         "noImplicitAny": false
+//     },
+//     "include": [
+//         "**/*.ts",
+//         "**/*.tsx",
+//         "../../types",
+//         "next-env.d.ts",
+//         "next.config.js",
+//         "tailwind.config.ts",
+//         ".next/types/**/*.ts"
+//     ],
+//     "exclude": ["node_modules", ".next"]
+// }
+
 {
     "compilerOptions": {
+        // OLD
+        // "module": "NodeNext",
+        // "moduleResolution": "NodeNext",
         "target": "es2017",
-        "lib": ["dom", "dom.iterable", "esnext"],
-        "allowJs": true,
-        "checkJs": true,
-        "skipLibCheck": true,
+        // "noImplicitAny": false,
+        // "lib": ["dom", "dom.iterable", "esnext"],
         "strict": false,
-        "forceConsistentCasingInFileNames": true,
-        "noEmit": true,
-        "esModuleInterop": true,
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
-        "resolveJsonModule": true,
-        "isolatedModules": true,
-        "jsx": "preserve",
-        "incremental": true,
-        "noUncheckedIndexedAccess": true,
-        "baseUrl": ".",
+        // "incremental": true,
+        // MIDDAY
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
         "noImplicitAny": false,
-        "plugins": [
-            {
-                "name": "next"
-            }
-        ],
+        // "strict": true,
+        // "target": "ES2022", ////Property 'stepUid' will overwrite the base
+        "moduleDetection": "force",
+        "incremental": false,
+        "lib": ["es2022", "DOM", "DOM.Iterable"],
+        // -------------------------------
+        "allowJs": true,
+        "jsx": "preserve",
+        "noEmit": true,
+        "baseUrl": ".",
+        "skipLibCheck": true,
+        "resolveJsonModule": true,
+        "plugins": [{ "name": "next" }],
         "paths": {
             "@/*": ["./src/*"],
             "@api/*": ["../api/src/*"],
             "@jobs/*": ["../../packages/jobs/src/*"]
         }
+        // --------------------------------
+        // "checkJs": true,
+        // "forceConsistentCasingInFileNames": true,
+        // "esModuleInterop": true,
+        // "isolatedModules": true,
+        // "noUncheckedIndexedAccess": true,
     },
     "include": [
-        ".eslintrc.cjs",
-        "next-env.d.ts",
         "**/*.ts",
         "**/*.tsx",
-        "**/*.cjs",
-        "**/*.mjs",
-        ".next/types/**/*.ts",
-        "trigger.config.ts"
+        "../../types",
+        "next-env.d.ts",
+        "next.config.js",
+        "tailwind.config.ts",
+        ".next/types/**/*.ts"
     ],
     "exclude": ["node_modules"]
 }
