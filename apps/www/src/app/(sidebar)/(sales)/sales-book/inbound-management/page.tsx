@@ -13,7 +13,6 @@ import { ErrorFallback } from "@/components/error-fallback";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { DataTable } from "@/components/tables/inbound-managment/data-table";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
-import { InboundHeader } from "@/components/inbound-header";
 
 export const metadata: Metadata = {
     title: "Inbound Managment | GND",
@@ -75,3 +74,4 @@ export default async function Page(props: Props) {
         </FPage>
     );
 }
+
