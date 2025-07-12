@@ -8,7 +8,8 @@
             "@engine/*": ["../engine/src/*"],
             "@jobs/*": ["../../packages/jobs/src/*"]
         },
-        "strict": true
+        "strict": true,
+        "noImplicitAny": false
     },
     "include": [
         "**/*.ts",
