@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/link";
 import { Icons } from "@/components/_v1/icons";
 import { cn } from "@/lib/utils";
 import { MenuIcon } from "lucide-react";

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/link";
 import { _updateOrderInventoryStatus } from "@/app/(v1)/(loggedIn)/sales/_actions/sales-inventory";
 import { ISalesOrder, ISalesType } from "@/types/sales";
 import { MoreHorizontal, View } from "lucide-react";

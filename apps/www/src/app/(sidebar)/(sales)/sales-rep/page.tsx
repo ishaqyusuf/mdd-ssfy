@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/link";
 import { authUser } from "@/app/(v1)/_actions/utils";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import CommissionPayments from "@/components/sales-rep-commission-payment";
@@ -31,11 +31,9 @@ import { revalidateTag } from "next/cache";
 export const metadata: Metadata = {
     title: `My Dashboard | GND`,
 };
-export default async function SalesRepProfile(
-    props: {
-        searchParams: Promise<Record<string, string | string[] | undefined>>;
-    }
-) {
+export default async function SalesRepProfile(props: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
     const searchParams = await props.searchParams;
     const {} = searchParamsCache.parse(searchParams);
     const user = await authUser();
@@ -160,3 +158,4 @@ export default async function SalesRepProfile(
         </FPage>
     );
 }
+

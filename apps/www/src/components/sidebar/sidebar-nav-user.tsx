@@ -18,7 +18,7 @@ import {
 } from "@gnd/ui/sidebar";
 import { useSidebar } from "./context";
 import { getInitials } from "@/utils/format";
-import Link from "next/link";
+import Link from "@/components/link";
 
 export function SidebarNavUser({}: {}) {
     const { isMobile, user } = useSidebar();

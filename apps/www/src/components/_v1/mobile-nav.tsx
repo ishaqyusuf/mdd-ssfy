@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import Link from "@/components/link";
 import { usePathname } from "next/navigation";
 import { Icons } from "@/components/_v1/icons";
 import { ISidebar } from "@/lib/navs";

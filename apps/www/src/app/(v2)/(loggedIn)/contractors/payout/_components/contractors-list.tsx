@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/link";
 import useEffectLoader from "@/lib/use-effect-loader";
 
 import { Button } from "@gnd/ui/button";

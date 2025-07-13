@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import Link from "next/link";
+import Link from "@/components/link";
 import { useRouter } from "next/navigation";
 import { deactivateProduction } from "@/app/(v1)/_actions/community/activate-production";
 import { getUnitTemplateLink } from "@/app/(v1)/_actions/community/get-unit-template";

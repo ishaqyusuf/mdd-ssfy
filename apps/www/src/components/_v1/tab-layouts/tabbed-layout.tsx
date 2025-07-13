@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/link";
 import { redirect, usePathname, useRouter } from "next/navigation";
 import { ISidebar, nav } from "@/lib/navs";
 import { timeout } from "@/lib/timeout";

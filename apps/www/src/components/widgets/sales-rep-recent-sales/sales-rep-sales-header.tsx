@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/link";
 import { Icons } from "@/components/_v1/icons";
 
 import { Button } from "@gnd/ui/button";

@@ -1,5 +1,5 @@
 import { createContext, useEffect } from "react";
-import Link from "next/link";
+import Link from "@/components/link";
 import { Icons } from "@/components/_v1/icons";
 import { SecondaryTabSheet } from "@/components/(clean-code)/data-table/item-overview-sheet";
 import { Menu } from "@/components/(clean-code)/menu";

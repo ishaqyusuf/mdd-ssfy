@@ -20,7 +20,7 @@ import {
 import { Icon } from "../_v1/icons";
 import { useSidebar } from "./context";
 import { useSidebarStore } from "./store";
-import Link from "next/link";
+import Link from "@/components/link";
 
 export function ModuleSwitcher() {
     const sb = useSidebar();

@@ -2,7 +2,7 @@ import { Button } from "@gnd/ui/button";
 
 import "./style.css";
 
-import Link from "next/link";
+import Link from "@/components/link";
 
 interface Props {
     href?: string;

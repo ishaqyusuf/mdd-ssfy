@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import Link from "next/link";
+import Link from "@/components/link";
 import ProgressStatus from "@/components/_v1/progress-status";
 import { DateFormats, formatDate } from "@/lib/use-day";
 import { catchError, cn, formatCurrency } from "@/lib/utils";

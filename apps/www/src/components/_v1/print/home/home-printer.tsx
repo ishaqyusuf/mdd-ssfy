@@ -12,7 +12,7 @@ import {
     removeEmptyValues,
 } from "@/lib/utils";
 import logo from "@/public/logo.png";
-import Link from "next/link";
+import Link from "@/components/link";
 import Image from "next/image";
 import { timeout } from "@/lib/timeout";
 import "@/styles/sales.css";
@@ -61,7 +61,7 @@ export default function HomePrinter({ id }: Props) {
                 modelName,
                 projectId,
                 builderId: builderId as any,
-            }))
+            })),
         )) as any;
         console.log(printer.homes);
         console.log({ _templates, communityPrints });
@@ -71,7 +71,7 @@ export default function HomePrinter({ id }: Props) {
                     (ct) =>
                         ct.projectId == home.projectId &&
                         ct.modelName?.toLowerCase() ==
-                            home.modelName?.toLowerCase()
+                            home.modelName?.toLowerCase(),
                 )?.meta?.design;
                 let template = communityDesign
                     ? dotArray(transformCommunityTemplate(communityDesign))
@@ -80,14 +80,14 @@ export default function HomePrinter({ id }: Props) {
                               (t) =>
                                   home.builderId == t.builderId &&
                                   home.modelName?.toLowerCase() ==
-                                      t.modelName?.toLowerCase()
-                          )?.meta?.design
+                                      t.modelName?.toLowerCase(),
+                          )?.meta?.design,
                       );
                 // template?.bifoldDoor.bifoldOther1.
 
                 const dotDesign = removeEmptyValues(template);
                 const design: HomeTemplateDesign = designDotToObject(
-                    dotDesign
+                    dotDesign,
                 ) as any;
                 design.project = {
                     projectName: home?.project?.title,
@@ -103,13 +103,13 @@ export default function HomePrinter({ id }: Props) {
                     dotDesign,
                     home,
                 };
-            })
+            }),
         );
         await timeout(900);
         window.print();
         const _homes = printer.homes;
         const actProd = _homes.filter(
-            (h) => getHomeProductionStatus(h).productionStatus == "Idle"
+            (h) => getHomeProductionStatus(h).productionStatus == "Idle",
         );
         // console.log(actProd);
         if (actProd.length)

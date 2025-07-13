@@ -7,16 +7,18 @@ import { notesRouter } from "./notes.route";
 import { hrmRoutes } from "./hrm.route";
 import { siteActionsRoutes } from "./site-action.route";
 import { searchRouter } from "./search.route";
+import { emailsRoute } from "./emails.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
   // students: studentsRouter,
   backlogs: backlogRouters,
-  sales: salesRouter,
-  notes: notesRouter,
+  emails: emailsRoute,
   hrm: hrmRoutes,
-  siteActions: siteActionsRoutes,
+  notes: notesRouter,
+  sales: salesRouter,
   search: searchRouter,
+  siteActions: siteActionsRoutes,
 });
 
 export type AppRouter = typeof appRouter;

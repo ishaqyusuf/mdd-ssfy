@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { ChevronRightIcon } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/link";
 interface Props {
     isFirst?: boolean;
     isLast?: boolean;
@@ -20,7 +20,7 @@ export function BreadLink({ isFirst, isLast, link, title }: Props) {
                     "truncate transition-colors hover:text-muted-foreground",
                     isLast || !link
                         ? "pointer-events-none text-muted-foreground"
-                        : "text-foreground"
+                        : "text-foreground",
                 )}
             >
                 {title}

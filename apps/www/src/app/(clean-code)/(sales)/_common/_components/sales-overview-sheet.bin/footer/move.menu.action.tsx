@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/link";
 import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import { Menu } from "@/components/(clean-code)/menu";
 import { _modal } from "@/components/common/modal/provider";

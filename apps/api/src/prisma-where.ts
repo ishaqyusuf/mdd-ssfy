@@ -14,10 +14,21 @@ export function whereSales(query: SalesQueryParamsSchema) {
         });
         break;
       case "salesNo":
+        where.push({
+          orderId: query.salesNo!,
+        });
         break;
       case "q":
         const searchQ = searchSales(v);
         if (searchQ) where.push(searchQ);
+        break;
+      case "salesNos":
+        if (query.salesNos?.length)
+          where.push({
+            orderId: {
+              in: query.salesNos!,
+            },
+          });
         break;
       case "salesIds":
         if (query.salesIds?.length)

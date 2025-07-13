@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/link";
 import { ModeToggle } from "@/components/(clean-code)/layouts/mode-toggle";
 import { ISidebar } from "@/lib/navs";
 import { cn } from "@/lib/utils";

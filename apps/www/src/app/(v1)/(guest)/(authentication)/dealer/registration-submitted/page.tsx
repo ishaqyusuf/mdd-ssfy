@@ -5,7 +5,7 @@
  */
 import { prisma } from "@/db";
 import dayjs from "dayjs";
-import Link from "next/link";
+import Link from "@/components/link";
 import { redirect } from "next/navigation";
 
 export default async function RegistrationSubmittedPage(props) {
@@ -63,3 +63,4 @@ function CircleCheckIcon(props) {
         </svg>
     );
 }
+

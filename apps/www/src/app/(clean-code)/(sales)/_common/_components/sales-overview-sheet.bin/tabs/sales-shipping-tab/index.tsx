@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/link";
 import { openSalesPrint } from "@/app/(v2)/printer/utils";
 import { Icons } from "@/components/_v1/icons";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";

@@ -13,7 +13,7 @@ import { OrderPrintInvoiceLines } from "./order-print-invoice-lines";
 import { OrderPrintFooter } from "./order-print-footer";
 import { addPercentage, cn } from "@/lib/utils";
 import logo from "@/public/logo.png";
-import Link from "next/link";
+import Link from "@/components/link";
 import Image from "next/image";
 import { timeout } from "@/lib/timeout";
 import "@/styles/sales.css";

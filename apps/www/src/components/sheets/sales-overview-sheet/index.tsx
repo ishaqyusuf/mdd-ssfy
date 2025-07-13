@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { CustomSheet, CustomSheetContent } from "../custom-sheet-content";
 import { SalesOverviewProvider, useSaleOverview } from "./context";
 import { DispatchTab } from "./dispatch-tab";
-import { GeneralTab } from "./general-tab-1";
+import { GeneralTab } from "./general-tab";
 import { ProductionTab } from "./production-tab";
 import { TransactionsTab } from "../customer-overview-sheet/transactions-tab";
 

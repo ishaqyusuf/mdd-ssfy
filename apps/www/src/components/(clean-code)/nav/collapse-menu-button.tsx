@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/link";
 import { cn } from "@/lib/utils";
 import { ArrowDownIcon, ChevronDown, Dot, LucideIcon } from "lucide-react";
 

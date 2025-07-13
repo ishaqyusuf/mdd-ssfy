@@ -8,7 +8,7 @@ import PageHeader from "@/components/_v1/page-header";
 
 import { cn } from "@/lib/utils";
 import { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/link";
 import TabbedLayout from "@/components/_v1/tab-layouts/tabbed-layout";
 import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 import JobTableShell from "../../../job-table-shell";
@@ -34,8 +34,8 @@ export default async function PaymentPage(props) {
                         user
                             ? user.name
                             : !payables.length
-                            ? "No Pending Payment"
-                            : "Make Payment"
+                              ? "No Pending Payment"
+                              : "Make Payment"
                     }
                 />
                 <div className="flex gap-4">
@@ -48,7 +48,7 @@ export default async function PaymentPage(props) {
                                     "p-2 text-sm pr-4",
                                     userId == user.id
                                         ? "bg-accent"
-                                        : "hover:bg-accent"
+                                        : "hover:bg-accent",
                                 )}
                             >
                                 <div className="font-medium">{user.name}</div>
@@ -74,3 +74,4 @@ export default async function PaymentPage(props) {
         </AuthGuard>
     );
 }
+

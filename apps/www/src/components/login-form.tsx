@@ -9,7 +9,7 @@ import { signIn } from "next-auth/react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { Label } from "@gnd/ui/label";
-import Link from "next/link";
+import Link from "@/components/link";
 
 const loginSchema = z.object({
     email: z.string().email(),
@@ -44,7 +44,7 @@ export function LoginForm({}) {
                         />
                         <FormInput
                             type="password"
-                            control={form.control} 
+                            control={form.control}
                             label="Password"
                             name="password"
                         />

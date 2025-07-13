@@ -3,7 +3,7 @@
 import { Fragment, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { revalidatePath } from "next/cache";
-import Link from "next/link";
+import Link from "@/components/link";
 import { useRouter } from "next/navigation";
 import { typedMemo } from "@/lib/hocs/typed-memo";
 import { useBool } from "@/lib/use-loader";

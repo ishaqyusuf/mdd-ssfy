@@ -1,7 +1,7 @@
 import Image from "next/image";
 import logo from "@/public/logo_mini.png";
 import logo2 from "@/public/logo.png";
-import Link from "next/link";
+import Link from "@/components/link";
 import { cn } from "@/lib/utils";
 import { cva, VariantProps } from "class-variance-authority";
 import { Icons as BaseIcon, Icon as LucideIcon } from "@gnd/ui/custom/icons";

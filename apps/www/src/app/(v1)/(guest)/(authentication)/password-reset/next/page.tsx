@@ -1,5 +1,5 @@
 import { type Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/link";
 import { ResetPasswordStep2Form } from "@/components/_v1/forms/reset-password-form-step2";
 import { Shell } from "@/components/_v1/shells/shell";
 import { env } from "@/env.mjs";

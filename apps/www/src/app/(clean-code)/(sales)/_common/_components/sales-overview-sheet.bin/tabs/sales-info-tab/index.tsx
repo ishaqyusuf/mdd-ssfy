@@ -1,5 +1,5 @@
 import React from "react";
-import Link from "next/link";
+import Link from "@/components/link";
 import { Env } from "@/components/env";
 import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";

@@ -2,7 +2,7 @@
 
 import { TdHTMLAttributes, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import Link from "next/link";
+import Link from "@/components/link";
 import { MenuItem } from "@/components/_v1/data-table/data-table-row-actions";
 import { Icons } from "@/components/_v1/icons";
 import ProgressStatus from "@/components/_v1/progress-status";

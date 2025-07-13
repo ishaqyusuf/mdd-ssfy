@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, use, useContext, useEffect } from "react";
-import Link from "next/link";
+import Link from "@/components/link";
 // import { usePathname, useSearchParams } from "next/navigation";
 import Portal from "@/components/_v1/portal";
 import { typedMemo } from "@/lib/hocs/typed-memo";
@@ -13,7 +13,7 @@ import { Button } from "@gnd/ui/button";
 
 import FContentShell from "./f-content-shell";
 
-// import Link from "next/link";
+// import Link from "@/components/link";
 
 interface Props {
     children?;

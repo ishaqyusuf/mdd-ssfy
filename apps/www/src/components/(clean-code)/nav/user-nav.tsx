@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/link";
 import { getInitials } from "@/utils/format";
 import { LayoutGrid, LogOut, User } from "lucide-react";
 import { useSession } from "next-auth/react";

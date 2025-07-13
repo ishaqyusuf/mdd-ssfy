@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/link";
 import { useSidebarToggle } from "@/app/(clean-code)/(sales)/_common/hooks/use-sidebar-toggle";
 import { useStore } from "@/app/(clean-code)/(sales)/_common/hooks/use-store";
 import { Icons } from "@/components/_v1/icons";

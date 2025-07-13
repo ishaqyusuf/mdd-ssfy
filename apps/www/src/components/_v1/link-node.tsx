@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { PrimitiveDivProps } from "@/types/type";
-import Link from "next/link";
+import Link from "@/components/link";
 
 export default function LinkableNode({
     href,

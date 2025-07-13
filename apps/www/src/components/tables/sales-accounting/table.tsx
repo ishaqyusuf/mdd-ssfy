@@ -19,7 +19,7 @@ import { _perm } from "@/components/sidebar/links";
 import { useTransactionOverviewModal } from "@/hooks/use-tx-overview-modal";
 import { SuperAdminGuard } from "@/components/auth-guard";
 import { Button } from "@gnd/ui/button";
-import Link from "next/link";
+import Link from "@/components/link";
 import { isProdClient } from "@/lib/is-prod";
 
 type Props = {

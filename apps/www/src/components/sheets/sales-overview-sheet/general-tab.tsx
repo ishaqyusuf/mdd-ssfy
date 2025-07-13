@@ -8,7 +8,6 @@ import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { openLink } from "@/lib/open-link";
-import { timeout } from "@/lib/timeout";
 import Note from "@/modules/notes";
 import { noteTagFilter } from "@/modules/notes/utils";
 import { salesFormUrl } from "@/utils/sales-utils";
@@ -38,6 +37,7 @@ import { Separator } from "@gnd/ui/separator";
 import { useSaleOverview } from "./context";
 import { GeneralFooter } from "./general-footer";
 import { SalesPO } from "./inline-data-edit";
+import { GeneralActionBar } from "./general-action-bar";
 
 export function GeneralTab({}) {
     const ctx = useSalesOverviewQuery();
@@ -105,6 +105,7 @@ export function GeneralTab({}) {
     return (
         <DataSkeletonProvider value={{ loading: !saleData?.id } as any}>
             <div className="relative mt-0 space-y-6 p-6">
+                <GeneralActionBar />
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="space-y-6">
                         <div>

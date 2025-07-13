@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/link";
 import { getSalesProductionQueryTabs } from "@/actions/get-sales-production-query-tab";
 import useEffectLoader from "@/lib/use-effect-loader";
 

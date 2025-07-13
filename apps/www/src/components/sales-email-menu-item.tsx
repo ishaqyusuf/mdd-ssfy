@@ -17,12 +17,20 @@ export function SalesEmailMenuItem({
     orderNo?;
 }) {
     const isQuote = salesType === "quote";
-    const mailSender = useSalesEmailSender();
-    const sendInvoiceEmail = async ({ withPayment = false } = {}) => {
-        mailSender.send({
+    const { params, setParams: setMailParams } = useSalesEmailSender();
+    const sendInvoiceEmail = async ({
+        withPayment = false,
+        partPayment = false,
+    } = {}) => {
+        setMailParams({
             withPayment,
-            ids: Array.isArray(salesId) ? salesId : salesId ? [salesId] : null,
-            orderIds: Array.isArray(orderNo)
+            partPayment,
+            sendEmailSalesIds: Array.isArray(salesId)
+                ? salesId
+                : salesId
+                  ? [salesId]
+                  : null,
+            sendEmailSalesNos: Array.isArray(orderNo)
                 ? orderNo
                 : orderNo
                   ? [orderNo]
@@ -38,11 +46,23 @@ export function SalesEmailMenuItem({
                 {emailLabel}
             </Menu.Item>
             {isQuote || (
-                <Menu.Item
-                    onClick={() => sendInvoiceEmail({ withPayment: true })}
-                >
-                    With Payment Link
-                </Menu.Item>
+                <>
+                    <Menu.Item
+                        onClick={() => sendInvoiceEmail({ withPayment: true })}
+                    >
+                        Payment Link
+                    </Menu.Item>
+                    <Menu.Item
+                        onClick={() =>
+                            sendInvoiceEmail({
+                                withPayment: true,
+                                partPayment: true,
+                            })
+                        }
+                    >
+                        Part Payment Link
+                    </Menu.Item>
+                </>
             )}
             <Menu.Item disabled>Reminder Email</Menu.Item>
         </>

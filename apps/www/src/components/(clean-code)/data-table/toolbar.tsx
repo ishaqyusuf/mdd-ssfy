@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/link";
 import { DataTableFacetedFilter2 } from "@/components/_v1/data-table/data-table-faceted-filter-2";
 import { IconKeys, Icons } from "@/components/_v1/icons";
 import Portal from "@/components/_v1/portal";

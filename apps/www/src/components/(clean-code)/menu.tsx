@@ -5,7 +5,7 @@ import {
     useState,
     useTransition,
 } from "react";
-import Link from "next/link";
+import Link from "@/components/link";
 import { useRouter } from "next/navigation";
 import { Icon, IconKeys, Icons } from "@/components/_v1/icons";
 import { cn } from "@/lib/utils";

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import Link from "next/link";
+import Link from "@/components/link";
 import { useRouter } from "next/navigation";
 import { searchImport } from "@/app/(v1)/_actions/community/_template-import";
 import { useDebounce } from "@/hooks/use-debounce";

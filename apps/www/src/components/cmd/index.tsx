@@ -9,7 +9,7 @@ import {
     CommandList,
     CommandShortcut,
 } from "@gnd/ui/command";
-import Link from "next/link";
+import Link from "@/components/link";
 import useCommands from "./commands";
 import { useCmd } from "./provider";
 import { usePathname, useRouter } from "next/navigation";
