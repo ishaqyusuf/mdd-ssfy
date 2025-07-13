@@ -107,9 +107,6 @@ export const __sendInvoiceEmailTrigger = async ({
                 );
                 const totalDueAmount = sum(pendingAmountSales, "amountDue");
                 let paymentLink =
-                    // !isDev
-                    //     ? null
-                    //     :
                     totalDueAmount > 0
                         ? `${getBaseUrl()}/square-payment/${emailSlug}/${composePaymentOrderIdsParam(
                               pendingAmountSales.map((a) => a.slug),

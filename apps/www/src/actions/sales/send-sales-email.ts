@@ -11,10 +11,9 @@ export const sendSalesEmail = actionClient
         name: "send-sales-email",
     })
     .action(async ({ parsedInput: params, ctx }) => {
-        const event = tasks.trigger(
-            "send-sales-email",
-            {} satisfies SendSalesEmailPayload,
-        );
+        const event = tasks.trigger("send-sales-email", {
+            ...params,
+        });
         return event;
     });
 
