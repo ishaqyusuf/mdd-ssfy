@@ -1,5 +1,5 @@
 {
-  "extends": "@gnd/tsconfig/internal-package.json",
+  "extends": "@gnd/tsconfig/base.json",
   "include": ["src", "."],
   "exclude": ["node_modules"]
 }

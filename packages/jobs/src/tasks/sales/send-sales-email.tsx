@@ -7,6 +7,10 @@ import { resend } from "@jobs/utils/resend";
 import { nanoid } from "nanoid";
 import { render } from "@react-email/render";
 import { SalesEmail } from "@gnd/email/emails/sales-email";
+import { getAppUrl } from "@gnd/utils/envs";
+import QueryString from "qs";
+import { composePaymentOrderIdsParam } from "@gnd/utils/sales";
+const baseAppUrl = getAppUrl();
 export const sendSalesEmail = schemaTask({
   id: "send-sales-email",
   schema: sendSalesEmailSchema,
@@ -15,31 +19,55 @@ export const sendSalesEmail = schemaTask({
     concurrencyLimit: 10,
   },
   run: async (props) => {
-    const { mailables } = (await loadSales(props))!;
+    const isDev = process.env.NODE_ENV === "development";
+    const { mailables, sales } = (await loadSales(props))!;
+
     // @ts-expect-error
     await processBatch(mailables, 1, async (batch) => {
       await Promise.all(
         batch.map(async (matchingSales) => {
           const email = matchingSales[0]?.customerEmail;
+          const customerName = matchingSales[0]?.customerName;
           const isQuote = matchingSales[0]?.isQuote;
           let emailSlug = email?.split("@")[0];
-          const isDev = process.env.NODE_ENV === "development";
           const salesRepEmail = matchingSales?.[0]?.salesRepEmail;
           const salesRep = matchingSales?.[0]?.salesRep;
-          const pendingAmountSales = matchingSales.filter(
-            (s) => s.amountDue! > 0,
-          );
-          const totalDueAmount = sum(pendingAmountSales, "amountDue");
+          const pendingAmountSales = matchingSales.filter((s) => s.due! > 0);
+          const totalDueAmount = sum(pendingAmountSales, "due");
 
+          const pdfLink = `${baseAppUrl}/api/pdf/download?${QueryString.stringify(
+            {
+              slugs: matchingSales.map((s) => s.orderId).join(","),
+              mode: props.printType,
+              preview: false,
+            },
+          )}`;
+          const paymentLink = !totalDueAmount
+            ? null
+            : `${baseAppUrl}/square-payment/${emailSlug}/${composePaymentOrderIdsParam(matchingSales.map((a) => a.orderId))}`;
           const response = await resend.emails.send({
             subject: `${salesRep} sent you ${isQuote ? "a quote" : "an invoice"}`,
             from: `GND Millwork <${salesRepEmail?.split("@")[0]}@gndprodesk.com>`,
-            to: email!,
+            to: isDev ? "ishaqyusuf024@gmail.com,pcruz321@gmail.com" : email!,
             replyTo: salesRepEmail,
             headers: {
               "X-Entity-Ref-ID": nanoid(),
             },
-            html: render(<SalesEmail isQuote />),
+            html: render(
+              <SalesEmail
+                isQuote
+                pdfLink={pdfLink}
+                paymentLink={paymentLink!}
+                sales={matchingSales.map((s) => ({
+                  due: s.due,
+                  total: s.total,
+                  date: s.date,
+                  orderId: s.orderId,
+                  po: s.po,
+                }))}
+                customerName={customerName!}
+              />,
+            ),
           });
           if (response.error) {
             logger.error("Invoice email failed to send", {
@@ -71,6 +99,7 @@ async function loadSales(props: SendSalesEmailPayload) {
         amountDue: true,
         meta: true,
         grandTotal: true,
+        createdAt: true,
         orderId: true,
         salesRep: {
           select: {
@@ -103,8 +132,9 @@ async function loadSales(props: SendSalesEmailPayload) {
       id: sale.id,
       type: sale.type,
       isQuote: sale.type == "quote",
-      amountDue: sale.amountDue,
-      grandTotal: sale.grandTotal,
+      due: sale.amountDue!,
+      total: sale.grandTotal!,
+      date: sale.createdAt!,
       orderId: sale.orderId,
       salesRep: sale?.salesRep?.name,
       salesRepEmail: sale?.salesRep?.email,
@@ -118,7 +148,8 @@ async function loadSales(props: SendSalesEmailPayload) {
     if (!sale.customerEmail) return;
     if (!grouped[sale.customerEmail]) {
       grouped[sale.customerEmail] = [];
-    } else grouped[sale.customerEmail]?.push(sale);
+    }
+    grouped[sale.customerEmail]?.push(sale);
   }
   return {
     mailables: Object.values(grouped),

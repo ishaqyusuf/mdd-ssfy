@@ -15,5 +15,6 @@ export const example = schemaTask({
     const user = await db.users.findFirst({});
     await logger.log(JSON.stringify(user));
     let offset = 0;
+    await logger.log(process.env.NODE_ENV!);
   },
 });

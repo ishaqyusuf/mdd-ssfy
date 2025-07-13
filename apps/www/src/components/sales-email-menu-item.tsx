@@ -1,6 +1,9 @@
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
-import { useSalesEmailSender } from "@/hooks/use-sales-email-sender";
+import {
+    useSalesEmailSender,
+    useSalesMailer,
+} from "@/hooks/use-sales-email-sender";
 import { toast } from "sonner";
 
 import { Menu } from "./(clean-code)/menu";
@@ -18,24 +21,34 @@ export function SalesEmailMenuItem({
 }) {
     const isQuote = salesType === "quote";
     const { params, setParams: setMailParams } = useSalesEmailSender();
+    const ctx = useSalesMailer();
     const sendInvoiceEmail = async ({
         withPayment = false,
         partPayment = false,
     } = {}) => {
-        setMailParams({
-            withPayment,
-            partPayment,
-            sendEmailSalesIds: Array.isArray(salesId)
-                ? salesId
-                : salesId
-                  ? [salesId]
-                  : null,
-            sendEmailSalesNos: Array.isArray(orderNo)
-                ? orderNo
-                : orderNo
-                  ? [orderNo]
-                  : null,
+        ctx.send({
+            emailType: withPayment
+                ? "with payment"
+                : partPayment
+                  ? "with part payment"
+                  : "without payment",
+            printType: isQuote ? "quote" : "order",
+            salesIds: [salesId],
         });
+        // setMailParams({
+        //     withPayment,
+        //     partPayment,
+        //     sendEmailSalesIds: Array.isArray(salesId)
+        //         ? salesId
+        //         : salesId
+        //           ? [salesId]
+        //           : null,
+        //     sendEmailSalesNos: Array.isArray(orderNo)
+        //         ? orderNo
+        //         : orderNo
+        //           ? [orderNo]
+        //           : null,
+        // });
     };
 
     const emailLabel = `${isQuote ? "Quote" : "Invoice"} Email`;

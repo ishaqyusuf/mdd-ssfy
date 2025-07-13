@@ -9,7 +9,7 @@ import { formatCurrency } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
 import { createNoteAction } from "@/modules/notes/actions/create-note-action";
 import { whereSales } from "@/utils/db/where.sales";
-import { composePaymentOrderIdsParam } from "@/utils/format-payment-params";
+import { composePaymentOrderIdsParam } from "@gnd/utils/sales";
 import { render } from "@react-email/render";
 import { nanoid } from "nanoid";
 import QueryString from "qs";
@@ -106,11 +106,13 @@ export const __sendInvoiceEmailTrigger = async ({
                     (s) => s.amountDue > 0,
                 );
                 const totalDueAmount = sum(pendingAmountSales, "amountDue");
+
+                const orderIdParams = composePaymentOrderIdsParam(
+                    pendingAmountSales.map((a) => a.slug),
+                );
                 let paymentLink =
                     totalDueAmount > 0
-                        ? `${getBaseUrl()}/square-payment/${emailSlug}/${composePaymentOrderIdsParam(
-                              pendingAmountSales.map((a) => a.slug),
-                          )}`
+                        ? `${getBaseUrl()}/square-payment/${emailSlug}/${orderIdParams}`
                         : null;
                 const props = {
                     from: `GND Millwork <${salesRepEmail?.split("@")[0]}@gndprodesk.com>`,
@@ -157,45 +159,7 @@ export const __sendInvoiceEmailTrigger = async ({
                               },
                     ]?.filter((a) => a),
                 );
-                // await resend.emails.send({
-                //     from: `GND Millwork <${
-                //         salesRepEmail?.split("@")[0]
-                //     }@gndprodesk.com>`,
-                //     to: customerEmail,
-                //     reply_to: salesRepEmail,
-                //     headers: {
-                //         "X-Entity-Ref-ID": nanoid(),
-                //     },
-                //     subject: `${salesRep} sent you ${
-                //         isQuote ? "a quote" : "an invoice"
-                //     }`,
-                //     html: await render(
-                //         composeSalesEmail({
-                //             salesList: isQuote
-                //                 ? []
-                //                 : matchingSales?.map((e) => ({
-                //                       amount: formatCurrency(e.grandTotal),
-                //                       orderId: e.orderId,
-                //                       po: e.meta?.po,
-                //                   })),
-                //             type: sales.type as any,
-                //             customerName,
-                //             paymentLink: withPayment ? paymentLink : null,
-                //             link: `${getBaseUrl()}/api/pdf/download?${QueryString.stringify(
-                //                 {
-                //                     id: sales.id,
-                //                     slugs: matchingSales
-                //                         .map((s) => s.slug)
-                //                         .join(","),
-                //                     mode: sales.type,
-                //                     preview: false,
-                //                 },
-                //             )}`,
-                //             salesRep,
-                //         }),
-                //     ),
-                // });
-                // response.data.data.
+
                 if (response.error) {
                     console.log(response.error);
 

@@ -1,4 +1,5 @@
 import { Menu } from "@/components/(clean-code)/menu";
+import { useSalesMailer } from "@/hooks/use-sales-email-sender";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -13,7 +14,8 @@ import {
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 
-export function GeneralActionBar({}) {
+export function GeneralActionBar({ type, salesId }) {
+    const mailer = useSalesMailer();
     return (
         <div className="flex gap-2">
             <AlertDialog>
@@ -67,8 +69,28 @@ export function GeneralActionBar({}) {
                     icon="Email"
                     SubMenu={
                         <>
-                            <Menu.Item>Default</Menu.Item>
-                            <Menu.Item>Part Payment</Menu.Item>
+                            <Menu.Item
+                                onClick={(e) => {
+                                    mailer.send({
+                                        emailType: "with payment",
+                                        salesIds: [salesId],
+                                        printType: type,
+                                    });
+                                }}
+                            >
+                                Default
+                            </Menu.Item>
+                            <Menu.Item
+                                onClick={(e) => {
+                                    mailer.send({
+                                        emailType: "with payment",
+                                        salesIds: [salesId],
+                                        printType: type,
+                                    });
+                                }}
+                            >
+                                Part Payment
+                            </Menu.Item>
                         </>
                     }
                 >

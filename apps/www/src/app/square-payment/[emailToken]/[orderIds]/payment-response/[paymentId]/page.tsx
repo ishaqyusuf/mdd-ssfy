@@ -6,7 +6,7 @@ import { finalizeSalesCheckout } from "@/actions/finalize-sales-checkout";
 import { salesPaymentCheckoutResponse } from "@/actions/sales-payment-checkout-response";
 import { notifySalesRepPaymentSuccessAction } from "@/actions/triggers/sales-rep-payment-notification";
 import { Icons } from "@/components/_v1/icons";
-import { formatPaymentParams } from "@/utils/format-payment-params";
+import { formatPaymentParams } from "@gnd/utils/sales";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle } from "lucide-react";
 
@@ -128,3 +128,4 @@ export default function PaymentResponsePage(props) {
         </div>
     );
 }
+

@@ -54,6 +54,7 @@ export function useSalesMailer() {
         }
 
         if (run?.status === "COMPLETED") {
+            console.log(run.output);
             setStatus("COMPLETED");
         }
     }, [error, run]);
@@ -79,7 +80,7 @@ export function useSalesMailer() {
             toast({
                 duration: 3500,
                 variant: "success",
-                title: "Transactions imported successfully.",
+                title: "Email sent successfully.",
             });
         }
     }, [status]);
@@ -90,7 +91,7 @@ export function useSalesMailer() {
                 setAccessToken(data.publicAccessToken);
             }
         },
-        onError() {
+        onError(e) {
             setRunId(undefined);
             setStatus("FAILED");
             toast({
