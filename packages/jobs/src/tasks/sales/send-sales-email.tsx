@@ -22,6 +22,7 @@ export const sendSalesEmail = schemaTask({
     const isDev = process.env.NODE_ENV === "development";
     const { mailables, sales } = (await loadSales(props))!;
 
+    //
     // @ts-expect-error
     await processBatch(mailables, 1, async (batch) => {
       await Promise.all(
