@@ -38,11 +38,13 @@ import { useSaleOverview } from "./context";
 import { GeneralFooter } from "./general-footer";
 import { SalesPO } from "./inline-data-edit";
 import { GeneralActionBar } from "./general-action-bar";
+import { cn } from "@gnd/ui/cn";
 
 export function GeneralTab({}) {
     const ctx = useSalesOverviewQuery();
 
     const { data } = useSaleOverview();
+    const isQuote = data?.type === "quote";
     const customerQuery = useCustomerOverviewQuery();
     // data.id
     const ph = {
@@ -287,7 +289,7 @@ export function GeneralTab({}) {
                     </div>
 
                     <div className="space-y-6">
-                        <div>
+                        <div className={cn(!isQuote || "hidden")}>
                             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                                 <PaymentIcon className="h-4 w-4" />
                                 PAYMENT STATUS
@@ -387,7 +389,7 @@ export function GeneralTab({}) {
                                 </div>
                             </div>
                         </div>
-                        {!saleData.due || (
+                        {!(saleData.due && !isQuote) || (
                             <Button
                                 className="w-full"
                                 onClick={(e) => {
@@ -528,7 +530,7 @@ export function GeneralTab({}) {
                     </div>
                 </div>
 
-                <div>
+                <div className={cn(!isQuote || "hidden")}>
                     <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                         <Factory className="h-4 w-4" />
                         PRODUCTION STATUS
@@ -647,7 +649,7 @@ export function GeneralTab({}) {
                     )}
                 </div>
 
-                <div>
+                <div className={cn(!isQuote || "hidden")}>
                     <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                         <Package className="h-4 w-4" />
                         SHIPPING STATUS

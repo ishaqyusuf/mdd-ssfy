@@ -17,6 +17,7 @@ import { DispatchTab } from "./dispatch-tab";
 import { GeneralTab } from "./general-tab";
 import { ProductionTab } from "./production-tab";
 import { TransactionsTab } from "../customer-overview-sheet/transactions-tab";
+import { cn } from "@gnd/ui/cn";
 
 export default function SalesOverviewSheet() {
     const query = useSalesOverviewQuery();
@@ -34,6 +35,7 @@ function Content() {
     const query = useSalesOverviewQuery();
     const customerQuery = useCustomerOverviewQuery();
     const { data } = useSaleOverview();
+    const isQuote = data?.type === "quote";
     return (
         <CustomSheet
             sheetName="sales-overview-sheet"
@@ -83,16 +85,25 @@ function Content() {
                                     <TabsTrigger value="general">
                                         General
                                     </TabsTrigger>
-                                    <TabsTrigger value="production">
+                                    <TabsTrigger
+                                        className={cn(!isQuote || "hidden")}
+                                        value="production"
+                                    >
                                         Productions
                                     </TabsTrigger>
-                                    <TabsTrigger value="transactions">
+                                    <TabsTrigger
+                                        className={cn(!isQuote || "hidden")}
+                                        value="transactions"
+                                    >
                                         Transactions
                                     </TabsTrigger>
                                     {/* <TabsTrigger value="payment">
                                         Payment
                                     </TabsTrigger> */}
-                                    <TabsTrigger value="dispatch">
+                                    <TabsTrigger
+                                        className={cn(!isQuote || "hidden")}
+                                        value="dispatch"
+                                    >
                                         Dispatch
                                     </TabsTrigger>
                                 </>
