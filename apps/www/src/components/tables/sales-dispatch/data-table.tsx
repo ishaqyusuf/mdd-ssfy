@@ -11,6 +11,7 @@ import { Table, TableBody } from "@gnd/ui/table";
 import { TableHeaderComponent } from "../table-header";
 import { TableRow } from "../table-row";
 import { LoadMoreTRPC } from "../load-more";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
 
 export function DataTable({}) {
     const trpc = useTRPC();
@@ -39,6 +40,8 @@ export function DataTable({}) {
             fetchNextPage();
         }
     }, [inView]);
+
+    const { setParams: setSalesPreviewParams } = useSalesPreview();
     return (
         <TableProvider
             args={[
@@ -52,9 +55,12 @@ export function DataTable({}) {
                             // });
                         },
                         rowClick(id, rowData) {
-                            // setParams({
-                            //     studentViewId: id,
-                            // });
+                            setSalesPreviewParams({
+                                previewMode: "packing list",
+                                salesPreviewSlug: rowData?.order?.orderId,
+                                salesPreviewType: "order",
+                                dispatchId: id,
+                            });
                         },
                     },
                 },

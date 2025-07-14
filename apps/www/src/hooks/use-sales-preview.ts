@@ -13,6 +13,7 @@ export function useSalesPreview() {
             "production",
             "quote",
         ] as IOrderPrintMode[]),
+        dispatchId: parseAsString,
     });
     const opened = !!params.salesPreviewSlug && !!params.salesPreviewType;
     return {

@@ -16,6 +16,7 @@ export function SalesPreview({}) {
             const resp = await getSalesPrintData(params.salesPreviewSlug, {
                 mode: params.previewMode,
                 preview: true,
+                dispatchId: params?.dispatchId,
             });
             return { data: resp };
         }
