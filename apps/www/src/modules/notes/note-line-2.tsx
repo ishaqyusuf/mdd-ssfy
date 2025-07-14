@@ -176,22 +176,28 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
     );
 }
 function Attachment({ pathname }) {
+    const [opened, setOpened] = useState(false);
     return (
-        <AlertDialog>
+        <AlertDialog open={opened} onOpenChange={setOpened}>
             <AlertDialogTrigger asChild>
                 <Button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setOpened(!opened);
+                    }}
                     size="sm"
                     variant="ghost"
-                    className="flex items-center space-x-2 hover:bg-secondary flex-1 size-24"
+                    className="flex p-0 rounded-lg items-center space-x-2 hover:bg-secondary flex-1 size-[56px]"
                 >
                     {/* <Icons.Notifications className="size-3.5" />
                             <span>Remind</span> */}
                     <div>
                         <Image
+                            className="aspect-square"
                             src={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${pathname}`}
                             alt={pathname}
-                            width={32}
-                            height={32}
+                            width={56}
+                            height={56}
                         />
                         {/* <div className="sflex hidden gap-4">
                             <ConfirmBtn
@@ -214,23 +220,23 @@ function Attachment({ pathname }) {
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Send Reminder</AlertDialogTitle>
-                    <AlertDialogDescription>
+                    <AlertDialogTitle>Attachment</AlertDialogTitle>
+                    {/* <AlertDialogDescription>
                         Are you sure you want to send a reminder for this
                         invoice?
-                    </AlertDialogDescription>
+                    </AlertDialogDescription> */}
                 </AlertDialogHeader>
                 <div className="">
                     <Image
                         src={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${pathname}`}
                         alt={pathname}
-                        width={200}
-                        height={200}
+                        width={250}
+                        height={250}
                     />
                 </div>
-                {/* <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Close</AlertDialogCancel>
+                    {/* <AlertDialogAction
                         onClick={() => {
                             // sendReminderMutation.mutate({
                             //     id,
@@ -240,8 +246,8 @@ function Attachment({ pathname }) {
                         // disabled={sendReminderMutation.isPending}
                     >
                         Send Reminder
-                    </AlertDialogAction>
-                </AlertDialogFooter> */}
+                    </AlertDialogAction> */}
+                </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
     );
