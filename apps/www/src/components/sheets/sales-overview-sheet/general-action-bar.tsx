@@ -70,7 +70,20 @@ export function GeneralActionBar({ type, salesId }) {
             </Button>
             <Menu variant="secondary">
                 {isQuote ? (
-                    <></>
+                    <>
+                        <Menu.Item
+                            // className={cn(!isQuote || "hidden")}
+                            onClick={(e) => {
+                                mailer.send({
+                                    emailType: "without payment",
+                                    salesIds: [salesId],
+                                    printType: type,
+                                });
+                            }}
+                        >
+                            Quote Email
+                        </Menu.Item>
+                    </>
                 ) : (
                     <>
                         <Menu.Item
