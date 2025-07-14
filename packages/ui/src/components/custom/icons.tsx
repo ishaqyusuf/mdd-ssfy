@@ -97,8 +97,7 @@ import {
     SortDesc,
 } from "lucide-react";
 import Image from "next/image";
- 
-import Link from "@/components/link";
+  
 import { Cross2Icon, DashboardIcon } from "@radix-ui/react-icons";
  
 import { cva, VariantProps } from "class-variance-authority";

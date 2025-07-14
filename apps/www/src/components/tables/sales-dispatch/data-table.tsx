@@ -1,9 +1,6 @@
 "use client";
 
-import {
-    useInboundFilterParams,
-    useInboundView,
-} from "@/hooks/use-inbound-filter-params";
+import { useInboundFilterParams } from "@/hooks/use-inbound-filter-params";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
@@ -19,7 +16,7 @@ export function DataTable({}) {
     const trpc = useTRPC();
     const { filter, setFilter } = useInboundFilterParams();
     const { ref, inView } = useInView();
-    const { setParams: setInboundViewParams } = useInboundView();
+
     const infiniteQueryOptions = (
         trpc.sales.inboundIndex as any
     ).infiniteQueryOptions(
@@ -55,10 +52,9 @@ export function DataTable({}) {
                             // });
                         },
                         rowClick(id, rowData) {
-                            setInboundViewParams({
-                                payload: rowData,
-                                viewInboundId: Number(id),
-                            });
+                            // setParams({
+                            //     studentViewId: id,
+                            // });
                         },
                     },
                 },
@@ -71,8 +67,7 @@ export function DataTable({}) {
                         <TableRow />
                     </TableBody>
                 </Table>
-                {/* {JSON.stringify(data?.pages?.[0]?.meta)} */}
-                {hasNextPage ? "Load More" : "No more data"}
+
                 {!hasNextPage || (
                     <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />
                 )}

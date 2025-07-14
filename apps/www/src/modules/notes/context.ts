@@ -28,8 +28,6 @@ export const useNoteContext = (props: NoteProps) => {
                 tagQuery[`note.${f.tagName}` as any] = f.tagValue;
             });
             getNotesAction(tagQuery).then((result) => {
-                console.log({ notes: result, tagQuery });
-
                 setNotes(
                     result.filter((note) => {
                         let validations = [];
@@ -43,7 +41,7 @@ export const useNoteContext = (props: NoteProps) => {
                         let type = note.tags.find(
                             (t) => t.tagName == ("type" as NoteTagNames),
                         )?.tagValue;
-                        if (type)
+                        if (type || props.typeFilters?.length)
                             validations.push(
                                 props.typeFilters.includes(type as any),
                             );

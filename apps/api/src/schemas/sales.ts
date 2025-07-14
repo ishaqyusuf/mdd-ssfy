@@ -1,11 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import { inboundFilterStatus, salesType } from "@gnd/utils/constants";
-export const paginationSchema = z.object({
-  size: z.number().nullable().optional(),
-  sort: z.string().nullable().optional(),
-  start: z.number().nullable().optional(),
-  q: z.string().nullable().optional(),
-});
+import { paginationSchema } from "./common";
+
 export const salesQueryParamsSchema = z
   .object({
     salesNo: z.string().optional().nullable(),

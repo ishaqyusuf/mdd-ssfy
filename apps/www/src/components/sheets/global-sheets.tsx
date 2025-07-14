@@ -2,6 +2,7 @@
 import { AuthGuard } from "../auth-guard";
 import { SearchModal } from "../search/search-modal";
 import { _perm } from "../sidebar/links";
+import { InboundOverviewSheet } from "./inbound-overview-sheet";
 import RolesProfilesSheet from "./roles-profile-sheet";
 
 type Props = {
@@ -15,6 +16,7 @@ export function GlobalSheets({}) {
                 <RolesProfilesSheet />
             </AuthGuard>
             <SearchModal />
+            <InboundOverviewSheet />
         </>
     );
 }

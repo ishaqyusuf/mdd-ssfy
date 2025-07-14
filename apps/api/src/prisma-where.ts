@@ -1,7 +1,12 @@
 import type { Prisma } from "@gnd/db";
 import type { SalesQueryParamsSchema } from "./schemas/sales";
 import { composeQuery } from "./query-response";
+import type { DispatchQueryParamsSchema } from "./schemas/dispatch";
 
+export function whereDispatch(query: DispatchQueryParamsSchema) {
+  const whereStack: Prisma.OrderDeliveryWhereInput[] = [];
+  return composeQuery(whereStack);
+}
 export function whereSales(query: SalesQueryParamsSchema) {
   const where: Prisma.SalesOrdersWhereInput[] = [];
 

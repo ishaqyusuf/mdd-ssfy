@@ -30,6 +30,10 @@ export async function saveInboundNote(
               tagName: "inboundStatus" as NoteTagNames,
               tagValue: `${data.status}`,
             },
+            {
+              tagName: "type",
+              tagValue: "inbound",
+            },
             ...(data?.attachments || [])?.map(({ pathname: tagValue }) => ({
               tagValue,
               tagName: "attachment" as NoteTagNames,

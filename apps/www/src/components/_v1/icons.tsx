@@ -9,10 +9,10 @@ export type Icon = LucideIcon;
 export const Icons = {
     ...BaseIcon,
     Logo: () => <Image alt="" src={"/logo.png"} width={48} height={48} />,
-    LogoLg: () => <Image alt="" src={"/logo.png"} width={120} />,
+    LogoLg: () => <Image alt="" src={"/logo.png"} height={48} width={120} />,
     logoLg: ({ width = 120 }) => (
         <Link href="/">
-            <Image alt="" src={"/logo.png"} width={width} />
+            <Image alt="" src={"/logo.png"} height={48} width={width} />
         </Link>
     ),
     logo: () => (

@@ -11,6 +11,7 @@ export interface NoteProps {
     typeFilters?: NoteTagTypes[];
     statusFilters?: NoteTagStatus[];
     admin?: boolean;
+    readonOnly?: boolean;
 }
 export default function Note(props: NoteProps) {
     const ctx = useNoteContext(props);
@@ -19,17 +20,19 @@ export default function Note(props: NoteProps) {
     return (
         <NoteProvider value={ctx}>
             <div className="">
-                {!notes?.length ? (
+                {!notes?.length && !props.readonOnly ? (
                     <div className="flex items-center justify-center gap-4 py-2">
                         {/* <div>No Note</div> */}
                         <NoteForm />
                     </div>
                 ) : (
                     <>
-                        <div className="flex items-center justify-end gap-4 py-2">
-                            {/* <div>No Note</div> */}
-                            <NoteForm />
-                        </div>
+                        {props.readonOnly || (
+                            <div className="flex items-center justify-end gap-4 py-2">
+                                {/* <div>No Note</div> */}
+                                <NoteForm />
+                            </div>
+                        )}
                         {notes?.map((note) => (
                             <NoteLine key={note.id} note={note} />
                         ))}
