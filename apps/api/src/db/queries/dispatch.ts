@@ -3,7 +3,7 @@ import { composeQueryData } from "@api/query-response";
 import type { DispatchQueryParamsSchema } from "@api/schemas/dispatch";
 import type { TRPCContext } from "@api/trpc/init";
 
-export async function getDispatch(
+export async function getDispatches(
   ctx: TRPCContext,
   query: DispatchQueryParamsSchema,
 ) {
@@ -16,7 +16,28 @@ export async function getDispatch(
   const data = await db.orderDelivery.findMany({
     where,
     ...searchMeta,
-    select: {},
+    select: {
+      id: true,
+      status: true,
+      order: {
+        select: {
+          orderId: true,
+          id: true,
+          customer: {
+            select: {
+              name: true,
+              businessName: true,
+              phoneNo: true,
+            },
+          },
+        },
+      },
+      driver: {
+        select: {
+          name: true,
+        },
+      },
+    },
   });
   return await response(data);
 }

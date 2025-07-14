@@ -10,7 +10,7 @@ import { Icons } from "@gnd/ui/icons";
 import { Button } from "@gnd/ui/button";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 
-export type Item = RouterOutputs["sales"]["inboundIndex"]["data"][number];
+export type Item = RouterOutputs["dispatch"]["index"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
     {
         header: "Order",
@@ -18,7 +18,7 @@ export const columns: ColumnDef<Item>[] = [
         cell: ({ row: { original: item } }) => (
             <div className="inline-flex gap-2 items-center">
                 <TCell.Secondary className="font-mono">
-                    {item?.orderId}
+                    {item?.order?.orderId}
                 </TCell.Secondary>
             </div>
         ),
@@ -29,30 +29,31 @@ export const columns: ColumnDef<Item>[] = [
         cell: ({ row: { original: item } }) => (
             <div className="inline-flex flex-col">
                 <TCell.Primary className="uppercase">
-                    {item?.customer?.businessName || item?.customer?.name}
+                    {item?.order?.customer?.businessName ||
+                        item?.order?.customer?.name}
                 </TCell.Primary>
-                <span className="uppercase">{item?.customer?.phoneNo}</span>
+                <span className="uppercase">
+                    {item?.order?.customer?.phoneNo}
+                </span>
             </div>
         ),
     },
-    {
-        header: "Sales Rep",
-        accessorKey: "salesRep",
-        cell: ({ row: { original: item } }) => (
-            <div className="inline-flex flex-col">
-                <span className="uppercase">{item?.salesRep?.name}</span>
-            </div>
-        ),
-    },
+    // {
+    //     header: "Sales Rep",
+    //     accessorKey: "salesRep",
+    //     cell: ({ row: { original: item } }) => (
+    //         <div className="inline-flex flex-col">
+    //             <span className="uppercase">{item?.salesRep?.name}</span>
+    //         </div>
+    //     ),
+    // },
     {
         header: "Status",
         accessorKey: "status",
         cell: ({ row: { original: item } }) => (
             <div className="inline-flex flex-col">
                 <Progress>
-                    <Progress.Status>
-                        {item?.inboundStatus || "N/A"}
-                    </Progress.Status>
+                    <Progress.Status>{item?.status || "N/A"}</Progress.Status>
                 </Progress>
             </div>
         ),
@@ -81,15 +82,15 @@ function Action({ item }: { item: Item }) {
                 size="sm"
                 variant="outline"
                 onClick={() => {
-                    setParams({
-                        inboundOrderId: item.id,
-                        inboundOrderNo: item.orderId,
-                    });
-                    setSalesPreviewParams({
-                        previewMode: "packing list",
-                        salesPreviewSlug: item.orderId,
-                        salesPreviewType: "order",
-                    });
+                    // setParams({
+                    //     inboundOrderId: item.id,
+                    //     inboundOrderNo: item.orderId,
+                    // });
+                    // setSalesPreviewParams({
+                    //     previewMode: "packing list",
+                    //     salesPreviewSlug: item.orderId,
+                    //     salesPreviewType: "order",
+                    // });
                 }}
             >
                 <Icons.Edit className="h-4 w-4" />
