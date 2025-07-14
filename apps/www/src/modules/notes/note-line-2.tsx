@@ -14,6 +14,18 @@ import { cva } from "class-variance-authority";
 import { Env } from "@/components/env";
 import Image from "next/image";
 import { env } from "@/env.mjs";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@gnd/ui/alert-dialog";
+import Button from "@/components/common/button";
 
 const listVariant = cva(
     "cursor-default flex flex-col items-start gap-s2 rounded-lg border p-3 text-left text-sm transition-all my-1.5",
@@ -105,32 +117,11 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
                     {note.note}
                 </span>
             </div>
-            {attachments?.map((pathname, ai) => (
-                <div key={ai}>
-                    <Image
-                        src={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${pathname}`}
-                        alt={pathname}
-                        width={75}
-                        height={75}
-                    />
-                    <div className="flex gap-4">
-                        <ConfirmBtn
-                            trash
-                            onClick={(e) => {
-                                // del(a.pathname)
-                                //     .then((e) => {
-                                //         console.log(e);
-                                //         attachments.remove(ai);
-                                //     })
-                                //     .catch((e) => {
-                                //         console.log(e);
-                                //     });
-                            }}
-                            type="button"
-                        />
-                    </div>
-                </div>
-            ))}
+            <div className="">
+                {attachments?.map((pathname, ai) => (
+                    <Attachment key={ai} pathname={pathname} />
+                ))}
+            </div>
             <div className="flex w-full items-center gap-2">
                 {pills.map((p, i) => (
                     <div
@@ -182,6 +173,77 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
                 </Menu>
             </div>
         </div>
+    );
+}
+function Attachment({ pathname }) {
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    className="flex items-center space-x-2 hover:bg-secondary flex-1 size-24"
+                >
+                    {/* <Icons.Notifications className="size-3.5" />
+                            <span>Remind</span> */}
+                    <div>
+                        <Image
+                            src={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${pathname}`}
+                            alt={pathname}
+                            width={32}
+                            height={32}
+                        />
+                        {/* <div className="sflex hidden gap-4">
+                            <ConfirmBtn
+                                trash
+                                onClick={(e) => {
+                                    // del(a.pathname)
+                                    //     .then((e) => {
+                                    //         console.log(e);
+                                    //         attachments.remove(ai);
+                                    //     })
+                                    //     .catch((e) => {
+                                    //         console.log(e);
+                                    //     });
+                                }}
+                                type="button"
+                            />
+                        </div> */}
+                    </div>
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Send Reminder</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Are you sure you want to send a reminder for this
+                        invoice?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="">
+                    <Image
+                        src={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${pathname}`}
+                        alt={pathname}
+                        width={200}
+                        height={200}
+                    />
+                </div>
+                {/* <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={() => {
+                            // sendReminderMutation.mutate({
+                            //     id,
+                            //     date: new Date().toISOString(),
+                            // });
+                        }}
+                        // disabled={sendReminderMutation.isPending}
+                    >
+                        Send Reminder
+                    </AlertDialogAction>
+                </AlertDialogFooter> */}
+            </AlertDialogContent>
+        </AlertDialog>
     );
 }
 function NoteTag({ tag, note }) {
