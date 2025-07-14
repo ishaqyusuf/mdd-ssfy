@@ -13,9 +13,13 @@ import {
 } from "@gnd/ui/alert-dialog";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
+import { useSaleOverview } from "./context";
+import { cn } from "@gnd/ui/cn";
 
 export function GeneralActionBar({ type, salesId }) {
     const mailer = useSalesMailer();
+    const { data } = useSaleOverview();
+    const isQuote = data?.type == "quote";
     return (
         <div className="flex gap-2">
             <AlertDialog>
@@ -65,37 +69,45 @@ export function GeneralActionBar({ type, salesId }) {
                 <span>Edit</span>
             </Button>
             <Menu variant="secondary">
-                <Menu.Item
-                    icon="Email"
-                    SubMenu={
-                        <>
-                            <Menu.Item
-                                onClick={(e) => {
-                                    mailer.send({
-                                        emailType: "with payment",
-                                        salesIds: [salesId],
-                                        printType: type,
-                                    });
-                                }}
-                            >
-                                Default
-                            </Menu.Item>
-                            <Menu.Item
-                                onClick={(e) => {
-                                    mailer.send({
-                                        emailType: "with payment",
-                                        salesIds: [salesId],
-                                        printType: type,
-                                    });
-                                }}
-                            >
-                                Part Payment
-                            </Menu.Item>
-                        </>
-                    }
-                >
-                    Payment Link
-                </Menu.Item>
+                {isQuote ? (
+                    <></>
+                ) : (
+                    <>
+                        <Menu.Item
+                            icon="Email"
+                            SubMenu={
+                                <>
+                                    <Menu.Item
+                                        // className={cn(!isQuote || "hidden")}
+                                        onClick={(e) => {
+                                            mailer.send({
+                                                emailType: "with payment",
+                                                salesIds: [salesId],
+                                                printType: type,
+                                            });
+                                        }}
+                                    >
+                                        Default
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        disabled
+                                        onClick={(e) => {
+                                            mailer.send({
+                                                emailType: "with part payment",
+                                                salesIds: [salesId],
+                                                printType: type,
+                                            });
+                                        }}
+                                    >
+                                        Part Payment
+                                    </Menu.Item>
+                                </>
+                            }
+                        >
+                            Payment Link
+                        </Menu.Item>
+                    </>
+                )}
             </Menu>
         </div>
     );
