@@ -58,11 +58,12 @@ export const sendSalesEmail = schemaTask({
               })
             )?.id;
           }
-          const paymentLink = !totalDueAmount
-            ? null
-            : isDev
-              ? `${baseAppUrl}/square-payment/checkout?uid=${pid}&slugs=${slugs}&tok=${emailSlug}`
-              : `${baseAppUrl}/square-payment/${emailSlug}/${orderIdParams}?uid=${pid}`;
+          const paymentLink =
+            !totalDueAmount || props.printType == "quote"
+              ? null
+              : isDev
+                ? `${baseAppUrl}/square-payment/checkout?uid=${pid}&slugs=${slugs}&tok=${emailSlug}`
+                : `${baseAppUrl}/square-payment/${emailSlug}/${orderIdParams}?uid=${pid}`;
           logger.log(`Sending email to ${email}`);
 
           const response = await resend.emails.send({
