@@ -13,6 +13,15 @@ import { useSalesPreview } from "@/hooks/use-sales-preview";
 export type Item = RouterOutputs["dispatch"]["index"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
     {
+        header: "Date",
+        accessorKey: "salesDate",
+        cell: ({ row: { original: item } }) => (
+            <TCell.Secondary className="font-mono">
+                <TCell.Date>{item.createdAt}</TCell.Date>
+            </TCell.Secondary>
+        ),
+    },
+    {
         header: "Order",
         accessorKey: "order",
         cell: ({ row: { original: item } }) => (
@@ -38,15 +47,15 @@ export const columns: ColumnDef<Item>[] = [
             </div>
         ),
     },
-    // {
-    //     header: "Sales Rep",
-    //     accessorKey: "salesRep",
-    //     cell: ({ row: { original: item } }) => (
-    //         <div className="inline-flex flex-col">
-    //             <span className="uppercase">{item?.salesRep?.name}</span>
-    //         </div>
-    //     ),
-    // },
+    {
+        header: "Assigned To",
+        accessorKey: "salesRep",
+        cell: ({ row: { original: item } }) => (
+            <div className="inline-flex flex-col">
+                <span className="uppercase">{item?.driver?.name}</span>
+            </div>
+        ),
+    },
     {
         header: "Status",
         accessorKey: "status",
@@ -67,7 +76,7 @@ export const columns: ColumnDef<Item>[] = [
         cell: ({ row: { original: item } }) => {
             return (
                 <ActionCell itemId={item.id}>
-                    <Action item={item} />
+                    {/* <Action item={item} /> */}
                 </ActionCell>
             );
         },
