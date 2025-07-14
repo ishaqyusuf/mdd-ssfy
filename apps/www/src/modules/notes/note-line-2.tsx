@@ -12,6 +12,8 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { cva } from "class-variance-authority";
 import { Env } from "@/components/env";
+import Image from "next/image";
+import { env } from "@/env.mjs";
 
 const listVariant = cva(
     "cursor-default flex flex-col items-start gap-s2 rounded-lg border p-3 text-left text-sm transition-all my-1.5",
@@ -57,6 +59,9 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
     const ctx = useNote();
     const [_note, _setNote] = useState(note);
     const pills = [note.subject, note.headline]?.filter(Boolean);
+    const attachments = note?.tags
+        ?.filter((t) => t.tagName === "attachment")
+        .map((a) => a.tagValue);
     async function deleteNote() {
         await deleteNoteAction(note.id);
         ctx.deleteNote(note.id);
@@ -100,6 +105,32 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
                     {note.note}
                 </span>
             </div>
+            {attachments?.map((pathname, ai) => (
+                <div key={ai}>
+                    <Image
+                        src={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${pathname}`}
+                        alt={pathname}
+                        width={75}
+                        height={75}
+                    />
+                    <div className="flex gap-4">
+                        <ConfirmBtn
+                            trash
+                            onClick={(e) => {
+                                // del(a.pathname)
+                                //     .then((e) => {
+                                //         console.log(e);
+                                //         attachments.remove(ai);
+                                //     })
+                                //     .catch((e) => {
+                                //         console.log(e);
+                                //     });
+                            }}
+                            type="button"
+                        />
+                    </div>
+                </div>
+            ))}
             <div className="flex w-full items-center gap-2">
                 {pills.map((p, i) => (
                     <div
