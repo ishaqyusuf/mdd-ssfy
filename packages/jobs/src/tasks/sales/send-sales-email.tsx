@@ -20,7 +20,12 @@ export const sendSalesEmail = schemaTask({
   },
   run: async (props) => {
     const isDev = process.env.NODE_ENV === "development";
-    const { mailables, sales } = (await loadSales(props))!;
+    const data = await loadSales(props);
+    logger.info(`Received data: ${JSON.stringify(data)}`);
+    if (!data) {
+      throw new Error("No data found");
+    }
+    const { mailables, sales } = data;
 
     // @ts-expect-error
     await processBatch(mailables, 1, async (batch) => {
@@ -168,6 +173,8 @@ async function loadSales(props: SendSalesEmailPayload) {
       businessName: sale?.customer?.businessName,
     };
   });
+  logger.log(`Sending ${sales.length} emails...`);
+
   // group by customerEmail
   let grouped: { [email in string]: typeof sales } = {};
   for (const sale of sales) {

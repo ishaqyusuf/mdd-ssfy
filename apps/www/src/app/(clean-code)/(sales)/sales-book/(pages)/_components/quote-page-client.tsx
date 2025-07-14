@@ -17,6 +17,15 @@ import { __filters } from "../../../_common/utils/contants";
 import { QuotesCell } from "./quotes-page-cells";
 import { MiddaySearchFilter } from "@/components/midday-search-filter/search-filter";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import {
+    BatchBtn,
+    BatchDelete,
+} from "@/components/(clean-code)/data-table/infinity/batch-action";
+import { useInfiniteDataTable } from "@/components/(clean-code)/data-table/use-data-table";
+import { useMemo } from "react";
+import { PrintAction } from "../../../_common/_components/overview-sheet.bin/footer/print.action";
+import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
+import { deleteSalesByOrderIds } from "../../../_common/data-actions/sales-actions";
 
 interface Props {
     // promise;
@@ -60,16 +69,6 @@ export default function QuotesPageClient({ filterFields, queryKey }: Props) {
                 itemViewFn={(data) => {
                     overviewQuery.open2(data.uuid, "quote");
                 }}
-
-                // itemViewFn={
-                //     isProdClient
-                //         ? (data) => {
-                //               openQuoteOVerview({
-                //                   salesId: data.id,
-                //               });
-                //           }
-                //         : undefined
-                // }
             >
                 <DataTable.Header top="lg" className="bg-white">
                     <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
@@ -98,5 +97,66 @@ export default function QuotesPageClient({ filterFields, queryKey }: Props) {
                 <DataTable.LoadMore />
             </DataTable.Infinity>
         </div>
+    );
+}
+function BatchActions() {
+    const ctx = useInfiniteDataTable();
+    const slugs = useMemo(() => {
+        const slugs = ctx.selectedRows?.map(
+            (r) => (r.original as any)?.orderId,
+        );
+        return slugs;
+    }, [ctx.selectedRows]);
+    return (
+        <DataTable.BatchAction>
+            <BatchBtn
+                icon="print"
+                menu={
+                    <>
+                        <PrintAction
+                            data={{
+                                slugs: slugs,
+                                item: {
+                                    type: "quote",
+                                },
+                            }}
+                        />
+                        <PrintAction
+                            pdf
+                            data={{
+                                slugs: slugs,
+                                item: {
+                                    type: "quote",
+                                },
+                            }}
+                        />
+                        {/* <Menu.Trash action={() => {}}>
+                                    Delete
+                                </Menu.Trash> */}
+                    </>
+                }
+            >
+                Print
+            </BatchBtn>
+            <BatchBtn
+                icon="Email"
+                menu={
+                    <>
+                        <SalesEmailMenuItem
+                            asChild
+                            salesType="quote"
+                            orderNo={slugs}
+                        />
+                    </>
+                }
+            >
+                Email
+            </BatchBtn>
+            <BatchDelete
+                onClick={async () => {
+                    await deleteSalesByOrderIds(slugs);
+                }}
+            />
+        </DataTable.BatchAction>
     );
 }

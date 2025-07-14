@@ -12,33 +12,39 @@ const nextConfig = {
         // "@gnd/stripe",
     ],
     images: {
+        // loader: "custom",
+        // loaderFile: "./image-loader.ts",
         remotePatterns: [
             {
                 protocol: "https",
-                hostname: "res.cloudinary.com",
-                port: "",
-                // pathname: "/account123/**"
+                hostname: "**",
             },
-            {
-                protocol: "https",
-                hostname: "plus.unsplash.com",
-                port: "",
-            },
-            {
-                protocol: "https",
-                hostname: "images.unsplash.com",
-                port: "",
-            },
-            {
-                protocol: "https",
-                hostname: "wbycmglit0cmqbex.public.blob.vercel-storage.com",
-                port: "",
-            },
-            {
-                protocol: "https",
-                hostname: "gndmillwork.com",
-                port: "",
-            },
+            // {
+            //     protocol: "https",
+            //     hostname: "res.cloudinary.com",
+            //     port: "",
+            //     // pathname: "/account123/**"
+            // },
+            // {
+            //     protocol: "https",
+            //     hostname: "plus.unsplash.com",
+            //     port: "",
+            // },
+            // {
+            //     protocol: "https",
+            //     hostname: "images.unsplash.com",
+            //     port: "",
+            // },
+            // {
+            //     protocol: "https",
+            //     hostname: "wbycmglit0cmqbex.public.blob.vercel-storage.com",
+            //     port: "",
+            // },
+            // {
+            //     protocol: "https",
+            //     hostname: "gndmillwork.com",
+            //     port: "",
+            // },
         ],
     },
     // experimental: {

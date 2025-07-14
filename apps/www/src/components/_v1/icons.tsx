@@ -1,6 +1,5 @@
 import Image from "next/image";
-import logo from "@/public/logo_mini.png";
-import logo2 from "@/public/logo.png";
+// import logo2 from "@/public/logo.png";
 import Link from "@/components/link";
 import { cn } from "@/lib/utils";
 import { cva, VariantProps } from "class-variance-authority";
@@ -9,16 +8,16 @@ export type Icon = LucideIcon;
 
 export const Icons = {
     ...BaseIcon,
-    Logo: () => <Image alt="" src={logo2} width={48} height={48} />,
-    LogoLg: () => <Image alt="" src={logo2} width={120} />,
+    Logo: () => <Image alt="" src={"/logo.png"} width={48} height={48} />,
+    LogoLg: () => <Image alt="" src={"/logo.png"} width={120} />,
     logoLg: ({ width = 120 }) => (
         <Link href="/">
-            <Image alt="" src={logo2} width={width} />
+            <Image alt="" src={"/logo.png"} width={width} />
         </Link>
     ),
     logo: () => (
         <Link href="/">
-            <Image alt="" src={logo} width={48} height={48} />
+            <Image alt="" src={"/logo_mini.png"} width={48} height={48} />
         </Link>
     ),
     PrintLogo: () => (
@@ -28,7 +27,7 @@ export const Icons = {
                 onLoadingComplete={(img) => {}}
                 width={178}
                 height={80}
-                src={logo2}
+                src={"/logo.png"}
             />
         </Link>
     ),

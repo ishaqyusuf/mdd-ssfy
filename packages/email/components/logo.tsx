@@ -1,8 +1,8 @@
 import { Img, Section } from "@react-email/components";
 
-import { getAppUrl } from "@gnd/utils/envs";
+import { getEmailUrl } from "@gnd/utils/envs";
 
-const baseUrl = getAppUrl();
+const baseUrl = getEmailUrl();
 
 export function Logo() {
   return (

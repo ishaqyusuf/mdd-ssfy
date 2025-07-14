@@ -49,6 +49,7 @@ export default function OrdersPageClient({
             ];
         },
         filterFields,
+        checkable: true,
         cellVariants: {
             size: "sm",
         },
