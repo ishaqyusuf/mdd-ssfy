@@ -22,11 +22,11 @@ export const sendSalesEmail = schemaTask({
     const isDev = process.env.NODE_ENV === "development";
     const { mailables, sales } = (await loadSales(props))!;
 
-    //
     // @ts-expect-error
     await processBatch(mailables, 1, async (batch) => {
       await Promise.all(
         batch.map(async (matchingSales) => {
+          logger.log(`Processing sales: ${matchingSales[0]?.id}`);
           const email = matchingSales[0]?.customerEmail;
           const customerName = matchingSales[0]?.customerName;
           const isQuote = matchingSales[0]?.isQuote;
@@ -43,13 +43,34 @@ export const sendSalesEmail = schemaTask({
               preview: false,
             },
           )}`;
+          let pid = null;
+          const orderIdParams = composePaymentOrderIdsParam(
+            matchingSales.map((a) => a.orderId),
+          );
+          if (totalDueAmount) {
+            pid = (
+              await db.squarePaymentLink.create({
+                data: {
+                  option: props.emailType as any,
+                  orderIdParams,
+                },
+              })
+            )?.id;
+          }
           const paymentLink = !totalDueAmount
             ? null
-            : `${baseAppUrl}/square-payment/${emailSlug}/${composePaymentOrderIdsParam(matchingSales.map((a) => a.orderId))}`;
+            : `${baseAppUrl}/square-payment/${emailSlug}/${orderIdParams}?uid=${pid}`;
+          logger.log(`Sending email to ${email}`);
+
           const response = await resend.emails.send({
             subject: `${salesRep} sent you ${isQuote ? "a quote" : "an invoice"}`,
             from: `GND Millwork <${salesRepEmail?.split("@")[0]}@gndprodesk.com>`,
-            to: isDev ? "ishaqyusuf024@gmail.com,pcruz321@gmail.com" : email!,
+            to: isDev
+              ? [
+                  "ishaqyusuf024@gmail.com",
+                  // "pcruz321@gmail.com"
+                ]
+              : email!,
             replyTo: salesRepEmail,
             headers: {
               "X-Entity-Ref-ID": nanoid(),

@@ -89,7 +89,7 @@ export const SalesEmail = (props: Props) => {
                 className={`border-0 border-t-[1px] border-b-[1px] border-solid h-[45px] ${themeClasses.border}`}
                 style={{ borderColor: lightStyles.container.borderColor }}
               >
-                <th align="left">
+                <th align="left" style={{ width: "20%" }}>
                   <Text
                     className={`text-[14px] font-semibold m-0 p-0 ${themeClasses.text}`}
                     style={{ color: lightStyles.text.color }}
@@ -97,7 +97,7 @@ export const SalesEmail = (props: Props) => {
                     Date
                   </Text>
                 </th>
-                <th align="left">
+                <th align="left" style={{ width: "30%" }}>
                   <Text
                     className={`text-[14px] font-semibold m-0 p-0 ${themeClasses.text}`}
                     style={{ color: lightStyles.text.color }}
@@ -105,7 +105,7 @@ export const SalesEmail = (props: Props) => {
                     Invoice No.
                   </Text>
                 </th>
-                <th align="left" style={{ width: "50%" }}>
+                <th align="left" style={{ width: "20%" }}>
                   <Text
                     className={`text-[14px] font-semibold m-0 p-0 ${themeClasses.text}`}
                     style={{ color: lightStyles.text.color }}
@@ -113,7 +113,7 @@ export const SalesEmail = (props: Props) => {
                     PO No.
                   </Text>
                 </th>
-                <th align="left">
+                <th align="left" style={{ width: "30%" }}>
                   <Text
                     className={`text-[14px] font-semibold m-0 p-0 ${themeClasses.text}`}
                     style={{ color: lightStyles.text.color }}
@@ -131,7 +131,7 @@ export const SalesEmail = (props: Props) => {
                   className={`border-0 border-b-[1px] border-solid h-[45px] ${themeClasses.border}`}
                   style={{ borderColor: lightStyles.container.borderColor }}
                 >
-                  <td align="left">
+                  <td align="left" style={{ width: "20%" }}>
                     <Text
                       className={`text-[14px] m-0 p-0 mt-1 pb-1 ${themeClasses.text}`}
                       style={{ color: lightStyles.text.color }}
@@ -139,31 +139,37 @@ export const SalesEmail = (props: Props) => {
                       {format(new Date(transaction.date), "MMM d")}
                     </Text>
                   </td>
-                  <td align="left" style={{ width: "50%" }}>
+                  <td align="left" style={{ width: "30%" }}>
                     <Text
                       className="text-[14px] m-0 p-0 mt-1 pb-1 line-clamp-1"
-                      style={
-                        {
-                          // color: props.isQuote ? "#00C969 !important" : "inherit",
-                        }
-                      }
+                      // style={{
+                      //   color: props.isQuote ? "#00C969 !important" : "inherit",
+                      // }}
                     >
                       {transaction.orderId}
                     </Text>
                   </td>
-                  <td align="left">
+                  <td align="left" style={{ width: "20%" }}>
+                    <Text
+                      className="text-[14px] m-0 p-0 mt-1 pb-1 line-clamp-1"
+                      // style={{
+                      //   color: props.isQuote ? "#00C969 !important" : "inherit",
+                      // }}
+                    >
+                      {transaction.po}
+                    </Text>
+                  </td>
+                  <td align="left" style={{ width: "30%" }}>
                     <Text
                       className={cn(
                         "text-[14px] m-0 p-0 mt-1 pb-1",
                         // props.isQuote ? "text-[#00C969]" : themeClasses.text,
                       )}
-                      style={
-                        {
-                          // color: props.isQuote
-                          //   ? "#00C969 !important"
-                          //   : lightStyles.text.color,
-                        }
-                      }
+                      // style={{
+                      //   color: props.isQuote
+                      //     ? "#00C969 !important"
+                      //     : lightStyles.text.color,
+                      // }}
                     >
                       {Intl.NumberFormat("en", {
                         style: "currency",
@@ -188,17 +194,11 @@ export const SalesEmail = (props: Props) => {
                 style={{ color: lightStyles.text.color }}
               >
                 Use the link below to make payment on your device.
+                <br /> Your payment will be processed securely and instantly.
               </Text>
-              <br />
-              <Text
-                className={`text-[14px] ${themeClasses.text}`}
-                style={{ color: lightStyles.text.color }}
-              >
-                Use the link below to make payment on your device. Your payment
-                will be processed securely and instantly.
-              </Text>
+
               <Section className="text-center mt-[50px] mb-[50px]">
-                <Button href={props.paymentLink}>Pay</Button>
+                <Button href={props.paymentLink}> Make Payment</Button>
               </Section>
             </>
           )}

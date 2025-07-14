@@ -35,9 +35,9 @@ const sheetContentVariant = cva(
 interface Props
     extends SheetContentProps,
         VariantProps<typeof sheetContentVariant> {
-    floating?: Boolean;
+    floating?: boolean;
     children?;
-    open?: Boolean;
+    open?: boolean;
     onOpenChange?;
     sheetName: string;
 }
