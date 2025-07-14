@@ -36,9 +36,10 @@ export const sendSalesEmail = schemaTask({
           const pendingAmountSales = matchingSales.filter((s) => s.due! > 0);
           const totalDueAmount = sum(pendingAmountSales, "due");
 
+          const slugs = matchingSales.map((s) => s.orderId).join(",");
           const pdfLink = `${baseAppUrl}/api/pdf/download?${QueryString.stringify(
             {
-              slugs: matchingSales.map((s) => s.orderId).join(","),
+              slugs,
               mode: props.printType,
               preview: false,
             },
@@ -59,7 +60,9 @@ export const sendSalesEmail = schemaTask({
           }
           const paymentLink = !totalDueAmount
             ? null
-            : `${baseAppUrl}/square-payment/${emailSlug}/${orderIdParams}?uid=${pid}`;
+            : isDev
+              ? `${baseAppUrl}/square-payment/checkout?uid=${pid}&slugs=${slugs}&tok=${emailSlug}`
+              : `${baseAppUrl}/square-payment/${emailSlug}/${orderIdParams}?uid=${pid}`;
           logger.log(`Sending email to ${email}`);
 
           const response = await resend.emails.send({

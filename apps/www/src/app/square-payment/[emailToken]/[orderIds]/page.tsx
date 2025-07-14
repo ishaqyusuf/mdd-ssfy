@@ -10,7 +10,6 @@ import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";
 import Button from "@/components/common/button";
 import { openLink } from "@/lib/open-link";
-import { timeout } from "@/lib/timeout";
 import { cn } from "@/lib/utils";
 import { formatPaymentParams } from "@gnd/utils/sales";
 import { toast } from "sonner";

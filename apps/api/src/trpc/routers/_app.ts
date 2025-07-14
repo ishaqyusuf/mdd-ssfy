@@ -8,10 +8,12 @@ import { hrmRoutes } from "./hrm.route";
 import { siteActionsRoutes } from "./site-action.route";
 import { searchRouter } from "./search.route";
 import { emailsRoute } from "./emails.route";
+import { checkoutRouters } from "./checkout.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
   // students: studentsRouter,
+  checkout: checkoutRouters,
   backlogs: backlogRouters,
   emails: emailsRoute,
   hrm: hrmRoutes,

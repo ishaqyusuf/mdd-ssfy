@@ -16,6 +16,7 @@ import { openQuoteOVerview } from "../../../_common/_components/sales-overview-s
 import { __filters } from "../../../_common/utils/contants";
 import { QuotesCell } from "./quotes-page-cells";
 import { MiddaySearchFilter } from "@/components/midday-search-filter/search-filter";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 interface Props {
     // promise;
@@ -48,21 +49,27 @@ export default function QuotesPageClient({ filterFields, queryKey }: Props) {
             },
         },
     });
+
+    const overviewQuery = useSalesOverviewQuery();
     return (
         <div>
             <DataTable.Infinity
                 queryKey={queryKey}
                 {...table.props}
                 ActionCell={QuotesCell.Action}
-                itemViewFn={
-                    isProdClient
-                        ? (data) => {
-                              openQuoteOVerview({
-                                  salesId: data.id,
-                              });
-                          }
-                        : undefined
-                }
+                itemViewFn={(data) => {
+                    overviewQuery.open2(data.uuid, "quote");
+                }}
+
+                // itemViewFn={
+                //     isProdClient
+                //         ? (data) => {
+                //               openQuoteOVerview({
+                //                   salesId: data.id,
+                //               });
+                //           }
+                //         : undefined
+                // }
             >
                 <DataTable.Header top="lg" className="bg-white">
                     <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
