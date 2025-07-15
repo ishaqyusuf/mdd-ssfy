@@ -57,3 +57,26 @@ export function sum<T>(array?: T[], key: keyof T | undefined = undefined) {
       .reduce((sum, val) => (sum || 0) + (val as number), 0) || 0
   );
 }
+export function generateRandomNumber(length = 15) {
+  const charset = "0123456789";
+  let randomString = "";
+
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * charset.length);
+    randomString += charset.charAt(randomIndex);
+  }
+
+  return randomString;
+}
+export function generateRandomString(length = 15) {
+  const charset =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let randomString = "";
+
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * charset.length);
+    randomString += charset.charAt(randomIndex);
+  }
+
+  return randomString;
+}

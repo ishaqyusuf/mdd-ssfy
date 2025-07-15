@@ -1,10 +1,8 @@
 "use client";
 
 import React from "react";
-import { useTransition } from "@/utils/use-safe-transistion";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { EmployeeProfile } from "@/db";
+
 import { _useAsync } from "@/lib/use-async";
 
 import BaseModal from "./base-modal";

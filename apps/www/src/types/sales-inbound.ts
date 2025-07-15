@@ -1,5 +1,3 @@
-import "@/db";
-
 import { ISalesOrder, ISalesOrderItem } from "./sales";
 import { OmitMeta } from "./type";
 

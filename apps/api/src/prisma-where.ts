@@ -4,7 +4,11 @@ import { composeQuery } from "./query-response";
 import type { DispatchQueryParamsSchema } from "./schemas/dispatch";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 export function whereDispatch(query: DispatchQueryParamsSchema) {
-  const whereStack: Prisma.OrderDeliveryWhereInput[] = [];
+  const whereStack: Prisma.OrderDeliveryWhereInput[] = [
+    {
+      deletedAt: null,
+    },
+  ];
   switch (query?.status as SalesDispatchStatus) {
     default:
       whereStack.push({

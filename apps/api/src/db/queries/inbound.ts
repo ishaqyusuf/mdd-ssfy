@@ -79,6 +79,7 @@ export async function getInbounds(ctx: TRPCContext, query: InboundQuerySchema) {
   const salesQuery: SalesQueryParamsSchema = {
     salesType: "order",
     q: query?.q,
+    cursor: query?.cursor,
   };
 
   let statusList: any = null;

@@ -1,3 +1,5 @@
+import React from "react";
+
 export type SearchParams = {
     [key: string]: string | string[] | undefined;
 };
@@ -21,7 +23,7 @@ export type Input = {
 
 export type Checkbox = {
     type: "checkbox";
-    component?: (props: Option) => JSX.Element | null;
+    component?: (props: Option) => React.ReactElement | null;
     options?: Option[];
 };
 
@@ -62,4 +64,3 @@ export type DataTableFilterField<TData> =
     | DataTableSliderFilterField<TData>
     | DataTableInputFilterField<TData>
     | DataTableTimerangeFilterField<TData>;
-

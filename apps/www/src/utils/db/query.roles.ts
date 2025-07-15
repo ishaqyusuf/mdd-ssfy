@@ -1,6 +1,6 @@
 import { composeQuery } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
-import { prisma } from "@/db";
-import { Prisma } from "@/db";
+
+import { Prisma, prisma } from "@/db";
 import { composeQueryData } from "../query-response";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 

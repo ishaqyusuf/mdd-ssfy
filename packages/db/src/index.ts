@@ -6,8 +6,67 @@
 
 // import { withAccelerate } from "@prisma/extension-accelerate";
 
-import { PrismaClient } from "@prisma/client";
-export * from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
+export {
+  Prisma,
+  PrismaClient,
+  SalesPriority,
+  PayoutStatus,
+} from "@prisma/client";
+export type { Roles, Users } from "@prisma/client";
+
+export type AddressBooks = Prisma.AddressBooksGetPayload<undefined>;
+export type ComponentPrice = Prisma.ComponentPriceGetPayload<undefined>;
+export type DykeStepForm = Prisma.DykeStepFormGetPayload<undefined>;
+export type DykeSteps = Prisma.DykeStepsGetPayload<undefined>;
+export type SalesStat = Prisma.SalesStatGetPayload<undefined>;
+export type Customers = Prisma.CustomersGetPayload<undefined>;
+export type CustomerTypes = Prisma.CustomerTypesGetPayload<undefined>;
+export type SalesPayments = Prisma.SalesPaymentsGetPayload<undefined>;
+export type SalesOrders = Prisma.SalesOrdersGetPayload<undefined>;
+export type JobPayments = Prisma.JobPaymentsGetPayload<undefined>;
+export type Notifications = Prisma.NotificationsGetPayload<undefined>;
+export type WorkOrders = Prisma.WorkOrdersGetPayload<undefined>;
+export type SalesOrderItems = Prisma.SalesOrderItemsGetPayload<undefined>;
+export type DykeSalesDoors = Prisma.DykeSalesDoorsGetPayload<undefined>;
+export type DykeShelfProducts = Prisma.DykeShelfProductsGetPayload<undefined>;
+export type OrderProductionSubmissions =
+  Prisma.OrderProductionSubmissionsGetPayload<undefined>;
+export type OrderItemProductionAssignments =
+  Prisma.OrderItemProductionAssignmentsGetPayload<undefined>;
+export type DykeShelfCategories =
+  Prisma.DykeShelfCategoriesGetPayload<undefined>;
+export type DykeSalesShelfItem = Prisma.DykeSalesShelfItemGetPayload<undefined>;
+export type Builders = Prisma.BuildersGetPayload<undefined>;
+export type EmployeeProfile = Prisma.EmployeeProfileGetPayload<undefined>;
+export type Projects = Prisma.ProjectsGetPayload<undefined>;
+export type Inbox = Prisma.InboxGetPayload<undefined>;
+export type CustomerWallet = Prisma.CustomerWalletGetPayload<undefined>;
+export type Settings = Prisma.SettingsGetPayload<undefined>;
+export type UserDocuments = Prisma.UserDocumentsGetPayload<undefined>;
+export type Jobs = Prisma.JobsGetPayload<undefined>;
+export type Homes = Prisma.HomesGetPayload<undefined>;
+export type Taxes = Prisma.TaxesGetPayload<undefined>;
+export type Progress = Prisma.ProgressGetPayload<undefined>;
+export type SalesPickup = Prisma.SalesPickupGetPayload<undefined>;
+export type CommunityModelCost = Prisma.CommunityModelCostGetPayload<undefined>;
+export type CommunityModelPivot =
+  Prisma.CommunityModelPivotGetPayload<undefined>;
+export type CommunityModels = Prisma.CommunityModelsGetPayload<undefined>;
+export type CostCharts = Prisma.CostChartsGetPayload<undefined>;
+export type HomeTasks = Prisma.HomeTasksGetPayload<undefined>;
+export type HomeTemplates = Prisma.HomeTemplatesGetPayload<undefined>;
+export type Invoices = Prisma.InvoicesGetPayload<undefined>;
+export type HousePackageTools = Prisma.HousePackageToolsGetPayload<undefined>;
+export type DykeProducts = Prisma.DykeProductsGetPayload<undefined>;
+export type DykeStepProducts = Prisma.DykeStepProductsGetPayload<undefined>;
+export type DykeDoors = Prisma.DykeDoorsGetPayload<undefined>;
+export type MailGrids = Prisma.MailGridsGetPayload<undefined>;
+export type SalesItemControl = Prisma.SalesItemControlGetPayload<undefined>;
+export type SalesTaxes = Prisma.SalesTaxesGetPayload<undefined>;
+export type ExportConfig = Prisma.ExportConfigGetPayload<undefined>;
+// export type  = Prisma.GetPayload<undefined>;
+
 const prismaClientSingleton = () => {
   return new PrismaClient({
     log:
