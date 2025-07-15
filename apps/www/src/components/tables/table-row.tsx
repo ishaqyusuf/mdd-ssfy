@@ -66,6 +66,7 @@ function CheckboxRow({ row }) {
                 checked={row.getIsSelected()}
                 onCheckedChange={(value) => {
                     const val = !!value;
+
                     row.toggleSelected(val);
                 }}
                 aria-label="Select row"

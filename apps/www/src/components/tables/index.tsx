@@ -94,10 +94,11 @@ export const { useContext: useTable, Provider: TableProvider } =
             useState<RowSelectionState>(defaultRowSelection);
         table = useReactTable({
             data,
-            getRowId: ({ id }) => id,
+            getRowId: ({ id }) => String(id),
             columns,
             getCoreRowModel: getCoreRowModel(),
             getFilteredRowModel: getFilteredRowModel(),
+            onRowSelectionChange: setRowSelection,
             meta: tableMeta,
             enableMultiRowSelection: checkbox,
             manualFiltering: true,

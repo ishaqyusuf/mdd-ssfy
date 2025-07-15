@@ -108,6 +108,7 @@ export async function getInbounds(ctx: TRPCContext, query: InboundQuerySchema) {
   return {
     ...sales,
     data: sales.data.map((sale) => ({
+      uid: String(sale?.id),
       ...sale,
       inboundStatus: statusList?.find((a) => a.orderId == sale?.id)?.status,
     })),

@@ -10,6 +10,7 @@ import { TableHeaderComponent } from "../table-header";
 import { TableRow } from "../table-row";
 import { LoadMoreTRPC } from "../load-more";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
+import { BatchActions } from "./batch-actions";
 
 export function DataTable({}) {
     const trpc = useTRPC();
@@ -55,6 +56,7 @@ export function DataTable({}) {
                 {!hasNextPage || (
                     <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />
                 )}
+                <BatchActions />
             </div>
         </TableProvider>
     );
