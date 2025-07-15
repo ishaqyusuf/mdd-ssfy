@@ -82,12 +82,13 @@ function Action({ item }: { item: Item }) {
     const submitAction = useMutation(
         trpc.hrm.resetEmployeePassword.mutationOptions({
             async onSuccess(data, variables, context) {
+                console.log({ data });
+
                 // await triggerTask({
                 //     taskName: "send-password-reset-to-default-email",
                 //     payload: {},
                 // });
                 toast.success("Saved");
-                setParams(null);
             },
             onError(error, variables, context) {
                 console.log(error);
@@ -96,10 +97,10 @@ function Action({ item }: { item: Item }) {
         }),
     );
     function onSubmit() {
-        toast.loading("Resetting password");
         submitAction.mutate({
             userId: item.id,
         });
+        toast.loading("Resetting password");
     }
     return (
         <ActionCell
@@ -116,7 +117,7 @@ function Action({ item }: { item: Item }) {
             <Button
                 size="sm"
                 variant="outline"
-                onClick={() => {
+                onClick={(e) => {
                     setParams({
                         editEmployeeId: item.id,
                     });
@@ -125,7 +126,12 @@ function Action({ item }: { item: Item }) {
                 <Icons.Edit className="h-4 w-4" />
             </Button>
             <Menu>
-                <Menu.Item onClick={(e) => onSubmit()} icon="packingList">
+                <Menu.Item
+                    onClick={(e) => {
+                        onSubmit();
+                    }}
+                    icon="packingList"
+                >
                     Reset Password
                 </Menu.Item>
             </Menu>

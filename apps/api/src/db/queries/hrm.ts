@@ -105,6 +105,7 @@ export async function getEmployeeFormData(
   };
 }
 export async function resetEmployeePassword(ctx: TRPCContext, userId) {
+  console.log("RESETING PASSOWRD", userId);
   const user = await ctx.db.users.update({
     where: {
       id: userId,
@@ -113,5 +114,6 @@ export async function resetEmployeePassword(ctx: TRPCContext, userId) {
       password: await hashPassword("Millwork"),
     },
   });
+  console.log(user);
   return user;
 }
