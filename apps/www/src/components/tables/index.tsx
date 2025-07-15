@@ -154,9 +154,10 @@ export const useTableData = ({ filter, route }) => {
         return data?.pages.flatMap((page) => (page as any)?.data ?? []) ?? [];
     }, [data]);
     useEffect(() => {
+        if (isFetching) return;
         if (inView) {
             fetchNextPage();
         }
-    }, [inView]);
+    }, [inView, isFetching]);
     return { ref, data: tableData, hasNextPage };
 };
