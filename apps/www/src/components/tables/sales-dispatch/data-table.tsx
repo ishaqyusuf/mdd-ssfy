@@ -11,10 +11,11 @@ import { TableRow } from "../table-row";
 import { LoadMoreTRPC } from "../load-more";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { BatchActions } from "./batch-actions";
+import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 
 export function DataTable({}) {
     const trpc = useTRPC();
-    const { filter, setFilter } = useInboundFilterParams();
+    const { filter, setFilter } = useDispatchFilterParams();
     const { data, ref, hasNextPage } = useTableData({
         filter,
         route: trpc.dispatch.index,

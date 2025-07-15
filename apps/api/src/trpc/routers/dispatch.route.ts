@@ -7,7 +7,7 @@ import {
   getInboundSummary,
 } from "@api/db/queries/inbound";
 import { dispatchQueryParamsSchema } from "@api/schemas/dispatch";
-import { getDispatches } from "@api/db/queries/dispatch";
+import { getDispatches, getDispatchFilters } from "@api/db/queries/dispatch";
 
 export const dispatchRouters = createTRPCRouter({
   index: publicProcedure
@@ -25,7 +25,7 @@ export const dispatchRouters = createTRPCRouter({
     .query(async (props) => {
       return getInboundSummary(props.ctx, props.input);
     }),
-  inboundFilterData: publicProcedure.query(async (props) => {
-    return getInboundFilters(props.ctx);
+  filterData: publicProcedure.query(async (props) => {
+    return getDispatchFilters(props.ctx);
   }),
 });

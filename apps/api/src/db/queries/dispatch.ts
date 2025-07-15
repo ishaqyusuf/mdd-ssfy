@@ -2,6 +2,7 @@ import { whereDispatch } from "@api/prisma-where";
 import { composeQueryData } from "@api/query-response";
 import type { DispatchQueryParamsSchema } from "@api/schemas/dispatch";
 import type { TRPCContext } from "@api/trpc/init";
+import type { PageFilterData } from "@api/type";
 
 export async function getDispatches(
   ctx: TRPCContext,
@@ -16,8 +17,7 @@ export async function getDispatches(
   const data = await db.orderDelivery.findMany({
     where,
     ...searchMeta,
-    // skip: 20,
-    // take: 20,
+
     select: {
       id: true,
       status: true,
@@ -50,4 +50,14 @@ export async function getDispatches(
       uid: String(a.id),
     })),
   );
+}
+export async function getDispatchFilters(ctx: TRPCContext) {
+  type FilterData = PageFilterData<keyof DispatchQueryParamsSchema>;
+  const resp = [
+    {
+      label: "Search",
+      type: "input",
+      value: "q",
+    },
+  ] as FilterData[];
 }

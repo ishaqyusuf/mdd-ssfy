@@ -6,6 +6,7 @@ import { TableSkeleton } from "@/components/tables/skeleton";
 import { DataTable } from "@/components/tables/sales-dispatch/data-table";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
+import { DispatchHeader } from "@/components/dispatch-header";
 
 export async function generateMetadata(props) {
     return constructMetadata({
@@ -42,7 +43,7 @@ export default async function Page(props: Props) {
             // description="Manage inbound orders"
         >
             <div className="flex flex-col gap-6">
-                {/* <InboundHeader /> */}
+                <DispatchHeader />
                 {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 pt-6">
                     <Suspense fallback={<InboundSummarySkeleton />}>
                         <InboundTotal />
