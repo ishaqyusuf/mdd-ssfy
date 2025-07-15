@@ -18,40 +18,40 @@ import { LoadMoreTRPC } from "../load-more";
 export function DataTable({}) {
     const trpc = useTRPC();
     const { filter, setFilter } = useInboundFilterParams();
-    //  const { data, ref, hasNextPage } = useTableData({
-    //         filter,
-    //         route: trpc.dispatch.index,
-    //     });
-    const { ref, inView } = useInView();
+    const { data, ref, hasNextPage } = useTableData({
+        filter,
+        route: trpc.sales.inboundIndex,
+    });
+    // const { ref, inView } = useInView();
     const { setParams: setInboundViewParams } = useInboundView();
-    const infiniteQueryOptions = (
-        trpc.sales.inboundIndex as any
-    ).infiniteQueryOptions(
-        {
-            ...filter,
-        },
-        {
-            getNextPageParam: ({ meta }) => {
-                return meta?.cursor;
-            },
-        },
-    );
-    const { data, fetchNextPage, hasNextPage, isFetching } =
-        useSuspenseInfiniteQuery(infiniteQueryOptions);
-    const tableData = useMemo(() => {
-        return data?.pages.flatMap((page) => (page as any)?.data ?? []) ?? [];
-    }, [data]);
-    useEffect(() => {
-        if (inView) {
-            fetchNextPage();
-        }
-    }, [inView]);
+    // const infiniteQueryOptions = (
+    //     trpc.sales.inboundIndex as any
+    // ).infiniteQueryOptions(
+    //     {
+    //         ...filter,
+    //     },
+    //     {
+    //         getNextPageParam: ({ meta }) => {
+    //             return meta?.cursor;
+    //         },
+    //     },
+    // );
+    // const { data, fetchNextPage, hasNextPage, isFetching } =
+    //     useSuspenseInfiniteQuery(infiniteQueryOptions);
+    // const tableData = useMemo(() => {
+    //     return data?.pages.flatMap((page) => (page as any)?.data ?? []) ?? [];
+    // }, [data]);
+    // useEffect(() => {
+    //     if (inView) {
+    //         fetchNextPage();
+    //     }
+    // }, [inView]);
     return (
         <TableProvider
             args={[
                 {
                     columns: columns,
-                    data: tableData,
+                    data,
                     tableMeta: {
                         deleteAction(id) {
                             // deleteStudent.execute({
