@@ -1,6 +1,6 @@
 "use server";
 
-import { DykeDoors, DykeProducts, DykeStepProducts, prisma } from "@/db";
+import { prisma } from "@/db";
 
 import { findDoorSvg } from "../../_utils/find-door-svg";
 import { sortStepProducts, transformStepProducts } from "../../dyke-utils";

@@ -1,7 +1,7 @@
 import FormInput from "@/components/common/controls/form-input";
 import Modal from "@/components/common/modal";
 import { useModal } from "@/components/common/modal/provider";
-import { Taxes } from "@/db";
+import { Prisma } from "@/db";
 import { useForm } from "react-hook-form";
 
 import { Form } from "@gnd/ui/form";
@@ -9,10 +9,10 @@ import { Form } from "@gnd/ui/form";
 import { createTax } from "./action";
 
 interface Props {
-    onCreate?(tax: Taxes);
+    onCreate?(tax: Prisma.TaxesGetPayload<undefined>);
 }
 export default function TaxModal({ onCreate }: Props) {
-    const form = useForm<Taxes>({
+    const form = useForm<Prisma.TaxesGetPayload<undefined>>({
         defaultValues: {},
     });
     async function onSubmit() {
