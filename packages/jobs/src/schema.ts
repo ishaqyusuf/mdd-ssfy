@@ -4,6 +4,7 @@ import { z } from "zod";
 export const taskNames = [
   "send-login-email",
   "send-password-reset-to-default-email",
+  "send-password-reset-code",
 ] as const;
 export type TaskName = (typeof taskNames)[number];
 export const exampleTaskPayload = z.object({});
@@ -26,6 +27,11 @@ export const sendLoginEmailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 export type SendLoginEmailPayload = z.infer<typeof sendLoginEmailSchema>;
+export const sendPasswordResetCodeSchema = z.object({
+  //validate email
+  email: z.string().email("Please enter a valid email address"),
+});
+export type SendPasswordResetCodePayload = z.infer<typeof sendLoginEmailSchema>;
 
 export const passwordResetToDefaultSchema = z.object({
   //validate email

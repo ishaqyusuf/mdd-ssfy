@@ -3,14 +3,15 @@ import { resend } from "@jobs/utils/resend";
 import { nanoid } from "nanoid";
 import { render } from "@react-email/render";
 import { logger, schemaTask } from "@trigger.dev/sdk/v3";
+import { sendPasswordResetCodeSchema, TaskName } from "@jobs/schema";
 import MailComponent from "@gnd/email/emails/login-link-email";
 import { db } from "@gnd/db";
-import { sendLoginEmailSchema } from "@jobs/schema";
+import { generateRandomNumber } from "@gnd/utils";
 
 const baseAppUrl = getAppUrl();
-export const sendLoginEmail = schemaTask({
-  id: "send-login-email" as TaskName,
-  schema: sendLoginEmailSchema,
+export const sendPasswordResetCode = schemaTask({
+  id: "send-password-reset-code" as TaskName,
+  schema: sendPasswordResetCodeSchema,
   maxDuration: 120,
   queue: {
     concurrencyLimit: 10,
@@ -28,9 +29,10 @@ export const sendLoginEmail = schemaTask({
       },
     });
     if (!usr) throw new Error("Unknown user");
-    const tok = await db.emailTokenLogin.create({
+    const tok = await db.passwordResets.create({
       data: {
-        userId: usr.id,
+        email,
+        token: generateRandomNumber(5),
       },
     });
     const loginLink = `https://${baseAppUrl}/login?token=${tok.id}`;
