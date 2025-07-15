@@ -7,7 +7,6 @@ import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { __isProd } from "@/lib/is-prod-server";
 
 import OrdersPageClient from "../../_components/orders-page-client";
-import { prisma } from "@/db";
 
 export async function generateMetadata({}) {
     return constructMetadata({
