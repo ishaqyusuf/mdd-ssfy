@@ -1,12 +1,10 @@
 import { z } from "zod";
 import { paginationSchema } from "./common";
+import { salesDispatchStatus } from "@gnd/utils/constants";
 
 export const dispatchQueryParamsSchema = z
   .object({
-    salesNo: z.string().optional().nullable(),
-    salesNos: z.array(z.string()).optional().nullable(),
-    salesIds: z.array(z.number()).optional().nullable(),
-    // salesType: z.enum(salesType).optional().nullable(),
+    status: z.enum(salesDispatchStatus).optional().nullable(),
   })
   .merge(paginationSchema);
 export type DispatchQueryParamsSchema = z.infer<

@@ -2,10 +2,8 @@
 
 import { useInboundFilterParams } from "@/hooks/use-inbound-filter-params";
 import { useTRPC } from "@/trpc/client";
-import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
-import { useInView } from "react-intersection-observer";
-import { TableProvider } from "..";
+
+import { TableProvider, useTableData } from "..";
 import { columns } from "./columns";
 import { Table, TableBody } from "@gnd/ui/table";
 import { TableHeaderComponent } from "../table-header";
@@ -16,38 +14,18 @@ import { useSalesPreview } from "@/hooks/use-sales-preview";
 export function DataTable({}) {
     const trpc = useTRPC();
     const { filter, setFilter } = useInboundFilterParams();
-    const { ref, inView } = useInView();
-
-    const infiniteQueryOptions = (
-        trpc.dispatch.index as any
-    ).infiniteQueryOptions(
-        {
-            ...filter,
-        },
-        {
-            getNextPageParam: ({ meta }) => {
-                return meta?.cursor;
-            },
-        },
-    );
-    const { data, fetchNextPage, hasNextPage, isFetching } =
-        useSuspenseInfiniteQuery(infiniteQueryOptions);
-    const tableData = useMemo(() => {
-        return data?.pages.flatMap((page) => (page as any)?.data ?? []) ?? [];
-    }, [data]);
-    useEffect(() => {
-        if (inView) {
-            fetchNextPage();
-        }
-    }, [inView]);
-
+    const { data, ref, hasNextPage } = useTableData({
+        filter,
+        route: trpc.dispatch.index,
+    });
     const { setParams: setSalesPreviewParams } = useSalesPreview();
     return (
         <TableProvider
             args={[
                 {
                     columns: columns,
-                    data: tableData,
+                    data,
+                    checkbox: true,
                     tableMeta: {
                         deleteAction(id) {
                             // deleteStudent.execute({

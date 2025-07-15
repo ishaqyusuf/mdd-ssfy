@@ -1,13 +1,16 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createContextFactory } from "@/utils/context-factory";
 import {
     getCoreRowModel,
     getFilteredRowModel,
+    RowSelectionState,
     useReactTable,
 } from "@tanstack/react-table";
 import { useInView } from "react-intersection-observer";
 import { PageDataMeta, PageFilterData } from "@/types/type";
+import { useTRPC } from "@/trpc/client";
+import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
 export type DataTableProps = {
     data: any[];
     loadMore?: (query) => Promise<any>;
@@ -40,6 +43,7 @@ type TableProps = (WithTable | WithoutTable) & {
         filterData?: PageFilterData[];
         rowClassName?: string;
     };
+    defaultRowSelection?: RowSelectionState;
 };
 export const { useContext: useTable, Provider: TableProvider } =
     createContextFactory(function ({
@@ -53,6 +57,7 @@ export const { useContext: useTable, Provider: TableProvider } =
         nextMeta: nextPageMeta,
         loadMore,
         checkbox,
+        defaultRowSelection = {},
     }: TableProps) {
         const [data, setData] = useState(initialData);
         // const [from, setFrom] = useState(pageSize);
@@ -85,6 +90,8 @@ export const { useContext: useTable, Provider: TableProvider } =
         useEffect(() => {
             setData(initialData);
         }, [initialData]);
+        const [rowSelection, setRowSelection] =
+            useState<RowSelectionState>(defaultRowSelection);
         table = useReactTable({
             data,
             getRowId: ({ id }) => id,
@@ -92,7 +99,25 @@ export const { useContext: useTable, Provider: TableProvider } =
             getCoreRowModel: getCoreRowModel(),
             getFilteredRowModel: getFilteredRowModel(),
             meta: tableMeta,
+            enableMultiRowSelection: checkbox,
+            manualFiltering: true,
+            state: {
+                rowSelection,
+            },
         });
+        const totalRowsFetched = data?.length;
+        const selectedRows = useMemo(() => {
+            const selectedRowKey = Object.keys(rowSelection);
+            return table
+                .getCoreRowModel()
+                .flatRows.filter((row) => selectedRowKey.includes(row.id));
+        }, [rowSelection, table]);
+        const selectedRow = useMemo(() => {
+            const selectedRowKey = Object.keys(rowSelection)?.[0];
+            return table
+                .getCoreRowModel()
+                .flatRows.find((row) => row.id === selectedRowKey);
+        }, [rowSelection, table]);
         return {
             table,
             setParams,
@@ -102,5 +127,35 @@ export const { useContext: useTable, Provider: TableProvider } =
             checkbox,
             moreRef: ref,
             hasMore: !!nextMeta,
+            selectedRows,
+            selectedRow,
+            totalRowsFetched,
         };
     });
+
+export const useTableData = ({ filter, route }) => {
+    // const trpc = useTRPC();
+    const { ref, inView } = useInView();
+
+    const infiniteQueryOptions = route.infiniteQueryOptions(
+        {
+            ...filter,
+        },
+        {
+            getNextPageParam: ({ meta }) => {
+                return meta?.cursor;
+            },
+        },
+    );
+    const { data, fetchNextPage, hasNextPage, isFetching } =
+        useSuspenseInfiniteQuery(infiniteQueryOptions);
+    const tableData = useMemo(() => {
+        return data?.pages.flatMap((page) => (page as any)?.data ?? []) ?? [];
+    }, [data]);
+    useEffect(() => {
+        if (inView) {
+            fetchNextPage();
+        }
+    }, [inView]);
+    return { ref, data: tableData, hasNextPage };
+};

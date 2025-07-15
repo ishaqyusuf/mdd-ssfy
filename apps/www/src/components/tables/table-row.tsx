@@ -7,6 +7,9 @@ import { TableRow as BaseTableRow, TableCell } from "@gnd/ui/table";
 
 import { useTable } from ".";
 import { ColumnMeta } from "@/types/type";
+import { useInfiniteDataTable } from "../(clean-code)/data-table/use-data-table";
+import { TCell } from "../(clean-code)/data-table/table-cells";
+import { Checkbox } from "@gnd/ui/checkbox";
 
 type Props = {
     // row: Row<any>;
@@ -19,6 +22,7 @@ export function TableRow({}: Props) {
         <>
             {table.getRowModel().rows.map((row, id) => (
                 <BaseTableRow className={cn(tableMeta?.rowClassName)} key={id}>
+                    <CheckboxRow row={row} />
                     {row.getVisibleCells().map((cell, index) => (
                         <TableCell
                             key={cell.id}
@@ -50,5 +54,23 @@ export function TableRow({}: Props) {
                 </BaseTableRow>
             ))}
         </>
+    );
+}
+function CheckboxRow({ row }) {
+    const ctx = useTable();
+    const { table } = ctx;
+    if (!ctx.checkbox) return null;
+    return (
+        <TCell align="center" className="w-10 px-2">
+            <Checkbox
+                checked={row.getIsSelected()}
+                onCheckedChange={(value) => {
+                    const val = !!value;
+                    row.toggleSelected(val);
+                }}
+                aria-label="Select row"
+                className="translate-y-[2px]"
+            />
+        </TCell>
     );
 }

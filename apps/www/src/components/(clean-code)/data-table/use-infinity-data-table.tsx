@@ -76,7 +76,6 @@ export function useInfiniteDataTableContext({
     const totalFilters = lastPage?.meta?.totalFilters;
     const currentPercentiles = lastPage?.meta?.currentPercentiles;
     const totalRowsFetched = flatData?.length;
-
     const defaultColumnSorting = sort ? [sort] : undefined;
     const filterFields = React.useMemo(
         () =>
@@ -126,7 +125,6 @@ export function useInfiniteDataTableContext({
     const [refreshToken, setRefreshToken] = React.useState(null);
     React.useEffect(() => {
         if (typeof window === "undefined") return;
-
         function onScroll() {
             // TODO: add a threshold for the "Load More" button
             const onPageBottom =
@@ -136,7 +134,6 @@ export function useInfiniteDataTableContext({
                 fetchNextPage();
             }
         }
-
         window.addEventListener("scroll", onScroll);
         return () => window.removeEventListener("scroll", onScroll);
     }, [fetchNextPage, isFetching, filterRows, totalRowsFetched]);

@@ -31,3 +31,11 @@ export const noteStatus = ["public", "private"] as const;
 export type NoteTagStatus = (typeof noteStatus)[number];
 
 export const salesType = ["order", "quote"] as const;
+
+export const salesDispatchStatus = [
+  "queue",
+  "in progress",
+  "completed",
+  "cancelled",
+] as const;
+export type SalesDispatchStatus = (typeof salesDispatchStatus)[number];

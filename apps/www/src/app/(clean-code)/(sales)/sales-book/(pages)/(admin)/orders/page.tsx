@@ -16,23 +16,6 @@ export async function generateMetadata({}) {
 }
 export default async function SalesBookPage(props) {
     const searchParams = await props.searchParams;
-    // const s = await prisma
-
-    // const e = await prisma.siteActionTicket.findFirst({
-    //     where: {
-    //         event: "deleted",
-    //         type: "order",
-    //         // createdAt: "2025-03-04T14:44:47.000Z
-    //         // description:
-    //         meta: {
-    //             path: "$.description",
-    //             string_contains: "04194PC",
-    //             mode: "insensitive",
-    //         },
-    //     },
-    // });
-    // console.log({ s });
-    // console.log({ e });
 
     const [queryData] = await Promise.all([
         getSalesPageQueryData({
@@ -53,3 +36,4 @@ export default async function SalesBookPage(props) {
         </FPage>
     );
 }
+
