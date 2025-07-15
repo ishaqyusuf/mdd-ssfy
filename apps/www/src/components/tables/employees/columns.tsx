@@ -103,13 +103,13 @@ function Action({ item }: { item: Item }) {
     }
     return (
         <ActionCell
-            Menu={
-                <>
-                    <Menu.Item onClick={(e) => onSubmit()} icon="packingList">
-                        Reset Password
-                    </Menu.Item>
-                </>
-            }
+            // Menu={
+            //     <>
+            //         <Menu.Item onClick={(e) => onSubmit()} icon="packingList">
+            //             Reset Password
+            //         </Menu.Item>
+            //     </>
+            // }
             trash
             itemId={item.id}
         >
@@ -124,6 +124,11 @@ function Action({ item }: { item: Item }) {
             >
                 <Icons.Edit className="h-4 w-4" />
             </Button>
+            <Menu>
+                <Menu.Item onClick={(e) => onSubmit()} icon="packingList">
+                    Reset Password
+                </Menu.Item>
+            </Menu>
         </ActionCell>
     );
 }
