@@ -37,7 +37,15 @@ export type OrderItemProductionAssignments =
 export type DykeShelfCategories =
   Prisma.DykeShelfCategoriesGetPayload<undefined>;
 export type DykeSalesShelfItem = Prisma.DykeSalesShelfItemGetPayload<undefined>;
-// export type PayoutStatus = Prisma.PayoutStatusGetPayload<undefined>;
+export type Builders = Prisma.BuildersGetPayload<undefined>;
+export type EmployeeProfile = Prisma.EmployeeProfileGetPayload<undefined>;
+export type Projects = Prisma.ProjectsGetPayload<undefined>;
+export type Inbox = Prisma.InboxGetPayload<undefined>;
+export type CustomerWallet = Prisma.CustomerWalletGetPayload<undefined>;
+export type Settings = Prisma.SettingsGetPayload<undefined>;
+export type UserDocuments = Prisma.UserDocumentsGetPayload<undefined>;
+export type Jobs = Prisma.JobsGetPayload<undefined>;
+export type Homes = Prisma.HomesGetPayload<undefined>;
 // export type  = Prisma.GetPayload<undefined>;
 
 const prismaClientSingleton = () => {
