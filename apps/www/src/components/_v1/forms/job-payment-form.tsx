@@ -4,9 +4,8 @@ import {} from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import { makePayment } from "@/app/(v1)/_actions/hrm-jobs/make-payment";
-import { EmployeeProfile, JobPayments } from "@/db";
-import { transformData } from "@/lib/utils";
-import { IJobPayment, IJobs } from "@/types/hrm";
+import { EmployeeProfile } from "@/db";
+import { IJobPayment } from "@/types/hrm";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 

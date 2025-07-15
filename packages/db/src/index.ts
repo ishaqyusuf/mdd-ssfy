@@ -47,6 +47,16 @@ export type UserDocuments = Prisma.UserDocumentsGetPayload<undefined>;
 export type Jobs = Prisma.JobsGetPayload<undefined>;
 export type Homes = Prisma.HomesGetPayload<undefined>;
 export type Taxes = Prisma.TaxesGetPayload<undefined>;
+export type Progress = Prisma.ProgressGetPayload<undefined>;
+export type SalesPickup = Prisma.SalesPickupGetPayload<undefined>;
+export type CommunityModelCost = Prisma.CommunityModelCostGetPayload<undefined>;
+export type CommunityModelPivot =
+  Prisma.CommunityModelPivotGetPayload<undefined>;
+export type CommunityModels = Prisma.CommunityModelsGetPayload<undefined>;
+export type CostCharts = Prisma.CostChartsGetPayload<undefined>;
+export type HomeTasks = Prisma.HomeTasksGetPayload<undefined>;
+export type HomeTemplates = Prisma.HomeTemplatesGetPayload<undefined>;
+export type Invoices = Prisma.InvoicesGetPayload<undefined>;
 // export type  = Prisma.GetPayload<undefined>;
 
 const prismaClientSingleton = () => {
