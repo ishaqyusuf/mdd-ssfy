@@ -7,7 +7,12 @@
 // import { withAccelerate } from "@prisma/extension-accelerate";
 
 import { PrismaClient, Prisma } from "@prisma/client";
-export { Prisma, PrismaClient, SalesPriority } from "@prisma/client";
+export {
+  Prisma,
+  PrismaClient,
+  SalesPriority,
+  PayoutStatus,
+} from "@prisma/client";
 export type { Roles, Users } from "@prisma/client";
 
 export type AddressBooks = Prisma.AddressBooksGetPayload<undefined>;
@@ -32,7 +37,7 @@ export type OrderItemProductionAssignments =
 export type DykeShelfCategories =
   Prisma.DykeShelfCategoriesGetPayload<undefined>;
 export type DykeSalesShelfItem = Prisma.DykeSalesShelfItemGetPayload<undefined>;
-// export type DykeSalesShelfItem = Prisma.DykeSalesShelfItemGetPayload<undefined>;
+// export type PayoutStatus = Prisma.PayoutStatusGetPayload<undefined>;
 // export type  = Prisma.GetPayload<undefined>;
 
 const prismaClientSingleton = () => {
