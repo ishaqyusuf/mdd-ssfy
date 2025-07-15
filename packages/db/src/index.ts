@@ -25,11 +25,14 @@ export type WorkOrders = Prisma.WorkOrdersGetPayload<undefined>;
 export type SalesOrderItems = Prisma.SalesOrderItemsGetPayload<undefined>;
 export type DykeSalesDoors = Prisma.DykeSalesDoorsGetPayload<undefined>;
 export type DykeShelfProducts = Prisma.DykeShelfProductsGetPayload<undefined>;
-export type OrderProductionSubmissions = Prisma.OrderProductionSubmissionsGetPayload<undefined>;
-export type OrderItemProductionAssignments = Prisma.OrderItemProductionAssignmentsGetPayload<undefined>;
-export type DykeShelfCategories = Prisma.DykeShelfCategoriesGetPayload<undefined>;
+export type OrderProductionSubmissions =
+  Prisma.OrderProductionSubmissionsGetPayload<undefined>;
+export type OrderItemProductionAssignments =
+  Prisma.OrderItemProductionAssignmentsGetPayload<undefined>;
+export type DykeShelfCategories =
+  Prisma.DykeShelfCategoriesGetPayload<undefined>;
 export type DykeSalesShelfItem = Prisma.DykeSalesShelfItemGetPayload<undefined>;
-export type DykeSalesShelfItem = Prisma.DykeSalesShelfItemGetPayload<undefined>;
+// export type DykeSalesShelfItem = Prisma.DykeSalesShelfItemGetPayload<undefined>;
 // export type  = Prisma.GetPayload<undefined>;
 
 const prismaClientSingleton = () => {
