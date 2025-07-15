@@ -58,6 +58,7 @@ export type HomeTasks = Prisma.HomeTasksGetPayload<undefined>;
 export type HomeTemplates = Prisma.HomeTemplatesGetPayload<undefined>;
 export type Invoices = Prisma.InvoicesGetPayload<undefined>;
 export type HousePackageTools = Prisma.HousePackageToolsGetPayload<undefined>;
+export type DykeProducts = Prisma.DykeProductsGetPayload<undefined>;
 // export type  = Prisma.GetPayload<undefined>;
 
 const prismaClientSingleton = () => {
