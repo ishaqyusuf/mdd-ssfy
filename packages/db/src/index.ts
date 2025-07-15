@@ -64,6 +64,7 @@ export type DykeDoors = Prisma.DykeDoorsGetPayload<undefined>;
 export type MailGrids = Prisma.MailGridsGetPayload<undefined>;
 export type SalesItemControl = Prisma.SalesItemControlGetPayload<undefined>;
 export type SalesTaxes = Prisma.SalesTaxesGetPayload<undefined>;
+export type ExportConfig = Prisma.ExportConfigGetPayload<undefined>;
 // export type  = Prisma.GetPayload<undefined>;
 
 const prismaClientSingleton = () => {

@@ -8,7 +8,7 @@ import { useTRPC } from "@/trpc/client";
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { useInView } from "react-intersection-observer";
-import { TableProvider } from "..";
+import { TableProvider, useTableData } from "..";
 import { columns } from "./columns";
 import { Table, TableBody } from "@gnd/ui/table";
 import { TableHeaderComponent } from "../table-header";
@@ -18,6 +18,10 @@ import { LoadMoreTRPC } from "../load-more";
 export function DataTable({}) {
     const trpc = useTRPC();
     const { filter, setFilter } = useInboundFilterParams();
+    //  const { data, ref, hasNextPage } = useTableData({
+    //         filter,
+    //         route: trpc.dispatch.index,
+    //     });
     const { ref, inView } = useInView();
     const { setParams: setInboundViewParams } = useInboundView();
     const infiniteQueryOptions = (
