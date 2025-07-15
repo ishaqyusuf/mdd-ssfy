@@ -16,7 +16,6 @@ import { SubmitButton } from "../submit-button";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { useEffect } from "react";
-import { useToast } from "@gnd/ui/use-toast";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 
 export function EmployeeFormModal({}) {

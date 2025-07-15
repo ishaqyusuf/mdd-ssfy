@@ -18,7 +18,6 @@ import { useEmployeesParams } from "@/hooks/use-employee-params";
 import { PageFilterData } from "@/types/type";
 import { columns, Item } from "./columns";
 import { LoadMore } from "../load-more";
-import FPageContent from "@/components/(clean-code)/fikr-ui/f-page-content";
 import FContentShell from "@/components/(clean-code)/fikr-ui/f-content-shell";
 import { Menu } from "@/components/(clean-code)/menu";
 import { Icons } from "@/components/_v1/icons";

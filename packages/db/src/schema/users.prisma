@@ -74,6 +74,14 @@ model Session {
     @@index([userId])
 }
 
+model EmailTokenLogin {
+    id        String    @id @default(cuid())
+    userId    Int
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    deletedAt DateTime? @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+}
+
 model EmployeeProfile {
     id                       Int       @unique @default(autoincrement())
     name                     String

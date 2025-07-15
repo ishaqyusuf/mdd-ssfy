@@ -1,12 +1,10 @@
-import { Env } from "@/components/env";
 import { Icons } from "@/components/_v1/icons";
-import { LoginForm } from "@/components/login-form";
-import QuickLogin from "@/components/quick-login";
+import { PasswordResetForm } from "@/components/password-reset-form";
 import { Card, CardDescription, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Login | GND",
+    title: "Password Reset | GND",
 };
 export default async function Page() {
     return (
@@ -18,19 +16,18 @@ export default async function Page() {
                     </div>
                 </div>
             </header>
-            <Card className="shadow-xl w-full max-w-md sborder-0">
+
+            <Card className="shadow-xl sborder-0">
                 <CardHeader className="space-y-1 pb-6">
                     <CardTitle className="text-xl font-semibold text-center">
-                        Sign In
+                        Reset Password
                     </CardTitle>
                     <CardDescription className="text-center">
-                        Enter your credentials to access your account
+                        Enter your email address and we'll send you a link to
+                        reset your password
                     </CardDescription>
                 </CardHeader>
-                <Env isDev>
-                    <QuickLogin />
-                </Env>
-                <LoginForm />
+                <PasswordResetForm />
             </Card>
         </div>
     );

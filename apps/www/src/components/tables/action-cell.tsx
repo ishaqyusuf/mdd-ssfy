@@ -2,6 +2,7 @@ import { cn } from "@gnd/ui/cn";
 
 import { useTable } from ".";
 import ConfirmBtn from "../confirm-button";
+import { Menu } from "../(clean-code)/menu";
 
 interface Props {
     Menu?;
@@ -15,6 +16,7 @@ export function ActionCell(props: Props) {
     const deletable = props?.trash && !!tableMeta?.deleteAction;
     return (
         <div className="flex items-center justify-end gap-2">
+            {props.children}
             {deletable ? (
                 <div className="hidden sm:block">
                     <ConfirmBtn
@@ -29,17 +31,16 @@ export function ActionCell(props: Props) {
             ) : (
                 <></>
             )}
-            {/* {!!props.Menu || deletable ? (
-        <div className={cn(!props.Menu && "sm:hidden")}>
-          <Menu>
-            <props.Menu />
-            <Menu.Item>Hello HEE</Menu.Item>
-          </Menu>
-        </div>
-      ) : (
-        <></>
-      )} */}
-            {props.children}
+
+            {!!props.Menu || deletable ? (
+                <div className={cn(!props.Menu && "sm:hidden")}>
+                    <Menu>
+                        <props.Menu />
+                    </Menu>
+                </div>
+            ) : (
+                <></>
+            )}
         </div>
     );
 }

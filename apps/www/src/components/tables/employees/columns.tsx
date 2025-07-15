@@ -9,13 +9,15 @@ import { useTable } from "..";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { updateEmployeeRole } from "@/actions/update-employee-role";
 import { updateEmployeeProfile } from "@/actions/update-employee-profile";
-import { useAsyncMemo } from "use-async-memo";
 import { AuthGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { useEmployeesParams } from "@/hooks/use-employee-params";
 import { Icons } from "@gnd/ui/icons";
+import { useTRPC } from "@/trpc/client";
+import { useMutation } from "@tanstack/react-query";
+import { triggerTask } from "@/actions/trigger-task";
 
 export type Item = PageItemData<typeof getEmployees>;
 export const columns: ColumnDef<Item>[] = [
@@ -75,11 +77,37 @@ export const columns: ColumnDef<Item>[] = [
 ];
 function Action({ item }: { item: Item }) {
     const { params, setParams } = useEmployeesParams();
+    const trpc = useTRPC();
+    const toast = useLoadingToast();
+    const submitAction = useMutation(
+        trpc.hrm.resetEmployeePassword.mutationOptions({
+            async onSuccess(data, variables, context) {
+                // await triggerTask({
+                //     taskName: "send-password-reset-to-default-email",
+                //     payload: {},
+                // });
+                toast.success("Saved");
+                setParams(null);
+            },
+            onError(error, variables, context) {
+                console.log(error);
+                toast.error("Unable to complete");
+            },
+        }),
+    );
+    function onSubmit() {
+        toast.loading("Resetting password");
+        submitAction.mutate({
+            userId: item.id,
+        });
+    }
     return (
         <ActionCell
             Menu={
                 <>
-                    <Menu.Item icon="packingList">Reset Password</Menu.Item>
+                    <Menu.Item onClick={(e) => onSubmit()} icon="packingList">
+                        Reset Password
+                    </Menu.Item>
                 </>
             }
             trash

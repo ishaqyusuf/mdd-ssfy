@@ -104,3 +104,14 @@ export async function getEmployeeFormData(
     password: undefined as any,
   };
 }
+export async function resetEmployeePassword(ctx: TRPCContext, userId) {
+  const user = await ctx.db.users.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      password: await hashPassword("Millwork"),
+    },
+  });
+  return user;
+}
