@@ -82,13 +82,11 @@ function Action({ item }: { item: Item }) {
     const submitAction = useMutation(
         trpc.hrm.resetEmployeePassword.mutationOptions({
             async onSuccess(data, variables, context) {
-                console.log({ data });
-
                 // await triggerTask({
                 //     taskName: "send-password-reset-to-default-email",
                 //     payload: {},
                 // });
-                toast.success("Saved");
+                toast.success("Password Reset Successfully");
             },
             onError(error, variables, context) {
                 console.log(error);
