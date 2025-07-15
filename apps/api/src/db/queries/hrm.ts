@@ -111,7 +111,7 @@ export async function resetEmployeePassword(ctx: TRPCContext, userId) {
       id: userId,
     },
     data: {
-      password: await hashPassword("Millwork"),
+      password: await hashPassword(process.env.DEFAULT_COMPANY_PASSWORD),
     },
   });
   console.log(user);

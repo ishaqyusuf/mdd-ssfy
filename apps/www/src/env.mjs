@@ -24,6 +24,7 @@ const server = z.object({
     TWILIO_ACCOUNT_SID: z.string(),
     TWILIO_ACCOUNT_TOKEN: z.string(),
     NEXT_BACK_DOOR_TOK: z.string(),
+    DEFAULT_COMPANY_PASSWORD: z.string(),
 
     PLACE_API: z.string(),
     TWILIO_PHONE: z.string(),
@@ -71,6 +72,7 @@ const client = z.object({
  */
 const processEnv = {
     // server
+    DEFAULT_COMPANY_PASSWORD: process.env.DEFAULT_COMPANY_PASSWORD,
     TRIGGER_SECRET_KEY: process.env.TRIGGER_SECRET_KEY,
     TRIGGER_PROJECT_ID: process.env.TRIGGER_PROJECT_ID,
     SQUARE_SANDBOX_LOCATION_ID: process.env.SQUARE_SANDBOX_LOCATION_ID,

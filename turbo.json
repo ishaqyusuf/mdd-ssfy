@@ -10,6 +10,7 @@
       "env": [
         "ALLOWED_API_ORIGINS",
         "DATABASE_URL",
+        "DEFAULT_COMPANY_PASSWORD",
         "SQUARE_SANDBOX_ACCESS_TOKEN",
         "TRIGGER_PROJECT_ID",
         "SQUARE_SANDBOX_LOCATION_ID",

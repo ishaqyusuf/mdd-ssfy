@@ -99,6 +99,7 @@ export function LoginForm({}) {
                         ) : (
                             <>
                                 <Button
+                                    disabled
                                     type="button"
                                     onClick={(e) => {}}
                                     className="w-full"

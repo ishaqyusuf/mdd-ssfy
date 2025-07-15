@@ -54,26 +54,6 @@ export async function resetPasswordRequest({
     // });
     return { id: user.id };
 }
-export async function resetIzriPassword() {
-    const u = await prisma.users.findFirst({
-        where: {
-            name: {
-                contains: "izri",
-            },
-        },
-    });
-    // console.log({ u });
-    console.log(u?.email);
-
-    await prisma.users.update({
-        where: {
-            id: u.id,
-        },
-        data: {
-            password: await hash("millwork", 10),
-        },
-    });
-}
 export async function resetPassword({
     code,
     confirmPassword,
