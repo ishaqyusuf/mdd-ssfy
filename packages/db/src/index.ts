@@ -46,6 +46,7 @@ export type Settings = Prisma.SettingsGetPayload<undefined>;
 export type UserDocuments = Prisma.UserDocumentsGetPayload<undefined>;
 export type Jobs = Prisma.JobsGetPayload<undefined>;
 export type Homes = Prisma.HomesGetPayload<undefined>;
+export type Taxes = Prisma.TaxesGetPayload<undefined>;
 // export type  = Prisma.GetPayload<undefined>;
 
 const prismaClientSingleton = () => {
