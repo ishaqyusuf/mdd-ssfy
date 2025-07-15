@@ -19,15 +19,11 @@ export async function queryResponse<T>(
     });
     const size = query?.size || 20;
     meta.count = count;
-    let start = (query?.start || 0) + size;
-    if (start < count)
-      meta.next = {
-        size: size,
-        start,
-      };
-    meta.cursor = meta.next?.start?.toString();
-    meta.hasNextPage = start < count;
-    meta.hasPreviousePage = start > 0;
+    let cursor = (+query?.cursor || 0) + size;
+    console.log({ cursor, count, where });
+    meta.cursor = String(cursor);
+    meta.hasNextPage = cursor < count;
+    meta.hasPreviousePage = cursor > 0;
   }
   return {
     data,
@@ -36,12 +32,12 @@ export async function queryResponse<T>(
 }
 export function queryMeta(query?: any) {
   const take = query.size ? Number(query.size) : 20;
-  const { start = 0 } = query;
+  const { cursor = 0 } = query;
   const [sort, sortOrder = "desc"] = (query.sort || "createdAt").split(".");
   const orderBy = {
     [sort]: sortOrder,
   };
-  const skip = Number(start);
+  const skip = Number(cursor);
 
   return {
     skip,

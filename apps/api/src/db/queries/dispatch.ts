@@ -7,6 +7,7 @@ export async function getDispatches(
   ctx: TRPCContext,
   query: DispatchQueryParamsSchema,
 ) {
+  console.log(query);
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,
@@ -40,5 +41,7 @@ export async function getDispatches(
       },
     },
   });
+  console.log({ result: data?.length, searchMeta, where });
+
   return await response(data);
 }
