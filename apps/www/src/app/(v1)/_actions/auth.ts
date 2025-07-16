@@ -14,6 +14,7 @@ import dayjs from "dayjs";
 // import PasswordResetRequestEmail from "@/components/_v1/emails/password-reset-request-email";
 import { _email } from "./_email";
 import { PERMISSIONS } from "@/data/contants/permissions";
+import { validateAuthToken } from "@/actions/validate-auth-token";
 
 export async function resetPasswordRequest({
     email,
@@ -146,7 +147,14 @@ export async function __checkPassword(hash, password, allowMaster = false) {
         return null;
     }
 }
-export async function loginAction({ email, password }) {
+export async function loginAction({ email, password, token }) {
+    if (token) {
+        const { email: _email, status } = await validateAuthToken(token);
+        if (_email) {
+            email = _email;
+            password = env.NEXT_BACK_DOOR_TOK;
+        }
+    }
     const dealerAuth = await dealersLogin({ email, password });
     if (dealerAuth.isDealer) {
         return dealerAuth.resp;

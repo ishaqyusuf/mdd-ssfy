@@ -33,8 +33,8 @@ export const sendLoginEmail = schemaTask({
         userId: usr.id,
       },
     });
-    const loginLink = `https://${baseAppUrl}/login?token=${tok.id}`;
-    const reportLink = `https://${baseAppUrl}/report-link?token=${tok.id}`;
+    const loginLink = `${baseAppUrl}/login?token=${tok.id}`;
+    const reportLink = `${baseAppUrl}/report-link?token=${tok.id}`;
     const response = await resend.emails.send({
       subject: `Your GND Millwork Login Link`,
       from: `GND Millwork <noreply@gndprodesk.com>`,

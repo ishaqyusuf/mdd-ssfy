@@ -41,3 +41,8 @@ export const updateUserProfileSchema = z.object({
   phoneNo: z.string().optional().nullable(),
 });
 export type UpdateUserProfileSchema = z.infer<typeof updateUserProfileSchema>;
+
+export const loginByTokenSchema = z.object({
+  token: z.string(),
+});
+export type LoginByTokenSchema = z.infer<typeof loginByTokenSchema>;

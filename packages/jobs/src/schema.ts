@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sendPasswordResetCode } from "./tasks/send-password-reset-code";
 // import { salesQueryParamsSchema } from "@api/schemas/sales";
 
 export const taskNames = [
@@ -32,6 +33,7 @@ export const sendPasswordResetCodeSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 export type SendPasswordResetCodePayload = z.infer<typeof sendLoginEmailSchema>;
+export type sendPasswordResetCode = typeof sendPasswordResetCode;
 
 export const passwordResetToDefaultSchema = z.object({
   //validate email
