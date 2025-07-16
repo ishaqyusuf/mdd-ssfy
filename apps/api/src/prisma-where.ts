@@ -14,6 +14,37 @@ export function whereDispatch(query: DispatchQueryParamsSchema) {
       });
       break;
   }
+  if (query.q) {
+    const contains = { contains: query.q };
+    whereStack.push({
+      OR: [
+        {
+          order: {
+            OR: [
+              {
+                orderId: contains,
+              },
+              {
+                customer: {
+                  OR: [
+                    {
+                      phoneNo: contains,
+                    },
+                    {
+                      businessName: contains,
+                    },
+                    {
+                      name: contains,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  }
   return composeQuery(whereStack);
 }
 export function whereSales(query: SalesQueryParamsSchema) {
