@@ -16,14 +16,14 @@ export const {
     const [isOpen, setIsOpen] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const [filters, setFilters] = useQueryStates(filterSchema, {
-        shallow: false,
+        // shallow: false,
     });
     const [hasFilter, setHasFilter] = useState(false);
     useEffect(() => {
         timeout(1000).then((e) => {
             setHasFilter(
                 Object.entries(filters).some(
-                    ([a, b]) => ["search"].every((c) => c !== a) && b,
+                    ([a, b]) => ["q"].every((c) => c !== a) && b,
                 ),
             );
         });

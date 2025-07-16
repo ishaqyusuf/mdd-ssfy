@@ -15,9 +15,9 @@ import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 
 export function DataTable({}) {
     const trpc = useTRPC();
-    const { filter, setFilter } = useDispatchFilterParams();
+    const { filters, setFilters } = useDispatchFilterParams();
     const { data, ref, hasNextPage } = useTableData({
-        filter,
+        filter: filters,
         route: trpc.dispatch.index,
     });
     const { setParams: setSalesPreviewParams } = useSalesPreview();

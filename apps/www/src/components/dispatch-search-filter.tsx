@@ -7,9 +7,13 @@ import {
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
-import { dispatchFilterParamsSchema } from "@/hooks/use-dispatch-filter-params";
+import {
+    dispatchFilterParamsSchema,
+    useDispatchFilterParams,
+} from "@/hooks/use-dispatch-filter-params";
 
 export function DispatchSearchFilter() {
+    const { filters, hasFilters, setFilters } = useDispatchFilterParams();
     return (
         <SearchFilterProvider
             args={[

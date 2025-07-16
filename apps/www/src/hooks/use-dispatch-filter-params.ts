@@ -10,11 +10,11 @@ export const dispatchFilterParamsSchema = {
 } satisfies Partial<Record<FilterKeys, any>>;
 
 export function useDispatchFilterParams() {
-    const [filter, setFilter] = useQueryStates(dispatchFilterParamsSchema);
+    const [filters, setFilters] = useQueryStates(dispatchFilterParamsSchema);
     return {
-        filter,
-        setFilter,
-        hasFilters: Object.values(filter).some((value) => value !== null),
+        filters,
+        setFilters,
+        hasFilters: Object.values(filters).some((value) => value !== null),
     };
 }
 export const loadInboundFilterParams = createLoader(dispatchFilterParamsSchema);
