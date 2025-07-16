@@ -13,11 +13,11 @@ import { useSalesPreview } from "@/hooks/use-sales-preview";
 export type Item = RouterOutputs["dispatch"]["index"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
     {
-        header: "Date",
+        header: "Schedule",
         accessorKey: "salesDate",
         cell: ({ row: { original: item } }) => (
             <TCell.Secondary className="font-mono">
-                <TCell.Date>{item.createdAt}</TCell.Date>
+                <TCell.Date>{item.dueDate}</TCell.Date>
             </TCell.Secondary>
         ),
     },

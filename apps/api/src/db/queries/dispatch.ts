@@ -26,6 +26,7 @@ export async function getDispatches(
       id: true,
       status: true,
       createdAt: true,
+      dueDate: true,
       order: {
         select: {
           orderId: true,
@@ -46,7 +47,6 @@ export async function getDispatches(
       },
     },
   });
-  console.log({ result: data?.length, searchMeta, where });
 
   return await response(
     data.map((a) => ({
