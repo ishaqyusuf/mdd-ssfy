@@ -5,19 +5,22 @@ import { DateFormats, formatDate } from "@/lib/use-day";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
 
-import { Button } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import { Calendar, CalendarProps } from "@gnd/ui/calendar";
 
 import { Menu } from "../(clean-code)/menu";
 import { CalendarIcon } from "lucide-react";
+import { VariantProps } from "class-variance-authority";
 
 interface Props {
     range?: boolean;
     hideIcon?: boolean;
     value?: any;
     setValue?: any;
+    variant?: VariantProps<typeof buttonVariants>["variant"];
     format?: DateFormats;
     placeholder?;
+    onSelect?;
 }
 export function DatePicker({
     className,
@@ -27,17 +30,12 @@ export function DatePicker({
     hideIcon,
     format = "YYYY-MM-DD",
     placeholder = "Pick a date",
+    variant = "outline",
+    onSelect,
     ...calendarProps
 }: CalendarProps & Props) {
     const [date, setDate] = useState<DateRange | undefined | Date>();
 
-    // value
-    //     ? typeof value == "string"
-    //         ? new Date(value)
-    //         : value
-    //     : range
-    //     ? { form: null, to: null }
-    //     : null
     useEffect(() => {
         setDate(
             value
@@ -49,10 +47,7 @@ export function DatePicker({
                   : null,
         );
     }, [value, range]);
-    // const [date, setDate] = React.useState<DateRange | undefined>({
-    //   from: new Date(2023, 0, 20),
-    //   to: addDays(new Date(2023, 0, 20), 20),
-    // });
+
     function from() {
         if (!range) return null;
         return (date as any).from;
@@ -90,7 +85,7 @@ export function DatePicker({
                 Trigger={
                     <Button
                         id="date"
-                        variant={"outline"}
+                        variant={variant}
                         disabled={!!calendarProps.disabled}
                         className={cn(
                             "w-[260px] justify-start text-left font-normal",
@@ -135,6 +130,7 @@ export function DatePicker({
                             setDate(v);
                             setValue?.(v);
                             setOpen(false);
+                            onSelect?.(v);
                         }}
                         numberOfMonths={range ? 2 : 1}
                     />

@@ -39,6 +39,7 @@ import { GeneralFooter } from "./general-footer";
 import { SalesPO } from "./inline-data-edit";
 import { GeneralActionBar } from "./general-action-bar";
 import { cn } from "@gnd/ui/cn";
+import { DeliveryOption } from "./delivery-option";
 
 export function GeneralTab({}) {
     const ctx = useSalesOverviewQuery();
@@ -252,15 +253,7 @@ export function GeneralTab({}) {
                                         <p className="text-muted-foreground">
                                             Delivery Option
                                         </p>
-                                        <DataSkeleton
-                                            className="font-medium"
-                                            placeholder="Standard"
-                                        >
-                                            <p className="font-medium">
-                                                {saleData?.deliveryOption ||
-                                                    "Standard"}
-                                            </p>
-                                        </DataSkeleton>
+                                        <DeliveryOption salesId={saleData.id} />
                                     </div>
                                     <SalesPO
                                         salesId={saleData.id}

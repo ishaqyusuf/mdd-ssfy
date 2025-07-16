@@ -30,6 +30,7 @@ export type NoteTagTypes = (typeof noteTypes)[number];
 export const noteStatus = ["public", "private"] as const;
 export type NoteTagStatus = (typeof noteStatus)[number];
 
+export const salesDeliveryMode = ["pickup", "delivery"] as const;
 export const salesType = ["order", "quote"] as const;
 
 export const salesDispatchStatus = [

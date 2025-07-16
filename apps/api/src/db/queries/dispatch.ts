@@ -1,8 +1,13 @@
 import { whereDispatch } from "@api/prisma-where";
 import { composeQueryData } from "@api/query-response";
-import type { DispatchQueryParamsSchema } from "@api/schemas/dispatch";
+import type {
+  DispatchQueryParamsSchema,
+  UpdateSalesDeliveryOptionSchema,
+} from "@api/schemas/dispatch";
 import type { TRPCContext } from "@api/trpc/init";
 import type { PageFilterData } from "@api/type";
+import type { Prisma } from "@gnd/db";
+import type { SalesDispatchStatus } from "@gnd/utils/constants";
 
 export async function getDispatches(
   ctx: TRPCContext,
@@ -59,4 +64,96 @@ export async function getDispatchFilters(ctx: TRPCContext) {
       value: "q",
     },
   ] as FilterData[];
+}
+
+export async function getSalesDeliveryInfo(ctx: TRPCContext, salesId) {
+  const sale = await ctx.db.salesOrders.findFirstOrThrow({
+    where: {
+      id: salesId,
+      type: "order",
+    },
+    select: {
+      id: true,
+      deliveryOption: true,
+      deliveries: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          deliveryMode: true,
+          dueDate: true,
+          status: true,
+        },
+      },
+    },
+  });
+  return sale;
+}
+export async function updateSalesDeliveryOption(
+  ctx: TRPCContext,
+  data: UpdateSalesDeliveryOptionSchema,
+) {
+  if (data.option && !data.deliveryId) {
+    await ctx.db.salesOrders.update({
+      where: { id: data.salesId },
+      data: {
+        deliveryOption: data.option,
+      },
+    });
+    return;
+  }
+  if (!data.deliveryId) {
+    data.deliveryId = (
+      await ctx.db.orderDelivery.create({
+        data: {
+          deliveryMode: data.option || data.defaultOption || "delivery",
+          createdBy: {},
+          driver: data.driverId
+            ? {
+                connect: {
+                  id: data.driverId,
+                },
+              }
+            : undefined,
+          status: data.status || ("queue" as SalesDispatchStatus),
+          dueDate: data.date,
+          meta: {},
+          order: {
+            connect: { id: data.salesId },
+          },
+        },
+      })
+    ).id;
+  } else {
+    const updateData: Prisma.OrderDeliveryUpdateInput = {};
+    Object.entries(data).map(([k, v]) => {
+      const value = v as any;
+      if (value === undefined) return;
+      switch (k as keyof UpdateSalesDeliveryOptionSchema) {
+        case "date":
+          updateData.dueDate = value;
+          break;
+        case "driverId":
+          updateData.driver = {
+            connect: {
+              id: value,
+            },
+          };
+          break;
+        case "option":
+          updateData.deliveryMode = value;
+          break;
+        case "status":
+          updateData.status = value;
+          break;
+      }
+    });
+    await ctx.db.orderDelivery.update({
+      where: {
+        id: data.deliveryId,
+      },
+      data: updateData,
+    });
+  }
 }

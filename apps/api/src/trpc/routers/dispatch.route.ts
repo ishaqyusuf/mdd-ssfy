@@ -6,8 +6,17 @@ import {
   getInbounds,
   getInboundSummary,
 } from "@api/db/queries/inbound";
-import { dispatchQueryParamsSchema } from "@api/schemas/dispatch";
-import { getDispatches, getDispatchFilters } from "@api/db/queries/dispatch";
+import {
+  dispatchQueryParamsSchema,
+  updateSalesDeliveryOptionSchema,
+} from "@api/schemas/dispatch";
+import {
+  getDispatches,
+  getDispatchFilters,
+  getSalesDeliveryInfo,
+  updateSalesDeliveryOption,
+} from "@api/db/queries/dispatch";
+import { z } from "zod";
 
 export const dispatchRouters = createTRPCRouter({
   index: publicProcedure
@@ -15,17 +24,18 @@ export const dispatchRouters = createTRPCRouter({
     .query(async (props) => {
       return getDispatches(props.ctx, props.input);
     }),
-  inboundIndex: publicProcedure
-    .input(inboundQuerySchema)
-    .query(async (props) => {
-      return getInbounds(props.ctx, props.input);
+  updateSalesDeliveryOption: publicProcedure
+    .input(updateSalesDeliveryOptionSchema)
+    .mutation(async (props) => {
+      return updateSalesDeliveryOption(props.ctx, props.input);
     }),
-  inboundSummary: publicProcedure
-    .input(inboundQuerySchema)
+  salesDeliveryInfo: publicProcedure
+    .input(
+      z.object({
+        salesId: z.number().nullable().optional(),
+      }),
+    )
     .query(async (props) => {
-      return getInboundSummary(props.ctx, props.input);
+      return getSalesDeliveryInfo(props.ctx, props.input.salesId);
     }),
-  filterData: publicProcedure.query(async (props) => {
-    return getDispatchFilters(props.ctx);
-  }),
 });
