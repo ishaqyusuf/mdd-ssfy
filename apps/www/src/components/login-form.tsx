@@ -44,7 +44,7 @@ export function LoginForm({}) {
     const l = useLoginEmail();
     const token = l?.params?.token;
 
-    const { data: session } = useSession({});
+    const { data: session } = useSession();
     useEffect(() => {
         if (session?.user?.id) redirect("/");
     }, [session]);
