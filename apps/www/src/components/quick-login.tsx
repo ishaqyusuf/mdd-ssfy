@@ -2,13 +2,12 @@
 import { Menu } from "./(clean-code)/menu";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 
-import { setSidebarAuthId } from "@/actions/cache/get-loggedin-profile";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
-import { Badge } from "@gnd/ui/badge";
+
 import { useTRPC } from "@/trpc/client";
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { signIn } from "next-auth/react";
 import { env } from "@/env.mjs";
 

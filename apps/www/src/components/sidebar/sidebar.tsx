@@ -20,11 +20,13 @@ export function SideBar({ children, user, menuMode, validLinks }) {
     return (
         <SidebarProviderRoot state={menuMode}>
             <SidebarContext args={[validLinks, user]}>
+                {/* <div className="relative"> */}
                 <SideMenu />
-                <SidebarInset className="flex-1 space-y-4 overflow-hidden">
+                <SidebarInset className="flex-1 space-y-4 overflow-hidden md:ml-[70px]s pb-8">
                     <Header />
-                    {children}
+                    <div className="px-6">{children}</div>
                 </SidebarInset>
+                {/* </div> */}
             </SidebarContext>
         </SidebarProviderRoot>
     );

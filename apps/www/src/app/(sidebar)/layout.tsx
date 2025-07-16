@@ -5,6 +5,7 @@ import { GlobalModals } from "@/components/modals/global-modals";
 import { GlobalSheets } from "@/components/sheets/global-sheets";
 import { getLinkModules, validateLinks } from "@/components/sidebar/links";
 import { SideBar } from "@/components/sidebar/sidebar";
+import { Suspense } from "react";
 
 export default async function SideBarLayout({ children }) {
     const [user, pageTabs] = await Promise.all([
@@ -22,8 +23,10 @@ export default async function SideBarLayout({ children }) {
     return (
         <SideBar user={user} menuMode={menuMode} validLinks={validLinks}>
             {children}
-            <GlobalSheets />
-            <GlobalModals />
+            <Suspense>
+                <GlobalSheets />
+                <GlobalModals />
+            </Suspense>
         </SideBar>
     );
 }
