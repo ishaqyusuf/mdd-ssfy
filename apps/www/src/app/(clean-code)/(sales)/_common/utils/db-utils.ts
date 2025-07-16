@@ -112,6 +112,8 @@ export const SalesListInclude = {
     deliveries: {
         select: {
             id: true,
+            status: true,
+            dueDate: true,
         },
         where: {
             deletedAt: null,

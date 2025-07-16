@@ -65,10 +65,15 @@ export async function getSalesListDta(query: SearchParamsType) {
     return {
         pageCount: pageInfo.pageCount,
         pageInfo,
-        data: data.map((data) => ({
-            ...data,
-            ...(notCounts[data.id.toString()] || {}),
-        })),
+        data: data.map((data) => {
+            const deliveryOption =
+                data?.deliveries?.[0]?.status || data?.deliveryOption;
+            return {
+                ...data,
+                ...(notCounts[data.id.toString()] || {}),
+                deliveryOption,
+            };
+        }),
         meta: {
             totalRowCount: pageInfo.totalItems,
         },
