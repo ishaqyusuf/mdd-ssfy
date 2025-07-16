@@ -5,7 +5,7 @@ import { Form } from "@gnd/ui/form";
 import { z } from "zod";
 import FormInput from "./common/controls/form-input";
 import { SubmitButton } from "./submit-button";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useTransition } from "@/utils/use-safe-transistion";
 
 import Link from "@/components/link";
@@ -16,6 +16,7 @@ import { SendLoginEmailPayload } from "@jobs/schema";
 import { parseAsString, useQueryStates } from "nuqs";
 
 import { useEffect } from "react";
+import { redirect } from "next/navigation";
 
 const loginSchema = z.object({
     email: z.string().email(),
@@ -42,6 +43,11 @@ export function LoginForm({}) {
     const withEmail = form.watch("withEmail");
     const l = useLoginEmail();
     const token = l?.params?.token;
+
+    const { data: session } = useSession({});
+    useEffect(() => {
+        if (session?.user?.id) redirect("/");
+    }, [session]);
     useEffect(() => {
         console.log({ token });
         if (!token) return;
