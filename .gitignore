@@ -48,9 +48,9 @@ yarn-error.log*
 # react-email
 .react-email
 packages/email/public
-packages/email/emails
 !packages/email/public/.gitkeep
 !packages/email/.react-email/.gitkeep
+packages/email/
 
 
 # Trigger
