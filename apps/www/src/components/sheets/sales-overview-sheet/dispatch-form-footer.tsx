@@ -16,6 +16,7 @@ import { SheetFooter } from "@gnd/ui/sheet";
 
 import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { useDispatch } from "./context";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
 
 type SubmitSchema = z.infer<typeof createSubmissionSchema>;
 export function DispatchFormFooter({}) {
@@ -35,10 +36,14 @@ export function DispatchFormFooter({}) {
     });
     const action = useDispatcherAction();
     if (!openForm) return null;
+    const taskTrigger = useTaskTrigger({});
     const handleSubmit = (formData: z.infer<typeof ctx.formSchema>) => {
         const data = ctx.bachWorker.emptyActions();
         // const formData = form.getValues();
         // let pickings = [];
+        // taskTrigger.trigger({
+        //     taskName: "send-login-email",
+        // });
         ctx.data?.dispatchables?.map((item) => {
             const itemData = formData?.itemData?.items?.[item.uid];
             let qty = itemData?.qty;
@@ -126,7 +131,6 @@ export function DispatchFormFooter({}) {
             driverId: formData?.delivery?.driverId,
             status: formData?.delivery?.status,
         };
-        console.log({ formData, data });
         ctx.bachWorker.form.reset({
             nextTriggerUID: null,
             actions: data,

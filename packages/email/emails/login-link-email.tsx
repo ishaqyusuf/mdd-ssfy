@@ -11,7 +11,7 @@ import {
   getEmailInlineStyles,
   getEmailThemeClasses,
   Button,
-} from "components/theme";
+} from "../components/theme";
 import { Logo } from "components/logo";
 
 interface Props {

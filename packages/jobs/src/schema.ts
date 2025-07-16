@@ -1,15 +1,25 @@
 import { z } from "zod";
 import { sendPasswordResetCode } from "./tasks/send-password-reset-code";
+import {
+  createSalesDispatchItemsSchema,
+  createSalesDispatchSchema,
+} from "@gnd/utils/sales";
 // import { salesQueryParamsSchema } from "@api/schemas/sales";
 
 export const taskNames = [
   "send-login-email",
   "send-password-reset-to-default-email",
   "send-password-reset-code",
+  "create-sales-dispatch",
 ] as const;
 export type TaskName = (typeof taskNames)[number];
-export const exampleTaskPayload = z.object({});
-export type ExampleTaskPayload = z.infer<typeof exampleTaskPayload>;
+export const createSalesDispatchSchemaTask = z.object({
+  delivery: createSalesDispatchSchema,
+  itemData: createSalesDispatchItemsSchema,
+});
+export type CreateSalesDispatchSchemaTask = z.infer<
+  typeof createSalesDispatchSchemaTask
+>;
 
 export const sendSalesEmailSchema = z.object({
   emailType: z

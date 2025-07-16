@@ -48,7 +48,7 @@ const { useContext: useDispatch, Provider: DispatchProvider } =
             const res = await getSalesDispatchDataAction(
                 ctx.params["sales-overview-id"],
             );
-            console.log("DISPATCH DATA", res);
+
             return res;
         };
         const customerQuery = useCustomerOverviewQuery();

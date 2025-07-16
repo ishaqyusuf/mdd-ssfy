@@ -17,7 +17,6 @@ export async function getDispatches(
   const data = await db.orderDelivery.findMany({
     where,
     ...searchMeta,
-
     select: {
       id: true,
       status: true,

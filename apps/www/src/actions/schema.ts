@@ -238,6 +238,7 @@ export const createSubmissionSchema = z
         // unitWage: z.number().optional(),
     })
     .superRefine(qtySuperRefine);
+
 export const deleteSalesAssignmentSubmissionSchema = z.object({
     submissionId: z.number().optional(),
     assignmentId: z.number().optional(),
