@@ -7,7 +7,7 @@ import { composeQuery } from "../db-utils";
 export function whereUsers(query: SearchParamsType) {
     const wheres: Prisma.UsersWhereInput[] = [];
 
-    const permissions = query["user.permissions"]?.split(",");
+    const permissions = query["user.permissions"];
 
     if (permissions?.length) {
         const wherePermissions: Prisma.PermissionsWhereInput[] = [];

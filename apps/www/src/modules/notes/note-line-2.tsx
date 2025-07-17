@@ -37,7 +37,13 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
         ctx.deleteNote(note.id);
         toast.success("Note Deleted!");
     }
-    const colors = ["red", "blue", "kuCrimson", "default"] as Colors[];
+    const colors = [
+        "red",
+        "orangeAlt",
+        "blue",
+        "kuCrimson",
+        "default",
+    ] as Colors[];
     const color = colorsObject[_note.color];
     async function changeColor(color: string) {
         await updateNoteAction(note.id, { color });
