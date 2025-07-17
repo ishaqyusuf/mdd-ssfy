@@ -1,4 +1,4 @@
-import { Colors, getColorFromName, statusColor } from "@/lib/color";
+import { Colors, getColorFromName } from "@/lib/color";
 import { cn } from "@/lib/utils";
 
 interface ProgressBaseProps {

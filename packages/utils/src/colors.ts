@@ -143,8 +143,9 @@ export const colorsObject = {
   indianRed: "#CD5C5C",
   darkSlateBlue: "#483D8B",
   darkGray: "#696969",
+  default: null,
 } as const;
-
+export type Colors = keyof typeof colorsObject;
 export function customHash(value: string) {
   let hash = 0;
 
@@ -171,4 +172,13 @@ export function getColorFromName(value: string) {
 export function getRandomColor() {
   const randomIndex = Math.floor(Math.random() * colors.length);
   return colors[randomIndex];
+}
+export function hexToRgba(hex: string, opacity: number): string {
+  const parsed = hex.replace("#", "");
+  const bigint = parseInt(parsed, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }

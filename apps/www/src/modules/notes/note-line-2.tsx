@@ -10,62 +10,20 @@ import { toast } from "sonner";
 import { updateNoteAction } from "./actions/update-note-action";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { cva } from "class-variance-authority";
-import { Env } from "@/components/env";
 import Image from "next/image";
 import { env } from "@/env.mjs";
 import {
     AlertDialog,
-    AlertDialogAction,
     AlertDialogCancel,
     AlertDialogContent,
-    AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@gnd/ui/alert-dialog";
 import Button from "@/components/common/button";
+import { Colors, colorsObject, hexToRgba } from "@gnd/utils/colors";
 
-const listVariant = cva(
-    "cursor-default flex flex-col items-start gap-s2 rounded-lg border p-3 text-left text-sm transition-all my-1.5",
-    {
-        variants: {
-            color: {
-                default: "bg-white border-gray-300",
-                green: "bg-green-300 border-green-300",
-                orange: "bg-orange-300 border-orange-300",
-                red: "bg-red-300 border-red-600",
-                blue: "bg-blue-300 border-blue-300",
-            },
-        },
-        defaultVariants: {},
-    },
-);
-const noteColorListVariant = cva("size-4 rounded", {
-    variants: {
-        color: {
-            red: "bg-red-500",
-            blue: "bg-blue-500",
-            green: "bg-green-500",
-            orange: "bg-orange-500",
-        },
-    },
-    defaultVariants: {},
-});
-const noteColorVariant = cva(
-    "line-clamp-2 text-base py-1 text-muted-foreground font-semibold uppercase",
-    {
-        variants: {
-            color: {
-                red: "text-black",
-                blue: "text-black",
-                green: "text-black",
-            },
-        },
-        defaultVariants: {},
-    },
-);
 export function NoteLine({ note }: { note: GetNotes[number] }) {
     const event = note?.events?.[0];
     const ctx = useNote();
@@ -79,7 +37,8 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
         ctx.deleteNote(note.id);
         toast.success("Note Deleted!");
     }
-    const colors = ["red", "blue", "default"];
+    const colors = ["red", "blue", "kuCrimson", "default"] as Colors[];
+    const color = colorsObject[_note.color];
     async function changeColor(color: string) {
         await updateNoteAction(note.id, { color });
         _setNote((on) => ({ ...on, color }));
@@ -87,10 +46,11 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
     return (
         <div
             className={cn(
-                listVariant({
-                    color: _note.color as any,
-                }),
+                "cursor-default flex flex-col items-start gap-s2 rounded-lg border p-3 text-left text-sm transition-all my-1.5",
             )}
+            style={{
+                backgroundColor: hexToRgba(color, 0.5),
+            }}
         >
             <div className="flex w-full flex-col gap-1">
                 <div className="flex items-center">
@@ -98,7 +58,7 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
                         <div className="font-semibold">
                             {note.senderContact?.name}
                         </div>
-                        <span className="flex h-2 w-2 rounded-full bg-blue-600"></span>
+                        <span className="flex h-2 w-2 rounded-full"></span>
                     </div>
                     <div className="ml-auto text-xs font-bold text-muted-foreground">
                         {formatDate(note.createdAt)}
@@ -111,8 +71,11 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
             <div className="flex">
                 <span
                     className={cn(
-                        noteColorVariant({ color: _note.color as any }),
+                        "line-clamp-2 text-base py-1 text-muted-foreground font-semibold uppercase",
                     )}
+                    style={{
+                        color: color ? "black" : "inherit",
+                    }}
                 >
                     {note.note}
                 </span>
@@ -151,11 +114,11 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
                                         key={color}
                                         shortCut={
                                             <div
-                                                className={cn(
-                                                    noteColorListVariant({
-                                                        color: color as any,
-                                                    }),
-                                                )}
+                                                className={cn("size-4 rounded")}
+                                                style={{
+                                                    backgroundColor:
+                                                        colorsObject?.[color],
+                                                }}
                                             ></div>
                                         }
                                         onClick={() => changeColor(color)}
@@ -250,19 +213,5 @@ function Attachment({ pathname }) {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
-    );
-}
-function NoteTag({ tag, note }) {
-    if (!tag?.tagValue) return null;
-    return (
-        <Menu
-            Trigger={
-                <Progress>
-                    <Progress.Status noDot>{tag.tagValue}</Progress.Status>
-                </Progress>
-            }
-        >
-            <Menu.Item>Item 1</Menu.Item>
-        </Menu>
     );
 }

@@ -8,7 +8,6 @@ import {
     MenuItem,
 } from "@/components/_v1/data-table/data-table-row-actions";
 import StatusBadge from "@/components/_v1/status-badge";
-import FStatusBadge from "@/components/(clean-code)/fikr-ui/f-status-badge";
 import { GetSales } from "@/data-access/sales";
 import { getBadgeColor } from "@/lib/color";
 import { cn, sum } from "@/lib/utils";
@@ -16,14 +15,10 @@ import { toast } from "sonner";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import {
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-} from "@gnd/ui/dropdown-menu";
 
 import { useAssignment } from "../../../sales-v2/productions/_components/_modals/assignment-modal/use-assignment";
 import { useSalesStatus } from "../../hooks/sales-hooks";
-import { MenuOption, useSalesMenu } from "../../utils/use-sales-menu";
+import { useSalesMenu } from "../../utils/use-sales-menu";
 
 export interface SalesCellProps {
     item: GetSales["data"][number];
@@ -253,7 +248,7 @@ function SalesStatus({ item }: SalesCellProps) {
     const color = getBadgeColor(status || "");
     return (
         <TableCell>
-            <FStatusBadge status={status} />
+            {/* <FStatusBadge status={status} /> */}
             {/* <Badge
                 variant={"secondary"}
                 className={`h-5 px-1 whitespace-nowrap text-xs text-slate-100 ${color}`}
