@@ -6,6 +6,15 @@ import type { SalesDispatchStatus } from "@gnd/utils/constants";
 export function whereDispatch(query: DispatchQueryParamsSchema) {
   const whereStack: Prisma.OrderDeliveryWhereInput[] = [];
   switch (query?.status as SalesDispatchStatus) {
+    case "missing items":
+    case "in progress":
+    case "queue":
+    case "completed":
+    case "cancelled":
+      whereStack.push({
+        status: query?.status!,
+      });
+      break;
     default:
       whereStack.push({
         status: {

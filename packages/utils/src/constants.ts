@@ -35,6 +35,7 @@ export const salesType = ["order", "quote"] as const;
 
 export const salesDispatchStatus = [
   "queue",
+  "missing items",
   "in progress",
   "completed",
   "cancelled",
