@@ -11,7 +11,7 @@ import { Info, Trash } from "lucide-react";
 import LinkableNode from "../link-node";
 import { PrimitiveDivProps } from "@/types/type";
 import { Badge } from "@gnd/ui/badge";
-import { getBadgeColor } from "@/lib/status-badge";
+import { getBadgeColor } from "@/lib/color";
 import { Progressor, getProgress } from "@/lib/status";
 import ProgressStatus from "../progress-status";
 import StatusBadge from "../status-badge";

@@ -2,7 +2,7 @@ import { Builders, Homes, Projects } from "@/db";
 import { ExtendedHome, ICostChartMeta, IHome } from "@/types/community";
 
 import { deepCopy } from "../deep-copy";
-import { getBadgeColor } from "../status-badge";
+import { getBadgeColor } from "../color";
 import { formatDate } from "../use-day";
 import { convertToNumber } from "../use-number";
 import { sumKeyValues } from "../utils";

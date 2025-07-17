@@ -9,8 +9,8 @@ import { useAction } from "next-safe-action/hooks";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { Spinner } from "@gnd/ui/spinner";
 
-import { getColorFromName } from "../utils/categories";
 import { CategoryColor } from "./category";
+import { getColorFromName } from "@gnd/utils/colors";
 
 type Selected = {
     id: string;

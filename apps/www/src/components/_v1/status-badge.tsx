@@ -1,10 +1,6 @@
 "use client";
 
-import {
-    _getStatusColor,
-    getBadgeColor,
-    statusColor,
-} from "@/lib/status-badge";
+import { _getStatusColor, getColorFromName } from "@/lib/color";
 import { Badge } from "@gnd/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -23,26 +19,25 @@ export default function StatusBadge({
     noDot,
 }: Props) {
     if (!status) status = children;
-    const _color = color || statusColor(status);
+    const _color = getColorFromName(status);
     return (
         <div className="inline-flex items-center gap-2 font-semibold">
             {noDot || (
-                <div className={cn("w-1.5 h-1.5", `bg-${_color}-500`)}></div>
+                <div
+                    style={{
+                        backgroundColor: _color,
+                    }}
+                    className={cn("size-1.5")}
+                ></div>
             )}
-            <div className={cn(`text-${_color}-500`, "text-xs uppercase")}>
+            <div
+                style={{
+                    color: _color,
+                }}
+                className={cn("text-xs uppercase")}
+            >
                 {status}
             </div>
         </div>
-    );
-    return (
-        <Badge
-            className={cn(
-                color ? _getStatusColor(color) : _color,
-                "whitespace-nowrap",
-                sm && "p-1 leading-none",
-            )}
-        >
-            {status}
-        </Badge>
     );
 }

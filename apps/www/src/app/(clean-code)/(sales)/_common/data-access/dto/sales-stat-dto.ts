@@ -1,5 +1,5 @@
 import { SalesStat } from "@/db";
-import { Colors } from "@/lib/status-badge";
+import { Colors } from "@/lib/color";
 import { percent, sum, sumArrayKeys } from "@/lib/utils";
 
 import { QtyControlType } from "../../../types";

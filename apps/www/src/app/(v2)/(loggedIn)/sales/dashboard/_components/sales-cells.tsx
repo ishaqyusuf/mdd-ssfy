@@ -10,7 +10,7 @@ import {
 import StatusBadge from "@/components/_v1/status-badge";
 import FStatusBadge from "@/components/(clean-code)/fikr-ui/f-status-badge";
 import { GetSales } from "@/data-access/sales";
-import { getBadgeColor } from "@/lib/status-badge";
+import { getBadgeColor } from "@/lib/color";
 import { cn, sum } from "@/lib/utils";
 import { toast } from "sonner";
 

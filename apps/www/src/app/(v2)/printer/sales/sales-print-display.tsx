@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import { getSalesPrintData } from "./get-sales-print-data";
 import { usePrintContext } from "../base-printer";
 import { cn } from "@/lib/utils";
@@ -53,7 +53,7 @@ export default function SalesPrintDisplay({ data, slug }) {
                                             index={i}
                                             key={"shelf" + i}
                                         />
-                                    )
+                                    ),
                                 )}
                                 <SalesPrintLineItems />
                             </tbody>

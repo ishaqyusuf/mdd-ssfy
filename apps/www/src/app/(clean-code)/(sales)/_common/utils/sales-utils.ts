@@ -1,5 +1,5 @@
 import { DykeSteps, SalesStat } from "@/db";
-import { Colors } from "@/lib/status-badge";
+import { Colors } from "@/lib/color";
 import { sum } from "@/lib/utils";
 import dayjs from "dayjs";
 

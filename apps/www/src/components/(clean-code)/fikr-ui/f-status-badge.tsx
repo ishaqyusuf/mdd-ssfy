@@ -1,4 +1,4 @@
-import { getBadgeColor, statusColor } from "@/lib/status-badge";
+import { getBadgeColor, statusColor } from "@/lib/color";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
@@ -23,7 +23,7 @@ export default function FStatusBadge({
             <div className={cn("w-1.5 h-1.5", `bg-${color}-500`)}></div>
             <div
                 className={cn(
-                    `text-${color}-500 whitespace-nowrap text-xs leading-none`
+                    `text-${color}-500 whitespace-nowrap text-xs leading-none`,
                 )}
             >
                 {status}

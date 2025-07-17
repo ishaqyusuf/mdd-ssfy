@@ -11,7 +11,7 @@ import LinkableNode from "../link-node";
 import { cn, labelValue } from "@/lib/utils";
 import { formatDate } from "@/lib/use-day";
 import { Badge } from "@gnd/ui/badge";
-import { getBadgeColor } from "@/lib/status-badge";
+import { getBadgeColor } from "@/lib/color";
 import { PrimitiveDivProps } from "@/types/type";
 
 export function SmartTable<T>(data) {

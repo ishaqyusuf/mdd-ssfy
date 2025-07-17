@@ -1,4 +1,4 @@
-import { getBadgeColor } from "@/lib/status-badge";
+import { getBadgeColor } from "@/lib/color";
 import { ExtendedHome, IHomeStatus } from "@/types/community";
 import { useEffect, useState } from "react";
 import { Badge } from "@gnd/ui/badge";

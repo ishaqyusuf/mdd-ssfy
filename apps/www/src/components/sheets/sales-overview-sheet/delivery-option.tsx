@@ -1,10 +1,11 @@
 import { Menu } from "@/components/(clean-code)/menu";
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import { DataSkeleton } from "@/components/data-skeleton";
+import { useSalesDeliveryUpdate } from "@/hooks/use-sales-delivery-update";
 import { formatDate } from "@/lib/use-day";
 import { useTRPC } from "@/trpc/client";
 import { salesDeliveryMode } from "@gnd/utils/constants";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 export function DeliveryOption({ salesId }) {
     const trpc = useTRPC();
@@ -19,22 +20,15 @@ export function DeliveryOption({ salesId }) {
         ),
     );
     const dispatch = data?.deliveries?.[0];
-    const queryClient = useQueryClient();
-    const action = useMutation(
-        trpc.dispatch.updateSalesDeliveryOption.mutationOptions({
-            onSuccess(data, variables, context) {
-                queryClient.invalidateQueries({
-                    queryKey: trpc.dispatch.salesDeliveryInfo.pathKey(),
-                });
-            },
-        }),
-    );
+    const delivery = useSalesDeliveryUpdate({
+        salesId,
+        defaultOption: data?.deliveryOption,
+        deliveryId: dispatch?.id,
+    });
+
     const handleUpdate = (payload) => {
-        action.mutate({
+        delivery.update({
             ...payload,
-            salesId: data.id,
-            deliveryId: data?.deliveries?.[0]?.id,
-            defaultOption: data?.deliveryOption,
         });
     };
     return (
