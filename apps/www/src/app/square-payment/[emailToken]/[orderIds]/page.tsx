@@ -22,10 +22,11 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
+import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 
 // export async function generateMetadata({ params }) {
 //     return constructMetadata({
-//         title: `Create Quote - gndprodesk.com`,
+//         title: `Square Checkout - gndprodesk.com`,
 //     });
 // }
 export default function Page(props) {

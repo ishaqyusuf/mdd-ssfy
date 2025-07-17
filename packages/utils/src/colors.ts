@@ -174,7 +174,8 @@ export function getRandomColor() {
   return colors[randomIndex];
 }
 export function hexToRgba(hex: string, opacity: number): string {
-  const parsed = hex.replace("#", "");
+  if (!hex) return "";
+  const parsed = hex?.replace("#", "");
   const bigint = parseInt(parsed, 16);
   const r = (bigint >> 16) & 255;
   const g = (bigint >> 8) & 255;
