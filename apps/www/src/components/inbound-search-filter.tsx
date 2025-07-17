@@ -27,7 +27,7 @@ function Content({}) {
     const trpc = useTRPC();
     const { data: trpcFilterData } = useQuery({
         enabled: shouldFetch,
-        ...trpc.sales.inboundFilterData.queryOptions(),
+        ...trpc.filters.inbound.queryOptions(),
     });
 
     return (

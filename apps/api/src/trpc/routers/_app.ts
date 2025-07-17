@@ -11,10 +11,12 @@ import { emailsRoute } from "./emails.route";
 import { checkoutRouters } from "./checkout.route";
 import { dispatchRouters } from "./dispatch.route";
 import { userRoutes } from "./user.route";
+import { filterRouters } from "./filters.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
   // students: studentsRouter,
+  filters: filterRouters,
   checkout: checkoutRouters,
   dispatch: dispatchRouters,
   backlogs: backlogRouters,
