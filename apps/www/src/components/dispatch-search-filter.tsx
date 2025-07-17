@@ -1,5 +1,4 @@
 "use client";
-import { inboundFilterParamsSchema } from "@/hooks/use-inbound-filter-params";
 import {
     SearchFilterProvider,
     useSearchFilterContext,

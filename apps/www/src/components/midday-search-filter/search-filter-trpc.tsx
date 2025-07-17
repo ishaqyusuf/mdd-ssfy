@@ -19,13 +19,14 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
-
+import { formatISO } from "date-fns";
 import { SelectTag } from "../select-tag";
 import { FilterList } from "./filter-list";
 import { searchIcons } from "./search-icons";
 import { useSearchFilterContext } from "@/hooks/use-search-filter";
 import { Icon } from "@gnd/ui/custom/icons";
 import { PageFilterData } from "@api/type";
+import { Calendar } from "@gnd/ui/calendar";
 
 interface Props {
     // filters;
@@ -186,7 +187,54 @@ export function SearchFilterTRPC({
                                     alignOffset={-4}
                                     className="p-0"
                                 >
-                                    {f.options?.length > 20 ? (
+                                    {f.type == "date-range" ? (
+                                        <Calendar
+                                            mode="range"
+                                            initialFocus
+                                            selected={{
+                                                from: filters?.[f.value]?.split(
+                                                    ",",
+                                                )?.[0]
+                                                    ? new Date(
+                                                          filters?.[
+                                                              f.value
+                                                          ]?.split(",")?.[0],
+                                                      )
+                                                    : undefined,
+                                                to: filters?.[f.value]?.split(
+                                                    ",",
+                                                )?.[1]
+                                                    ? new Date(
+                                                          filters?.[
+                                                              f.value
+                                                          ]?.split(",")?.[1],
+                                                      )
+                                                    : undefined,
+                                            }}
+                                            onSelect={(range) => {
+                                                let value = [
+                                                    range?.from
+                                                        ? formatISO(
+                                                              range.from,
+                                                              {
+                                                                  representation:
+                                                                      "date",
+                                                              },
+                                                          )
+                                                        : "-",
+                                                    range?.to
+                                                        ? formatISO(range.to, {
+                                                              representation:
+                                                                  "date",
+                                                          })
+                                                        : "-",
+                                                ];
+                                                setFilters({
+                                                    [f.value]: value.join(","),
+                                                });
+                                            }}
+                                        />
+                                    ) : f.options?.length > 20 ? (
                                         <>
                                             <SelectTag
                                                 headless

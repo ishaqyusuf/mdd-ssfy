@@ -1,12 +1,13 @@
-import { parseAsString, useQueryStates } from "nuqs";
+import { parseAsArrayOf, parseAsString, useQueryStates } from "nuqs";
 import { createLoader, parseAsStringLiteral } from "nuqs/server";
 import { inboundFilterStatus } from "@gnd/utils/constants";
 import { RouterInputs } from "@api/trpc/routers/_app";
-type FilterKeys = keyof Exclude<RouterInputs["sales"]["inboundIndex"], void>;
+type FilterKeys = keyof Exclude<RouterInputs["dispatch"]["index"], void>;
 
 export const dispatchFilterParamsSchema = {
     status: parseAsStringLiteral(inboundFilterStatus),
     q: parseAsString,
+    scheduleDate: parseAsArrayOf(parseAsString, ","),
 } satisfies Partial<Record<FilterKeys, any>>;
 
 export function useDispatchFilterParams() {

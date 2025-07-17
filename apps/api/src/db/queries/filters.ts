@@ -17,6 +17,7 @@ export async function getDispatchFilters(ctx: TRPCContext) {
         value: status,
       })),
     ),
+    dateRangeFilter<T>("scheduleDate", "Schedule Date"),
   ] as FilterData[];
   return resp;
 }
@@ -48,7 +49,7 @@ function dateRangeFilter<T>(value: T, label) {
   return {
     label,
     value,
-    type: "date",
+    type: "date-range",
   } satisfies PageFilterData<T>;
 }
 const searchFilter = {
