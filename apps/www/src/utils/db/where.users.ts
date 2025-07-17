@@ -1,19 +1,18 @@
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { Prisma } from "@/db";
 import { addSpacesToCamelCase } from "@/lib/utils";
-import { Permission } from "@/types/auth";
-import { some } from "lodash";
+import { PermissionScope } from "@/types/auth";
 
 import { composeQuery } from "../../app/(clean-code)/(sales)/_common/utils/db-utils";
 
-export function mergePermissionsQuery(...permissions: Permission[]) {
+export function mergePermissionsQuery(...permissions: PermissionScope[]) {
     return permissions.join(",") as any;
 }
 export function whereUsers(query: SearchParamsType) {
     const wheres: Prisma.UsersWhereInput[] = [];
 
-    const permissions = query["user.permissions"]?.split(",");
-    const cannot = query["user.cannot"]?.split(",");
+    const permissions = query["user.permissions"]; //?.split(",");
+    const cannot = query["user.cannot"]; //?.split(",");
 
     if (permissions?.length) {
         const wherePermissions: Prisma.PermissionsWhereInput[] = [];

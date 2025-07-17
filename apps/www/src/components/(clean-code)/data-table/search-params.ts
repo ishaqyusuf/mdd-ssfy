@@ -8,6 +8,7 @@ import { PERMISSIONS, ROLES } from "@/data/contants/permissions";
 // Note: import from 'nuqs/server' to avoid the "use client" directive
 import { ARRAY_DELIMITER, SORT_DELIMITER } from "@/lib/delimiters";
 import { noteParamsParser, noteSchema } from "@/modules/notes/constants";
+import { PermissionScope } from "@/types/auth";
 import { paymentMethods } from "@/utils/constants";
 import {
     createParser,
@@ -165,9 +166,9 @@ export const searchSchema = z
         search: z.string().optional(),
         "dealer.id": z.number().optional(),
         "user.id": z.number().optional(),
-        "user.permissions": z.enum(PERMISSIONS).optional(),
+        "user.permissions": z.array(z.custom<PermissionScope>()).optional(), //z.enum(PERMISSIONS).optional(),
         "payment.type": z.enum(paymentMethods).optional(),
-        "user.cannot": z.enum(PERMISSIONS).optional(),
+        "user.cannot": z.array(z.custom<PermissionScope>()).optional(),
         "user.role": z.enum(ROLES).optional(),
         roleId: z.number().optional(),
         employeeProfileId: z.number().optional(),

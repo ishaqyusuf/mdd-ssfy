@@ -4,7 +4,7 @@ import { whereUsers } from "@/utils/db/where.users";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { prisma } from "@/db";
 import { AsyncFnType } from "@/types";
-import { Permission } from "@/types/auth";
+import { PermissionScope } from "@/types/auth";
 
 export type GetUsersList = AsyncFnType<typeof getUsersListAction>;
 export async function getUsersListAction(props: SearchParamsType) {
@@ -40,7 +40,7 @@ export async function getUsersListAction(props: SearchParamsType) {
         };
     });
 }
-function mergePermissions(...permissions: Permission[]) {
+function mergePermissions(...permissions: PermissionScope[]) {
     return permissions.join(",") as any;
 }
 export async function getDispatchUsersListAction() {

@@ -4,18 +4,17 @@ import { prisma } from "@/db";
 import { getPermissions } from "./cached-hrm";
 import { CreateRoleForm } from "./create-role-action";
 import { revalidateTag } from "next/cache";
-import { PERMISSIONS } from "@/data/contants/permissions";
+import { PERMISSION_NAMES } from "@/data/contants/permissions";
 import { addSpacesToCamelCase } from "@/lib/utils";
 
 async function getUpdatedPermissions() {
-    const staticPermissions = PERMISSIONS.map((p) =>
-        addSpacesToCamelCase(p)?.toLocaleLowerCase(),
-    );
+    const staticPermissions = PERMISSION_NAMES.map((p) =>
+        ["view", "edit"].map((k) =>
+            `${k} ${addSpacesToCamelCase(p)}`?.toLocaleLowerCase(),
+        ),
+    ).flat();
     const permissions = await getPermissions();
 
-    const stalePermissions = permissions.filter(
-        (a) => !staticPermissions?.includes(a.name),
-    );
     const newPermissions = staticPermissions.filter(
         (p) => !permissions?.find((a) => a.name == p),
     );
@@ -67,7 +66,10 @@ export async function getRoleForm(id?) {
     const permissionsList = Array.from(
         new Set(
             permissions.map((a) =>
-                a?.name?.replace("edit ", "").replace("view ", ""),
+                a?.name
+                    ?.replace("edit ", "")
+                    .replace("view ", "")
+                    ?.toLocaleLowerCase(),
             ) as string[],
         ),
     ).sort((a, b) => a.localeCompare(b));

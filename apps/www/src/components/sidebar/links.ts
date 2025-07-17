@@ -1,4 +1,4 @@
-import { ICan, Permission } from "@/types/auth";
+import { ICan, PermissionScope } from "@/types/auth";
 import z from "zod";
 
 import { IconKeys } from "../_v1/icons";
@@ -111,14 +111,15 @@ export const _role = {
     some: (...roles: Role[]) => __access("role", "some", ...roles),
 };
 export const _perm = {
-    is: (role: Permission) => __access("permission", "is", role),
-    isNot: (role: Permission) => __access("permission", "isNot", role),
-    in: (...roles: Permission[]) => __access("permission", "in", ...roles),
-    notIn: (...roles: Permission[]) =>
+    is: (role: PermissionScope) => __access("permission", "is", role),
+    isNot: (role: PermissionScope) => __access("permission", "isNot", role),
+    in: (...roles: PermissionScope[]) => __access("permission", "in", ...roles),
+    notIn: (...roles: PermissionScope[]) =>
         __access("permission", "notIn", ...roles),
-    every: (...roles: Permission[]) =>
+    every: (...roles: PermissionScope[]) =>
         __access("permission", "every", ...roles),
-    some: (...roles: Permission[]) => __access("permission", "some", ...roles),
+    some: (...roles: PermissionScope[]) =>
+        __access("permission", "some", ...roles),
 };
 export function validateRules(accessList: Access[], can?, userId?, role?) {
     if (!can) can = {};
