@@ -5,7 +5,7 @@ import { ResetPasswordRequestInputs } from "@/components/_v1/forms/reset-passwor
 import { ResetPasswordFormInputs } from "@/components/_v1/forms/reset-password-form-step2";
 import { prisma, Prisma } from "@/db";
 import { env } from "@/env.mjs";
-import { addSpacesToCamelCase, camel } from "@/lib/utils";
+import { camel } from "@/lib/utils";
 import va from "@/lib/va";
 import { ICan } from "@/types/auth";
 import { compare, hash } from "bcrypt-ts";
@@ -13,7 +13,7 @@ import dayjs from "dayjs";
 
 // import PasswordResetRequestEmail from "@/components/_v1/emails/password-reset-request-email";
 import { _email } from "./_email";
-import { PERMISSIONS } from "@/data/contants/permissions";
+import { PERMISSIONS } from "@gnd/utils/constants";
 import { validateAuthToken } from "@/actions/validate-auth-token";
 
 export async function resetPasswordRequest({

@@ -18,7 +18,9 @@ import { salesDispatchStatus } from "@gnd/utils/constants";
 import { getColorFromName } from "@/lib/color";
 
 export type Item = RouterOutputs["dispatch"]["index"]["data"][number];
-
+export type Addon = {
+    drivers?: RouterOutputs["hrm"]["getEmployees"]["data"];
+};
 const status: ColumnDef<Item> = {
     header: "Status",
     accessorKey: "status",

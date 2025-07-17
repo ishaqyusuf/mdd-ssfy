@@ -6,7 +6,7 @@ import {
     serverSession,
     user,
 } from "@/app/(v1)/_actions/utils";
-import { PERMISSIONS } from "@/data/contants/permissions";
+import { PERMISSIONS } from "@gnd/utils/constants";
 import { prisma } from "@/db";
 import { env } from "@/env.mjs";
 import { camel } from "@/lib/utils";

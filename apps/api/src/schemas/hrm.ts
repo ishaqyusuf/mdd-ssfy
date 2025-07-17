@@ -1,6 +1,12 @@
+import type { Roles } from "@gnd/db";
+import type { PermissionScope } from "@gnd/utils/constants";
 import { z } from "zod";
 
-export const employeesQueryParamsSchema = z.object({});
+export const employeesQueryParamsSchema = z.object({
+  can: z.array(z.custom<PermissionScope>()).optional().nullable(),
+  cannot: z.array(z.custom<PermissionScope>()).optional().nullable(),
+  roles: z.array(z.custom<Roles>()).optional().nullable(),
+});
 export type EmployeesQueryParams = z.infer<typeof employeesQueryParamsSchema>;
 export const employeeFormSchema = z
   .object({

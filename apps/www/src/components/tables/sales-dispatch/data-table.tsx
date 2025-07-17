@@ -4,7 +4,7 @@ import { useInboundFilterParams } from "@/hooks/use-inbound-filter-params";
 import { useTRPC } from "@/trpc/client";
 
 import { TableProvider, useTableData } from "..";
-import { columns, driverColumns } from "./columns";
+import { Addon, columns, driverColumns } from "./columns";
 import { Table, TableBody } from "@gnd/ui/table";
 import { TableHeaderComponent } from "../table-header";
 import { TableRow } from "../table-row";
@@ -12,6 +12,7 @@ import { LoadMoreTRPC } from "../load-more";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { BatchActions } from "./batch-actions";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
+import { useQuery } from "@tanstack/react-query";
 
 export function DataTable({ driver = false }) {
     const trpc = useTRPC();
@@ -21,11 +22,20 @@ export function DataTable({ driver = false }) {
         route: driver ? trpc.dispatch.assignedDispatch : trpc.dispatch.index,
     });
     const { setParams: setSalesPreviewParams } = useSalesPreview();
-
+    const { data: users } = useQuery(
+        trpc.hrm.getEmployees.queryOptions({
+            can: ["viewDelivery"],
+            cannot: ["editOrders"],
+        }),
+    );
+    const addons: Addon = {
+        drivers: users?.data || [],
+    };
     return (
         <TableProvider
             args={[
                 {
+                    addons,
                     columns: driver ? driverColumns : columns,
                     data,
                     checkbox: true,

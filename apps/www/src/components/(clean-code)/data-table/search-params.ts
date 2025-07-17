@@ -4,7 +4,8 @@ import {
     PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
     PRODUCTION_STATUS,
 } from "@/app/(clean-code)/(sales)/_common/utils/contants";
-import { PERMISSIONS, ROLES } from "@/data/contants/permissions";
+import { PERMISSIONS } from "@gnd/utils/constants";
+import { ROLES } from "@gnd/utils/constants";
 // Note: import from 'nuqs/server' to avoid the "use client" directive
 import { ARRAY_DELIMITER, SORT_DELIMITER } from "@/lib/delimiters";
 import { noteParamsParser, noteSchema } from "@/modules/notes/constants";

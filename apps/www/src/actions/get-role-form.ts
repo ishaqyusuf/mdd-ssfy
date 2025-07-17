@@ -4,7 +4,7 @@ import { prisma } from "@/db";
 import { getPermissions } from "./cached-hrm";
 import { CreateRoleForm } from "./create-role-action";
 import { revalidateTag } from "next/cache";
-import { PERMISSION_NAMES } from "@/data/contants/permissions";
+import { PERMISSION_NAMES } from "@gnd/utils/constants";
 import { addSpacesToCamelCase } from "@/lib/utils";
 
 async function getUpdatedPermissions() {

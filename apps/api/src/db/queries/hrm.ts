@@ -1,3 +1,5 @@
+import { whereEmployees } from "@api/prisma-where";
+import { composeQueryData } from "@api/query-response";
 import type {
   EmployeeFormSchema,
   EmployeesQueryParams,
@@ -8,19 +10,48 @@ import { hash } from "bcrypt-ts";
 
 export async function getEmployees(
   ctx: TRPCContext,
-  data: EmployeesQueryParams,
+  query: EmployeesQueryParams,
 ) {
-  const users = await ctx.db.users.findMany({
-    where: {},
+  const { db } = ctx;
+  const { response, searchMeta, where } = await composeQueryData(
+    query,
+    whereEmployees(query),
+    db.users,
+  );
+  const data = await ctx.db.users.findMany({
+    where,
+
+    ...searchMeta,
     select: {
       id: true,
       name: true,
       email: true,
+      roles: {
+        select: {
+          roleId: true,
+          role: {
+            select: {
+              RoleHasPermissions: {
+                select: {
+                  permission: {},
+                },
+              },
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
     },
   });
-  return {
-    data: users,
-  };
+  return await response(
+    data.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user?.roles?.[0]?.role?.name,
+    })),
+  );
 }
 export async function saveEmployee(ctx: TRPCContext, data: EmployeeFormSchema) {
   const { id, password: passwordString, ...formData } = data;

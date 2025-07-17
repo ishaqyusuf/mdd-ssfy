@@ -80,3 +80,6 @@ export function generateRandomString(length = 15) {
 
   return randomString;
 }
+export function addSpacesToCamelCase(input: string): string {
+  return input.replace(/([a-z])([A-Z])/g, "$1 $2");
+}

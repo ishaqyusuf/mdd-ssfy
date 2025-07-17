@@ -18,6 +18,7 @@ export const hrmRoutes = createTRPCRouter({
     .query(async (props) => {
       return getEmployees(props.ctx, props.input);
     }),
+
   resetEmployeePassword: publicProcedure
     .input(
       z.object({

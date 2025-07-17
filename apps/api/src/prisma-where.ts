@@ -3,6 +3,8 @@ import type { SalesQueryParamsSchema } from "./schemas/sales";
 import { composeQuery } from "./query-response";
 import type { DispatchQueryParamsSchema } from "./schemas/dispatch";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
+import type { EmployeesQueryParams } from "./schemas/hrm";
+import { addSpacesToCamelCase } from "@gnd/utils";
 export function whereDispatch(query: DispatchQueryParamsSchema) {
   const whereStack: Prisma.OrderDeliveryWhereInput[] = [];
   switch (query?.status as SalesDispatchStatus) {
@@ -219,4 +221,78 @@ export function parseSearchparams(_params) {
     otherparams: otherparams,
     originalparams: itemSearch,
   };
+}
+export function whereEmployees(params: EmployeesQueryParams) {
+  const wheres: Prisma.UsersWhereInput[] = [];
+  const { can, cannot, roles } = params;
+  if (can?.length) {
+    const wherePermissions: Prisma.PermissionsWhereInput[] = [];
+    can.map((permission) => {
+      const name = addSpacesToCamelCase(permission).toLocaleLowerCase();
+      wherePermissions.push({
+        name,
+      });
+    });
+    wheres.push({
+      roles: {
+        some: {
+          role:
+            wherePermissions?.length > 1
+              ? {
+                  AND: wherePermissions.map((permission) => ({
+                    RoleHasPermissions: {
+                      some: {
+                        permission,
+                      },
+                    },
+                  })),
+                }
+              : {
+                  RoleHasPermissions: {
+                    some: {
+                      permission: wherePermissions[0],
+                    },
+                  },
+                },
+        },
+      },
+    });
+  }
+  if (cannot?.length)
+    wheres.push({
+      roles: {
+        some: {
+          role: {
+            RoleHasPermissions: {
+              every: {
+                AND: cannot?.map((p) => ({
+                  permission: {
+                    name: {
+                      not: addSpacesToCamelCase(p).toLocaleLowerCase(),
+                    },
+                  },
+                })),
+              },
+            },
+          },
+        },
+      },
+    });
+  if (roles?.length) {
+    wheres.push({
+      roles: {
+        some: {
+          role:
+            roles?.length == 1
+              ? {
+                  name: roles[0] as any,
+                }
+              : {
+                  OR: roles.map((name) => ({ name })) as any,
+                },
+        },
+      },
+    });
+  }
+  return composeQuery(wheres);
 }

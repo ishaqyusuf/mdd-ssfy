@@ -73,7 +73,7 @@ export const getSalesCommissionSummary = async (query: SearchParamsType) => {
     }
 
     return {
-        totalAmount,
+        totalAmount: 0,
         percentChange,
         count: commissions?.length,
     };

@@ -1,7 +1,7 @@
 import {
     PERMISSION_NAMES,
     PERMISSION_NAMES_PASCAL,
-} from "@/data/contants/permissions";
+} from "@gnd/utils/constants";
 
 export type ICan = { [permission in PermissionScope]: boolean };
 

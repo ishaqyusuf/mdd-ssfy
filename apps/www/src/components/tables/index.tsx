@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-table";
 import { useInView } from "react-intersection-observer";
 import { PageDataMeta, PageFilterData } from "@/types/type";
-import { useTRPC } from "@/trpc/client";
+
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
 export type DataTableProps = {
     data: any[];
@@ -36,6 +36,7 @@ type TableProps = (WithTable | WithoutTable) & {
     nextMeta?: PageDataMeta["next"];
     columns?;
     checkbox?: boolean;
+    addons?;
     tableMeta?: {
         deleteAction?: (id) => any;
         rowClick?: (id: string, rowData?) => any;
@@ -58,6 +59,7 @@ export const { useContext: useTable, Provider: TableProvider } =
         loadMore,
         checkbox,
         defaultRowSelection = {},
+        addons,
     }: TableProps) {
         const [data, setData] = useState(initialData);
         // const [from, setFrom] = useState(pageSize);
@@ -131,6 +133,7 @@ export const { useContext: useTable, Provider: TableProvider } =
             selectedRows,
             selectedRow,
             totalRowsFetched,
+            addons,
         };
     });
 
