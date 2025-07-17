@@ -24,6 +24,7 @@ export function _getStatusColor(color) {
 }
 const StatusColorMap: { [key: string]: string } = {
     active: colorsObject.blue,
+    due_yesterday: colorsObject.red,
     queued: colorsObject.orange,
     pending: colorsObject.gray,
     completed: colorsObject.emerald,

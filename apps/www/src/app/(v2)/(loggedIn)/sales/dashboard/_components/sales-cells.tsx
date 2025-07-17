@@ -9,7 +9,7 @@ import {
 } from "@/components/_v1/data-table/data-table-row-actions";
 import StatusBadge from "@/components/_v1/status-badge";
 import { GetSales } from "@/data-access/sales";
-import { getBadgeColor } from "@/lib/color";
+import { getBadgeColor, getColorFromName } from "@/lib/color";
 import { cn, sum } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -178,23 +178,8 @@ function Status({ item, delivery }: SalesCellProps & { delivery? }) {
         status = item?.status;
     if (!status) status = delivery ? "-" : item?.prodId ? "Prod Queued" : "";
     if (status == "Completed" && delivery) status = "Ready";
-    const color = getBadgeColor(status || "");
+    const color = getColorFromName(status);
 
-    // return (
-    //     <div className="min-w-16">
-    //         <Badge
-    //             variant={"secondary"}
-    //             className={`h-5 px-1 whitespace-nowrap text-xs text-slate-100 ${color}`}
-    //         >
-    //             {/* {order?.prodStatus || "-"} */}
-    //             {status || "no status"}
-    //         </Badge>
-
-    //         {delivery && order?.deliveredAt && (
-    //             <DateCellContent>{order.deliveredAt}</DateCellContent>
-    //         )}
-    //     </div>
-    // );
     return (
         <TableCell>
             <Badge
