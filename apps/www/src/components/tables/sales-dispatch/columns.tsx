@@ -182,13 +182,12 @@ const assignedTo: ColumnDef<Item> = {
     meta: {
         preventDefault: true,
     },
-    //@ts-ignore
+
     cell: ({ row: { original: item } }) => {
-        //@ts-ignore
         const ctx = useTable();
         const trpc = useTRPC();
         const queryClient = useQueryClient();
-        //@ts-ignore
+
         const deliveryUpdate = useSalesDeliveryUpdate({
             salesId: item?.order?.id,
             defaultOption: item?.deliveryMode,
@@ -209,7 +208,7 @@ const assignedTo: ColumnDef<Item> = {
         return (
             <Menu
                 Icon={null}
-                variant="link"
+                variant={!item?.driver?.name ? "secondary" : "link"}
                 label={item?.driver?.name || "Not Assigned"}
             >
                 {addon?.drivers?.map((driver) => (
