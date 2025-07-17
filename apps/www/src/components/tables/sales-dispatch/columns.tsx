@@ -17,6 +17,8 @@ import { Menu } from "@/components/(clean-code)/menu";
 import { salesDispatchStatus } from "@gnd/utils/constants";
 import { getColorFromName } from "@/lib/color";
 import { useTable } from "..";
+import { useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
 
 export type Item = RouterOutputs["dispatch"]["index"]["data"][number];
 export type Addon = {
@@ -177,8 +179,16 @@ const customer: ColumnDef<Item> = {
 const assignedTo: ColumnDef<Item> = {
     header: "Assigned To",
     accessorKey: "salesRep",
+    meta: {
+        preventDefault: true,
+    },
+    //@ts-ignore
     cell: ({ row: { original: item } }) => {
+        //@ts-ignore
         const ctx = useTable();
+        const trpc = useTRPC();
+        const queryClient = useQueryClient();
+        //@ts-ignore
         const deliveryUpdate = useSalesDeliveryUpdate({
             salesId: item?.order?.id,
             defaultOption: item?.deliveryMode,
@@ -187,8 +197,11 @@ const assignedTo: ColumnDef<Item> = {
                 toast({
                     duration: 2000,
                     variant: "success",
-                    description: "Dispatch Date Updated",
+                    description: "Dispatch Assigned",
                     title: "Updated!",
+                });
+                queryClient.invalidateQueries({
+                    queryKey: trpc.dispatch.index.pathKey(),
                 });
             },
         });
