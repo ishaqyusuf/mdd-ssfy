@@ -155,15 +155,19 @@ const order: ColumnDef<Item> = {
     ),
 };
 const customer: ColumnDef<Item> = {
-    header: "Customer",
+    header: "Ship To",
     accessorKey: "customer",
     cell: ({ row: { original: item } }) => (
         <div className="inline-flex flex-col">
             <TCell.Primary className="uppercase">
-                {item?.order?.customer?.businessName ||
+                {item?.order?.shippingAddress?.name ||
+                    item?.order?.customer?.businessName ||
                     item?.order?.customer?.name}
             </TCell.Primary>
-            <span className="uppercase">{item?.order?.customer?.phoneNo}</span>
+            <span className="uppercase">
+                {item?.order?.shippingAddress?.phoneNo ||
+                    item?.order?.customer?.phoneNo}
+            </span>
         </div>
     ),
 };
@@ -176,6 +180,27 @@ const assignedTo: ColumnDef<Item> = {
         </div>
     ),
 };
+export const driverColumns: ColumnDef<Item>[] = [
+    schedule,
+    order,
+    customer,
+    assignedTo,
+    status,
+    {
+        header: "",
+        accessorKey: "actions",
+        meta: {
+            className: "flex-1",
+        },
+        cell: ({ row: { original: item } }) => {
+            return (
+                <ActionCell itemId={item.id}>
+                    {/* <Action item={item} /> */}
+                </ActionCell>
+            );
+        },
+    },
+];
 export const columns: ColumnDef<Item>[] = [
     schedule,
     order,

@@ -38,6 +38,12 @@ export async function getDispatches(
               phoneNo: true,
             },
           },
+          shippingAddress: {
+            select: {
+              name: true,
+              phoneNo: true,
+            },
+          },
         },
       },
       driver: {

@@ -4,7 +4,7 @@ import { useInboundFilterParams } from "@/hooks/use-inbound-filter-params";
 import { useTRPC } from "@/trpc/client";
 
 import { TableProvider, useTableData } from "..";
-import { columns } from "./columns";
+import { columns, driverColumns } from "./columns";
 import { Table, TableBody } from "@gnd/ui/table";
 import { TableHeaderComponent } from "../table-header";
 import { TableRow } from "../table-row";
@@ -13,19 +13,19 @@ import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { BatchActions } from "./batch-actions";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 
-export function DataTable({}) {
+export function DataTable({ driver = false }) {
     const trpc = useTRPC();
     const { filters, setFilters } = useDispatchFilterParams();
     const { data, ref, hasNextPage } = useTableData({
         filter: filters,
-        route: trpc.dispatch.index,
+        route: driver ? trpc.dispatch.assignedDispatch : trpc.dispatch.index,
     });
     const { setParams: setSalesPreviewParams } = useSalesPreview();
     return (
         <TableProvider
             args={[
                 {
-                    columns: columns,
+                    columns: driver ? driverColumns : columns,
                     data,
                     checkbox: true,
                     tableMeta: {

@@ -63,7 +63,7 @@ export default async function Page(props: Props) {
                 </div> */}
                 <ErrorBoundary errorComponent={ErrorFallback}>
                     <Suspense fallback={<TableSkeleton />}>
-                        <DataTable />
+                        <DataTable driver />
                     </Suspense>
                 </ErrorBoundary>
             </div>

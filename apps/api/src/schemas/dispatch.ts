@@ -4,6 +4,7 @@ import { salesDispatchStatus } from "@gnd/utils/constants";
 
 export const dispatchQueryParamsSchema = z
   .object({
+    driversId: z.array(z.number()),
     status: z.enum(salesDispatchStatus).optional().nullable(),
     scheduleDate: z
       .array(z.string().optional().nullable())
