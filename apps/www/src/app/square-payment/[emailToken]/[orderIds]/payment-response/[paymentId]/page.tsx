@@ -4,11 +4,12 @@ import { useEffect, useRef, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { finalizeSalesCheckout } from "@/actions/finalize-sales-checkout";
 import { salesPaymentCheckoutResponse } from "@/actions/sales-payment-checkout-response";
-import { notifySalesRepPaymentSuccessAction } from "@/actions/triggers/sales-rep-payment-notification";
+// import { notifySalesRepPaymentSuccessAction } from "@/actions/triggers/sales-rep-payment-notification";
 import { Icons } from "@/components/_v1/icons";
 import { formatPaymentParams } from "@gnd/utils/sales";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle } from "lucide-react";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
 
 export default function PaymentResponsePage(props) {
     const params = use(props.params);
@@ -20,6 +21,9 @@ export default function PaymentResponsePage(props) {
     const router = useRouter();
 
     const hasRun = useRef(false);
+    const trig = useTaskTrigger({
+        silent: true,
+    });
     useEffect(() => {
         if (hasRun.current) return; // prevent second run
         hasRun.current = true; // mark as run
@@ -36,8 +40,10 @@ export default function PaymentResponsePage(props) {
                 });
                 await Promise.all(
                     response?.notifications?.map(async (not) => {
-                        await notifySalesRepPaymentSuccessAction({
-                            ...not,
+                        await trig.trigger({
+                            taskName:
+                                "sales-online-payment-action-notification",
+                            payload: not,
                         });
                     }),
                 );

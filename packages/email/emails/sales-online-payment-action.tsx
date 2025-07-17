@@ -9,21 +9,7 @@ import {
 
 import { formatCurrency } from "@gnd/utils/format";
 
-interface NotifySalesRepPayment {
-  repName: string;
-  customerName: string;
-  amount: number;
-  ordersNo: string[];
-  email: string;
-}
-export const _salesRepPaymentNotificationEmail = (
-  props: NotifySalesRepPayment,
-) => {
-  return <SalesRepPaymentNotificationEmail {...props} />;
-};
-export default function SalesRepPaymentNotificationEmail(
-  props: NotifySalesRepPayment,
-) {
+export default function SalesRepPaymentNotificationEmail(props: any) {
   const { ordersNo, amount, repName, customerName } = props;
 
   return (

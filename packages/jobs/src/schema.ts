@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { sendPasswordResetCode } from "./tasks/send-password-reset-code";
 import {
   createSalesDispatchItemsSchema,
   createSalesDispatchSchema,
@@ -7,6 +6,7 @@ import {
 // import { salesQueryParamsSchema } from "@api/schemas/sales";
 
 export const taskNames = [
+  "sales-online-payment-action-notification",
   "send-login-email",
   "send-password-reset-to-default-email",
   "send-password-reset-code",
@@ -43,7 +43,6 @@ export const sendPasswordResetCodeSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 export type SendPasswordResetCodePayload = z.infer<typeof sendLoginEmailSchema>;
-export type sendPasswordResetCode = typeof sendPasswordResetCode;
 
 export const passwordResetToDefaultSchema = z.object({
   //validate email
@@ -52,3 +51,10 @@ export const passwordResetToDefaultSchema = z.object({
 export type PasswordResetToDefaultSchema = z.infer<
   typeof passwordResetToDefaultSchema
 >;
+export const salesPaymentNotificationEmailSchema = z.object({
+  repName: z.string().optional().nullable(),
+  customerName: z.string(),
+  amount: z.number(),
+  ordersNo: z.array(z.string()),
+  email: z.string(),
+});

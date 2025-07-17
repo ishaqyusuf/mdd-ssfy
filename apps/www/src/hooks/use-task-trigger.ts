@@ -11,6 +11,7 @@ interface Props {
     onError?;
     onSucces?;
     debug?: boolean;
+    silent?: boolean;
 }
 export function useTaskTrigger(props?: Props) {
     const {
@@ -32,11 +33,12 @@ export function useTaskTrigger(props?: Props) {
         if (status === "FAILED") {
             // setIsImporting(false);
             setRunId(undefined);
-            toast({
-                duration: 3500,
-                variant: "error",
-                title: errorToast,
-            });
+            if (!props.silent)
+                toast({
+                    duration: 3500,
+                    variant: "error",
+                    title: errorToast,
+                });
             props?.onError?.();
         }
     }, [status]);
@@ -80,11 +82,12 @@ export function useTaskTrigger(props?: Props) {
         onExecute(args) {
             setStatus("SYNCING");
             if (executingToast)
-                toast({
-                    duration: Number.POSITIVE_INFINITY,
-                    variant: "spinner",
-                    title: executingToast,
-                });
+                if (!props.silent)
+                    toast({
+                        duration: Number.POSITIVE_INFINITY,
+                        variant: "spinner",
+                        title: executingToast,
+                    });
         },
         onSuccess({ data }) {
             if (props?.debug) console.log({ data });
@@ -97,12 +100,13 @@ export function useTaskTrigger(props?: Props) {
             if (props?.debug) console.log({ e });
             setRunId(undefined);
             setStatus("FAILED");
-            toast({
-                duration: 3500,
-                variant: "error",
-                description: errorToast,
-                title: e?.error?.serverError,
-            });
+            if (!props.silent)
+                toast({
+                    duration: 3500,
+                    variant: "error",
+                    description: errorToast,
+                    title: e?.error?.serverError,
+                });
         },
     });
     const ctx = {
