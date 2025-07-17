@@ -230,6 +230,7 @@ export const driverColumns: ColumnDef<Item>[] = [
         accessorKey: "actions",
         meta: {
             className: "flex-1",
+            preventDefault: true,
         },
         cell: ({ row: { original: item } }) => {
             return (
