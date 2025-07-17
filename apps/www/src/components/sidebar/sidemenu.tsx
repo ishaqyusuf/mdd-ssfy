@@ -106,8 +106,8 @@ export function SideMenu({}) {
     return (
         <Sidebar
             collapsible="icon"
-            // onMouseEnter={() => setDefaultOpen(true)}
-            // onMouseLeave={() => setDefaultOpen(false)}
+            onMouseEnter={() => setDefaultOpen(true)}
+            onMouseLeave={() => setDefaultOpen(false)}
             className=""
         >
             <SidebarHeader className="bg-white">
