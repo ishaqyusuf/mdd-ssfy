@@ -7,7 +7,6 @@ import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
 
 import { createPayrollAction } from "./create-payroll";
-import { NotifySalesRepPayment } from "./triggers/sales-rep-payment-notification";
 
 interface Props {
     salesPaymentId: string;
@@ -101,7 +100,7 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
         totalTip > 0 ? formatMoney(totalTip / squarePayment.orders.length) : 0;
     let balance = totalAmount;
     let salesRepsNotifications: {
-        [email in string]: NotifySalesRepPayment;
+        [email in string]: any;
     } = {};
     const proms = await Promise.all(
         squarePayment.orders.map(async (o) => {
