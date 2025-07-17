@@ -5,7 +5,6 @@ import {
 } from "@api/schemas/dispatch";
 import {
   getDispatches,
-  getDispatchFilters,
   getSalesDeliveryInfo,
   updateSalesDeliveryOption,
 } from "@api/db/queries/dispatch";
@@ -31,7 +30,4 @@ export const dispatchRouters = createTRPCRouter({
     .query(async (props) => {
       return getSalesDeliveryInfo(props.ctx, props.input.salesId);
     }),
-  filterData: publicProcedure.query(async (props) => {
-    return getDispatchFilters(props.ctx);
-  }),
 });

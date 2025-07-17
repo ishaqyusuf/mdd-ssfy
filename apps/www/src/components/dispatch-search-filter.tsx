@@ -32,7 +32,7 @@ function Content({}) {
     const trpc = useTRPC();
     const { data: trpcFilterData } = useQuery({
         enabled: shouldFetch,
-        ...trpc.dispatch.filterData.queryOptions(),
+        ...trpc.filters.dispatch.queryOptions(),
     });
 
     return (
