@@ -7,7 +7,13 @@ import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import { AuthGuard } from "@/components/auth-guard";
 import { _role } from "@/components/sidebar/links";
 import { ResolutionCenter } from "@/components/resolution-center";
+import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 
+export async function generateMetadata({}) {
+    return constructMetadata({
+        title: `Payment Resolution - gndprodesk.com`,
+    });
+}
 export default async function HomePage({ searchParams }) {
     const searchQuery = searchParamsCache.parse(await searchParams);
     const { search } = searchQuery;

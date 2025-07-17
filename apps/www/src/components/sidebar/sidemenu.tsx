@@ -108,9 +108,9 @@ export function SideMenu({}) {
             collapsible="icon"
             // onMouseEnter={() => setDefaultOpen(true)}
             // onMouseLeave={() => setDefaultOpen(false)}
-            className="bg-white"
+            className=""
         >
-            <SidebarHeader className="">
+            <SidebarHeader className="bg-white">
                 <ModuleSwitcher />
                 {sb.state == "expanded" ? (
                     <div className="flex">
@@ -120,7 +120,7 @@ export function SideMenu({}) {
                     <Icons.logo />
                 )}
             </SidebarHeader>
-            <SidebarContent className="">
+            <SidebarContent className="bg-white">
                 {sb?.linkModules?.modules
                     ?.filter((a) => a.activeLinkCount)
                     .map((module, mi) => (
@@ -185,7 +185,7 @@ export function SideMenu({}) {
                         </Fragment>
                     ))}
             </SidebarContent>
-            <SidebarFooter>
+            <SidebarFooter className="bg-white">
                 <SidebarControl />
                 <SidebarNavUser />
             </SidebarFooter>

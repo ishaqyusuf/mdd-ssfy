@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetContentProps } from "@gnd/ui/sheet";
 import Portal from "../_v1/portal";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useEffect } from "react";
 
 const sheetContentVariant = cva(
     "flex flex-col h-screen w-full overflow-x-hidden ",
@@ -35,7 +36,7 @@ const sheetContentVariant = cva(
 interface Props
     extends SheetContentProps,
         VariantProps<typeof sheetContentVariant> {
-    floating?: boolean;
+    // floating?: boolean;
     children?;
     open?: boolean;
     onOpenChange?;
@@ -64,6 +65,7 @@ export function CustomSheetBase({
     ...props
 }: Props) {
     const sheet = useSheet();
+
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent
