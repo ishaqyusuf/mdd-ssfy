@@ -59,3 +59,4 @@ export async function getLoginByToken(
     email: user?.email,
   };
 }
+export async function searchUser(ctx: TRPCContext) {}

@@ -174,17 +174,18 @@ const customer: ColumnDef<Item> = {
 const assignedTo: ColumnDef<Item> = {
     header: "Assigned To",
     accessorKey: "salesRep",
-    cell: ({ row: { original: item } }) => (
-        <div className="inline-flex flex-col">
-            <span className="uppercase">{item?.driver?.name}</span>
-        </div>
-    ),
+    cell: ({ row: { original: item } }) => {
+        return (
+            <div className="inline-flex flex-col">
+                <span className="uppercase">{item?.driver?.name}</span>
+            </div>
+        );
+    },
 };
 export const driverColumns: ColumnDef<Item>[] = [
     schedule,
     order,
     customer,
-    assignedTo,
     status,
     {
         header: "",

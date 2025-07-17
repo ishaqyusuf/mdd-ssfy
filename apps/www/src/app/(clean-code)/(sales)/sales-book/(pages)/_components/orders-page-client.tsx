@@ -73,7 +73,7 @@ export default function OrdersPageClient({
                 {...table.props}
             >
                 <BatchActions />
-                <DataTable.Header top="lg" className="bg-white">
+                <DataTable.Header className="bg-white">
                     <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
                         <div className="flex-1"></div>
 

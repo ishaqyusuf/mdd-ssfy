@@ -70,7 +70,7 @@ export default function QuotesPageClient({ filterFields, queryKey }: Props) {
                     overviewQuery.open2(data.uuid, "quote");
                 }}
             >
-                <DataTable.Header top="lg" className="bg-white">
+                <DataTable.Header className="bg-white">
                     <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
                         <div className=""></div>
                         <Button asChild size="sm">

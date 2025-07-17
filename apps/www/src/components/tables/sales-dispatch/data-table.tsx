@@ -21,6 +21,7 @@ export function DataTable({ driver = false }) {
         route: driver ? trpc.dispatch.assignedDispatch : trpc.dispatch.index,
     });
     const { setParams: setSalesPreviewParams } = useSalesPreview();
+
     return (
         <TableProvider
             args={[
@@ -53,7 +54,6 @@ export function DataTable({ driver = false }) {
                         <TableRow />
                     </TableBody>
                 </Table>
-
                 {!hasNextPage || (
                     <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />
                 )}
