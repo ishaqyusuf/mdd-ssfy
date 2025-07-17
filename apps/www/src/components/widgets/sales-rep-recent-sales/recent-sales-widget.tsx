@@ -30,6 +30,7 @@ export async function RecentSalesWidget() {
     const [{ data: salesList }] = await Promise.all([
         getMyRecentSales({
             "salesRep.id": await authId(),
+            "sales.type": "order",
             size: 5,
         }),
     ]);

@@ -25,7 +25,7 @@ import {
 } from "@gnd/ui/sidebar";
 
 import { Icon, Icons } from "../_v1/icons";
-import { useSidebar } from "./context";
+import { useSidebar, useSidebarState } from "./context";
 import { cva } from "class-variance-authority";
 import {
     DropdownMenu,
@@ -100,9 +100,16 @@ const sectionGroup = cva("", {
 });
 export function SideMenu({}) {
     const sb = useSidebar();
+    const { setDefaultOpen, defaultOpen } = useSidebarState();
+
     const { renderMode, activeLink } = sb;
     return (
-        <Sidebar collapsible="icon" className="bg-white">
+        <Sidebar
+            collapsible="icon"
+            // onMouseEnter={() => setDefaultOpen(true)}
+            // onMouseLeave={() => setDefaultOpen(false)}
+            className="bg-white"
+        >
             <SidebarHeader className="">
                 <ModuleSwitcher />
                 {sb.state == "expanded" ? (

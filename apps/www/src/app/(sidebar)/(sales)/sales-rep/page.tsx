@@ -25,8 +25,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { searchParamsCache } from "./search-params";
-import { prisma } from "@/db";
-import { revalidateTag } from "next/cache";
 
 export const metadata: Metadata = {
     title: `My Dashboard | GND`,

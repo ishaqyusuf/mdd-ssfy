@@ -376,8 +376,13 @@ export const linkModules = [
                 "/sales-book/productions",
             ).access(_perm.is("editOrders")).data,
             _link("Dispatch", "delivery2", "/sales-books/quotes", [
+                _subLink("Delivey", "/sales-book/dispatch-task").access(
+                    _perm.is("editDelivery"),
+                    // _perm.isNot("editOrders"),
+                ).data,
                 _subLink("Delivey", "/sales-book/dispatch").access(
                     _perm.is("editDelivery"),
+                    _perm.is("editOrders"),
                 ).data,
                 _subLink("Pickup", "/sales-book/pickups").access(
                     _perm.is("editPickup"),

@@ -229,6 +229,8 @@ export function SearchFilterTRPC({
                                                           })
                                                         : "-",
                                                 ];
+                                                console.log(f.value);
+
                                                 setFilters({
                                                     [f.value]: value.join(","),
                                                 });
