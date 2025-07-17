@@ -16,6 +16,7 @@ import { toast } from "@gnd/ui/use-toast";
 import { Menu } from "@/components/(clean-code)/menu";
 import { salesDispatchStatus } from "@gnd/utils/constants";
 import { getColorFromName } from "@/lib/color";
+import { useTable } from "..";
 
 export type Item = RouterOutputs["dispatch"]["index"]["data"][number];
 export type Addon = {
@@ -177,6 +178,41 @@ const assignedTo: ColumnDef<Item> = {
     header: "Assigned To",
     accessorKey: "salesRep",
     cell: ({ row: { original: item } }) => {
+        const ctx = useTable();
+        const deliveryUpdate = useSalesDeliveryUpdate({
+            salesId: item?.order?.id,
+            defaultOption: item?.deliveryMode,
+            deliveryId: item?.id,
+            onSuccess() {
+                toast({
+                    duration: 2000,
+                    variant: "success",
+                    description: "Dispatch Date Updated",
+                    title: "Updated!",
+                });
+            },
+        });
+        const addon: Addon = ctx?.addons;
+        return (
+            <Menu
+                Icon={null}
+                variant="link"
+                label={item?.driver?.name || "Not Assigned"}
+            >
+                {addon?.drivers?.map((driver) => (
+                    <Menu.Item
+                        onClick={(e) => {
+                            deliveryUpdate.update({
+                                driverId: driver.id,
+                            });
+                        }}
+                        key={driver?.id}
+                    >
+                        <span className="uppercase">{driver?.name}</span>
+                    </Menu.Item>
+                ))}
+            </Menu>
+        );
         return (
             <div className="inline-flex flex-col">
                 <span className="uppercase">{item?.driver?.name}</span>
