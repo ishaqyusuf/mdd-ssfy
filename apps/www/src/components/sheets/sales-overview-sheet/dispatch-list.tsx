@@ -31,6 +31,8 @@ import {
 } from "@gnd/ui/table";
 
 import { useDispatch } from "./context";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
+import { printSalesData } from "@/utils/sales-print-utils";
 
 export function DispatchList({}) {
     const ctx = useDispatch();
@@ -45,6 +47,7 @@ export function DispatchList({}) {
         loader.success("Deleted!.");
         sq._refreshToken();
     };
+    const { setParams: setSalesPreviewParams } = useSalesPreview();
     return (
         <div className="rounded-md border">
             {ctx?.data?.id && !ctx?.data?.deliveries?.length ? (
@@ -133,6 +136,48 @@ export function DispatchList({}) {
                                             <TableCell className="w-8 text-right">
                                                 <DataSkeleton pok="date">
                                                     <Menu>
+                                                        <Menu.Item
+                                                            icon="packingList"
+                                                            onClick={(e) => {
+                                                                setSalesPreviewParams(
+                                                                    {
+                                                                        previewMode:
+                                                                            "packing list",
+                                                                        salesPreviewSlug:
+                                                                            ctx
+                                                                                ?.data
+                                                                                ?.order
+                                                                                ?.orderId,
+                                                                        salesPreviewType:
+                                                                            "order",
+                                                                        dispatchId:
+                                                                            String(
+                                                                                dispatch.id,
+                                                                            ),
+                                                                    },
+                                                                );
+                                                            }}
+                                                        >
+                                                            Preview
+                                                        </Menu.Item>
+                                                        <Menu.Item
+                                                            icon="print"
+                                                            onClick={(e) => {
+                                                                printSalesData({
+                                                                    mode: "order-packing",
+                                                                    dispatchId:
+                                                                        dispatch.id,
+                                                                    preview:
+                                                                        false,
+                                                                    slugs: ctx
+                                                                        ?.data
+                                                                        ?.order
+                                                                        ?.orderId,
+                                                                });
+                                                            }}
+                                                        >
+                                                            Print
+                                                        </Menu.Item>
                                                         <Menu.Trash
                                                             action={async () =>
                                                                 await deleteDispatch(
@@ -232,7 +277,6 @@ export function DispatchList({}) {
                                 </Collapsible>
                             ),
                         )}
-                        {/* </DataSkeleton> */}
                     </TableBody>
                 </Table>
             )}

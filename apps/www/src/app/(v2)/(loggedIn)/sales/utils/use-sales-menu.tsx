@@ -102,7 +102,7 @@ export function useSalesMenu(item: any, mode: Mode = "internal") {
     const copyAsEstimate = async () => await copyAs("quote");
 
     const _pdf = useSalesPdf();
-    async function print(mode: IOrderPrintMode, sec) {
+    function print(mode: IOrderPrintMode, sec) {
         const print = sec == "Print";
         const mockup = sec == "Print Mockup";
         const pdf = sec == "Pdf";

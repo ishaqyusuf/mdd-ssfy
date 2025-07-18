@@ -2,7 +2,7 @@ import { salesPdf } from "@/app/(v2)/printer/_action/sales-pdf";
 import { Menu } from "@/components/(clean-code)/menu";
 import { env } from "@/env.mjs";
 import { openLink } from "@/lib/open-link";
-import { SalesPrintProps } from "@/utils/sales-print-utils";
+import { printSalesData, SalesPrintProps } from "@/utils/sales-print-utils";
 import QueryString from "qs";
 import { toast } from "sonner";
 
@@ -23,6 +23,12 @@ export function PrintMenuAction({ pdf, data }: Props) {
     // const dispatchList = ctx.item.dispatchList || [];
     const type = ctx.overview?.type;
     function print(params?: SalesPrintProps) {
+        printSalesData({
+            slugs: ctx.overview?.orderId,
+            mode: type,
+            preview: false,
+            ...(params || {}),
+        });
         const query = {
             slugs: ctx.overview?.orderId,
             mode: type,
