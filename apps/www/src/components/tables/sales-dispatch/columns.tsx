@@ -263,7 +263,7 @@ export const driverColumns: ColumnDef<Item>[] = [
                 <ActionCell itemId={item.id}>
                     <Button
                         onClick={(e) => {
-                            ctx.openDispatch(item?.order?.orderId);
+                            ctx.openDispatch(item?.order?.orderId, item.id);
                         }}
                     >
                         <Icons.Edit className="size-4" />
@@ -293,7 +293,7 @@ export const columns: ColumnDef<Item>[] = [
                 <ActionCell itemId={item.id}>
                     <Button
                         onClick={(e) => {
-                            ctx.openDispatch(item?.order?.orderId);
+                            ctx.openDispatch(item?.order?.orderId, item.id);
                         }}
                     >
                         <Icons.Edit className="size-4" />

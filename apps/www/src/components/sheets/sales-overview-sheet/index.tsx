@@ -80,6 +80,18 @@ function Content() {
                                         Notes
                                     </TabsTrigger>
                                 </>
+                            ) : query?.dispatchId ? (
+                                <>
+                                    <TabsTrigger value="production">
+                                        Productions
+                                    </TabsTrigger>
+                                    <TabsTrigger value="production-notes">
+                                        Notes
+                                    </TabsTrigger>
+                                    <TabsTrigger value="production-notes">
+                                        Dispatch Info
+                                    </TabsTrigger>
+                                </>
                             ) : (
                                 <>
                                     <TabsTrigger value="general">

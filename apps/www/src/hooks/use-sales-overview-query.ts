@@ -31,6 +31,7 @@ export function useSalesOverviewQuery() {
         "prod-item-view": parseAsString,
         "prod-item-tab": parseAsStringEnum(["assignments", "details", "notes"]),
         onCloseQuery: parseAsJson(z.any().parse),
+        dispatchId: parseAsInteger,
         salesTab: parseAsStringEnum([
             "general",
             "production",
@@ -65,12 +66,13 @@ export function useSalesOverviewQuery() {
             });
         },
         setParams,
-        openDispatch(orderNo: string) {
+        openDispatch(orderNo: string, dispatchId) {
             setParams({
                 "sales-overview-id": orderNo,
                 "sales-type": "order",
-                mode: "production-tasks",
+                mode: "dispatch-modal",
                 salesTab: "production",
+                dispatchId,
             });
         },
         open2(orderNo: string, mode: Modes) {
