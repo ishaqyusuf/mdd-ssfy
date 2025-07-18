@@ -13,19 +13,12 @@ import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import FormCheckbox from "@/components/common/controls/form-checkbox";
 import FormSelect from "@/components/common/controls/form-select";
 import { NumberInput } from "@/components/currency-input";
-import { cn, generateRandomString, sum } from "@/lib/utils";
-import { qtyMatrixDifference } from "@/utils/sales-control-util";
-// import type { Dispatch, DispatchItem } from "@/types/dispatch";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useSession } from "next-auth/react";
-import { useController, useForm, useFormContext } from "react-hook-form";
+import { cn } from "@/lib/utils";
+
+import { useController, useFormContext } from "react-hook-form";
 import { NumericFormatProps } from "react-number-format";
 import { z } from "zod";
-
-import { Checkbox } from "@gnd/ui/checkbox";
 import { Form } from "@gnd/ui/form";
-import { Input } from "@gnd/ui/input";
-import { Label } from "@gnd/ui/label";
 import {
     Table,
     TableBody,
@@ -34,19 +27,9 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
-import { Textarea } from "@gnd/ui/textarea";
 
 import { useDispatch } from "./context";
 import { DispatchFormFooter } from "./dispatch-form-footer";
-
-const availableItems: any[] = [
-    { id: "ITEM-001", name: "Product A", availableQty: 100, dispatchQty: 0 },
-    { id: "ITEM-002", name: "Product B", availableQty: 75, dispatchQty: 0 },
-    { id: "ITEM-003", name: "Product C", availableQty: 200, dispatchQty: 0 },
-    { id: "ITEM-004", name: "Product D", availableQty: 50, dispatchQty: 0 },
-    { id: "ITEM-005", name: "Product E", availableQty: 150, dispatchQty: 0 },
-    { id: "ITEM-006", name: "Product F", availableQty: 80, dispatchQty: 0 },
-];
 
 interface DispatchFormProps {
     dispatch?: any;

@@ -18,6 +18,16 @@ export const hrmRoutes = createTRPCRouter({
     .query(async (props) => {
       return getEmployees(props.ctx, props.input);
     }),
+  getDrivers: publicProcedure
+    .input(employeesQueryParamsSchema)
+    .query(async (props) => {
+      props.input = {
+        can: ["viewDelivery"],
+        cannot: ["editOrders"],
+      };
+      const drivers = await getEmployees(props.ctx, props.input);
+      return drivers?.data;
+    }),
 
   resetEmployeePassword: publicProcedure
     .input(

@@ -1,23 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { redirect } from "next/navigation";
-import { createSalesAssignmentAction } from "@/actions/create-sales-assignment";
+
 import {
     createAssignmentSchema,
     createSubmissionSchema,
 } from "@/actions/schema";
-import {
-    submitSalesAssignment,
-    submitSalesAssignmentAction,
-} from "@/actions/submit-sales-assignment";
+
 import { Menu } from "@/components/(clean-code)/menu";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesControlAction } from "@/hooks/use-sales-control-action";
-import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+
 import { generateRandomString, sum } from "@/lib/utils";
-import { CheckCircle, TimerOff, UserPlus } from "lucide-react";
+import { CheckCircle, TimerOff } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useAction } from "next-safe-action/hooks";
-import { useForm } from "react-hook-form";
+
 import z from "zod";
 
 import { Button } from "@gnd/ui/button";

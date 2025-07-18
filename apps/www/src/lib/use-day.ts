@@ -1,5 +1,3 @@
-import updateLocale from "dayjs/plugin/updateLocale";
-import relativeTime from "dayjs/plugin/relativeTime";
 import dayjs from "./dayjs";
 
 export type DateFormats =

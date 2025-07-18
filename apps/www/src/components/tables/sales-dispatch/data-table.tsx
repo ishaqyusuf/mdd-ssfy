@@ -21,14 +21,9 @@ export function DataTable({ driver = false }) {
         route: driver ? trpc.dispatch.assignedDispatch : trpc.dispatch.index,
     });
     const { setParams: setSalesPreviewParams } = useSalesPreview();
-    const { data: users } = useQuery(
-        trpc.hrm.getEmployees.queryOptions({
-            can: ["viewDelivery"],
-            cannot: ["editOrders"],
-        }),
-    );
+    const { data: drivers } = useQuery(trpc.hrm.getDrivers.queryOptions());
     const addons: Addon = {
-        drivers: users?.data || [],
+        drivers: drivers || [],
     };
     return (
         <TableProvider

@@ -268,6 +268,24 @@ export function whereSales(params: SearchParamsType) {
                     },
                 },
             });
+        case "not completed":
+            queries.push({
+                itemControls: {
+                    some: {
+                        deletedAt: null,
+                        qtyControls: {
+                            some: {
+                                deletedAt: null,
+                                type: "prodCompleted" as QtyControlType,
+                                percentage: {
+                                    not: 100,
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+            break;
         case "due today":
             queries.push({
                 itemControls: {

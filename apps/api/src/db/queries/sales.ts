@@ -26,7 +26,12 @@ export async function getSales(
     ctx.db,
   );
 
-  return await response(data.map(salesOrderDto));
+  return await response(
+    data.map(salesOrderDto).map((d) => ({
+      ...d,
+      ...(notCounts[d.id.toString()] || {}),
+    })),
+  );
 }
 export const SalesListInclude = {
   customer: {
@@ -50,8 +55,6 @@ export const SalesListInclude = {
   stat: true,
   extraCosts: true,
 } satisfies Prisma.SalesOrdersInclude;
-
-// export type GetSalesListDta = AsyncFnReturnType<typeof getSalesListDta>;
 
 export async function salesNotesCount(salesIds: number[], prisma) {
   if (!salesIds || salesIds.length === 0) return {};

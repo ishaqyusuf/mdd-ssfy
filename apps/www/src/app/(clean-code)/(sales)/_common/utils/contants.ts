@@ -38,6 +38,7 @@ export const PRODUCTION_STATUS = [
     "due today",
     "past due",
     "completed",
+    "not completed",
 ] as const;
 export const PRODUCTION_ASSIGNMENT_FILTER_OPTIONS = [
     "not assigned",

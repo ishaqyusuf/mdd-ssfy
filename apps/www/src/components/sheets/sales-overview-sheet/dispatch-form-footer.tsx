@@ -42,7 +42,10 @@ export function DispatchFormFooter({}) {
         // const formData = form.getValues();
         // let pickings = [];
         // taskTrigger.trigger({
-        //     taskName: "send-login-email",
+        //     taskName: "create-dispatch",
+        //     payload: {
+        //         //
+        //     }
         // });
         ctx.data?.dispatchables?.map((item) => {
             const itemData = formData?.itemData?.items?.[item.uid];

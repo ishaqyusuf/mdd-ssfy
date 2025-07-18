@@ -4,12 +4,7 @@ import { toNumber } from "@/lib/utils";
 import { getNameInitials } from "@/utils/get-name-initials";
 import { composeSalesStat, salesAddressLines } from "@/utils/sales-utils";
 
-import {
-    AddressBookMeta,
-    QtyControlType,
-    SalesMeta,
-    SalesType,
-} from "../../../types";
+import { AddressBookMeta, SalesMeta, SalesType } from "../../../types";
 import { GetSalesListDta } from "../sales-dta";
 import { salesLinks } from "./links-dto";
 import { dispatchTitle } from "./sales-shipping-dto";

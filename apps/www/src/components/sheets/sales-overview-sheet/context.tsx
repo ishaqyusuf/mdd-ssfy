@@ -18,6 +18,8 @@ import { useForm } from "react-hook-form";
 import { useAsyncMemo } from "use-async-memo";
 import z from "zod";
 import { getSalesOverviewAction } from "@/actions/get-sales-overview";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
 
 const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
     createContextFactory(function () {
@@ -39,21 +41,18 @@ const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
 const { useContext: useDispatch, Provider: DispatchProvider } =
     createContextFactory(function () {
         const ctx = useSalesOverviewQuery();
-        const drivers = useAsyncMemo(async () => {
-            await timeout(80);
-            return await getCachedDispatchers();
-        }, []);
+        const trpc = useTRPC();
+        const { data: drivers } = useQuery(
+            trpc.hrm.getDrivers.queryOptions({}),
+        );
         const loader = async () => {
             await timeout(100);
             const res = await getSalesDispatchDataAction(
                 ctx.params["sales-overview-id"],
             );
-
             return res;
         };
-        const customerQuery = useCustomerOverviewQuery();
         const data = useAsyncMemo(loader, [ctx.refreshTok]);
-        // const [selections, setSelections] = useState({});
         const [openForm, setOpenForm] = useState(false);
         const bachWorker = useSalesControlAction({
             onFinish() {},

@@ -19,6 +19,7 @@
     "./colors": "./src/colors.ts",
     "./format": "./src/format.ts",
     "./constants": "./src/constants.ts",
-    "./sales": "./src/sales.ts"
+    "./sales": "./src/sales.ts",
+    "./dayjs": "./src/dayjs.ts"
   }
 }

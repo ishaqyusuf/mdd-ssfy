@@ -83,3 +83,29 @@ export function generateRandomString(length = 15) {
 export function addSpacesToCamelCase(input: string): string {
   return input.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
+export function toNumber(s: any) {
+  s = Number(s);
+  return isNaN(s) ? 0 : s;
+}
+export function getNameInitials(name?: string) {
+  return name
+    ?.toLocaleUpperCase()
+    ?.split(" ")
+    ?.map((a) => a?.[0])
+    ?.filter(Boolean)
+    ?.join("");
+}
+
+export function sumArrayKeys<T>(
+  array?: T[],
+  keys: (keyof T | undefined)[] = undefined!,
+  subtract = false,
+) {
+  if (!array?.length) return array;
+  let [first, ...others] = array;
+  let ret: T = {} as any;
+  keys?.map((k) => {
+    (ret as any)[k] = sum(array, k) as any;
+  });
+  return ret;
+}

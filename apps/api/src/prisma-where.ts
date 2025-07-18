@@ -1,10 +1,13 @@
-import type { Prisma } from "@gnd/db";
+import { SalesPriority, type Prisma } from "@gnd/db";
 import type { SalesQueryParamsSchema } from "./schemas/sales";
 import { composeQuery } from "./query-response";
 import type { DispatchQueryParamsSchema } from "./schemas/dispatch";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import type { EmployeesQueryParams } from "./schemas/hrm";
 import { addSpacesToCamelCase } from "@gnd/utils";
+import type { QtyControlType } from "./type";
+import { anyDateQuery, dateEquals, fixDbTime } from "./utils/db";
+import dayjs from "@gnd/utils/dayjs";
 export function whereDispatch(query: DispatchQueryParamsSchema) {
   const whereStack: Prisma.OrderDeliveryWhereInput[] = [];
   switch (query?.status as SalesDispatchStatus) {
@@ -56,6 +59,7 @@ export function whereDispatch(query: DispatchQueryParamsSchema) {
       ],
     });
   }
+
   return composeQuery(whereStack);
 }
 export function whereSales(query: SalesQueryParamsSchema) {
@@ -102,6 +106,314 @@ export function whereSales(query: SalesQueryParamsSchema) {
         break;
     }
   });
+  if (query["with.trashed"]) where.push({ deletedAt: { not: null } });
+  if (query["trashed.only"])
+    where.push({
+      deletedAt: anyDateQuery(),
+    });
+  const q = query.q;
+  if (q) {
+    const searchQ = searchSales(q);
+    if (searchQ) where.push(searchQ);
+  }
+  if (query["dealer.id"])
+    where.push({
+      customer: {
+        auth: {
+          id: query["dealer.id"],
+        },
+      },
+    });
+  const statType = (type: QtyControlType) => type;
+  const status = query["dispatch.status"];
+  if (status) {
+    switch (query["dispatch.status"]) {
+      case "backorder":
+        where.push({
+          stat: {
+            some: {
+              type: statType("dispatchCompleted"),
+              AND: [
+                {
+                  percentage: {
+                    gt: 0,
+                  },
+                },
+                {
+                  percentage: {
+                    lt: 100,
+                  },
+                },
+              ],
+            },
+          },
+        });
+        break;
+    }
+  }
+
+  if (query["sales.type"]) {
+    where.push({
+      type: query["sales.type"],
+    });
+  }
+
+  const keys = Object.keys(query) as (keyof SalesQueryParamsSchema)[];
+  keys.map((k) => {
+    const val = query?.[k] as any;
+    if (!val) return;
+    switch (k) {
+      // case "address.id":
+      //   where.push({
+      //     OR: [
+      //       {
+      //         billingAddressId: val,
+      //       },
+      //       {
+      //         shippingAddressId: val,
+      //       },
+      //     ],
+      //   });
+      //   break;
+      // case "id":
+      //   let id = String(query.id);
+      //   if (id?.includes(","))
+      //     where.push({
+      //       id: {
+      //         in: id?.split(",").map((s) => Number(s)),
+      //       },
+      //     });
+      //   else
+      //     where.push({
+      //       id: Number(query.id),
+      //     });
+      //   break;
+      case "order.no":
+        if (val?.includes(","))
+          where.push({
+            orderId: {
+              in: val?.split(","),
+            },
+          });
+        else
+          where.push({
+            orderId: {
+              contains: val,
+            },
+          });
+        break;
+      case "po":
+        where.push({
+          meta: {
+            path: "$.po",
+            string_contains: val,
+          },
+        });
+        break;
+      // case "customer.id":
+      //   where.push({
+      //     customerId: val,
+      //   });
+      //   break;
+      case "customer.name":
+        where.push({
+          OR: [
+            {
+              customer: {
+                name: {
+                  contains: val,
+                },
+              },
+            },
+            {
+              customer: {
+                businessName: {
+                  contains: val,
+                },
+              },
+            },
+            {
+              billingAddress: {
+                name: {
+                  contains: val,
+                },
+              },
+            },
+          ],
+        });
+        break;
+      case "phone":
+        const _phonequery = {
+          phoneNo: val,
+        };
+        where.push({
+          OR: [
+            {
+              customer: _phonequery,
+            },
+            {
+              customer: {
+                phoneNo2: val,
+              },
+            },
+            {
+              billingAddress: _phonequery,
+            },
+            {
+              shippingAddress: _phonequery,
+            },
+          ],
+        });
+        break;
+      // case "salesRep.id":
+      //   where.push({
+      //     salesRepId: val,
+      //   });
+      //   break;
+      case "sales.rep":
+        where.push({
+          salesRep: {
+            name: val,
+          },
+        });
+        break;
+      // case "sales.priority":
+      //   if (val == SalesPriority.NORMAL)
+      //     where.push({
+      //       OR: [{ priority: null }, { priority: val }],
+      //     });
+      //   else {
+      //     where.push({
+      //       priority: val,
+      //     });
+      //   }
+      //   break;
+      // case "production.assignedToId":
+      //   where.push({
+      //     assignments: {
+      //       some: {
+      //         deletedAt: null,
+      //         assignedToId: val,
+      //       },
+      //     },
+      //   });
+      //   break;
+    }
+  });
+  const prodStatus = query["production.status"];
+  const assignedToId = query["production.assignedToId"];
+  switch (prodStatus) {
+    case "completed":
+      where.push({
+        itemControls: assignedToId
+          ? undefined
+          : {
+              some: {
+                qtyControls: {
+                  some: {
+                    AND: [
+                      {
+                        type: "prodAssigned" as QtyControlType,
+                        percentage: 100,
+                      },
+                      {
+                        type: "prodCompleted" as QtyControlType,
+                        percentage: 100,
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+        assignments: !assignedToId
+          ? undefined
+          : {
+              every: {
+                assignedToId: assignedToId,
+                deletedAt: null,
+                itemControl: {
+                  qtyControls: {
+                    every: {
+                      type: "prodCompleted" as QtyControlType,
+                      percentage: 100,
+                    },
+                  },
+                },
+              },
+            },
+      });
+      break;
+    case "part assigned":
+      where.push({
+        assignments: {
+          some: {
+            deletedAt: null,
+          },
+        },
+      });
+      break;
+    case "due today":
+      where.push({
+        itemControls: {
+          some: {
+            deletedAt: null,
+            qtyControls: {
+              some: {
+                deletedAt: null,
+                type: "prodCompleted" as QtyControlType,
+                percentage: {
+                  not: 100,
+                },
+              },
+            },
+          },
+        },
+        assignments: {
+          some: {
+            assignedToId: assignedToId || undefined,
+            deletedAt: null,
+            dueDate: dateEquals(dayjs().format("YYYY-MM-DD")),
+          },
+        },
+      });
+      break;
+    case "past due":
+      where.push({
+        assignments: {
+          some: {
+            assignedToId: assignedToId || undefined,
+            deletedAt: null,
+            dueDate: {
+              lt: fixDbTime(dayjs()).toISOString(),
+            },
+          },
+        },
+      });
+      break;
+  }
+
+  switch (query["production.assignment"]) {
+    case "all assigned":
+      break;
+    case "not assigned":
+      where.push({
+        assignments: {
+          none: {
+            deletedAt: null,
+          },
+        },
+      });
+      break;
+    case "part assigned":
+      break;
+  }
+
+  if (query["account.no"])
+    where.push({
+      customer: {
+        phoneNo: query["account.no"],
+      },
+    });
   return composeQuery(where);
 }
 function searchSales(params): Prisma.SalesOrdersWhereInput | null {

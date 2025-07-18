@@ -13,7 +13,8 @@ export async function queryResponse<T>(
   },
 ) {
   let meta = {} as PageDataMeta;
-  where.deletedAt = null;
+
+  // where.deletedAt = null;
   if (model) {
     const count = await model.count({
       where,
