@@ -19,7 +19,7 @@ export function InboundOverviewSheet() {
             <SheetHeader>
                 <SheetTitle>{params?.payload?.orderId}</SheetTitle>
                 <SheetDescription>
-                    {params?.payload?.customer?.name}
+                    {params?.payload?.displayName}
                 </SheetDescription>
             </SheetHeader>
             <CustomSheetContent>
