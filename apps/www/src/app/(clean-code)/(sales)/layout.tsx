@@ -25,7 +25,7 @@ function SideBarLayout1({ children }) {
             <CustomerOverviewSheet />
             <SalesPreviewModal />
             <CustomerCreateSheet />
-            <SalesOverviewSheet />
+
             <TransactionOverviewModal />
         </NewSideBarLayout>
     );
