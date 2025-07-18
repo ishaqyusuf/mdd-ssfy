@@ -1,13 +1,11 @@
-import { cn, generateRandomString, inToFt, sum, toNumber } from "@/lib/utils";
-
+// import { generateRandomString } from "@/lib/utils";
+import { generateRandomString } from "@/lib/utils";
 import { createContext, useContext, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { _modal } from "@/components/common/modal/provider";
 import { ComponentHelperClass } from "../../../_utils/helpers/zus/step-component-class";
-import { formatMoney } from "@/lib/use-number";
 import { Door } from "../door-swap-modal";
-import { ftToIn } from "@/app/(clean-code)/(sales)/_common/utils/sales-utils";
 import { composeDoor } from "@/lib/sales/compose-door";
 import { updateDoorGroupForm } from "@/lib/sales/update-door-form";
 
