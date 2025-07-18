@@ -21,6 +21,7 @@ import { ProgressItem } from "./item-progress-bar";
 import { ProductionAssignmentForm } from "./production-assignment-form";
 import { ProductionAssignmentRow } from "./production-assignment-row";
 import { useProductionItem } from "./production-tab";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 export const {
     Provider: ProductionItemAssignmentsProvider,
@@ -56,6 +57,8 @@ export function Content() {
     const [open, setOpen] = useState(
         item?.analytics?.stats?.prodAssigned?.qty == 0,
     );
+    const query = useSalesOverviewQuery();
+
     return (
         <DataSkeletonProvider value={{ loading: !data?.uid } as any}>
             {/* <ProgressItem
@@ -73,7 +76,8 @@ export function Content() {
                                     <Button
                                         disabled={
                                             !item?.analytics?.assignment
-                                                ?.pending?.qty
+                                                ?.pending?.qty ||
+                                            query?.dispatchMode
                                         }
                                         onClick={(e) => setOpen(!open)}
                                         size="sm"

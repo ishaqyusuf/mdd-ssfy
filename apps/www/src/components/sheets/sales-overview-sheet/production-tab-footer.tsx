@@ -12,6 +12,7 @@ import { SheetFooter } from "@gnd/ui/sheet";
 import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { useProduction } from "./context";
 import { ProductionItemMenuActions } from "./production-item-menu";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 export function ProductionTabFooter({}) {
     const { data, selections, setSelections } = useProduction();
@@ -40,8 +41,9 @@ export function ProductionTabFooter({}) {
 
         setSelections((current) => ({ ...newSelections }));
     }
-
+    const query = useSalesOverviewQuery();
     const [opened, setOpened] = useState(false);
+    if (query.dispatchMode) return null;
     return (
         <CustomSheetContentPortal>
             <SheetFooter className="-m-4 -mb-2 border-t p-4 shadow-xl">

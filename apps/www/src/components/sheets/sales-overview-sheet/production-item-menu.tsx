@@ -20,10 +20,15 @@ export function ProductionItemMenu({}) {
     const { queryCtx, item } = ctx;
     const prod = useProduction();
     const [opened, setOpened] = useState(false);
+
     return (
         <DropdownMenu open={opened} onOpenChange={setOpened}>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button
+                    disabled={queryCtx.dispatchMode}
+                    variant="ghost"
+                    size="icon"
+                >
                     <MoreVertical className="h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>

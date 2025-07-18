@@ -93,7 +93,10 @@ function Content() {
                             </p>
                             {assignment.assignedTo && (
                                 <DatePicker
-                                    disabled={!!queryCtx.assignedTo}
+                                    disabled={
+                                        !!queryCtx.assignedTo ||
+                                        queryCtx.dispatchMode
+                                    }
                                     className="ml-2 h-6 w-auto rounded-sm p-0 px-1 text-xs"
                                     setValue={changeDueDate}
                                     value={date}
@@ -141,7 +144,10 @@ function Content() {
                     >
                         <div className="">
                             <Button
-                                disabled={!assignment?.pending?.qty}
+                                disabled={
+                                    !assignment?.pending?.qty ||
+                                    queryCtx.dispatchMode
+                                }
                                 onClick={(e) => {
                                     ctx.setOpenSubmitForm(!ctx.openSubmitForm);
                                 }}
@@ -177,7 +183,10 @@ function Content() {
                     </Badge>
                     <AccessBased>
                         <ConfirmBtn
-                            disabled={deleteAction.isExecuting}
+                            disabled={
+                                deleteAction.isExecuting ||
+                                queryCtx.dispatchMode
+                            }
                             onClick={(e) => {
                                 if (assignment.submissionCount) {
                                     toast.error("Cannot perform action", {

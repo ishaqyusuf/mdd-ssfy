@@ -7,11 +7,12 @@ import { useAction } from "next-safe-action/hooks";
 import { useAssignmentRow } from "./production-assignment-row";
 import { useProductionItem } from "./production-tab";
 import { QtyStatus } from "./qty-label";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 export function ProductionSubmissions({}) {
     const ctx = useAssignmentRow();
     const item = useProductionItem();
-
+    const query = useSalesOverviewQuery();
     const { assignment } = ctx;
 
     const deleteSubmission = useAction(deleteSalesAssignmentSubmissionAction, {
@@ -71,7 +72,10 @@ export function ProductionSubmissions({}) {
                             </div>
                         </div>
                         <ConfirmBtn
-                            disabled={deleteSubmission.isExecuting}
+                            disabled={
+                                deleteSubmission.isExecuting ||
+                                query.dispatchMode
+                            }
                             onClick={(e) => {
                                 if (submission.delivered) {
                                     toast.error("Cannot perform action", {

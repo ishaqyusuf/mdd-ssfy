@@ -54,6 +54,7 @@ export function useSalesOverviewQuery() {
             : null;
     return {
         ...params,
+        dispatchMode: !!params.dispatchId,
         params,
         assignedTo,
         close() {
