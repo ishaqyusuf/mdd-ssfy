@@ -1,12 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Env } from "@/components/env";
-import { getSalesPrintData } from "@/app/(v2)/printer/sales/get-sales-print-data";
-import { OrderBasePrinter } from "@/app/(v2)/printer/sales/order-base-printer";
-import SalesPrintDisplay from "@/app/(v2)/printer/sales/sales-print-display";
-
-import { SalesInvoicePdfTemplate } from "@gnd/printer/templates/sales-invoice";
 import { Dialog, DialogContent } from "@gnd/ui/dialog";
 
 import { ScrollArea } from "@gnd/ui/scroll-area";

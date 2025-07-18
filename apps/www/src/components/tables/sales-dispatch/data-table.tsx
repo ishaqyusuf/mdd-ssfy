@@ -1,6 +1,5 @@
 "use client";
 
-import { useInboundFilterParams } from "@/hooks/use-inbound-filter-params";
 import { useTRPC } from "@/trpc/client";
 
 import { TableProvider, useTableData } from "..";

@@ -23,9 +23,6 @@ export default async function SalesBookPage(props) {
     ]);
     return (
         <FPage can={["viewOrders"]} title="Orders">
-            <Portal nodeId={"navRightSlot"}>
-                <NewFeatureBtn href="/sales/orders">Old Site</NewFeatureBtn>
-            </Portal>
             <TablePage
                 queryData={queryData}
                 PageClient={OrdersPageClient}

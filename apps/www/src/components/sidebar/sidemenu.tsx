@@ -104,12 +104,7 @@ export function SideMenu({}) {
 
     const { renderMode, activeLink } = sb;
     return (
-        <Sidebar
-            collapsible="icon"
-            onMouseEnter={() => setDefaultOpen(true)}
-            onMouseLeave={() => setDefaultOpen(false)}
-            className=""
-        >
+        <Sidebar collapsible="icon" className="">
             <SidebarHeader className="bg-white">
                 <ModuleSwitcher />
                 {sb.state == "expanded" ? (
@@ -120,7 +115,11 @@ export function SideMenu({}) {
                     <Icons.logo />
                 )}
             </SidebarHeader>
-            <SidebarContent className="bg-white">
+            <SidebarContent
+                onMouseEnter={() => setDefaultOpen(true)}
+                onMouseLeave={() => setDefaultOpen(false)}
+                className="bg-white"
+            >
                 {sb?.linkModules?.modules
                     ?.filter((a) => a.activeLinkCount)
                     .map((module, mi) => (
