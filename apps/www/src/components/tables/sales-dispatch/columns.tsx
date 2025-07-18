@@ -246,8 +246,16 @@ export const driverColumns: ColumnDef<Item>[] = [
             preventDefault: true,
         },
         cell: ({ row: { original: item } }) => {
+            const ctx = useSalesOverviewQuery();
             return (
                 <ActionCell itemId={item.id}>
+                    <Button
+                        onClick={(e) => {
+                            ctx.open2(item?.order?.orderId, "production-tasks");
+                        }}
+                    >
+                        <Icons.Edit className="size-4" />
+                    </Button>
                     {/* <Action item={item} /> */}
                 </ActionCell>
             );

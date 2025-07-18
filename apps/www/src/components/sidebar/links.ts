@@ -381,7 +381,7 @@ export const linkModules = [
             _link("Dispatch", "delivery2", "/sales-books/quotes", [
                 _subLink("Dispatch Task", "/sales-book/dispatch-task").access(
                     _perm.is("editDelivery"),
-                    // _perm.isNot("editOrders"),
+                    _perm.isNot("editOrders"),
                 ).data,
                 _subLink("Delivery", "/sales-book/dispatch").access(
                     _perm.is("editDelivery"),
