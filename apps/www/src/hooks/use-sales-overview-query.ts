@@ -65,6 +65,14 @@ export function useSalesOverviewQuery() {
             });
         },
         setParams,
+        openDispatch(orderNo: string) {
+            setParams({
+                "sales-overview-id": orderNo,
+                "sales-type": "order",
+                mode: "production-tasks",
+                salesTab: "production",
+            });
+        },
         open2(orderNo: string, mode: Modes) {
             let salesType: SalesType = mode == "quote" ? "quote" : "order";
             if (assignedTo) mode = "production-tasks";
