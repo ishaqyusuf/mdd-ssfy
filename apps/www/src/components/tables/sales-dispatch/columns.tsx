@@ -24,6 +24,7 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 export type Item = RouterOutputs["dispatch"]["index"]["data"][number];
 export type Addon = {
     drivers?: RouterOutputs["hrm"]["getEmployees"]["data"];
+    driverMode?: boolean;
 };
 const status: ColumnDef<Item> = {
     header: "Status",
@@ -86,12 +87,15 @@ const schedule: ColumnDef<Item> = {
     meta: {
         preventDefault: true,
     },
-    cell: ({ row: { original: item } }) => (
-        <ScheduleDate item={item} editable />
-    ),
+    cell: ({ row: { original: item } }) => {
+        return <ScheduleDate item={item} editable />;
+    },
 };
 function ScheduleDate({ item, editable }: { item: Item; editable?: boolean }) {
     const [date, setDate] = useState(item?.dueDate);
+    const ctx = useTable();
+    const addon: Addon = ctx?.addons;
+    const driverMode = addon?.driverMode;
     const deliveryUpdate = useSalesDeliveryUpdate({
         salesId: item?.order?.id,
         defaultOption: item?.deliveryMode,
@@ -108,18 +112,28 @@ function ScheduleDate({ item, editable }: { item: Item; editable?: boolean }) {
     return (
         <TCell.Secondary className="font-mono">
             <div className="w-32">
-                <DatePicker
-                    placeholder={`Not Set`}
-                    hideIcon
-                    value={date}
-                    onSelect={(e) => {
-                        deliveryUpdate.update({
-                            date: e,
-                        });
-                    }}
-                    variant="secondary"
-                    className="w-auto"
-                />
+                {driverMode ? (
+                    <>
+                        {date ? (
+                            <TCell.Date>{date}</TCell.Date>
+                        ) : (
+                            <>Date Not Set</>
+                        )}
+                    </>
+                ) : (
+                    <DatePicker
+                        placeholder={`Not Set`}
+                        hideIcon
+                        value={date}
+                        onSelect={(e) => {
+                            deliveryUpdate.update({
+                                date: e,
+                            });
+                        }}
+                        variant="secondary"
+                        className="w-auto"
+                    />
+                )}
             </div>
         </TCell.Secondary>
     );

@@ -28,6 +28,7 @@ export function DataTable({ driver = false }) {
     }, [drivers]);
     const addons: Addon = {
         drivers: drivers || [],
+        driverMode: !!driver,
     };
     return (
         <TableProvider

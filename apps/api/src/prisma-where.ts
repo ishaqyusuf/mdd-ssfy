@@ -8,6 +8,7 @@ import { addSpacesToCamelCase } from "@gnd/utils";
 import type { QtyControlType } from "./type";
 import { anyDateQuery, dateEquals, fixDbTime } from "./utils/db";
 import dayjs from "@gnd/utils/dayjs";
+import { env } from "process";
 export function whereDispatch(query: DispatchQueryParamsSchema) {
   const whereStack: Prisma.OrderDeliveryWhereInput[] = [];
   switch (query?.status as SalesDispatchStatus) {
@@ -28,7 +29,7 @@ export function whereDispatch(query: DispatchQueryParamsSchema) {
       });
       break;
   }
-  if (query.driversId?.length)
+  if (query.driversId?.length && env.NODE_ENV === "production")
     whereStack.push({
       driverId: {
         in: query.driversId,
