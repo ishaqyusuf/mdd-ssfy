@@ -157,6 +157,14 @@ const order: ColumnDef<Item> = {
             <TCell.Secondary className="font-mono">
                 {item?.order?.orderId}
             </TCell.Secondary>
+        </div>
+    ),
+};
+const orderDate: ColumnDef<Item> = {
+    header: "Order Date",
+    accessorKey: "orderDate",
+    cell: ({ row: { original: item } }) => (
+        <div className="inline-flex gap-2 items-center">
             <TCell.Secondary className="font-mono">
                 <TCell.Date>{item?.order?.createdAt}</TCell.Date>
             </TCell.Secondary>
@@ -239,6 +247,7 @@ const assignedTo: ColumnDef<Item> = {
 export const driverColumns: ColumnDef<Item>[] = [
     schedule,
     order,
+    orderDate,
     customer,
     status,
     {
@@ -268,6 +277,7 @@ export const driverColumns: ColumnDef<Item>[] = [
 export const columns: ColumnDef<Item>[] = [
     schedule,
     order,
+    orderDate,
     customer,
     assignedTo,
     status,
