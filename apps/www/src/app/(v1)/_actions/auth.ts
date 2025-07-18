@@ -13,7 +13,7 @@ import dayjs from "dayjs";
 
 // import PasswordResetRequestEmail from "@/components/_v1/emails/password-reset-request-email";
 import { _email } from "./_email";
-import { PERMISSIONS } from "@gnd/utils/constants";
+import { PERMISSION_NAMES_PASCAL, PERMISSIONS } from "@gnd/utils/constants";
 import { validateAuthToken } from "@/actions/validate-auth-token";
 
 export async function resetPasswordRequest({
@@ -197,7 +197,13 @@ export async function loginAction({ email, password, token }) {
         });
         let can: ICan = {} as any;
         if (role.name?.toLocaleLowerCase() == "super admin") {
-            can = Object.fromEntries(PERMISSIONS?.map((p) => [p as any, true]));
+            // can = Object.fromEntries(PERMISSIONS?.map((p) => [p as any, true]));
+            can = Object.fromEntries(
+                [...PERMISSION_NAMES_PASCAL]
+                    .map((a) => ["view", "edit"].map((b) => `${b}${a}`))
+                    ?.flat()
+                    ?.map((p) => [p as any, true]),
+            );
         } else
             permissions.map((p) => {
                 can[camel(p.name) as any] = permissionIds.includes(p.id);

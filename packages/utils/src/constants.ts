@@ -109,6 +109,8 @@ export const PERMISSIONS = [
   // sales
   "viewSalesLaborCost",
   "editSalesLaborCost",
+  "viewSalesResolution",
+  "editSalesResolution",
 ] as const;
 export const PERMISSION_NAMES_PASCAL = [
   "Project",
@@ -143,6 +145,7 @@ export const PERMISSION_NAMES_PASCAL = [
   "InboundOrder",
   "Putaway",
   "DecoShutterInstall",
+  "SalesResolution",
   "SalesLaborCost",
 ] as const;
 

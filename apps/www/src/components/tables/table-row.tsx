@@ -25,7 +25,7 @@ export function TableRow({}: Props) {
                     <CheckboxRow row={row} />
                     {row.getVisibleCells().map((cell, index) => (
                         <TableCell
-                            key={cell.id}
+                            key={index}
                             onClick={(e) => {
                                 const meta = cell.column.columnDef
                                     .meta as ColumnMeta;

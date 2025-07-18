@@ -17,7 +17,7 @@ import FContentShell from "@/components/(clean-code)/fikr-ui/f-content-shell";
 import { useRolesParams } from "@/hooks/use-roles-params";
 import { _perm } from "@/components/sidebar/links";
 import { useTransactionOverviewModal } from "@/hooks/use-tx-overview-modal";
-import { SuperAdminGuard } from "@/components/auth-guard";
+import { AuthGuard, SuperAdminGuard } from "@/components/auth-guard";
 import { Button } from "@gnd/ui/button";
 import Link from "@/components/link";
 import { isProdClient } from "@/lib/is-prod";
@@ -85,13 +85,13 @@ export function DataTable({
                             filterList={filterData}
                         />
                         <div className="flex-1"></div>
-                        <SuperAdminGuard>
+                        <AuthGuard rules={[_perm.is("viewSalesResolution")]}>
                             <Button>
                                 <Link href="/sales-book/accounting/resolution-center">
                                     Resolution Center
                                 </Link>
                             </Button>
-                        </SuperAdminGuard>
+                        </AuthGuard>
                     </div>
                 </FContentShell>
                 <Table>

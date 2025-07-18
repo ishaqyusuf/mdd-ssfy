@@ -28,6 +28,12 @@ export function whereDispatch(query: DispatchQueryParamsSchema) {
       });
       break;
   }
+  if (query.driversId?.length)
+    whereStack.push({
+      driverId: {
+        in: query.driversId,
+      },
+    });
   if (query.q) {
     const contains = { contains: query.q };
     whereStack.push({
