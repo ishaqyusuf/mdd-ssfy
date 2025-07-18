@@ -1,100 +1,91 @@
-import { createContext, useContext, useMemo } from "react";
+import { cn, generateRandomString, inToFt, sum, toNumber } from "@/lib/utils";
+
+import { createContext, useContext, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { ComponentHelperClass } from "../../../_utils/helpers/zus/step-component-class";
-import { Door } from "../door-swap-modal";
+
 import { _modal } from "@/components/common/modal/provider";
-import { toast } from "sonner";
-import {
-    saveComponentPricingUseCase,
-    updateComponentPricingUseCase,
-} from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-pricing-use-case";
+import { ComponentHelperClass } from "../../../_utils/helpers/zus/step-component-class";
+import { formatMoney } from "@/lib/use-number";
+import { Door } from "../door-swap-modal";
+import { ftToIn } from "@/app/(clean-code)/(sales)/_common/utils/sales-utils";
+import { composeDoor } from "@/lib/sales/compose-door";
+import { updateDoorGroupForm } from "@/lib/sales/update-door-form";
 
-interface DoorSizeSelectContextType {
-    cls: ComponentHelperClass;
-    door?: Door;
-    form: ReturnType<typeof useForm>;
-    routeConfig: any; // This should be more specific
-    sizeList: any[]; // This should be more specific
-    swapDoor: () => void;
-    pickMore: () => void;
-    removeSelection: () => void;
-    nextStep: () => void;
-    togglePriceForm: (size: string) => void;
-    priceModel: any; // This should be more specific
-    priceChanged: (size: string, price: number | null) => void;
-}
-
-const DoorSizeSelectContext = createContext<DoorSizeSelectContextType | null>(
-    null,
-);
-
-export const useCtx = () => {
-    const context = useContext(DoorSizeSelectContext);
-    if (!context) {
-        throw new Error("useCtx must be used within a DoorSizeSelectProvider");
-    }
-    return context;
-};
+export const useCtx = () => useContext(DoorSizeSelectContext);
+export const DoorSizeSelectContext =
+    createContext<ReturnType<typeof useInitContext>>(null);
 
 export function useInitContext(cls: ComponentHelperClass, door?: Door) {
-    const routeConfig = cls.getRouteConfig();
-    const sizeList = cls?.getDoorSizeList();
-    const priceModel = cls.getDoorPriceModel(cls.componentUid);
-
+    const swapPaths = door?.sizeList?.map((s) => s.path);
+    const memoied = useMemo(() => {
+        return composeDoor(cls, door);
+    }, [cls, door]);
+    const { selections, sList, priceModel, routeConfig } = memoied;
     const form = useForm({
         defaultValues: {
-            selections: cls.getDoorSelections(),
+            selections,
         },
     });
-
-    const swapDoor = () => {
-        // Implement swap door logic
+    function updateDoorForm(clear = false) {
+        const data = form.getValues();
+        return updateDoorGroupForm(cls, data.selections, swapPaths, clear);
+    }
+    function removeSelection() {
+        updateDoorForm(true);
         _modal.close();
-        toast.success("Door Swapped.");
-    };
-
-    const pickMore = () => {
-        // Implement pick more logic
+    }
+    function pickMore() {
+        updateDoorForm();
         _modal.close();
-        toast.success("Picked more.");
-    };
+    }
+    const [openPriceForm, setOpenPriceForm] = useState({});
 
-    const removeSelection = () => {
-        // Implement remove selection logic
+    function nextStep() {
+        updateDoorForm();
+        cls.nextStep();
         _modal.close();
-        toast.success("Selection removed.");
-    };
-
-    const nextStep = () => {
-        // Implement next step logic
+    }
+    function swapDoor() {
+        updateDoorForm();
         _modal.close();
-        toast.success("Next step.");
-    };
-
-    const togglePriceForm = (size: string) => {
-        // This logic will be handled by the new modal structure
-        console.log(`Toggle price form for size: ${size}`);
-    };
-
-    const priceChanged = (size: string, price: number | null) => {
-        // Update the form with the new price
-        form.setValue(`selections.${size}.salesPrice`, price);
-        form.setValue(`selections.${size}.basePrice`, price);
-    };
+        cls.dotUpdateItemForm("swapUid", generateRandomString());
+    }
+    function priceChanged(size, price) {
+        form.setValue(
+            `selections.${cls.componentUid}-${size}.basePrice`,
+            price,
+        );
+        form.setValue(
+            `selections.${cls.componentUid}-${size}.salesPrice`,
+            cls.calculateSales(price),
+        );
+    }
 
     return {
-        cls,
-        door,
         form,
-        routeConfig,
-        sizeList,
-        swapDoor,
-        pickMore,
-        removeSelection,
-        nextStep,
-        togglePriceForm,
-        priceModel,
         priceChanged,
+        removeSelection,
+        cls,
+        swapDoor,
+        priceModel,
+        nextStep,
+        pickMore,
+        sizeList: sList,
+        routeConfig,
+        openPriceForm,
+        togglePriceForm(uid) {
+            setOpenPriceForm((prev) => {
+                console.log({ prev });
+                const newState = {
+                    [uid]: !prev?.[uid],
+                };
+                Object.entries({ ...prev }).map(([k, v]) => {
+                    if (k != uid) newState[k] = false;
+                });
+
+                return newState;
+            });
+        },
     };
 }
 
