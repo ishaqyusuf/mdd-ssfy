@@ -29,9 +29,9 @@ export const columns: ColumnDef<Item>[] = [
         cell: ({ row: { original: item } }) => (
             <div className="inline-flex flex-col">
                 <TCell.Primary className="uppercase">
-                    {item?.customer?.businessName || item?.customer?.name}
+                    {item?.displayName}
                 </TCell.Primary>
-                <span className="uppercase">{item?.customer?.phoneNo}</span>
+                <span className="uppercase">{item?.customerPhone}</span>
             </div>
         ),
     },
@@ -40,7 +40,7 @@ export const columns: ColumnDef<Item>[] = [
         accessorKey: "salesRep",
         cell: ({ row: { original: item } }) => (
             <div className="inline-flex flex-col">
-                <span className="uppercase">{item?.salesRep?.name}</span>
+                <span className="uppercase">{item?.salesRep}</span>
             </div>
         ),
     },
