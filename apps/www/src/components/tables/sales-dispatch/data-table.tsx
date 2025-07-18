@@ -12,6 +12,7 @@ import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { BatchActions } from "./batch-actions";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 export function DataTable({ driver = false }) {
     const trpc = useTRPC();
@@ -21,7 +22,10 @@ export function DataTable({ driver = false }) {
         route: driver ? trpc.dispatch.assignedDispatch : trpc.dispatch.index,
     });
     const { setParams: setSalesPreviewParams } = useSalesPreview();
-    const { data: drivers } = useQuery(trpc.hrm.getDrivers.queryOptions());
+    const { data: drivers } = useQuery(trpc.hrm.getDrivers.queryOptions({}));
+    useEffect(() => {
+        console.log(drivers);
+    }, [drivers]);
     const addons: Addon = {
         drivers: drivers || [],
     };
