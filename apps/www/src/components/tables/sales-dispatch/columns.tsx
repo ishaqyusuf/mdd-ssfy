@@ -19,6 +19,7 @@ import { getColorFromName } from "@/lib/color";
 import { useTable } from "..";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 export type Item = RouterOutputs["dispatch"]["index"]["data"][number];
 export type Addon = {
@@ -266,8 +267,16 @@ export const columns: ColumnDef<Item>[] = [
             className: "flex-1",
         },
         cell: ({ row: { original: item } }) => {
+            const ctx = useSalesOverviewQuery();
             return (
                 <ActionCell itemId={item.id}>
+                    <Button
+                        onClick={(e) => {
+                            ctx.open2(item?.order?.orderId, "production-tasks");
+                        }}
+                    >
+                        <Icons.Edit className="size-4" />
+                    </Button>
                     {/* <Action item={item} /> */}
                 </ActionCell>
             );
