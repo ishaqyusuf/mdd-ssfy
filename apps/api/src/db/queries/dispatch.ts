@@ -29,6 +29,7 @@ export async function getDispatches(
       deliveryMode: true,
       order: {
         select: {
+          createdAt: true,
           orderId: true,
           id: true,
           customer: {

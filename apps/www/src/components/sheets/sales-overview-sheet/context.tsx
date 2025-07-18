@@ -79,7 +79,10 @@ const { useContext: useDispatch, Provider: DispatchProvider } =
             // setSelections,
             data,
             ctx,
-            drivers,
+            drivers: drivers?.map((a) => ({
+                ...a,
+                id: a.id?.toString(),
+            })),
             bachWorker,
         };
     });

@@ -2,7 +2,6 @@
 
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/db";
-import { sum } from "@/lib/utils";
 import { Tags } from "@/utils/constants";
 import { mergePermissionsQuery, whereUsers } from "@/utils/db/where.users";
 

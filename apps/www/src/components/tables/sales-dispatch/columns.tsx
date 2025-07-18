@@ -157,6 +157,9 @@ const order: ColumnDef<Item> = {
             <TCell.Secondary className="font-mono">
                 {item?.order?.orderId}
             </TCell.Secondary>
+            <TCell.Secondary className="font-mono">
+                <TCell.Date>{item?.order?.createdAt}</TCell.Date>
+            </TCell.Secondary>
         </div>
     ),
 };
