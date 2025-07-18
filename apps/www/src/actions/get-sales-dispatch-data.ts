@@ -60,6 +60,7 @@ export async function getSalesDispatchDataAction(orderId) {
         };
     });
     const deliveries = overview.deliveries.map((delivery) => {
+        delivery.driver;
         return {
             ...delivery,
             items: delivery.items.map((item) => {
@@ -72,6 +73,7 @@ export async function getSalesDispatchDataAction(orderId) {
                     _item || {};
                 return {
                     ...item,
+
                     item: {
                         controlUid,
                         title,

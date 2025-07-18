@@ -230,6 +230,11 @@ const select = {
             status: true,
             deliveryMode: true,
             id: true,
+            createdBy: {
+                select: {
+                    name: true,
+                },
+            },
             driver: {
                 select: {
                     name: true,

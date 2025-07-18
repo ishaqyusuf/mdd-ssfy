@@ -56,6 +56,7 @@ export function DispatchList({}) {
                             <TableHead className="w-[50px]"></TableHead>
                             <TableHead>Dispatch ID</TableHead>
                             <TableHead>Date</TableHead>
+                            <TableHead>Assigned By</TableHead>
                             <TableHead>Assigned To</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right"></TableHead>
@@ -113,6 +114,11 @@ export function DispatchList({}) {
                                                 </DataSkeleton>
                                             </TableCell>
                                             <TableCell>
+                                                <DataSkeleton pok="textSm">
+                                                    {dispatch?.createdBy?.name}
+                                                </DataSkeleton>
+                                            </TableCell>
+                                            <TableCell>
                                                 <DataSkeleton pok="date">
                                                     {dispatch.driver?.name}
                                                 </DataSkeleton>
@@ -143,7 +149,7 @@ export function DispatchList({}) {
                                         <CollapsibleContent asChild>
                                             <TableRow>
                                                 <TableCell
-                                                    colSpan={6}
+                                                    colSpan={7}
                                                     className="p-0"
                                                 >
                                                     <div className="bg-muted/50 p-4">

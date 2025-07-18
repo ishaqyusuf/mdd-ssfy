@@ -86,6 +86,7 @@ const SheetContent = React.forwardRef<
       className,
       hideClose,
       children,
+      
       // title,
       ...props
     },
