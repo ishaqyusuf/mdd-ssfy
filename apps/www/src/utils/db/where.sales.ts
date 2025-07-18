@@ -270,18 +270,30 @@ export function whereSales(params: SearchParamsType) {
             });
         case "not completed":
             queries.push({
+                type: params["sales.type"],
                 itemControls: {
                     some: {
                         deletedAt: null,
-                        qtyControls: {
-                            some: {
-                                deletedAt: null,
-                                type: "prodCompleted" as QtyControlType,
-                                percentage: {
-                                    not: 100,
+                        OR: [
+                            {
+                                qtyControls: {
+                                    some: {
+                                        deletedAt: null,
+                                        type: "prodCompleted" as QtyControlType,
+                                        percentage: {
+                                            lt: 100,
+                                        },
+                                    },
                                 },
                             },
-                        },
+                            {
+                                qtyControls: {
+                                    none: {
+                                        type: "prodCompleted" as QtyControlType,
+                                    },
+                                },
+                            },
+                        ],
                     },
                 },
             });

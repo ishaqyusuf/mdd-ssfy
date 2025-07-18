@@ -4,7 +4,10 @@ import { ComponentHelperClass } from "../../../_utils/helpers/zus/step-component
 import { Door } from "../door-swap-modal";
 import { _modal } from "@/components/common/modal/provider";
 import { toast } from "sonner";
-import { saveComponentPricingUseCase, updateComponentPricingUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-pricing-use-case";
+import {
+    saveComponentPricingUseCase,
+    updateComponentPricingUseCase,
+} from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-pricing-use-case";
 
 interface DoorSizeSelectContextType {
     cls: ComponentHelperClass;
@@ -21,7 +24,9 @@ interface DoorSizeSelectContextType {
     priceChanged: (size: string, price: number | null) => void;
 }
 
-const DoorSizeSelectContext = createContext<DoorSizeSelectContextType | null>(null);
+const DoorSizeSelectContext = createContext<DoorSizeSelectContextType | null>(
+    null,
+);
 
 export const useCtx = () => {
     const context = useContext(DoorSizeSelectContext);
@@ -33,7 +38,7 @@ export const useCtx = () => {
 
 export function useInitContext(cls: ComponentHelperClass, door?: Door) {
     const routeConfig = cls.getRouteConfig();
-    const sizeList = cls.getDoorSizeList();
+    const sizeList = cls?.getDoorSizeList();
     const priceModel = cls.getDoorPriceModel(cls.componentUid);
 
     const form = useForm({
@@ -92,3 +97,4 @@ export function useInitContext(cls: ComponentHelperClass, door?: Door) {
         priceChanged,
     };
 }
+
