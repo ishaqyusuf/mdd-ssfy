@@ -23,9 +23,7 @@ export function DataTable({ driver = false }) {
     });
     const { setParams: setSalesPreviewParams } = useSalesPreview();
     const { data: drivers } = useQuery(trpc.hrm.getDrivers.queryOptions({}));
-    useEffect(() => {
-        console.log(drivers);
-    }, [drivers]);
+
     const addons: Addon = {
         drivers: drivers || [],
         driverMode: !!driver,

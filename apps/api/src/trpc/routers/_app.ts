@@ -12,10 +12,12 @@ import { checkoutRouters } from "./checkout.route";
 import { dispatchRouters } from "./dispatch.route";
 import { userRoutes } from "./user.route";
 import { filterRouters } from "./filters.route";
+import { salesDashboardRouter } from "./sales-dashboard.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
   // students: studentsRouter,
+  salesDashboard: salesDashboardRouter,
   filters: filterRouters,
   checkout: checkoutRouters,
   dispatch: dispatchRouters,
