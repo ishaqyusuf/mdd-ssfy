@@ -75,43 +75,12 @@ export async function moveOrderUseCase(orderId, to) {
 export async function copySalesUseCase(orderId, as: SalesType) {
     const resp2 = await copySalesDta(orderId, as);
     const link = resp2?.isDyke ? `/sales-book/edit-${as}/${resp2.slug}` : ``;
-    // if (link) redirect(link);
+
     return {
         error: resp2?.error,
         link,
         id: resp2.id,
         slug: resp2.slug,
         data: resp2,
-    };
-    // return resp2;
-
-    const form = await getSalesBookFormUseCase({
-        slug: orderId,
-    });
-
-    form.order.type = as;
-    const formData = zhInitializeState(form, true);
-
-    const { kvFormItem, kvStepForm, metaData, sequence } = formData;
-    // console.log(metaData)
-    const resp = await saveFormUseCase(
-        {
-            kvFormItem,
-            kvStepForm,
-            metaData,
-            sequence,
-        },
-        formData.oldFormState,
-        {
-            restoreMode: false,
-            allowRedirect: false,
-            copy: true,
-        },
-    );
-
-    return {
-        error: resp.data?.error,
-        link: `/sales-book/edit-${as}/${resp.slug}`,
-        data: resp,
     };
 }

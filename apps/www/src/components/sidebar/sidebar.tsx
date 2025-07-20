@@ -15,13 +15,13 @@ export function SideBar({ children, user, menuMode, validLinks }) {
             redirect("/login");
         },
     });
-    // adasd
+
     if (!session?.user) return <></>;
     return (
         <SidebarProviderRoot state={menuMode}>
             <SidebarContext args={[validLinks, user]}>
                 <SideMenu />
-                <SidebarInset className="flex-1 space-y-4 overflow-hidden md:ml-[70px]s pb-8">
+                <SidebarInset className="flex-1 space-y-4 overflow-hidden pb-8">
                     <Header />
                     <div className="px-6">{children}</div>
                 </SidebarInset>

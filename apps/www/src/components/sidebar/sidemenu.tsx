@@ -100,11 +100,11 @@ const sectionGroup = cva("", {
 });
 export function SideMenu({}) {
     const sb = useSidebar();
-    const { setDefaultOpen, defaultOpen } = useSidebarState();
+    const { setDefaultOpen, defaultOpen, state } = useSidebarState();
 
     const { renderMode, activeLink } = sb;
     return (
-        <Sidebar collapsible="icon" className="">
+        <Sidebar collapsible="icon" className="fixed">
             <SidebarHeader className="bg-white">
                 <ModuleSwitcher />
                 {sb.state == "expanded" ? (
@@ -116,8 +116,14 @@ export function SideMenu({}) {
                 )}
             </SidebarHeader>
             <SidebarContent
-                onMouseEnter={() => setDefaultOpen(true)}
-                onMouseLeave={() => setDefaultOpen(false)}
+                onMouseEnter={
+                    state == "expanded" ? undefined : () => setDefaultOpen(true)
+                }
+                onMouseLeave={
+                    state == "expanded"
+                        ? undefined
+                        : () => setDefaultOpen(false)
+                }
                 className="bg-white"
             >
                 {sb?.linkModules?.modules

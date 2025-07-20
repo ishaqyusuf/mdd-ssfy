@@ -115,3 +115,107 @@ export function statStatus(stat: Prisma.SalesStatGetPayload<{}>): {
     scoreStatus,
   };
 }
+export const SalesListInclude = {
+  customer: {
+    select: {
+      id: true,
+      name: true,
+      businessName: true,
+      phoneNo: true,
+      email: true,
+      address: true,
+    },
+  },
+  billingAddress: true,
+  shippingAddress: true,
+  salesRep: {
+    select: {
+      name: true,
+    },
+  },
+  deliveries: true,
+  stat: true,
+  extraCosts: true,
+} satisfies Prisma.SalesOrdersInclude;
+export const excludeDeleted = {
+  where: { deletedAt: null },
+};
+const AssignmentsInclude = {
+  where: {
+    ...excludeDeleted.where,
+    assignedToId: undefined,
+  },
+  include: {
+    assignedTo: true,
+    submissions: {
+      ...excludeDeleted,
+      include: {
+        itemDeliveries: {
+          ...excludeDeleted,
+        },
+      },
+    },
+  },
+} satisfies
+  | Prisma.DykeSalesDoors$productionsArgs
+  | Prisma.SalesOrderItems$assignmentsArgs;
+export const SalesIncludeAll = {
+  extraCosts: true,
+  items: {
+    where: { deletedAt: null },
+    include: {
+      formSteps: {
+        ...excludeDeleted,
+        include: {
+          step: true,
+        },
+      },
+      salesDoors: {
+        include: {
+          housePackageTool: {
+            include: {
+              door: true,
+            },
+          },
+          productions: AssignmentsInclude,
+        },
+        where: {
+          doorType: {
+            // in: salesData.productionDoorTypes,
+          },
+          ...excludeDeleted.where,
+        },
+      },
+      assignments: AssignmentsInclude,
+      shelfItems: {
+        where: { deletedAt: null },
+        include: {
+          shelfProduct: true,
+        },
+      },
+      housePackageTool: {
+        ...excludeDeleted,
+        include: {
+          casing: excludeDeleted,
+          door: excludeDeleted,
+          jambSize: excludeDeleted,
+          doors: {
+            ...excludeDeleted,
+          },
+          molding: excludeDeleted,
+        },
+      },
+    },
+  },
+  customer: excludeDeleted,
+  shippingAddress: excludeDeleted,
+  billingAddress: excludeDeleted,
+  producer: excludeDeleted,
+  salesRep: excludeDeleted,
+  productions: excludeDeleted,
+  payments: excludeDeleted,
+  stat: excludeDeleted,
+  deliveries: excludeDeleted,
+  itemDeliveries: excludeDeleted,
+  taxes: excludeDeleted,
+} satisfies Prisma.SalesOrdersInclude;

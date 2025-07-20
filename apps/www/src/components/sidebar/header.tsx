@@ -9,7 +9,7 @@ import { OpenSearchButton } from "../search/open-search-button";
 
 export function Header({}) {
     const ctx = useSidebar();
-    const { setDefaultOpen, defaultOpen } = useSidebarState();
+    const { setDefaultOpen, state, defaultOpen } = useSidebarState();
     return (
         <>
             <header className="z-10 bg-background/95  dark:bg-inherit sticky top-0  sshadow backdrop-blur supports-[backdrop-filter]:bg-background/60 dark:shadow-secondary w-full border-b">
@@ -24,11 +24,11 @@ export function Header({}) {
                             onClick={(e) => {
                                 setDefaultOpen(!defaultOpen);
                             }}
-                            className="-ml-1 size-4"
+                            className="-ml-1 size-4 xl:hidden"
                         />
                         <Separator
                             orientation="vertical"
-                            className="mr-2 h-4"
+                            className="mr-2 h-4 xl:hidden"
                         />
                     </div>
                     <div className="flex items-center space-x-4 lg:space-x-0">

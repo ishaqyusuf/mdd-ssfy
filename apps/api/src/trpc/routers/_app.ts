@@ -13,6 +13,7 @@ import { dispatchRouters } from "./dispatch.route";
 import { userRoutes } from "./user.route";
 import { filterRouters } from "./filters.route";
 import { salesDashboardRouter } from "./sales-dashboard.route";
+import { customerRouter } from "./customer.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
@@ -29,6 +30,7 @@ export const appRouter = createTRPCRouter({
   search: searchRouter,
   siteActions: siteActionsRoutes,
   user: userRoutes,
+  customers: customerRouter,
 });
 
 export type AppRouter = typeof appRouter;

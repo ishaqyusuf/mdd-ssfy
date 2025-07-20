@@ -11,6 +11,7 @@ export const taskNames = [
   "send-password-reset-to-default-email",
   "send-password-reset-code",
   "create-sales-dispatch",
+  "create-sales-history",
 ] as const;
 export type TaskName = (typeof taskNames)[number];
 export const createSalesDispatchSchemaTask = z.object({
@@ -20,7 +21,14 @@ export const createSalesDispatchSchemaTask = z.object({
 export type CreateSalesDispatchSchemaTask = z.infer<
   typeof createSalesDispatchSchemaTask
 >;
-
+export const createSalesHistorySchemaTask = z.object({
+  authorName: z.string(),
+  salesId: z.number(),
+  salesIncludeData: z.any(),
+});
+export type CreateSalesHistorySchemaTask = z.infer<
+  typeof createSalesHistorySchemaTask
+>;
 export const sendSalesEmailSchema = z.object({
   emailType: z
     .enum(["with payment", "with part payment", "without payment"])

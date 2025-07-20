@@ -214,7 +214,6 @@ export async function copySalesDta(orderId, as) {
             };
         }) as any)
         .catch((error) => {
-            console.log(error);
             response = {
                 error: error.message,
             };

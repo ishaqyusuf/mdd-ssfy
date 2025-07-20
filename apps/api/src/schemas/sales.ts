@@ -23,3 +23,9 @@ export const inboundQuerySchema = z
   })
   .merge(paginationSchema);
 export type InboundQuerySchema = z.infer<typeof inboundQuerySchema>;
+
+export const startNewSalesSchema = z.object({
+  customerId: z.number().optional().nullable(),
+});
+
+export type StartNewSalesSchema = z.infer<typeof startNewSalesSchema>;

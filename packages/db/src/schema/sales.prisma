@@ -88,6 +88,7 @@ model SalesOrders {
     extraCosts        SalesExtraCosts[]
     squarePayOrders   SquarePaymentOrders[]
     payrolls          Payroll[]
+    history           SalesHistory[]
 
     @@unique([orderId, type])
     @@index([createdAt, deletedAt, orderId, grandTotal, prodId, type, prodDueDate])
@@ -98,6 +99,20 @@ model SalesOrders {
     @@index([prodId])
     @@index([salesRepId])
     @@index([pickupId])
+}
+
+model SalesHistory {
+    id         String       @unique @default(uuid())
+    data       Json?        @db.Json
+    name       String?
+    authorName String?
+    salesId    Int
+    sale       SalesOrders? @relation(fields: [salesId], references: [id])
+    createdAt  DateTime?    @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime?    @updatedAt
+    deletedAt  DateTime?    @db.Timestamp(0)
+
+    @@index([salesId])
 }
 
 enum SalesPriority {

@@ -3,6 +3,7 @@ import { whereSales } from "@api/prisma-where";
 import { composeQueryData } from "@api/query-response";
 import type { SalesQueryParamsSchema } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
+import { SalesListInclude } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
 
 export async function getSales(
@@ -33,28 +34,6 @@ export async function getSales(
     })),
   );
 }
-export const SalesListInclude = {
-  customer: {
-    select: {
-      id: true,
-      name: true,
-      businessName: true,
-      phoneNo: true,
-      email: true,
-      address: true,
-    },
-  },
-  billingAddress: true,
-  shippingAddress: true,
-  salesRep: {
-    select: {
-      name: true,
-    },
-  },
-  deliveries: true,
-  stat: true,
-  extraCosts: true,
-} satisfies Prisma.SalesOrdersInclude;
 
 export async function salesNotesCount(salesIds: number[], prisma) {
   if (!salesIds || salesIds.length === 0) return {};
@@ -125,4 +104,20 @@ export async function salesNotesCount(salesIds: number[], prisma) {
       };
   });
   return resp;
+}
+
+export async function startNewSales(
+  ctx: TRPCContext,
+  customerId?: number | null,
+) {
+  const { db } = ctx;
+  const newSalesOrder = await db.salesOrders.create({
+    data: {
+      type: "order", // or "invoice" based on your default
+      status: "draft",
+      customerId: customerId || undefined,
+      // Add other default fields as necessary
+    },
+  });
+  return newSalesOrder;
 }
