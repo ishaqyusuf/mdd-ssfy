@@ -1,4 +1,5 @@
 import { statToKeyValueDto, type Item } from "@api/dto/sales-dto";
+import type { SalesQueryParamsSchema } from "@api/schemas/sales";
 import type {
   AddressBookMeta,
   CustomerMeta,
@@ -47,6 +48,20 @@ export function qtyControlsByType(controls: Prisma.QtyControlGetPayload<{}>[]) {
     {} as any;
   controls.map((c) => (_stat[c.type] = c));
   return _stat;
+}
+
+export function transformSalesFilterQuery(query: SalesQueryParamsSchema) {
+  if (
+    Object.entries(query)
+      .filter(([a, b]) => !!b)
+      .every(([a]) => ["sales.type", "start"].includes(a))
+  ) {
+    console.log("NOT FILTERED!");
+    query["dispatch.status"] = "pending";
+  } else {
+    console.log("FILTERED!");
+  }
+  return query;
 }
 export function salesLinks(data: Item) {
   return {

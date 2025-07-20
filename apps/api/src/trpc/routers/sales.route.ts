@@ -3,10 +3,11 @@ import { inboundQuerySchema, salesQueryParamsSchema } from "@api/schemas/sales";
 import { getSales, startNewSales } from "@api/db/queries/sales";
 import { getInbounds, getInboundSummary } from "@api/db/queries/inbound";
 import { startNewSalesSchema } from "@api/schemas/sales";
+import { transformSalesFilterQuery } from "@api/utils/sales";
 
 export const salesRouter = createTRPCRouter({
   index: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
-    return getSales(props.ctx, props.input);
+    return getSales(props.ctx, transformSalesFilterQuery(props.input));
   }),
   quotes: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
     return getSales(props.ctx, props.input);
