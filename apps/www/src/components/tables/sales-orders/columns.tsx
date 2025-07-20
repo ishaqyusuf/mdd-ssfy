@@ -6,8 +6,22 @@ import { Progress } from "@/components/(clean-code)/progress";
 import { cn } from "@/lib/utils";
 import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
+import { AlertDialogTrigger } from "@gnd/ui/alert-dialog";
 
 import { Badge } from "@gnd/ui/badge";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableRow,
+} from "@gnd/ui/table";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@gnd/ui/tooltip";
 
 type Item = RouterOutputs["sales"]["quotes"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
@@ -86,34 +100,103 @@ export const columns: ColumnDef<Item>[] = [
             </TCell.Secondary>
         ),
     },
+    // {
+    //     header: "Invoice",
+    //     accessorKey: "invoice",
+    //     meta: {
+    //         className: "text-right",
+    //     },
+    //     cell: ({ row: { original: item } }) => (
+    //         <div className="text-right">
+    //             <TCell.Money
+    //                 value={item.invoice.total}
+    //                 className={cn("font-mono")}
+    //             />
+    //         </div>
+    //     ),
+    // },
     {
         header: "Invoice",
         accessorKey: "invoice",
         meta: {
             className: "text-right",
         },
-        cell: ({ row: { original: item } }) => (
-            <div className="text-right">
-                <TCell.Money
-                    value={item.invoice.total}
-                    className={cn("font-mono")}
-                />
-            </div>
-        ),
+        cell: ({ row: { original: item } }) => {
+            const { pending, paid, total } = item.invoice;
+            return (
+                <div className="text-right">
+                    <TooltipProvider delayDuration={70}>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <TCell.Money
+                                    value={item.invoice.total}
+                                    className={cn(
+                                        "font-mono font-medium",
+                                        pending == total
+                                            ? "text-red-600"
+                                            : pending > 0
+                                              ? "text-purple-500"
+                                              : "text-green-600",
+                                    )}
+                                />
+                            </TooltipTrigger>
+                            <TooltipContent
+                                className="px-3 py-1.5 text-xs"
+                                sideOffset={10}
+                            >
+                                <Table>
+                                    <TableBody>
+                                        <TableRow>
+                                            <TableHead>Pending</TableHead>
+                                            <TableCell className="text-left">
+                                                <TCell.Money
+                                                    value={pending}
+                                                ></TCell.Money>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableHead>Paid</TableHead>
+                                            <TableCell className="text-left">
+                                                <TCell.Money
+                                                    value={paid}
+                                                ></TCell.Money>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableHead>Total</TableHead>
+                                            <TableCell className="text-left">
+                                                <TCell.Money
+                                                    value={total}
+                                                ></TCell.Money>
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
+            );
+        },
     },
     // {
     //     header: "Pending",
     //     accessorKey: "pending",
     //     cell: ({ row: { original: item } }) => (
     //         <div>
-    //             <TCell.Money
-    //                 value={Math.abs(item.invoice.pending || 0)}
-    //                 className={cn(
-    //                     "font-mono font-medium text-muted-foreground",
-    //                     item.invoice.pending > 0 && "text-red-700/80",
-    //                     item.invoice.pending < 0 && "bg-emerald-700 text-white",
-    //                 )}
-    //             />
+    //             {item.invoice.pending ? (
+    //                 <TCell.Money
+    //                     value={Math.abs(item.invoice.pending || 0)}
+    //                     className={cn(
+    //                         "font-mono font-medium text-muted-foreground",
+    //                         item.invoice.pending > 0 && "text-red-700/80",
+    //                         item.invoice.pending < 0 &&
+    //                             "bg-emerald-700 text-white",
+    //                     )}
+    //                 />
+    //             ) : (
+    //                 "-"
+    //             )}
     //         </div>
     //     ),
     // },
