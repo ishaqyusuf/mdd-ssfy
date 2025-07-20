@@ -110,7 +110,7 @@ export function statStatus(stat: Prisma.SalesStatGetPayload<{}>): {
     return {
       color: "amber",
       status: "N/A" as any,
-      scoreStatus,
+      scoreStatus: "N/A",
     };
   if (percentage! > 0 && percentage! < 100)
     return {

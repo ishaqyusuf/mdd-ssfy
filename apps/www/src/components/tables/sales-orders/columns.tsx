@@ -125,7 +125,7 @@ export const columns: ColumnDef<Item>[] = [
         accessorKey: "production",
         cell: ({ row: { original: item } }) => (
             <Progress>
-                <Progress.Status color={item.status.production?.color}>
+                <Progress.Status>
                     {item.status.production?.scoreStatus ||
                         item.status.production?.status}
                 </Progress.Status>
