@@ -1,5 +1,5 @@
 import { whereDispatch } from "@api/prisma-where";
-import { composeQueryData } from "@api/query-response";
+import { composeQueryData, queryResponse } from "@api/query-response";
 import type {
   DispatchQueryParamsSchema,
   UpdateSalesDeliveryOptionSchema,
@@ -13,6 +13,7 @@ export async function getDispatches(
   query: DispatchQueryParamsSchema,
 ) {
   const { db } = ctx;
+  query.sort = "dueDate";
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereDispatch(query),

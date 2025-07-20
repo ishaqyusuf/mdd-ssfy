@@ -113,11 +113,11 @@ export async function startNewSales(
   const { db } = ctx;
   const newSalesOrder = await db.salesOrders.create({
     data: {
-      type: "order", // or "invoice" based on your default
-      status: "draft",
-      customerId: customerId || undefined,
+      // type: "order", // or "invoice" based on your default
+      // status: "draft",
+      // customerId: customerId || undefined,
       // Add other default fields as necessary
-    },
+    } as any,
   });
   return newSalesOrder;
 }
