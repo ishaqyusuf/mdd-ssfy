@@ -45,7 +45,7 @@ export function SelectCustomerModal({
             onSuccess: (data) => {
                 // queryClient.invalidateQueries(trpc.sales.invoiceById.queryKey({ id: data.id.toString() }));
                 onOpenChange(false);
-                router.push(`/invoice-form/${data.id}`);
+                // router.push(`/invoice-form/${data.id}`);
             },
             onError: (error) => {
                 console.error("Failed to start new sales:", error);

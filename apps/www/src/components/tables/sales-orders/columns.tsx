@@ -89,28 +89,34 @@ export const columns: ColumnDef<Item>[] = [
     {
         header: "Invoice",
         accessorKey: "invoice",
+        meta: {
+            className: "text-right",
+        },
         cell: ({ row: { original: item } }) => (
-            <div>
-                <TCell.Money value={item.invoice.total} className="font-mono" />
-            </div>
-        ),
-    },
-    {
-        header: "Pending",
-        accessorKey: "pending",
-        cell: ({ row: { original: item } }) => (
-            <div>
+            <div className="text-right">
                 <TCell.Money
-                    value={Math.abs(item.invoice.pending || 0)}
-                    className={cn(
-                        "font-mono font-medium text-muted-foreground",
-                        item.invoice.pending > 0 && "text-red-700/80",
-                        item.invoice.pending < 0 && "bg-emerald-700 text-white",
-                    )}
+                    value={item.invoice.total}
+                    className={cn("font-mono")}
                 />
             </div>
         ),
     },
+    // {
+    //     header: "Pending",
+    //     accessorKey: "pending",
+    //     cell: ({ row: { original: item } }) => (
+    //         <div>
+    //             <TCell.Money
+    //                 value={Math.abs(item.invoice.pending || 0)}
+    //                 className={cn(
+    //                     "font-mono font-medium text-muted-foreground",
+    //                     item.invoice.pending > 0 && "text-red-700/80",
+    //                     item.invoice.pending < 0 && "bg-emerald-700 text-white",
+    //                 )}
+    //             />
+    //         </div>
+    //     ),
+    // },
     {
         header: "Dispatch",
         accessorKey: "dispatch",
