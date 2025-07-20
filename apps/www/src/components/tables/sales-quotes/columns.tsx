@@ -1,5 +1,6 @@
 "use client";
 
+import { SalesListItem } from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
 import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Progress } from "@/components/(clean-code)/progress";
@@ -13,7 +14,7 @@ type Item = RouterOutputs["sales"]["quotes"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
     {
         header: "Date",
-        accessorKey: "salesDate",
+        accessorKey: "quoteDate",
         meta: {},
         cell: ({ row: { original: item } }) => (
             <TCell.Secondary className="font-mono">
@@ -22,8 +23,8 @@ export const columns: ColumnDef<Item>[] = [
         ),
     },
     {
-        header: "Order #",
-        accessorKey: "order.no",
+        header: "Quote #",
+        accessorKey: "quoteId",
         cell: ({ row: { original: item } }) => (
             <TCell.Secondary className="whitespace-nowrap">
                 {item.orderId}
@@ -95,43 +96,7 @@ export const columns: ColumnDef<Item>[] = [
             </div>
         ),
     },
-    {
-        header: "Pending",
-        accessorKey: "pending",
-        cell: ({ row: { original: item } }) => (
-            <div>
-                <TCell.Money
-                    value={Math.abs(item.invoice.pending || 0)}
-                    className={cn(
-                        "font-mono font-medium text-muted-foreground",
-                        item.invoice.pending > 0 && "text-red-700/80",
-                        item.invoice.pending < 0 && "bg-emerald-700 text-white",
-                    )}
-                />
-            </div>
-        ),
-    },
-    {
-        header: "Dispatch",
-        accessorKey: "dispatch",
-        cell: ({ row: { original: item } }) => (
-            <Progress.Status>
-                {item?.deliveryOption || "Not set"}
-            </Progress.Status>
-        ),
-    },
-    {
-        header: "Production",
-        accessorKey: "production",
-        cell: ({ row: { original: item } }) => (
-            <Progress>
-                <Progress.Status color={item.status.production?.color}>
-                    {item.status.production?.scoreStatus ||
-                        item.status.production?.status}
-                </Progress.Status>
-            </Progress>
-        ),
-    },
+
     {
         header: "",
         accessorKey: "action",

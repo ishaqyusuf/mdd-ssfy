@@ -2,10 +2,7 @@ import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 
 import QuotesPageClient from "../../_components/quote-page-client";
 
-import { composeFilter } from "@/components/(clean-code)/data-table/filter-command/filters";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import Portal from "@/components/_v1/portal";
-import NewFeatureBtn from "@/components/common/new-feature-btn";
 import TablePage from "@/components/tables/table-page";
 import { getSalesPageQueryData } from "@/actions/cached-queries";
 
@@ -36,3 +33,4 @@ export default async function SalesBookQuotePage(props) {
         </FPage>
     );
 }
+

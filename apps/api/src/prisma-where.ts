@@ -134,29 +134,29 @@ export function whereSales(query: SalesQueryParamsSchema) {
   const statType = (type: QtyControlType) => type;
   const status = query["dispatch.status"];
   if (status) {
-    switch (query["dispatch.status"]) {
-      case "backorder":
-        where.push({
-          stat: {
-            some: {
-              type: statType("dispatchCompleted"),
-              AND: [
-                {
-                  percentage: {
-                    gt: 0,
-                  },
-                },
-                {
-                  percentage: {
-                    lt: 100,
-                  },
-                },
-              ],
-            },
-          },
-        });
-        break;
-    }
+    // switch (query["dispatch.status"]) {
+    //   case "backorder":
+    //     where.push({
+    //       stat: {
+    //         some: {
+    //           type: statType("dispatchCompleted"),
+    //           AND: [
+    //             {
+    //               percentage: {
+    //                 gt: 0,
+    //               },
+    //             },
+    //             {
+    //               percentage: {
+    //                 lt: 100,
+    //               },
+    //             },
+    //           ],
+    //         },
+    //       },
+    //     });
+    //     break;
+    // }
   }
 
   if (query["sales.type"]) {

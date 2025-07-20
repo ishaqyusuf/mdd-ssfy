@@ -13,6 +13,7 @@ export const orderFilterParamsSchema = {
     "production.assignment": parseAsString,
     "production.status": parseAsString,
     "dispatch.status": parseAsString,
+    production: parseAsString,
     // "sales.type": parseAsString,
     // "dispatch.type": parseAsString,
     invoice: parseAsString,

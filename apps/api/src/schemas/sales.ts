@@ -3,6 +3,7 @@ import {
   inboundFilterStatus,
   INVOICE_FILTER_OPTIONS,
   PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
+  PRODUCTION_FILTER_OPTIONS,
   PRODUCTION_STATUS,
   salesDispatchStatus,
   salesType,
@@ -28,6 +29,7 @@ export const salesQueryParamsSchema = z
       .optional()
       .nullable(),
     invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
+    production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),
   })
   .merge(paginationSchema);
 export type SalesQueryParamsSchema = z.infer<typeof salesQueryParamsSchema>;

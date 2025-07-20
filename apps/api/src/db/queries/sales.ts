@@ -1,4 +1,4 @@
-import { salesOrderDto } from "@api/dto/sales-dto";
+import { salesOrderDto, salesQuoteDto } from "@api/dto/sales-dto";
 import { whereSales } from "@api/prisma-where";
 import { composeQueryData } from "@api/query-response";
 import type { SalesQueryParamsSchema } from "@api/schemas/sales";
@@ -31,6 +31,30 @@ export async function getSales(
     data.map(salesOrderDto).map((d) => ({
       ...d,
       ...(notCounts[d.id.toString()] || {}),
+    })),
+  );
+}
+export async function getQuotes(
+  ctx: TRPCContext,
+  query: SalesQueryParamsSchema,
+) {
+  query.salesType = "quote";
+  const { db } = ctx;
+  const { response, searchMeta, where } = await composeQueryData(
+    query,
+    whereSales(query),
+    db.salesOrders,
+  );
+
+  const data = await db.salesOrders.findMany({
+    where,
+    ...searchMeta,
+    include: SalesListInclude,
+  });
+
+  return await response(
+    data.map(salesQuoteDto).map((d) => ({
+      ...d,
     })),
   );
 }

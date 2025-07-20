@@ -17,4 +17,5 @@ export const searchIcons: Partial<{
     "sales.rep": "user",
     invoice: "communityInvoice",
     "salesRep.id": "user",
+    "dispatch.status": "Export",
 };

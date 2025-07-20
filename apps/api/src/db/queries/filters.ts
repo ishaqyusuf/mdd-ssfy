@@ -9,6 +9,7 @@ import {
   DISPATCH_FILTER_OPTIONS,
   INVOICE_FILTER_OPTIONS,
   PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
+  PRODUCTION_FILTER_OPTIONS,
   PRODUCTION_STATUS,
   salesDispatchStatus,
 } from "@gnd/utils/constants";
@@ -169,6 +170,14 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
       "production.assignment",
       "Production Assignment",
       PRODUCTION_ASSIGNMENT_FILTER_OPTIONS.map((status) => ({
+        label: status,
+        value: status,
+      })),
+    ),
+    optionFilter<T>(
+      "production",
+      "Production",
+      PRODUCTION_FILTER_OPTIONS.map((status) => ({
         label: status,
         value: status,
       })),

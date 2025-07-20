@@ -9,7 +9,6 @@ import { useTheme } from "next-themes";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 
-import { GetSalesOrdersDta } from "../../../_common/data-access/sales-dta";
 import { StickyNote } from "lucide-react";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 
