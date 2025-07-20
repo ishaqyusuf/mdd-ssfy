@@ -3,14 +3,14 @@ import { SearchFilterProvider } from "@/hooks/use-search-filter";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
-import { orderFilterParamsSchema } from "@/hooks/use-order-filter-params";
+import { salesFilterParamsSchema } from "@/hooks/use-sales-filter-params";
 
 export function OrderSearchFilter() {
     return (
         <SearchFilterProvider
             args={[
                 {
-                    filterSchema: orderFilterParamsSchema,
+                    filterSchema: salesFilterParamsSchema,
                 },
             ]}
         >
@@ -26,7 +26,11 @@ function Content({}) {
 
     return (
         <>
-            <SearchFilterTRPC filterList={trpcFilterData} />
+            <SearchFilterTRPC
+                placeholder={"Search Order Information"}
+                filterList={trpcFilterData}
+            />
         </>
     );
 }
+

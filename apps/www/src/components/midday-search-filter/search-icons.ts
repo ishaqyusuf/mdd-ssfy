@@ -2,9 +2,10 @@ import { IconKeys } from "../_v1/icons";
 import { SearchParamsKeys } from "../(clean-code)/data-table/search-params";
 
 export const searchIcons: Partial<{
-    [id in SearchParamsKeys]: IconKeys;
+    [id in string]: IconKeys;
 }> = {
     "order.no": "orders",
+    salesNo: "orders",
     "customer.name": "user",
     phone: "phone",
     search: "Search",

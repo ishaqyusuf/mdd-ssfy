@@ -4,7 +4,7 @@ import { ErrorFallback } from "@/components/error-fallback";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import { OrderHeader } from "@/components/order-header";
+import { OrderHeader } from "@/components/sales-order-header";
 import { DataTable } from "@/components/tables/sales-orders/data-table";
 
 export async function generateMetadata(props) {

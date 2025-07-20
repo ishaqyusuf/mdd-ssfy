@@ -91,7 +91,7 @@ export function statStatus(stat: Prisma.SalesStatGetPayload<{}>): {
       status: "pending",
       scoreStatus,
     };
-  if (percentage == 0)
+  if (percentage == 0 && total == 0)
     return {
       color: "amber",
       status: "N/A" as any,

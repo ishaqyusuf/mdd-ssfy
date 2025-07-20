@@ -1,19 +1,31 @@
-import {
-    parseAsBoolean,
-    parseAsInteger,
-    parseAsJson,
-    parseAsString,
-    parseAsStringEnum,
-    useQueryStates,
-} from "nuqs";
+import { parseAsArrayOf, parseAsString, useQueryStates } from "nuqs";
+import { createLoader } from "nuqs/server";
+import { RouterInputs } from "@api/trpc/routers/_app";
+type FilterKeys = keyof Exclude<RouterInputs["sales"]["index"], void>;
 
-import { useOnCloseQuery } from "./use-on-close-query";
+export const salesFilterParamsSchema = {
+    q: parseAsString,
+    "customer.name": parseAsString,
+    phone: parseAsString,
+    po: parseAsString,
+    "sales.rep": parseAsString,
+    "order.no": parseAsString,
+    "production.assignment": parseAsString,
+    "production.status": parseAsString,
+    "dispatch.status": parseAsString,
+    production: parseAsString,
+    // "sales.type": parseAsString,
+    // "dispatch.type": parseAsString,
+    invoice: parseAsString,
+} satisfies Partial<Record<FilterKeys, any>>;
 
-export function useSalesFilterParams() {
-    const [params, setParams] = useQueryStates({});
-
+export function useOrderFilterParams() {
+    const [filters, setFilters] = useQueryStates(salesFilterParamsSchema);
     return {
-        params,
-        setParams,
+        filters,
+        setFilters,
+        hasFilters: Object.values(filters).some((value) => value !== null),
     };
 }
+export const loadOrderFilterParams = createLoader(salesFilterParamsSchema);
+

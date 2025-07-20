@@ -5,7 +5,7 @@ import type { DispatchQueryParamsSchema } from "./schemas/dispatch";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import type { EmployeesQueryParams } from "./schemas/hrm";
 import { addSpacesToCamelCase } from "@gnd/utils";
-import type { QtyControlType } from "./type";
+import type { QtyControlByType, QtyControlType } from "./type";
 import { anyDateQuery, dateEquals, fixDbTime } from "./utils/db";
 import dayjs from "@gnd/utils/dayjs";
 import { env } from "process";
@@ -196,6 +196,7 @@ export function whereSales(query: SalesQueryParamsSchema) {
       //     });
       //   break;
       case "order.no":
+      case "salesNo":
         if (val?.includes(","))
           where.push({
             orderId: {
@@ -308,6 +309,24 @@ export function whereSales(query: SalesQueryParamsSchema) {
     }
   });
   const prodStatus = query["production.status"];
+  const production = query["production"];
+  switch (production) {
+    case "pending":
+      where.push({
+        stat: {
+          some: {
+            total: {
+              gt: 0,
+            },
+            type: "prodCompleted" as QtyControlType,
+            percentage: {
+              lt: 100,
+            },
+          },
+        },
+      });
+      break;
+  }
   const assignedToId = query["production.assignedToId"];
   switch (prodStatus) {
     case "completed":

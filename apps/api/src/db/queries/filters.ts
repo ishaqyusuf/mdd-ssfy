@@ -4,7 +4,7 @@ import type {
   SalesQueryParamsSchema,
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
-import type { PageFilterData } from "@api/type";
+import type { PageFilterData, SalesType } from "@api/type";
 import {
   DISPATCH_FILTER_OPTIONS,
   INVOICE_FILTER_OPTIONS,
@@ -12,6 +12,7 @@ import {
   PRODUCTION_FILTER_OPTIONS,
   PRODUCTION_STATUS,
   salesDispatchStatus,
+  salesType,
 } from "@gnd/utils/constants";
 
 export async function getDispatchFilters(ctx: TRPCContext) {
@@ -73,6 +74,7 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
   type FilterData = PageFilterData<T>;
 
   const sales = await ctx.db.salesOrders.findMany({
+    where: { type: "quote" as SalesType },
     select: {
       orderId: true,
       meta: true,
@@ -141,7 +143,7 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
       salesReps.map((rep) => ({ label: rep, value: rep })),
     ),
     optionFilter<T>(
-      "order.no",
+      "salesNo",
       "Order #",
       orderNos.map((no) => ({ label: no, value: no })),
     ),
@@ -178,9 +180,92 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
       "production",
       "Production",
       PRODUCTION_FILTER_OPTIONS.map((status) => ({
-        label: status,
+        label: `${status}`,
         value: status,
       })),
+    ),
+  ];
+  return resp as FilterData[];
+}
+export async function getSalesQuoteFilter(ctx: TRPCContext) {
+  type T = keyof SalesQueryParamsSchema;
+  type FilterData = PageFilterData<T>;
+
+  const sales = await ctx.db.salesOrders.findMany({
+    where: {
+      type: "quote" as SalesType,
+    },
+    select: {
+      orderId: true,
+      meta: true,
+      customer: {
+        select: {
+          businessName: true,
+          name: true,
+          phoneNo: true,
+        },
+      },
+      billingAddress: {
+        select: {
+          phoneNo: true,
+        },
+      },
+      salesRep: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+
+  const customerNames = [
+    ...new Set(
+      sales
+        .flatMap((s) => [s.customer?.name, s.customer?.businessName])
+        .filter(Boolean),
+    ),
+  ];
+  const phones = [
+    ...new Set(
+      sales
+        .flatMap((s) => [s.customer?.phoneNo, s.billingAddress?.phoneNo])
+        .filter(Boolean),
+    ),
+  ];
+  const pos = [
+    ...new Set(sales.map((s) => (s.meta as any)?.po).filter(Boolean)),
+  ];
+  const salesReps = [
+    ...new Set(sales.map((s) => s.salesRep?.name).filter(Boolean)),
+  ];
+  const orderNos = [...new Set(sales.map((s) => s.orderId).filter(Boolean))];
+
+  const resp = [
+    searchFilter,
+    optionFilter<T>(
+      "customer.name",
+      "Customer",
+      customerNames.map((name) => ({ label: name, value: name })),
+    ),
+    optionFilter<T>(
+      "phone",
+      "Phone",
+      phones.map((phone) => ({ label: phone, value: phone })),
+    ),
+    optionFilter<T>(
+      "po",
+      "P.O",
+      pos.map((po) => ({ label: po, value: po })),
+    ),
+    optionFilter<T>(
+      "sales.rep",
+      "Sales Rep",
+      salesReps.map((rep) => ({ label: rep, value: rep })),
+    ),
+    optionFilter<T>(
+      "salesNo",
+      "Quote #",
+      orderNos.map((no) => ({ label: no, value: no })),
     ),
   ];
   return resp as FilterData[];

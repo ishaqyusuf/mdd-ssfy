@@ -9,7 +9,7 @@ import { TableRow } from "../table-row";
 import { LoadMoreTRPC } from "../load-more";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 
-import { useOrderFilterParams } from "@/hooks/use-order-filter-params";
+import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
