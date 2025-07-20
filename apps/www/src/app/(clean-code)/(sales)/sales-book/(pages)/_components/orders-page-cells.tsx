@@ -2,7 +2,6 @@ import ConfirmBtn from "@/components/_v1/confirm-btn";
 import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { useTRContext } from "@/components/(clean-code)/data-table/use-data-table";
-import { Menu } from "@/components/(clean-code)/menu";
 import { Progress } from "@/components/(clean-code)/progress";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -12,9 +11,10 @@ import { Button } from "@gnd/ui/button";
 
 import { GetSalesOrdersDta } from "../../../_common/data-access/sales-dta";
 import { StickyNote } from "lucide-react";
+import { RouterOutputs } from "@api/trpc/routers/_app";
 
 export interface ItemProps {
-    item: GetSalesOrdersDta["data"][number];
+    item: RouterOutputs["sales"]["index"]["data"][number]; //GetSalesOrdersDta["data"][number];
     itemIndex?;
 }
 export type SalesItemProp = ItemProps["item"];

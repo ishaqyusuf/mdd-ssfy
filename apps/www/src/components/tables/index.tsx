@@ -11,6 +11,7 @@ import { useInView } from "react-intersection-observer";
 import { PageDataMeta, PageFilterData } from "@/types/type";
 
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
+import { useTableScroll } from "@/hooks/use-table-scroll";
 export type DataTableProps = {
     data: any[];
     loadMore?: (query) => Promise<any>;
@@ -37,6 +38,7 @@ type TableProps = (WithTable | WithoutTable) & {
     columns?;
     checkbox?: boolean;
     addons?;
+    tableScroll?: ReturnType<typeof useTableScroll>;
     tableMeta?: {
         deleteAction?: (id) => any;
         rowClick?: (id: string, rowData?) => any;
@@ -60,6 +62,7 @@ export const { useContext: useTable, Provider: TableProvider } =
         checkbox,
         defaultRowSelection = {},
         addons,
+        tableScroll,
     }: TableProps) {
         const [data, setData] = useState(initialData);
         // const [from, setFrom] = useState(pageSize);
@@ -134,6 +137,7 @@ export const { useContext: useTable, Provider: TableProvider } =
             selectedRow,
             totalRowsFetched,
             addons,
+            tableScroll,
         };
     });
 

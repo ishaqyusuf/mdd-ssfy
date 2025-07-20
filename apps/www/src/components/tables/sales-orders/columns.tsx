@@ -5,7 +5,7 @@ import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip"
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Progress } from "@/components/(clean-code)/progress";
 import { cn } from "@/lib/utils";
-import { ColumnDef } from "@tanstack/react-table";
+import { ColumnDef } from "@/types/type";
 
 import { Badge } from "@gnd/ui/badge";
 
@@ -13,6 +13,7 @@ export const columns: ColumnDef<SalesListItem>[] = [
     {
         header: "Date",
         accessorKey: "salesDate",
+        meta: {},
         cell: ({ row: { original: item } }) => (
             <TCell.Secondary className="font-mono">
                 {item?.salesDate}
@@ -38,6 +39,9 @@ export const columns: ColumnDef<SalesListItem>[] = [
     {
         header: "P.O",
         accessorKey: "po",
+        meta: {
+            className: "",
+        },
         cell: ({ row: { original: item } }) => <div>{item?.poNo}</div>,
     },
     {
@@ -126,5 +130,13 @@ export const columns: ColumnDef<SalesListItem>[] = [
                 </Progress.Status>
             </Progress>
         ),
+    },
+    {
+        header: "",
+        accessorKey: "action",
+        meta: {
+            actionCell: true,
+        },
+        cell: ({ row: { original: item } }) => <></>,
     },
 ];

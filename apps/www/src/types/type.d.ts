@@ -39,6 +39,7 @@ export type PageFilterData = {
 };
 export type ColumnMeta = {
     preventDefault?: boolean;
+    actionCell?: boolean;
     className?: string;
 };
 export type ColumnDef<T, Meta = {}> = TanColumnDef<T> & {
