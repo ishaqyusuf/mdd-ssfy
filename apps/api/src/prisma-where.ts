@@ -326,6 +326,37 @@ export function whereSales(query: SalesQueryParamsSchema) {
         },
       });
       break;
+    case "in progress":
+      where.push({
+        stat: {
+          some: {
+            total: {
+              gt: 0,
+            },
+            type: "prodCompleted" as QtyControlType,
+            AND: [
+              {
+                percentage: { gt: 0 },
+              },
+              { percentage: { lt: 100 } },
+            ],
+          },
+        },
+      });
+      break;
+    case "completed":
+      where.push({
+        stat: {
+          some: {
+            total: {
+              gt: 0,
+            },
+            type: "prodCompleted" as QtyControlType,
+            percentage: 100,
+          },
+        },
+      });
+      break;
   }
   const assignedToId = query["production.assignedToId"];
   switch (prodStatus) {

@@ -174,7 +174,7 @@ export function SearchFilterTRPC({
                         <DropdownMenuSub>
                             <DropdownMenuSubTrigger>
                                 <Icon
-                                    name={searchIcons[f.value]}
+                                    name={searchIcons[f.value] as any}
                                     className={"mr-2 size-4"}
                                 />
                                 <span className="capitalize">

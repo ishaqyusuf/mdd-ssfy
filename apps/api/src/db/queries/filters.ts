@@ -155,11 +155,11 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
         value: status,
       })),
     ),
-    optionFilter<T>(
-      "production.status",
-      "Production Status",
-      PRODUCTION_STATUS.map((status) => ({ label: status, value: status })),
-    ),
+    // optionFilter<T>(
+    //   "production.status",
+    //   "Production Status",
+    //   PRODUCTION_STATUS.map((status) => ({ label: status, value: status })),
+    // ),
     optionFilter<T>(
       "invoice",
       "Invoice Status",
@@ -168,14 +168,14 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
         value: status,
       })),
     ),
-    optionFilter<T>(
-      "production.assignment",
-      "Production Assignment",
-      PRODUCTION_ASSIGNMENT_FILTER_OPTIONS.map((status) => ({
-        label: status,
-        value: status,
-      })),
-    ),
+    // optionFilter<T>(
+    //   "production.assignment",
+    //   "Production Assignment",
+    //   PRODUCTION_ASSIGNMENT_FILTER_OPTIONS.map((status) => ({
+    //     label: status,
+    //     value: status,
+    //   })),
+    // ),
     optionFilter<T>(
       "production",
       "Production",
