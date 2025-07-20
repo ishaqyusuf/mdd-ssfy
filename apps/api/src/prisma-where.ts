@@ -464,7 +464,68 @@ export function whereSales(query: SalesQueryParamsSchema) {
     case "part assigned":
       break;
   }
-
+  switch (query["dispatch.status"]) {
+    case "pending":
+      where.push({
+        stat: {
+          some: {
+            total: {
+              gt: 0,
+            },
+            type: "dispatchCompleted" as QtyControlType,
+            percentage: {
+              lt: 100,
+            },
+          },
+        },
+      });
+      break;
+    case "completed":
+      where.push({
+        stat: {
+          some: {
+            total: {
+              gt: 0,
+            },
+            type: "dispatchCompleted" as QtyControlType,
+            percentage: 100,
+          },
+        },
+      });
+      break;
+    case "backorder":
+      where.push({
+        stat: {
+          some: {
+            total: {
+              gt: 0,
+            },
+            type: "dispatchCompleted" as QtyControlType,
+            AND: [
+              {
+                percentage: { gt: 0 },
+              },
+              { percentage: { lt: 100 } },
+            ],
+          },
+        },
+      });
+      break;
+    case "late":
+      where.push({
+        deliveries: {
+          some: {
+            status: {
+              not: "completed",
+            },
+            dueDate: {
+              lte: new Date(),
+            },
+          },
+        },
+      });
+      break;
+  }
   if (query["account.no"])
     where.push({
       customer: {

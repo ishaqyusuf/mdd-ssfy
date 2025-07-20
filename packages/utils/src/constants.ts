@@ -219,3 +219,9 @@ export const DISPATCH_FILTER_OPTIONS = [
   "cancelled",
   "completed",
 ] as const;
+export const SALES_DISPATCH_FILTER_OPTIONS = [
+  "pending",
+  "completed",
+  "late",
+  "backorder",
+] as const;

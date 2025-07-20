@@ -5,6 +5,7 @@ import {
   PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
   PRODUCTION_FILTER_OPTIONS,
   PRODUCTION_STATUS,
+  SALES_DISPATCH_FILTER_OPTIONS,
   salesDispatchStatus,
   salesType,
 } from "@gnd/utils/constants";
@@ -21,7 +22,10 @@ export const salesQueryParamsSchema = z
     po: z.string().optional().nullable(),
     "sales.rep": z.string().optional().nullable(),
     "order.no": z.string().optional().nullable(),
-    "dispatch.status": z.enum(salesDispatchStatus).optional().nullable(),
+    "dispatch.status": z
+      .enum(SALES_DISPATCH_FILTER_OPTIONS)
+      .optional()
+      .nullable(),
     "production.dueDate": z.array(z.any()).optional().nullable(),
     "production.status": z.enum(PRODUCTION_STATUS).optional().nullable(),
     "production.assignment": z
