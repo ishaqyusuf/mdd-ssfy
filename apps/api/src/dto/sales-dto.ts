@@ -1,4 +1,4 @@
-import type { SalesListInclude } from "@api/db/queries/sales";
+import { SalesListInclude } from "@api/utils/sales";
 import type {
   AddressBookMeta,
   QtyControlType,

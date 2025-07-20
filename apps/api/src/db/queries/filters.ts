@@ -5,7 +5,13 @@ import type {
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
 import type { PageFilterData } from "@api/type";
-import { salesDispatchStatus } from "@gnd/utils/constants";
+import {
+  DISPATCH_FILTER_OPTIONS,
+  INVOICE_FILTER_OPTIONS,
+  PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
+  PRODUCTION_STATUS,
+  salesDispatchStatus,
+} from "@gnd/utils/constants";
 
 export async function getDispatchFilters(ctx: TRPCContext) {
   type T = keyof DispatchQueryParamsSchema;
@@ -137,6 +143,35 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
       "order.no",
       "Order #",
       orderNos.map((no) => ({ label: no, value: no })),
+    ),
+    optionFilter<T>(
+      "dispatch.status",
+      "Dispatch Status",
+      DISPATCH_FILTER_OPTIONS.map((status) => ({
+        label: status,
+        value: status,
+      })),
+    ),
+    optionFilter<T>(
+      "production.status",
+      "Production Status",
+      PRODUCTION_STATUS.map((status) => ({ label: status, value: status })),
+    ),
+    optionFilter<T>(
+      "invoice",
+      "Invoice Status",
+      INVOICE_FILTER_OPTIONS.map((status) => ({
+        label: status,
+        value: status,
+      })),
+    ),
+    optionFilter<T>(
+      "production.assignment",
+      "Production Assignment",
+      PRODUCTION_ASSIGNMENT_FILTER_OPTIONS.map((status) => ({
+        label: status,
+        value: status,
+      })),
     ),
   ];
   return resp as FilterData[];

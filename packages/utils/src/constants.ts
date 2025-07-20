@@ -188,3 +188,34 @@ export const PERMISSION_NAMES = [
 export type PascalResource = (typeof PERMISSION_NAMES_PASCAL)[number];
 type Action = "edit" | "view";
 export type PermissionScope = `${Action}${PascalResource}`;
+export const PRODUCTION_ASSIGNMENT_FILTER_OPTIONS = [
+  "not assigned",
+  "part assigned",
+  "all assigned",
+] as const;
+export const PRODUCTION_STATUS = [
+  "not assigned",
+  "part assigned",
+  "due today",
+  "past due",
+  "completed",
+  "not completed",
+] as const;
+export const PRODUCTION_FILTER_OPTIONS = [
+  "pending",
+  "in progress",
+  "completed",
+] as const;
+export const INVOICE_FILTER_OPTIONS = [
+  "paid",
+  "pending",
+  "late",
+  "part-paid",
+  "overdraft",
+] as const;
+export const DISPATCH_FILTER_OPTIONS = [
+  "queue",
+  "in progress",
+  "cancelled",
+  "completed",
+] as const;

@@ -4,7 +4,6 @@ import { composeQueryData } from "@api/query-response";
 import type { SalesQueryParamsSchema } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
 import { SalesListInclude } from "@api/utils/sales";
-import type { Prisma } from "@gnd/db";
 
 export async function getSales(
   ctx: TRPCContext,

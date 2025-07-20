@@ -1,5 +1,12 @@
 import { z } from "@hono/zod-openapi";
-import { inboundFilterStatus, salesType } from "@gnd/utils/constants";
+import {
+  inboundFilterStatus,
+  INVOICE_FILTER_OPTIONS,
+  PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
+  PRODUCTION_STATUS,
+  salesDispatchStatus,
+  salesType,
+} from "@gnd/utils/constants";
 import { paginationSchema } from "./common";
 
 export const salesQueryParamsSchema = z
@@ -13,6 +20,14 @@ export const salesQueryParamsSchema = z
     po: z.string().optional().nullable(),
     "sales.rep": z.string().optional().nullable(),
     "order.no": z.string().optional().nullable(),
+    "dispatch.status": z.enum(salesDispatchStatus).optional().nullable(),
+    "production.dueDate": z.array(z.any()).optional().nullable(),
+    "production.status": z.enum(PRODUCTION_STATUS).optional().nullable(),
+    "production.assignment": z
+      .enum(PRODUCTION_ASSIGNMENT_FILTER_OPTIONS)
+      .optional()
+      .nullable(),
+    invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
   })
   .merge(paginationSchema);
 export type SalesQueryParamsSchema = z.infer<typeof salesQueryParamsSchema>;

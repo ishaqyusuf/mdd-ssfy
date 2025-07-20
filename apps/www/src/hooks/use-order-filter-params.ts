@@ -10,6 +10,12 @@ export const orderFilterParamsSchema = {
     po: parseAsString,
     "sales.rep": parseAsString,
     "order.no": parseAsString,
+    "production.assignment": parseAsString,
+    "production.status": parseAsString,
+    "dispatch.status": parseAsString,
+    // "sales.type": parseAsString,
+    // "dispatch.type": parseAsString,
+    invoice: parseAsString,
 } satisfies Partial<Record<FilterKeys, any>>;
 
 export function useOrderFilterParams() {
@@ -21,3 +27,4 @@ export function useOrderFilterParams() {
     };
 }
 export const loadOrderFilterParams = createLoader(orderFilterParamsSchema);
+
