@@ -27,12 +27,14 @@ export async function getSales(
     ctx.db,
   );
 
-  return await response(
+  const result = await response(
     data.map(salesOrderDto).map((d) => ({
       ...d,
       ...(notCounts[d.id.toString()] || {}),
     })),
   );
+  console.log(result.meta);
+  return result;
 }
 export async function getQuotes(
   ctx: TRPCContext,
@@ -135,13 +137,13 @@ export async function startNewSales(
   customerId?: number | null,
 ) {
   const { db } = ctx;
-  const newSalesOrder = await db.salesOrders.create({
-    data: {
-      // type: "order", // or "invoice" based on your default
-      // status: "draft",
-      // customerId: customerId || undefined,
-      // Add other default fields as necessary
-    } as any,
-  });
-  return newSalesOrder;
+  // const newSalesOrder = await db.salesOrders.create({
+  //   data: {
+  //     // type: "order", // or "invoice" based on your default
+  //     // status: "draft",
+  //     // customerId: customerId || undefined,
+  //     // Add other default fields as necessary
+  //   } as any,
+  // });
+  // return newSalesOrder;
 }
