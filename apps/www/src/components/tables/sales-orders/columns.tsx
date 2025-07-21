@@ -261,7 +261,15 @@ function Actions({ item }: { item: Item }) {
                 <Menu.Item
                     SubMenu={
                         <>
-                            <Menu.Item>Production Complete</Menu.Item>
+                            <Menu.Item
+                                onClick={(e) => {
+                                    batchSales.markAsProductionCompleted(
+                                        item.id,
+                                    );
+                                }}
+                            >
+                                Production Complete
+                            </Menu.Item>
                             <Menu.Item
                                 onClick={(e) => {
                                     batchSales.markAsFulfilled(item.id);
