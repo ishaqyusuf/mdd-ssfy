@@ -43,6 +43,7 @@ export function TableRow({}: Props) {
                                 (cell.column.columnDef.meta as any)?.className,
                                 tableMeta?.rowClick &&
                                     "cursor-pointer hover:bg-transparent",
+                                "",
                             )}
                         >
                             {flexRender(

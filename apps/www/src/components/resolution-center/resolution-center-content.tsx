@@ -50,7 +50,7 @@ function Content({ item: sale }: { item: Item }) {
     const salesOverview = useSalesOverviewQuery();
     const customerQuery = useCustomerOverviewQuery();
     return (
-        <div className="border-red-200 bg-red-50/50">
+        <div className="border-red-200 bg-muted">
             <Collapsible
                 open={ids.includes(sale.id)}
                 onOpenChange={() => {

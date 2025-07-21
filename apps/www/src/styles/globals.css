@@ -101,7 +101,7 @@ table.size-sm td {
 }
 
 table.styled thead {
-    @apply bg-muted;
+    @apply bg-muted dark:bg-muted-foreground;
 }
 table.table-sm th {
     @apply h-auto px-2 py-2;

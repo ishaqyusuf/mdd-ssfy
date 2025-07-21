@@ -2,8 +2,7 @@ import { useContext } from "react";
 import DateControl from "@/_v2/components/common/date-control";
 import InputControl from "@/_v2/components/common/input-control";
 import SelectControl from "@/_v2/components/common/select-control";
-import transformOptions from "@/_v2/lib/transform-option";
-import { FieldPath, FieldValues, useFormContext } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 
 import { Label } from "@gnd/ui/label";
 
@@ -38,7 +37,7 @@ export default function SalesDetailsSection() {
                     name="meta.qb"
                 />
             </InfoLine>
-            {/* // Delivery Option */}
+
             {ctx.isOrder && (
                 <InfoLine label="Delivery Option">
                     <SelectControl<ISalesForm>
