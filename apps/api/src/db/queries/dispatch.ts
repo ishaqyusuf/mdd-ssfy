@@ -13,7 +13,7 @@ export async function getDispatches(
   query: DispatchQueryParamsSchema,
 ) {
   const { db } = ctx;
-  query.sort = "dueDate";
+  query.sort = "dueDate,createdAt";
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereDispatch(query),
