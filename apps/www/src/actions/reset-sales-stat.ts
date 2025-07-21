@@ -25,6 +25,7 @@ export async function resetSalesStatAction(id, salesNo) {
         let qc: Prisma.QtyControlCreateManyInput[] = [];
         let salesItemControls: Prisma.SalesItemControlCreateManyInput[] = [];
         overview.items.map((item) => {
+            console.log(item.itemConfig);
             salesItemControls.push({
                 uid: item.controlUid,
                 produceable: item.itemConfig?.production,

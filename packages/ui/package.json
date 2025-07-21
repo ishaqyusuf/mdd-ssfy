@@ -21,14 +21,6 @@
     "format": "biome --write .",
     "typecheck": "tsc --noEmit"
   },
-  "prettier": "@saasfly/prettier-config",
-  "eslintConfig": {
-    "root": true,
-    "extends": [
-      "@saasfly/eslint-config/base",
-      "@saasfly/eslint-config/react"
-    ]
-  },
   "exports": {
     "./confirm-button": "./src/components/custom/confirm-button.tsx",
     "./custom/icons": "./src/components/custom/icons.tsx",

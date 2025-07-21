@@ -39,14 +39,13 @@ export function SalesTableRow({ row }) {
         <>
             <TableRow
                 className="h-[57px] cursor-pointer hover:bg-transparent"
-                key={row.id}
                 onClick={(e) => {
                     overviewQuery?.open2(row?.original?.uuid, "sales");
                 }}
             >
                 {row.getVisibleCells().map((cell, index) => (
                     <TableCell
-                        key={cell.id}
+                        key={index}
                         className={cn(
                             index === 2 && "w-[50px]",
                             (cell.column.id === "actions" ||
@@ -71,7 +70,7 @@ export function SalesTableRow({ row }) {
 }
 export function SalesRow({ sale }: { sale: GetSalesListDta["data"][number] }) {
     return (
-        <li key={sale.id} className="flex h-[57px] w-full items-center">
+        <li className="flex h-[57px] w-full items-center">
             <div className="flex w-full items-center">
                 {/* Date */}
                 <div className="flex w-1/4 flex-col space-y-1">

@@ -12,7 +12,6 @@
     "node": ">=18"
   },
   "packageManager": "bun@1.2.16",
-  "prettier": "@gnd/prettier-config",
   "private": true,
   "scripts": {
     "build": "turbo build ",
@@ -27,9 +26,11 @@
     "dev:web": "turbo dev --parallel --filter !@gnd/dashboard --filter !@gnd/gnd-backlog --filter !@gnd/email --filter !@gnd/site",
     "dev:backlog": "turbo dev --parallel --filter !@gnd/dashboard --filter !@gnd/email --filter !@gnd/site --filter !@gnd/www --filter !@gnd/api",
     "dev:web-prod": "turbo dev:prod --parallel --filter !@gnd/dashboard --filter !@gnd/gnd-backlog --filter !@gnd/email --filter !@gnd/site",
-    "format": "turbo format --continue -- --cache --cache-location='node_modules/.cache/.prettiercache' --ignore-path='../../.gitignore'",
-    "format:fix": "turbo format --continue -- --write --cache --cache-location='node_modules/.cache/.prettiercache' --ignore-path='../../.gitignore'",
-    "lint": "turbo lint -- --quiet -- --cache --cache-location 'node_modules/.cache/.eslintcache' && manypkg check",
+    "format": "biome format --write .",
+    "lint": "turbo lint && manypkg check",
+    "---format": "turbo format --continue -- --cache --cache-location='node_modules/.cache/.prettiercache' --ignore-path='../../.gitignore'",
+    "---format:fix": "turbo format --continue -- --write --cache --cache-location='node_modules/.cache/.prettiercache' --ignore-path='../../.gitignore'",
+    "---lint": "turbo lint -- --quiet -- --cache --cache-location 'node_modules/.cache/.eslintcache' && manypkg check",
     "lint:fix": "turbo lint --continue -- --fix --cache --cache-location 'node_modules/.cache/.eslintcache' ",
     "typecheck": "turbo typecheck",
     "--postinstall": "bun run check-deps",
@@ -42,5 +43,10 @@
     "packages/*",
     "tooling/*"
   ],
-  "dependencies": {}
+  "dependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@manypkg/cli": "^0.24.0",
+    "turbo": "2.5.4",
+    "typescript": "^5.8.3"
+  }
 }
