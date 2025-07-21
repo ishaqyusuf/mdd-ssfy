@@ -26,7 +26,6 @@ import { InstallCostLine } from "@/types/settings";
 
 export default function useStaticData<T>(key, loader, __load = true) {
     const data = useAppSelector((store) => store.staticData?.[key]);
-    // console.log(key);
 
     async function load() {
         const _data: T = await loader();
@@ -41,9 +40,9 @@ export default function useStaticData<T>(key, loader, __load = true) {
     useEffect(() => {
         // if (__load) {
         load();
-        // console.log(key);
+
         // } else {
-        // console.log("NOT LOADING...");
+
         // }
     }, []);
     return {

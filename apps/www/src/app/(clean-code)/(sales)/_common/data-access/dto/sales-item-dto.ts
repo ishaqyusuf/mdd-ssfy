@@ -151,7 +151,6 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
         );
         if (breakPointIndex < 0) breakPointIndex = data.items.length;
         //     -1;
-        // console.log({ breakPointIndex });
 
         function filterGroup(_item: Item, itemIndex) {
             if (data.isDyke)
@@ -204,7 +203,6 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
                         shippable: true,
                     });
                     if (isBifold || (!_door.lhQty && !_door.rhQty)) {
-                        console.log(_door);
                         let qty = _door.totalQty || _door.lhQty;
                         pills.push(createTextPill(`Qty x ${qty}`, qty, "blue"));
                         _totalQty = qty;
@@ -247,7 +245,6 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
                                 "blue",
                             ),
                         );
-                    // console.log(_door.);
 
                     items.push(
                         itemAnalytics(

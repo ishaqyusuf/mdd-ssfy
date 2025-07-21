@@ -93,7 +93,6 @@ export function useSalesShipmentForm() {
         totalSelected,
         selectionError,
         updateSelection(uid, dot: FieldPath<SelectionType[number]>, value) {
-            console.log({ dot, uid, value });
             store.update(`shippingForm.selection.${uid}.${dot}`, value);
         },
     };

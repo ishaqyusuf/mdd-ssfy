@@ -95,10 +95,9 @@ function _calculatePaymentTerm(paymentTerm, createdAt) {
     if (t) {
         goodUntil = dayjs(createdAt).add(t, "days").toISOString();
     }
-    console.log({ paymentTerm, goodUntil });
 
     // form.setValue("goodUntil", goodUntil);
-    // console.log([paymentTerm, createdAt, t, goodUntil]);
+
     return goodUntil;
 }
 function initInvoiceItems(items: ISalesFormItem[] | undefined) {
@@ -160,7 +159,7 @@ function generateInvoiceItem(baseItem: any = null) {
             ...(baseItem?._ctx ?? {}),
         },
     } as any;
-    // console.log("generating...", _);
+
     // if (_.id) _.meta.tax = (_.tax || 0) > 0 ? "Tax" : "Non";
     return _;
 }

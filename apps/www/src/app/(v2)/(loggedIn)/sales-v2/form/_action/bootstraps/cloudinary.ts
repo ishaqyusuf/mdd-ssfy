@@ -11,14 +11,14 @@ export async function cloudinaryBootstrap() {
             let cldImg;
             if (a.url) {
                 const resp = await cldUploadFiles(a.url, "dyke");
-                console.log(resp);
+
                 cldImg = resp.secure_url.split("dyke/")[1];
             } else return a;
             return {
                 ...a,
                 cldImg,
             };
-        })
+        }),
     );
     return res;
     // const uploads = await cldUploadFiles(

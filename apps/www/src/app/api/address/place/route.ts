@@ -24,7 +24,6 @@ export async function GET(req: NextRequest) {
                 "Content-Type": "application/json",
             },
         });
-        console.log("----", response.status);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -60,7 +59,6 @@ export async function GET(req: NextRequest) {
             lat,
             lng,
         };
-        console.log(formattedData);
 
         return NextResponse.json({
             data: {

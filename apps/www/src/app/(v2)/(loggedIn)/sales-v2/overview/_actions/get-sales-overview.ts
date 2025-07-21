@@ -65,9 +65,8 @@ export async function viewSale(type, slug, deletedAt?) {
             },
         },
     });
-    // console.log(sectionTitles);
+
     const items = order.items.map((item) => {
-        // console.log(item.meta);
         const meta = item.meta as any as ISalesOrderItemMeta;
 
         const rootStep = item.formSteps.find(
@@ -84,7 +83,7 @@ export async function viewSale(type, slug, deletedAt?) {
             )
             ?.filter(Boolean);
         const sectionOverride = ovs.find((s) => s.overrideMode);
-        // console.log({ sectionOverride, ovs });
+
         return {
             ...item,
             configs: sectionOverride
@@ -125,7 +124,6 @@ export async function viewSale(type, slug, deletedAt?) {
                 ...item,
             };
         });
-    // console.log(_mergedItems.length);
 
     const groupings = {
         slabs: _mergedItems.filter((i) => i.meta.doorType == "Door Slabs Only"),
@@ -133,8 +131,6 @@ export async function viewSale(type, slug, deletedAt?) {
         services: _mergedItems.filter((i) => i.meta.doorType == "Services"),
         doors: _mergedItems,
     };
-
-    // console.log(groupings.mouldings);
 
     const ids: any[] = [];
     // [
@@ -159,7 +155,7 @@ export async function viewSale(type, slug, deletedAt?) {
             ],
         },
     });
-    // console.log(progress);
+
     const payments = order.payments.map((p) => {
         return {
             ...p,

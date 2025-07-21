@@ -33,7 +33,7 @@ export async function saveDykeSales(data: DykeForm) {
                 // salesProfileId,
                 ...rest
             } = data.order;
-            // console.log(rest);
+
             // delete (rest as any).customer;
             function connect(id) {
                 if (!id) return undefined;
@@ -253,7 +253,7 @@ export async function saveDykeSales(data: DykeForm) {
                                 (doors || [])?.map(async (door) => {
                                     if (!door.lhQty && !door.rhQty) return null;
                                     door.meta = door.meta || {};
-                                    // console.log("YES DOOR");
+
                                     door.salesOrderId = order.id;
                                     door.salesOrderItemId = itemId;
                                     let {
@@ -263,7 +263,7 @@ export async function saveDykeSales(data: DykeForm) {
                                     } = door;
                                     let newDoor = !doorId;
                                     if (newDoor) doorId = ++lastDoorId;
-                                    // console.log({ doorId, newDoor });
+
                                     // if (!doorData.lhQty) doorData.lhQty = 0;
                                     // if (!doorData.rhQty) doorData.rhQty = 0;
                                     if (newDoor)
@@ -272,7 +272,6 @@ export async function saveDykeSales(data: DykeForm) {
                                             housePackageToolId: hptId,
                                         });
                                     else {
-                                        // console.log(doorId);
                                         await prisma.dykeSalesDoors.update({
                                             where: { id: doorId },
                                             data: {
@@ -325,8 +324,7 @@ export async function saveDykeSales(data: DykeForm) {
                     );
                 }),
             );
-            // console.log(ids.doorsIds);
-            // console.log({ createDoors });
+
             const _items = await prisma.salesOrderItems.findMany({
                 where: {
                     salesOrderId: order.id,
@@ -356,7 +354,7 @@ export async function saveDykeSales(data: DykeForm) {
                 where.id = {
                     notIn,
                 };
-                // console.log(where);
+
                 await t.updateMany({
                     where,
                     data: {
@@ -374,8 +372,6 @@ export async function saveDykeSales(data: DykeForm) {
             await _deleteWhere(tx.housePackageTools, ids.housePackageIds);
 
             await _deleteWhere(tx.salesOrderItems, ids.itemIds, true);
-            // console.log("INSERTING>>>>>>");
-            // console.log(createItems);
 
             await Promise.all(
                 [

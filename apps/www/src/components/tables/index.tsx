@@ -80,7 +80,6 @@ export const { useContext: useTable, Provider: TableProvider } =
                 const { data, meta } = await loadMore({
                     ...nextMeta,
                 });
-                console.log({ nextMeta });
 
                 let _meta = meta as PageDataMeta;
                 setData((prev) => [...prev, ...data]);

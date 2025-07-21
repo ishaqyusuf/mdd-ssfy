@@ -30,8 +30,6 @@ export default function PageClient({
 
     const isMobile = useMediaQuery(screens.xs);
     function renderWebView(ctx) {
-        // console.log({ type });
-
         switch (type) {
             case "orders":
                 if (evaluation)

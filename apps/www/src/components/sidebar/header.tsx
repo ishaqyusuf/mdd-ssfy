@@ -54,7 +54,7 @@ export function Header({}) {
                     <ModeToggle />
                     <UserNav />
                 </div>
-                <div className="bg-white" id="pageTab"></div>
+                <div className="dark:bg-muted" id="pageTab"></div>
                 <div className="overflow-auto" id="tab"></div>
             </header>
         </>

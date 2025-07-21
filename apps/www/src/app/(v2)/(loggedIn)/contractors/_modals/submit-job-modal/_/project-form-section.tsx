@@ -16,10 +16,8 @@ export default function ProjectFormSection({}) {
     ]);
 
     async function projectSelected(e) {
-        console.log(e);
-
         let project: Projects = e.data as any;
-        // console.log("REMOVE COST LISTS");
+
         ctx.costList.remove();
         Object.entries({
             homeId: null,

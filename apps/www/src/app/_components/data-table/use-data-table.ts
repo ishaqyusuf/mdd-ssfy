@@ -34,7 +34,7 @@ export function useDataTable(
     columns,
     pageCount,
     cellVariants,
-    addFilterCol
+    addFilterCol,
 ) {
     const [rowSelection, setRowSelection] = React.useState({});
     const [columnVisibility, setColumnVisibility] =
@@ -42,7 +42,7 @@ export function useDataTable(
     const [columnFilters, setColumnFilters] =
         React.useState<ColumnFiltersState>([]);
     // React.useEffect(() => {
-    //     console.log(_searchParams);
+
     // }, []);
 
     function __updateQuery(q) {
@@ -193,7 +193,7 @@ export function useDataTable(
                     }
                     _q[k as any] = value;
                 }
-            })
+            }),
         );
         // const _filtered = filters.
         if (sort.id) {

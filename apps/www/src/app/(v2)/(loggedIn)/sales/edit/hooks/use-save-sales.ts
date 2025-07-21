@@ -35,14 +35,13 @@ export default function useSaveSalesHook() {
                 !data ? form.getValues() : data,
                 ctx.data.paidAmount,
             );
-            // console.log(_data.items);
+
             if (!_data.id && autoSave) return;
             // if (autoSave && _data.items?.length < 2) {
 
             //     return;
             // }
             _data.autoSave = autoSave;
-            console.log(">>>>>>>>");
 
             if (_data.order.type == "order") {
                 _data.order.paymentDueDate =

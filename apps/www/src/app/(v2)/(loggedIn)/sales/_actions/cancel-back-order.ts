@@ -49,10 +49,9 @@ export async function _cancelBackOrder(slug) {
         order.items?.map(async (item) => {
             let backOrderItem = backOrder.items.find(
                 (i) =>
-                    i.swing == item.swing && i.description == item.description
+                    i.swing == item.swing && i.description == item.description,
             );
             if (backOrderItem) {
-                console.log("item found");
                 let boiMeta = backOrderItem.meta as any as ISalesOrderItemMeta;
                 let iMeta = item.meta as any as ISalesOrderItemMeta;
                 iMeta.produced_qty =
@@ -72,7 +71,7 @@ export async function _cancelBackOrder(slug) {
                     },
                 });
             }
-        })
+        }),
     );
     await deleteOrderAction(backOrder.id);
     _revalidate("backorders");

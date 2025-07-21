@@ -22,7 +22,7 @@ export async function getStaticCategories() {
         },
         "inventory-products",
     );
-    // console.log(a);
+
     return a;
 }
 

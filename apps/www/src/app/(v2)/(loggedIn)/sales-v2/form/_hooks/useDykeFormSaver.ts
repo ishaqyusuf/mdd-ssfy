@@ -33,7 +33,6 @@ export default function useDykeFormSaver(form) {
             try {
                 // const estimate = calculateFooterEstimate(data, null);
                 const e = initDykeSaving(data);
-                // console.log(e);
 
                 if (e.order.type == "order") {
                     e.order.paymentDueDate =
@@ -43,9 +42,6 @@ export default function useDykeFormSaver(form) {
                         );
                     const { paymentDueDate, paymentTerm, createdAt } = e.order;
                 }
-                // console.log({ error: e?.order?.customer });
-                // console.log(e._taxForm.taxByCode);
-                // console.log(e);
 
                 // return;
                 const { order: resp } = await saveDykeSales(e);
@@ -83,7 +79,6 @@ export default function useDykeFormSaver(form) {
             } catch (error) {
                 toast.error("Something went wrong");
                 if (error instanceof Error) {
-                    console.log(error.message);
                     errorData.message = error.message;
                 }
                 if (!errorId)

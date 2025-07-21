@@ -30,13 +30,11 @@ function salesProfileChanged(form: DykeFormReturn, id) {
                     if (v.priceTags?.moulding?.basePrice) {
                         const bPrice = v.priceTags.moulding.basePrice;
                         const price = salesProfileCost(form, bPrice);
-                        // console.log({ bPrice, price });
-                        // console.log(item.multiComponent.components);
+
                         form.setValue(
                             `${componentKey}.priceTags.moulding.price` as any,
                             price,
                         );
-                        // console.log({ price, bPrice });
                     }
                     if (v._doorForm) {
                         Object.entries(v._doorForm).map(([size, doorForm]) => {
@@ -53,19 +51,17 @@ function salesProfileChanged(form: DykeFormReturn, id) {
                                     doorForm.priceData || {},
                                 ),
                             );
-                            // console.log(size);
 
                             // if (size == `1-6 x 6-8`) {
-                            //     console.log(doorForm.priceData);
+
                             // }
                             // if (sum([doorForm.lhQty, doorForm.rhQty]))
-                            //     console.log(priceData);
 
                             form.setValue(
                                 `${sizeKey}.priceData` as any,
                                 priceData,
                             );
-                            // console.log(priceData.salesUnitCost);
+
                             form.setValue(
                                 `${sizeKey}.jambSizePrice` as any,
                                 priceData.salesUnitCost,
@@ -114,8 +110,6 @@ function updateSalesComponentPrice(
     basePrice,
     qty = 1,
 ) {
-    console.log({ basePrice });
-
     const pData = _pData || {};
     // if (!pData) pData = {};
     if (!pData.id) pData.id = generateRandomString();
@@ -128,7 +122,7 @@ function updateSalesComponentPrice(
     pData.salesTotalCost = formatMoney(qty * pData.salesUnitCost);
     pData.baseTotalCost = formatMoney(qty * basePrice);
     // pData.grandTotal = tax + salesTotal etc.
-    // console.log(pData);
+
     return pData;
 }
 function updateSalesComponentPriceQty(

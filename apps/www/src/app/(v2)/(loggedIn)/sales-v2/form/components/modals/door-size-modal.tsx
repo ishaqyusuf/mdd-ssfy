@@ -104,7 +104,6 @@ export default function DoorSizeModal({
 
         const _formData = _form.getValues();
         let newDoorForm = {};
-        // console.log({ _formData, doors });
 
         Object.entries(_formData).map(
             ([size, { jambSizePrice, lhQty, rhQty, swing }]) => {
@@ -115,7 +114,6 @@ export default function DoorSizeModal({
                 };
                 const _size = sizes.find((s) => s.dim == size);
                 const price = (priceTags.doorSizePriceTag[size] = _size.price);
-                // console.log(">>>>>>");
 
                 const _qty = sum([lhQty, rhQty]);
                 newDoorForm[size] = {
@@ -133,11 +131,11 @@ export default function DoorSizeModal({
                 };
             },
         );
-        // console.log({ newDoorForm });
+
         // return;
         form.setValue(`${basePath}._doorForm` as any, newDoorForm);
         form.setValue(`${basePath}.checked` as any, true);
-        // console.log(_formData);
+
         modal.close();
     }
     function onCancel() {

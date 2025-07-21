@@ -26,9 +26,7 @@ interface SignInFormProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export default function ClientForm({ className, ...props }: SignInFormProps) {
     const resp = props.val;
-    React.useEffect(() => {
-        console.log(resp);
-    }, [resp]);
+    React.useEffect(() => {}, [resp]);
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [error, setError] = React.useState<any>("");
     const form = useForm<CreateDealerPasswordSchema>({
@@ -50,7 +48,7 @@ export default function ClientForm({ className, ...props }: SignInFormProps) {
             setError(null);
             try {
                 const resp = await createDealerPassword(data);
-                console.log(resp);
+
                 toast.success("Password created");
                 // router.forward("success");
             } catch (error) {

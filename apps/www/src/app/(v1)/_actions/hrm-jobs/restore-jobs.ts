@@ -125,5 +125,4 @@ export async function insertJobs() {
         data: inserts as any,
     });
     return { inserts, notFound };
-    //   console.log(inserts);
 }

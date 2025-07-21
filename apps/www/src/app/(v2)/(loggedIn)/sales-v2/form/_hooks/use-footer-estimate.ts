@@ -24,36 +24,35 @@ export default function useFooterEstimate() {
         };
         form.setValue(
             "footer.footerPrices",
-            JSON.stringify(footer.footerPricesJson)
+            JSON.stringify(footer.footerPricesJson),
         );
     }
     return {
         updateFooterPrice,
         lineItemDeleted(ctx: UseMultiComponentItem) {
             const itemData = ctx.item.get.itemArray();
-            console.log(itemData.multiComponent.components);
+
             Object.entries(itemData.multiComponent.components).map(
                 ([title, cData]) => {
                     if (title == ctx.componentTitle) {
                         const footer = { ...form.getValues("footer") };
                         footer.footerPricesJson = JSON.parse(
-                            footer.footerPrices
+                            footer.footerPrices,
                         );
-                        // console.log(footer.footerPricesJson);
+
                         // footer.footerPricesJson[cData.uid] = {};
                         // footer.footerPricesJson=
                         footer.footerPricesJson = omit(
                             footer.footerPricesJson,
-                            [cData?.uid]
+                            [cData?.uid],
                         );
-                        console.log(footer.footerPricesJson[cData.uid]);
 
                         form.setValue(
                             "footer.footerPrices",
-                            JSON.stringify(footer.footerPricesJson)
+                            JSON.stringify(footer.footerPricesJson),
                         );
                     }
-                }
+                },
             );
         },
     };

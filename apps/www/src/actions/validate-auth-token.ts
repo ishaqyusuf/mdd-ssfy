@@ -23,7 +23,7 @@ export async function validateAuthToken(id) {
     });
     const createdAt = token.createdAt;
     const createdAgo = dayjs().diff(createdAt, "minutes");
-    console.log({ createdAgo });
+
     if (createdAgo > 3)
         return {
             status: "Expired",

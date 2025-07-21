@@ -356,7 +356,6 @@ function AddressDataSearch({
                                             address,
                                             customerId,
                                         };
-                                        console.log({ data });
 
                                         setParams(data);
                                         setOpen(false);

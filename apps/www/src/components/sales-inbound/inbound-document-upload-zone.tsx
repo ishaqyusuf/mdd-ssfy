@@ -133,8 +133,6 @@ export function InboundDocumentUploadZone({
             dismiss(toastId);
             onUploadComplete?.(results);
         } catch (e) {
-            console.log(e);
-
             toast({
                 duration: 2500,
                 variant: "error",

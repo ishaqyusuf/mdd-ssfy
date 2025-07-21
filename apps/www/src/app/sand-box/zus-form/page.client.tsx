@@ -60,12 +60,9 @@ function AbcClient({ uid }) {
         return z.data?.stepSequence?.stepItem?.[uid];
     }, [z.data?.stepSequence?.stepItem?.[uid]]);
     const cls = useMemo(() => {
-        console.log(">>>");
         return new ZusClass(uid, z);
     }, [uid]);
-    useEffect(() => {
-        console.log(">>>");
-    }, []);
+    useEffect(() => {}, []);
     return (
         <div>
             <Label>BLE</Label>
@@ -81,9 +78,7 @@ function AbcClient({ uid }) {
     );
 }
 function ExternalContent({ stepUid }) {
-    useEffect(() => {
-        console.log(">>>");
-    }, []);
+    useEffect(() => {}, []);
     return (
         <>
             <div>STEP</div>

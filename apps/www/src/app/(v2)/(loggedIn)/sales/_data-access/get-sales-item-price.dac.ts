@@ -31,6 +31,6 @@ export async function _getSalesItemPriceByProfile(description, profile = null) {
             },
         })
     ).filter((item) => item.price);
-    // console.log(items[0]);
+
     return items?.[0]?.price;
 }

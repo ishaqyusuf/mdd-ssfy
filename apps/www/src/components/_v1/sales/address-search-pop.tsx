@@ -21,9 +21,8 @@ export default function AddressSearchPop({
         q: "",
     });
     async function loadAddress() {
-        console.log(q);
         const ls = await findAddressAction({ q });
-        console.log(ls);
+
         setAddressList({
             ...addressList,
             list: ls as any,

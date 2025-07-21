@@ -26,7 +26,7 @@ import { isComponentType } from "../../overview/is-component-type";
 export type IDykeItemFormContext = ReturnType<typeof useDykeItem>;
 export default function useDykeItem(
     rowIndex: number,
-    itemArray: UseFieldArrayReturn<DykeForm, "itemArray", "id">
+    itemArray: UseFieldArrayReturn<DykeForm, "itemArray", "id">,
 ) {
     const form = useDykeForm();
     const stepArrayName = `itemArray.${rowIndex}.item.formStepArray` as const;
@@ -41,11 +41,11 @@ export default function useDykeItem(
             `itemArray.${rowIndex}.stepIndex`,
             `itemArray.${rowIndex}.expanded`,
             `order.meta.calculatedPriceMode`,
-        ]
+        ],
     );
     function getFormStepArray(): FormStepArray {
         return form.getValues(
-            `itemArray.${rowIndex}.item.formStepArray` as any
+            `itemArray.${rowIndex}.item.formStepArray` as any,
         );
     }
     function doorType(): DykeDoorType {
@@ -66,7 +66,7 @@ export default function useDykeItem(
         },
         packageToolId: (k: "dykeDoor" | "molding") =>
             form.getValues(
-                `itemArray.${rowIndex}.item.housePackageTool.${k}}Id` as any
+                `itemArray.${rowIndex}.item.housePackageTool.${k}}Id` as any,
             ),
     };
     const modal = useModal();
@@ -94,7 +94,7 @@ export default function useDykeItem(
         toggleStep(stepIndex) {
             form.setValue(
                 `itemArray.${rowIndex}.stepIndex`,
-                stepIndex == openedStepIndex ? null : stepIndex
+                stepIndex == openedStepIndex ? null : stepIndex,
             );
         },
         openChange(val) {
@@ -115,7 +115,6 @@ export default function useDykeItem(
             return `items.${rowIndex}.meta.config.${blockName}` as any;
         },
         async nextBlock(value) {
-            // console.log(value);
             // let block: any = null;
             // let blockIndex = openedStepIndex + 1;
             // if (value == "Shelf Items") {
@@ -123,7 +122,6 @@ export default function useDykeItem(
             // } else {
             //     // next block
             // }
-            // console.log(block);
             // if (!block) return;
             // form.setValue(blockIndexKey, blockIndex);
             // append(block);

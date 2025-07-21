@@ -128,9 +128,8 @@ export async function _assignJob({
                 user: true,
             },
         });
-        // console.log(jobs);
+
         if (jobs.length > 0) {
-            // console.log(jobs);
             return { jobs };
         }
     }
@@ -214,7 +213,7 @@ export async function _assignJob({
             assignedTo: true,
         },
     });
-    console.log(_task);
+
     // const _job = await prisma.
     await _revalidate("communityTasks");
     await (await _alert()).taskAssigned(_task as any, __taskSubtitle);

@@ -22,7 +22,7 @@ export async function queryResponse<T>(
     const size = query?.size || 20;
     meta.count = count;
     let cursor = (+query?.cursor || 0) + size;
-    // console.log({ cursor, count, where });
+
     meta.cursor = cursor < count ? String(cursor) : null;
     meta.hasNextPage = cursor < count;
     meta.hasPreviousePage = cursor > 0;

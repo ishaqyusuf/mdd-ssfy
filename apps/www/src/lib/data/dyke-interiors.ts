@@ -7923,9 +7923,6 @@ export function dykeStepValues() {
             step.stepValueId = getStepValueId(end);
             step.rootStepValueId = getStepValueId(root);
             if (step.title == "Cutdown Height") {
-                console.log([root, end, prev, step.value]);
-                console.log(step);
-                console.log(stepValueIdByValue);
             }
         }
         return step;

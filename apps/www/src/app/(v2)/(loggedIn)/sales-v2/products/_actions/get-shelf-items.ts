@@ -25,7 +25,6 @@ export async function getShelfItems(query: QueryProps) {
             createdAt: "desc",
         },
     });
-    // console.log(data);
 
     return {
         data,

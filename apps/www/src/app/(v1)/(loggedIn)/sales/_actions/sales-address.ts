@@ -53,7 +53,7 @@ export async function findAddressAction({ q }: { q: string }) {
             },
         },
     });
-    // console.log(items);
+
     return {
         items: items.map((item) => {
             return {

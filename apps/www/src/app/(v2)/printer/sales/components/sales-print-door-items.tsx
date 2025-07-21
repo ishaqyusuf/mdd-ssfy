@@ -80,47 +80,51 @@ export default function SalesPrintDoorItems({ index }) {
                                                 )}
                                             </tr>
                                         </thead>
-                                        {doors.lines?.map((line, i) => (
-                                            <tr key={i}>
-                                                {line.map((ld, ldi) => (
-                                                    <td
-                                                        className="border px-2"
-                                                        colSpan={ld.colSpan}
-                                                        key={ldi}
-                                                    >
-                                                        {ld.value ==
-                                                        "as-above" ? (
-                                                            <div className="flex justify-center">
-                                                                ✔
-                                                            </div>
-                                                        ) : (
-                                                            <Text {...ld.style}>
-                                                                {Array.isArray(
-                                                                    ld.value,
-                                                                )
-                                                                    ? ld.value.map(
-                                                                          (
-                                                                              val,
-                                                                              vi,
-                                                                          ) => (
-                                                                              <div
-                                                                                  key={
-                                                                                      vi
-                                                                                  }
-                                                                              >
-                                                                                  {
-                                                                                      val
-                                                                                  }
-                                                                              </div>
-                                                                          ),
-                                                                      )
-                                                                    : ld.value}
-                                                            </Text>
-                                                        )}
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                        ))}
+                                        <tbody>
+                                            {doors.lines?.map((line, i) => (
+                                                <tr key={i}>
+                                                    {line.map((ld, ldi) => (
+                                                        <td
+                                                            className="border px-2"
+                                                            colSpan={ld.colSpan}
+                                                            key={ldi}
+                                                        >
+                                                            {ld.value ==
+                                                            "as-above" ? (
+                                                                <div className="flex justify-center">
+                                                                    ✔
+                                                                </div>
+                                                            ) : (
+                                                                <Text
+                                                                    {...ld.style}
+                                                                >
+                                                                    {Array.isArray(
+                                                                        ld.value,
+                                                                    )
+                                                                        ? ld.value.map(
+                                                                              (
+                                                                                  val,
+                                                                                  vi,
+                                                                              ) => (
+                                                                                  <div
+                                                                                      key={
+                                                                                          vi
+                                                                                      }
+                                                                                  >
+                                                                                      {
+                                                                                          val
+                                                                                      }
+                                                                                  </div>
+                                                                              ),
+                                                                          )
+                                                                        : ld.value}
+                                                                </Text>
+                                                            )}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
                                     </table>
                                 </td>
                             </tr>

@@ -57,7 +57,6 @@ export const createSafeAction = <TInput = any, TOutput = any>(
                         // slug: generateRandomString(10),
                     },
                 });
-                console.log(e.message);
             }
             const err = Err({
                 message: "Fatal Error",

@@ -118,7 +118,6 @@ export async function saveOrderAction({ id, order, items }: ISaveOrder) {
                 deletedAt: new Date(),
             },
         });
-        console.log(resp.count);
     }
     await _updateProdQty(sale_order.id);
     if (id) va.track("sales updated", { type: sale_order.type });

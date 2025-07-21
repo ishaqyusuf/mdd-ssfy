@@ -69,7 +69,6 @@ function EnableCell({ actionId, checked }) {
             <Checkbox
                 checked={checked}
                 onCheckedChange={(e) => {
-                    // console.log({ e });
                     toggleSiteActionNotification(actionId, e).then((e) => {});
                 }}
             />
@@ -84,7 +83,6 @@ function UsersCell({ action, users }: UserCellProps) {
     const userIds = action?.activeUsers?.map((a) => a.userId);
     const [open, onOpenChange] = useState(false);
     async function updateSelection(s) {
-        // console.log(s);
         const newIds = s
             ?.map((a) => Number(a))
             .filter((s) => !userIds?.includes(s));
@@ -93,7 +91,6 @@ function UsersCell({ action, users }: UserCellProps) {
                 await addUserToSiteActionNotification(action.id, id);
             }),
         );
-        // console.log(newIds);
     }
     const [content, setContent] = React.useState<React.ComponentRef<
         typeof ComboboxContent

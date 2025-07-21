@@ -15,16 +15,13 @@ export async function getProductCategoriesFilter() {
             }));
             return c;
         },
-        "dyke-categories"
+        "dyke-categories",
     );
-    console.log(resp);
 
     return resp;
-    // console.log(c);
 
     // return c;
     // }, ["dyke-product-categories-filter"]);
 
-    // console.log(resp);
     // return resp;
 }

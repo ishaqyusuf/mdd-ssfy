@@ -80,7 +80,7 @@ function ItemHeader({ item }: ItemHeaderProps) {
     const rowIndex = item.rowIndex;
     async function deleteSection() {
         const itemData = item.get.data();
-        // console.log(itemData);
+
         await _deleteDykeItem(itemData?.item?.id);
         dykeCtx.itemArray.remove(item.rowIndex);
         setTimeout(() => {

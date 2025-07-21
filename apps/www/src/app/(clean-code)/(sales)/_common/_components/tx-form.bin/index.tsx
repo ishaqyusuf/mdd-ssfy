@@ -53,7 +53,7 @@ export function TxForm({}) {
     const tx = txStore();
     useEffect(() => {
         // tx.reset();
-        // console.log(tx.phoneNo);
+
         if (!tx.customerProfiles?.[tx.phoneNo] && tx.phoneNo) {
             getCustomerOverviewUseCase(tx.phoneNo)
                 .then((result) => {

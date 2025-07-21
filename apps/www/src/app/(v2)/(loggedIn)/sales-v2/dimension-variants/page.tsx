@@ -7,7 +7,7 @@ import { unstable_noStore } from "next/cache";
 export default async function housePackageToolPage() {
     unstable_noStore();
     const data = await getHousePackageTool();
-    console.log(data);
+
     return (
         <div>
             <Breadcrumbs>

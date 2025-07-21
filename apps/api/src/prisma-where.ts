@@ -11,7 +11,6 @@ import dayjs from "@gnd/utils/dayjs";
 import { env } from "process";
 export function whereDispatch(query: DispatchQueryParamsSchema) {
   const whereStack: Prisma.OrderDeliveryWhereInput[] = [];
-  console.log(query);
 
   switch (query?.status as SalesDispatchStatus) {
     case "missing items":

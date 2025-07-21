@@ -113,7 +113,7 @@ export function ModelComponents<T>({
         const [open, setOpen] = useState(false);
         let formKey = `${node}.${ck as string}`;
         // let checked = community ? form.watch(`${formKey}.c` as any) : false;
-        // console.log(formKey);
+
         const print = form.watch("ctx.print");
         // const value = print ? form.watch(formKey as any) : null;
         // if (community && !print) formKey = `${formKey}.v`;

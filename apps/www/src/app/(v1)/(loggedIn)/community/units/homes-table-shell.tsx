@@ -233,7 +233,6 @@ export default function HomesTableShell<T>({
                             <DropdownMenuItem
                                 onClick={(e) => {
                                     // openModal("home", row.original);
-                                    console.log(row.original);
 
                                     modal.open(row.original);
                                 }}

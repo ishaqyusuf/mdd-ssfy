@@ -15,7 +15,7 @@ export default async function EmailSettingsPage({}) {
     if (!_user.meta) _user.meta = {} as any;
     if (!_user.meta.emailRespondTo) _user.meta.emailRespondTo = _user.email;
     delete (_user.meta as any).exception;
-    // console.log(_user.meta);
+
     if (!_user.meta.emailTitle)
         _user.meta.emailTitle = `${
             _user.name?.split(" ")?.[0]

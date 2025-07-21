@@ -27,7 +27,7 @@ export function composeDoor(cls: ComponentHelperClass, door?: Door) {
             s.path?.endsWith(`-${sl.size}`),
         )?.path;
         const sizeData = groupItem?.form?.[swapPath] || groupItem?.form?.[path];
-        // console.log({ swapPath, sizeData });
+
         const basePrice = priceModel?.formData?.priceVariants?.[sl.size]?.price;
         let salesPrice = cls.calculateSales(basePrice);
         selections[path] = {

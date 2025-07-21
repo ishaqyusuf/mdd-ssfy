@@ -44,7 +44,6 @@ export function useStepComponentModal(
     const moulding = useMouldingSpecies(ctx.isMoulding, form, item);
     const [tab, setTab] = useState<TabType>();
     function copyProduct(product: IStepProducts[number]) {
-        // console.log(product);
         stepHelpers.copyProduct(form, ctx.isRoot, product);
         setTab("general");
     }
@@ -87,7 +86,6 @@ export function useStepComponentModal(
             return (
                 <button
                     onClick={() => {
-                        // console.log("...");
                         if (isRestore) {
                             const val = !selected;
                             form.setValue(k, val);
@@ -174,14 +172,14 @@ export function useDoor(isDoor = true) {
                     Object.keys(heights).map(async (height) => {
                         if (!_tab) _tab = height;
                         const result = await getDoorSizesUseCase(height); //.then((result) => {
-                        // console.log(result);
+
                         d[height] = Array.from(
                             new Set(result.map((s) => s.dimFt)),
                         );
                         // });/
                     }),
                 );
-                // console.log(d);
+
                 setHeight(d);
                 setPriceTab(_tab);
                 getDykeStepTitlesOptionUseCase().then((resp) => {

@@ -14,20 +14,20 @@ export async function creditTransaction(walletId, amount, description?) {
             amount,
             description,
             authorId: await userId(),
-            walletId
+            walletId,
             //   wallet: {
             //     connect: {
             //       id: walletId,
             //     },
             //   },
-        }
+        },
     });
     await prisma.$queryRaw`UPDATE CustomerWallet SET balance=balance+${amount} WHERE id=${walletId}`;
     return tx;
 }
 export async function debitTransaction(walletId, amount, description?) {
     await prisma.$queryRaw`UPDATE CustomerWallet SET balance=balance-${amount} WHERE id=${walletId}`;
-    console.log("DEBIT", amount);
+
     return await prisma.customerTransaction.create({
         data: {
             // type: 'debit'
@@ -35,12 +35,13 @@ export async function debitTransaction(walletId, amount, description?) {
             amount: amount * -1,
             description,
             authorId: await userId(),
-            walletId
+            walletId,
             //   wallet: {
             //     connect: {
             //       id: walletId,
             //     },
             //   },
-        }
+        },
     });
 }
+

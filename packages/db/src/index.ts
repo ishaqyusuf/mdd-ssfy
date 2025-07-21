@@ -90,7 +90,7 @@ const prismaClientSingleton = () => {
           if (!Object.keys(args.where).includes("deletedAt"))
             args.where = { deletedAt: null, ...args.where };
           // args.where = {};
-          // console.log(args.where);
+
           return query(args);
         },
         async findMany({ model, operation, args, query }) {
@@ -102,7 +102,7 @@ const prismaClientSingleton = () => {
           // args.where.deletedAt = null;
 
           // args.where = {};
-          // console.log(args.where);
+
           return query(args);
         },
       },

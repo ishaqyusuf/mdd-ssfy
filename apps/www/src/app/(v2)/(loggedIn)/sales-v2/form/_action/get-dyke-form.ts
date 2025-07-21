@@ -73,7 +73,6 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
         },
         include: Includes,
     });
-    // console.log(order.items.length);
 
     let paidAmount = sum(order?.payments || [], "amount");
     type OrderType = NonNullable<typeof order>;
@@ -108,12 +107,10 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
         calculatedPriceMode: true,
     };
 
-    // console.log({ goodUntil: dayjs(ctx.profiles[0].goodUntil).toISOString() });
     let goodUntil = ctx.defaultProfile?.goodUntil;
 
     if (goodUntil && typeof goodUntil != "string")
         goodUntil = dayjs(goodUntil).toISOString();
-    console.log({ goodUntil });
 
     const newOrderForm: Partial<OrderType> = {
         type,
@@ -171,7 +168,7 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
                     [dimension in string]: { id: number };
                 } = {};
                 const isType = isComponentType(
-                    item.housePackageTool?.doorType as any
+                    item.housePackageTool?.doorType as any,
                 );
                 item.housePackageTool?.doors?.map((d) => {
                     if (d.rhQty && !isType.multiHandles) d.rhQty = 0;
@@ -180,7 +177,6 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
                         d.priceData = {
                             salesUnitCost: d.jambSizePrice,
                         } as any;
-                    // console.log(d.priceData);
 
                     _doorForm[dim] = { ...d } as any;
                     _doorFormDefaultValue[dim] = {
@@ -227,8 +223,8 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
                         .filter(
                             (f, fi) =>
                                 item.formSteps.findIndex(
-                                    (p) => p.stepId == f.stepId
-                                ) == fi
+                                    (p) => p.stepId == f.stepId,
+                                ) == fi,
                         ),
                     shelfItems: item.shelfItems.map((item) => ({
                         ...item,
@@ -238,7 +234,7 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
             }),
         },
         ["deletedAt"] as any,
-        true
+        true,
     );
     const {
         items,
@@ -265,10 +261,8 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
         .map(
             (
                 { formSteps, shelfItems, housePackageTool, ...itemData },
-                itemIndex
+                itemIndex,
             ) => {
-                // console.log(formSteps.length);
-
                 let sectionPrice = 0;
                 const shelfItemArray: {
                     [k in string]: {
@@ -364,7 +358,6 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
                         if (!priceTags) {
                             priceTags = {};
                             if (isMoulding) {
-                                // console.log(item.rate);
                                 priceTags = {
                                     moulding: {
                                         price: 0,
@@ -412,7 +405,7 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
                         sectionPrice += price;
                     }
                 });
-                // console.log(Object.keys(multiComponent.components));
+
                 const stepSequence: {
                     [uid in string]: StepProdctMeta["stepSequence"];
                 } = {};
@@ -446,16 +439,14 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
                 };
                 rItem.stepIndex = rItem.item.formStepArray.length - 1;
                 return rItem;
-            }
+            },
         );
 
     if (itemArray?.every((item) => item?.item?.meta?.lineIndex > -1)) {
-        // console.log("sorting...");
         itemArray = itemArray.sort(
             (item, item2) =>
-                item.item.meta.lineIndex - item2.item.meta.lineIndex
+                item.item.meta.lineIndex - item2.item.meta.lineIndex,
         );
-        // console.log(itemArray.map((item) => item.item.meta.lineIndex));
     }
     const fsids = form.items.map((i) => i.formSteps.map((f) => f.id)).flat();
     const ids = itemArray
@@ -492,9 +483,9 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
     const _taxForm = await salesTaxForm(
         taxes as any,
         order?.id,
-        ctx?.defaultProfile?.meta?.taxCode
+        ctx?.defaultProfile?.meta?.taxCode,
     );
-    // console.log(_taxForm);
+
     return {
         salesRep: salesRep,
         customer,

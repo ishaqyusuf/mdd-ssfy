@@ -324,7 +324,6 @@ function InputHelper({
             if (props.type == "number") {
                 //
                 if (["+", "-", "/", "*", "%"].includes(k)) {
-                    // console.log([k, qty]);
                     setExpression((ex) => {
                         return [ex, wValue, ` ${k} `].join("");
                     });
@@ -333,9 +332,9 @@ function InputHelper({
                 if (k == "=" || k == "Enter") {
                     setExpression((ex) => {
                         const exp = `${ex}${wValue}`;
-                        // console.log(exp);
+
                         const res = eval(exp) as any;
-                        // console.log(res);
+
                         form.setValue(valueKey, res);
                         return "";
                     });

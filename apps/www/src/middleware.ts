@@ -17,7 +17,6 @@ export const config = {
 
 export default async function middleware(req: NextRequest) {
     const url = req.nextUrl;
-    // console.log([req.url, req.nextUrl]);
 
     // Get hostname of request (e.g. demo.vercel.pub, demo.localhost:3000)
     let hostname = req.headers.get("host");
@@ -41,7 +40,6 @@ export default async function middleware(req: NextRequest) {
     if (pathName == "/") {
         try {
             const userUrl = `${req.nextUrl.origin}/api/auth-session`;
-            console.log(userUrl);
 
             const usr = await fetch(userUrl, {
                 method: "POST",
@@ -63,7 +61,6 @@ export default async function middleware(req: NextRequest) {
                     //     pathName,
                     //     defaultPage: validLinks.defaultLink,
                     // });
-                    // console.log(validLinks.defaultLink);
 
                     if (pathName == "/" && validLinks.defaultLink) {
                         return NextResponse.redirect(

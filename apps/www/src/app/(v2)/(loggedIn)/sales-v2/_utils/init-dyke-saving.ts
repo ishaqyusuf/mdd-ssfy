@@ -28,7 +28,7 @@ export default function initDykeSaving(data: DykeForm, noEstimate = false) {
 
     errorData.errorId = data.order.slug || generateRandomString(5);
     const init = initializeMultiComponent(data);
-    // console.log(data.itemArray.length);
+
     // if (noEstimate) return data;
     errorData.init = init;
     const e = calculateSalesEstimate(init);
@@ -51,11 +51,11 @@ function initializeMultiComponent(data: DykeForm) {
         }
         // }
         const components = Object.values(
-            item?.multiComponent?.components || {}
+            item?.multiComponent?.components || {},
         ).filter(Boolean);
         let parented =
             components.find(
-                (c: any) => c.checked && c.itemId && c.itemId == item.item.id
+                (c: any) => c.checked && c.itemId && c.itemId == item.item.id,
             ) != null;
         components.map((c) => {
             if (!c.checked) {
@@ -122,7 +122,6 @@ function initializeMultiComponent(data: DykeForm) {
                 else dykeDoorId = c.toolId;
                 // c.priceTags.components =
                 // item.item.housePackageTool?.meta?.priceTags?.components;
-                // console.log(c.priceTags);
 
                 clone.item.housePackageTool = {
                     ...rest,
@@ -162,7 +161,6 @@ function initializeMultiComponent(data: DykeForm) {
                     clone.item.housePackageTool.stepProductId = c.stepProductId;
 
                     if (type.moulding) {
-                        // console.log(c.priceTags);
                         clone.item.housePackageTool.meta.priceTags =
                             c.priceTags;
                         clone.item.housePackageTool.dykeDoorId = null;

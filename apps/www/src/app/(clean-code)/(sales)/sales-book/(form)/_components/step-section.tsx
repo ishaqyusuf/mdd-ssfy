@@ -115,7 +115,7 @@ function StepSectionHeader({ cls }: { cls: StepHelperClass }) {
 
     return (
         <CollapsibleTrigger asChild>
-            <div className="border border-muted-foreground/20">
+            <div className="border border-muted-foreground/20 dark:border-muted-foreground">
                 <button
                     className="flex h-8 w-full items-center gap-4 space-x-2  bg-muted-foreground/5 p-1 px-4 text-sm uppercase hover:bg-muted-foreground hover:text-white"
                     onClick={(e) => {

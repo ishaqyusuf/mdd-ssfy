@@ -56,16 +56,13 @@ export default function ImportModelTemplateSheet({
 
     const debouncedQuery = useDebounce(query, 300);
     async function search() {
-        // console.log(data);
-        // console.log("searching", query);
         const _res = await searchImport(
             query,
             data?.id,
             // (data as any)?.projectId
             searchType != "Master",
         );
-        console.log(_res);
-        // console.log(data?.modelName);
+
         setResult(_res);
     }
     const [searchType, setSearchType] = useState<string>("Community");
@@ -73,7 +70,6 @@ export default function ImportModelTemplateSheet({
         search();
     }, [debouncedQuery, searchType]);
     function importSections(sd) {
-        // console.log(sd);
         Object.entries(transformCommunityTemplate(sd)).map(([k, v]) => {
             form.setValue(k as any, v);
         });

@@ -117,8 +117,6 @@ export function DataTableFilterCommand<TData, TSchema extends z.AnyZodObject>({
                 },
             );
             for (const filter of currentFiltersToReset) {
-                console.log("reset", filter.id);
-
                 table.getColumn(filter.id)?.setFilterValue(undefined);
             }
         } else {
@@ -134,7 +132,6 @@ export function DataTableFilterCommand<TData, TSchema extends z.AnyZodObject>({
             //     return f;
             // });
             const ser = serializeColumFilters(columnFilters, filterFields);
-            // console.log({ ser, columnFilters, filterFields });
 
             setInputValue(ser);
         }
@@ -219,7 +216,6 @@ export function DataTableFilterCommand<TData, TSchema extends z.AnyZodObject>({
                     value={inputValue}
                     onValueChange={setInputValue}
                     onPaste={(e) => {
-                        // console.log();
                         const pv = e.clipboardData.getData("text");
 
                         const value = inputValue;
@@ -325,8 +321,6 @@ export function DataTableFilterCommand<TData, TSchema extends z.AnyZodObject>({
                         );
 
                         if (filteredValue == value) {
-                            console.log(filteredValue);
-
                             setInputValue(filteredValue);
                             return;
                         }
@@ -418,7 +412,7 @@ export function DataTableFilterCommand<TData, TSchema extends z.AnyZodObject>({
                                     const createWord = currentWord
                                         ?.split(":")
                                         ?.reverse()?.[0];
-                                    // console.log({ optionExists, createWord });
+
                                     return (
                                         <>
                                             {!optionExists && createWord && (
@@ -636,8 +630,6 @@ function InfinityScroll({
         return () => clearTimeout(handler);
     }, [filterQuery]);
     const fetchItems = ({ pageParam = 0, query = "" }) => {
-        // console.log(queryKey);
-        // console.log(options);
         const pageSize = 20;
         const filtered = query
             ? options.filter((item) =>
@@ -645,7 +637,7 @@ function InfinityScroll({
               )
             : options;
         const items = filtered.slice(pageParam, pageParam + pageSize);
-        // console.log(items.length, options.length);
+
         return {
             items,
             nextPage: pageParam + pageSize,
@@ -658,7 +650,7 @@ function InfinityScroll({
     );
     // useEffect(() => {
     //     refetch();
-    //     console.log({ filterQuery, filterKey });
+
     // }, [filterQuery]);
     const queryKey = ["items", filterKey, searchQuery];
 

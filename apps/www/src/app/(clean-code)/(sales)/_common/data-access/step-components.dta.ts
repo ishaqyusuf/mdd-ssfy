@@ -25,7 +25,6 @@ export async function loadStepComponentsDta(props: LoadStepComponentsProps) {
     return filtered;
     // if (resp.filter((s) => s.sortIndex >= 0).length)
     //     return resp.sort((a, b) => a.sortIndex - b.sortIndex);
-    console.log(resp);
 
     return resp;
 }

@@ -6,11 +6,10 @@ const mainModulePath = process.argv[2];
 async function logDirContents(dirPath: string) {
   try {
     const entries = await readdir(dirPath);
-    console.log(`📁 Contents of ${dirPath}:`);
+
     for (const entry of entries) {
       const fullPath = path.join(dirPath, entry);
       const fileStat = await stat(fullPath);
-      console.log(`  - ${entry}${fileStat.isDirectory() ? "/" : ""}`);
     }
   } catch (err) {
     console.error(`❌ Could not read ${dirPath}:`, err.message);

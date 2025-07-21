@@ -16,7 +16,7 @@ export async function saveModelCost(cost: ICostChart, templateId) {
     } = null as any;
     const title = [
         cost?.startDate ? formatDate(cost?.startDate, "MM/DD/YY") : null,
-        cost?.endDate ? formatDate(cost?.endDate, "MM/DD/YY") : "To Date"
+        cost?.endDate ? formatDate(cost?.endDate, "MM/DD/YY") : "To Date",
     ].join(" - ");
     _cost.title = title;
     _cost.current = cost.endDate
@@ -30,28 +30,28 @@ export async function saveModelCost(cost: ICostChart, templateId) {
                 type: "task-costs",
                 template: {
                     connect: {
-                        id: templateId
-                    }
-                }
+                        id: templateId,
+                    },
+                },
             }) as any,
             include: {
-                template: true
-            }
+                template: true,
+            },
         })) as any;
     } else {
         _c = (await prisma.costCharts.update({
             where: {
-                id: _id
+                id: _id,
             },
             data: {
-                ...(_cost as any)
+                ...(_cost as any),
             },
             include: {
-                template: true
-            }
+                template: true,
+            },
         })) as any;
     }
-    console.log(_c);
+
     await Promise.all(
         Object.entries(_c.meta.costs).map(async ([k, v]) => {
             // const createdAt = {
@@ -70,19 +70,24 @@ export async function saveModelCost(cost: ICostChart, templateId) {
                                 : fixDbTime(dayjs(from)).toISOString(),
                             lte: !to
                                 ? undefined
-                                : fixDbTime(dayjs(to), 23, 59, 59).toISOString()
-                        }
+                                : fixDbTime(
+                                      dayjs(to),
+                                      23,
+                                      59,
+                                      59,
+                                  ).toISOString(),
+                        },
                     },
-                    taskUid: k
+                    taskUid: k,
                 },
                 data: {
                     amountDue: Number(v) || 0,
-                    updatedAt: new Date()
-                }
+                    updatedAt: new Date(),
+                },
             });
-            console.log(s.count);
-        })
+        }),
     );
     revalidatePath("/settings/community/model-costs", "page");
     return _c;
 }
+

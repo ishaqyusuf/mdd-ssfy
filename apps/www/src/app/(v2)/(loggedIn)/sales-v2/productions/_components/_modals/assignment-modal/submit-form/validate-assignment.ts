@@ -21,7 +21,6 @@ export function useValidateAssignment(
             //         const qtyKey = `${k}Qty`;
 
             //         const qty = parseFloat(door._assignForm[qtyKey]);
-            //         console.log(qty);
 
             //         if (!isNaN(qty) && qty > 0) {
             //             (v.doors[title] as any)._assignForm[qtyKey] =
@@ -33,7 +32,7 @@ export function useValidateAssignment(
             //                 .number({})
             //                 .max(pending)
             //                 .min(0);
-            //             console.log({ qty, pending });
+
             //         }
             //     });
             //     if (_assignValidator) {
@@ -57,7 +56,6 @@ export function useValidateAssignment(
             //         return assignments;
             //     } catch (error) {
             //         (error as any).issues.map((e) => {
-            //             console.log(e);
 
             //             form.setError(e.path.join("."), {
             //                 ...e,

@@ -54,7 +54,6 @@ export function useSalesMailer() {
         }
 
         if (run?.status === "COMPLETED") {
-            console.log(run.output);
             setStatus("COMPLETED");
         }
     }, [error, run]);

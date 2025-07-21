@@ -33,7 +33,7 @@ export async function getSales(
       ...(notCounts[d.id.toString()] || {}),
     })),
   );
-  console.log(result.meta);
+
   return result;
 }
 export async function getQuotes(

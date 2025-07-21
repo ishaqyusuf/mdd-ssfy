@@ -174,11 +174,11 @@ function Attachment({ pathname }) {
                                 onClick={(e) => {
                                     // del(a.pathname)
                                     //     .then((e) => {
-                                    //         console.log(e);
+
                                     //         attachments.remove(ai);
                                     //     })
                                     //     .catch((e) => {
-                                    //         console.log(e);
+
                                     //     });
                                 }}
                                 type="button"

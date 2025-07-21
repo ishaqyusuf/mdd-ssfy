@@ -95,7 +95,7 @@ export function updateDoorGroupForm(
             groupItem.qty.total += toNumber(v.qty.total);
         });
     }
-    console.log({ groupItem, selections });
+
     cls.dotUpdateItemForm("groupItem", groupItem);
     return groupItem;
     cls.updateComponentCost();

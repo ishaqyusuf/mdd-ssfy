@@ -39,7 +39,7 @@ export function useInitContext(cls: ComponentHelperClass, componentsUid) {
     const stepUid = cls.stepUid;
     const zus = useFormDataStore();
     // const cls = useMemo(() => {
-    //     console.log("COMPONENT VISIBILITY MODAL CLS INITIALIZED");
+
     //     return new ComponentHelperClass(stepUid, zus, componentUid);
     // }, [stepUid, componentUid, zus, stepUid]);
     // const [itemUid, cStepUid] = stepUid.split("-");

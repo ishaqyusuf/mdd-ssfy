@@ -113,7 +113,6 @@ export function composeSalesItemControlStat(
             return a.salesItemControlUid == item.controlUid;
         });
 
-    // console.log({ assignments, aa: order.assignments });
     // throw new Error("...");
     const assigned = qtyMatrixSum(
         ...assignments.map(({ lhQty: lh, rhQty: rh, qtyAssigned: qty }) => ({

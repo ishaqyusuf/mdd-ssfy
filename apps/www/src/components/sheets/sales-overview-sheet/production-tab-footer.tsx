@@ -37,7 +37,6 @@ export function ProductionTabFooter({}) {
         let newState = !ctx.allSelected;
         const newSelections = {};
         prodItems?.map((item) => (newSelections[item.controlUid] = newState));
-        console.log({ newState, newSelections });
 
         setSelections((current) => ({ ...newSelections }));
     }

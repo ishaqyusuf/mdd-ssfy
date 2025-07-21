@@ -22,7 +22,6 @@ export function adjustWatermark(orderIds: string[]) {
                 if (e.id == "filler") {
                     // e.classList.remove('hidden');
                 } else totalLineHeight += e.clientHeight;
-                console.log(e.clientHeight);
             });
         const lp = totalLineHeight % invoiceHeight;
         const px = invoiceHeight - lp;
@@ -40,7 +39,7 @@ export function adjustWatermark(orderIds: string[]) {
                 n.setAttribute("id", _useId("water"));
                 n.classList.remove("hidden");
                 const topPx = Math.ceil(
-                    pgHeight * pages + headerHeight + invoiceHeight / 2
+                    pgHeight * pages + headerHeight + invoiceHeight / 2,
                 );
                 n.style.top = `${topPx}px`;
                 w.after(n);

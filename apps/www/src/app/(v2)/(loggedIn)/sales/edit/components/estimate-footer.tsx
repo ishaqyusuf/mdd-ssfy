@@ -34,7 +34,7 @@ export default function EstimateFooter({}) {
     useEffect(() => {
         const handleIntersection = (entries) => {
             const [entry] = entries;
-            console.log([entry]);
+
             setFloatingFooter(entry.isIntersecting == false);
         };
         const observer = new IntersectionObserver(handleIntersection, {

@@ -21,14 +21,13 @@ export async function _bootstrapPivot() {
         where: {
             pivotId: null,
             community: {
-                isNot: null
-            }
+                isNot: null,
+            },
         },
         include: {
-            community: true
-        }
+            community: true,
+        },
     });
-    console.log(costs.length);
 
     let data: {
         [id in string]: {
@@ -41,42 +40,41 @@ export async function _bootstrapPivot() {
         // deletes: []
     };
     let deletes: any = [];
-    costs.map(cost => {
+    costs.map((cost) => {
         const pivotM = getPivotModel(cost.community?.modelName);
-        // console.log(pivotM);
+
         const node = `${pivotM} ${cost.community?.projectId}`;
         if (!data[node]) {
             data[node] = {
                 costs: [],
                 costIds: [],
                 pivotModel: pivotM,
-                projectId: cost.community?.projectId
+                projectId: cost.community?.projectId,
             };
-            console.log(cost.community);
         }
         if (
             !data?.[node]?.costs?.some(
-                s => cost.startDate == s.startDate && cost.endDate == s.endDate
+                (s) =>
+                    cost.startDate == s.startDate && cost.endDate == s.endDate,
             )
         ) {
             data?.[node]?.costs?.push(cost as any);
             data?.[node]?.costIds.push(cost.id);
         } else {
-            console.log(cost.id);
             deletes.push(cost as any);
         }
     });
-    // console.log(data);
+
     // return;
     let total = Object.keys(data).length;
-    console.log("total", total);
+
     let _count = Object.keys(data).filter((d, i) => i < 10);
     await Promise.all(
         Object.entries(data).map(async ([k, v]) => {
             if (!_count.includes(k)) return;
-            let communityIds = v.costs.map(c => c.communityModelId);
+            let communityIds = v.costs.map((c) => c.communityModelId);
             communityIds = communityIds.filter(
-                (_, i) => communityIds.findIndex(ci => ci == _) == i
+                (_, i) => communityIds.findIndex((ci) => ci == _) == i,
             );
 
             const pivot = await prisma.communityModelPivot.create({
@@ -85,30 +83,30 @@ export async function _bootstrapPivot() {
                     projectId: v.projectId,
                     meta: {},
                     createdAt: new Date(),
-                    updatedAt: new Date()
-                }
+                    updatedAt: new Date(),
+                },
             });
             await prisma.communityModelCost.updateMany({
                 where: {
                     id: {
-                        in: v.costIds
-                    }
+                        in: v.costIds,
+                    },
                 },
                 data: {
-                    pivotId: pivot.id
-                }
+                    pivotId: pivot.id,
+                },
             });
             await prisma.communityModels.updateMany({
                 where: {
                     id: {
-                        in: communityIds as any
-                    }
+                        in: communityIds as any,
+                    },
                 },
                 data: {
-                    pivotId: pivot.id
-                }
+                    pivotId: pivot.id,
+                },
             });
-        })
+        }),
     );
 }
 export async function _attachUnitsToCommunity() {
@@ -116,10 +114,9 @@ export async function _attachUnitsToCommunity() {
         select: {
             projectId: true,
             modelName: true,
-            id: true
-        }
+            id: true,
+        },
     });
-    console.log();
 }
 export async function _createMissingPivots() {
     await Promise.all(
@@ -127,17 +124,17 @@ export async function _createMissingPivots() {
             await prisma.communityModels.findMany({
                 where: {
                     pivot: {
-                        is: null
-                    }
-                }
+                        is: null,
+                    },
+                },
             })
-        ).map(async p => {
+        ).map(async (p) => {
             const pivotM = getPivotModel(p.modelName);
             let pivot = await prisma.communityModelPivot.findFirst({
                 where: {
                     model: pivotM,
-                    projectId: p.projectId
-                }
+                    projectId: p.projectId,
+                },
             });
             if (!pivot) {
                 pivot = await prisma.communityModelPivot.create({
@@ -146,17 +143,17 @@ export async function _createMissingPivots() {
                         projectId: p.projectId,
                         meta: {},
                         createdAt: new Date(),
-                        updatedAt: new Date()
-                    }
+                        updatedAt: new Date(),
+                    },
                 });
             }
             await prisma.communityModels.update({
                 where: { id: p.id },
                 data: {
-                    pivotId: pivot.id
-                }
+                    pivotId: pivot.id,
+                },
             });
-        })
+        }),
     );
 }
 export async function _addMissingPivotToModelCosts() {
@@ -164,19 +161,19 @@ export async function _addMissingPivotToModelCosts() {
         where: {
             pivotId: null,
             community: {
-                isNot: null
-            }
+                isNot: null,
+            },
         },
         include: {
             community: {
                 select: {
-                    pivotId: true
-                }
-            }
-        }
+                    pivotId: true,
+                },
+            },
+        },
     });
     const __: any = {};
-    p.map(pp => {
+    p.map((pp) => {
         const pid = pp.community?.pivotId;
         if (pid) {
             if (!__[pid?.toString()]) __[pid?.toString()] = [];
@@ -188,13 +185,14 @@ export async function _addMissingPivotToModelCosts() {
             await prisma.communityModelCost.updateMany({
                 where: {
                     id: {
-                        in: v as any
-                    }
+                        in: v as any,
+                    },
                 },
                 data: {
-                    pivotId: Number(k)
-                }
+                    pivotId: Number(k),
+                },
             });
-        })
+        }),
     );
 }
+

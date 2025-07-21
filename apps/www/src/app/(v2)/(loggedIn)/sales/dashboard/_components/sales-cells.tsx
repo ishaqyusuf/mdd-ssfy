@@ -258,7 +258,7 @@ function ProductionStatus({ item }: SalesCellProps) {
     );
     // item.assignments[0].
     const totalDoors = item._meta.totalDoors;
-    // console.log(item.productionStatus?.status);
+
     if (submitted == totalDoors)
         return (
             <TableCell>

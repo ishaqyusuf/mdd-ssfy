@@ -80,7 +80,7 @@ export function useSalesControlAction({ onFinish }) {
                 true,
             );
             const auid = `${args.input.assignmentId}_${args.input?.itemUid}`;
-            console.log({ auid });
+
             form.setValue(
                 `actions.submissionActions.${auid}.status`,
                 "success",
@@ -93,9 +93,7 @@ export function useSalesControlAction({ onFinish }) {
                 form.setValue("nextTriggerUID", generateRandomString());
             }, 150);
         },
-        onError(e) {
-            console.log(e);
-        },
+        onError(e) {},
     });
     const createDispatch = useAction(createSalesDispatchAction, {
         onSuccess(args) {
@@ -108,9 +106,7 @@ export function useSalesControlAction({ onFinish }) {
                 form.setValue("nextTriggerUID", generateRandomString());
             }, 150);
         },
-        onError(e) {
-            console.log(e);
-        },
+        onError(e) {},
     });
     const createAssignment = useAction(createSalesAssignmentAction, {
         onSuccess(args) {
@@ -142,9 +138,7 @@ export function useSalesControlAction({ onFinish }) {
                 form.setValue("nextTriggerUID", generateRandomString());
             }, 150);
         },
-        onError(e) {
-            console.log(e);
-        },
+        onError(e) {},
     });
     const createDispatchItem = useAction(createSalesDispatchItemsAction, {
         onSuccess(args) {
@@ -163,9 +157,7 @@ export function useSalesControlAction({ onFinish }) {
                 form.setValue("nextTriggerUID", generateRandomString());
             }, 150);
         },
-        onError(e) {
-            console.log(e);
-        },
+        onError(e) {},
     });
 
     const queryCtx = useSalesOverviewQuery();
@@ -209,7 +201,6 @@ export function useSalesControlAction({ onFinish }) {
         );
         if (submissionEntry?.[1]) {
             const [uid, itemData] = submissionEntry;
-            console.log({ itemData });
 
             const [tok, itemUid] = uid?.split("_");
             const submissionMeta = actions.submissionMeta?.[itemUid];

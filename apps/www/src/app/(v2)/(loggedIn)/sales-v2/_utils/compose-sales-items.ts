@@ -15,7 +15,6 @@ export function composeSalesItems(data: ViewSaleType) {
     } = {};
     const shelfItems: NonNullable<ViewSaleType["items"][0]["shelfItems"]> = [];
     let totalDoors = 0;
-    // console.log(data.items.length);
 
     data.items.map((item) => {
         if (item.housePackageTool) {
@@ -30,7 +29,7 @@ export function composeSalesItems(data: ViewSaleType) {
                 };
 
             housePakageTools[dt]?.housePackageTools?.push(
-                item.housePackageTool
+                item.housePackageTool,
             );
             totalDoors += item.housePackageTool?.totalDoors || 0;
         }
@@ -63,7 +62,7 @@ export function composeSalesItems(data: ViewSaleType) {
 
 export function composeDoorDetails(
     steps: ViewSaleType["items"][0]["formSteps"],
-    item: ViewSaleType["items"][0]
+    item: ViewSaleType["items"][0],
 ) {
     if (!steps) steps = [];
 
@@ -71,8 +70,8 @@ export function composeDoorDetails(
         .filter(
             (s) =>
                 !["Door", "Item Type", "Moulding"].some(
-                    (k) => k == s.step.title
-                )
+                    (k) => k == s.step.title,
+                ),
         )
         .map((fs) => {
             return {
@@ -85,7 +84,7 @@ export function composeDoorDetails(
     //     value: "####",
     // });
     // if (item.housePackageTool?.doorType == "Moulding") {
-    //     console.log(item);
+
     //     _steps.push(
     //         ...[
     //             {

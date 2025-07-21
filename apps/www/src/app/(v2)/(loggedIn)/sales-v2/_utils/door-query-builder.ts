@@ -3,7 +3,6 @@ import { DykeDoorType, FormStepArray } from "../type";
 
 export function doorQueryBuilder(steps: FormStepArray, doorType: DykeDoorType) {
     const obj = toKeyValue(steps);
-    // console.log(obj);
 
     let q: any[] = [];
     let query = obj.doorType;
@@ -61,10 +60,8 @@ export function doorQueryBuilder(steps: FormStepArray, doorType: DykeDoorType) {
             q.push("1-3/8");
             break;
     }
-    // console.log(q, doorType);
 
     // q = ["x8-0", "1-3/8"];
-    // console.log({ q, omit });
 
     // q = ["hc ", "x8-0"];
     // omit = ["hc flush"];

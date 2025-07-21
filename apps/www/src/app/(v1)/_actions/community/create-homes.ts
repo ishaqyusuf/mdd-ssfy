@@ -60,7 +60,7 @@ export async function createHomesAction(homes: Homes[]) {
             const builder: IBuilder = builders.find(
                 (b) => b.id == home.builderId,
             ) as any;
-            console.log(builder);
+
             builder.meta.tasks.map((builderTask) => {
                 const _task: IHomeTask = {
                     meta: {},

@@ -42,7 +42,6 @@ export function ShelfItemCategoryInput({}) {
     const { toast } = useToast();
     const createCategory = useAction(createShelfCategoryAction, {
         onSuccess(args) {
-            console.log(args);
             toast({
                 title: "Category created",
                 description: `Category "${args.input.name}" created`,
@@ -93,7 +92,6 @@ export function ShelfItemCategoryInput({}) {
                                     }
                                     onDelete={(e) => {
                                         // e.preventDefault();
-                                        // console.log(e);
                                     }}
                                     key={item}
                                     value={String(item)}
@@ -121,10 +119,9 @@ export function ShelfItemCategoryInput({}) {
                                 }}
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") {
-                                        console.log(e);
                                         e.preventDefault();
                                         const value = e.currentTarget.value;
-                                        // console.log({ value });
+
                                         __createCategory(value);
                                     }
                                 }}

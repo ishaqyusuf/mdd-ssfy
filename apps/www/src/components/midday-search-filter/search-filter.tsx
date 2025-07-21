@@ -104,8 +104,6 @@ export function MiddaySearchFilter({
     const deb = useDebounce(prompt, 1500);
     const hasMounted = useRef(false);
     useEffect(() => {
-        // console.log({ value, deb });
-
         if (!hasMounted.current) {
             hasMounted.current = true;
             return;
@@ -116,7 +114,7 @@ export function MiddaySearchFilter({
     }, [deb]);
     const handleSubmit = async () => {
         // If the user is typing a query with multiple words, we want to stream the results
-        console.log(prompt);
+
         setFilters({ search: prompt.length > 0 ? prompt : null });
     };
     const hasValidFilters =

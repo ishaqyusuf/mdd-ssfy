@@ -70,7 +70,7 @@ export function SectionedItemAssignForm({ index, salesDoorIndex = -1 }: Props) {
             assignToId: -1,
         },
     });
-    // console.log(group.sal);
+
     const prodDueDate = form.watch("prodDueDate");
     const validator = useValidateAssignment(form);
     // async function ÷
@@ -132,9 +132,7 @@ export function SectionedItemAssignForm({ index, salesDoorIndex = -1 }: Props) {
                     modal.open(data.data.id);
                     onOpenChange(false);
                 }
-            } catch (error) {
-                console.log(error);
-            }
+            } catch (error) {}
         });
     }
     if (data.data.readOnly) return <></>;

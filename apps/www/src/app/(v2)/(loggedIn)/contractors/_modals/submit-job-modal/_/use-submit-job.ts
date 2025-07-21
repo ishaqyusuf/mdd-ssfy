@@ -64,7 +64,7 @@ export default function useSubmitJob(form) {
             // try {
             const { job } = form.getValues();
             job.meta.taskCost = submitJobUtils.totalTaskCost(job.meta.costData);
-            // console.log(job.meta.taskCost);
+
             // if(!job.id)
             job.amount = 0;
             if (!job.homeId) job.meta.addon = 0;
@@ -80,7 +80,6 @@ export default function useSubmitJob(form) {
             await _revalidate("jobs");
             await _revalidate("contractorJobs");
             // } catch (error) {
-            //     console.log(error);
 
             //     if (error instanceof Error) toast.error(error.message);
             // }
@@ -148,7 +147,7 @@ export default function useSubmitJob(form) {
                 })
                 .filter(Boolean) || [],
         );
-        // console.log(cost, cl.length, home);
+
         if (updateCostData) form.setValue("job.meta.costData", cData as any);
         costList.append(cl as any);
     }
@@ -181,7 +180,6 @@ export default function useSubmitJob(form) {
         type,
         async initialize(_data: IJobs, action) {
             await _initialize(_data, { isAdmin, action });
-            // console.log(_data?.type, _costs);
         },
         nextTab() {
             let nextTab: SubmitJobTabs = null as any;
@@ -202,7 +200,6 @@ export default function useSubmitJob(form) {
             }
         },
         async projectChanged() {
-            // console.log(projectId);
             form.setValue("job.homeId", null as any);
             const unitJobs = await getUnitJobs(projectId, type);
 

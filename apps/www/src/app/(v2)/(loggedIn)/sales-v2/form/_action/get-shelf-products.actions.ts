@@ -9,7 +9,7 @@ export async function getShelfProducts(parentCategoryId, categoryId) {
             categoryId,
         },
     });
-    // console.log(subCategoriesCount);
+
     const products = subCategoriesCount
         ? []
         : await prisma.dykeShelfProducts.findMany({
@@ -18,7 +18,7 @@ export async function getShelfProducts(parentCategoryId, categoryId) {
                   //   parentCategoryId,
               },
           });
-    // console.log(products.length);
+
     return { subCategoriesCount, products };
 }
 

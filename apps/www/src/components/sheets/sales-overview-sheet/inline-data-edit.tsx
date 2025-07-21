@@ -15,15 +15,12 @@ export function SalesPO({ value, salesId }) {
     const hasMounted = useRef(false);
 
     useEffect(() => {
-        // console.log({ value, deb });
         if (!salesId) return;
         if (!hasMounted.current) {
             hasMounted.current = true;
             return;
         }
         if (value !== deb) {
-            console.log({ value, deb });
-
             updateSalesMetaAction(salesId, {
                 po: deb?.toUpperCase(),
             }).then(() => {

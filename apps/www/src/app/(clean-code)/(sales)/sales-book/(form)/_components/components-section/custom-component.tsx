@@ -43,7 +43,7 @@ export function CustomComponent({ ctx }: Props) {
     );
     async function _continue() {
         const data = form.getValues();
-        // console.log(data);
+
         let cls: ComponentHelperClass;
         let eProd = customInputs?.find((s) => s.title == data.title);
         const productUid = eProd?.uid || generateRandomString(5);
@@ -54,7 +54,7 @@ export function CustomComponent({ ctx }: Props) {
         )[0];
         const current = priceModel.priceVariants?.[currentPricingId];
         const currentPricingModel = priceModel?.pricing?.[currentPricingId];
-        // console.log(current);
+
         // return;
 
         if (!data.title) {

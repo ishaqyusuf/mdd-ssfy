@@ -12,8 +12,6 @@ export async function getDykeStepTitlesDta() {
         )
         .filter((s) => s.title?.trim());
 
-    // console.log(unique);
-
     return unique;
 }
 export async function getDykeStepProductTitles(title) {

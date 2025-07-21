@@ -460,7 +460,7 @@ function whereProductionDueDate(queries: Queries, params: SearchParamsType) {
         "production.assignedToId": assignedToId,
     } = params;
     const date = transformDate(prodDueDate);
-    console.log({ date });
+
     if (!date) return;
     queries.push({
         assignments: {

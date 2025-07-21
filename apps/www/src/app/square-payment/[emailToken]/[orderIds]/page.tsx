@@ -54,10 +54,9 @@ export default function Page(props) {
                 orderIdsParam,
                 orderIds,
             });
-            console.log({ resp });
+
             openLink((resp as any).paymentLink);
         } catch (error) {
-            console.log(error);
             toast.error("Unable to complete");
         }
         // const paymentLink = await

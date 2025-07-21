@@ -43,7 +43,7 @@ export function CustomComponentForm({ itemStepUid }) {
         // )[0];
         const current = priceModel.pricing?.[dependenciesUid];
         // const currentPricingModel = priceModel?.pricing?.[current?.];
-        // console.log({ current });
+
         if (current?.price == formData.basePrice) refreshAndSelectComponent();
         else {
             savePriceAction.execute({
@@ -64,9 +64,7 @@ export function CustomComponentForm({ itemStepUid }) {
             form.setValue("pricingUpdated", generateRandomString());
             // refreshAndSelectComponent(data.input.stepProductUid);
         },
-        onError(error) {
-            console.log({ error });
-        },
+        onError(error) {},
     });
     useEffect(() => {
         let data = formData.saveData;
@@ -85,9 +83,7 @@ export function CustomComponentForm({ itemStepUid }) {
     }, [formData.pricingUpdated, formData.saveData]);
     // saveAction.hasSucceeded
     const saveAction = useAction(saveStepComponent, {
-        onError(e) {
-            console.log({ e });
-        },
+        onError(e) {},
         onSuccess(data) {
             form.setValue("saveData", data.data);
         },
@@ -96,7 +92,6 @@ export function CustomComponentForm({ itemStepUid }) {
     useEffect(() => {
         if (!componentCls) return;
         setTimeout(() => {
-            // console.log(componentCls.getComponent);
             componentCls.selectComponent();
         }, 500);
     }, [componentCls, formData.saveData]);
@@ -106,7 +101,7 @@ export function CustomComponentForm({ itemStepUid }) {
         let cls = new ComponentHelperClass(itemStepUid, uid);
         if (formData?.basePrice) await cls.fetchUpdatedPrice();
         setComponentCls(cls);
-        // console.log(componentCls.getComponent, { uid });
+
         // componentCls.selectComponent();
     }
     function save() {
@@ -115,7 +110,7 @@ export function CustomComponentForm({ itemStepUid }) {
                 i.title?.toLocaleLowerCase() ==
                 formData?.title?.toLocaleLowerCase(),
         );
-        // console.log({ existing, formData });
+
         saveAction.execute({
             id: existing?.id,
             custom: true,

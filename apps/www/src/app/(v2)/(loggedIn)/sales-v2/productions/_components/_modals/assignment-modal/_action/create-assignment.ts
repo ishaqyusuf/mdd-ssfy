@@ -13,7 +13,6 @@ export async function createProdAssignment(
 ) {
     const assignedById = await userId();
     let score = 0;
-    // console.log(prodDueDate);
 
     await prisma.orderItemProductionAssignments.createMany({
         data: data.map((d) => {
@@ -28,7 +27,7 @@ export async function createProdAssignment(
     await updateSalesProgressDta(data[0].orderId, "prodAssigned", {
         plusScore: score,
     });
-    // console.log("SUCCESS");
+
     // if (!productionStatusId) {
     //     // await prisma.salesProductionStatus.create({
     //     //     data: {

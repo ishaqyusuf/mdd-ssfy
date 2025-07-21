@@ -96,7 +96,6 @@ export const useOverviewContext = (_item: any) => {
             if ((pageData && page == "delivery") || page == "pickup") {
                 const pd: SalesDispatchListDto = pageData as any;
                 __ctx.viewShipping(pd.dispatchId);
-                console.log("OPENING SHIPPING>>>");
             }
         }, 500);
     }

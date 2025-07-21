@@ -45,7 +45,7 @@ export async function searchOrderInventoryAction(query: ISearchQuery) {
         where,
     } satisfies any;
     // const prods = await prisma.orderInventory.groupBy(groupByArgs);
-    // console.log(prods);
+
     return [];
 }
 interface getComponentCostHistoryQuery {
@@ -77,7 +77,7 @@ export async function getComponentCostHistoryAction(
     //         product: true,
     //     },
     // });
-    // console.log(products);
+
     // return products;
 }
 export interface InvCompTitleProps {

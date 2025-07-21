@@ -101,7 +101,7 @@ export function SearchFilterTRPC({
     }, [deb]);
     const handleSubmit = async () => {
         // If the user is typing a query with multiple words, we want to stream the results
-        // console.log(prompt);
+
         setFilters({ q: prompt.length > 0 ? prompt : null });
     };
     const hasValidFilters =
@@ -229,7 +229,6 @@ export function SearchFilterTRPC({
                                                           })
                                                         : "-",
                                                 ];
-                                                console.log(f.value);
 
                                                 setFilters({
                                                     [f.value]: value.join(","),

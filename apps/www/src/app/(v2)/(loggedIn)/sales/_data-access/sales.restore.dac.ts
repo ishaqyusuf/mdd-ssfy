@@ -11,5 +11,4 @@ export async function restoreSalesDac(id) {
             deletedAt: null,
         },
     });
-    // console.log(s);
 }

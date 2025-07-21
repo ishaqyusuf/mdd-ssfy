@@ -46,7 +46,7 @@ export function dispatchTitle(id, prefix = "#DISPATCH") {
 export type SalesShippingDto = ReturnType<typeof salesShippingDto>;
 export function salesShippingDto(
     overview: SalesOverviewDto,
-    data: GetFullSalesDataDta
+    data: GetFullSalesDataDta,
 ) {
     //    data.deliveries
     const dispatchStat = overview.stat.calculatedStats.dispatchCompleted;
@@ -54,7 +54,6 @@ export function salesShippingDto(
         ?.map((grp) => {
             return grp?.items?.map((item, uid) => {
                 const analytics = item.analytics;
-                console.log(analytics);
 
                 const pendingDelivery = analytics.pending.delivery?.total;
                 const totalDelivered = analytics.success.delivery?.total;
@@ -71,14 +70,13 @@ export function salesShippingDto(
                             .map((sub) => {
                                 // console.log(sub.)
                                 let pendingDelivery = sub.qty;
-                                // console.log(pendingDelivery);
 
                                 assignment.deliveries
                                     .filter((d) => d.submissionId == sub.id)
                                     .map((s) => {
                                         pendingDelivery = qtyDiff(
                                             pendingDelivery,
-                                            s.qty
+                                            s.qty,
                                         );
                                     });
                                 return {
@@ -94,10 +92,10 @@ export function salesShippingDto(
                     ? qtyDiff(
                           analytics.pending.delivery,
                           analytics.success.delivery,
-                          true
+                          true,
                       )
                     : deliverableSubmissions[0]?.qty || {};
-                // console.log(deliverableQty);
+
                 deliverableSubmissions?.map((s, i) => {
                     if (i > 0)
                         deliverableQty = qtyDiff(deliverableQty, s, true);
@@ -125,8 +123,6 @@ export function salesShippingDto(
     let deliveries = data.deliveries.map((d) => {
         const totalDeliveries = sum(d.items.map((i) => i.qty));
         const items = d.items.map((dItem) => {
-            console.log(dItem);
-
             return {
                 id: dItem.id,
                 itemId: dItem.orderItemId,
@@ -139,7 +135,6 @@ export function salesShippingDto(
                 } as Qty,
             };
         });
-        console.log(items);
 
         return {
             id: d.id,
@@ -160,7 +155,7 @@ export function salesShippingDto(
     };
 }
 export function deliveriesByStatus(
-    items: { qty; status: SalesDispatchStatus }[]
+    items: { qty; status: SalesDispatchStatus }[],
 ): DeliveryBreakdown {
     const resp: DeliveryBreakdown = {
         status: {
@@ -190,10 +185,8 @@ export function deliveriesByStatus(
 export function deliveryBreakdownDto(
     deliveries: FullSalesDeliveries,
     assignments?: Assignments,
-    totalDeliverables?
+    totalDeliverables?,
 ): DeliveryBreakdown {
-    console.log(totalDeliverables);
-
     const deliveryItems = assignments
         ? assignments
               ?.map((a) => a.submissions?.map((s) => s.itemDeliveries).flat())
@@ -207,10 +200,10 @@ export function deliveryBreakdownDto(
                 status,
                 qty: item.qty,
             };
-        })
+        }),
     );
     return calculateDeliveryBreakdownPercentage(
         deliveryByStat,
-        totalDeliverables
+        totalDeliverables,
     );
 }

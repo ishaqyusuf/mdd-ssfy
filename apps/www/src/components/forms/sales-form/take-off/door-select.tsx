@@ -21,7 +21,7 @@ export function DoorSelect({ setOpen }) {
         const door = composeDoor(cls);
 
         const selections = door.selections;
-        console.log({ door });
+
         const gi = updateDoorGroupForm(cls, selections, null, false);
     }
     return (

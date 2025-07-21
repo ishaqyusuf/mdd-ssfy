@@ -40,7 +40,6 @@ export default function OrderPrinter({
     }, [_printer]);
     useEffect(() => {
         if (id) {
-            // console.log(id);
             dispatchSlice("printOrders", {
                 mode,
                 // pdf: props.pdf,
@@ -62,7 +61,6 @@ export default function OrderPrinter({
     async function print(printer) {
         if (!printer) return;
         if (printer.pdf) {
-            console.log(printer);
             // const resp = await fetch(
             //     `/api/download-sales-pdf?mode=${
             //         printer.mode
@@ -73,8 +71,7 @@ export default function OrderPrinter({
                 printer.mode,
                 printer.ids?.join(","),
             );
-            // console.log("DOWNLOAD PDF");
-            // console.log(durl);
+
             const link = document.createElement("a");
             link.href = pdf.uri;
             link.download = pdf.fileName; // [printer.ids.join(","), ".pdf"].join("");

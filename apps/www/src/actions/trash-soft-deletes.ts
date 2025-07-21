@@ -3,8 +3,6 @@
 import { prisma } from "@/db";
 
 export async function trashSoftDeletesAction() {
-    console.log("TRASHING>>>>>");
-
     // const trashables = await Promise.all(
     //     [
     //         prisma.dykeStepForm,
@@ -22,6 +20,4 @@ export async function trashSoftDeletesAction() {
     //         return `${String(table as any)}: ${c}`;
     //     })
     // );
-
-    // console.log(trashables);
 }

@@ -234,7 +234,6 @@ export function PayPortalTab({}) {
                                             type="button"
                                             onClick={(e) => {
                                                 form.trigger().then((e) => {
-                                                    console.log(e);
                                                     console.log(
                                                         form.formState.errors,
                                                     );

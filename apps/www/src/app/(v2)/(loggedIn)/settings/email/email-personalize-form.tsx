@@ -29,7 +29,6 @@ export default function EmailPersolizeForm({ user }: { user: IUser }) {
 
     const [isPending, startTransition] = useTransition();
     async function submit() {
-        // console.log(form.getValues("meta"));
         startTransition(async () => {
             await _saveEmailPersonalizeForm(form.getValues("meta"));
             toast.success("Saved");

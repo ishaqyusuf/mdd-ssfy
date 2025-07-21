@@ -5,8 +5,6 @@ import { ItemPriceFinderProps } from ".";
 import { camel } from "@/lib/utils";
 type Keys = "dykeDoorId" | "moldingId" | "casingId" | "jambSizeId";
 export async function getDoorPrices({ ...props }: ItemPriceFinderProps) {
-    console.log(props);
-
     function _or(key: Keys) {
         if (props[key])
             return {
@@ -48,9 +46,6 @@ export async function getDoorPrices({ ...props }: ItemPriceFinderProps) {
                   },
               },
           });
-    // console.log(_d.map((d) => d.salesOrderItem.rate));
-    // console.log(props);
-    // console.log(doors);
 
     function getPricings(key: Keys) {
         let title = {
@@ -71,7 +66,7 @@ export async function getDoorPrices({ ...props }: ItemPriceFinderProps) {
                       .filter(
                           (d) =>
                               d.housePackageTool?.[key] == props[key] &&
-                              props[key]
+                              props[key],
                       )
                       .map((d) => ({
                           date: d.createdAt,
@@ -83,7 +78,7 @@ export async function getDoorPrices({ ...props }: ItemPriceFinderProps) {
             priceList: pDoors.filter(
                 (p, i) =>
                     pDoors.findIndex((s) => s.value == p.value) == i &&
-                    p.value > 0
+                    p.value > 0,
             ),
         };
     }
@@ -94,7 +89,7 @@ export async function getDoorPrices({ ...props }: ItemPriceFinderProps) {
               getPricings("casingId"),
               getPricings("jambSizeId"),
           ];
-    // console.log(priceTabs);
+
     // return priceTabs;
     return {
         priceTabs,

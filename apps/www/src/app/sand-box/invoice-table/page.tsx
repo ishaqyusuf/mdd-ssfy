@@ -89,9 +89,7 @@ export default function InvoiceTable() {
                                                         itemValue={
                                                             "description"
                                                         }
-                                                        onSelect={(e) => {
-                                                            console.log(e);
-                                                        }}
+                                                        onSelect={(e) => {}}
                                                     />
                                                 ) : (
                                                     <Input

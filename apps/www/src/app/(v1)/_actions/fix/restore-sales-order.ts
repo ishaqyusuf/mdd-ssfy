@@ -47,7 +47,6 @@ export async function _restoreSalesOrder() {
     //         payments: true
     //     }
     // });
-    // console.log(sales?.payments);
 }
 const saleObj = {
     id: 605,
@@ -604,4 +603,3 @@ const saleObj = {
         },
     ],
 };
-

@@ -6,7 +6,6 @@ import { getJanuarySalesAction } from "./actions";
 export default function JanSalesStat({}) {
     async function _salesStatistics() {
         const resp = await getJanuarySalesAction();
-        console.log(resp);
 
         // chunker({
         //     worker: updateSalesStats,
@@ -14,7 +13,6 @@ export default function JanSalesStat({}) {
         //     chunkSize: 50,
         // });
         // const resp = await salesStatisticsAction();
-        // console.log(resp);
     }
     return (
         <>

@@ -30,7 +30,6 @@ export const {
     }, []);
     const shouldFetch = isOpen || isFocused || hasFilter;
     function optionSelected(qk, { label, value }) {
-        console.log(filterSchema?.[qk]);
         const isArray = isArrayParser(filterSchema?.[qk]);
 
         setFilters({

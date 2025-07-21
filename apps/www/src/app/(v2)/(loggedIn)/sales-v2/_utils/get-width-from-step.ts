@@ -20,6 +20,6 @@ export function getWidthFromStep(door) {
 
     // for (const door of doors) {
     //     const { width, qty } = parseDoorInfo(door);
-    //     console.log(`Width: ${width}, Quantity: ${qty}`);
+
     // }
 }

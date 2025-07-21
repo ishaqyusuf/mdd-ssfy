@@ -82,7 +82,6 @@ export const createSubmissionSchema = z
   .superRefine(qtySuperRefine);
 function qtySuperRefine(data: any, ctx: any) {
   let totalQty = 0;
-  // console.log(data?.pending?.);
 
   ["qty", "lh", "rh"].map((a) => {
     let val = +data.qty?.[a] || 0;

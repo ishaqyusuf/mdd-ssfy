@@ -103,7 +103,6 @@ export class ItemHelperClass {
                             uid.startsWith(stepUid) && formData.selected,
                     )
                     .map(([stepSizeUid, formData]) => {
-                        // console.log(formData);
                         if (!stepProductId) {
                             stepProductId =
                                 formData.stepProductId?.id ||
@@ -121,7 +120,6 @@ export class ItemHelperClass {
                             formData.stepProductId?.id ||
                                 formData.stepProductId.fallbackId,
                         );
-                        // console.log(updateDoor);
 
                         if (formData.doorId) {
                             if (

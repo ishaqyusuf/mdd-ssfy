@@ -20,8 +20,6 @@ export function SendEmailTemplateSection() {
     const [templates, setTemplates] = useState<any>([]);
     function init() {
         getEmailTemplates(form.getValues("template.type")).then((data) => {
-            console.log(data);
-
             setTemplates([
                 { title: "New", id: -1, subject: "", html: "" },
                 ...data,
@@ -32,7 +30,6 @@ export function SendEmailTemplateSection() {
         init();
     }, []);
     useEffect(() => {
-        // console.log(templateId);
         setTab(
             templateId > 0 ? "default" : templateId == -1 ? "new" : "default",
         );
@@ -62,7 +59,6 @@ export function SendEmailTemplateSection() {
             return;
         }
 
-        // console.log(body);
         if (htmlIsEmpty(body)) {
             toast.error("Email body cannot be empty");
             return;

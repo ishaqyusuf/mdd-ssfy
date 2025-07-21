@@ -22,20 +22,20 @@ function getStepTitle(stepCtx: LegacyDykeFormStepType) {
 }
 function getDoorType(itemCtx: LegacyDykeFormItemType): DykeDoorType {
     const steps = itemCtx.mainCtx.form.getValues(
-        `itemArray.${itemCtx.rowIndex}.item.formStepArray`
+        `itemArray.${itemCtx.rowIndex}.item.formStepArray`,
     );
-    console.log({ steps });
+
     return steps?.find((s) => s.step.title == "Item Type")?.item?.value as any;
 }
 async function loadComponents(
     storeComponentsByTitle: IDykeComponentStore["loadedComponentsByStepTitle"],
     stepCtx: LegacyDykeFormStepType,
-    ignoreCache = false
+    ignoreCache = false,
 ) {
     const title = `${helpers.step.getStepTitle(
-        stepCtx
+        stepCtx,
     )}-${stepCtx.itemCtx.get.uid()}`;
-    // console.log({ title });
+
     const storedComponents = storeComponentsByTitle[title];
     const props: LoadStepComponentsProps = {};
     const resp = {
@@ -55,17 +55,16 @@ async function loadComponents(
     }
     const allComponents: IStepProducts = await initComponents(
         stepCtx,
-        resp.data
+        resp.data,
     );
     stepCtx.setComponents(allComponents);
     stepCtx.setFilteredComponents(
-        allComponents.filter((s) => !s._metaData.hidden && !s.custom)
+        allComponents.filter((s) => !s._metaData.hidden && !s.custom),
     );
     stepCtx.setDeletedComponents(
-        allComponents.filter((s) => s._metaData.hidden)
+        allComponents.filter((s) => s._metaData.hidden),
     );
 
-    // console.log({ props, cache: resp.cache, len: resp.data?.length });
     return resp;
 }
 async function initComponents(stepCtx: LegacyDykeFormStepType, data) {

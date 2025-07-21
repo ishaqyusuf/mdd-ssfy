@@ -61,14 +61,11 @@ export default function RestoreComponentsModal({
         setComponents(stateDeps);
     }, []);
     async function _restore(item: IStepProducts[number]) {
-        // console.log(item);
         const d = form.getValues("show");
         let _show = item.meta.show || {};
         let _deleted = item.meta.deleted || {};
         let valid = false;
         Object.entries(d).map(([k, v]) => {
-            // console.log({ k, v });
-
             if (!v) delete _show[k];
             else {
                 (_show[k] = true) && (valid = true);
@@ -85,9 +82,8 @@ export default function RestoreComponentsModal({
             xZTAn: true,
         };
 
-        // console.log(item.meta);
         const reps = await saveStepProduct(item);
-        console.log(reps);
+
         stepCtx.reloadComponents();
         toast.success("Restored");
     }

@@ -36,7 +36,7 @@ export default function InboundsTableShell<T>({
     searchParams,
 }: TableShellProps<IInboundOrder>) {
     const [isPending, startTransition] = useTransition();
-    // console.log(data);
+
     const [selectedRowIds, setSelectedRowIds] = useState<number[]>([]);
     const route = useRouter();
     async function updateStatus(slug, status) {

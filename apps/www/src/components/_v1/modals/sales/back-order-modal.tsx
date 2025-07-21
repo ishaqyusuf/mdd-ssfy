@@ -52,7 +52,6 @@ export default function BackOrderModal() {
         <BaseModal<ISalesOrder>
             className="sm:max-w-[650px]"
             onOpen={(order) => {
-                // console.log(order);
                 const bo = {};
                 order?.items?.map((o) => {
                     bo[o.meta.uid] = {

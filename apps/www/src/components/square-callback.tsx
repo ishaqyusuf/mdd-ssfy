@@ -17,7 +17,7 @@ export default function SquareCallback({ params }) {
         const timer = setTimeout(async () => {
             // setPaymentState(Math.random() > 0.5 ? "success" : "failure");
             const p = await validateSquarePayment(paymentId);
-            console.log(p);
+
             // if(p.status == 'COMPLETED')
             setPaymentState(p.status);
         }, 1000);

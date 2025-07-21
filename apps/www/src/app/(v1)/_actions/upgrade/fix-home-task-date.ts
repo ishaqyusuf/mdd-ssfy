@@ -11,5 +11,5 @@ export async function _fixHomeTaskDates() {
     //         home: true
     //     }
     // });
-    // console.log(tasks.length);
 }
+

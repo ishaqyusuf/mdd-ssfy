@@ -12,7 +12,7 @@ export default function DykePage() {
         let products: DykeShelfProducts[] = [];
         prods._prods.map((productGroup) => {
             const cat = categoryUtils.generate(productGroup?.cats);
-            // console.log(categoryUtils.categories.length);
+
             productGroup?.products?.map((product) => {
                 products.push({
                     ...product,
@@ -30,7 +30,6 @@ export default function DykePage() {
             await createDykeProducts(products, categoryUtils.categories);
         })();
     }, []);
-    // console.log(products.length);
 
     return <></>;
 }

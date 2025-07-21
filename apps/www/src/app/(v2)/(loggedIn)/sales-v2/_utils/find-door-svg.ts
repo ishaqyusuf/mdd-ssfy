@@ -14,13 +14,10 @@ export function findDoorSvg(title, img) {
         },
     });
 
-    // console.log("....");
-
     let res = s.queryWithScore(title, (item) => item);
     // return null;
-    // console.log(res);
+
     //   return res;
-    // console.log(res);
 
     const item = res[0]?.item;
     if (!item) return {};
@@ -30,7 +27,6 @@ export function findDoorSvg(title, img) {
         svg: doorSvgsById[item.id],
         url: item.url,
     };
-    // console.log(resp);
 
     return resp;
 }

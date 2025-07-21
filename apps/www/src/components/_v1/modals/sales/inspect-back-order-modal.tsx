@@ -36,17 +36,14 @@ export default function InspectBackOrderModal() {
     });
     async function save(order: TruckLoaderForm) {
         startTransition(async () => {
-            // console.log(order);
             const _o = form.getValues();
             if (_o.action == "ready") {
                 await _readyForDelivery(_o);
                 toast.success("Ready For Delivery!");
             } else if (_o.action == "load") {
-                console.log(await _startSalesDelivery(_o));
                 // closeModal();
                 toast.success("Backorder created!");
             } else {
-                console.log(await _createBackorder(_o));
                 // closeModal();
                 toast.success("Backorder created!");
             }
@@ -62,7 +59,6 @@ export default function InspectBackOrderModal() {
         <BaseModal<TruckLoaderForm>
             className="sm:max-w-[650px]"
             onOpen={(order) => {
-                // console.log(order);
                 form.reset(order);
                 const slug = Object.entries(order.loader)
                     .map(([slug, v]) => (v.hasBackOrder ? slug : null))

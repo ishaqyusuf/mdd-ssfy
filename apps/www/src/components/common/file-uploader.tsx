@@ -50,8 +50,6 @@ export function FileUploader({
             const file = isUrl ? url : fileInput?.files?.[0];
 
             if (file) {
-                // console.log("UPLOADING....");
-
                 const formData = new FormData();
                 formData.append("file", file);
 
@@ -65,7 +63,7 @@ export function FileUploader({
                         pathName: data.secure_url?.split("/").slice(-1)[0],
                         // assetId: data.asset_id,
                     };
-                    console.log(resp);
+
                     onUpload && onUpload(resp.pathName);
                     setAssetId(resp.pathName);
                 }

@@ -19,7 +19,6 @@ export default async function EditSalesPage(props) {
         orderId: slug,
         type,
     });
-    // console.log(resp.form.items[0]?.deletedAt);
 
     let title = [
         `${resp.form.id ? "Edit" : "New"} ${type}`,
@@ -45,3 +44,4 @@ export default async function EditSalesPage(props) {
         </div>
     );
 }
+

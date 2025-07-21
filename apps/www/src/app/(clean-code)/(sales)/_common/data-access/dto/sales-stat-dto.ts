@@ -51,8 +51,6 @@ export function calculatedStatsDto(
         cs[type].percentage = percent(cs[type].score, cs[type].total);
     }
     itemGroup.map((grp, grpIndex) => {
-        // console.log(grp.items.length, grpIndex);
-
         grp.items?.map((item) => {
             const { pending, success } = item.analytics;
             populate("prodAssigned", pending.assignment, success.assignment);
@@ -80,7 +78,6 @@ export function statToKeyValueDto(dataStats: SalesStat[], reset = false) {
     return k;
 }
 export function overallStatus(dataStats: SalesStat[]) {
-    // console.log(dataStats);
     const sk = statToKeyValueDto(dataStats);
     const dispatch = sumArrayKeys(
         [sk.dispatchAssigned, sk.dispatchInProgress, sk.dispatchCompleted],

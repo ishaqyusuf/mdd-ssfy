@@ -90,7 +90,6 @@ function Action({ item }: { item: Item }) {
                 toast.success("Password Reset Successfully");
             },
             onError(error, variables, context) {
-                console.log(error);
                 toast.error("Unable to complete");
             },
         }),

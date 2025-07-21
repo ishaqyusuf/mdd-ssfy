@@ -71,9 +71,7 @@ export default function AssignTaskModal() {
     return (
         <BaseModal<ExtendedHomeTasks>
             className="sm:max-w-[550px]"
-            onOpen={(data) => {
-                console.log(data);
-            }}
+            onOpen={(data) => {}}
             onClose={() => {}}
             modalName="assignTask"
             Title={({ data }) => <>{data?.taskName}</>}

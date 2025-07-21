@@ -31,9 +31,7 @@ export function BatchAction({ children = null }) {
                 onAnimationStart={(e) => {
                     setShow(true);
                 }}
-                onAnimationEnd={(e) => {
-                    console.log("LEAVING>>");
-                }}
+                onAnimationEnd={(e) => {}}
                 onViewportEnter={(e) => {
                     setShow(true);
                 }}

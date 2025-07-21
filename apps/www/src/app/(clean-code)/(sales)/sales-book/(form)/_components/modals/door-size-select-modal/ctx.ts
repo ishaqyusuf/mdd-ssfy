@@ -75,7 +75,6 @@ export function useInitContext(cls: ComponentHelperClass, door?: Door) {
         openPriceForm,
         togglePriceForm(uid) {
             setOpenPriceForm((prev) => {
-                console.log({ prev });
                 const newState = {
                     [uid]: !prev?.[uid],
                 };

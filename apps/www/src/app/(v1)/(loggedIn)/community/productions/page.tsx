@@ -20,9 +20,9 @@ export default async function CommunityProductionsPage(props) {
     const taskNames = await _taskNames({
         produceable: true,
     } as any);
-    // console.log(taskNames);
+
     const response = await getProductions(
-        queryParams({ _task: taskNames, ...searchParams })
+        queryParams({ _task: taskNames, ...searchParams }),
     );
     // metadata.title = `${project.title} | Homes`;
 
@@ -44,3 +44,4 @@ export default async function CommunityProductionsPage(props) {
         </AuthGuard>
     );
 }
+

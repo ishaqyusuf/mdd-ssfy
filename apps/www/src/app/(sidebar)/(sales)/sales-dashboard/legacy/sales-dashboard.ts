@@ -44,7 +44,7 @@ export async function salesDashboardAction(): Promise<ISalesDashboard> {
 `;
 
     let bar = composeBar(salesByMonthAndYear);
-    // console.log(salesByMonthAndYear);
+
     await prisma.salesPayments.aggregate({
         _sum: {
             amount: true,

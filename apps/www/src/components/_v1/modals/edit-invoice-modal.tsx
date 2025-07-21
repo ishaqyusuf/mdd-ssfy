@@ -55,7 +55,7 @@ export default function EditInvoiceModal() {
                 tasks.map((t) => {
                     t.amountDue = Number(t.amountDue);
                     t.amountPaid = Number(t.amountPaid);
-                    console.log(t);
+
                     if (!t.id) {
                         if (!t.taskUid)
                             payload.create.push({
@@ -94,7 +94,6 @@ export default function EditInvoiceModal() {
                 toast.message("Invoice Updated!");
                 route.refresh();
             } catch (error) {
-                console.log(error);
                 toast.message("Invalid Form");
                 return;
             }
@@ -102,17 +101,15 @@ export default function EditInvoiceModal() {
     }
     const [deleteIds, setDeleteIds] = useState<number[]>([]);
     useEffect(() => {
-        console.log(deleteIds);
         if (deleteIds.length) {
             (async () => {
                 await deleteInvoiceTasks(deleteIds);
-                console.log("DELETED");
+
                 setDeleteIds([]);
             })();
         }
     }, [deleteIds]);
     async function init(data: ExtendedHome) {
-        console.log(data);
         const tasks: any = [];
         const deleteIds: number[] = [];
         data.tasks.map((t) => {
@@ -131,12 +128,12 @@ export default function EditInvoiceModal() {
     }
     async function deleteTask(i, task: IHomeTaskList) {
         const tid = form.getValues(`tasks.${i}.id`);
-        console.log(tid);
+
         if (tid) await deleteInvoiceTasks([tid]);
         remove(i);
     }
     // useEffect(() => {
-    //     console.log(watchTasks);
+
     // }, [watchTasks]);
     return (
         <BaseModal<ExtendedHome>

@@ -35,7 +35,7 @@ export async function _generateSalesPdf(mode: SalesPrintModes, ids) {
     browser = await puppeteer.connect({
         browserWSEndpoint: `wss://chrome.browserless.io?token=${process.env.BLESS_TOKEN}`,
     });
-    // console.log(">>>>>>");
+
     page = await browser.newPage();
     if (process.env.NODE_ENV == "production") {
         url = `https://gndprodesk.com/printer/sales?slugs=${ids}&mode=${mode}&preview=true`;

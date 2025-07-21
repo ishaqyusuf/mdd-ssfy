@@ -93,7 +93,6 @@ export class SettingsClass extends CostingClass {
             const stepIndex = stepSequences?.indexOf(this.itemStepUid);
             for (let i = stepIndex - 1; i > 0; i--) {
                 const [_itemUid, _stepUid] = stepSequences[i]?.split("-");
-                console.log({ _itemUid, _stepUid });
 
                 const nx = this.composeNextRoute(
                     itemForm,

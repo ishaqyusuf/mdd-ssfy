@@ -76,7 +76,6 @@ function Status({ item }: Props) {
 }
 function ProductionStatus({ item }: Props) {
     if (item.orderId == "24-0911-2301") {
-        console.log(item);
     }
     const submitted = sum(
         item.assignments.map((a) =>
@@ -84,7 +83,7 @@ function ProductionStatus({ item }: Props) {
         ),
     );
     const totalDoors = item._meta.totalDoors;
-    // console.log(item.productionStatus?.status);
+
     if (submitted == totalDoors && totalDoors > 0)
         return <TableCol.Status status="Completed" />;
     return (

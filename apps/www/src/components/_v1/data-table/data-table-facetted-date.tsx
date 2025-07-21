@@ -80,7 +80,6 @@ export function DataTableFacetedDate<TData, TValue>({
         setFilterTitle();
     }, [dtc]);
     if (!column || !column.id) {
-        console.log("NULL COLUMN", column);
         return null;
     }
     return (
@@ -146,7 +145,7 @@ export function DataTableFacetedDate<TData, TValue>({
                     selected={date}
                     onSelect={(e) => {
                         setDate(e);
-                        console.log(e, date);
+
                         let fd: any = null;
                         if (e instanceof Date) {
                             setOpen(false);
@@ -161,7 +160,7 @@ export function DataTableFacetedDate<TData, TValue>({
                                 setOpen(false);
                             } else return;
                         }
-                        console.log(fd);
+
                         column.setFilterValue(e);
                     }}
                     numberOfMonths={dateRange ? 2 : 1}

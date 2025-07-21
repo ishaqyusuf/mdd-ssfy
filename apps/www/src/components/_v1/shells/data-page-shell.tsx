@@ -13,7 +13,6 @@ export function DataPageShell<T>({
     data?: T;
     children?;
 } & PrimitiveDivProps) {
-    console.log({ data });
     return (
         <DataPageContext.Provider value={{ data }}>
             <div className={cn(className)}>{children}</div>

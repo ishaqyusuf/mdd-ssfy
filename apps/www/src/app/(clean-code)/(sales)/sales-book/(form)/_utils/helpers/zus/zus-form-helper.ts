@@ -158,7 +158,6 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         let itemType: DykeDoorType;
         let fallBackDoorStepProd;
         item.formStepArray.map((fs, i) => {
-            // console.log(i);
             // if (fs.step.title == "Door") doorStepUid = fs.step.uid;
             const componentUid = fs.item?.prodUid;
             // data.salesSetting.stepsByKey[''].components.find()
@@ -271,7 +270,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                     resp.kvFormItem[uid].groupItem.doorStepProductUid = sp?.uid;
                     Object.entries(data._doorForm).map(([formId, doorForm]) => {
                         pushItemId(formId);
-                        // console.log(doorForm);
+
                         addFormItem(formId, {
                             doorId: copy ? null : doorForm.id,
                             pricing: {
@@ -311,7 +310,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                 } else if (dt == "Moulding") {
                     const formId = `${id}`;
                     pushItemId(formId);
-                    // console.log({ formId, stepProdUid, id });
+
                     // console.log({
                     //     m: item.item?.housePackageTool?.molding,
                     //     md: data,
@@ -425,7 +424,6 @@ export function zhHarvestDoorSizes(data: SalesFormZusData, itemUid) {
             };
         })
         .filter((c) => c.valid);
-    // console.log(heightStepUid);
 
     const stepCls = new StepHelperClass(heightStepUid);
     const visibleComponents = stepCls.getVisibleComponents();

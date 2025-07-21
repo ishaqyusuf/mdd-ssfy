@@ -21,7 +21,6 @@ interface Props<T> {
 
 export default function ShelfItemsTable<T>({ promise }: Props<T>) {
     const { data, pageCount } = React.use(promise);
-    // console.log(data.length);
 
     const table = useDataTableColumn(
         data,
@@ -47,7 +46,7 @@ export default function ShelfItemsTable<T>({ promise }: Props<T>) {
                         icon="edit"
                         onClick={(e) => {
                             modal?.openModal(
-                                <ShelfItemFormModal data={item as any} />
+                                <ShelfItemFormModal data={item as any} />,
                             );
                         }}
                     />
@@ -63,7 +62,7 @@ export default function ShelfItemsTable<T>({ promise }: Props<T>) {
         {
             sn: true,
             filterCells: ["_q"],
-        }
+        },
     );
     const modal = useModal();
     return (

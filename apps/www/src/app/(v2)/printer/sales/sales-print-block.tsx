@@ -24,7 +24,7 @@ interface SalesBlockCtxProps extends BasePrintProps {
     sale: SalesPrintData;
 }
 export const SalesBlockCtx = React.createContext<SalesBlockCtxProps>(
-    null as any
+    null as any,
 );
 export const useSalesBlockCtx = () =>
     React.useContext<SalesBlockCtxProps>(SalesBlockCtx);
@@ -33,7 +33,6 @@ export default function SalesPrintBlock({ action, slug, className }: Props) {
     const data = React.use(action);
     const ctx = usePrintContext();
     const basePrint = useSalesPrintCtx();
-    // console.log(data?.orderedPrinting);
 
     useEffect(() => {
         if (data) ctx.pageReady(slug, data);
@@ -62,7 +61,7 @@ export default function SalesPrintBlock({ action, slug, className }: Props) {
                                             index={i}
                                             key={"shelf" + i}
                                         />
-                                    )
+                                    ),
                                 )}
                                 <SalesPrintLineItems />
                                 <SalesPrintFooter />

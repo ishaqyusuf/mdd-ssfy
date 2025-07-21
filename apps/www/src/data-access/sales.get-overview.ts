@@ -17,8 +17,6 @@ export async function getSalesOverviewPage(type: ISalesType, slug) {
     };
 }
 export async function getSale(type: ISalesType, slug) {
-    console.log({ slug, type });
-
     const sale = await prisma.salesOrders.findFirstOrThrow({
         where: {
             type,

@@ -25,6 +25,4 @@ export async function getSalesDahboardStatsAction() {
     //     month: item.createdAt.getMonth() + 1, // getMonth() is 0-based
     //     value: item._sum.amount ?? 0,
     // }));
-
-    // console.log(formattedData);
 }

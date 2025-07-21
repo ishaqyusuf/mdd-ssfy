@@ -47,5 +47,4 @@ export async function changeIzriEmail() {
             email: "izrispam@gmail.com",
         },
     });
-    console.log(user);
 }

@@ -26,7 +26,6 @@ import { useTransition } from "@/utils/use-safe-transistion";
 export type ResetPasswordFormInputs = z.infer<typeof resetPasswordSchema>;
 
 export function DimensionList({ data }: { data: HousePackageToolSettings }) {
-    // console.log(data);
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
 
@@ -45,7 +44,6 @@ export function DimensionList({ data }: { data: HousePackageToolSettings }) {
     function onSubmit() {
         startTransition(async () => {
             try {
-                console.log(form.getValues("data"));
                 await saveHousePackageTool(
                     form.getValues("id"),
                     form.getValues("data"),

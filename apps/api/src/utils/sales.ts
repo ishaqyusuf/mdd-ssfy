@@ -74,7 +74,6 @@ export function dispatchTitle(id, prefix = "#DISPATCH") {
   return `${prefix}-${padStart(id.toString(), 4, "0")}`;
 }
 export function overallStatus(dataStats: Prisma.SalesStatGetPayload<{}>[]) {
-  // console.log(dataStats);
   const sk = statToKeyValueDto(dataStats);
   const dispatch = sumArrayKeys(
     [sk.dispatchAssigned, sk.dispatchInProgress, sk.dispatchCompleted],

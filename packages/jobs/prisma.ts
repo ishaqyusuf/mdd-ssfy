@@ -27,7 +27,7 @@ const collectPrismaFiles = async (dir: string): Promise<string[]> => {
   const allFiles = await collectPrismaFiles(sourceDir);
 
   const schemaFile = allFiles.find(
-    (f) => f.endsWith("/schema.prisma") || f.endsWith("\\schema.prisma")
+    (f) => f.endsWith("/schema.prisma") || f.endsWith("\\schema.prisma"),
   );
   const otherFiles = allFiles.filter((f) => f !== schemaFile);
 
@@ -45,5 +45,4 @@ const collectPrismaFiles = async (dir: string): Promise<string[]> => {
   }
 
   await writeFile(outputFile, combined);
-  console.log(`✅ Flattened schema written to ${outputFile}`);
 })();

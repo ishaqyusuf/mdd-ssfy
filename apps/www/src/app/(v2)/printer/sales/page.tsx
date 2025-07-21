@@ -36,7 +36,6 @@ export default async function PrintOrderPage(props0) {
         pdf: (searchParams.pdf as any) == "true",
         slugs: slugs,
     };
-    // console.log({ value, searchParams });
 
     return (
         <BasePrinter {...value}>

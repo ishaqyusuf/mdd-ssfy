@@ -234,7 +234,6 @@ export function useInfiniteDataTableContext({
         const selected = selectedRow;
 
         if (itemViewFn && selected) {
-            console.log([selected, rowSelection]);
             itemViewFn(selected.original);
             setRowSelection({});
             return;

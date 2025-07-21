@@ -74,15 +74,13 @@ function ShelfCategory({ index, fields, field }) {
     const [categories, setCategories] = useState<DykeShelfCategories[]>([]);
     const form = useFormContext<IDykeShelfProductsForm>();
     // const parentCategoryId = form.watch("_meta.parentCategoryId");
-    useEffect(() => {
-        console.log(field.value);
-    }, [field]);
+    useEffect(() => {}, [field]);
     useEffect(() => {
         (async () => {
             const c = await _getShelfCategories({
                 categoryId: field.value || null,
             });
-            // console.log(c);
+
             setCategories(c);
         })();
     }, [index, fields, field]);

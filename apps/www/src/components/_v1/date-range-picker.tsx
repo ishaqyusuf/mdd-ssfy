@@ -65,13 +65,11 @@ export function DatePicker({
         return formatDate(d, format);
     }
     // React.useEffect(() => {
-    //   console.log(value);
+
     // }, []);
     const [open, setOpen] = useState(false);
     const openChanged = useCallback(
         (e) => {
-            console.log(e);
-
             setOpen(e);
         },
         [open],

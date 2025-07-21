@@ -19,7 +19,7 @@ export async function salesSuppliers() {
             if (supplier) {
                 inserts[supplier] = [...(inserts?.[supplier] || []), i.id];
             }
-        })
+        }),
     );
     return await Promise.all(
         Object.entries(inserts)
@@ -28,7 +28,7 @@ export async function salesSuppliers() {
                     v as any
                 ).join(",")});`;
             })
-            .join("\n")
+            .join("\n"),
     );
 }
 
@@ -40,5 +40,4 @@ export async function fixSales() {
             payments: true,
         },
     });
-    console.log(p.length);
 }

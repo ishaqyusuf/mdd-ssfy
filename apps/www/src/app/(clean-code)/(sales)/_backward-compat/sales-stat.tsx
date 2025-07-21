@@ -5,7 +5,6 @@ import { loadSalesWithoutStats, updateSalesStats } from "./sales-stat.action";
 export default function SalesStat({}) {
     async function _salesStatistics() {
         const resp = await loadSalesWithoutStats();
-        console.log(resp);
 
         chunker({
             worker: updateSalesStats,
@@ -13,7 +12,6 @@ export default function SalesStat({}) {
             chunkSize: 50,
         });
         // const resp = await salesStatisticsAction();
-        // console.log(resp);
     }
     return (
         <>

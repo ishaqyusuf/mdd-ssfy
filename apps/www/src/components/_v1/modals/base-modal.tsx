@@ -63,7 +63,6 @@ function BaseModal<T, FormType = undefined>({
     return (
         <Dialog
             onOpenChange={(e) => {
-                console.log(e);
                 if (!e) {
                     onClose?.();
                     closeModal(modalName);

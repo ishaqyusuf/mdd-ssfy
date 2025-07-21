@@ -65,7 +65,6 @@ export default function SubmitDoorProduction({
     useEffect(() => {
         if (open) {
             form.setValue(qtyKey, 0);
-            // console.log(assignment.__report);
         }
         // }
     }, [open]);

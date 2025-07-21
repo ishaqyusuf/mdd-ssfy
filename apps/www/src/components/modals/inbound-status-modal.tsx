@@ -59,9 +59,7 @@ export function InboundSalesModal({}) {
                 });
                 setParams(null);
             },
-            onError(e) {
-                console.log(e);
-            },
+            onError(e) {},
         }),
     );
     const statusList = inboundFilterStatus.filter((a) => a != "total");
@@ -135,14 +133,11 @@ export function InboundSalesModal({}) {
                                                 onClick={(e) => {
                                                     del(a.pathname)
                                                         .then((e) => {
-                                                            console.log(e);
                                                             attachments.remove(
                                                                 ai,
                                                             );
                                                         })
-                                                        .catch((e) => {
-                                                            console.log(e);
-                                                        });
+                                                        .catch((e) => {});
                                                 }}
                                                 type="button"
                                             />

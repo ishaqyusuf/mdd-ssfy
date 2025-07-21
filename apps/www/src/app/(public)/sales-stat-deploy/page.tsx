@@ -13,7 +13,7 @@ export default function SalesSatDeployPage({}) {
             <Button
                 onClick={async () => {
                     const resp = await loadSalesWithoutStats();
-                    console.log(resp);
+
                     chunker({
                         worker: updateSalesStats,
                         list: resp,

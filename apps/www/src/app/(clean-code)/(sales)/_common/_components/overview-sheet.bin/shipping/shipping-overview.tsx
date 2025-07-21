@@ -56,13 +56,11 @@ const useShippingOverviewCtx = (
             );
 
             const [d1, d2, ...rest] = deliveries;
-            console.log(item.assignments);
 
             let qty = d2 ? qtyDiff(d1.qty, d2.qty, true) : d1?.qty;
             rest?.map((r) => {
                 qty = qtyDiff(qty, r.qty, true);
             });
-            console.log({ item, deliveries, qty, sItems: shipping.items });
 
             return {
                 item,
@@ -87,9 +85,7 @@ const ShippingOverviewCtx = createContext<
 export function ShippingOverview({}) {
     const ctx = useShippingOverview();
     const { mainCtx, shipping } = ctx;
-    useEffect(() => {
-        console.log("SHIPPING OVERVIEW");
-    }, []);
+    useEffect(() => {}, []);
     if (!ctx || !ctx?.shipping?.id) return null;
     async function updateProgress(progress) {
         try {

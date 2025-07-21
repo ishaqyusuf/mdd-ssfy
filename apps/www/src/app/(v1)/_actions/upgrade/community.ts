@@ -30,7 +30,7 @@ export async function _debugUnitsWithNoProjects() {
         },
     });
     let bloat = data.filter(
-        (d) => !d.projectId || !projects.some((p) => p.id == d.projectId)
+        (d) => !d.projectId || !projects.some((p) => p.id == d.projectId),
     );
 
     return [bloat.length, data.length];
@@ -66,7 +66,7 @@ export async function upgradeCommunity() {
                     }) as any,
                 },
             });
-        })
+        }),
     );
 }
 export async function upgradeHomeTemplateDesign() {
@@ -86,7 +86,7 @@ export async function upgradeHomeTemplateDesign() {
                 });
             // if (i > 2) return;
             if (!design || Array.isArray(design)) return;
-            // console.log("ARR");
+
             // deb.push();
             let meta: HomeTemplateMeta = (v.meta || {}) as any;
             let { ...rest } = meta as any;
@@ -96,8 +96,8 @@ export async function upgradeHomeTemplateDesign() {
             let _design = _transformDesign(dotObject);
             sql.push(
                 `UPDATE HomeTemplates SET meta = JSON_SET(meta,'$.design','${JSON.stringify(
-                    _design
-                )}') WHERE modelName='${v.modelName}';`
+                    _design,
+                )}') WHERE modelName='${v.modelName}';`,
             );
             return;
             // meta.design = _design;
@@ -111,7 +111,7 @@ export async function upgradeHomeTemplateDesign() {
                     meta: removeEmptyValues(newMeta) as any,
                 },
             });
-        })
+        }),
     );
     return sql.join("\n");
     return deb;
@@ -147,7 +147,7 @@ export async function upgradeHomeTemplates() {
                                 title,
                                 cost: unitValue,
                                 maxQty: checked ? max_qty : 0,
-                            })
+                            }),
                         ),
                     })) || [],
             };
@@ -157,7 +157,7 @@ export async function upgradeHomeTemplates() {
                     meta: removeEmptyValues(newMeta) as any,
                 },
             });
-        })
+        }),
     );
     return _transformDesign(fields);
 }
@@ -187,12 +187,12 @@ export async function upgradeCostCharts() {
                     },
                 },
             });
-        })
+        }),
     );
 }
 export async function upgradeInstallCostToKeyValue() {
     const s: InstallCostSettings = await getSettingAction(
-        "install-price-chart"
+        "install-price-chart",
     );
 
     const list = s.meta.list.map((ls) => {
@@ -212,9 +212,7 @@ export async function upgradeInstallCostToKeyValue() {
         },
     });
     await Promise.all(
-        (
-            await prisma.homeTemplates.findMany({})
-        ).map(async (template) => {
+        (await prisma.homeTemplates.findMany({})).map(async (template) => {
             const tmeta: HomeTemplateMeta = template.meta as any;
             if (tmeta.installCosts?.length > 0) {
                 const costings = tmeta.installCosts.map((ic) => {
@@ -241,18 +239,16 @@ export async function upgradeInstallCostToKeyValue() {
                         } as any,
                     });
             }
-        })
+        }),
     );
 }
 export async function upgradeJobCostData() {
     const settings: InstallCostSettings = (await getSettingAction(
-        "install-price-chart"
+        "install-price-chart",
     )) as any;
     const jobNotFound: any[] = [];
     await Promise.all(
-        (
-            await prisma.jobs.findMany({})
-        ).map(async (k) => {
+        (await prisma.jobs.findMany({})).map(async (k) => {
             // const { cost_data, ...meta }: IJobMeta = k.meta as any;
             // if (cost_data) {
             //   meta.costData = {};
@@ -287,7 +283,7 @@ export async function upgradeJobCostData() {
             //     },
             //   });
             // }
-        })
+        }),
     );
     return [jobNotFound, settings.meta.list];
 }
@@ -310,7 +306,7 @@ export async function convertModelInstallCost() {
                 //   },
                 // });
             }
-        })
+        }),
     );
 }
 export async function linkHomeTemplateCosts() {
@@ -338,7 +334,7 @@ export async function linkHomeTemplateCosts() {
             const _c = costs.filter(
                 (c) =>
                     t.modelName?.toLocaleLowerCase() ==
-                    c.model?.toLocaleLowerCase()
+                    c.model?.toLocaleLowerCase(),
             );
             // .map((c) => c.id);
             if (_c?.length > 0) {
@@ -376,10 +372,10 @@ export async function linkHomeTemplateCosts() {
                 }
                 if (grob.id) {
                     const bc = (grob.meta.subTotal = totalkValues(
-                        grob.meta?.costs
+                        grob.meta?.costs,
                     ));
                     const tc = (grob.meta.totalTax = totalkValues(
-                        grob.meta?.tax
+                        grob.meta?.tax,
                     ));
                     grob.meta.totalCost = bc + tc;
                     if (Array.isArray(grob.meta.costs)) grob.meta.costs = {};
@@ -396,7 +392,7 @@ export async function linkHomeTemplateCosts() {
                     });
                 }
             }
-        })
+        }),
     );
 }
 const camelCaseKey = (key) =>
@@ -465,4 +461,3 @@ export async function upgradeInstallPriceChart() {
     });
     // return price;
 }
-

@@ -22,8 +22,6 @@ export function useValidateAssignment(form?: UseFormReturn<IAssignGroupForm>) {
                     return assignments;
                 } catch (error) {
                     (error as any).issues.map((e) => {
-                        // console.log(e);
-
                         form.setError(e.path.join("."), {
                             ...e,
                         });
@@ -46,7 +44,6 @@ export function composeAssignments(form: IAssignGroupForm) {
             const qtyKey = `${k}Qty`;
 
             const qty = parseFloat((door as any)?._assignForm?.[qtyKey]);
-            console.log(qty);
 
             if (!isNaN(qty) && qty > 0) {
                 (form.doors[title] as any)._assignForm[qtyKey] = qty as any;
@@ -54,7 +51,6 @@ export function composeAssignments(form: IAssignGroupForm) {
                 if (!_assignValidator) _assignValidator = {};
                 const pending = Number(door?.[`${k}Pending`]) || 0;
                 _assignValidator[qtyKey] = z.number({}).max(pending).min(0);
-                console.log({ qty, pending });
             }
         });
         if (_assignValidator) {

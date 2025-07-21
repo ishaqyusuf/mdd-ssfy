@@ -2,9 +2,6 @@ export function transformEmail(subject, body, data) {
     subject = transform(subject, data);
     body = transform(body, data);
 
-    //   console.log(subject);
-    //   console.log(body);
-    //   console.log(data);
     return { subject, body };
 }
 const transform = (template, data) =>

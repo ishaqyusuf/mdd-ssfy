@@ -40,7 +40,7 @@ function ModalContent({ data }: SubmitJobModalProps) {
     const ctx = useJobSubmitCtx();
 
     // useEffect(() => {
-    // console.log(">...");
+
     // ctx.initialize(data);
     // }, []);
     return (

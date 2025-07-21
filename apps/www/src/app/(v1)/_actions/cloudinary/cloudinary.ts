@@ -16,7 +16,7 @@ export async function getSignature(folder) {
 
     const signature = cloudinary.utils.api_sign_request(
         { timestamp, folder },
-        cloudinaryConfig.api_secret as any
+        cloudinaryConfig.api_secret as any,
     );
 
     return { timestamp, signature };
@@ -25,11 +25,10 @@ export async function saveToDatabase({ public_id, version, signature }) {
     // verify the data
     const expectedSignature = cloudinary.utils.api_sign_request(
         { public_id, version },
-        cloudinaryConfig.api_secret as any
+        cloudinaryConfig.api_secret as any,
     );
 
     if (expectedSignature === signature) {
         // safe to write to database
-        console.log({ public_id });
     }
 }

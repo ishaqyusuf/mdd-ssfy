@@ -241,7 +241,6 @@ export function ControlledCombox({
                 <Command>
                     <CommandInput
                         onValueChange={(e) => {
-                            // console.log(e);
                             // setValue(e);
                         }}
                         placeholder={placeholder}

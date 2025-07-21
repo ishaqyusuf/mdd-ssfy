@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default async function ModelTemplatePage(props) {
     const params = await props.params;
     const response = await getHomeTemplate(params.slug);
-    console.log(response);
+
     return (
         <AuthGuard can={["editProject"]}>
             <DataPageShell
@@ -39,3 +39,4 @@ export default async function ModelTemplatePage(props) {
         </AuthGuard>
     );
 }
+

@@ -19,7 +19,6 @@ export function DoorQtyInput({ name, suffix }: Props) {
             onValueChange={(e) => {
                 let value =
                     e.floatValue == undefined ? null : e.floatValue || null;
-                console.log(line.lineUid, value, hpt?.itemUid);
 
                 line.setValue(`qty.${name}`, value);
                 line.valueChanged();

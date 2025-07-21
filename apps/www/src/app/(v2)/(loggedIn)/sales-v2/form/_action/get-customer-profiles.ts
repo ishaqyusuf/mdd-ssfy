@@ -8,7 +8,7 @@ export async function getCustomerProfileList() {
     //     "customer-profiles",
     //     async () => {
     const ls = await prisma.customerTypes.findMany({});
-    // console.log(ls);
+
     return ls.map(({ id: value, title: label }) => ({
         label,
         value,
@@ -16,6 +16,6 @@ export async function getCustomerProfileList() {
     //     },
     //     "customer-profiles"
     // );
-    // console.log(resp);
+
     // return resp;
 }

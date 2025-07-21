@@ -230,7 +230,6 @@ export class SaveSalesClass extends SaveSalesHelper {
                         const resp = await fn; //();
                         if (resp?.slug && resp?.orderId) {
                             salesId = resp.id;
-                            console.log(resp);
                         }
                         return resp;
                     }),
@@ -303,7 +302,7 @@ export class SaveSalesClass extends SaveSalesHelper {
             const formEntries = Object.entries(
                 formItem.groupItem.form || {},
             ).filter(([k, v]) => v.selected);
-            // console.log(formEntries);
+
             const primaryForm = formEntries.find(
                 ([k, v], i) => v.primaryGroupItem,
             );

@@ -7,14 +7,13 @@ export default function HtpDoors({}) {
     async function _salesStatistics() {
         const resp = await hptDoorsAction();
         // const resp = await salesStatisticsAction();
-        console.log(resp);
+
         // return;
         chunker({
             worker: performUpdate,
             list: resp.updates,
             chunkSize: 20,
         });
-        console.log(resp);
     }
     return (
         <>

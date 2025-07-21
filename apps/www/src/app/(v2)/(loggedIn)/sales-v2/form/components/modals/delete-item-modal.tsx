@@ -76,7 +76,7 @@ export default function DeleteItemModal({
                 await updateDykeStepProductMeta(stepItem.id, stepItemMeta);
                 stepItem._metaData.hidden = true;
                 stepItem.meta = stepItemMeta;
-                // console.log(stepItemMeta);
+
                 return stepItem;
             }),
         );

@@ -22,7 +22,7 @@ export async function sendEmail(props: EmailProps) {
     const attachments = await processAttachments(props);
     const errors = attachments?.filter((a) => a.error);
     const hasError = errors?.length;
-    console.log(hasError);
+
     if (hasError)
         return {
             props,

@@ -16,7 +16,6 @@ export function OrderBasePrinter({
     //     preview: (props.preview as any) == true,
     //     pdf: (props.pdf as any) == true,
     // };
-    // console.log(value.preview);
 
     return (
         <SalesPrintCtx.Provider value={props}>

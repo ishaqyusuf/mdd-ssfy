@@ -36,7 +36,6 @@ export function useCmd(actions?) {
         cmd.form.setValue(`pageActions.${path}`, {
             commands: actions,
         });
-        // console.log(actions);
     }
     return {
         ...cmd,

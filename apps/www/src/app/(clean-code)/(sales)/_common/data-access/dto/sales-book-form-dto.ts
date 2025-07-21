@@ -13,7 +13,7 @@ import {
     StepMeta,
     TypedDykeSalesDoor,
 } from "../../../types";
-import { generateRandomString, inToFt, safeFormText, sum } from "@/lib/utils"; 
+import { generateRandomString, inToFt, safeFormText, sum } from "@/lib/utils";
 import { transformSalesStepMeta } from "./sales-step-dto";
 
 type SalesFormData = AsyncFnType<typeof getSalesBookFormDataDta>;
@@ -103,8 +103,7 @@ export function typedSalesBookFormItems(data: SalesFormData) {
                         : null,
                     step: {
                         ...item.step,
-                        meta: (item.step.meta || {}) as any  &
-                            StepMeta,
+                        meta: (item.step.meta || {}) as any & StepMeta,
                     },
                 }))
                 .filter(
@@ -123,8 +122,6 @@ export function transformSalesBookFormItem(
     data: SalesFormData,
     items: SalesFormItems,
 ) {
-    // console.log(items.length);
-
     const itemArray = (items || [null])
         .filter((item) => {
             if (item?.multiDykeUid) return item?.multiDyke;
@@ -318,7 +315,6 @@ export function transformMultiDykeItem(
             if (!priceTags) {
                 priceTags = {};
                 if (isMoulding) {
-                    // console.log(item.rate);
                     priceTags = {
                         moulding: {
                             price: 0,

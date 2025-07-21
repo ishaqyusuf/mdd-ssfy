@@ -52,5 +52,4 @@ export async function fixCustomerTaxProfilesAction() {
         data: _data,
     });
     // tax.count
-    console.log({ tax });
 }

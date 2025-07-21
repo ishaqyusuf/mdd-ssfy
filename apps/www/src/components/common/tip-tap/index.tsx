@@ -54,7 +54,7 @@ function Tiptap<
         const editor = useEditor({
             onUpdate(props) {
                 let text = props.editor.getHTML();
-                // console.log(text);
+
                 onChange && onChange(text);
                 // form && name && form.setValue(name, text as any);
             },

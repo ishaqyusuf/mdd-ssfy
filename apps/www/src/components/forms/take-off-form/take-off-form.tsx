@@ -19,7 +19,7 @@ const Context = createContext<ReturnType<typeof useTakeOffFormCtx>>(
 const useTakeOffFormCtx = (salesId, refreshToken) => {
     const takeOffData = useAsyncMemo(async () => {
         const resp = await getTakeOffForm(salesId);
-        console.log(resp);
+
         return resp;
     }, [salesId, refreshToken]);
     const form = useForm({

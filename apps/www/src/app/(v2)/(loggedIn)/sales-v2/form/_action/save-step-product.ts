@@ -20,7 +20,6 @@ async function saveDykeDoor(data: Props) {
     let door: any = undefined;
     if (data.product.img) {
         delete data.product.meta.svg;
-        console.log("svg deleted");
     }
     if (!data.id) {
         door = await prisma.dykeDoors.create({
@@ -143,8 +142,6 @@ export async function saveStepProduct(data: Props) {
         });
         return { ...s, _metaData };
     } else {
-        // console.log(stepData);
-
         const _ss = await prisma.dykeStepProducts.update({
             where: { id: id },
             data: {

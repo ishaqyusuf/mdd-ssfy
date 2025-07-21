@@ -18,7 +18,6 @@ import { Input } from "@gnd/ui/input";
 export default function DoorSvgsPage() {
     const [doors, setDoors] = useState<typeof dykeDoorsSvg>([]);
     useEffect(() => {
-        // console.log(doors);
         // let pattern = /^\d+-\d+[xX]\d+-\d+\s*/;
         // let _doors = dykeDoorsSvg.map((s, i) => {
         //     s.title = s.title.replace(pattern, "");
@@ -29,7 +28,7 @@ export default function DoorSvgsPage() {
         // _doors = doors.filter(
         //     (d, i) => doors.findIndex((_) => _.title == d.title) == i
         // );
-        // console.log(_doors);
+
         setDoors(dykeDoorsSvg);
     }, [doors]);
 
@@ -43,7 +42,6 @@ export default function DoorSvgsPage() {
         setUploadUrl(null);
         const u = await uploadFile(`https://edge.dykedoors.com${link}`, "dyke");
         setUploadUrl(u.secure_url);
-        console.log(u.secure_url);
     }
     return (
         <div>
@@ -72,7 +70,7 @@ function Door({ title, url: _url, id, index, setDoors }: any) {
     const svg: any = doorSvgsById[id];
     function save() {
         const _svg = document.querySelectorAll(`div#door-${index} svg`);
-        // console.log(svg);
+
         // setDoors((doors) => {
         //     let d = [
         //         ...doors.map((door, i) => {
@@ -120,16 +118,15 @@ function Door({ title, url: _url, id, index, setDoors }: any) {
                             size={"sm"}
                             onClick={async (e) => {
                                 setLoad(true);
-                                console.log(url);
+
                                 if (!url) {
                                     const nurl = _dykeDoorsSvg[id - 1]?.url;
-                                    console.log(nurl);
+
                                     setUrl(nurl);
                                     const upload = await uploadFile(
                                         nurl,
                                         "dyke",
                                     );
-                                    console.log(upload);
                                 }
 
                                 setLoad(true);

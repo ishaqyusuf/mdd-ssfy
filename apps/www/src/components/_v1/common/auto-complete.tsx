@@ -122,7 +122,6 @@ export default function AutoComplete({
         let text = value;
         if (itemText != itemValue) {
             const ls = list || allItems;
-            // console.log(ls);
 
             let v = ls.find(
                 (item) =>
@@ -133,7 +132,6 @@ export default function AutoComplete({
             else text = v?.title;
             // if (props.id == "unit") console.log([v, text]);
         }
-        // console.log(text);
 
         setInputValue(text);
     }
@@ -155,7 +153,6 @@ export default function AutoComplete({
         initialInputValue: modelValue,
 
         onSelectedItemChange(c) {
-            // console.log(c);
             onSelect && onSelect(c.selectedItem as any);
             onChange && onChange((c.selectedItem as any)?.value);
         },
@@ -172,7 +169,7 @@ export default function AutoComplete({
                 ),
             );
             let value = items.find((item) => item.title == inputValue);
-            // console.log(value);
+
             if (allowCreate)
                 onChange && onChange(value ? value.value : inputValue);
         },
@@ -181,7 +178,6 @@ export default function AutoComplete({
             switch (type) {
                 // case useCombobox.stateChangeTypes.
                 case useCombobox.stateChangeTypes.InputBlur:
-                    // console.log(changes.inputValue);
                     // onChange && onChange(changes.inputValue);
                     return {
                         ...changes,
@@ -210,11 +206,11 @@ export default function AutoComplete({
                 );
             } else {
                 // changes.
-                // console.log(changes.selectedItem);
+
                 let value = items.find(
                     (item) => item.title == changes.inputValue,
                 );
-                // console.log([value, changes.selectedItem]);
+
                 const opt: any = value?.value ? value : changes.selectedItem;
                 if (!allowCreate) {
                     const id = opt?.value;

@@ -63,14 +63,14 @@ export function useMultiComponentItem(componentTitle) {
         const _totalPrice = math.multiply(qty, unitPrice);
         form.setValue(
             `${multiComponentComponentTitleKey}.unitPrice` as any,
-            unitPrice
+            unitPrice,
         );
         form.setValue(
             `${multiComponentComponentTitleKey}.totalPrice` as any,
-            _totalPrice
+            _totalPrice,
         );
         const c = form.getValues(
-            `itemArray.${item.rowIndex}.multiComponent.components`
+            `itemArray.${item.rowIndex}.multiComponent.components`,
         );
         let taxxable = 0;
         let total = 0;
@@ -95,11 +95,11 @@ export function useMultiComponentItem(componentTitle) {
                 ? overridePrice
                     ? [overridePrice]
                     : [mouldingPrice, componentsTotal, addonPrice]
-                : [addonPrice]
+                : [addonPrice],
         );
         form.setValue(
             `${multiComponentComponentTitleKey}.unitPrice` as any,
-            _unitPrice
+            _unitPrice,
         );
     }, [
         componentsTotal,
@@ -150,7 +150,7 @@ export function useMultiComponentItem(componentTitle) {
                             }
                             totalDoors += _qty || 0;
                             totalPrice += _linePrice || 0;
-                        }
+                        },
                     );
 
                     form.setValue(keys.sumTotal as any, totalPrice);
@@ -162,12 +162,12 @@ export function useMultiComponentItem(componentTitle) {
                     });
                     // updateFooterPrice(totalPrice);
                 }
-            }
+            },
         );
     }
     function removeLine(removeTab) {
         removeTab(componentTitle);
-        console.log({ componentTitle });
+
         footerEstimate.lineItemDeleted(ctx);
         form.setValue(multiComponentComponentTitleKey as any, null);
     }
@@ -205,7 +205,7 @@ export function useMultiComponentItem(componentTitle) {
 
 export function useMultiComponentSizeRow(
     componentItem: UseMultiComponentItem,
-    size: SizeForm[string]
+    size: SizeForm[string],
 ) {
     const { form, multiComponentComponentTitleKey, prices, item } =
         componentItem;
@@ -257,7 +257,7 @@ export function useMultiComponentSizeRow(
                 ? overridePrice
                     ? [overridePrice]
                     : [jambSizePrice, componentsTotal, doorPrice]
-                : [doorPrice]
+                : [doorPrice],
         );
 
         const _totalLinePrice = math.multiply(qty, _unitPrice);

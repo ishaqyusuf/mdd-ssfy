@@ -89,7 +89,7 @@ export function useDispatcherAction() {
                     for (const dispatchable of dispatchables)
                         await (async ({ item, itemData, qty }) => {
                             index++;
-                            console.log({ index, qty });
+
                             const chunkProgress = Math.floor(itemProgress / 4);
                             const baseProgress = 7 + index * itemProgress;
                             loader.loading(
@@ -142,7 +142,7 @@ export function useDispatcherAction() {
                                     unitLabor: item.unitLabor,
                                 });
                                 loader.description(`${baseTitle} | 40%`);
-                                console.log({ assingment: resp });
+
                                 fallBackData.assignmentIds.push(resp.id);
 
                                 return resp.id;
@@ -165,7 +165,7 @@ export function useDispatcherAction() {
                                     submittedById: session?.data?.user?.id,
                                 });
                                 loader.description(`${baseTitle} | 60%`);
-                                console.log({ submission: resp });
+
                                 fallBackData.submissionIds.push(resp.id);
                                 return resp.id;
                             };
@@ -218,8 +218,6 @@ export function useDispatcherAction() {
                                             ds.submissionId,
                                         );
                                     }
-
-                                    console.log({ qty, pickQty, ds });
                                 })(ds);
                             if (qty.qty) {
                                 const assignmentId =
@@ -228,7 +226,7 @@ export function useDispatcherAction() {
                                     qty,
                                     assignmentId,
                                 );
-                                console.log({ assignmentId, submitId });
+
                                 loader.description(`${baseTitle} | 60%`);
                                 await createDispatchItem(qty, submitId);
                             }
@@ -252,8 +250,6 @@ export function useDispatcherAction() {
                     setOpenForm(false);
                     queryCtx._refreshToken();
                 } catch (error) {
-                    // console.log({ error, fallBackData, dispatchables });
-
                     loader.error("Unable to complete", {
                         description: error?.message,
                     });

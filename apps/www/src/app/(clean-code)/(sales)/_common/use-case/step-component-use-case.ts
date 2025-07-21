@@ -213,7 +213,6 @@ export async function browseComponentImgUseCase({
         query.push({
             dykeStepId: stepId,
         });
-        // console.log(stepId);
     }
     const result = await prisma.dykeStepProducts.findMany({
         where: {

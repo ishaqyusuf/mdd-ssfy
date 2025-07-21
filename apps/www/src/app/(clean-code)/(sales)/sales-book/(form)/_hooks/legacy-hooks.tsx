@@ -79,7 +79,7 @@ function useLegacyFooter(form: UseFormReturn<OldDykeFormData>) {
     // const taxData = useEffectLoader(getTaxListUseCase);
     async function removeTaxSelection(code, index) {
         const tx = taxSelectionFieldArray.fields[index];
-        console.log({ tx });
+
         // if (tx.id)
         taxSelectionFieldArray.remove(index);
         form.setValue(`_taxForm.taxByCode.${code}.selected`, false);
@@ -103,7 +103,7 @@ function useLegacyFooter(form: UseFormReturn<OldDykeFormData>) {
         form.setValue(`_taxForm.taxByCode.${c.taxCode}.selected`, true);
         form.setValue(
             `_taxForm.taxByCode.${c.taxCode}.data.taxCode`,
-            c.taxCode
+            c.taxCode,
         );
         form.setValue(`_taxForm.taxByCode.${c.taxCode}._tax`, c);
         setTimeout(() => {

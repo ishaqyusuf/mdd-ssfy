@@ -65,7 +65,7 @@ export function getIncludes(formData: ExportForm) {
     Object.entries(formData.exports).map(([valueKey, selected]) => {
         if ((selected as any) == true) {
             const cell = formData.cellList.find((s) => s.valueNode == valueKey);
-            // console.log({ valueKey, cell, selected });
+
             includes[cell.selectNode] = true;
         }
     });
@@ -73,10 +73,8 @@ export function getIncludes(formData: ExportForm) {
     // return;
 }
 function transformValue(value, type: ExportTypes) {
-    // console.log({ value });
     if (isDate(value)) {
         const _v = formatDate(value); //dayjs(value).format("DD-MM-YYYY");
-        // console.log({ _v });
 
         return _v;
     }
@@ -89,7 +87,7 @@ export function transformExportData(formData: ExportForm, data) {
         });
         const dot = dotArray(item);
         const trans = {};
-        // console.log({ dot, item });
+
         Object.entries(dot).map(([dotKey, dotValue]) => {
             const cell = formData.cellList.find((c) => c.valueNode == dotKey);
 

@@ -61,10 +61,10 @@ export const authOptions: NextAuthOptions = {
                 const session = await prisma.session.findUnique({
                     where: { id: token.sessionId as any },
                 });
-                // console.log("SESSION", session);
+
                 if (!session) {
                     // Session not found, sign out
-                    // console.log("SESSION NOT FOUND");
+
                     return {} as any;
                 }
 
@@ -83,8 +83,6 @@ export const authOptions: NextAuthOptions = {
             return token;
         },
         session({ session, user, token }) {
-            // console.log("Session");
-            // console.log("Session", session);
             if (session.user) {
                 session.user = token.user;
                 session.role = token.role;

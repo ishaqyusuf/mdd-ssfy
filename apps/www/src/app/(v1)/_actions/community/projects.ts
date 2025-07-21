@@ -84,7 +84,7 @@ export async function staticProjectsAction() {
         },
         "project-filter",
     );
-    // console.log(f);
+
     return f;
 }
 export async function updateCommunityCost(id, meta: IProjectMeta) {

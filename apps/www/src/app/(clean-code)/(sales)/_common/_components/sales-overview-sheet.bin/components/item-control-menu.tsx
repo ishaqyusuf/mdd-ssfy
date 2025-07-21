@@ -17,7 +17,6 @@ export function ItemControlMenu(props: Props) {
     async function updateItemControl(name, value: boolean) {
         if (props?.[name] != value) {
             refreshTabData(store.currentTab);
-            console.log("CONTROL UPDATED");
         }
     }
     function ItemAction({ name }) {

@@ -29,17 +29,16 @@ export async function getHousePackageTool(): Promise<HousePackageToolSettings> {
 }
 export async function verifyBifoldDoors(
     id,
-    data: HousePackageToolSettings["data"]
+    data: HousePackageToolSettings["data"],
 ) {
     const b = data.sizes.filter((b) => b.type == "Bifold");
 
     if (!b.length) {
-        console.log(b);
         //
         const sizes = bifold_door
             .map((d) => d.label)
             .filter((s) => s?.includes("/"));
-        // console.log(sizes);
+
         const _ = sizes
             .map((s) => {
                 return s.replace("/", "-");
@@ -50,9 +49,9 @@ export async function verifyBifoldDoors(
                     data.sizes.find((d) => s?.startsWith(d.ft))?.in ||
                     ftToIn(s);
                 // const fa = data.sizes.find((_) => _.ft == "8-0");
-                // console.log(fa);
+
                 const foundB = data.sizes.filter(
-                    (s) => s.in == _in && s.type == "Bifold"
+                    (s) => s.in == _in && s.type == "Bifold",
                 );
                 if (!foundB.length) {
                     data.sizes.push({
@@ -68,8 +67,6 @@ export async function verifyBifoldDoors(
                 return false;
             });
         if (_.filter(Boolean).length) {
-            console.log(data);
-
             await prisma.settings.update({
                 where: {
                     id,

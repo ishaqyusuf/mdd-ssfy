@@ -48,7 +48,7 @@ export function replaceInputByFieldType<TData>({
                 words[words.length - 1] = `${optionValue}`;
                 const input = prev.replace(
                     currentWord,
-                    words.join(ARRAY_DELIMITER)
+                    words.join(ARRAY_DELIMITER),
                 );
                 return `${input.trim()}${SEPARATOR}`;
             }
@@ -59,7 +59,7 @@ export function replaceInputByFieldType<TData>({
                 words[words.length - 1] = `${optionValue}`;
                 const input = prev.replace(
                     currentWord,
-                    words.join(SLIDER_DELIMITER)
+                    words.join(SLIDER_DELIMITER),
                 );
                 return `${input.trim()}${SEPARATOR}`;
             }
@@ -70,7 +70,7 @@ export function replaceInputByFieldType<TData>({
                 words[words.length - 1] = `${optionValue}`;
                 const input = prev.replace(
                     currentWord,
-                    words.join(RANGE_DELIMITER)
+                    words.join(RANGE_DELIMITER),
                 );
                 return `${input.trim()}${SEPARATOR}`;
             }
@@ -96,7 +96,7 @@ export function getFieldOptions<TData>({
                       .filter(notEmpty)
                 : Array.from(
                       { length: field.max - field.min + 1 },
-                      (_, i) => field.min + i
+                      (_, i) => field.min + i,
                   ) || [];
         }
         default: {
@@ -138,10 +138,7 @@ export function getFilterValue({
      */
     const [filter, query] = currentWord.toLowerCase().split(":");
 
-    // console.log({ currentWord });
     if (query && value.startsWith(`${currentFilter}:`)) {
-        // console.log(query);
-
         return 1;
         if (query.includes(ARRAY_DELIMITER)) {
             /**
@@ -152,7 +149,7 @@ export function getFilterValue({
             const rawValue = value.toLowerCase().replace(`${filter}:`, "");
             if (
                 queries.some(
-                    (item, i) => item === rawValue && i !== queries.length - 1
+                    (item, i) => item === rawValue && i !== queries.length - 1,
                 )
             )
                 return 0;
@@ -176,9 +173,8 @@ export function getFilterValue({
             return 0;
         }
         const rawValue = value.toLowerCase().replace(`${filter}:`, "");
-        console.log({ rawValue, query });
+
         if (rawValue.includes(query)) {
-            console.log({ rawValue, query });
             return 1;
         } else {
         }
@@ -234,7 +230,7 @@ export function getFieldValueByType<TData>({
 }
 
 export function notEmpty<TValue>(
-    value: TValue | null | undefined
+    value: TValue | null | undefined,
 ): value is TValue {
     return value !== null && value !== undefined;
 }

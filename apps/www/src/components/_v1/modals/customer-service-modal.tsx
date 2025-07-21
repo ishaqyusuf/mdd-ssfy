@@ -61,7 +61,6 @@ export default function CustomerServiceModal() {
                 toast.message("Success!");
                 route.refresh();
             } catch (error) {
-                console.log(error);
                 toast.message("Invalid Form");
                 return;
             }
@@ -70,7 +69,6 @@ export default function CustomerServiceModal() {
     const projects = useStaticProjects();
 
     async function init(data) {
-        // console.log(data);
         let { tech, createdAt, ...formData }: IWorkOrder = deepCopy(
             data
                 ? data
@@ -101,12 +99,10 @@ export default function CustomerServiceModal() {
             if (lot && block) {
                 const lb = `${lot}/${block}`;
 
-                // console.log(formData);
-
                 meta.lotBlock = lb;
             }
         }
-        // console.log(formData);
+
         form.reset({
             ...formData,
             meta,

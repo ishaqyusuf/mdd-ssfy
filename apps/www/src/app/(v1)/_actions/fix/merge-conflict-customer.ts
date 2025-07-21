@@ -12,7 +12,7 @@ export async function _mergeConflictCustomers() {
     //         wallet: true
     //     }
     // });
-    // console.log(customers.length);
+
     // let customerByName: any = {};
     // customers.map(c => {
     //     let _name = c.name || c.businessName;
@@ -32,8 +32,7 @@ export async function _mergeConflictCustomers() {
     //     }
     // });
     // const _dups = Object.values(customerByName).filter(b => b.ids.length > 1);
-    // console.log(_dups);
-    // console.log(_dups.length);
+
     // // return;
     // let cids: any = [];
     // await Promise.all(
@@ -98,7 +97,7 @@ export async function _mergeConflictCustomers() {
     //         });
 
     //         cids.push(...ids);
-    //         console.log(u);
+
     //         // await prisma.customerWallet.update({
     //         //     where: {id: wallet.id},
     //         //     data: {
@@ -165,26 +164,22 @@ export async function _mergeConflictCustomers() {
     //         // })
     //     })
     // );
-
-    // console.log(customerByName);
 }
 export async function _mergeConflicts() {
     // const duplicates = await findDuplicates();
-    // console.log(duplicates);
     // const gator = duplicates.find(f => f.id == 103);
-    // console.log(gator);
 }
 async function findDuplicates() {
     const customers = await prisma.customers.findMany({
         where: {
-            deletedAt: null
+            deletedAt: null,
         },
         include: {
-            wallet: true
-        }
+            wallet: true,
+        },
     });
     let customerByName: any = {};
-    customers.map(c => {
+    customers.map((c) => {
         let _name = c.name || c.businessName;
         let nameSlug: any = _name?.toLowerCase();
         if (!customerByName[nameSlug])
@@ -193,7 +188,7 @@ async function findDuplicates() {
                 ids: [],
                 walletId: c.walletId,
                 walletIds: [],
-                balance: c.wallet?.balance || 0
+                balance: c.wallet?.balance || 0,
             };
         else {
             customerByName[nameSlug].ids.push(c.id);
@@ -205,3 +200,4 @@ async function findDuplicates() {
     // return _dups;
     return [];
 }
+

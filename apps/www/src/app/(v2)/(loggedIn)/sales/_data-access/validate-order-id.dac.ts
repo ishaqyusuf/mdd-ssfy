@@ -3,7 +3,6 @@
 import { prisma } from "@/db";
 
 export async function _validateOrderId(orderId, id) {
-    console.log([orderId]);
     const e = await prisma.salesOrders.findFirst({
         where: {
             orderId: {
@@ -23,6 +22,5 @@ export async function _validateOrderId(orderId, id) {
                 slug: nOrderId,
             },
         });
-        console.log(["orderId edited", nOrderId, orderId]);
     }
 }

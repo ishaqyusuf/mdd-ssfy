@@ -3,8 +3,8 @@ import { TemplateDesign } from "@/types/community";
 export function transformCommunityTemplate(design) {
     // if (!design) return design;
     if (
-        Object.values(design).some(e =>
-            Object.values(e as any).some(ev => typeof ev === "object")
+        Object.values(design).some((e) =>
+            Object.values(e as any).some((ev) => typeof ev === "object"),
         )
     ) {
         let newDesign = {};
@@ -17,9 +17,9 @@ export function transformCommunityTemplate(design) {
             newDesign[sec] = secD;
             // newDesign[k] = v.k;
         });
-        // console.log(design);
-        // console.log(newDesign);
+
         return newDesign;
     }
     return design;
 }
+

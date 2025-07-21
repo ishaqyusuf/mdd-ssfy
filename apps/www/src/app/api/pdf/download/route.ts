@@ -9,7 +9,6 @@ export async function GET(req: NextRequest) {
     const query = apiParamsTokV(
         req.nextUrl.searchParams,
     ) as any as SalesPrinterProps;
-    console.log({ query });
 
     const id = req.nextUrl.searchParams.get("id");
     // const order = await prisma.salesOrders.findFirstOrThrow({

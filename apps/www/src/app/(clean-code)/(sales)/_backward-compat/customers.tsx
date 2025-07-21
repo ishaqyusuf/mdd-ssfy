@@ -12,7 +12,6 @@ import { findSalesDoorAction } from "./find-sales-door.action";
 export default function Customers({}) {
     function woker() {
         harvestCustomers().then((list) => {
-            console.log(list);
             // return;
             chunker({
                 worker: customerSynchronize,
@@ -22,7 +21,6 @@ export default function Customers({}) {
     }
     function uniqueCustomers() {
         uniqueables().then((ls) => {
-            console.log(ls);
             return;
             chunker({
                 worker: updateUniques,
@@ -32,7 +30,6 @@ export default function Customers({}) {
     }
     function findSalesDoor() {
         findSalesDoorAction().then((ls) => {
-            console.log(ls);
             return;
             chunker({
                 worker: updateUniques,

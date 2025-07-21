@@ -70,7 +70,6 @@ export async function getProductionListPageAction(
         .filter((a) => !a.completed);
     // const excludesIds = [...dueToday, ...pastDue].map((a) => a.id);
     const excludesIds = customs.map((a) => a.id);
-    console.log({ queryCount, admin });
 
     const prodList = !queryCount
         ? []
@@ -79,7 +78,7 @@ export async function getProductionListPageAction(
               //   "production.status": "part assigned",
           });
     const others = prodList.filter((p) => !excludesIds?.includes(p.id));
-    // console.log({ prodList });
+
     const result = await inifinitePageInfo(
         query,
         whereSales(query),

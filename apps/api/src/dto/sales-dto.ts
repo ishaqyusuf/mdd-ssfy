@@ -29,7 +29,7 @@ export function salesOrderDto(data: Item) {
   );
   if (d?.percentage == 100) deliveryStatus = "completed";
   // if (data.orderId == "04780AD") {
-  //   console.log(d);
+
   // }
   let due = toNumber(data.amountDue);
   if (due <= 0) due = 0;

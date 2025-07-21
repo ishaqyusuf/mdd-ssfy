@@ -56,10 +56,8 @@ export default function SendEmailSheet({ subtitle, data, download }: Props) {
         const _keyEvent = (e: KeyboardEvent, state) => {
             const metaKey = e.key == "Meta"; // || e.altKey;
             if (metaKey) {
-                // console.log(e);
                 setCmd(state);
             } else {
-                // console.log(e);
             }
         };
         const down = (e) => _keyEvent(e, true);
@@ -81,7 +79,6 @@ export default function SendEmailSheet({ subtitle, data, download }: Props) {
         } = form.getValues();
         if (cmd) {
             // to = "ishaqyusuf024@gmail.com";
-            // console.log(to);
         }
 
         if (!to && !isProdClient) {
@@ -103,7 +100,7 @@ export default function SendEmailSheet({ subtitle, data, download }: Props) {
                 } as any,
                 download,
             );
-            console.log(to);
+
             toast.success("sent", {});
             modal.close();
         } catch (error) {

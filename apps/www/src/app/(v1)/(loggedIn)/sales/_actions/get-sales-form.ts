@@ -129,7 +129,7 @@ export async function salesFormData(dyke = false) {
                   price: true,
               },
           });
-    // console.log(items.length);
+
     return {
         settings: meta,
         profiles,

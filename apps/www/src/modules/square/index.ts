@@ -36,9 +36,7 @@ export async function getSquareDevices() {
             }))
             .sort((a, b) => a?.label?.localeCompare(b.label) as any);
         return _.filter((a, b) => _.findIndex((c) => c.value == a.value) == b);
-    } catch (error) {
-        console.log(error);
-    }
+    } catch (error) {}
 }
 export interface CreateTerminalCheckoutProps {
     deviceId;

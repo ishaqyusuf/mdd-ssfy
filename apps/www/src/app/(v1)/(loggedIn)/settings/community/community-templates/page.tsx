@@ -27,7 +27,6 @@ export default async function CommunityTemplatesPage(props) {
     // const histories = await prisma.communityTemplateHistory.findMany({
     //     where: {},
     // });
-    // console.log(histories.length);
 
     const response = await getCommunityTemplates(queryParams(searchParams));
     return (
@@ -53,3 +52,4 @@ export default async function CommunityTemplatesPage(props) {
         </CommunitySettingsLayoutComponent>
     );
 }
+

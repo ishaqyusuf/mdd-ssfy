@@ -55,8 +55,6 @@ export async function sendMessage(data: EmailProps, download?: DownloadProps) {
         ? [`ishaqyusuf024@gmail.com`, `pcruz321@gmail.com`]
         : data.to?.split(",");
 
-    console.log(to);
-
     const _data = await resend.emails.send({
         // reply_to: u?.meta?.emailRespondTo || u?.email,
         from: data.from, //"Pablo From GNDMillwork <pcruz321@gndprodesk.com>",
@@ -66,7 +64,7 @@ export async function sendMessage(data: EmailProps, download?: DownloadProps) {
         html: trs.body,
         attachments: attachments.length ? attachments : undefined,
     });
-    console.log(_data);
+
     if (_data.error?.message) throw new Error(_data.error?.message);
     return;
     await prisma.inbox.create({

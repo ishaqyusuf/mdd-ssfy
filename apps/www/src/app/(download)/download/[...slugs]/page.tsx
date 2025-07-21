@@ -10,7 +10,8 @@ export default async function DownloadPage(props) {
             orderId: slug?.toString(),
         },
     });
-    // console.log(order.type);
+
     // return <></>;
     return <SalesDownload id={order.orderId} mode={order.type} />;
 }
+

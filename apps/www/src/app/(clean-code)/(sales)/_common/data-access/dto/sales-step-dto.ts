@@ -11,7 +11,6 @@ export function transformSalesStepMeta<T>(step: T) {
             ?.map(([k, v]) => (v ? k : null))
             .filter(Boolean);
     }
-    console.log(stepMeta);
 
     return {
         ...step,

@@ -60,7 +60,7 @@ export function CommunityCostForm({ form, data, watchIndex }: ModelCostProps) {
     useEffect(() => {
         if (!data) return;
         let _ = deepCopy<ICommunityCosts>(watchCosts);
-        // console.log(_);
+
         const meta = calculateCommunitModelCost(
             _.meta,
             data?.project?.builder?.meta?.tasks,
@@ -69,9 +69,7 @@ export function CommunityCostForm({ form, data, watchIndex }: ModelCostProps) {
         setTotalTax(meta?.totalTax);
         setTotalCost(meta?.totalCost);
     }, [watchCosts]);
-    async function initialize(costId) {
-        console.log(costId);
-    }
+    async function initialize(costId) {}
     const [isSaving, startTransition] = useTransition();
     const [refresh, startTransition2] = useTransition();
     async function submit() {

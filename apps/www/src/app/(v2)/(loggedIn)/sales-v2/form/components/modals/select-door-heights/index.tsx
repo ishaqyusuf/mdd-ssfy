@@ -157,7 +157,6 @@ export default function SelectDoorHeightsModal({
         form.setValue(heightsKey as any, sizesData);
         onSubmit && onSubmit(sizesData);
         form.setValue(`${baseKey}.checked` as any, checked);
-        console.log(priceTags);
 
         form.setValue(`${baseKey}.priceTags` as any, priceTags);
         modal.close();
@@ -187,7 +186,6 @@ export default function SelectDoorHeightsModal({
                 ] as any;
             });
         } catch (error) {
-            // console.log(error.message);
             toast.error((error as any).message);
         }
     }
@@ -197,7 +195,6 @@ export default function SelectDoorHeightsModal({
         const [price, setPrice] = useState(size.price);
         const [newPrice, setNewPrice] = useState(size.price);
         async function updatePrice() {
-            // console.log(newPrice);
             setPrice(newPrice);
             setHeightPrices((pr) => {
                 return {

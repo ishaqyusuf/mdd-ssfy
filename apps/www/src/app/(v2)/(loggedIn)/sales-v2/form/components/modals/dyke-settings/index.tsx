@@ -36,7 +36,7 @@ export default function DykeSettingsModal({ form }: Props) {
     function save() {
         startTransition(async () => {
             const data = form.getValues("data.settings");
-            // console.log(data);
+
             await updateSettingsMeta(data);
             toast.message("Saved");
             modal.close();
@@ -81,7 +81,6 @@ export default function DykeSettingsModal({ form }: Props) {
                                 className=""
                                 size="sm"
                                 onSelect={(e) => {
-                                    console.log(e);
                                     const index = fields.findIndex(
                                         (f) => f.name == (e as any),
                                     );

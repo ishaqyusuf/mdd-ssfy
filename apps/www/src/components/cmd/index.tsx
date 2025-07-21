@@ -38,15 +38,12 @@ export function Cmd() {
                 }
             }
             if (e.key === "k" && (e.metaKey || e.altKey)) {
-                // console.log(route.pathname);
-                // console.log(path);
                 let sc = [];
                 e.preventDefault();
                 if (cmd.form) {
                     const k = `pageActions.${path}`;
                     const { commands } = cmd.form.getValues(k) || {};
                     sc = commands || [];
-                    console.log(k);
                 }
                 setSpecialCmds(sc);
                 setOpen((open) => !open);
@@ -79,11 +76,7 @@ export function Cmd() {
                             key={i}
                             href="/sales/edit/order/new"
                         >
-                            <CommandItem
-                                onClick={(e) => {
-                                    console.log("....");
-                                }}
-                            >
+                            <CommandItem onClick={(e) => {}}>
                                 {<cmd.Icon className="mr-2 h-4 w-4" />}
                                 <span>{cmd.title}</span>
                                 {cmd.shortCut && (

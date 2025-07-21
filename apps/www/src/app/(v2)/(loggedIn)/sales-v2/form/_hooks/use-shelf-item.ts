@@ -39,12 +39,10 @@ export default function useShelfItem(shelfIndex) {
 
         const cids = (oldf?.categoryIds || [null])?.map((id) => ({ id }));
 
-        // console.log(prodArray);
-
         catArray.replace(cids);
         const index = cids.length - 1;
         const lastId = cids.slice(-1)[0]?.id;
-        // console.log({ lastId, index });
+
         if (lastId && index > -1) ctx.categorySelected(index, lastId);
     }, []);
 
@@ -62,7 +60,6 @@ export default function useShelfItem(shelfIndex) {
         productSelected(productId, prodIndex) {
             let prod = products?.find((p) => p.id == productId);
             if (prod) {
-                console.log(prod);
                 const catIds = categoryForm.getValues("ids").map((i) => i.id);
                 const lastId = catIds.slice(-1)[0];
                 // console.log({
@@ -109,11 +106,10 @@ export default function useShelfItem(shelfIndex) {
             }
             form.setValue(qtyPath, qty);
             let totalPrice = (qty || 0) * (unitPrice || 0);
-            // console.log(totalPrice);
 
             form.setValue(unitPricePath, unitPrice);
             form.setValue(totalPath, totalPrice);
-            console.log(totalPrice);
+
             footer.updateFooterPrice(form.getValues(`${configky}.uid` as any), {
                 price: totalPrice,
                 tax: true,
@@ -157,8 +153,6 @@ export default function useShelfItem(shelfIndex) {
                 if (cIndex > -1) newData[cIndex] = product;
                 else newData.push(product);
                 if (prodIndex != null) {
-                    console.log([prodIndex, product?.unitPrice]);
-
                     const prodKey: any = `${configky}.productArray.${prodIndex}.item`;
                     form.setValue(
                         `${prodKey}.unitPrice` as any,
@@ -184,7 +178,7 @@ export default function useShelfItem(shelfIndex) {
             if (removeIndices.length) catArray.remove(removeIndices);
             setProducts(null);
             const parentCategoryId = this.getParentCategoryId(index);
-            // console.log({ categoryId, parentCategoryId });
+
             const { subCategoriesCount, products } = await getShelfProducts(
                 parentCategoryId,
                 categoryId,

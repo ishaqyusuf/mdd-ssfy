@@ -37,8 +37,6 @@ export async function getPayableUsers(userId, single = false) {
             let total = !vjobs ? 0 : +(sum(vjobs, "amount") || 0);
             //   if(!total)return null;
             if (user.employeeProfile) {
-                console.log("EMPLOYEE PROFILE");
-                console.log(user.employeeProfile);
             }
             let chargePercentage = user.employeeProfile?.discount || 0;
             let charge = 0;

@@ -5,7 +5,6 @@ import { formatMoney } from "@/lib/use-number";
 export function calculateSalesEstimate(data: DykeForm) {
     // const estimate = calculateFooterEstimate(data, null);
     // data.order.grandTotal = estimate.grandTotal;
-    // console.log(estimate.grandTotal);
 
     data.order.amountDue =
         data.order.type == "order"
@@ -34,16 +33,15 @@ export function calculateSalesEstimate(data: DykeForm) {
     data.order.meta.ccc = ccc;
     data.order.meta.ccc_percentage = cccPercentage;
     const dt = (data.order.grandTotal = formatMoney(
-        ccc + tax + total - (discount || 0)
+        ccc + tax + total - (discount || 0),
     ));
     data.order.amountDue = dt - (data.paidAmount || 0);
-    console.log({ subTotal, total, ccc, labor_cost, tax, discount });
 
     return data;
 }
 function taxEstimateAndUpdateTotal(
     item: DykeForm["itemArray"][0],
-    formData: DykeForm
+    formData: DykeForm,
 ) {
     // if (!formData.order.tax)
     formData.order.tax = 0;
@@ -64,9 +62,8 @@ function taxEstimateAndUpdateTotal(
                     return a.item.meta.tax || a.item.meta.doorType != "Services"
                         ? a.item.total || 0
                         : 0;
-                })
+                }),
             ) * tx;
-        console.log({ taxxable, tax });
     }
     tax = formatMoney(tax);
     item.item.tax = tax;

@@ -142,7 +142,7 @@ export default function SalesComponentModal({
             });
 
             const itemK = `items.${rowIndex}`;
-            console.log(description);
+
             form.setValue(`items.${rowIndex}.meta.components`, components);
             form.setValue(`items.${rowIndex}.meta.isComponent`, true);
             form.setValue(`items.${rowIndex}.price`, convertToNumber(total, 0));

@@ -19,7 +19,6 @@ const track = (options: { event: string } & PostEventPayload["properties"]) => {
   const { track: openTrack } = useOpenPanel();
 
   if (!isProd) {
-    console.log("Track", options);
     return;
   }
 

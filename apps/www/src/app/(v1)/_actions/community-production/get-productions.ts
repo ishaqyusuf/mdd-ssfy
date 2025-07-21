@@ -35,8 +35,6 @@ export async function getProductions(query: CommunityTaskQuery) {
     };
 }
 export async function whereProductionQuery(query: CommunityTaskQuery) {
-    console.log(query);
-
     const q = {
         contains: query._q || undefined,
     } as any;

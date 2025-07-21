@@ -22,7 +22,7 @@ export function useMultiSelector(rowIndex, get) {
             //     `itemArray.${rowIndex}.multiComponent.multiDyke`,
             //     `itemArray.${rowIndex}.multiComponent.components`,
             // ]);
-            // console.log([uid]);
+
             // if (!uid) {
             form.setValue(
                 `itemArray.${rowIndex}.multiComponent.uid`,
@@ -55,7 +55,7 @@ export function useMultiSelector(rowIndex, get) {
             const items = form.getValues(
                 `itemArray.${rowIndex}.multiComponent.components`,
             );
-            // console.log(items);
+
             const checkedItems = Object.values(items || {}).filter(
                 (b) => b?.checked,
             );
@@ -63,7 +63,6 @@ export function useMultiSelector(rowIndex, get) {
             const pkdId = get.packageToolId(
                 isMoulding ? "molding" : "dykeDoor",
             );
-            // console.log(items);
 
             if (!checkedItems.length) {
                 toast.error("Select atleast one item to proceed");

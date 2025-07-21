@@ -85,7 +85,7 @@ export function CustomerForm({ data }: Props) {
         if (data) {
             setSections(params?.address ? ["address"] : ["general", "address"]);
             let formData = {};
-            console.log({ data });
+
             Object.entries(data).map(
                 ([k, v]) => (formData[k] = v || undefined),
             );
@@ -99,7 +99,6 @@ export function CustomerForm({ data }: Props) {
                 //  &&
                 // Number.isInteger(params.search?.replaceAll("-", "")?.trim())
             ) {
-                console.log({ params });
                 form.reset({
                     phoneNo: params.search,
                 });
@@ -165,7 +164,7 @@ export function CustomerForm({ data }: Props) {
                     "address.id": addressId,
                 }).then(({ data: sales }) => {
                     setSales(sales);
-                    console.log(sales);
+
                     setResolutionRequired(!!sales?.length);
                     // form.setValue("resolutionRequired", !!sales?.length);
                 });

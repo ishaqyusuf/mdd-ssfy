@@ -46,7 +46,7 @@ export function NoteForm({}) {
             tags,
         });
         revalidateTable();
-        // console.log(result);
+
         setNotes((current) => {
             return [result, ...current] as any;
         });

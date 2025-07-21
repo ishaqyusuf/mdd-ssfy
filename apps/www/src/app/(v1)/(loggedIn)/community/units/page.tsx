@@ -20,10 +20,10 @@ export default async function CommunityUnitsPage(props) {
     const params = await props.params;
     const searchParams = await props.searchParams;
     const response = await getHomesAction(
-        queryParams({ ...searchParams, _projectSlug: params.slug })
+        queryParams({ ...searchParams, _projectSlug: params.slug }),
     );
     await _addLotBlocks();
-    // console.log(response.data[0]?.search);
+
     // metadata.title = `${project.title} | Homes`;
 
     return (
@@ -50,3 +50,4 @@ export default async function CommunityUnitsPage(props) {
         </AuthGuard>
     );
 }
+

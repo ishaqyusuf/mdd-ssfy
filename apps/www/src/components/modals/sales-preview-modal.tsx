@@ -41,7 +41,6 @@ export function SalesPreviewModal({}) {
     //             mode: params.salesPreviewType,
     //             preview: true,
     //         }).then((result) => {
-    //             console.log({ result });
 
     //             setData(result as any);
     //         });

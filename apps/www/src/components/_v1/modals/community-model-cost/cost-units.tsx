@@ -27,8 +27,6 @@ interface Props {
 export default function CostUnits({ model, cost }: Props) {
     const [models, setModels] = useState<ExtendedHome[]>([]);
     useEffect(() => {
-        // console.log(model.homes);
-        // console.log([cost]);
         setModels(
             model.homes.filter((home) => {
                 // return (
@@ -38,7 +36,7 @@ export default function CostUnits({ model, cost }: Props) {
                 //         dayjs(home.createdAt).isSame(cost.endDate, "D") ||
                 //         dayjs(home.createdAt).isBefore(cost.endDate, "D"))
                 // );
-                // console.log([home.createdAt, cost.startDate, cost.endDate]);
+
                 return dayjs(home.createdAt).isBetween(
                     dayjs(cost.startDate),
                     dayjs(cost.endDate),

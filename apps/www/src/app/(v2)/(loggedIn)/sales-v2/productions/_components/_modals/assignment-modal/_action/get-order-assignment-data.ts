@@ -53,7 +53,7 @@ export async function getOrderAssignmentData(id, mode?: mode) {
             (order.isDyke &&
                 (item.multiDyke || (!item.multiDyke && !item.multiDykeUid))),
     );
-    // console.log("ITEMS:", fItems.length);
+
     let doorGroups = fItems
         .map((item, index) => {
             const _items = order.items.filter(
@@ -70,9 +70,7 @@ export async function getOrderAssignmentData(id, mode?: mode) {
             const salesDoors = _items
                 .filter((s) => order.isDyke)
                 .map((subItem) => {
-                    // console.log(subItem.id);
                     return subItem.salesDoors.map((salesDoor) => {
-                        // console.log(salesDoor.rhQty);
                         const ret = {
                             salesDoor: {
                                 ...salesDoor,
@@ -152,7 +150,6 @@ export async function getOrderAssignmentData(id, mode?: mode) {
                 )
                     salesDoors.push(analyseItem(ret, report) as any);
             }
-            // console.log(order.isDyke);
 
             return {
                 isDyke: order.isDyke,
@@ -238,7 +235,7 @@ export async function getOrderAssignmentData(id, mode?: mode) {
                             (d) => d.groupItemId == _.groupItemId,
                         )),
         );
-        // console.log(ng.length);
+
         doorGroups = ng.map((n) => {
             if (n.groupItemId) {
                 // n.salesDoors = [
@@ -251,7 +248,7 @@ export async function getOrderAssignmentData(id, mode?: mode) {
                         g;
                     });
             }
-            // console.log(n.salesDoors);
+
             return {
                 ...n,
                 salesDoors: n.salesDoors.filter(

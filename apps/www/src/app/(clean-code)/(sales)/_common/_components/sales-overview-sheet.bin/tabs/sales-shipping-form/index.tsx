@@ -121,7 +121,6 @@ function ShippingItem({
         // ctx.updateSelection(uid, "total", _total);
     }, [lh, rh, qty, shipInfo]);
     useEffect(() => {
-        // console.log(item?.status);
         let shipping: ItemShippable = {
             inputs: [],
             deliveryCreatedQty: 0,
@@ -168,7 +167,6 @@ function ShippingItem({
                 item.produceable ? 0 : sum([pendingProdQty, pendingAssQty]),
                 -1 * shippedQty,
             ]);
-            console.log([k, producedQty, deliverable]);
 
             shipping.deliverableQty += deliverable;
             shipping.inputs.push({
@@ -330,13 +328,12 @@ function ShippingItem({
 function QtyInput({ uid, input }) {
     let available = input.available;
     // available = 100;
-    // console.log(available);
+
     const form = useFormContext();
     const w = form.watch("selectAllToken");
     useEffect(() => {
         if (w) {
             form.setValue(`selection.${uid}.${input.formKey}`, available);
-            console.log({ available, input });
         }
     }, [w]);
     if (!available) return null;

@@ -55,9 +55,7 @@ export async function updateUniques(data) {
                         // uniquePhone: d.phoneNo,
                     },
                 });
-            } catch (error) {
-                console.log(d);
-            }
+            } catch (error) {}
         }),
     );
 }

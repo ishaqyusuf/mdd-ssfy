@@ -71,7 +71,7 @@ export default function SalesNotes({
                     throw Error("Select Progress Type");
 
                 const res = await saveNote(formData);
-                // console.log(res);
+
                 refresh();
                 toast.message("saved");
                 form.reset();

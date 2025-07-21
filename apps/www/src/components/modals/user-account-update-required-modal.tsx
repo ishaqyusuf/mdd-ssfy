@@ -67,11 +67,10 @@ export default function UserAccountUpdateRequiredModal({}) {
     }, []);
     async function updateAccount() {
         form.trigger().then(async (e) => {
-            // console.log(e);
             if (e) {
                 try {
                     const data = form.getValues();
-                    // console.log(data);
+
                     const resp = await updateAccountInfoAction(data);
 
                     await signIn("credentials", {

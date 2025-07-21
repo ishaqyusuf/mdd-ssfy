@@ -208,7 +208,6 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
                         case "Garage":
                         case "Moulding":
                         case "Door Slabs Only":
-                            // console.log(".");
                             form.setValue(
                                 `itemArray.${item.rowIndex}.item.housePackageTool.doorType`,
                                 stepProd?.product?.title as any,
@@ -258,7 +257,6 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
                     });
                 }
             }
-            // console.log({ stepsIds: formSteps.map((s) => s.step.id) });
 
             if (nextStepId) {
                 stepProd.nextStepId = nextStepId;
@@ -270,7 +268,7 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
                 [],
                 doorType,
             );
-            console.log({ nextSteps, nextStepId });
+
             if (nextSteps?.length) {
                 const currentNextStep = item.formStepArray[stepIndex + 1];
                 if (currentNextStep) {
@@ -290,7 +288,6 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
     function onCreate(stepItem: IStepProducts[number]) {
         if (stepItem.door) stepItem.product = stepItem.door as any;
 
-        // console.log(stepItem);
         // TODO: set step product on created
         // TODO: sync with component loader to store new or update.
 

@@ -15,13 +15,13 @@ let callCount = 0;
 function generate(cats: string[]) {
     callCount++;
     // if (callCount > 2) return {};
-    // console.log(cats);
+
     let categoryId: null | number = null;
     let parentCategoryId: null | number = null;
     const __cats: DykeShelfCategories[] = [];
     cats.map((title, index) => {
         const nCategoryId = index > 0 ? __cats[index - 1]?.id : null;
-        // console.log([title, index, nCategoryId]);
+
         const newCat = create(
             title,
             nCategoryId,
@@ -33,7 +33,7 @@ function generate(cats: string[]) {
         if (index == cats.length - 1) categoryId = newCat?.id;
         __cats.push(newCat);
     });
-    // console.log(categories);
+
     return {
         categoryId,
         parentCategoryId,

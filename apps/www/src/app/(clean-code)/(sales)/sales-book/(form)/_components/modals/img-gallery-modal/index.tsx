@@ -26,7 +26,6 @@ export default function StepComponentFormModal(props: Props) {
     );
     const [msg, setMsg] = useState("");
     async function search() {
-        console.log(deb.value);
         let q = deb.value;
         // if (!q) setMsg("Start typing component name to search");
         // else
@@ -34,7 +33,6 @@ export default function StepComponentFormModal(props: Props) {
             q,
             stepId: props.stepId,
         }).then((res) => {
-            console.log(res);
             if (!res.length) {
                 setResults([]);
                 setMsg("No result found");

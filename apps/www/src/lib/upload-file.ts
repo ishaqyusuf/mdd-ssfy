@@ -19,7 +19,6 @@ export async function uploadFile(formData, folder: UploadFolders) {
         formData.append("timestamp", timestamp as any);
         formData.append("folder", folder);
         const endpoint = env.CLOUDINARY_UPLOAD_URL;
-        console.log(Array.from(formData.values()));
 
         const data = await fetch(endpoint, {
             method: "POST",

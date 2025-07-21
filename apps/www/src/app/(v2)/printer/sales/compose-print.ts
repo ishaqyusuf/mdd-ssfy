@@ -60,7 +60,6 @@ export function composePrint(
         // heading: heading(data,),
         ...data,
     };
-    // console.log(query);
 
     const ret = {
         ...printData,
@@ -75,7 +74,6 @@ export function composePrint(
         shelfItemsTable: shelfItemsTable(printData, data),
     };
     type RetType = NonNullable<typeof ret>;
-    // console.log(ret.shelfItemsTable);
 
     type ShelfType = RetType["shelfItemsTable"];
     let orderedPrinting: {
@@ -250,7 +248,7 @@ function packingInfo(data: PrintData, itemId, doorId?) {
             boooleans.push(item.orderDeliveryId == deliveryId);
         return boooleans.every(Boolean);
     });
-    // console.log([filtered, filtered.length]);
+
     if (!filtered?.length) return `N/A`;
     // return `N/A - ${items.length}-  ${items
     //     // .filter((d) => d.orderDeliveryId == deliveryId)
@@ -287,7 +285,7 @@ function getDoorsTable(
             )
             .map((item) => {
                 const doorType = item.meta.doorType;
-                // console.log(item.configs);
+
                 const is = isComponentType(doorType);
                 const noHandle = item.configs
                     ? item.configs.noHandle
@@ -503,7 +501,6 @@ function getDoorsTable(
                             }),
                         );
                     } else {
-                        console.log(".....");
                         m.housePackageTool?.doors?.map((door, _doorI) => {
                             const doorTitle =
                                 // `${door.id}` +
@@ -511,7 +508,6 @@ function getDoorsTable(
                                 door?.stepProduct?.door?.title ||
                                 door?.stepProduct?.product?.title;
 
-                            // console.log(door?.stepProduct?.name);
                             const isPh = m.formSteps.find((s) =>
                                 s.value?.toLowerCase()?.startsWith("ph -"),
                             );
@@ -533,7 +529,6 @@ function getDoorsTable(
                     }
                 });
 
-                // console.log(lines.length);
                 return {
                     _index: item?.meta?.lineIndex,
                     doorType: item.meta.doorType,
@@ -577,7 +572,6 @@ function lineItems(data: PrintData, { isProd, isPacking }) {
         .filter((item) => !item.housePackageTool || !item.shelfItems)
         .map((item) => {
             if (!item.meta.uid && item.meta.line_index >= 0) {
-                console.log(">");
                 item.meta.uid = item.meta.line_index;
             }
             return item;

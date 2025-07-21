@@ -117,7 +117,7 @@ export default function Upgrader() {
             // await dbUpgradeAction();
             // await fixSales();
             // await changeIzriEmail();
-            // console.log(await fixUsersMeta());
+
             toast.success("completed");
         });
     }, []);
@@ -172,7 +172,7 @@ export default function Upgrader() {
                                 onClick={() => {
                                     startTransaction(async () => {
                                         if (a.action)
-                                            console.log(await a.action());
+
                                     });
                                 }}
                             >

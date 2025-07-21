@@ -27,7 +27,6 @@ export async function createSalesCheckoutLinkAction(props: Props) {
         let phoneNo = (data.primaryPhone as any)?.replaceAll("-", "");
         if (!phoneNo?.startsWith("+")) phoneNo = `+1${phoneNo}`;
 
-        // console.log({ phoneNo });
         // throw new Error("....");
         const tx = await prisma.customerTransaction.create({
             data: {

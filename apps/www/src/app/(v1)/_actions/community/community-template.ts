@@ -13,7 +13,7 @@ export async function updateCommunityModelInstallCost(
     id,
     pivotId,
     pivotMeta,
-    meta = null
+    meta = null,
 ) {
     await prisma.communityModelPivot.update({
         where: { id: pivotId },
@@ -43,7 +43,7 @@ export async function staticCommunity() {
 }
 export async function _saveCommunityModelCost(
     id,
-    meta: ICommunityTemplateMeta
+    meta: ICommunityTemplateMeta,
 ) {
     const community = await prisma.communityModels.update({
         where: { id },
@@ -85,7 +85,7 @@ export async function _saveCommunityModelCost(
                     amountDue: Number(v) || 0,
                 },
             });
-        })
+        }),
     );
     revalidatePath("/settings/community/community-templates", "page");
 }
@@ -169,7 +169,7 @@ export async function _importModelCost(
     modelName,
     builderId,
     meta,
-    builderTasks
+    builderTasks,
 ) {
     const q = modelName
         .toLowerCase()
@@ -177,7 +177,7 @@ export async function _importModelCost(
         .filter((v) => ["lh", "rh"].every((sp) => v != sp))
         .filter(Boolean)
         .join(" ");
-    // console.log({ builderId, q, modelName });
+
     const cost: ICostChart = (await prisma.costCharts.findFirst({
         where: {
             template: {
@@ -208,7 +208,7 @@ export async function _importModelCost(
             updatedAt: "desc",
         },
     })) as any;
-    // console.log(cost);
+
     if (cost) {
         await _saveCommunityModelCost(id, {
             ...(meta ?? {}),

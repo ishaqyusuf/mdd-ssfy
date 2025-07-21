@@ -65,7 +65,7 @@ export default function CommunityInstallCostModal() {
         );
         // (async () => {
         //     const _costList = await getSettingAction("install-price-chart");
-        //     console.log(_costList);
+
         //     setCostList(_costList as any);
         // })();
     }, []);
@@ -84,7 +84,6 @@ export default function CommunityInstallCostModal() {
                 toast.message("Saved!");
                 closeModal();
             } catch (error) {
-                console.log(error);
                 toast.message("Invalid Form");
                 return;
             }

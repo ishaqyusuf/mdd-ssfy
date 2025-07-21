@@ -106,12 +106,11 @@ function Filter<T>({
         }
         if (optionFn)
             (async () => {
-                // console.log([columnId]);
                 const w = randomNumber2(500, 1500);
-                // console.log(w);
+
                 await timeout(w as any);
                 const resp = await optionFn();
-                // console.log([columnId, resp]);
+
                 setLoadedOptions(resp);
             })();
     }, []);

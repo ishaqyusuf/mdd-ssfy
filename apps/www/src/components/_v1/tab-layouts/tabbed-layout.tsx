@@ -68,7 +68,7 @@ export default function TabbedLayout({
             {/* <Tabs
         defaultValue={tab}
         onChange={(v) => {
-          console.log(v);
+
         }}
         className=" px-8"
       >

@@ -89,7 +89,7 @@ export function DataTable2<TData, TValue>({
     const [columnFilters, setColumnFilters] =
         React.useState<ColumnFiltersState>([]);
     // React.useEffect(() => {
-    //     console.log(_searchParams);
+
     // }, []);
 
     function __updateQuery(q) {

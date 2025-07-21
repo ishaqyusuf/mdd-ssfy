@@ -63,8 +63,7 @@ export default function HomePrinter({ id }: Props) {
                 builderId: builderId as any,
             })),
         )) as any;
-        console.log(printer.homes);
-        console.log({ _templates, communityPrints });
+
         setHomes(
             printer.homes.map((home) => {
                 const communityDesign = communityPrints.find(
@@ -111,7 +110,7 @@ export default function HomePrinter({ id }: Props) {
         const actProd = _homes.filter(
             (h) => getHomeProductionStatus(h).productionStatus == "Idle",
         );
-        // console.log(actProd);
+
         if (actProd.length)
             setTimeout(() => {
                 openModal("activateProduction", printer.homes);
@@ -126,9 +125,7 @@ export default function HomePrinter({ id }: Props) {
         <Link href="/">
             <Image
                 alt=""
-                onLoadingComplete={(img) => {
-                    // console.log("LOGO READY");
-                }}
+                onLoadingComplete={(img) => {}}
                 width={178}
                 height={80}
                 src={logo}

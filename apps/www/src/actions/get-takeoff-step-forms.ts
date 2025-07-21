@@ -87,7 +87,6 @@ export async function getTakeOffStepForms({ configs, itemUid }: Props) {
         ...a,
         meta: a.meta as StepComponentMeta,
     }));
-    console.log({ components, configs });
 
     return configs
         .map((c) => {

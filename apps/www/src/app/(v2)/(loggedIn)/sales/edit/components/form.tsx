@@ -24,10 +24,9 @@ interface Props {
 let renderCount = 0;
 export default function EditSalesForm({ data }: Props) {
     const _formData: any = data?.form || { meta: {} };
-    // console.log(_formData);
 
     const { _items, footer } = salesFormUtils.initInvoiceItems(
-        data?.form?.items
+        data?.form?.items,
     );
     const defaultValues: ISalesForm = {
         ..._formData,
@@ -104,7 +103,7 @@ export default function EditSalesForm({ data }: Props) {
                                     .length == 0
                                     ? "text-green-700 bg-green-200"
                                     : "text-pink-700 bg-pink-200",
-                                "inline-flex items-center h-6 leading-none rounded-full px-4  py-0.5"
+                                "inline-flex items-center h-6 leading-none rounded-full px-4  py-0.5",
                             )}
                         >
                             <Dot className="" />

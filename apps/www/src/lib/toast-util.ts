@@ -16,7 +16,7 @@ export async function toastArrayAction<T>({
     async function updateCosts(index) {
         //
         const item = items[index];
-        // console.log(item);
+
         if (item)
             toast.promise(
                 async () => {
@@ -31,7 +31,7 @@ export async function toastArrayAction<T>({
                         updateCosts(index + 1);
                         return `Updated`;
                     },
-                }
+                },
             );
     }
     await updateCosts(0);

@@ -29,7 +29,7 @@ export async function fixPaymentMethod() {
             update[searchContent.pm].push(p.id);
         }
     });
-    // console.log(update);
+
     await Promise.all(
         Object.entries(update).map(async ([a, b]) => {
             if (a)
@@ -41,6 +41,6 @@ export async function fixPaymentMethod() {
                         paymentMethod: a,
                     },
                 });
-        })
+        }),
     );
 }

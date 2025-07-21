@@ -24,7 +24,7 @@ import { getSales } from "@/data-access/sales";
 
 export async function getSalesProductionsAction(
     query: SalesQueryParams,
-    admin = false
+    admin = false,
 ) {
     const sessionId = await userId();
     query._page = "production";
@@ -76,7 +76,7 @@ export async function markProduction(id, as: "completed" | "incomplete") {
         else prevProducedQty += meta.produced_qty || 0;
 
         meta.produced_qty = completed ? item.qty : 0;
-        // console.log([meta.produced_qty]);
+
         await prisma.salesOrderItems.update({
             where: {
                 id: item.id,
@@ -169,7 +169,7 @@ export async function getUserProductionEventsAction({
             id: true,
         },
     });
-    //   console.log(prods);
+
     return prods;
 }
 export async function orderItemProductionAction({

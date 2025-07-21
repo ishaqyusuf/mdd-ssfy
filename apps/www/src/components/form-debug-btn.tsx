@@ -12,10 +12,7 @@ export function FormDebugBtn({}) {
                 <Button
                     type="button"
                     onClick={() => {
-                        trigger().then((e) => {
-                            console.log(formState);
-                            console.log(formState.errors);
-                        });
+                        trigger().then((e) => {});
                     }}
                 >
                     Debug Submit

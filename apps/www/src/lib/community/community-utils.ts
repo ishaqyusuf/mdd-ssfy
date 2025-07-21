@@ -11,7 +11,7 @@ export function getHomeProductionStatus(home: ExtendedHome) {
     const prod = home?.tasks?.filter((t) => t.produceable);
     let prodDate: any = null;
     // if (home.builderId == 14)
-    // console.log(home.modelName, prod.length, home.tasks);
+
     const produceables = prod?.length;
     let produced = prod?.filter((p) => p.producedAt).length;
     const hasJob = home?.jobs?.length;
@@ -19,7 +19,6 @@ export function getHomeProductionStatus(home: ExtendedHome) {
     const pending = produceables - produced;
     let productionStatus = "Idle";
     if (home.id == 10217) {
-        // console.log(home);
     }
     const sent = prod?.filter((p) => p.sentToProductionAt)?.length;
     prodDate = prod.filter((p) => p.productionDueDate)?.[0]?.productionDueDate;
@@ -89,7 +88,6 @@ export function calculateHomeInvoice(home: ExtendedHome) {
     return data;
 }
 export function calculateCommunitModelCost(_cost, builderTasks) {
-    // console.log(_cost);
     if (!_cost) return;
     let cost = deepCopy<ICostChartMeta>(_cost);
     if (!cost.tax) cost.tax = {};

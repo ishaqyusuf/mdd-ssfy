@@ -45,7 +45,7 @@ export function toLabelValue(data) {
 export function textValue<T extends object>(
     text: string,
     value?: string,
-    extras: T = {} as T
+    extras: T = {} as T,
 ) {
     return { text, value: value || text, ...extras };
 }
@@ -115,7 +115,7 @@ export async function slugModel(value, model, c = 0, id = null) {
 export function sumArrayKeys<T>(
     array?: T[],
     keys: (keyof T | undefined)[] = undefined,
-    subtract = false
+    subtract = false,
 ) {
     if (!array?.length) return array;
     let [first, ...others] = array;
@@ -200,7 +200,7 @@ export function camel(str?: string) {
         function (match: any, p1: any, p2: any, offset: any) {
             if (p2) return p2.toUpperCase();
             return p1.toLowerCase();
-        }
+        },
     );
 }
 export function designDotToObject(object) {
@@ -261,13 +261,13 @@ export function getModelNumber(modelName) {
     return modelName
         ?.split(" ")
         .filter(
-            (f) => !["lh", "rh", "unkn", "unkwn"].includes(f?.toLowerCase())
+            (f) => !["lh", "rh", "unkn", "unkwn"].includes(f?.toLowerCase()),
         )
         .join(" ");
 }
 export const uniqueBy = (data, key) => {
     const unique = [...new Set(data.map((item) => item[key]?.toLowerCase()))];
-    // console.log(unique);
+
     return unique.map((s) => {
         const d = data.find((h) => h[key]?.toLowerCase() == s);
         return {
@@ -280,7 +280,7 @@ export const uniqueBy = (data, key) => {
 //   if (!result.some((x) => x?.[key] === lowercaseCategory)) {
 //     result.push({ ...item, [key]: lowercaseCategory });
 //   }
-//   console.log(result);
+
 //   return result;
 // }, []);
 export async function _serverAction(
@@ -295,7 +295,7 @@ export async function _serverAction(
         fn;
         onSuccess?(data?);
         onError?(error);
-    }
+    },
 ) {
     try {
         const data = await fn();
@@ -303,8 +303,7 @@ export async function _serverAction(
     } catch (e) {
         let err: any = e;
         if (err.message) toast.error(err.message);
-        console.log(err);
-        console.log(err.message);
+
         onError && onError(e);
     }
 }
@@ -331,15 +330,13 @@ export function chunkArray(array, chunkSize) {
     // return result;
 }
 export const filteredOptions = (q, items, labelKey = "label") => {
-    console.log(items.length);
-    console.log(q);
     const escapedText = !q
         ? ""
         : q?.toString().replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
 
     const pattern = new RegExp(escapedText, "i");
     let filteredOptions = items?.filter((option) =>
-        pattern.test(option[labelKey])
+        pattern.test(option[labelKey]),
     );
     // filteredOptions = uniqueBy(filteredOptions, "name").filter(
     //     (a, i) => i < 25
@@ -395,7 +392,7 @@ export function getLeafDotPaths<T>(obj: T, parentKey: string = ""): string[] {
                 leafDotPaths.push(currentKey);
             } else {
                 leafDotPaths = leafDotPaths.concat(
-                    getLeafDotPaths(value, currentKey)
+                    getLeafDotPaths(value, currentKey),
                 );
             }
         }
@@ -407,8 +404,6 @@ export function inToFt(_in) {
     let _ft = _in;
     const duo = _ft.split("x");
     if (duo.length == 2) {
-        // console.log(_ft);
-
         return `${inToFt(duo[0]?.trim())} x ${inToFt(duo[1]?.trim())}`;
     }
     try {
@@ -441,7 +436,7 @@ export const math = {
         let est = 0;
 
         values.map((v, i) =>
-            i == 0 ? (est = toNumber(v)) : (est *= toNumber(v))
+            i == 0 ? (est = toNumber(v)) : (est *= toNumber(v)),
         );
 
         return est;
@@ -449,7 +444,7 @@ export const math = {
 };
 export function ObjectMetaType<T, TMeta>(
     data: T,
-    meta: TMeta
+    meta: TMeta,
 ): Omit<NonNullable<T>, "meta"> & { meta: TMeta } {
     return {
         ...data,
@@ -461,7 +456,7 @@ export function ArrayMetaType<T, TMeta>(data: T[], meta: TMeta) {
 }
 export function _ObjectMetaType<T, MetaType>(
     data: T,
-    metaKey = "meta"
+    metaKey = "meta",
 ): Omit<T, typeof metaKey> & { [key in typeof metaKey]: MetaType } {
     return {
         ...data,
@@ -471,7 +466,7 @@ export function _ObjectMetaType<T, MetaType>(
 export function removeKeys<T>(
     from: T,
     objectKeys: (keyof T | any)[],
-    deep = false
+    deep = false,
 ): T {
     // Base case: if 'from' is not an object, return it as is
     if (typeof from !== "object" || from === null) {

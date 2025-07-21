@@ -88,11 +88,9 @@ export default function ModelInstallCostModal({ community = false }) {
                         const { installCosts, ...mm } = cd.meta;
                         meta = mm;
                     }
-                    console.log(cd.pivot?.meta);
+
                     let pMeta = cd.pivot?.meta || {};
                     (pMeta as any).installCost = cost?.costings;
-                    console.log(data);
-                    console.log(pMeta);
 
                     await updateCommunityModelInstallCost(
                         data.id,
@@ -103,17 +101,15 @@ export default function ModelInstallCostModal({ community = false }) {
                 }
                 toast.message("Saved!");
             } catch (error) {
-                console.log(error);
                 toast.message("Invalid Form");
                 return;
             }
         });
     }
     async function init(data) {
-        console.log(data);
         const installs = await getInstallCostsAction();
         setCostSetting(installs);
-        console.log(installs);
+
         if (community) {
             let cd = data as ICommunityTemplate;
             // cd.pivotId

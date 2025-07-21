@@ -157,7 +157,6 @@ export async function saveSalesComponentPricingDta(
     prices: Partial<ComponentPrice>[],
     orderId,
 ) {
-    // console.log(prices);
     return;
     const ids = [];
     const filterPrices = prices.filter((p) => p.qty);

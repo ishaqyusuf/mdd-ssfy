@@ -30,9 +30,9 @@ export default function useSalesInvoiceRowActions(index, id, field) {
         copy() {
             // const {id, ...rest} = field;
             // setTimeout(() => {
-            // console.log(field.qty);
+
             const data = form.getValues(`items.${index}`);
-            // console.log(data);
+
             const newData = salesFormUtils.copySalesItem(data);
             insert(index + 1, newData as any);
             // }, 2000);

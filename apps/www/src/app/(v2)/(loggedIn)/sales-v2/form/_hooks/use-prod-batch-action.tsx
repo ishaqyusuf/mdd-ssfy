@@ -17,7 +17,6 @@ export function BatchSelectionAction() {
             .filter((c) => c.selected)
             .map((c) => c.item);
 
-        // console.log({ products });
         _ctx.cancelSelection();
         step.deleteStepItemModal(products);
     }

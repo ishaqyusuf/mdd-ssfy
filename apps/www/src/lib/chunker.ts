@@ -34,8 +34,6 @@ export function chunker({ worker, list, chunkSize = 50, loadingToast }: Props) {
 
         const chunk = list.slice(index, index + chunkSize);
 
-        console.log(chunk);
-
         const resp = await worker(chunk);
 
         index += chunkSize;

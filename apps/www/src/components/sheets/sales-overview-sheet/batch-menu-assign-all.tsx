@@ -69,9 +69,7 @@ export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
                 form.setValue("nextTriggerUID", generateRandomString());
             }, 150);
         },
-        onError(e) {
-            console.log(e);
-        },
+        onError(e) {},
     });
 
     const form = useForm<{

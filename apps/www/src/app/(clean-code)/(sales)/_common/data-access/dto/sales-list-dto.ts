@@ -47,7 +47,6 @@ function getAddressDto(
     customer: Item["customer"],
     title,
 ) {
-    // console.log(data);
     if (!data) return { title, address: "No address set" };
     const meta: AddressBookMeta = data?.meta as any;
     return {

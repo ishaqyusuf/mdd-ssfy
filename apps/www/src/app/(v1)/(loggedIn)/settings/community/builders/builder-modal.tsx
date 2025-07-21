@@ -100,7 +100,7 @@ export default function BuilderModal({
                         homeIds.map(({ id }) => id),
                         500,
                     );
-                    // console.log(a[0]);
+
                     await toastArrayAction({
                         items: a,
                         serverAction: async (units) =>
@@ -125,7 +125,6 @@ export default function BuilderModal({
                 toast.message("Success!");
                 await _revalidate("builders");
             } catch (error) {
-                // console.log(error);
                 if (error instanceof Error) toast.error(error.message);
                 else toast.message("Invalid Form");
 

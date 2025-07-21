@@ -12,7 +12,7 @@ export async function salesPdf(query: SalesPrintProps["searchParams"]) {
     const cloudinary = await uploadPDFToCloudinary(
         pdf,
         `${query.slugs}-${dayjs().valueOf()}.pdf`,
-        "sales-orders"
+        "sales-orders",
     );
     return {
         // uri: pdfDataUri,
@@ -29,12 +29,12 @@ async function geenrate(query: SalesPrintProps["searchParams"]) {
     });
     let page = await browser.newPage();
     await page.setCacheEnabled(false);
-    // console.log(query);
+
     let url = `${env.NEXT_PUBLIC_APP_URL}/printer/sales?${QueryString.stringify(
         {
             ...query,
             rnd: generateRandomString(),
-        }
+        },
     )}`;
 
     await page.goto(url, {

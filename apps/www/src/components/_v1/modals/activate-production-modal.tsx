@@ -39,7 +39,7 @@ export default function ActivateProductionModal() {
                 Object.entries(checkedIds).map(
                     ([k, v]) => v && ids.push(Number(k)),
                 );
-                // console.log(ids);
+
                 await activateHomeProductionAction(ids, dueDate);
 
                 // await saveProject({
@@ -49,7 +49,6 @@ export default function ActivateProductionModal() {
                 toast.message("Units sent to production");
                 route.refresh();
             } catch (error) {
-                console.log(error);
                 toast.message("Invalid Form");
                 return;
             }

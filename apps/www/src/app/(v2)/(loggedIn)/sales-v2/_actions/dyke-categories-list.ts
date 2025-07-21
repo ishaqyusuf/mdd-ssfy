@@ -5,7 +5,6 @@ import { prisma } from "@/db";
 
 export async function getDykeCategoriesList() {
     // const resp = unstable_cache(async () => {
-    console.log("!#@@@@");
 
     // const resp = await _cache(
     //     "dyke-product-categories",
@@ -19,14 +18,11 @@ export async function getDykeCategoriesList() {
     //     },
     //     "dyke-categories"
     // );
-    // console.log(resp);
 
     // return resp;
-    // console.log(c);
 
     // return c;
     // }, ["dyke-product-categories-filter"]);
 
-    // console.log(resp);
     // return resp;
 }

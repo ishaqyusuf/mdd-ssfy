@@ -19,7 +19,7 @@ async function createSalesProgressDta(
     salesId,
     type: QtyControlType,
     total,
-    score
+    score,
 ) {
     return;
     await prisma.salesStat.create({
@@ -65,7 +65,7 @@ async function generateMissingStatsDta(salesId) {
 export async function updateSalesProgressDta(
     salesId,
     type: QtyControlType,
-    { total = null, id = null, score = null, plusScore = 0, minusScore = 0 }
+    { total = null, id = null, score = null, plusScore = 0, minusScore = 0 },
 ) {
     const stat = id
         ? { id, total, score }
@@ -75,7 +75,6 @@ export async function updateSalesProgressDta(
                   salesId,
               },
           });
-    // console.log(stat);
 
     // if (!stat?.id) {
     //     await generateMissingStatsDta(salesId);
@@ -84,7 +83,7 @@ export async function updateSalesProgressDta(
     if (total == null) total = stat.total;
     if (score == null) score = stat.score;
     score = score + plusScore - minusScore;
-    // console.log({ score, type, plusScore, minusScore });
+
     // await prisma.salesStat.update({
     //     where: {
     //         id: stat.id,
@@ -98,7 +97,6 @@ export async function updateSalesProgressDta(
 }
 function statMeta(total, score) {
     const percentage = percent(score, total);
-    console.log({ percentage });
 
     const status = statStatus({
         total,
@@ -126,7 +124,6 @@ export async function statMismatchDta(overview: GetSalesItemOverviewDta) {
             Object.entries(calculatedStats).map(async ([k, d]) => {
                 const sysd = salesStatByKey?.[k];
                 if (sysd?.id) {
-                    console.log(sysd.id);
                     await updateSalesProgressDta(overview.id, k as any, {
                         total: d.total,
                         score: d.score,
@@ -137,10 +134,10 @@ export async function statMismatchDta(overview: GetSalesItemOverviewDta) {
                         overview.id,
                         k as any,
                         d.total,
-                        d.score
+                        d.score,
                     );
                 }
-            })
+            }),
         );
     }
     return mismatch;

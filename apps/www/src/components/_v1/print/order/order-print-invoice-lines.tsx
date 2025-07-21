@@ -25,7 +25,7 @@ export function OrderPrintInvoiceLines({ order }: Props) {
                     const ui = item?.meta?.uid;
                     return ui > -1 ? ui : li;
                 })
-                .filter((i) => i > -1) as any)
+                .filter((i) => i > -1) as any),
         );
         const totalLines = lineIndex ? lineIndex + 1 : order?.items?.length;
         const ilines = Array(totalLines)
@@ -52,7 +52,6 @@ export function OrderPrintInvoiceLines({ order }: Props) {
                 };
             });
         setInvoiceLines(ilines);
-        // console.log(ilines);
     }, []);
     // invoiceLines.push({
     //   id: "filler",

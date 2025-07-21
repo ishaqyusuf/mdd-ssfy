@@ -30,7 +30,7 @@ export async function createSalesDispatchAction(data: CreateSalesDispatchData) {
     return await prisma.$transaction((async (tx: typeof prisma) => {
         // const tx = prisma;
         const { deliveryMode, salesId, driverId, status } = data;
-        console.log(">>>>");
+
         const dispatch = await tx.orderDelivery.create({
             data: {
                 deliveryMode,
@@ -41,7 +41,7 @@ export async function createSalesDispatchAction(data: CreateSalesDispatchData) {
                 order: { connect: { id: salesId } },
             },
         });
-        console.log("CREATED!");
+
         // return dispatch;
         const dispatchables = (
             await Promise.all(
@@ -61,12 +61,12 @@ export async function createSalesDispatchAction(data: CreateSalesDispatchData) {
                 }),
             )
         )?.flat();
-        console.log("LCOAACLLCA");
+
         if (!dispatchables?.length)
             throw new Error(
                 "Unable to create dispatch due to missing submissions",
             );
-        // console.log(dispatchables);
+
         const resp = await tx.orderItemDelivery.createMany({
             data: dispatchables as any,
         });
@@ -92,7 +92,6 @@ async function getItemDispatchableSubmissions(
     const control = await getItemControlAction(cuid);
     const { uidObj, assignments } = await getSalesAssignmentsByUidAction(cuid);
     // find submittables
-    console.log(item);
 
     let obj = {
         pendingQty: { ...item },
@@ -156,16 +155,13 @@ async function getItemDispatchableSubmissions(
             });
             if (stats.deliveryQty > 0 && assignedQty > submittedQties) {
                 // TODO: "FINISH SOME ASSIGNMENTS TO MAKE SUBMISSION AVAILABLE FOR DISPATCH"
-                console.log("..");
             }
         });
-        console.log(stats.deliveryQty);
 
         if (stats.deliveryQty) {
             throw new Error("Not enough submitted qty");
         }
     });
-    console.log(obj.deliveryItems);
 
     return obj.deliveryItems;
 }

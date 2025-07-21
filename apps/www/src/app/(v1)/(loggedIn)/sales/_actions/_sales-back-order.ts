@@ -259,11 +259,10 @@ export async function _createSalesBackOrder(
     };
     // if (Math.abs(resp.diff.grandTotal) > 1)
     //     throw new Error("Error generate back order (800)");
-    // console.log(paymentUpdate.oldSumPayment - paymentUpdate.newSumPayment);
+
     paymentUpdate.sumDiff =
         paymentUpdate.oldSumPayment - paymentUpdate.newSumPayment;
-    console.log(resp);
-    console.log(paymentUpdate);
+
     // if (Math.abs(paymentUpdate.sumDiff) > 1)
     //     throw new Error("Erorr generating back order (801)");
 
@@ -330,7 +329,7 @@ export async function _createSalesBackOrder(
             },
         });
     // } catch (e) {
-    // console.log(e);
+
     resp.error = true;
     // }
     return resp;

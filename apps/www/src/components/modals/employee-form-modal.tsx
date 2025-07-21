@@ -32,7 +32,6 @@ export function EmployeeFormModal({}) {
                 setParams(null);
             },
             onError(error, variables, context) {
-                console.log(error);
                 toast.error("Unable to complete");
             },
         }),

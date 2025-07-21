@@ -32,7 +32,6 @@ export async function _importModelCostData(
         },
     });
     if (template && template.costs.length) {
-        console.log(template);
         await prisma.communityModelCost.deleteMany({
             where: {
                 communityModelId: id,
@@ -198,7 +197,6 @@ export async function _findOrGeneratePivotForCommunity(id) {
     return null;
 }
 export async function _synchronizeModelCost(_c, pivotId) {
-    // console.log(_c.meta.sumCosts);
     await Promise.all(
         Object.entries(_c.meta.sumCosts).map(async ([k, v]) => {
             const { startDate: from, endDate: to } = _c;
@@ -228,8 +226,6 @@ export async function _synchronizeModelCost(_c, pivotId) {
                     updatedAt: new Date(),
                 },
             });
-
-            console.log(s.count, whereHomTasks);
         }),
     );
 }

@@ -13,7 +13,6 @@ export function composeBar(_charts: { year; month; value }[]) {
 
     // const date = dayjs();
     let _chart: BarChartProps[] = [];
-    // console.log({ _charts });
 
     // const lastYear =
     for (let i = 0; i < 12; i++) {
@@ -27,10 +26,10 @@ export function composeBar(_charts: { year; month; value }[]) {
         const _c = {
             month: _d.format("MMM"),
             current: +toFixed(
-                monthChats.find((v) => v.year == year)?.value || 0
+                monthChats.find((v) => v.year == year)?.value || 0,
             ),
             previous: +toFixed(
-                monthChats.find((v) => v.year == lastYear)?.value || 0
+                monthChats.find((v) => v.year == lastYear)?.value || 0,
             ),
         };
 

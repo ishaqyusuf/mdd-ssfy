@@ -173,7 +173,7 @@ export async function saveBuilderTasks(data: IBuilder, deleteIds, newTaskIds) {
             },
         },
     });
-    // console.log(homes.length);
+
     let tasks: any[] = [];
     homes.map((home) => {
         let bTasks = data.meta.tasks.filter(
@@ -191,7 +191,7 @@ export async function saveBuilderTasks(data: IBuilder, deleteIds, newTaskIds) {
             );
         }
     });
-    // console.log(tasks.length);
+
     // await Promise.all
     await prisma.homeTasks.createMany({
         data: tasks,

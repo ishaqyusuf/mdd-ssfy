@@ -14,7 +14,7 @@ export function AssignmentCompleteDate({}) {
     async function _salesStatistics() {
         const resp = await getAssignmentCompleteDateList();
         // const resp = await salesStatisticsAction();
-        console.log(resp);
+
         // return;
         chunker({
             worker: performUpdate,

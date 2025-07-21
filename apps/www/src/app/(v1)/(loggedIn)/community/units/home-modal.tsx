@@ -70,7 +70,7 @@ export default function HomeModal({ home }: Props) {
             let msg = "Units Created!";
             try {
                 const formData = form.getValues();
-                console.log({ formData });
+
                 if (home?.id) {
                     const unit = formData.units[0] as any;
                     unit.modelName = communityTemplates.find(
@@ -80,7 +80,7 @@ export default function HomeModal({ home }: Props) {
                     msg = "Unit updated!";
                 } else {
                     const isValid = homeSchema.parse(form.getValues());
-                    console.log(formData.units);
+
                     if (!formData.units) return;
                     const unitForms = formData.units?.map((u) => {
                         const pid = (u.projectId = Number(formData.projectId));
@@ -110,7 +110,6 @@ export default function HomeModal({ home }: Props) {
                 modal.close();
                 _revalidate("homes");
             } catch (error) {
-                console.log(error);
                 toast.message("Invalid Form");
                 return;
             }
@@ -128,12 +127,12 @@ export default function HomeModal({ home }: Props) {
         async function loadStatics() {
             setProjects((await staticProjectsAction()) as any);
             const cTemplates = (await staticCommunity()) as any;
-            // console.log(cTemplates);
+
             setCommunityTemplates(cTemplates);
         }
 
         loadStatics();
-        console.log("GETTING READY..");
+
         setTimeout(() => {
             setIsReady(true);
         }, 50);
@@ -206,9 +205,7 @@ export default function HomeModal({ home }: Props) {
                                                         m.projectId ==
                                                         projectId,
                                                 )}
-                                                onSelect={(e) => {
-                                                    console.log(e);
-                                                }}
+                                                onSelect={(e) => {}}
                                                 uppercase
                                                 itemText={"modelName"}
                                                 itemValue="id"

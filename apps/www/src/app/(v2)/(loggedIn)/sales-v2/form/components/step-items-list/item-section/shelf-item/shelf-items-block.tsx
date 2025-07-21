@@ -65,7 +65,7 @@ export default function ShelfItemsBlock({ shelfIndex, deleteItem }: Props) {
             parentCategoryId,
             categoryId,
         );
-        console.log(subCategoriesCount, products);
+
         if (subCategoriesCount) {
             // append({ cid: -1 });
         }
@@ -74,10 +74,7 @@ export default function ShelfItemsBlock({ shelfIndex, deleteItem }: Props) {
     function shelfItemForm(index?) {
         const catArray = categoryForm.getValues("ids");
 
-        // console.log(cform);
-
         const categoryIds = catArray?.map((c) => c.id);
-        console.log(categoryIds);
 
         const generatedProd: any = shelf.prodArray.fields[index];
         const prodId = generatedProd?.item?.id;
@@ -213,7 +210,6 @@ function ShellProductCells({
     //     shelf.prodArray.update(index, {});
     // }, []);
 
-    // console.log(shelf.products);
     // if (!shelf.products?.length) return <></>;
     return (
         <div className="flex w-full items-center space-x-4">
@@ -224,7 +220,6 @@ function ShellProductCells({
                     onValueChange={(productId) => {
                         // const productId = Number(v) || null;
                         // f.onChange(productId);
-                        console.log("value changed:", productId);
 
                         shelf.productSelected(productId, index);
                     }}
@@ -264,7 +259,6 @@ function ShellProductCells({
                             // {...field}
                             defaultValue={f.item?.qty?.toString()}
                             onChange={(e) => {
-                                // console.log(e.target.value);
                                 field.onChange(+e.target.value);
                                 shelf.updateProductPrice(
                                     index,

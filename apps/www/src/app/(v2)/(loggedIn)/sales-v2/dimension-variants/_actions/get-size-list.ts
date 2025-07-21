@@ -13,7 +13,6 @@ export async function getDimensionSizeList(height, _bifold) {
     const heightIn =
         d.data.sizes.find((s) => s.ft == height && s.height)?.in ||
         ftToIn(height);
-    // console.log(_bifold);
 
     // if (!heightIn) return [];
 

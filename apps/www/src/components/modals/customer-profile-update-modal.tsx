@@ -32,11 +32,7 @@ export default function CustomerProfileUpdateModal({ phoneNo, profileId }) {
     const [data, setData] = useState<GetSalesCustomerSystemData>(null);
     const [_profileId, setProfileId] = useState(profileId);
     useEffect(() => {
-        console.log({ phoneNo, profileId });
-
         _getSalesCustomerSystemData(phoneNo, profileId).then((result) => {
-            console.log({ result });
-
             setData(result);
         });
     }, [phoneNo, profileId]);

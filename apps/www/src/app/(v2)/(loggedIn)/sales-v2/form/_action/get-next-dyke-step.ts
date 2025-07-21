@@ -19,12 +19,11 @@ export async function getNextDykeStepAction(
     _steps: any[] = [],
     doorType: DykeDoorType,
 ) {
-    console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
     let nextStepId = stepProd?.nextStepId;
-    console.log({ nextStepId });
+
     if (product?.title == "Wood Stile & Rail") {
         nextStepId = await createDoorSpecies(step, stepProd);
-        // console.log(product);
+
         stepProd.nextStepId = nextStepId;
     }
     if (product) {
@@ -41,7 +40,7 @@ export async function getNextDykeStepAction(
 
     if (!nextStepId) {
         // const path = await prisma.
-        console.log("NO NEXT STEP");
+
         let nextSteps = await prisma.dykeSteps.findMany({
             where: {
                 title: {
@@ -54,7 +53,6 @@ export async function getNextDykeStepAction(
                 _count: includeStepPriceCount,
             },
         });
-        console.log({ stepValueId });
 
         if (!nextSteps.length && step.title == "Door Species") {
             nextSteps = await prisma.dykeSteps.findMany({
@@ -84,13 +82,11 @@ export async function getNextDykeStepAction(
                     (product?.title && s.value?.endsWith(product.title)) ||
                     (s.title == "Hand" && s.id == 22),
             )[0];
-            console.log("MATCHED STEP>>>", matchedStep?.id, nextStepId);
+
             if (matchedStep) nextStepId = matchedStep.id;
         }
     }
     if (nextStepId) {
-        console.log("NEXT STEP", nextStepId);
-
         const stepForm = await getStepForm(nextStepId);
         const stepProd = stepForm.step?.stepProducts?.[0];
         if (!isCustomStep(stepForm.step?.title, doorType)) {
@@ -134,10 +130,7 @@ export async function getNextDykeStepAction(
             title: step.title,
         },
     });
-    console.log(__s);
-    console.log(step.title);
 
-    console.log("NOT FOUND", prevStepValueId);
     return null;
 }
 function hiddenSteps(title, doorType: DykeDoorType) {
@@ -209,11 +202,8 @@ async function CustomStepForm(
         "Jamb Size": "Jamb Type",
     };
     let title = customSteps[productTitle] || customSteps[stepTitle];
-    // console.log({ title });
 
     if (doorType == "Bifold") {
-        // console.log(doorType);
-
         const customSteps: DykeStepTitleKv = {
             "Item Type": "Height",
             // "Door Configuration": "Height",
@@ -229,7 +219,6 @@ async function CustomStepForm(
             Category: "Door",
         };
         title = customSteps[productTitle] || customSteps[stepTitle];
-        // console.log(stepVal);
     }
     // if (doorType == "Exterior") {
     //     // console.log(doorType);
@@ -247,7 +236,6 @@ async function CustomStepForm(
             // "M Casing": "Line Item",
         };
         title = customSteps[stepTitle];
-        // console.log({ title, productTitle, stepTitle });
     }
     if ((doorType || productTitle) == "Services") {
         const customSteps: DykeStepTitleKv = {
@@ -256,14 +244,11 @@ async function CustomStepForm(
             //  Moulding: "Line Item",
             // "M Casing": "Line Item",
         };
-        // console.log(stepTitle);
+
         title = customSteps[stepTitle];
     }
-    // console.log([doorType, productTitle]);
 
     if ((doorType || productTitle) == "Door Slabs Only") {
-        // console.log(productTitle);
-
         const customSteps = {
             Door: "House Package Tool",
             "Item Type": "Height",

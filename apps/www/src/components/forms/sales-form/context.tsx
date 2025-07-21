@@ -71,7 +71,6 @@ export const { Provider: HptContextProvider, useContext: useHpt } =
         useEffect(() => {
             let tuid = ctx.hpt.tabUid;
             if (ctx.doors.every((s) => s.uid != ctx.hpt.tabUid)) {
-                // console.log(ctx.doors?.[0]?.uid);
                 tuid = ctx.doors?.[0]?.uid;
                 ctx.hpt.dotUpdateItemForm(
                     "groupItem._.tabUid",
@@ -217,8 +216,7 @@ export const { Provider: GroupedItemContext, useContext: useGroupedItem } =
             const stepClass = new StepHelperClass(mouldingUid);
             const components = await stepClass.fetchStepComponents();
             const filtered = components?.filter((a) => a._metaData.visible);
-            // console.log(props?.stepSequence);
-            // console.log({ filtered, mouldingUid });
+
             return filtered;
         }, [props.itemType, mouldingUid]);
         const valueChanged = () => {

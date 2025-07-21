@@ -64,7 +64,6 @@ export type CreateSalesPaymentProps =
 //             code: "",
 //         });
 
-//         console.log("New Access Token:", result.accessToken);
 //         return result.accessToken;
 //     } catch (error) {
 //         console.error("Error refreshing token:", error);
@@ -82,9 +81,7 @@ export async function getSquareDevices() {
                 device,
             }))
             .sort((a, b) => a?.label?.localeCompare(b.label) as any);
-    } catch (error) {
-        console.log(error);
-    }
+    } catch (error) {}
 }
 
 export async function validateSquarePayment(id) {

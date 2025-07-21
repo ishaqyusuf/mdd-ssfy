@@ -56,9 +56,7 @@ export function BatchMenuDeleteAssignments({ itemIds, setOpened }: Props) {
                 form.setValue("nextTriggerUID", generateRandomString());
             }, 150);
         },
-        onError(e) {
-            console.log(e);
-        },
+        onError(e) {},
     });
 
     const form = useForm<{
@@ -100,7 +98,7 @@ export function BatchMenuDeleteAssignments({ itemIds, setOpened }: Props) {
             return;
         }
         const [assignmentId, { meta }] = entry;
-        console.log(meta);
+
         deleteAssignments.execute({
             ...meta,
         });

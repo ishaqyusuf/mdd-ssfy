@@ -35,7 +35,6 @@ export async function getSalesOrderInfinityListUseCase(query) {
     // return list;
     // const resp = dataResponse(list.data, search);
     // const data = list.data;
-    // console.log(list.pageInfo);
 
     return {
         data: list.data,

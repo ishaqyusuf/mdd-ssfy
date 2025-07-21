@@ -96,7 +96,6 @@ export default function ModelTemplateModal({
         });
     }
     async function init(data) {
-        console.log(data);
         form.reset(data || { meta: {} });
     }
     return (

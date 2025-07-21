@@ -12,7 +12,7 @@ export const useOnCloseQuery = () => {
             setParams(null).then((re) => {
                 if (data) {
                     // setTimeout(() => {
-                    // console.log({ onCloseQuery, pathname });
+
                     // return;
                     router?.push(`${pathname}?${QueryString.stringify(data)}`);
                     // }, 1);

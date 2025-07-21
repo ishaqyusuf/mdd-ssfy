@@ -49,7 +49,6 @@ export default function BaseSheet<T>({
     return (
         <Sheet
             onOpenChange={(e) => {
-                console.log(e);
                 if (!e) {
                     onClose?.();
                     closeModal(modalName);

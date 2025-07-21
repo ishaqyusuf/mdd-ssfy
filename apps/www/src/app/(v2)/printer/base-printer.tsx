@@ -47,12 +47,10 @@ export default function BasePrinter({
         // {
 
         // }
-        // console.log(params.get("preview"));
+
         const slugs = Object.keys(pages);
-        // console.log(pages);
 
         if (Object.values(pages).every((p) => p.ready) && !preview && !pdf) {
-            // console.log("ADJUSTING WATERMARKS");
             // adjustWatermark(slugs);
             (async () => {
                 await timeout(900);
@@ -60,7 +58,6 @@ export default function BasePrinter({
                 window.close();
             })();
         }
-        // console.log(pages);
     }, [pages]);
     function pageReady(slug, pageData) {
         setTimeout(() => {

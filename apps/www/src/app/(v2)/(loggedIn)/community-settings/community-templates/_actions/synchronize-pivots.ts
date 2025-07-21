@@ -26,7 +26,7 @@ export async function _synchronizePivot() {
             let cp = pivots.filter(
                 (p) =>
                     p.projectId == c.projectId &&
-                    p.model == getPivotModel(c.modelName)
+                    p.model == getPivotModel(c.modelName),
             );
             if (cp.length > 0) {
                 let _rcp: any = null;
@@ -48,7 +48,7 @@ export async function _synchronizePivot() {
                     });
                 }
             }
-        })
+        }),
     );
     const d = await prisma.communityModelPivot.deleteMany({
         where: {
@@ -61,7 +61,7 @@ export async function _synchronizePivot() {
             },
         },
     });
-    console.log(d);
+
     // await Promise.all(pivots.map(async (pivot) => {
     //     let slug = `${pivot.model}-${pivot.projectId}`;
     //     let pid = _pivots[slug];

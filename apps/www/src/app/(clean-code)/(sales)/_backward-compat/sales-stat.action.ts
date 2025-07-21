@@ -183,7 +183,7 @@ function productionStats(order: LoadedSales[number]) {
                 const q = sum([sd.lhQty, sd.rhQty]);
                 const q2 = sum([sd.totalQty]);
                 // if (q2 != q) {
-                // console.log({ q, q2 });
+
                 // }
                 totalItems += q;
             });
@@ -195,7 +195,6 @@ function productionStats(order: LoadedSales[number]) {
                     registerAssignment(totalItems);
                 }
                 item.salesDoors.map(({ id, totalQty, lhQty, rhQty }) => {
-                    console.log({ totalQty, lhQty, rhQty });
                     registerAssignment(totalQty, id, { lhQty, rhQty });
                 });
             }
@@ -221,7 +220,6 @@ function productionStats(order: LoadedSales[number]) {
                 .filter((s) => s > 0)
                 .reduce((a, b) => a + b, 0);
             if (prodId && !item.assignments?.length) {
-                // console.log("REGISTERING OLD SALE");
                 registerAssignment(totalItems);
                 // resp.assignments.push({
                 //     itemId: item.id,
@@ -369,7 +367,6 @@ export async function salesStatUpgrade() {
                     //         !item.assignments?.length &&
                     //         pending.assignment?.total
                     //     ) {
-                    //         console.log("...");
                     //     }
                     // }
                 }
@@ -379,7 +376,6 @@ export async function salesStatUpgrade() {
 
                 if (item.assignments.length) {
                     if (!pending.production?.total) {
-                        console.log("COMPLETED");
                     }
                 }
             });
@@ -395,7 +391,7 @@ export async function salesStatUpgrade() {
             //                 .flat();
             //         })
             //         .flat();
-            //     console.log(assignments.length);
+
             // }
         });
         //     data.stats.push(

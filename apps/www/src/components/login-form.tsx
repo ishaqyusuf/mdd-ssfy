@@ -49,7 +49,6 @@ export function LoginForm({}) {
         if (session?.user?.id) redirect("/");
     }, [session]);
     useEffect(() => {
-        console.log({ token });
         if (!token) return;
         signIn("credentials", {
             token,

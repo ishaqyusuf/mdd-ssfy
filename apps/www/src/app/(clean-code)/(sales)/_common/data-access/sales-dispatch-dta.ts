@@ -185,8 +185,6 @@ export async function createSalesDispatchDta(data: SalesDispatchFormData) {
             const hasHandle = qty.lh || qty.rh;
             const createManyData: CreateManyDeliveryItem[] = [];
             function updateHandleQty(sub, res, subId?) {
-                console.log({ res });
-
                 let resp: CreateManyDeliveryItem | undefined = null;
                 function updateItemDelivery(key, value) {
                     if (!resp)
@@ -197,7 +195,7 @@ export async function createSalesDispatchDta(data: SalesDispatchFormData) {
                 }
                 (!hasHandle ? ["qty"] : ["lh", "rh"]).map((handl) => {
                     const key = hasHandle ? `${handl}Qty` : "qty";
-                    console.log({ key });
+
                     const q = res[handl];
                     const subQ = sub[handl];
                     if (!qty[handl]) return;
@@ -211,7 +209,6 @@ export async function createSalesDispatchDta(data: SalesDispatchFormData) {
                         qty.total -= subQ;
                         updateItemDelivery(key, subQ);
                     }
-                    // console.log(qty);
                 });
                 if (resp && subId) resp.orderProductionSubmissionId = subId;
 
@@ -265,7 +262,6 @@ export async function createSalesDispatchDta(data: SalesDispatchFormData) {
                     total: submission.qty,
                 };
                 const qtyRem = qtyDiff(qty, subQty, false);
-                console.log({ assignment, submission });
 
                 updateHandleQty(subQty, qtyRem, submission.id);
             }

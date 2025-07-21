@@ -10,7 +10,7 @@ export function useValidateTaskQty(form) {
                 const maxQty = form.getValues("home.costing") || {};
 
                 const costData = form.getValues("job.meta.costData") || {};
-                // console.log(costData);
+
                 const schem = {};
                 let hasCost = false;
                 Object.entries(costData).map(([k, v]) => {
@@ -34,7 +34,6 @@ export function useValidateTaskQty(form) {
                     }),
                 });
                 try {
-                    console.log(costData);
                     Object.entries(costData).map(([k, v]) => {
                         v &&
                             typeof (v as any)?.qty === "string" &&

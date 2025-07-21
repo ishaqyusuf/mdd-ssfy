@@ -69,7 +69,7 @@ export default function ModelCostModal({ community }: { community?: Boolean }) {
                     meta: {},
                 },
             ] as any;
-        // console.log(costs);
+
         // replace(deepCopy(costs));
         const stat = await _getModelCostStat(costs, data.id);
 
@@ -159,7 +159,7 @@ export function CostForm({ form, data, fIndex, community, index }: Props) {
                 const costs = deepCopy<ICostChart[]>(form.getValues(`costs`));
                 let cost = costs[index];
                 if (!cost) return;
-                // console.log(cost);
+
                 if (!cost.startDate) {
                     toast.error("Add a valid starting date");
                     return;
@@ -182,7 +182,7 @@ export function CostForm({ form, data, fIndex, community, index }: Props) {
                     // if (!_cost.communityModelId)
                     //     _cost.communityModelId = data.id;
                     // if (!_cost.pivotId) _cost.pivotId = data.pivotId;
-                    // console.log(form.getValues("includeCompleted"));
+
                     const c = await _saveCommunitModelCostData(
                         _cost as any,
                         data.id,
@@ -195,16 +195,15 @@ export function CostForm({ form, data, fIndex, community, index }: Props) {
                     });
                 } else {
                     cost.meta.totalCost = sum(Object.values(cost.meta.costs));
-                    console.log(cost.meta.totalCost);
+
                     cost.model = (data as any).modelNo as any;
-                    // console.log([data.id, cost.id, index]);
+
                     const c = await saveModelCost(cost, data.id);
                     form.setValue(`costs.${index}` as any, c as any);
                     route.refresh();
                 }
                 toast.success("Saved!");
             } catch (error) {
-                console.log(error);
                 toast.message("Invalid Form");
                 return;
             }

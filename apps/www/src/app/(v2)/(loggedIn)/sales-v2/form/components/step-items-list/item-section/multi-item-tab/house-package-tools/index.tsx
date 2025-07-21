@@ -46,7 +46,7 @@ export default function HousePackageTool({ componentTitle }) {
             formStep.step.id,
             dykeProductId,
         );
-        // console.log(stepProd);
+
         // modal.openModal(
         //     <SelectDoorHeightsModal
         //         form={form}

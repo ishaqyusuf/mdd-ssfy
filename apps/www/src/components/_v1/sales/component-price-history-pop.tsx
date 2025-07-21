@@ -38,19 +38,19 @@ export function ComponentPriceHistory({
         // setComponents([]);
 
         if (!title) return;
-        console.log([field.category, title]);
+
         loader.action(async () => {
             const _components = await getComponentCostHistoryAction({
                 title,
                 category: field.category,
             });
-            console.log(_components);
+
             setComponents(_components as any[]);
         });
     }
     //   React.useEffect(() => {
     //     if (open) {
-    //       console.log("OPEN CHANGED");
+
     //       loadComponents();
     //     }
     //   }, [open, rowIndex, watch]);

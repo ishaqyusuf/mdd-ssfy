@@ -232,12 +232,8 @@ function TaskRow({ row, index, job, setJob }: TaskRowProps) {
         if (qty != job.meta?.costData[row.uid]?.qty) setDVal(qty);
     }, [qty, job]);
     const deb = useDebounce(dVal, 800);
-    useEffect(() => {
-        // console.log(deb);
-    }, [deb]);
-    function blurred(e) {
-        // console.log("BLURRED VALUE", qty);
-    }
+    useEffect(() => {}, [deb]);
+    function blurred(e) {}
     return (
         <TableRow>
             <TableCell className="px-1">

@@ -14,7 +14,7 @@ export async function _addSize(w, _bifold) {
         height: false,
         type: _bifold ? "Bifold" : (null as any),
     };
-    // console.log(s);
+
     d.data.sizes.push(s);
     await prisma.settings.update({
         where: {

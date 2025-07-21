@@ -19,7 +19,7 @@ export async function _syncBuilderTasks(
     data: IBuilder,
     deleteIds,
     newTaskIds,
-    unitIds
+    unitIds,
 ) {
     const taskNames: any = [];
 
@@ -51,7 +51,7 @@ export async function _syncBuilderTasks(
                     deletedAt: null,
                 },
             });
-        })
+        }),
     );
     if (deleteIds?.length)
         await prisma.homeTasks.deleteMany({
@@ -82,11 +82,11 @@ export async function _syncBuilderTasks(
             },
         },
     });
-    // console.log(homes.length);
+
     let tasks: any[] = [];
     homes.map((home) => {
         let bTasks = data.meta.tasks.filter(
-            (t) => !home.tasks.some((s) => s.taskUid == t.uid)
+            (t) => !home.tasks.some((s) => s.taskUid == t.uid),
         );
         if (bTasks.length) {
             tasks.push(
@@ -96,11 +96,11 @@ export async function _syncBuilderTasks(
                         homeId: home.id,
                         search: home.search,
                     },
-                ])
+                ]),
             );
         }
     });
-    // console.log(tasks.length);
+
     // await Promise.all
     await prisma.homeTasks.createMany({
         data: tasks,

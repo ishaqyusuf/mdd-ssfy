@@ -55,7 +55,6 @@ export default function PageClient() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
     // Handle form submission here
     setOpen(false);
     form.reset();

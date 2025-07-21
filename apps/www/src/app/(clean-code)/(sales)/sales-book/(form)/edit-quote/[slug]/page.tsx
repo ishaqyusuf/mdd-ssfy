@@ -17,7 +17,6 @@ export default async function EditQuotePage(props) {
     let slug = params.slug;
     await fixUndefinedOrderIdAction(slug, "quote");
 
-    // console.log(s);
     const data = await getSalesBookFormUseCase({
         type: "quote",
         slug: params.slug,
@@ -33,3 +32,4 @@ export default async function EditQuotePage(props) {
         </FPage>
     );
 }
+

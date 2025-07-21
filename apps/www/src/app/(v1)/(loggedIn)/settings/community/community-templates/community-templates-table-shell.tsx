@@ -172,7 +172,7 @@ export default function CommunityTemplateTableShell<T>({
                                         async function updateCosts(index) {
                                             //
                                             const _cost = _?.costs[index];
-                                            console.log(_cost);
+
                                             if (_cost)
                                                 toast.promise(
                                                     async () => {

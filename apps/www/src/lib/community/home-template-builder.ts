@@ -5,7 +5,7 @@ function gridField(
     type: fieldType = "input",
     labelSpan: number = 2,
     fieldSpan: number = 10,
-    options: any = null
+    options: any = null,
 ) {
     const field: any = {
         label,
@@ -372,9 +372,8 @@ function halfGrid(label, key, labelCol = 2, fieldCol = 4) {
 }
 function buildTask(task, type) {
     const content: any = {};
-    //   console.log(task);
+
     task.map((field) => {
-        // console.log(field);
         if (field.twins) {
             field.twins.map((t) => {
                 content[t.key] = t.value;

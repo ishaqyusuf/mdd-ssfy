@@ -29,12 +29,11 @@ export function DynamicFilter({
     // const items: any = React.use(loader);
     useEffect(() => {
         (async () => {
-            // console.log([columnId]);
             const w = randomNumber2(500, 1500);
-            // console.log(w);
+
             await timeout(w as any);
             const resp = await loader();
-            // console.log([columnId, resp]);
+
             setItems(resp);
         })();
     }, []);

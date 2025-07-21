@@ -246,7 +246,7 @@ function Footer({
                             onClick={async () => {
                                 if (form) {
                                     const resp = await form.trigger();
-                                    // console.log(resp);
+
                                     if (!resp) return;
                                 }
                                 _modal?.startTransition(() => onSubmit(_modal));

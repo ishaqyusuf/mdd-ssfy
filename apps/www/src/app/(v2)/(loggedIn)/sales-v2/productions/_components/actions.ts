@@ -36,7 +36,6 @@ export async function _getProductionList({ query, production = false }: Props) {
             }
           : undefined;
 
-    // console.log(dueDate);
     // return prisma.$transaction(async (tx) => {
     const itemsFilter: Prisma.SalesOrderItemsListRelationFilter = {
         some: {
@@ -270,7 +269,7 @@ export async function _getProductionList({ query, production = false }: Props) {
         },
         // const productions =
     });
-    // console.log(data[0]);
+
     let orders = data.map((order) => {
         const resp = {
             ...order,

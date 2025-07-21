@@ -6,7 +6,6 @@ export function _searchQuery<T>(query, ...columns: (keyof T)[]) {
     const q = {
         contains: query._q || undefined,
     };
-    console.log(q);
 
     const OR: any = [];
     columns.map((c) => {
@@ -48,7 +47,6 @@ export function whereQuery<T>(query, soft = true) {
     const q = {
         contains: query._q || undefined,
     } as any;
-    console.log(q);
 
     return {
         where,

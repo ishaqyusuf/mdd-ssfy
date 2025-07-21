@@ -63,9 +63,7 @@ export function BatchMenuDeleteSubmissions({ itemIds, setOpened }: Props) {
                 form.setValue("nextTriggerUID", generateRandomString());
             }, 150);
         },
-        onError(e) {
-            console.log(e);
-        },
+        onError(e) {},
     });
 
     const form = useForm<{
@@ -107,7 +105,7 @@ export function BatchMenuDeleteSubmissions({ itemIds, setOpened }: Props) {
             return;
         }
         const [assignmentId, { meta }] = entry;
-        console.log(meta);
+
         deleteSubmissions.execute({
             ...meta,
         });
@@ -125,8 +123,6 @@ export function BatchMenuDeleteSubmissions({ itemIds, setOpened }: Props) {
         e.preventDefault();
         const data = {};
         items?.map((item) => {
-            console.log(item);
-
             item.assignmentIds.map((aid) => {
                 data[String(aid)] = {
                     meta: {

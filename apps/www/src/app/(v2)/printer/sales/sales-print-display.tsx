@@ -24,7 +24,6 @@ export default function SalesPrintDisplay({ data, slug }) {
     // const data = React.use(action);
     const ctx = usePrintContext();
     const basePrint = useSalesPrintCtx();
-    // console.log(data?.orderedPrinting);
 
     // useEffect(() => {
     //     if (data) ctx.pageReady(slug, data);

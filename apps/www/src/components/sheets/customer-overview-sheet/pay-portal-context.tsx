@@ -120,8 +120,6 @@ export function usePayPortal() {
             }
         },
         onError(error) {
-            console.log(error);
-
             staticPaymentData.description = error.error?.serverError;
             toast.error("", toastDetail("failed"));
         },

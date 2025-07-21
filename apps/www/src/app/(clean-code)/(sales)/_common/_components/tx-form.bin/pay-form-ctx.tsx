@@ -78,7 +78,6 @@ export const usePayForm = () => {
         //     deviceName,
         //     orderIds: [],
         // });
-        // console.log({ resp });
 
         // if (resp.error) {
         //     toast.error(resp.error.message);
@@ -95,7 +94,7 @@ export const usePayForm = () => {
             // if (waitSeconds) {
             //     return;
             // }
-            // console.log("TERMINAL CHANGED", terminal);
+
             terminalPaymentUpdate();
         }
     }, [terminal, waitSeconds]);
@@ -115,7 +114,6 @@ export const usePayForm = () => {
             terminal?.squareCheckout?.id,
             terminal?.squarePaymentId,
         );
-        console.log(error, resp, terminal);
 
         if (error) {
             toast.error(error.message);
@@ -125,7 +123,6 @@ export const usePayForm = () => {
         return new Promise((resolve, reject) => {
             setTimeout(
                 async () => {
-                    // console.log(terminal);
                     // if (waitSeconds > 10) return;
                     const status = terminal?.status;
                     if (status == "PENDING") {

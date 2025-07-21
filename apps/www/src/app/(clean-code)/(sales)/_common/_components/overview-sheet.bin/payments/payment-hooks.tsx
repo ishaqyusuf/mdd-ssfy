@@ -133,7 +133,6 @@ const usePaymentContext = (ctx) => {
                 _ctx.closePaymentForm();
                 toast.success("Payment Applied");
             } catch (error) {
-                console.log(error.message);
                 toast.error(error.message);
             }
         }

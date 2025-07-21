@@ -81,7 +81,7 @@ export function dueDateAlert(dates): { text; color; date } {
         //         result.pastDues.push({ text: "last week", color: "red", date });
         //     }
         // } else if (diff > 0) {
-        //     console.log({ diff });
+
         //     if (diff === 1) {
         //         result.futureDues.push({
         //             text: "due tomorrow",

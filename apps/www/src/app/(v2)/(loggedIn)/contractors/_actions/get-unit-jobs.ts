@@ -19,7 +19,7 @@ import { HomeJobList, IJobMeta, IJobType } from "@/types/hrm";
 export async function getUnitJobs(
     projectId,
     jobType: IJobType,
-    byAvailability = true
+    byAvailability = true,
 ) {
     if (!projectId)
         return {
@@ -65,7 +65,7 @@ export async function getUnitJobs(
     project?.homes?.map((unit) => {
         const isTestUnit = unit.lot == "1118";
         const _count = unit.jobs.filter(
-            (j) => j.type?.toLowerCase() == jobType?.toLowerCase()
+            (j) => j.type?.toLowerCase() == jobType?.toLowerCase(),
         ).length;
         if (_count > 0 && byAvailability) {
             return;
@@ -73,7 +73,7 @@ export async function getUnitJobs(
         if (
             jobType == "punchout" &&
             unit.jobs.filter(
-                (j) => j.type?.toLowerCase() == ("installation" as IJobType)
+                (j) => j.type?.toLowerCase() == ("installation" as IJobType),
             ).length == 0
         )
             return;
@@ -82,7 +82,7 @@ export async function getUnitJobs(
         let template: IHomeTemplate = unit.homeTemplate as any;
         let communityTemplate: ICommunityTemplate =
             project.communityModels.find(
-                (m) => m.modelName == unit.modelName
+                (m) => m.modelName == unit.modelName,
             ) as any;
         // if (isTestUnit) console.log(communityTemplate);
         // if (jobType == "punchout") {
@@ -95,7 +95,6 @@ export async function getUnitJobs(
         // }
         const pivotInstallCost = communityTemplate?.pivot?.meta?.installCost;
         if (pivotInstallCost) {
-            console.log(pivotInstallCost);
             _pushCost(initJobData(unit as any, proj, pivotInstallCost));
             return;
         }
@@ -121,7 +120,7 @@ export async function getUnitJobs(
         homeList: ls
             .filter(Boolean)
             .sort(
-                (a, b) => a?.name?.localeCompare(b.name) as any
+                (a, b) => a?.name?.localeCompare(b.name) as any,
             ) as HomeJobList[],
         addon: proj?.meta?.addon,
     };
@@ -130,24 +129,20 @@ export async function getUnitJobs(
 function initJobData(
     unit: ExtendedHome,
     project: IProject,
-    cost: InstallCosting | undefined
+    cost: InstallCosting | undefined,
 ) {
     if (!cost || Object.values(cost)?.filter(Boolean).length < 3) {
-        // console.log(cost);
         return null;
     }
     const costing = deepCopy<InstallCosting>(cost);
-    // console.log(".....");
+
     const masterCosting = project?.meta?.installCosts?.[0]?.costings;
-    // console.log(".....");
+
     if (masterCosting) {
-        // console.log(".....");
         Object.entries(costing).map(([k, v]) => {
-            // console.log(".....");
             const mV = Number(masterCosting?.[k] || -1);
-            // console.log(".....", mV);
+
             if (!v && mV > -1) {
-                // console.log([k, v, unit.modelName]);
                 costing[k] = mV;
             }
         });

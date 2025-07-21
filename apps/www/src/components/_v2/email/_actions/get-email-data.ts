@@ -54,7 +54,7 @@ export async function getEmailData(id, type: EmailTypes) {
             });
             if (resp) {
                 const dots = getLeafDotPaths(resp);
-                // console.log(resp.customer);
+
                 suggestions.push(...dots);
                 data = { ...resp };
             }
@@ -84,7 +84,7 @@ export async function getEmailData(id, type: EmailTypes) {
             });
             if (_resp) {
                 const dots = getLeafDotPaths(_resp);
-                // console.log(resp.customer);
+
                 suggestions.push(...dots);
                 data = { ..._resp };
             }
