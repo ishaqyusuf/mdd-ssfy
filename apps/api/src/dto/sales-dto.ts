@@ -2,6 +2,7 @@ import { SalesListInclude } from "@api/utils/sales";
 import type {
   AddressBookMeta,
   QtyControlType,
+  SalesDispatchStatus,
   SalesMeta,
   SalesType,
 } from "@api/type";
@@ -22,7 +23,14 @@ export type Item = Prisma.SalesOrdersGetPayload<{
   Partial<{}>;
 export function salesOrderDto(data: Item) {
   const deliveryOption = data?.deliveryOption;
-  const deliveryStatus = data?.deliveries?.[0]?.status;
+  let deliveryStatus = data?.deliveries?.[0]?.status as SalesDispatchStatus;
+  const d = data?.stat?.find(
+    (d) => d.type == ("dispatchCompleted" as QtyControlType),
+  );
+  if (d?.percentage == 100) deliveryStatus = "completed";
+  // if (data.orderId == "04780AD") {
+  //   console.log(d);
+  // }
   let due = toNumber(data.amountDue);
   if (due <= 0) due = 0;
   const customer = data.customer;
