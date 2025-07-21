@@ -5,8 +5,8 @@ import { TableSkeleton } from "@/components/tables/skeleton";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { OrderHeader } from "@/components/sales-order-header";
-import { DataTable } from "@/components/tables/sales-quotes/data-table";
 import { SalesQuoteHeader } from "@/components/sales-quote-header";
+import { DataTable } from "@/components/tables/sales-quotes/data-table";
 
 export async function generateMetadata(props) {
     return constructMetadata({
