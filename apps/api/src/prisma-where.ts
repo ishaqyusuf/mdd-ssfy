@@ -5,12 +5,14 @@ import type { DispatchQueryParamsSchema } from "./schemas/dispatch";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import type { EmployeesQueryParams } from "./schemas/hrm";
 import { addSpacesToCamelCase } from "@gnd/utils";
-import type { QtyControlByType, QtyControlType } from "./type";
+import type { QtyControlType } from "./type";
 import { anyDateQuery, dateEquals, fixDbTime } from "./utils/db";
 import dayjs from "@gnd/utils/dayjs";
 import { env } from "process";
 export function whereDispatch(query: DispatchQueryParamsSchema) {
   const whereStack: Prisma.OrderDeliveryWhereInput[] = [];
+  console.log(query);
+
   switch (query?.status as SalesDispatchStatus) {
     case "missing items":
     case "in progress":
@@ -18,7 +20,7 @@ export function whereDispatch(query: DispatchQueryParamsSchema) {
     case "completed":
     case "cancelled":
       whereStack.push({
-        status: query?.status!,
+        status: query?.status,
       });
       break;
     default:

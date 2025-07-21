@@ -1,7 +1,7 @@
 import { parseAsArrayOf, parseAsString, useQueryStates } from "nuqs";
 import { createLoader, parseAsStringLiteral } from "nuqs/server";
-import { inboundFilterStatus } from "@gnd/utils/constants";
 import { RouterInputs } from "@api/trpc/routers/_app";
+import { inboundFilterStatus } from "@gnd/utils/constants";
 type FilterKeys = keyof Exclude<RouterInputs["dispatch"]["index"], void>;
 
 export const dispatchFilterParamsSchema = {

@@ -247,6 +247,7 @@ export const columns: ColumnDef<Item>[] = [
 ];
 
 function Actions({ item }: { item: Item }) {
+    const produceable = !!item.stats.prodCompleted.total;
     const batchSales = useBatchSales();
     return (
         <div className="relative z-10">
@@ -262,6 +263,7 @@ function Actions({ item }: { item: Item }) {
                     SubMenu={
                         <>
                             <Menu.Item
+                                disabled={!produceable}
                                 onClick={(e) => {
                                     batchSales.markAsProductionCompleted(
                                         item.id,

@@ -5,6 +5,7 @@ import type {
   UpdateSalesDeliveryOptionSchema,
 } from "@api/schemas/dispatch";
 import type { TRPCContext } from "@api/trpc/init";
+import type { QtyControlType } from "@api/type";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 
@@ -30,6 +31,15 @@ export async function getDispatches(
       deliveryMode: true,
       order: {
         select: {
+          stat: {
+            where: {
+              type: "dispatchCompleted" as QtyControlType,
+              deletedAt: null,
+            },
+            select: {
+              percentage: true,
+            },
+          },
           createdAt: true,
           orderId: true,
           id: true,
@@ -57,10 +67,12 @@ export async function getDispatches(
   });
 
   return await response(
-    data.map((a) => ({
-      ...a,
-      uid: String(a.id),
-    })),
+    data.map((a) => {
+      return {
+        ...a,
+        uid: String(a.id),
+      };
+    }),
   );
 }
 

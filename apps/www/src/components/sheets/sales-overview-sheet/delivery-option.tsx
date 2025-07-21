@@ -2,7 +2,6 @@ import { Menu } from "@/components/(clean-code)/menu";
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { useSalesDeliveryUpdate } from "@/hooks/use-sales-delivery-update";
-import { formatDate } from "@/lib/use-day";
 import { useTRPC } from "@/trpc/client";
 import { salesDeliveryMode } from "@gnd/utils/constants";
 import { useQuery } from "@tanstack/react-query";

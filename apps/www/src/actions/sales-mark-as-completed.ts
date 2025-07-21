@@ -4,9 +4,43 @@ import { prisma } from "@/db";
 import { QtyControlType } from "@gnd/utils/sales";
 import { updateSalesStatAction } from "./update-sales-stat";
 import { createNoteAction } from "@/modules/notes/actions/create-note-action";
+import { createSalesDispatch } from "./create-sales-dispatch-action";
+import { SalesDispatchStatus } from "@api/type";
 
 export async function markSalesDispatchAsComplete(id) {
     const authorName = (await authUser()).name;
+    const order = await prisma.salesOrders.findUnique({
+        where: {
+            id,
+        },
+        select: {
+            deliveryOption: true,
+            deliveries: {
+                where: {
+                    deletedAt: null,
+                    status: {
+                        not: {
+                            in: [
+                                "cancelled",
+                                "completed",
+                            ] as SalesDispatchStatus[],
+                        },
+                    },
+                },
+                select: {
+                    id: true,
+                    status: true,
+                },
+            },
+        },
+    });
+    const delivery = order?.deliveries?.[0];
+    if (!delivery) {
+        const d = await createSalesDispatch({
+            deliveryMode: order?.deliveryOption as any,
+            orderId: id,
+        });
+    }
     await markSalesAsCompleted(id, ["prodCompleted", "dispatchCompleted"]);
     await createNoteAction({
         type: "dispatch",
@@ -18,6 +52,19 @@ export async function markSalesDispatchAsComplete(id) {
                 tagValue: String(id),
             },
         ],
+    });
+    await prisma.orderDelivery.updateMany({
+        where: {
+            salesOrderId: id,
+            status: {
+                not: {
+                    in: ["cancelled"] as SalesDispatchStatus[],
+                },
+            },
+        },
+        data: {
+            status: "completed" as SalesDispatchStatus,
+        },
     });
 }
 export async function markSalesProductionAsCompleted(id) {
