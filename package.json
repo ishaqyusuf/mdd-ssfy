@@ -4,9 +4,7 @@
     "@turbo/gen": "2.5.4",
     "@types/node": "^24.0.4",
     "check-dependency-version-consistency": "4.1.0",
-    "knip": "^5.61.2",
-    "turbo": "2.5.4",
-    "typescript": "^5.8.3"
+    "knip": "^5.61.2"
   },
   "engines": {
     "node": ">=18"
