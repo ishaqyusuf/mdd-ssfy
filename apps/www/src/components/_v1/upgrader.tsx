@@ -170,10 +170,7 @@ export default function Upgrader() {
                             <DropdownMenuItem
                                 key={id}
                                 onClick={() => {
-                                    startTransaction(async () => {
-                                        if (a.action)
-
-                                    });
+                                    startTransaction(async () => {});
                                 }}
                             >
                                 Install Price Chart
