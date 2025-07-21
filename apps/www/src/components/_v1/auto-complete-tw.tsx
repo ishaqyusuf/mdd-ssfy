@@ -67,7 +67,6 @@ function AutoComplete2({
             (async () => {
                 const ls = await loader();
                 setItems(transformItems(ls));
-
             })();
         } else setItems(transformItems(options || []));
     }, [options]);
@@ -86,7 +85,6 @@ function AutoComplete2({
     const [typing, setTyping] = useState(false);
 
     useEffect(() => {
-
         if (!searchMode && typing) setResults(filteredOptions());
         else {
             if (typing) {
@@ -104,7 +102,6 @@ function AutoComplete2({
         setItems(transformItems(items));
     }
     useEffect(() => {
-
         setResults(filteredOptions());
     }, [items]);
     function transformItems(items) {
@@ -126,7 +123,6 @@ function AutoComplete2({
         return item;
     }
     useEffect(() => {
-
         const _items = transformItems(options || []);
         setItems(_items);
         setSelected(getItem(watch));
@@ -150,7 +146,6 @@ function AutoComplete2({
         return uniqueBy(filteredOptions, "name")?.filter((_, i) => i < perPage); //.filter((a, i) => i < 25);
     };
     function valueChange(e) {
-
         setSelect(true);
         setSelected(e);
         if (form && formKey) {
@@ -161,8 +156,6 @@ function AutoComplete2({
     const [focus, setFocus] = useState(false);
     const [select, setSelect] = useState(false);
     useEffect(() => {
-
-
         setQuery(selected?.name);
     }, [selected]);
     function onFocus(e) {
@@ -173,10 +166,8 @@ function AutoComplete2({
         props?.onFocus?.(e);
     }
     useEffect(() => {
-/
         if (typing && !select && !focus) {
             if (allowCreate) {
-
                 setSelected({
                     id: query,
                     name: query,
@@ -217,7 +208,6 @@ function AutoComplete2({
         return getItem(watch);
     }
     useEffect(() => {
-
         window.addEventListener("scroll", updatePosition);
         window.addEventListener("resize", updatePosition);
         updatePosition();
@@ -228,7 +218,6 @@ function AutoComplete2({
     }, []);
     const onKeyDown = useCallback(
         (e) => {
-
             if (!typing) setTyping(true);
         },
         [setTyping, typing],
@@ -321,7 +310,6 @@ function AutoComplete2({
                             {results?.map((person) => (
                                 <Combobox.Option
                                     onClick={(e) => {
-
                                         onSelect && onSelect(person);
                                     }}
                                     key={person.id}
