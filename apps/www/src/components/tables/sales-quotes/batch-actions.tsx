@@ -23,7 +23,7 @@ export function BatchActions({}) {
                             data={{
                                 slugs: slugs,
                                 item: {
-                                    type: "order",
+                                    type: "quote",
                                 },
                             }}
                         />
@@ -32,7 +32,7 @@ export function BatchActions({}) {
                             data={{
                                 slugs: slugs,
                                 item: {
-                                    type: "order",
+                                    type: "quote",
                                 },
                             }}
                         />
@@ -47,7 +47,7 @@ export function BatchActions({}) {
                     <>
                         <SalesEmailMenuItem
                             asChild
-                            salesType="order"
+                            salesType="quote"
                             orderNo={slugs}
                         />
                     </>

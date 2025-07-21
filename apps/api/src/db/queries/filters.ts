@@ -150,7 +150,7 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
     ),
     optionFilter<T>(
       "dispatch.status",
-      "Dispatch Status",
+      "Fullfilment",
       SALES_DISPATCH_FILTER_OPTIONS.map((status) => ({
         label: status,
         value: status,

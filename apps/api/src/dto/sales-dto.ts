@@ -21,13 +21,15 @@ export type Item = Prisma.SalesOrdersGetPayload<{
 }> &
   Partial<{}>;
 export function salesOrderDto(data: Item) {
-  const deliveryOption = data?.deliveries?.[0]?.status || data?.deliveryOption;
+  const deliveryOption = data?.deliveryOption;
+  const deliveryStatus = data?.deliveries?.[0]?.status;
   let due = toNumber(data.amountDue);
   if (due <= 0) due = 0;
   const customer = data.customer;
   return {
     ...commonListData(data),
     deliveryOption,
+    deliveryStatus,
     dispatchList: data.deliveries?.map((d) => {
       return {
         title: dispatchTitle(d.id),

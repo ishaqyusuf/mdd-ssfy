@@ -2,13 +2,16 @@
 
 import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
+import { Menu } from "@/components/(clean-code)/menu";
 import { Progress } from "@/components/(clean-code)/progress";
+import { useBatchSales } from "@/hooks/use-batch-sales";
 import { cn } from "@/lib/utils";
 import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
-import { AlertDialogTrigger } from "@gnd/ui/alert-dialog";
 
 import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
+import { Icons } from "@gnd/ui/icons";
 import {
     Table,
     TableBody,
@@ -23,7 +26,7 @@ import {
     TooltipTrigger,
 } from "@gnd/ui/tooltip";
 
-type Item = RouterOutputs["sales"]["quotes"]["data"][number];
+type Item = RouterOutputs["sales"]["index"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
     {
         header: "Date",
@@ -201,7 +204,7 @@ export const columns: ColumnDef<Item>[] = [
     //     ),
     // },
     {
-        header: "Dispatch",
+        header: "Method",
         accessorKey: "dispatch",
         cell: ({ row: { original: item } }) => (
             <Progress.Status>
@@ -222,11 +225,56 @@ export const columns: ColumnDef<Item>[] = [
         ),
     },
     {
+        header: "Fulfillment",
+        accessorKey: "dispatch",
+        cell: ({ row: { original: item } }) => (
+            <Progress.Status>{item?.deliveryStatus || "-"}</Progress.Status>
+        ),
+    },
+    {
         header: "",
         accessorKey: "action",
         meta: {
             actionCell: true,
+            preventDefault: true,
         },
-        cell: ({ row: { original: item } }) => <></>,
+        cell: ({ row: { original: item } }) => (
+            <>
+                <Actions item={item} />
+            </>
+        ),
     },
 ];
+
+function Actions({ item }: { item: Item }) {
+    const batchSales = useBatchSales();
+    return (
+        <div className="relative z-10">
+            <Menu
+                triggerSize="xs"
+                Trigger={
+                    <Button className="size-4 p-0" variant="ghost">
+                        <Icons.MoreHoriz className="" />
+                    </Button>
+                }
+            >
+                <Menu.Item
+                    SubMenu={
+                        <>
+                            <Menu.Item>Production Complete</Menu.Item>
+                            <Menu.Item
+                                onClick={(e) => {
+                                    batchSales.markAsFulfilled(item.id);
+                                }}
+                            >
+                                Fulfillment Complete
+                            </Menu.Item>
+                        </>
+                    }
+                >
+                    Mark as
+                </Menu.Item>
+            </Menu>
+        </div>
+    );
+}
