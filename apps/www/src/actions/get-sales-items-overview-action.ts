@@ -37,7 +37,14 @@ export async function getSalesItemsOverviewAction(orderId, assignedToId?) {
     const setting = await loadSalesSetting();
     let items: ItemControlData[] = [];
     order.items.map((item) => {
-        let baseItem = item;
+        const { multiDyke, multiDykeUid } = item;
+
+        let baseItem =
+            !multiDyke && multiDykeUid
+                ? order.items.find(
+                      (a) => a.multiDyke && multiDykeUid == a.multiDykeUid,
+                  ) || item
+                : item;
         function addItem(item: ItemControlData) {
             item.salesId = order.id;
             item.itemConfig = getItemStatConfig({
@@ -305,6 +312,8 @@ const select = {
                     id: true,
                 },
             },
+            multiDykeUid: true,
+            multiDyke: true,
             description: true,
             dykeDescription: true,
             dykeProduction: true,
