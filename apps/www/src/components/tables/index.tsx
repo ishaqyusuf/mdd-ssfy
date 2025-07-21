@@ -46,6 +46,8 @@ type TableProps = (WithTable | WithoutTable) & {
         filterData?: PageFilterData[];
         rowClassName?: string;
     };
+    rowSelection?;
+    setRowSelection?;
     defaultRowSelection?: RowSelectionState;
 };
 export const { useContext: useTable, Provider: TableProvider } =
@@ -63,6 +65,8 @@ export const { useContext: useTable, Provider: TableProvider } =
         defaultRowSelection = {},
         addons,
         tableScroll,
+        rowSelection: storeRowSelection,
+        setRowSelection: storeSetRowSelection,
     }: TableProps) {
         const [data, setData] = useState(initialData);
         // const [from, setFrom] = useState(pageSize);
@@ -95,15 +99,20 @@ export const { useContext: useTable, Provider: TableProvider } =
         useEffect(() => {
             setData(initialData);
         }, [initialData]);
-        const [rowSelection, setRowSelection] =
+        const [__rowSelection, __setRowSelection] =
             useState<RowSelectionState>(defaultRowSelection);
+        const [rowSelection, setRowSelection] = [
+            storeRowSelection || __rowSelection,
+            storeSetRowSelection || __setRowSelection,
+        ];
+
         table = useReactTable({
             data,
             getRowId: ({ id }) => String(id),
             columns,
             getCoreRowModel: getCoreRowModel(),
             getFilteredRowModel: getFilteredRowModel(),
-            onRowSelectionChange: setRowSelection,
+            onRowSelectionChange: setRowSelection || undefined,
             meta: tableMeta,
             enableMultiRowSelection: checkbox,
             manualFiltering: true,
@@ -113,13 +122,13 @@ export const { useContext: useTable, Provider: TableProvider } =
         });
         const totalRowsFetched = data?.length;
         const selectedRows = useMemo(() => {
-            const selectedRowKey = Object.keys(rowSelection);
+            const selectedRowKey = Object.keys(rowSelection || {});
             return table
                 .getCoreRowModel()
                 .flatRows.filter((row) => selectedRowKey.includes(row.id));
         }, [rowSelection, table]);
         const selectedRow = useMemo(() => {
-            const selectedRowKey = Object.keys(rowSelection)?.[0];
+            const selectedRowKey = Object.keys(rowSelection || {})?.[0];
             return table
                 .getCoreRowModel()
                 .flatRows.find((row) => row.id === selectedRowKey);

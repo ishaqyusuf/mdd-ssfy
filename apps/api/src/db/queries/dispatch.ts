@@ -1,5 +1,5 @@
 import { whereDispatch } from "@api/prisma-where";
-import { composeQueryData, queryResponse } from "@api/query-response";
+import { composeQueryData } from "@api/query-response";
 import type {
   DispatchQueryParamsSchema,
   UpdateSalesDeliveryOptionSchema,

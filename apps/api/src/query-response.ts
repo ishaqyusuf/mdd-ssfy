@@ -36,13 +36,13 @@ export function queryMeta(query?: any) {
   const take = query.size ? Number(query.size) : 20;
   const { cursor = 0 } = query;
   const [sort, sortOrder = "desc"] = (query.sort || "createdAt").split(".");
-  const multiSorts = sort?.split(",");
+  const multiSorts = query.sort?.split(",");
   const orderBy =
     multiSorts?.length > 1
       ? multiSorts.map((ms) => {
           const [sort, _sortOrder] = ms.split(".");
           return {
-            [sort]: _sortOrder || sortOrder,
+            [sort]: _sortOrder || "desc",
           };
         })
       : {

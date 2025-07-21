@@ -120,10 +120,7 @@ export async function salesStatisticsAction() {
             });
         resps.salesResps.push(r);
     });
-    console.log(stats.length);
-    // await prisma.salesStat.createMany({
-    //     data: stats as any,
-    // });
+
     function statBy(k) {
         const res: any = {};
         Array.from(new Set(sales.map((s) => s[k]))).map((r) => {

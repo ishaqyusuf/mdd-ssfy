@@ -6,12 +6,13 @@ import {
 // import { salesQueryParamsSchema } from "@api/schemas/sales";
 
 export const taskNames = [
-  "sales-online-payment-action-notification",
-  "send-login-email",
-  "send-password-reset-to-default-email",
-  "send-password-reset-code",
   "create-sales-dispatch",
   "create-sales-history",
+  "mark-sales-as-completed",
+  "sales-online-payment-action-notification",
+  "send-login-email",
+  "send-password-reset-code",
+  "send-password-reset-to-default-email",
 ] as const;
 export type TaskName = (typeof taskNames)[number];
 export const createSalesDispatchSchemaTask = z.object({
@@ -65,4 +66,8 @@ export const salesPaymentNotificationEmailSchema = z.object({
   amount: z.number(),
   ordersNo: z.array(z.string()),
   email: z.string(),
+});
+export const markSalesAsCompletedSchema = z.object({
+  ids: z.array(z.number()),
+  authorName: z.string(),
 });

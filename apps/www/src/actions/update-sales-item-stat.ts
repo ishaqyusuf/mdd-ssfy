@@ -1,9 +1,9 @@
 "use server";
 
-import { QtyControlType } from "@/app/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { percent, sum } from "@/lib/utils";
 import { Qty } from "@/utils/sales-control-util";
+import { QtyControlType } from "@gnd/utils/sales";
 
 interface Props {
     uid: string;

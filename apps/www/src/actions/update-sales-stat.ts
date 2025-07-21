@@ -61,7 +61,13 @@ export async function updateSalesStatAction(
                 .flat();
 
             let total = sum(qtyControls, "itemTotal");
-            let qty = sum(qtyControls, "qty");
+            let qty = sum(
+                qtyControls.map((a) => {
+                    if (a.autoComplete) a.qty = a.itemTotal;
+                    return a;
+                }),
+                "qty",
+            );
             let percentage = percent(qty, total);
             await tx.salesStat.update({
                 where: {

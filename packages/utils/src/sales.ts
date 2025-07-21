@@ -111,3 +111,11 @@ function qtySuperRefine(data: any, ctx: any) {
       code: "custom",
     });
 }
+export type QtyControlType =
+  | "qty"
+  | "prodAssigned"
+  | "prodCompleted"
+  | "dispatchAssigned"
+  | "dispatchInProgress"
+  | "dispatchCompleted"
+  | "dispatchCancelled";

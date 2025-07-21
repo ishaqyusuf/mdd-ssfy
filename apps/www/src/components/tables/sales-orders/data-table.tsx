@@ -13,9 +13,11 @@ import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { useSalesOrdersStore } from "@/store/sales-orders";
 
 export function DataTable() {
     const trpc = useTRPC();
+    const { rowSelection, setRowSelection } = useSalesOrdersStore();
     const { filters } = useOrderFilterParams();
     const { data, ref, hasNextPage } = useTableData({
         filter: filters,
@@ -35,6 +37,8 @@ export function DataTable() {
                     data,
                     checkbox: true,
                     tableScroll,
+                    rowSelection,
+                    setRowSelection,
                     tableMeta: {
                         rowClick(id, rowData) {
                             overviewQuery.open2(rowData.uuid, "sales");
