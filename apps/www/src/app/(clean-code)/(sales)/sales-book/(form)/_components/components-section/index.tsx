@@ -194,7 +194,7 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
                     isFixed
                         ? "fixed bottom-12 left-1/2 -translate-x-1/2 transform"
                         : "absolute bottom-4 left-1/2 -translate-x-1/2 transform",
-                    "z-10 bg-white",
+                    "z-10 bg-secondary",
                 )}
             >
                 <div className="flex items-center gap-4 rounded-lg border p-2 px-4 shadow">
@@ -396,10 +396,10 @@ export function Component({
                 cls.getMultiSelectData()?.length} */}
             <button
                 className={cn(
-                    "h-full w-full overflow-hidden  rounded-lg border hover:bg-white",
+                    "h-full w-full overflow-hidden  rounded-lg border hover:bg-muted",
                     (multiSelect && cls.multiSelected()) ||
                         stepForm?.componentUid == component.uid
-                        ? "border-muted-foreground bg-white"
+                        ? "border-muted-foreground bg-muted"
                         : "hover:border-muted-foreground/50",
                     sortMode &&
                         "border-dashed border-muted-foreground hover:border-muted-foreground",
@@ -460,7 +460,7 @@ export function Component({
                         ? ""
                         : selectState?.count
                           ? "hidden"
-                          : "hidden bg-white group-hover:flex",
+                          : "hidden bg-muted dark:bg-muted-foreground group-hover:flex",
                 )}
             >
                 <div>

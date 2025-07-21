@@ -1,10 +1,6 @@
-import { useEffect, useState } from "react";
 import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import ItemSection from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/item-section";
-import {
-    zhAddItem,
-    zhInitializeState,
-} from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-form-helper";
+import { zhAddItem } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-form-helper";
 import { Icons } from "@/components/_v1/icons";
 import Button from "@/components/common/button";
 import useEffectLoader from "@/lib/use-effect-loader";
@@ -31,7 +27,7 @@ export function SalesFormClient({ data }) {
     if (!zus.formStatus || zus.currentTab != "invoice") return <></>;
 
     return (
-        <div className="min-h-screen w-full bg-white p-4 lg:flex xl:gap-4 xl:p-8">
+        <div className="min-h-screen w-full bg-white dark:bg-primary-foreground p-4 lg:flex xl:gap-4 xl:p-8">
             <TakeoffSwitch {...{ takeOff, takeOffChanged }} />
             <div className="flex-1">
                 {takeOff ? (

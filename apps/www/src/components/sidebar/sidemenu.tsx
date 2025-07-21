@@ -105,7 +105,7 @@ export function SideMenu({}) {
     const { renderMode, activeLink } = sb;
     return (
         <Sidebar collapsible="icon" className="fixed">
-            <SidebarHeader className="bg-white">
+            <SidebarHeader className="bg-white dark:bg-primary-foreground">
                 <ModuleSwitcher />
                 {sb.state == "expanded" ? (
                     <div className="flex">
@@ -124,7 +124,7 @@ export function SideMenu({}) {
                         ? undefined
                         : () => setDefaultOpen(false)
                 }
-                className="bg-white"
+                className="bg-white dark:bg-primary-foreground"
             >
                 {sb?.linkModules?.modules
                     ?.filter((a) => a.activeLinkCount)
@@ -190,7 +190,7 @@ export function SideMenu({}) {
                         </Fragment>
                     ))}
             </SidebarContent>
-            <SidebarFooter className="bg-white">
+            <SidebarFooter className="bg-white dark:bg-primary-foreground">
                 <SidebarControl />
                 <SidebarNavUser />
             </SidebarFooter>

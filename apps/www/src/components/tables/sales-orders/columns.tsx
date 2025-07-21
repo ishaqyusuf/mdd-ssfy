@@ -25,6 +25,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@gnd/ui/tooltip";
+import { StickyNote } from "lucide-react";
 
 type Item = RouterOutputs["sales"]["index"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
@@ -42,13 +43,19 @@ export const columns: ColumnDef<Item>[] = [
         header: "Order #",
         accessorKey: "order.no",
         cell: ({ row: { original: item } }) => (
-            <TCell.Secondary className="whitespace-nowrap">
-                {item.orderId}
+            <TCell.Secondary className="whitespace-nowrap inline-flex items-center gap-1">
+                <span>{item.orderId}</span>
                 {!item.orderId
                     ?.toUpperCase()
                     .endsWith(item.salesRepInitial) && (
                     <Badge className="font-mono" variant="secondary">
                         {item.salesRepInitial}
+                    </Badge>
+                )}
+                {!item.noteCount || (
+                    <Badge className="p-1 h-5" variant="secondary">
+                        <StickyNote className="w-3 mr-1" />
+                        <span className="">{item.noteCount}</span>
                     </Badge>
                 )}
             </TCell.Secondary>

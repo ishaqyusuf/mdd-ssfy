@@ -21,7 +21,7 @@ export function Door({ door }: DoorProps) {
                     Change Door
                 </Button>
             </div>
-            <div className="w-2/3">
+            <div className="w-2/3 ">
                 <ComponentImg noHover aspectRatio={0.7} src={door.img} />
             </div>
         </div>

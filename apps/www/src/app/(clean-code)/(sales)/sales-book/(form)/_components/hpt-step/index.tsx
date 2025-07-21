@@ -26,10 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { LineInput, LineSwitch } from "../line-input";
 import { Door } from "./door";
-import { useState } from "react";
-import { doorItemControlUid } from "@/app/(clean-code)/(sales)/_common/utils/item-control-utils";
-import { noteTagFilter } from "@/modules/notes/utils";
-import Note from "@/modules/notes";
+
 import {
     HptContext,
     HptContextProvider,

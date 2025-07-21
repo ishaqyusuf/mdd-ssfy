@@ -375,7 +375,7 @@ function LineContainer({ label, lg = false, className = "", children }) {
                 label && "grid grid-cols-5",
             )}
         >
-            <div className="col-span-3 flex justify-end text-black/70">
+            <div className="col-span-3 flex justify-end text-muted-foreground">
                 {!label ||
                     (typeof label === "string" ? (
                         <Label className="">{label}:</Label>
