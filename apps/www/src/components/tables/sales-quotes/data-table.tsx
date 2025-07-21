@@ -19,7 +19,7 @@ export function DataTable() {
     const { filters } = useOrderFilterParams();
     const { data, ref, hasNextPage } = useTableData({
         filter: filters,
-        route: trpc.sales.index,
+        route: trpc.sales.quotes,
     });
     const { setParams: setSalesPreviewParams } = useSalesPreview();
     const tableScroll = useTableScroll({

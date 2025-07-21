@@ -26,7 +26,7 @@ const StatusColorMap: { [key: string]: string } = {
     active: colorsObject.blue,
     due_yesterday: colorsObject.red,
     queued: colorsObject.orange,
-    pending: colorsObject.gray,
+    pending: colorsObject.azure,
     completed: colorsObject.emerald,
     resolved: colorsObject.emerald,
     available: colorsObject.emerald,
