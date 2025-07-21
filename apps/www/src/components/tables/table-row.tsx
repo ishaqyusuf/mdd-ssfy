@@ -61,7 +61,7 @@ function CheckboxRow({ row }) {
     const { table } = ctx;
     if (!ctx.checkbox) return null;
     return (
-        <TCell align="center" className="">
+        <TCell align="center" className="py-0">
             <Checkbox
                 checked={row.getIsSelected()}
                 onCheckedChange={(value) => {

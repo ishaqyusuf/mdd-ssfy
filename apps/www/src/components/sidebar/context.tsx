@@ -109,7 +109,14 @@ function ShadSidebarProvider({ children }) {
     const { defaultOpen, state } = useSidebarState();
 
     return (
-        <SidebarProvider open={defaultOpen} defaultOpen={defaultOpen}>
+        <SidebarProvider
+            // style={{
+            //     "--sidebar-width": "2rem",
+            // }}
+            // className="fixed"
+            open={defaultOpen}
+            defaultOpen={defaultOpen}
+        >
             {children}
         </SidebarProvider>
     );

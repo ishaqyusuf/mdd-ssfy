@@ -19,7 +19,6 @@ export async function GET(req: NextRequest) {
     ) {
         _["production.status"] = "not completed";
     } else {
-        console.log("FILTERED!");
     }
     return Response.json(await getSalesOrdersDta(_ as any));
 }

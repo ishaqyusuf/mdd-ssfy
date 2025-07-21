@@ -56,10 +56,8 @@ export function transformSalesFilterQuery(query: SalesQueryParamsSchema) {
       .filter(([a, b]) => !!b)
       .every(([a]) => ["sales.type", "start"].includes(a))
   ) {
-    console.log("NOT FILTERED!");
     query["dispatch.status"] = "pending";
   } else {
-    console.log("FILTERED!");
   }
   return query;
 }
