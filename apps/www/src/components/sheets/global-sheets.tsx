@@ -2,6 +2,8 @@
 import { AuthGuard } from "../auth-guard";
 import { SearchModal } from "../search/search-modal";
 import { _perm } from "../sidebar/links";
+import { CustomerCreateSheet } from "./customer-create-sheet";
+import { CustomerOverviewSheet } from "./customer-overview-sheet";
 import { InboundOverviewSheet } from "./inbound-overview-sheet";
 import RolesProfilesSheet from "./roles-profile-sheet";
 import SalesOverviewSheet from "./sales-overview-sheet";
@@ -18,7 +20,8 @@ export function GlobalSheets({}) {
             </AuthGuard>
             <SearchModal />
             <InboundOverviewSheet />
-            <SalesOverviewSheet />
+            <SalesOverviewSheet /> <CustomerOverviewSheet />{" "}
+            <CustomerCreateSheet />
         </>
     );
 }

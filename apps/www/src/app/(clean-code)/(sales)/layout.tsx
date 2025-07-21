@@ -22,9 +22,8 @@ function SideBarLayout1({ children }) {
             <BackwardCompat />
             {children}
             {/* </ContentLayout> */}
-            <CustomerOverviewSheet />
+
             <SalesPreviewModal />
-            <CustomerCreateSheet />
 
             <TransactionOverviewModal />
         </NewSideBarLayout>
