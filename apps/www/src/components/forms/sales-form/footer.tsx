@@ -8,12 +8,16 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { Button } from "@gnd/ui/button";
 
 import { SalesFormSave } from "./sales-form-save";
+import { sum } from "@/lib/utils";
 
 export function Footer({}) {
     const zus = useFormDataStore();
     let amountDue = zus.metaData.pricing?.dueAmount;
     const customerQuery = useCustomerOverviewQuery();
-
+    const amount = sum([
+        zus?.metaData?.pricing?.grandTotal,
+        -1 * zus?.metaData?.pricing?.paid,
+    ]);
     const overviewQuery = useSalesOverviewQuery();
     return (
         <div className="border-t pt-2">
@@ -28,10 +32,10 @@ export function Footer({}) {
                             });
                         }}
                         size="xs"
-                        disabled={!amountDue || !zus.metaData.salesId}
+                        disabled={!amount || !zus.metaData.salesId}
                     >
                         <Icons.dollar className="mr-2 size-4" />
-                        <Money value={amountDue}></Money>
+                        <Money value={amount}></Money>
                     </Button>
                 }
                 <Button
