@@ -174,9 +174,11 @@ export class CostingClass {
             if (groupItem.form)
                 Object.entries(groupItem.form || {}).map(([k, kform]) => {
                     // groupItem.pricing.flatRate
-                    kform.pricing.itemPrice.salesPrice = this.calculateSales(
-                        kform.pricing.itemPrice.basePrice,
-                    );
+                    if (kform.pricing?.itemPrice)
+                        kform.pricing.itemPrice.salesPrice =
+                            this.calculateSales(
+                                kform.pricing.itemPrice?.basePrice,
+                            );
                 });
             this.saveGroupItem(groupItem, itemUid);
             this.updateGroupedCost(itemUid);
