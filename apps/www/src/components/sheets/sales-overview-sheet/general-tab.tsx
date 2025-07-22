@@ -257,7 +257,11 @@ export function GeneralTab({}) {
                                         <p className="text-muted-foreground">
                                             Delivery Option
                                         </p>
-                                        <DeliveryOption salesId={saleData.id} />
+                                        {!saleData.id || (
+                                            <DeliveryOption
+                                                salesId={saleData.id}
+                                            />
+                                        )}
                                     </div>
                                     <SalesPO
                                         salesId={saleData.id}
@@ -376,11 +380,11 @@ export function GeneralTab({}) {
                                             className="text-sm font-medium"
                                             placeholder="04/14/25"
                                         >
-                                            <p className="text-sm font-medium">
+                                            <div className="text-sm font-medium">
                                                 <TCell.Date>
                                                     {saleData.dueDate}
                                                 </TCell.Date>
-                                            </p>
+                                            </div>
                                         </DataSkeleton>
                                     </div>
                                 </div>

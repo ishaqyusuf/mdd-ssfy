@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { deleteSalesDeliveryAction } from "@/actions/delete-sales-delivery-action";
 import { salesProgressFallBackAction } from "@/actions/sales-progress-fallback";
 import { Icons } from "@/components/_v1/icons";
@@ -12,9 +12,8 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { timeout } from "@/lib/timeout";
 import { formatDate } from "@/lib/use-day";
 import { skeletonListData } from "@/utils/format";
-import { ChevronDown, ChevronUp, Edit } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
-import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import {
     Collapsible,
@@ -68,214 +67,223 @@ export function DispatchList({}) {
                     <TableBody>
                         {/* <DataSkeleton className="min-h-36" key={index}> */}
                         {skeletonListData(ctx?.data?.deliveries, 2, {})?.map(
+                            // <Collapsible
+                            //     open={
+                            //         sq.params.dispatchOverviewId ===
+                            //         dispatch.id
+                            //     }
+                            //     key={`collapsible-${index}`}
+                            //     onOpenChange={() =>
+                            //         sq.setParams({
+                            //             dispatchOverviewId:
+                            //                 sq.params.dispatchOverviewId ==
+                            //                 dispatch.id
+                            //                     ? null
+                            //                     : dispatch.id,
+                            //         })
+                            //     }
+                            //     asChild
+                            // >
                             (dispatch, index) => (
-                                <Collapsible
-                                    key={dispatch.id}
-                                    open={
-                                        sq.params.dispatchOverviewId ===
-                                        dispatch.id
-                                    }
-                                    onOpenChange={() =>
-                                        sq.setParams({
-                                            dispatchOverviewId:
-                                                sq.params.dispatchOverviewId ==
-                                                dispatch.id
-                                                    ? null
-                                                    : dispatch.id,
-                                        })
-                                    }
-                                    asChild
-                                >
-                                    <>
-                                        <TableRow>
-                                            <TableCell>
-                                                <CollapsibleTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                    >
-                                                        {sq.params
-                                                            .dispatchOverviewId ==
-                                                        dispatch.id ? (
-                                                            <ChevronUp className="h-4 w-4" />
-                                                        ) : (
-                                                            <ChevronDown className="h-4 w-4" />
-                                                        )}
-                                                    </Button>
-                                                </CollapsibleTrigger>
-                                            </TableCell>
-                                            <TableCell className="font-medium">
-                                                <DataSkeleton pok="date">
-                                                    {dispatch.id}
-                                                </DataSkeleton>
-                                            </TableCell>
-                                            <TableCell>
-                                                <DataSkeleton pok="date">
-                                                    {formatDate(
-                                                        dispatch.dueDate,
-                                                    )}
-                                                </DataSkeleton>
-                                            </TableCell>
-                                            <TableCell>
-                                                <DataSkeleton pok="textSm">
-                                                    {dispatch?.createdBy?.name}
-                                                </DataSkeleton>
-                                            </TableCell>
-                                            <TableCell>
-                                                <DataSkeleton pok="date">
-                                                    {dispatch.driver?.name}
-                                                </DataSkeleton>
-                                            </TableCell>
-                                            <TableCell>
-                                                <DataSkeleton pok="date">
-                                                    <StatusBadge
-                                                        status={dispatch.status}
-                                                    />
-                                                </DataSkeleton>
-                                            </TableCell>
-                                            <TableCell className="w-8 text-right">
-                                                <DataSkeleton pok="date">
-                                                    <Menu>
-                                                        <Menu.Item
-                                                            icon="packingList"
-                                                            onClick={(e) => {
-                                                                setSalesPreviewParams(
-                                                                    {
-                                                                        previewMode:
-                                                                            "packing list",
-                                                                        salesPreviewSlug:
-                                                                            ctx
-                                                                                ?.data
-                                                                                ?.order
-                                                                                ?.orderId,
-                                                                        salesPreviewType:
-                                                                            "order",
-                                                                        dispatchId:
-                                                                            String(
-                                                                                dispatch.id,
-                                                                            ),
-                                                                    },
-                                                                );
-                                                            }}
-                                                        >
-                                                            Preview
-                                                        </Menu.Item>
-                                                        <Menu.Item
-                                                            icon="print"
-                                                            onClick={(e) => {
-                                                                printSalesData({
-                                                                    mode: "order-packing",
+                                <Fragment key={index}>
+                                    <TableRow>
+                                        <TableCell>
+                                            {/* <CollapsibleTrigger asChild> */}
+                                            <Button
+                                                onClick={() =>
+                                                    sq.setParams({
+                                                        dispatchOverviewId:
+                                                            sq.params
+                                                                .dispatchOverviewId ==
+                                                            dispatch.id
+                                                                ? null
+                                                                : dispatch.id,
+                                                    })
+                                                }
+                                                variant="ghost"
+                                                size="sm"
+                                            >
+                                                {sq.params.dispatchOverviewId ==
+                                                dispatch.id ? (
+                                                    <ChevronUp className="h-4 w-4" />
+                                                ) : (
+                                                    <ChevronDown className="h-4 w-4" />
+                                                )}
+                                            </Button>
+                                            {/* </CollapsibleTrigger> */}
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            <DataSkeleton pok="date">
+                                                {dispatch.id}
+                                            </DataSkeleton>
+                                        </TableCell>
+                                        <TableCell>
+                                            <DataSkeleton pok="date">
+                                                {formatDate(dispatch.dueDate)}
+                                            </DataSkeleton>
+                                        </TableCell>
+                                        <TableCell>
+                                            <DataSkeleton pok="textSm">
+                                                {dispatch?.createdBy?.name}
+                                            </DataSkeleton>
+                                        </TableCell>
+                                        <TableCell>
+                                            <DataSkeleton pok="date">
+                                                {dispatch.driver?.name}
+                                            </DataSkeleton>
+                                        </TableCell>
+                                        <TableCell>
+                                            <DataSkeleton pok="date">
+                                                <StatusBadge
+                                                    status={dispatch.status}
+                                                />
+                                            </DataSkeleton>
+                                        </TableCell>
+                                        <TableCell className="w-8 text-right">
+                                            <DataSkeleton pok="date">
+                                                <Menu>
+                                                    <Menu.Item
+                                                        icon="packingList"
+                                                        onClick={(e) => {
+                                                            setSalesPreviewParams(
+                                                                {
+                                                                    previewMode:
+                                                                        "packing list",
+                                                                    salesPreviewSlug:
+                                                                        ctx
+                                                                            ?.data
+                                                                            ?.order
+                                                                            ?.orderId,
+                                                                    salesPreviewType:
+                                                                        "order",
                                                                     dispatchId:
-                                                                        dispatch.id,
-                                                                    preview:
-                                                                        false,
-                                                                    slugs: ctx
-                                                                        ?.data
-                                                                        ?.order
-                                                                        ?.orderId,
-                                                                });
-                                                            }}
-                                                        >
-                                                            Print
-                                                        </Menu.Item>
-                                                        <Menu.Trash
-                                                            action={async () =>
-                                                                await deleteDispatch(
+                                                                        String(
+                                                                            dispatch.id,
+                                                                        ),
+                                                                },
+                                                            );
+                                                        }}
+                                                    >
+                                                        Preview
+                                                    </Menu.Item>
+                                                    <Menu.Item
+                                                        icon="print"
+                                                        onClick={(e) => {
+                                                            printSalesData({
+                                                                mode: "order-packing",
+                                                                dispatchId:
                                                                     dispatch.id,
-                                                                )
-                                                            }
-                                                        >
-                                                            Delete
-                                                        </Menu.Trash>
-                                                    </Menu>
-                                                </DataSkeleton>
-                                            </TableCell>
-                                        </TableRow>
-                                        <CollapsibleContent asChild>
-                                            <TableRow>
-                                                <TableCell
-                                                    colSpan={7}
-                                                    className="p-0"
-                                                >
-                                                    <div className="bg-muted/50 p-4">
-                                                        <div className="space-y-4">
-                                                            <div>
-                                                                <h4 className="font-medium">
-                                                                    Dispatch
-                                                                    Details
-                                                                </h4>
-                                                                <p className="text-sm text-muted-foreground">
-                                                                    Method:{" "}
-                                                                    {
-                                                                        dispatch.deliveryMode
-                                                                    }
-                                                                </p>
-                                                                <p className="text-sm text-muted-foreground">
-                                                                    Notes:{" "}
-                                                                    {/* {dispatch.notes} */}
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <h4 className="mb-2 font-medium">
-                                                                    Items
-                                                                </h4>
-                                                                <Table>
-                                                                    <TableHeader>
-                                                                        <TableRow>
-                                                                            <TableHead>
-                                                                                Item
-                                                                            </TableHead>
-                                                                            <TableHead>
-                                                                                Available
-                                                                                Qty
-                                                                            </TableHead>
-                                                                            <TableHead>
-                                                                                Dispatch
-                                                                                Qty
-                                                                            </TableHead>
-                                                                        </TableRow>
-                                                                    </TableHeader>
-                                                                    <TableBody>
-                                                                        {dispatch.items?.map(
-                                                                            (
-                                                                                item,
-                                                                            ) => (
-                                                                                <TableRow
-                                                                                    key={
-                                                                                        item.id
+                                                                preview: false,
+                                                                slugs: ctx?.data
+                                                                    ?.order
+                                                                    ?.orderId,
+                                                            });
+                                                        }}
+                                                    >
+                                                        Print
+                                                    </Menu.Item>
+                                                    <Menu.Trash
+                                                        action={async () =>
+                                                            await deleteDispatch(
+                                                                dispatch.id,
+                                                            )
+                                                        }
+                                                    >
+                                                        Delete
+                                                    </Menu.Trash>
+                                                </Menu>
+                                            </DataSkeleton>
+                                        </TableCell>
+                                    </TableRow>
+                                    {/* <CollapsibleContent asChild> */}
+                                    {sq.params.dispatchOverviewId !==
+                                        dispatch.id || (
+                                        <TableRow>
+                                            <TableCell
+                                                colSpan={7}
+                                                className="p-0"
+                                            >
+                                                <div className="bg-muted/50 p-4">
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <h4 className="font-medium">
+                                                                Dispatch Details
+                                                            </h4>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Method:{" "}
+                                                                {
+                                                                    dispatch.deliveryMode
+                                                                }
+                                                            </p>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Notes:{" "}
+                                                                {/* {dispatch.notes} */}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="mb-2 font-medium">
+                                                                Items
+                                                            </h4>
+                                                            <Table>
+                                                                <TableHeader>
+                                                                    <TableRow>
+                                                                        <TableHead>
+                                                                            Item
+                                                                        </TableHead>
+                                                                        <TableHead>
+                                                                            Available
+                                                                            Qty
+                                                                        </TableHead>
+                                                                        <TableHead>
+                                                                            Dispatch
+                                                                            Qty
+                                                                        </TableHead>
+                                                                    </TableRow>
+                                                                </TableHeader>
+                                                                <TableBody>
+                                                                    {dispatch.items?.map(
+                                                                        (
+                                                                            item,
+                                                                        ) => (
+                                                                            <TableRow
+                                                                                key={
+                                                                                    item.id
+                                                                                }
+                                                                            >
+                                                                                <TableCell>
+                                                                                    {
+                                                                                        item
+                                                                                            .item
+                                                                                            .title
                                                                                     }
-                                                                                >
-                                                                                    <TableCell>
-                                                                                        {
-                                                                                            item
-                                                                                                .item
-                                                                                                .title
-                                                                                        }
-                                                                                    </TableCell>
-                                                                                    <TableCell>
-                                                                                        {
-                                                                                            item.qty
-                                                                                        }
-                                                                                    </TableCell>
-                                                                                    <TableCell>
-                                                                                        {
-                                                                                            item.qty
-                                                                                        }
-                                                                                    </TableCell>
-                                                                                </TableRow>
-                                                                            ),
-                                                                        )}
-                                                                    </TableBody>
-                                                                </Table>
-                                                            </div>
+                                                                                </TableCell>
+                                                                                <TableCell>
+                                                                                    {
+                                                                                        item.qty
+                                                                                    }
+                                                                                </TableCell>
+                                                                                <TableCell>
+                                                                                    {
+                                                                                        item.qty
+                                                                                    }
+                                                                                </TableCell>
+                                                                            </TableRow>
+                                                                        ),
+                                                                    )}
+                                                                </TableBody>
+                                                            </Table>
                                                         </div>
                                                     </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        </CollapsibleContent>
-                                    </>
-                                </Collapsible>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                    {/* </CollapsibleContent> */}
+                                </Fragment>
                             ),
+                            {
+                                /* </Collapsible> */
+                            },
                         )}
                     </TableBody>
                 </Table>

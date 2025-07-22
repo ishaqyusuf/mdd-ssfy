@@ -62,6 +62,8 @@ export function CustomSheetBase({
     open,
     onOpenChange,
     sheetName,
+    floating,
+    rounded,
     ...props
 }: Props) {
     const sheet = useSheet();
