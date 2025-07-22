@@ -23,6 +23,7 @@ import { Label } from "@gnd/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 
+import { motion } from "framer-motion";
 export function CustomerDataSection() {
     const zus = useFormDataStore();
     const md = zus.metaData;
@@ -125,14 +126,14 @@ export function CustomerDataSection() {
     }, [data]);
 
     return (
-        <div className="divide-y group">
+        <motion.div className="divide-y groups ease-in transition-transform">
             <DataCard label="Customer">
                 <Lines lines={data?.customerData} />
             </DataCard>
 
             <DataCard
                 className={cn(
-                    !data?.customerId ? "hidden" : "hidden group-hover:block",
+                    !data?.customerId ? "hidden" : "shidden group-hover:block",
                 )}
                 label="Bill To"
                 address="bad"
@@ -141,14 +142,14 @@ export function CustomerDataSection() {
             </DataCard>
             <DataCard
                 className={cn(
-                    !data?.customerId ? "hidden" : "hidden group-hover:block",
+                    !data?.customerId ? "hidden" : "shidden group-hover:block",
                 )}
                 label="Ship To"
                 address="sad"
             >
                 <Lines lines={data?.shipping?.lines} />
             </DataCard>
-        </div>
+        </motion.div>
     );
 }
 
