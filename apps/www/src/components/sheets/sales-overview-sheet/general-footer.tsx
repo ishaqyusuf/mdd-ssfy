@@ -26,6 +26,10 @@ import { ToastAction } from "@gnd/ui/toast";
 import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { useSaleOverview } from "./context";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
+import { SalesType } from "@api/type";
+import { copySalesUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
+import { openLink } from "@/lib/open-link";
+import { salesFormUrl } from "@/utils/sales-utils";
 
 export function GeneralFooter({}) {
     const { data } = useSaleOverview();
@@ -73,6 +77,35 @@ export function GeneralFooter({}) {
             ),
         });
     };
+    async function copyAs(as: SalesType) {
+        loader.loading("Copying...");
+        // const orderId = slug;
+        const result = await copySalesUseCase(data?.orderId, as);
+        try {
+            if (as == "order")
+                await resetSalesStatAction(result.id, data?.orderId);
+        } catch (error) {}
+        if (result.link) {
+            loader.success(`Copied as ${as}`, {
+                duration: 3000,
+                action: (
+                    <ToastAction
+                        onClick={(e) => {
+                            openLink(
+                                salesFormUrl(as, result.data?.slug),
+                                {},
+                                true,
+                            );
+                        }}
+                        altText="edit"
+                    >
+                        Edit
+                    </ToastAction>
+                ),
+            });
+            revalidateTable();
+        }
+    }
     return (
         <CustomSheetContentPortal>
             <SheetFooter className="sm:-m-4 sm:-mb-2 sm:border-t p-4 sm:shadow-xl">
@@ -112,6 +145,7 @@ export function GeneralFooter({}) {
                         slug={data?.uuid}
                         onOpenMenu={setMenuOpen}
                         type={data?.type}
+                        copyAs={copyAs}
                     />
                     <MenuItemSalesMove
                         slug={data?.uuid}

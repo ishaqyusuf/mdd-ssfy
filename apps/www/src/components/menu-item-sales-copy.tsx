@@ -20,37 +20,12 @@ interface Props {
     onOpenMenu;
 
     slug;
+    copyAs;
 }
 export function MenuItemSalesCopy(props: Props) {
     const loader = useLoadingToast();
     const { type, slug, onOpenMenu } = props;
-    async function copyAs(as: SalesType) {
-        loader.loading("Copying...");
-        const orderId = slug;
-        const result = await copySalesUseCase(orderId, as);
-        if (as == "order") await resetSalesStatAction(result.id, orderId);
-        if (result.link) {
-            loader.success(`Copied as ${as}`, {
-                duration: 3000,
-                action: (
-                    <ToastAction
-                        onClick={(e) => {
-                            openLink(
-                                salesFormUrl(as, result.data?.slug),
-                                {},
-                                true,
-                            );
-                        }}
-                        altText="edit"
-                    >
-                        Edit
-                    </ToastAction>
-                ),
-            });
-            revalidateTable();
-            onOpenMenu?.(false);
-        }
-    }
+
     return (
         <Menu.Item
             Icon={Copy}
@@ -59,7 +34,7 @@ export function MenuItemSalesCopy(props: Props) {
                     <Menu.Item
                         onClick={(e) => {
                             e.preventDefault();
-                            copyAs("order");
+                            props?.copyAs("order");
                         }}
                         icon="orders"
                     >
@@ -68,7 +43,7 @@ export function MenuItemSalesCopy(props: Props) {
                     <Menu.Item
                         onClick={(e) => {
                             e.stopPropagation();
-                            copyAs("quote");
+                            props?.copyAs("quote");
                         }}
                         icon="estimates"
                     >
