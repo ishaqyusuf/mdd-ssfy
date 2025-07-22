@@ -34,39 +34,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         }
         return price;
     }
-    const ecs = data.order.extraCosts;
-    const extraCosts = Object.fromEntries(
-        (data.order.extraCosts || []).map((c, ci) => [
-            c.label == "Labor"
-                ? c.label
-                : [
-                      c.label,
-                      ecs?.filter((a, ai) => a.label == c.label && ai < ci)
-                          ?.length,
-                  ]
-                      .filter(Boolean)
-                      .join(" "),
-            c as Partial<typeof c>,
-        ]),
-    );
-    if (!extraCosts.Labor)
-        extraCosts["Labor"] = {
-            label: "Labor",
-            amount: 0,
-            type: "Labor",
-        };
-    if (!extraCosts?.Delivery)
-        extraCosts["Delivery"] = {
-            label: "Delivery",
-            amount: 0,
-            type: "Delivery" as any,
-        };
-    if (!extraCosts?.Discount)
-        extraCosts["Discount"] = {
-            label: "Discount",
-            amount: 0,
-            type: "Discount",
-        };
+
     const resp: SalesFormZusData = {
         // data,
         setting: data.salesSetting,
@@ -99,7 +67,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
             pricing: {
                 dueAmount: data?.order?.amountDue,
                 discount: data.order?.meta?.discount,
-                delivery: data.order?.meta?.deliveryCost,
+                delivery: null, // data.order?.meta?.deliveryCost,
                 labour: data.order?.meta?.labor_cost,
                 taxValue: data.order?.tax,
                 taxCode: selectedTax?.taxCode,
@@ -132,7 +100,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                 id: data.shippingAddressId,
                 customerId: data.customerId,
             },
-            extraCosts,
+            extraCosts: data.order.extraCosts,
             // bad: data.billingAddressId,
             // sad: data.shippingAddressId,
             primaryPhone: data.customer?.phoneNo,

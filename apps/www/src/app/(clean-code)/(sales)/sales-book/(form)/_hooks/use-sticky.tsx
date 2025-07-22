@@ -6,9 +6,9 @@ export const useSticky = (
     fn: (
         bottomVisible,
         partiallyVisible,
-        anchors: { top: number; bottom?: number }
+        anchors: { top: number; bottom?: number },
     ) => boolean,
-    defaultFixed = false
+    defaultFixed = false,
 ) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isFixed, setIsFixed] = useState(defaultFixed);
@@ -32,9 +32,12 @@ export const useSticky = (
                     {
                         top: containerRect.top,
                         bottom: containerRect.bottom,
-                    }
+                    },
                 );
-
+                console.log({
+                    top: containerRect.top,
+                    bottom: containerRect.bottom,
+                });
                 if (shouldBeFixed && !isFixed) {
                     const containerCenter =
                         containerRect.left + containerRect.width / 2;

@@ -99,18 +99,7 @@ export default function AutoComplete({
     const [allItems, setAllItems] = useState(transformedOptions);
     const [items, setItems] = useState(transformedOptions);
     const [modelValue, setModelValue] = useState("");
-    // useEffect(() => {
-    //     if (props.id == "unit") {
-    //         // console.log([allItems.length, value]);
-    //         if (!allowCreate && itemText != itemValue) {
-    //             let v = allItems.find((item) => item.value == value);
-    //             // selectItem(v);
-    //             // console.log([props.id, v]);
-    //             // setInputValue(v?.title);
-    //             // selectItem(null);
-    //         }
-    //     }
-    // }, [options]);
+
     const dataLoader = useStaticDataLoader(loader, {
         onSuccess(ls) {
             const list = resetOptions(ls);
@@ -130,7 +119,6 @@ export default function AutoComplete({
             );
             if (!v && !allowCreate) text = "";
             else text = v?.title;
-            // if (props.id == "unit") console.log([v, text]);
         }
 
         setInputValue(text);

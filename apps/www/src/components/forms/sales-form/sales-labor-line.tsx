@@ -13,7 +13,7 @@ export function SalesLaborLine({}) {
     const md = zus.metaData;
     const { setParams, params } = useLaborCostModal();
     const setting = useMemo(() => new SettingsClass(), []);
-
+    const labor = setting.getLaborCosts();
     useEffect(() => {
         if (params?.costUpdate) {
             zus.dotUpdate("metaData.laborConfig", params.costUpdate);
@@ -33,7 +33,7 @@ export function SalesLaborLine({}) {
             }
         >
             <div className="text-right items-center flex gap-2">
-                <AnimatedNumber value={md?.extraCosts?.Labor?.amount || 0} />
+                <AnimatedNumber value={labor?.cost?.amount || 0} />
                 <SuperAdminGuard>
                     <Button
                         onClick={(e) => {

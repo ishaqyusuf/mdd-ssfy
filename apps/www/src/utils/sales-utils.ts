@@ -94,9 +94,7 @@ export function getItemStatConfig({ setting, ...props }: ItemStatConfigProps) {
     let config = setting?.route?.[stepConfigUid]?.config;
 
     const isService = mainStep?.value?.toLowerCase() == "services";
-    // if (isService) {
-    // console.log({ props, mainStep });
-    // }
+
     return props.isDyke
         ? {
               production: isService

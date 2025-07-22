@@ -49,10 +49,7 @@ export function SalesFormSave({ type = "button", and }: Props) {
             await resetSalesStatAction(resp.salesId, resp?.salesNo);
         if (s?.updateId) triggerEvent("salesUpdated", s?.id);
         else triggerEvent("salesCreated", s?.id);
-        await updateSalesExtraCosts(
-            resp.salesId,
-            Object.values(zus.metaData?.extraCosts),
-        );
+        await updateSalesExtraCosts(resp.salesId, zus.metaData?.extraCosts);
         switch (action) {
             case "close":
                 router.push(`/sales-book/${metaData.type}s`);

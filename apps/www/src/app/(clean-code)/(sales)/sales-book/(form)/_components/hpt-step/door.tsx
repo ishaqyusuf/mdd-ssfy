@@ -11,9 +11,10 @@ export function Door({ door }: DoorProps) {
     const ctx = useHpt();
 
     return (
-        <div className="flex gap-4s flex-col h-full items-center">
+        <div className="flex gap-4s flex-col h-full items-end">
             <div className="">
                 <Button
+                    size="xs"
                     onClick={() => {
                         openDoorSwapModal(door, ctx.hpt.itemUid);
                     }}
@@ -21,7 +22,7 @@ export function Door({ door }: DoorProps) {
                     Change Door
                 </Button>
             </div>
-            <div className="w-2/3 ">
+            <div className="w-2/3">
                 <ComponentImg noHover aspectRatio={0.7} src={door.img} />
             </div>
         </div>

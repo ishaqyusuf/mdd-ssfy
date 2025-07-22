@@ -79,7 +79,7 @@ export function DataTableToolbar<TData, TValue>({
                         }
                         const _column = table.getColumn(String(column?.id));
                         if (!_column || _column === undefined) return null;
-                        // console.log(typeof column)
+
                         return (
                             <DataTableFacetedFilter2
                                 key={String(column.id)}

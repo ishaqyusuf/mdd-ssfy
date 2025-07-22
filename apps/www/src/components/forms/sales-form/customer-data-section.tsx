@@ -125,20 +125,24 @@ export function CustomerDataSection() {
     }, [data]);
 
     return (
-        <div className="divide-y">
+        <div className="divide-y group">
             <DataCard label="Customer">
                 <Lines lines={data?.customerData} />
             </DataCard>
 
             <DataCard
-                className={cn(!data?.customerId && "hidden")}
+                className={cn(
+                    !data?.customerId ? "hidden" : "hidden group-hover:block",
+                )}
                 label="Bill To"
                 address="bad"
             >
                 <Lines lines={data?.billing?.lines} />
             </DataCard>
             <DataCard
-                className={cn(!data?.customerId && "hidden")}
+                className={cn(
+                    !data?.customerId ? "hidden" : "hidden group-hover:block",
+                )}
                 label="Ship To"
                 address="sad"
             >
@@ -234,14 +238,8 @@ function DataCard(props: DataCardProps) {
                             else metaData.shipping.id = addressId;
                         }
                         metaData.profileChangedToken = generateRandomString();
-                        // console.log({md})
+
                         zus.dotUpdate("metaData", metaData);
-                        // setTimeout(() => {
-                        //     zus.dotUpdate(
-                        //         "metaData.profileChangedToken",
-                        //         generateRandomString(),
-                        //     );
-                        // }, 3000);
                     }}
                     searching={searching}
                     setSearching={setSearching}

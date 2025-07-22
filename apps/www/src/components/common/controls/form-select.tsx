@@ -66,10 +66,7 @@ export default function FormSelect<
     FormSelectProps<TOptionType>) {
     const [list, setList] = useState<any>(options || []);
     const load = useDataSkeleton();
-    // useEffect(() => {
-    //     setList(options || []);
-    //     // console.log(options?.length);
-    // }, [options]);
+
     useEffect(() => {
         if (loader) {
             (async () => {

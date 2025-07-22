@@ -35,6 +35,7 @@ import { deleteSalesExtraCost } from "@/actions/delete-sales-extra-cost";
 import FormSettingsModal from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/modals/form-settings-modal";
 import { _modal } from "@/components/common/modal/provider";
 import { SalesLaborLine } from "./sales-labor-line";
+import { useSticky } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/use-sticky";
 
 export function SalesMetaForm({}) {
     const zus = useFormDataStore();
@@ -48,67 +49,79 @@ export function SalesMetaForm({}) {
     ];
     const [tab, setTab] = useState(md?.id ? "summary" : "summary");
     const ctx = useSalesOverviewQuery();
+    const { actionRef, isFixed, fixedOffset } = useSticky(
+        (bv, pv, { top, bottom }) => {
+            console.log({ top, bottom });
+            // return top < 0;
+            return true;
+        }, //!bv && pv,
+    );
     return (
-        <div className="">
-            <div className="flex border-b">
-                {tabs.map((_tab, ti) => (
-                    <Button
-                        key={_tab}
-                        variant="ghost"
-                        // disabled={ti != 0}
-                        onClick={(e) => {
-                            setTab(_tab);
-                        }}
-                        className={cn(
-                            "rounded-none border-b-2 border-transparent font-mono uppercase hover:bg-transparent",
-                            tab == _tab
-                                ? "rounded-none border-b border-primary"
-                                : "text-muted-foreground/90 hover:text-muted-foreground",
-                        )}
-                    >
-                        {_tab}
-                    </Button>
-                ))}
-                <div className="flex-1"></div>
-                <div>
-                    <Menu>
-                        {/* <Menu.Item Icon={Icons.save}>Save</Menu.Item> */}
-                        <SalesFormSave type="menu" />
-                        <Menu.Item
-                            onClick={() => {
-                                ctx.open2(
-                                    zus.metaData?.salesId,
-                                    zus.metaData.type == "order"
-                                        ? "sales"
-                                        : "quote",
-                                );
-                            }}
-                            Icon={Icons.customerService}
-                        >
-                            Overview
-                        </Menu.Item>
-                        <SalesFormPrintMenu />
-                        <SalesFormEmailMenu />
-                        <Menu.Item Icon={Icons.copy}>Copy</Menu.Item>
-                        <Menu.Item Icon={Icons.move2}>Move to</Menu.Item>
-                        <Menu.Item
+        <div>
+            <div
+                ref={actionRef}
+                // style={isFixed ? { left: `${fixedOffset}px` } : {}}
+            >
+                <div className="flex border-b">
+                    {tabs.map((_tab, ti) => (
+                        <Button
+                            key={_tab}
+                            variant="ghost"
+                            // disabled={ti != 0}
                             onClick={(e) => {
-                                _modal.openSheet(<FormSettingsModal />);
+                                setTab(_tab);
                             }}
-                            Icon={Icons.settings}
+                            className={cn(
+                                "rounded-none border-b-2 border-transparent font-mono uppercase hover:bg-transparent",
+                                tab == _tab
+                                    ? "rounded-none border-b border-primary"
+                                    : "text-muted-foreground/90 hover:text-muted-foreground",
+                            )}
                         >
-                            Settings
-                        </Menu.Item>
-                    </Menu>
+                            {_tab}
+                        </Button>
+                    ))}
+                    <div className="flex-1"></div>
+                    <div>
+                        <Menu>
+                            {/* <Menu.Item Icon={Icons.save}>Save</Menu.Item> */}
+                            <SalesFormSave type="menu" />
+                            <Menu.Item
+                                onClick={() => {
+                                    ctx.open2(
+                                        zus.metaData?.salesId,
+                                        zus.metaData.type == "order"
+                                            ? "sales"
+                                            : "quote",
+                                    );
+                                }}
+                                Icon={Icons.customerService}
+                            >
+                                Overview
+                            </Menu.Item>
+                            <SalesFormPrintMenu />
+                            <SalesFormEmailMenu />
+                            <Menu.Item Icon={Icons.copy}>Copy</Menu.Item>
+                            <Menu.Item Icon={Icons.move2}>Move to</Menu.Item>
+                            <Menu.Item
+                                onClick={(e) => {
+                                    _modal.openSheet(<FormSettingsModal />);
+                                }}
+                                Icon={Icons.settings}
+                            >
+                                Settings
+                            </Menu.Item>
+                        </Menu>
+                    </div>
                 </div>
+                {tab == "summary" ? (
+                    <SummaryTab />
+                ) : tab == "take off" ? (
+                    <TakeOffForm salesId={md?.id} />
+                ) : (
+                    <></>
+                )}
             </div>
-            {tab == "summary" ? (
-                <SummaryTab />
-            ) : tab == "take off" ? (
-                <TakeOffForm salesId={md?.id} />
-            ) : (
-                <></>
-            )}
         </div>
     );
 }
@@ -123,7 +136,7 @@ function SummaryTab({}) {
     }
     return (
         <div className="">
-            <div className="min-h-[20vh] border-b">
+            <div className="min-h-[15vh] border-b">
                 <CustomerDataSection />
             </div>
             <div className="grid gap-1">
@@ -200,57 +213,70 @@ function SummaryTab({}) {
                     </div>
                 </LineContainer>
                 <SalesLaborLine />
-                {Object.entries(md.extraCosts)
-                    .filter(([k, v]) => k != "Labor")
-                    .map(([k, v], i) => (
-                        <Input
-                            key={i}
-                            onChange={(e) => {
-                                calculateTotal();
-                            }}
-                            label={
-                                <span>
-                                    <LabelInput
-                                        value={v.label}
-                                        className="text-end"
-                                        onChange={(e) => {
-                                            zus.dotUpdate(
-                                                `metaData.extraCosts.${k}.label`,
-                                                e.target.value,
-                                            );
-                                        }}
-                                    />
-                                </span>
-                            }
-                            name={`metaData.extraCosts.${k}.amount`}
-                            value={md.extraCosts?.[k]?.amount || ""}
-                            numberProps={{
-                                prefix: "$",
-                            }}
-                        >
-                            <ConfirmBtn
-                                onClick={async (e) => {
-                                    if (v.id) await deleteSalesExtraCost(v.id);
+                {
+                    // Object.entries(md.extraCosts)
+                    md.extraCosts
+                        // .filter((k) => k.type !=  "Labor")
+                        .map((k, i) =>
+                            k.type == "Labor" ? (
+                                <></>
+                            ) : (
+                                <Input
+                                    key={i}
+                                    onChange={(e) => {
+                                        calculateTotal();
+                                    }}
+                                    label={
+                                        <span>
+                                            <LabelInput
+                                                value={k.label}
+                                                className="text-end"
+                                                onChange={(e) => {
+                                                    zus.dotUpdate(
+                                                        `metaData.extraCosts.${i}.label`,
+                                                        e.target.value,
+                                                    );
+                                                }}
+                                            />
+                                        </span>
+                                    }
+                                    name={`metaData.extraCosts.${i}.amount`}
+                                    value={md.extraCosts?.[i]?.amount || ""}
+                                    numberProps={{
+                                        prefix: "$",
+                                    }}
+                                >
+                                    <ConfirmBtn
+                                        onClick={async (e) => {
+                                            if (k.id)
+                                                await deleteSalesExtraCost(
+                                                    k.id,
+                                                );
 
-                                    zus.removeKey(`metaData.extraCosts.${k}`);
-                                }}
-                                size="sm"
-                                trash
-                            />
-                        </Input>
-                    ))}
+                                            zus.removeKey(
+                                                `metaData.extraCosts.${i}`,
+                                            );
+                                            calculateTotal();
+                                        }}
+                                        size="sm"
+                                        trash
+                                    />
+                                </Input>
+                            ),
+                        )
+                }
                 <Menu Icon={Icons.add} label={"Add Cost"}>
                     {["Discount", "Delivery", "Custom"].map((v, i) => (
                         <Menu.Item
                             onClick={(e) => {
-                                zus.dotUpdate(
-                                    `metaData.extraCosts.${generateRandomString()}`,
+                                zus.dotUpdate(`metaData.extraCosts`, [
+                                    ...zus.metaData?.extraCosts,
                                     {
                                         label: i == 2 ? "Custom" : v,
                                         amount: 0,
                                         type: i == 2 ? "CustomNonTaxxable" : v,
                                     },
-                                );
+                                ]);
                             }}
                             key={i}
                         >
@@ -259,17 +285,6 @@ function SummaryTab({}) {
                         </Menu.Item>
                     ))}
                 </Menu>
-                {/* <Input
-                    onChange={(e) => {
-                        calculateTotal();
-                    }}
-                    label="Discount"
-                    name="metaData.extraCosts.Discount.amount"
-                    value={md.extraCosts?.Discount?.amount}
-                    numberProps={{
-                        prefix: "$",
-                    }}
-                /> */}
                 <LineContainer
                     label={
                         <div className="col-span-3 flex items-center justify-end border-b hover:bg-muted-foreground/30">

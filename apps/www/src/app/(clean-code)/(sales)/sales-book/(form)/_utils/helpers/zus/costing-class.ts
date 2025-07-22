@@ -276,7 +276,12 @@ export class CostingClass {
             ...data.metaData.pricing,
             ...overrides,
         };
-        const extraDiscount = data?.metaData?.extraCosts?.Discount?.amount;
+
+        // const extraDiscount = data?.metaData?.extraCosts?.Discount?.amount;
+        const extraDiscount = sum(
+            data?.metaData?.extraCosts?.filter((a) => a.type == "Discount"),
+            "amount",
+        );
         const discount = extraDiscount || Number(estimate.discount) || 0;
         const taxxableDiscount = Math.min(discount, estimate.taxxable);
         const nonTaxxableDiscount =
@@ -309,9 +314,7 @@ export class CostingClass {
                 );
             }),
         );
-        console.log({
-            Labor,
-        });
+
         const extraCosts = sum(
             Object.values(data.metaData.extraCosts)
                 .filter(
@@ -338,16 +341,19 @@ export class CostingClass {
                 estimate.ccc || 0,
             ]),
         );
-        if (this.setting?.staticZus) {
-            this.setting.staticZus.metaData.pricing = estimate;
-            this.setting.staticZus.metaData.extraCosts.Labor.amount = Labor;
-        } else {
-            this.setting.zus.dotUpdate("metaData.pricing", estimate);
-            this.setting.zus.dotUpdate(
-                "metaData.extraCosts.Labor.amount",
-                Labor,
-            );
-        }
+        const labor = this.getLaborCosts();
+        if (labor.index > -1)
+            if (this.setting?.staticZus) {
+                this.setting.staticZus.metaData.pricing = estimate;
+                this.setting.staticZus.metaData.extraCosts[labor.index].amount =
+                    Labor;
+            } else {
+                this.setting.zus.dotUpdate("metaData.pricing", estimate);
+                this.setting.zus.dotUpdate(
+                    `metaData.extraCosts.${labor?.index}.amount`,
+                    Labor,
+                );
+            }
     }
     public calculateTotalPrice() {
         const data = this.setting.zus;
@@ -378,6 +384,13 @@ export class CostingClass {
     }
     public currentTaxProfile() {
         return this.setting.zus.metaData?.tax;
+    }
+    public getLaborCosts() {
+        const cost = this.setting.zus?.metaData?.extraCosts?.find(
+            (a) => a.type == "Labor",
+        );
+        const index = this.setting.zus.metaData.extraCosts.indexOf(cost);
+        return { cost, index };
     }
     public taxCodeChanged() {
         const taxProfile = this.taxList().find(

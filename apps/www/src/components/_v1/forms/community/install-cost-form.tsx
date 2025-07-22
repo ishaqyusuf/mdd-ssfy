@@ -230,16 +230,6 @@ function CostInput({
     formKey;
     type?;
 }) {
-    //   const q = form.watch(formKey)
-    //   const debouncedQuery = useDebounce(q, 800);
-    //   const [watcher,startWatcher] = React.useState(false)
-    // React.useEffect(() => {
-    //   if(watcher) {
-
-    //   }
-    //   console.log(l1)
-    // },[debouncedQuery,watcher])
-
     return (
         <Input
             className="h-7 border-transparent uppercase"

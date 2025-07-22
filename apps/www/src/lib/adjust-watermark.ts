@@ -27,12 +27,7 @@ export function adjustWatermark(orderIds: string[]) {
         const px = invoiceHeight - lp;
         const fl = document.querySelector(selector("div#filler"));
         let _pgs = Math.ceil(totalLineHeight / invoiceHeight);
-        // console.log({
-        //   totalLineHeight,
-        //   invoiceHeight,
-        //   px,
-        //   _pgs,
-        // });
+
         if (w)
             for (let i = 0; i < _pgs; i++) {
                 const n = w.cloneNode(true) as HTMLElement;

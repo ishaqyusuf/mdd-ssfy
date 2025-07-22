@@ -227,7 +227,6 @@ export async function whereSales(query: SalesQueryParams) {
         where.deletedAt = anyDateQuery();
     }
     if (_q && Number(_q) > 0) {
-        // console.log(_q)
         where.OR?.push({
             grandTotal: {
                 gte: Number(_q),

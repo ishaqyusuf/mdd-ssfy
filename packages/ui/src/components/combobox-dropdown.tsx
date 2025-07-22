@@ -19,7 +19,6 @@ export interface ComboboxItem {
   id: string;
   label: string;
   disabled?: boolean;
-
 }
 
 interface Props<T> {
@@ -40,12 +39,11 @@ interface Props<T> {
   onCreate?: (value: string) => void;
   headless?: boolean;
   noSearch?: boolean;
-  className?: string;  
-  listClassName?: string;  
+  className?: string;
+  listClassName?: string;
   pageSize?: number;
   valueKey?: string;
   onSearch?: (value: string) => void;
-
 }
 
 export function ComboboxDropdown<T extends ComboboxItem>({
@@ -66,111 +64,111 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   listClassName,
   pageSize = 20,
   onSearch,
-  noSearch
+  noSearch,
 }: Props<T>) {
   const [open, setOpen] = React.useState(false);
   const [internalSelectedItem, setInternalSelectedItem] = React.useState<
     T | undefined
   >();
-  
+
   const selectedItem = incomingSelectedItem ?? internalSelectedItem;
-  
+
   const [inputValue, setInputValue] = React.useState("");
   const filteredItems = items.filter((item) =>
-    item.label.toLowerCase().includes(inputValue.toLowerCase()),
+    item.label.toLowerCase().includes(inputValue.toLowerCase())
   );
-  const [cursor,setCusor] = React.useState(0)
+  const [cursor, setCusor] = React.useState(0);
   React.useEffect(() => {
-    setCusor(0)
-  },[inputValue])
-  const {__items,hasMore} = React.useMemo(() => {
+    setCusor(0);
+  }, [inputValue]);
+  const { __items, hasMore } = React.useMemo(() => {
     // const PAGE_SIZE = 10;
-  const paginatedItems = filteredItems.slice(0, cursor + pageSize);
-  const hasMoreItems = paginatedItems.length < filteredItems.length;
+    const paginatedItems = filteredItems.slice(0, cursor + pageSize);
+    const hasMoreItems = paginatedItems.length < filteredItems.length;
 
-  return {
-    __items: paginatedItems,
-    hasMore: hasMoreItems,
-  };
-  },[filteredItems,cursor,pageSize])
+    return {
+      __items: paginatedItems,
+      hasMore: hasMoreItems,
+    };
+  }, [filteredItems, cursor, pageSize]);
   const showCreate = onCreate && Boolean(inputValue) && !filteredItems.length;
 
   const Component = (
     <Command loop shouldFilter={false}>
-     {noSearch || <CommandInput
-        value={inputValue}
-        onValueChange={e=> {
-          console.log(e)
-          
-          setInputValue(e)
-          onSearch?.(e)
-        }}
-        placeholder={searchPlaceholder ?? "Search item..."}
-        className="px-3"
-      />}
+      {noSearch || (
+        <CommandInput
+          value={inputValue}
+          onValueChange={(e) => {
+            setInputValue(e);
+            onSearch?.(e);
+          }}
+          placeholder={searchPlaceholder ?? "Search item..."}
+          className="px-3"
+        />
+      )}
 
       <CommandGroup>
-        <CommandList className={cn("", )}>
-          <div className={cn("max-h-[225px] overflow-auto",listClassName)}>
-          {__items.map((item) => {
-            const isChecked = selectedItem?.id === item.id;
+        <CommandList className={cn("")}>
+          <div className={cn("max-h-[225px] overflow-auto", listClassName)}>
+            {__items.map((item) => {
+              const isChecked = selectedItem?.id === item.id;
 
-            return (
+              return (
+                <CommandItem
+                  disabled={item.disabled}
+                  className={cn("cursor-pointer", className)}
+                  key={item.id}
+                  value={item.id}
+                  onSelect={(id) => {
+                    const foundItem = filteredItems?.find(
+                      (item) => item.id?.toUpperCase() === id?.toUpperCase()
+                    );
+
+                    if (!foundItem) {
+                      return;
+                    }
+
+                    onSelect(foundItem);
+                    setInternalSelectedItem(foundItem);
+                    setOpen(false);
+                  }}
+                >
+                  {renderListItem ? (
+                    renderListItem({ isChecked, item })
+                  ) : (
+                    <>
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          isChecked ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {item.label}
+                    </>
+                  )}
+                </CommandItem>
+              );
+            })}
+
+            <CommandEmpty>{emptyResults ?? "No item found"}</CommandEmpty>
+
+            {showCreate && (
               <CommandItem
-                disabled={item.disabled}
-                className={cn("cursor-pointer", className)}
-                key={item.id}
-                value={item.id}
-                onSelect={(id) => {
-                  
-                  const foundItem = filteredItems?.find((item) => item.id?.toUpperCase() === id?.toUpperCase());
-
-                  if (!foundItem) {
-                     
-                    return;
-                  }
-
-                  onSelect(foundItem);
-                  setInternalSelectedItem(foundItem);
+                key={inputValue}
+                value={inputValue}
+                onSelect={() => {
+                  onCreate(inputValue);
                   setOpen(false);
+                  setInputValue("");
+                }}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
                 }}
               >
-                {renderListItem ? (
-                  renderListItem({ isChecked, item })
-                ) : (
-                  <>
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        isChecked ? "opacity-100" : "opacity-0",
-                      )}
-                    />
-                    {item.label}
-                  </>
-                )}
+                {renderOnCreate ? renderOnCreate(inputValue) : null}
               </CommandItem>
-            );
-          })}
-
-          <CommandEmpty>{emptyResults ?? "No item found"}</CommandEmpty>
-
-          {showCreate && (
-            <CommandItem
-              key={inputValue}
-              value={inputValue}
-              onSelect={() => {
-                onCreate(inputValue);
-                setOpen(false);
-                setInputValue("");
-              }}
-              onMouseDown={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-              }}
-            >
-              {renderOnCreate ? renderOnCreate(inputValue) : null}
-            </CommandItem>
-          )}
+            )}
           </div>
         </CommandList>
       </CommandGroup>

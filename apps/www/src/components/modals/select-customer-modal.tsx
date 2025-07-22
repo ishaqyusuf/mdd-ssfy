@@ -103,12 +103,7 @@ export function SelectCustomerModal({
                     </ScrollArea>
                 </div>
                 <DialogFooter className="flex justify-between gap-4">
-                    <Button
-                        variant="outline"
-                        onClick={() => console.log("Create New Customer")}
-                    >
-                        Create New Customer
-                    </Button>
+                    <Button variant="outline">Create New Customer</Button>
                     <Button
                         onClick={handleSelectLater}
                         disabled={startNewSalesMutation.isPending}

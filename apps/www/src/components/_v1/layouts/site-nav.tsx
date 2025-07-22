@@ -45,12 +45,7 @@ export default function SiteNav({
         const parentPath = toSingular(route.path);
 
         const isActive = pathname.startsWith(route.path);
-        // if (!isActive) {
-        //     console.log({
-        //         pathname,
-        //         parentPath,
-        //     });
-        // }
+
         return (
             <Button
                 key={i}
