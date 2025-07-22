@@ -28,7 +28,7 @@ export default function ItemSection({ uid }: Props) {
     const sequence = zus.sequence?.stepComponent?.[uid];
 
     return (
-        <div className="mb-2 rounded-lg bg-background sm:mb-4">
+        <div className="mb-2 sm:rounded-lg bg-background sm:mb-4">
             <Collapsible
                 open
                 onOpenChange={(e) => {
@@ -36,7 +36,7 @@ export default function ItemSection({ uid }: Props) {
                 }}
             >
                 <ItemSectionHeader uid={uid} />
-                <CollapsibleContent className="flex max-h-[120vh] overflow-auto border">
+                <CollapsibleContent className="flex sm:max-h-[120vh] overflow-auto border">
                     <div className="flex flex-1 flex-col ">
                         {sequence?.map((stepUid, index) => (
                             <StepSection

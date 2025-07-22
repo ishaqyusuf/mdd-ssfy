@@ -263,7 +263,7 @@ function Footer({
 
 function MultiPane({ children }) {
     return (
-        <Content size="none" className="side-modal-rounded">
+        <Content size="none" className="side-modal-rounded h-full">
             <div className="flex flex-1" id="">
                 <div className="" id="multiPane"></div>
                 {children}

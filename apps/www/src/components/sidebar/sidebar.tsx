@@ -23,7 +23,7 @@ export function SideBar({ children, user, menuMode, validLinks }) {
                 <SideMenu />
                 <SidebarInset className="flex-1 space-y-4 overflow-hidden pb-8">
                     <Header />
-                    <div className="px-6">{children}</div>
+                    <div className="sm:px-6">{children}</div>
                 </SidebarInset>
                 {/* </div> */}
             </SidebarContext>

@@ -3,7 +3,7 @@
 import { useTRPC } from "@/trpc/client";
 
 import { TableProvider, useTableData } from "..";
-import { Addon, columns, driverColumns } from "./columns";
+import { Addon, columns, driverColumns, mobileColumn } from "./columns";
 import { Table, TableBody } from "@gnd/ui/table";
 import { TableHeaderComponent } from "../table-header";
 import { TableRow } from "../table-row";
@@ -13,6 +13,8 @@ import { BatchActions } from "./batch-actions";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { useMediaQuery } from "react-responsive";
+import { screens } from "@/lib/responsive";
 
 export function DataTable({ driver = false }) {
     const trpc = useTRPC();
@@ -35,6 +37,7 @@ export function DataTable({ driver = false }) {
                     addons,
                     columns: driver ? driverColumns : columns,
                     data,
+                    mobileColumn: driver ? null : mobileColumn,
                     checkbox: true,
                     tableMeta: {
                         deleteAction(id) {

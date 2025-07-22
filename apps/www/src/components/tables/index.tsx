@@ -12,6 +12,8 @@ import { PageDataMeta, PageFilterData } from "@/types/type";
 
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import { useTableScroll } from "@/hooks/use-table-scroll";
+import { screens } from "@/lib/responsive";
+import { useMediaQuery } from "react-responsive";
 export type DataTableProps = {
     data: any[];
     loadMore?: (query) => Promise<any>;
@@ -36,6 +38,7 @@ type TableProps = (WithTable | WithoutTable) & {
     pageSize?;
     nextMeta?: PageDataMeta["next"];
     columns?;
+    mobileColumn?;
     checkbox?: boolean;
     addons?;
     tableScroll?: ReturnType<typeof useTableScroll>;
@@ -57,6 +60,7 @@ export const { useContext: useTable, Provider: TableProvider } =
         params,
         data: initialData,
         columns,
+        mobileColumn,
         tableMeta,
         pageSize,
         nextMeta: nextPageMeta,
@@ -72,6 +76,7 @@ export const { useContext: useTable, Provider: TableProvider } =
         // const [from, setFrom] = useState(pageSize);
         const { ref, inView } = useInView();
         const [nextMeta, setNextMeta] = useState(nextPageMeta);
+        const isMobile = useMediaQuery(screens.xs);
         const loadMoreData = async () => {
             // const formatedFrom = from;
             // const to = formatedFrom + pageSize * 2;
@@ -108,7 +113,7 @@ export const { useContext: useTable, Provider: TableProvider } =
         table = useReactTable({
             data,
             getRowId: ({ id }) => String(id),
-            columns,
+            columns: isMobile && mobileColumn ? mobileColumn : columns,
             getCoreRowModel: getCoreRowModel(),
             getFilteredRowModel: getFilteredRowModel(),
             onRowSelectionChange: setRowSelection || undefined,
@@ -138,7 +143,7 @@ export const { useContext: useTable, Provider: TableProvider } =
             params,
             tableMeta,
             loadMoreData,
-            checkbox,
+            checkbox: checkbox && mobileColumn && isMobile ? false : checkbox,
             moreRef: ref,
             hasMore: !!nextMeta,
             selectedRows,

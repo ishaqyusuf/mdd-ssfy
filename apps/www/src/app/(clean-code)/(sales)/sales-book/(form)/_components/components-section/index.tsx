@@ -67,7 +67,7 @@ export function ComponentsSection({ itemStepUid }: Props) {
         startSavingSort((async () => {
             ctx.setItems(e);
             const data = e
-                // .filter((item, i) => item._metaData.sortIndex !== i)
+
                 .map((i, _i) => ({
                     prevIndex: i._metaData.sortIndex,
                     componentId: i.id,
@@ -192,7 +192,7 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
                 style={isFixed ? { left: `${fixedOffset}px` } : {}}
                 className={cn(
                     isFixed
-                        ? "fixed bottom-12 left-1/2 -translate-x-1/2 transform"
+                        ? "fixed bottom-2 sm:bottom-12 left-1/2 -translate-x-1/2 transform"
                         : "absolute bottom-4 left-1/2 -translate-x-1/2 transform",
                     "z-10 bg-secondary",
                 )}

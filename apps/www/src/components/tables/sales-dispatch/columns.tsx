@@ -20,6 +20,26 @@ import { useTable } from "..";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { Card, CardContent, CardHeader } from "@gnd/ui/card";
+import {
+    Calendar,
+    Clock,
+    MapPin,
+    MoreVertical,
+    Package,
+    Phone,
+    Truck,
+    User,
+} from "lucide-react";
+import { Badge } from "@gnd/ui/badge";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@gnd/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";
+import { getInitials } from "@/utils/format";
 
 export type Item = RouterOutputs["dispatch"]["index"]["data"][number];
 export type Addon = {
@@ -318,3 +338,239 @@ export const columns: ColumnDef<Item>[] = [
         },
     },
 ];
+
+export const mobileColumn: ColumnDef<Item>[] = [
+    {
+        header: "",
+        accessorKey: "row",
+        meta: {
+            className: "flex-1 p-0",
+            preventDefault: true,
+        },
+        cell: ({ row: { original: item } }) => {
+            const ctx = useSalesOverviewQuery();
+            return <SalesItemCard item={item} />;
+        },
+    },
+]; // SalesItemCard.tsx
+export function SalesItemCard({ item: dispatch }: { item: Item }) {
+    const ctx = useSalesOverviewQuery();
+
+    return (
+        <Card key={dispatch.id} className="shadow-sm border-0 px-2">
+            <CardHeader className="pb-3 px-1">
+                <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-semibold">
+                                {dispatch.order.orderId}
+                            </span>
+                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                                {getDeliveryModeIcon(dispatch.deliveryMode)}
+                                <span className="capitalize">
+                                    {dispatch.deliveryMode}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            <span>
+                                Ordered {formatDate(dispatch.order.createdAt)}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Progress>
+                            <Progress.Status>{dispatch.status}</Progress.Status>
+                        </Progress>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0"
+                                >
+                                    <MoreVertical className="h-4 w-4" />
+                                    <span className="sr-only">Open menu</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem
+                                    onClick={() => {
+                                        //  handleMenuAction(
+                                        //      dispatch.id,
+                                        //      "set-schedule",
+                                        //  );
+                                    }}
+                                >
+                                    <Calendar className="mr-2 h-4 w-4" />
+                                    Set Schedule Date
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => {
+                                        //   handleMenuAction(
+                                        //       dispatch.id,
+                                        //       "assign",
+                                        //   );
+                                    }}
+                                >
+                                    <User className="mr-2 h-4 w-4" />
+                                    Assign To
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => {
+                                        // handleMenuAction(
+                                        //     dispatch.id,
+                                        //     "update-status",
+                                        // );
+                                    }}
+                                >
+                                    <Package className="mr-2 h-4 w-4" />
+                                    Update Status
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => {
+                                        //  handleMenuAction(
+                                        //      dispatch.id,
+                                        //      "preview",
+                                        //  );
+                                    }}
+                                >
+                                    <Clock className="mr-2 h-4 w-4" />
+                                    Preview
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </div>
+            </CardHeader>
+
+            <CardContent className="pt-0 px-1">
+                <div className="space-y-3">
+                    {/* Schedule Date */}
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">
+                            Schedule Date
+                        </span>
+                        <div className="flex items-center gap-1 text-sm">
+                            <Calendar className="h-3 w-3 text-accent-foreground" />
+                            {formatDateTime(dispatch.dueDate)}
+                        </div>
+                    </div>
+
+                    {/* Customer Information */}
+                    <div className="bg-muted rounded-lg p-3">
+                        <div className="text-sm font-medium text-muted-foreground mb-2">
+                            {dispatch.deliveryMode === "pickup"
+                                ? "Customer"
+                                : "Ship To"}
+                        </div>
+                        <div className="space-y-1">
+                            <div className="font-medium">
+                                {dispatch.order.customer?.businessName ||
+                                    dispatch.order.customer?.name}
+                            </div>
+
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <Phone className="h-3 w-3" />
+                                {dispatch.order.customer?.phoneNo}
+                            </div>
+                            {dispatch.order?.shippingAddress && (
+                                <div className="flex items-start gap-1 text-sm text-muted-foreground mt-1">
+                                    <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                    <span className="leading-tight">
+                                        {/* {dispatch.order.shippingAddress} */}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Assigned Driver */}
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">
+                            Assigned Driver
+                        </span>
+                        {dispatch.driver ? (
+                            <div className="flex items-center gap-2">
+                                <Avatar className="h-6 w-6">
+                                    {/* <AvatarImage
+                                        src={
+                                            dispatch.driver.avatar ||
+                                            "/placeholder.svg"
+                                        }
+                                    /> */}
+                                    <AvatarFallback
+                                        style={{
+                                            backgroundColor: getColorFromName(
+                                                getInitials(
+                                                    dispatch?.driver?.name,
+                                                ),
+                                            ),
+                                        }}
+                                        className="text-xs text-accent"
+                                    >
+                                        {getInitials(dispatch?.driver?.name)}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm ">
+                                    {dispatch.driver?.name}
+                                </span>
+                            </div>
+                        ) : (
+                            <Progress>
+                                <Progress.Status noDot>
+                                    Unassigned
+                                </Progress.Status>
+                            </Progress>
+                        )}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+        case "queue":
+            return "bg-yellow-100 text-yellow-800 border-yellow-200";
+        case "assigned":
+            return "bg-blue-100 text-blue-800 border-blue-200";
+        case "in-progress":
+            return "bg-purple-100 text-purple-800 border-purple-200";
+        case "completed":
+            return "bg-green-100 text-green-800 border-green-200";
+        case "cancelled":
+            return "bg-red-100 text-red-800 border-red-200";
+        default:
+            return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+};
+
+const getDeliveryModeIcon = (mode: string) => {
+    return mode === "pickup" ? (
+        <Package className="h-3 w-3" />
+    ) : (
+        <Truck className="h-3 w-3" />
+    );
+};
+
+const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    });
+};
+
+const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+    });
+};

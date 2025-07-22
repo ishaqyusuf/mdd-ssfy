@@ -15,7 +15,7 @@ import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
 import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { generateRandomString } from "@/lib/utils";
+
 import { RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 
@@ -75,7 +75,7 @@ export function GeneralFooter({}) {
     };
     return (
         <CustomSheetContentPortal>
-            <SheetFooter className="-m-4 -mb-2 border-t p-4 shadow-xl">
+            <SheetFooter className="sm:-m-4 sm:-mb-2 sm:border-t p-4 sm:shadow-xl">
                 <ConfirmBtn
                     size="icon"
                     Icon={Icons.trash}

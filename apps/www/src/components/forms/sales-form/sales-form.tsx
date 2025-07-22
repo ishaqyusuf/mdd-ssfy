@@ -27,7 +27,7 @@ export function SalesFormClient({ data }) {
     if (!zus.formStatus || zus.currentTab != "invoice") return <></>;
 
     return (
-        <div className="min-h-screen w-full bg-white dark:bg-primary-foreground p-4 lg:flex xl:gap-4 xl:p-8">
+        <div className="min-h-screen w-full bg-white dark:bg-primary-foreground sm:p-4 lg:flex xl:gap-4 xl:p-8">
             <TakeoffSwitch {...{ takeOff, takeOffChanged }} />
             <div className="flex-1">
                 {takeOff ? (

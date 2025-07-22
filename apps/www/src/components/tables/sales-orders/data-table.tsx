@@ -2,7 +2,7 @@
 
 import { useTRPC } from "@/trpc/client";
 import { TableProvider, useTableData } from "..";
-import { columns } from "./columns";
+import { columns, mobileColumn } from "./columns";
 import { Table, TableBody } from "@gnd/ui/table";
 import { TableHeaderComponent } from "../table-header";
 import { TableRow } from "../table-row";
@@ -34,6 +34,7 @@ export function DataTable() {
             args={[
                 {
                     columns,
+                    mobileColumn: mobileColumn,
                     data,
                     checkbox: true,
                     tableScroll,

@@ -68,7 +68,7 @@ export default function DoorSizeSelectModal({ cls, door }: Props) {
             >
                 <Modal.Header
                     title={ctx.cls?.getComponent?.title || "Component Price"}
-                    subtitle={"Edit door size price"}
+                    subtitle={"Select door"}
                 />
                 <Form {...ctx.form}>
                     <ScrollArea
