@@ -317,8 +317,8 @@ export class CostingClass {
         console.log(data?.metaData?.laborConfig);
 
         const extraCosts = sum(
-            Object.values(data.metaData.extraCosts)
-                .filter(
+            data.metaData.extraCosts
+                ?.filter(
                     (a) =>
                         a.type != "CustomTaxxable" &&
                         a.type != "Discount" &&

@@ -34,6 +34,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         }
         return price;
     }
+    if (!data.order?.extraCosts) data.order.extraCosts = [];
 
     const resp: SalesFormZusData = {
         // data,
