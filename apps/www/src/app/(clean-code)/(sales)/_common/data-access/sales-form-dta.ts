@@ -109,6 +109,13 @@ export async function createSalesBookFormDataDta(
                 calculatedPriceMode: true,
             },
             taxes: [],
+            extraCosts: [
+                {
+                    type: "Labor",
+                    label: "Labor",
+                    // orderId: order.id,
+                } as any,
+            ],
             items: [
                 {
                     meta: {},

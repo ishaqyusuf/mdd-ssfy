@@ -30,6 +30,7 @@ export async function getSalesBookFormUseCase(data: GetSalesBookFormDataProps) {
 }
 async function composeBookForm<T>(data: T) {
     const laborConfig = await getSalesLaborCost();
+
     return {
         ...data,
         salesSetting: composeStepRouting(await loadSalesFormData()),
