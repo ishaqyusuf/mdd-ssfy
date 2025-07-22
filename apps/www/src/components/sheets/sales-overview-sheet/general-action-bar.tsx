@@ -18,7 +18,7 @@ import { cn } from "@gnd/ui/cn";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
 
-export function GeneralActionBar({ type, salesId }) {
+export function GeneralActionBar({ type, salesNo, salesId }) {
     const mailer = useSalesMailer();
     const { data } = useSaleOverview();
     const isQuote = data?.type == "quote";
@@ -65,7 +65,7 @@ export function GeneralActionBar({ type, salesId }) {
                 variant="secondary"
                 className="flex-1 items-center space-x-2 hover:bg-secondary"
                 onClick={() => {
-                    openLink(salesFormUrl(type, salesId, true));
+                    openLink(salesFormUrl(type, salesNo, true));
                     // setParams({ invoiceId: id, type: "edit" });
                 }}
             >

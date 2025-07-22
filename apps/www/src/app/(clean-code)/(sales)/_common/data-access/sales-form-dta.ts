@@ -48,7 +48,7 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
         .flat()
         .filter(Boolean);
     const stepComponents = await getFormStepComponentsDta(prodIds || []);
-    const meta = order.meta as any as Partial<SalesMeta>;
+    const meta = (order?.meta || {}) as any as Partial<SalesMeta>;
     if (meta.deliveryCost) {
         order.extraCosts.push({
             label: "Delivery",
