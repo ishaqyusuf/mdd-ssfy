@@ -109,7 +109,7 @@ export function GeneralTab({}) {
         <DataSkeletonProvider value={{ loading: !saleData?.id } as any}>
             <div className="relative mt-0 space-y-6 p-6">
                 <GeneralActionBar
-                    salesNo={data.orderId}
+                    salesNo={saleData?.orderId}
                     type={data?.type}
                     salesId={data?.id!}
                 />

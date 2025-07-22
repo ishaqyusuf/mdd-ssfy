@@ -65,7 +65,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
                 variant="secondary"
                 className="flex-1 items-center space-x-2 hover:bg-secondary"
                 onClick={() => {
-                    openLink(salesFormUrl(type, salesNo, true));
+                    openLink(salesFormUrl(type, salesNo, true), {}, true);
                     // setParams({ invoiceId: id, type: "edit" });
                 }}
             >
