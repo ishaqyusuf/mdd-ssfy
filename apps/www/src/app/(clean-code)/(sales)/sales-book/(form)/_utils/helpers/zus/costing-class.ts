@@ -306,7 +306,7 @@ export class CostingClass {
                             sum([d?.pricing?.laborQty]) *
                             sum([
                                 laborRate(
-                                    data?.metaData?.salesLaborConfig?.rate,
+                                    data?.metaData?.laborConfig?.rate,
                                     d?.pricing?.unitLabor,
                                 ),
                             ]),
@@ -353,6 +353,7 @@ export class CostingClass {
                     `metaData.extraCosts.${labor?.index}.amount`,
                     Labor,
                 );
+                console.log({ Labor });
             }
     }
     public calculateTotalPrice() {

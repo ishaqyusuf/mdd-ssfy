@@ -58,6 +58,13 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
         } as any);
         meta.deliveryCost = null;
     }
+    const labor = order?.extraCosts.find((a) => a.type == "Labor");
+    if (!labor)
+        order.extraCosts.push({
+            type: "Labor",
+            label: "Labor",
+            orderId: order.id,
+        } as any);
     return {
         order: {
             ...(order as Partial<typeof order>),
