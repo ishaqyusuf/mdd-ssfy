@@ -164,16 +164,31 @@ function Action({ item, driverMode }: { item: Item; driverMode?: boolean }) {
     const ctx = useSalesOverviewQuery();
     return (
         <ActionCell itemId={item.id}>
-            <Button
-                size="xs"
-                onClick={(e) => {
-                    ctx.openDispatch(item?.order?.orderId, item.id);
-                }}
-            >
-                <Icons.Edit className="size-4" />
-            </Button>
             <Menu>
-                <Menu.Item>Packing</Menu.Item>
+                <Menu.Item
+                    onClick={(e) => {
+                        ctx.openDispatch(
+                            item?.order?.orderId,
+                            item.id,
+                            "packing",
+                        );
+                    }}
+                    icon="packingList"
+                >
+                    Packing
+                </Menu.Item>
+                <Menu.Item
+                    icon="production"
+                    onClick={(e) => {
+                        ctx.openDispatch(
+                            item?.order?.orderId,
+                            item.id,
+                            "production",
+                        );
+                    }}
+                >
+                    Production
+                </Menu.Item>
             </Menu>
         </ActionCell>
     );
@@ -283,18 +298,7 @@ export const driverColumns: ColumnDef<Item>[] = [
         },
         cell: ({ row: { original: item } }) => {
             const ctx = useSalesOverviewQuery();
-            return (
-                <ActionCell itemId={item.id}>
-                    <Button
-                        onClick={(e) => {
-                            ctx.openDispatch(item?.order?.orderId, item.id);
-                        }}
-                    >
-                        <Icons.Edit className="size-4" />
-                    </Button>
-                    {/* <Action item={item} /> */}
-                </ActionCell>
-            );
+            return <Action driverMode item={item} />;
         },
     },
 ];

@@ -18,6 +18,7 @@ import { GeneralTab } from "./general-tab";
 import { ProductionTab } from "./production-tab";
 import { TransactionsTab } from "../customer-overview-sheet/transactions-tab";
 import { cn } from "@gnd/ui/cn";
+import { PackingTab } from "./packing-tab";
 
 export default function SalesOverviewSheet() {
     const query = useSalesOverviewQuery();
@@ -85,11 +86,11 @@ function Content() {
                                     <TabsTrigger value="production">
                                         Productions
                                     </TabsTrigger>
-                                    <TabsTrigger value="production-notes">
-                                        Notes
+                                    <TabsTrigger value="dispatch-notes">
+                                        General
                                     </TabsTrigger>
-                                    <TabsTrigger value="production-notes">
-                                        Dispatch Info
+                                    <TabsTrigger value="packing">
+                                        Packing List
                                     </TabsTrigger>
                                 </>
                             ) : (
@@ -141,6 +142,15 @@ function Content() {
                                         noteTagFilter("salesId", data?.id),
                                     ]}
                                 />
+                            </TabsContent>
+                        </>
+                    ) : query?.dispatchId ? (
+                        <>
+                            <TabsContent value="production">
+                                <ProductionTab />
+                            </TabsContent>
+                            <TabsContent value="packing">
+                                <PackingTab />
                             </TabsContent>
                         </>
                     ) : (

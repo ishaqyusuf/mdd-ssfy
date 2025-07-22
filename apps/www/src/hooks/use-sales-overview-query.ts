@@ -38,6 +38,7 @@ export function useSalesOverviewQuery() {
             "transaction",
             "dispatch",
             "notification",
+            "packing",
         ] as const),
         refreshTok: parseAsString,
         dispatchOverviewId: parseAsInteger,
@@ -67,12 +68,16 @@ export function useSalesOverviewQuery() {
             });
         },
         setParams,
-        openDispatch(orderNo: string, dispatchId) {
+        openDispatch(
+            orderNo: string,
+            dispatchId,
+            salesTab: typeof params.salesTab,
+        ) {
             setParams({
                 "sales-overview-id": orderNo,
                 "sales-type": "order",
                 mode: "dispatch-modal",
-                salesTab: "production",
+                salesTab,
                 dispatchId,
             });
         },
