@@ -12,13 +12,16 @@ export async function updateSalesExtraCosts(
             where: {
                 orderId,
                 id: {
-                    notIn: costs.map((c) => c.id).filter(Boolean),
+                    notIn: costs
+                        .filter((a) => !!a.amount)
+                        .map((c) => c.id)
+                        .filter(Boolean),
                 },
             },
         });
         await tx.salesExtraCosts.createMany({
             data: (costs as any)
-                .filter((a) => !a.id)
+                .filter((a) => !a.id && a.amount)
                 .map((d) => ({
                     ...d,
                     orderId,
@@ -26,7 +29,7 @@ export async function updateSalesExtraCosts(
         });
         await Promise.all(
             costs
-                .filter((a) => a.id)
+                .filter((a) => !!a.id && !!a.amount)
                 .map(async (data) => {
                     await tx.salesExtraCosts.update({
                         where: {
