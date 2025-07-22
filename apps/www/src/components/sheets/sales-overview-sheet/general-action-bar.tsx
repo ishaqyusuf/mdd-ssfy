@@ -15,6 +15,8 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useSaleOverview } from "./context";
 import { cn } from "@gnd/ui/cn";
+import { openLink } from "@/lib/open-link";
+import { salesFormUrl } from "@/utils/sales-utils";
 
 export function GeneralActionBar({ type, salesId }) {
     const mailer = useSalesMailer();
@@ -25,6 +27,7 @@ export function GeneralActionBar({ type, salesId }) {
             <AlertDialog>
                 <AlertDialogTrigger asChild>
                     <Button
+                        disabled
                         size="sm"
                         variant="secondary"
                         className="flex items-center space-x-2 hover:bg-secondary flex-1"
@@ -62,6 +65,7 @@ export function GeneralActionBar({ type, salesId }) {
                 variant="secondary"
                 className="flex-1 items-center space-x-2 hover:bg-secondary"
                 onClick={() => {
+                    openLink(salesFormUrl(type, salesId, true));
                     // setParams({ invoiceId: id, type: "edit" });
                 }}
             >
