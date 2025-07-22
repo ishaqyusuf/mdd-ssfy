@@ -158,29 +158,24 @@ function ScheduleDate({ item, editable }: { item: Item; editable?: boolean }) {
         </TCell.Secondary>
     );
 }
-function Action({ item }: { item: Item }) {
+function Action({ item, driverMode }: { item: Item; driverMode?: boolean }) {
     const { params, setParams } = useInboundStatusModal();
     const { setParams: setSalesPreviewParams } = useSalesPreview();
+    const ctx = useSalesOverviewQuery();
     return (
-        <>
+        <ActionCell itemId={item.id}>
             <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                    // setParams({
-                    //     inboundOrderId: item.id,
-                    //     inboundOrderNo: item.orderId,
-                    // });
-                    // setSalesPreviewParams({
-                    //     previewMode: "packing list",
-                    //     salesPreviewSlug: item.orderId,
-                    //     salesPreviewType: "order",
-                    // });
+                size="xs"
+                onClick={(e) => {
+                    ctx.openDispatch(item?.order?.orderId, item.id);
                 }}
             >
-                <Icons.Edit className="h-4 w-4" />
+                <Icons.Edit className="size-4" />
             </Button>
-        </>
+            <Menu>
+                <Menu.Item>Packing</Menu.Item>
+            </Menu>
+        </ActionCell>
     );
 }
 const order: ColumnDef<Item> = {
@@ -271,11 +266,6 @@ const assignedTo: ColumnDef<Item> = {
                 ))}
             </Menu>
         );
-        return (
-            <div className="inline-flex flex-col">
-                <span className="uppercase">{item?.driver?.name}</span>
-            </div>
-        );
     },
 };
 export const driverColumns: ColumnDef<Item>[] = [
@@ -321,21 +311,7 @@ export const columns: ColumnDef<Item>[] = [
         meta: {
             className: "flex-1",
         },
-        cell: ({ row: { original: item } }) => {
-            const ctx = useSalesOverviewQuery();
-            return (
-                <ActionCell itemId={item.id}>
-                    <Button
-                        onClick={(e) => {
-                            ctx.openDispatch(item?.order?.orderId, item.id);
-                        }}
-                    >
-                        <Icons.Edit className="size-4" />
-                    </Button>
-                    {/* <Action item={item} /> */}
-                </ActionCell>
-            );
-        },
+        cell: ({ row: { original: item } }) => <Action item={item} />,
     },
 ];
 
@@ -532,22 +508,6 @@ export function SalesItemCard({ item: dispatch }: { item: Item }) {
         </Card>
     );
 }
-const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-        case "queue":
-            return "bg-yellow-100 text-yellow-800 border-yellow-200";
-        case "assigned":
-            return "bg-blue-100 text-blue-800 border-blue-200";
-        case "in-progress":
-            return "bg-purple-100 text-purple-800 border-purple-200";
-        case "completed":
-            return "bg-green-100 text-green-800 border-green-200";
-        case "cancelled":
-            return "bg-red-100 text-red-800 border-red-200";
-        default:
-            return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-};
 
 const getDeliveryModeIcon = (mode: string) => {
     return mode === "pickup" ? (

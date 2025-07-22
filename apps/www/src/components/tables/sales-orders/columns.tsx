@@ -4,6 +4,7 @@ import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip"
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Menu } from "@/components/(clean-code)/menu";
 import { Progress } from "@/components/(clean-code)/progress";
+import { SalesPayWidget } from "@/components/widgets/sales-pay-widget";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -132,11 +133,12 @@ export const columns: ColumnDef<Item>[] = [
         accessorKey: "invoice",
         meta: {
             className: "text-right",
+            preventDefault: true,
         },
         cell: ({ row: { original: item } }) => {
             const { pending, paid, total } = item.invoice;
             return (
-                <div className="text-right">
+                <div className="text-right relative z-10">
                     <TooltipProvider delayDuration={70}>
                         <Tooltip>
                             <TooltipTrigger>
@@ -153,7 +155,10 @@ export const columns: ColumnDef<Item>[] = [
                                 />
                             </TooltipTrigger>
                             <TooltipContent
-                                className="px-3 py-1.5 text-xs"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                }}
+                                className="px-3 py-1.5 text-xs space-y-2 relative z-[999]"
                                 sideOffset={10}
                             >
                                 <Table>
@@ -184,6 +189,8 @@ export const columns: ColumnDef<Item>[] = [
                                         </TableRow>
                                     </TableBody>
                                 </Table>
+                                {/* <Button className="w-full">Pay</Button>
+                                <SalesPayWidget /> */}
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>

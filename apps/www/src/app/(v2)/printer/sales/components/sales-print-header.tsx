@@ -22,7 +22,7 @@ export default function SalesPrintHeader() {
                                     <Icons.PrintLogo />
                                 </td>
                                 <td valign="top" colSpan={5}>
-                                    <div className="text-xs font-semibold  text-black/90">
+                                    <div className="text-xs font-semibold  text-muted-foreground">
                                         <p>13285 SW 131 ST</p>
                                         <p>Miami, Fl 33186</p>
                                         <p>Phone: 305-278-6555</p>
@@ -34,7 +34,7 @@ export default function SalesPrintHeader() {
                                 </td>
                                 <td colSpan={1}></td>
                                 <td valign="top" colSpan={9}>
-                                    <p className="mb-1 text-end text-xl font-bold capitalize text-black">
+                                    <p className="mb-1 text-end text-xl font-bold capitalize">
                                         {sale?.headerTitle}
                                     </p>
                                     <table className="w-full table-fixed">

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import salesData from "@/app/(clean-code)/(sales)/_common/utils/sales-data";
 import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SettingsClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
@@ -219,7 +219,7 @@ function SummaryTab({}) {
                         // .filter((k) => k.type !=  "Labor")
                         .map((k, i) =>
                             k.type == "Labor" ? (
-                                <></>
+                                <Fragment key={i}></Fragment>
                             ) : (
                                 <Input
                                     key={i}
