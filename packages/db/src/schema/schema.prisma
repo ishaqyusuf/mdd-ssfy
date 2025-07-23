@@ -41,9 +41,13 @@ model AddressBooks {
     dealerBilling  DealerAuth[]  @relation(name: "primaryBillingAddress")
     dealerShipping DealerAuth[]  @relation(name: "primaryShippingAddress")
 
+    region   DispatchRegion? @relation(fields: [regionId], references: [id])
+    regionId Int?
+
     @@index([createdAt, deletedAt, name, address1])
     @@index([customerId])
     @@index([phoneNo])
+    @@index([regionId])
 }
 
 model ErrorLog {

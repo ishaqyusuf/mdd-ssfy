@@ -9,7 +9,6 @@ import { Sheet, SheetContent, SheetContentProps } from "@gnd/ui/sheet";
 import Portal from "../_v1/portal";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useEffect } from "react";
 
 const sheetContentVariant = cva(
     "flex flex-col h-screen w-full overflow-x-hidden ",

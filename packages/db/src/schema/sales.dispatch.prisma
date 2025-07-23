@@ -24,6 +24,15 @@ model OrderDelivery {
     @@index([createdById])
 }
 
+model DispatchRegion {
+    id        Int            @unique @default(autoincrement())
+    title     String
+    createdAt DateTime?      @default(now()) @db.Timestamp(0)
+    updatedAt DateTime       @updatedAt
+    deletedAt DateTime?      @db.Timestamp(0)
+    address   AddressBooks[]
+}
+
 model OrderItemDelivery {
     id                          Int                         @unique @default(autoincrement())
     orderItemId                 Int

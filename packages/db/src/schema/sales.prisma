@@ -84,7 +84,6 @@ model SalesOrders {
     salesRep          Users?                           @relation(name: "salesRep", fields: [salesRepId], references: [id])
     shippingAddress   AddressBooks?                    @relation(name: "shippingAddress", fields: [shippingAddressId], references: [id])
     stat              SalesStat[]
-    // supplies          SalesItemSupply[]
     extraCosts        SalesExtraCosts[]
     squarePayOrders   SquarePaymentOrders[]
     payrolls          Payroll[]
