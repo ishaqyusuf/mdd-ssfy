@@ -3,6 +3,7 @@ import type {
   ItemControl,
   ItemControlData,
   ItemControlTypes,
+  Qty,
   QtyControlByType,
   QtyControlType,
   SalesDispatchStatus,
@@ -12,13 +13,6 @@ import { percent, sum } from "@gnd/utils";
 import { isEqual } from "lodash";
 import { qtyControlsByType } from "./sales";
 
-export interface Qty {
-  lh?;
-  rh?;
-  qty?;
-  noHandle?: boolean;
-}
-
 export const composeQtyMatrix = (rh, lh, qty) => {
   if (!qty || rh || lh) qty = sum([rh, lh]);
   return { rh, lh, qty, noHandle: !rh && !lh };
@@ -26,23 +20,24 @@ export const composeQtyMatrix = (rh, lh, qty) => {
 export function qtyMatrixDifference(a: Qty, b: Qty) {
   let res: Qty = {
     noHandle: a.noHandle,
-  };
+  } as any;
   ["rh", "lh", "qty"].map((k) => (res[k] = sum([a[k], b[k] * -1])));
   return res;
 }
-export function qtyMatrixSum(...qties: Qty[]) {
-  if (!qties) return {};
+export function qtyMatrixSum(...qties: Qty[]): Qty {
+  if (!qties) return {} as any;
   let res: Qty = {
-    noHandle: qties?.[0]?.noHandle,
-  };
+    noHandle: !!qties?.[0]?.noHandle,
+  } as any;
   qties?.map((a) => {
     ["rh", "lh", "qty"].map((k) => (res[k] = sum([a[k], res[k]])));
     return res;
   });
   return res;
 }
+
 export function transformQtyHandle({ lhQty: lh, rhQty: rh, qty }): Qty {
-  return { lh, rh, qty };
+  return { lh, rh, qty, noHandle: !rh && !lh };
 }
 export function laborRate(rate, override) {
   return override ?? (override === 0 ? 0 : rate);

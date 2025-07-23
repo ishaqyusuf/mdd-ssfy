@@ -1,6 +1,6 @@
 import type { Prisma } from "@gnd/db";
 import type { getItemStatConfig } from "./utils/sales";
-import type { composeSalesItemControlStat, Qty } from "./utils/sales-control";
+import type { composeSalesItemControlStat } from "./utils/sales-control";
 
 // import type { IconKeys } from "@ui/components/custom/icons";
 export type PageDataMeta = {
@@ -155,6 +155,12 @@ export type SalesSettingsMeta = {
   };
 };
 export type SettingType = "sales-settings" | "install-price-chart";
+export type Qty = {
+  lh?;
+  rh?;
+  qty;
+  noHandle?: boolean;
+};
 export interface ItemControlData {
   title: string;
   // produceable?: boolean;
@@ -175,6 +181,9 @@ export interface ItemControlData {
   salesId?: number;
   primary?: boolean;
   qty: Qty;
+  // __qty: {
+  //   id: number
+  // };
   // assigned?: Qty;
   // produced?: Qty;
   // pending?: {
@@ -201,7 +210,7 @@ export interface DykeSalesDoorMeta {
 }
 export interface ItemStatConfigProps {
   isDyke?: boolean;
-  qty?;
+  qty?: Qty;
   formSteps;
   setting: SalesSettingsMeta;
   dykeProduction?: boolean;

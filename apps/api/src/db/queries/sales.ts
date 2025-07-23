@@ -16,7 +16,6 @@ import type {
 import {
   FullSalesSelect,
   getItemStatConfig,
-  SalesIncludeAll,
   SalesListInclude,
 } from "@api/utils/sales";
 import { getSalesSetting } from "./settings";
@@ -208,7 +207,7 @@ export async function getSalesLifeCycle(
         isDyke: !!order.isDyke,
         formSteps: baseItem.formSteps,
         setting: setting.data,
-        qty: baseItem.qty,
+        // qty: baseItem.qty,
         dykeProduction: baseItem.dykeProduction,
         swing: baseItem.swing,
         prodOverride: item.prodOverride,
@@ -247,6 +246,7 @@ export async function getSalesLifeCycle(
       ]
         ?.filter(Boolean)
         .join(" | ");
+
       items.push(item);
     }
     const itemIndex = (item.meta as any as SalesItemMeta)?.lineIndex;
@@ -268,6 +268,7 @@ export async function getSalesLifeCycle(
         controlUid,
         qty: {
           qty: item.qty,
+          noHandle: true,
         },
         hptId: hpt?.id,
         sectionTitle,
@@ -330,6 +331,7 @@ export async function getSalesLifeCycle(
         });
     })
   );
+  // items[0]?.qty.
   return {
     items,
     orderNo: order.orderId,

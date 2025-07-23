@@ -17,6 +17,7 @@ import z from "zod";
 import { getSalesOverviewAction } from "@/actions/get-sales-overview";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
+import { RouterOutputs } from "@api/trpc/routers/_app";
 
 const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
     createContextFactory(function () {
@@ -116,12 +117,14 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
                 },
             ),
         );
+        // (property) qty?: unknown
+        // const data2 = data as RouterOutputs['sales']['productionOverview']
+        data?.items?.[0]?.qty.qty;
         useEffect(() => {
             if (!ctx.refreshTok) return;
             refetch();
         }, [ctx.refreshTok]);
         const [selections, setSelections] = useState({});
-
         return {
             selections,
             setSelections,
