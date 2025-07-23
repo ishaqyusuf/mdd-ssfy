@@ -15,9 +15,6 @@ model OrderDelivery {
     order        SalesOrders         @relation(fields: [salesOrderId], references: [id])
     driver       Users?              @relation(name: "driver", fields: [driverId], references: [id])
     createdBy    Users?              @relation(name: "createdBy", fields: [createdById], references: [id])
-    // orderDeliveryProgress   OrderDeliveryProgress? @relation(fields: [orderDeliveryProgressId], references: [id])
-    // orderDeliveryProgressId Int?
-    // @@index([orderDeliveryProgressId])
 
     @@index([salesOrderId])
     @@index([driverId])
