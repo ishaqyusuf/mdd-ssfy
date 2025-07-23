@@ -468,17 +468,28 @@ export function whereSales(query: SalesQueryParamsSchema) {
   switch (query["dispatch.status"]) {
     case "pending":
       where.push({
-        stat: {
-          some: {
-            total: {
-              gt: 0,
-            },
-            type: "dispatchCompleted" as QtyControlType,
-            percentage: {
-              lt: 100,
+        OR: [
+          {
+            stat: {
+              some: {
+                total: {
+                  gt: 0,
+                },
+                type: "dispatchCompleted" as QtyControlType,
+                percentage: {
+                  lt: 100,
+                },
+              },
             },
           },
-        },
+          {
+            stat: {
+              none: {
+                type: "dispatchCompleted" as QtyControlType,
+              },
+            },
+          },
+        ],
       });
       break;
     case "completed":

@@ -44,7 +44,7 @@ const { useContext: useDispatch, Provider: DispatchProvider } =
             trpc.hrm.getDrivers.queryOptions({}),
         );
         const { data, refetch } = useQuery(
-            trpc.dispatch.dispatchOverview.queryOptions(
+            trpc.dispatch.orderDispatchOverview.queryOptions(
                 {
                     salesNo: ctx.params["sales-overview-id"],
                 },

@@ -90,6 +90,7 @@ export type GetFullSalesDataSchema = z.infer<typeof getFullSalesDataSchema>;
 export const salesDispatchOverviewSchema = z
   .object({
     driverId: z.number().nullable().optional(),
+    dispatchId: z.number().nullable().optional(),
   })
   .merge(getFullSalesDataSchema);
 export type SalesDispatchOverviewSchema = z.infer<

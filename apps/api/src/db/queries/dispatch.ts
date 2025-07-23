@@ -276,3 +276,14 @@ export async function getSalesDispatchOverview(
     },
   };
 }
+export async function getDispatchOverview(
+  ctx: TRPCContext,
+  query: SalesDispatchOverviewSchema
+) {
+  const result = await getSalesDispatchOverview(ctx, query);
+  const dispatch = result.deliveries.find((d) => d.id === query.dispatchId);
+  result.dispatchables;
+  return {
+    dispatch,
+  };
+}

@@ -259,7 +259,12 @@ export const FullSalesSelect = {
   orderId: true,
   isDyke: true,
   id: true,
-
+  customer: true,
+  shippingAddress: {
+    include: {
+      region: true,
+    },
+  },
   deliveries: {
     where: {
       deletedAt: null,

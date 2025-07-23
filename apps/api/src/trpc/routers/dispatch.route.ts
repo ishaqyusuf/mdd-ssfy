@@ -6,6 +6,7 @@ import {
 } from "@api/schemas/sales";
 import {
   getDispatches,
+  getDispatchOverview,
   getSalesDeliveryInfo,
   getSalesDispatchOverview,
   updateSalesDeliveryOption,
@@ -38,9 +39,14 @@ export const dispatchRouters = createTRPCRouter({
     .query(async (props) => {
       return getSalesDeliveryInfo(props.ctx, props.input.salesId);
     }),
-  dispatchOverview: publicProcedure
+  orderDispatchOverview: publicProcedure
     .input(salesDispatchOverviewSchema)
     .query(async (props) => {
       return getSalesDispatchOverview(props.ctx, props.input);
+    }),
+  dispatchOverview: publicProcedure
+    .input(salesDispatchOverviewSchema)
+    .query(async (props) => {
+      return getDispatchOverview(props.ctx, props.input);
     }),
 });

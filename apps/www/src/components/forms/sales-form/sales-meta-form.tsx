@@ -10,7 +10,7 @@ import { FormSelectProps } from "@/components/common/controls/form-select";
 import { NumberInput } from "@/components/currency-input";
 import { LabelInput } from "@/components/label-input";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { cn, generateRandomString } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { NumericFormatProps } from "react-number-format";
 
 import { Button } from "@gnd/ui/button";

@@ -14,6 +14,7 @@ import Button from "@/components/common/button";
 
 import { toast } from "sonner";
 import { parseAsBoolean, useQueryStates } from "nuqs";
+import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 
 interface Props {
     type: "button" | "menu";
@@ -25,6 +26,7 @@ export function SalesFormSave({ type = "button", and }: Props) {
     });
     const zus = useFormDataStore();
     const router = useRouter();
+    const sq = useSalesQueryClient();
     async function save(action: "new" | "close" | "default" = "default") {
         const { kvFormItem, kvStepForm, metaData, sequence } = zus;
         const restoreMode = params.restoreMode;
@@ -49,6 +51,9 @@ export function SalesFormSave({ type = "button", and }: Props) {
         if (s?.updateId) triggerEvent("salesUpdated", s?.id);
         else triggerEvent("salesCreated", s?.id);
         await updateSalesExtraCosts(resp.salesId, zus.metaData?.extraCosts);
+        metaData?.type == "order"
+            ? sq?.invalidate.salesList()
+            : sq?.invalidate?.quoteList();
         switch (action) {
             case "close":
                 router.push(`/sales-book/${metaData.type}s`);

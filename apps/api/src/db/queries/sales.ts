@@ -331,7 +331,7 @@ export async function getSalesLifeCycle(
         });
     })
   );
-  // items[0]?.qty.
+
   return {
     items,
     orderNo: order.orderId,
