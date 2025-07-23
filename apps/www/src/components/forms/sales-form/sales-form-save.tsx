@@ -11,7 +11,7 @@ import { zhInitializeState } from "@/app/(clean-code)/(sales)/sales-book/(form)/
 import { Icons } from "@/components/_v1/icons";
 import { Menu } from "@/components/(clean-code)/menu";
 import Button from "@/components/common/button";
-import { useSalesFormFeatureParams } from "@/hooks/use-sales-form-feature-params";
+
 import { toast } from "sonner";
 import { parseAsBoolean, useQueryStates } from "nuqs";
 
@@ -25,7 +25,6 @@ export function SalesFormSave({ type = "button", and }: Props) {
     });
     const zus = useFormDataStore();
     const router = useRouter();
-    const newInterfaceQuery = useSalesFormFeatureParams();
     async function save(action: "new" | "close" | "default" = "default") {
         const { kvFormItem, kvStepForm, metaData, sequence } = zus;
         const restoreMode = params.restoreMode;
@@ -36,7 +35,7 @@ export function SalesFormSave({ type = "button", and }: Props) {
                 metaData,
                 sequence,
                 saveAction: action,
-                newFeature: !newInterfaceQuery?.params?.legacyMode,
+                newFeature: true,
             },
             zus.oldFormState,
             {
