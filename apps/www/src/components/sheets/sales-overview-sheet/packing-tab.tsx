@@ -2,6 +2,7 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useQuery } from "@tanstack/react-query";
 import { Suspense, useEffect } from "react";
 import { PackingTabSkeleton } from "./packing-tab.skeleton";
+import { PackingOrderInformation } from "@/components/packing-order-information";
 
 export function PackingTab({}) {
     const query = useSalesOverviewQuery();
@@ -21,6 +22,10 @@ export function PackingTab({}) {
         console.log(data);
     }, [data]);
     if (isLoading) return <PackingTabSkeleton />;
-    return <div></div>;
+    return (
+        <div>
+            <PackingOrderInformation data={data} />
+        </div>
+    );
 }
 

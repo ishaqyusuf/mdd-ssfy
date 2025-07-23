@@ -27,7 +27,7 @@ export function qtyMatrixDifference(a: Qty, b: Qty) {
 export function qtyMatrixSum(...qties: Qty[]): Qty {
   if (!qties) return {} as any;
   let res: Qty = {
-    noHandle: !!qties?.[0]?.noHandle,
+    noHandle: !!qties?.every((a) => !a.noHandle),
   } as any;
   qties?.map((a) => {
     ["rh", "lh", "qty"].map((k) => (res[k] = sum([a[k], res[k]])));

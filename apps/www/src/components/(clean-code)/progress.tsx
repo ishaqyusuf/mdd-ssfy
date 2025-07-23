@@ -1,6 +1,8 @@
 import { Colors, getColorFromName } from "@/lib/color";
 import { cn } from "@/lib/utils";
 
+import { Progress as BaseProgress } from "@gnd/ui/progress";
+import { percent } from "@gnd/utils";
 interface ProgressBaseProps {
     children?;
     className?;
@@ -43,11 +45,32 @@ function Status({ children, noDot }: StatusProps) {
 interface ProgressBarProps {
     children?;
     className?;
+    score;
+    total;
+    showPercent?: boolean;
+    label?: string;
 }
-function ProgressBar({ children, className }: ProgressBarProps) {
-    return <div className={cn(className)}>{children}</div>;
+function ProgressBar({
+    children,
+    className,
+    showPercent,
+    label,
+    score,
+    total,
+}: ProgressBarProps) {
+    const value = percent(score, total, 12);
+    return (
+        <div className={cn(className)}>
+            <div className="flex justify-between">
+                <div>{label ? `${score} of ${total} ${label}` : ""}</div>
+                <div>{showPercent ? `${value}%` : null}</div>
+            </div>
+            <BaseProgress className="h-2" value={value} />
+        </div>
+    );
 }
 export const Progress = Object.assign(ProgressBase, {
     Status,
     ProgressBar,
+    Progress: BaseProgress,
 });

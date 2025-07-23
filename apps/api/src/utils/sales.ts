@@ -260,6 +260,7 @@ export const FullSalesSelect = {
   isDyke: true,
   id: true,
   customer: true,
+  createdAt: true,
   shippingAddress: {
     include: {
       region: true,
@@ -297,6 +298,7 @@ export const FullSalesSelect = {
           rhQty: true,
           orderProductionSubmissionId: true,
           status: true,
+          createdAt: true,
         },
       },
     },

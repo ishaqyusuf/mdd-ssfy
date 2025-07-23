@@ -6,12 +6,7 @@ import type {
   UpdateSalesDeliveryOptionSchema,
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
-import type {
-  ItemControlData,
-  QtyControlType,
-  SalesMeta,
-  SalesType,
-} from "@api/type";
+import type { ItemControlData, QtyControlType } from "@api/type";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import { getSalesLifeCycle } from "./sales";
@@ -20,7 +15,9 @@ import {
   laborRate,
   qtyMatrixDifference,
   qtyMatrixSum,
+  transformQtyHandle,
 } from "@api/utils/sales-control";
+import { padStart } from "lodash";
 
 export async function getDispatches(
   ctx: TRPCContext,
@@ -242,6 +239,7 @@ export async function getSalesDispatchOverview(
     delivery.driver;
     return {
       ...delivery,
+      dispatchNumber: `DISP-${padStart(delivery.id?.toString(), 5, "0")}`,
       items: delivery.items.map((item) => {
         const _item = overview.items.find((i) =>
           i?.analytics?.submissionIds.includes(
@@ -251,7 +249,6 @@ export async function getSalesDispatchOverview(
         const { controlUid, title, sectionTitle, subtitle } = _item || {};
         return {
           ...item,
-
           item: {
             controlUid,
             title,
@@ -283,8 +280,43 @@ export async function getDispatchOverview(
   const result = await getSalesDispatchOverview(ctx, query);
   const dispatch = result.deliveries.find((d) => d.id === query.dispatchId);
   const address = result.order.shippingAddress;
+  const order = result.order;
   return {
     dispatch,
+    dispatchItems: result.order.itemControls.map((item) => {
+      const listedItems = dispatch?.items.filter(
+        (a) => a.item?.controlUid == item.uid
+      );
+      const trs = listedItems?.map(transformQtyHandle);
+      const listedQty = qtyMatrixSum(trs ? trs : ([] as any));
+
+      const dispatchable = result.dispatchables.find((d) => d.uid === item.uid);
+      const availableQty = dispatchable?.availableQty!;
+      const totalQty = qtyMatrixSum([
+        availableQty,
+        listedQty,
+        ...(dispatchable?.pendingSubmissions?.map((a) => a.qty) || []),
+      ] as any);
+      // get the following data:
+      return {
+        title: item.title,
+        uid: item.uid,
+        availableQty,
+        listedQty,
+        totalQty,
+        packingHistory: listedItems?.map((a) => ({
+          qty: a.qty,
+          date: a.createdAt,
+          note: "",
+          packedBy: "me",
+        })),
+      };
+    }),
     address,
+    // scheduleDate: dispatch?.dueDate,
+    order: {
+      orderId: order.orderId,
+      date: order.createdAt,
+    },
   };
 }
