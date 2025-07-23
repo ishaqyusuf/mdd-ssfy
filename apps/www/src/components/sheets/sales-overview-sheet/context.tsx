@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 
 import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-users";
-import { getSalesDispatchDataAction } from "@/actions/get-sales-dispatch-data";
 
 import {
     createSalesDispatchItemsSchema,
@@ -43,14 +42,20 @@ const { useContext: useDispatch, Provider: DispatchProvider } =
         const { data: drivers } = useQuery(
             trpc.hrm.getDrivers.queryOptions({}),
         );
-        const loader = async () => {
-            await timeout(100);
-            const res = await getSalesDispatchDataAction(
-                ctx.params["sales-overview-id"],
-            );
-            return res;
-        };
-        const data = useAsyncMemo(loader, [ctx.refreshTok]);
+        const { data, refetch } = useQuery(
+            trpc.dispatch.dispatchOverview.queryOptions(
+                {
+                    salesNo: ctx.params["sales-overview-id"],
+                },
+                {
+                    enabled: !!ctx.params["sales-overview-id"],
+                },
+            ),
+        );
+        useEffect(() => {
+            if (!ctx.refreshTok) return;
+            refetch();
+        }, [ctx.refreshTok]);
         const [openForm, setOpenForm] = useState(false);
         const bachWorker = useSalesControlAction({
             onFinish() {},

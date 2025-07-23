@@ -44,6 +44,10 @@ export function qtyMatrixSum(...qties: Qty[]) {
 export function transformQtyHandle({ lhQty: lh, rhQty: rh, qty }): Qty {
   return { lh, rh, qty };
 }
+export function laborRate(rate, override) {
+  return override ?? (override === 0 ? 0 : rate);
+}
+
 export function negativeQty({ lh, rh, qty, ...rest }: Qty): Qty {
   return {
     ...rest,

@@ -81,17 +81,17 @@ export const salesDashboardFilterSchema = z.object({
   to: z.string().optional(),
 });
 
-export const salesDispatchOverviewSchema = z.object({
-  salesId: z.number(),
-  driverId: z.number().nullable().optional(),
-});
-export type SalesDispatchOverviewSchema = z.infer<
-  typeof salesDispatchOverviewSchema
->;
-
 export const getFullSalesDataSchema = z.object({
   salesId: z.number().optional().nullable(),
   salesNo: z.string().optional().nullable(),
   assignedToId: z.number().optional().nullable(),
 });
 export type GetFullSalesDataSchema = z.infer<typeof getFullSalesDataSchema>;
+export const salesDispatchOverviewSchema = z
+  .object({
+    driverId: z.number().nullable().optional(),
+  })
+  .merge(getFullSalesDataSchema);
+export type SalesDispatchOverviewSchema = z.infer<
+  typeof salesDispatchOverviewSchema
+>;
