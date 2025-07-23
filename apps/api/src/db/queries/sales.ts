@@ -33,7 +33,7 @@ export async function getSales(
   ctx: TRPCContext,
   query: SalesQueryParamsSchema
 ) {
-  query.salesType = "order";
+  if (!query.salesType) query.salesType = "order";
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,
