@@ -1,4 +1,3 @@
-import { useState } from "react";
 import Link from "@/components/link";
 import { Menu } from "@/components/(clean-code)/menu";
 import { _modal } from "@/components/common/modal/provider";

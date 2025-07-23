@@ -1,5 +1,5 @@
 import { ArchiveIcon } from "@radix-ui/react-icons";
-import { FaXTwitter } from "react-icons/fa6";
+import { FaFacebook, FaInstagram, FaXTwitter } from "react-icons/fa6";
 import { FiGithub } from "react-icons/fi";
 import {
   MdAdd,
@@ -263,6 +263,8 @@ export const Icons = {
     </svg>
   ),
   X: FaXTwitter,
+  Facebook: FaFacebook,
+  Instagram: FaInstagram,
   Discord: PiDiscordLogo,
   GithubOutline: FiGithub,
   Apple: (props: any) => (
@@ -429,7 +431,7 @@ export const Icons = {
       />
     </svg>
   ),
-  FileDocument: (props) => (
+  FileDocument: (props: any) => (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width={24}

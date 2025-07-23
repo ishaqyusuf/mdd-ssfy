@@ -1,4 +1,3 @@
-import { openSalesOverview } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet.bin";
 import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";

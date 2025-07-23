@@ -177,7 +177,7 @@ export async function getSalesLifeCycle(
   ctx: TRPCContext,
   params: GetFullSalesDataSchema
 ) {
-  const { assignedToId, salesId, salesNo } = params;
+  const { assignedToId } = params;
   let select = FullSalesSelect;
   if (params.assignedToId)
     select.assignments.where.assignedToId = params.assignedToId as any;

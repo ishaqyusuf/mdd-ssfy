@@ -4,15 +4,12 @@ import Link from "@/components/link";
 
 import { Icons } from "@/components/_v1/icons";
 import { DataTable } from "@/components/(clean-code)/data-table";
-import { DataTableFilterCommand } from "@/components/(clean-code)/data-table/filter-command";
 import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/infinity/data-table-toolbar";
 import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
 import { _modal } from "@/components/common/modal/provider";
-import { isProdClient } from "@/lib/is-prod";
 
 import { Button } from "@gnd/ui/button";
 
-import { openQuoteOVerview } from "../../../_common/_components/sales-overview-sheet.bin";
 import { __filters } from "../../../_common/utils/contants";
 import { QuotesCell } from "./quotes-page-cells";
 import { MiddaySearchFilter } from "@/components/midday-search-filter/search-filter";

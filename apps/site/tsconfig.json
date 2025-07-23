@@ -1,35 +1,26 @@
 {
-  "extends": "@gnd/tsconfig/base.json",
+  "extends": "@gnd/tsconfig/nextjs.json",
   "compilerOptions": {
+    "target": "es2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "contentlayer/generated": [
-        "./.contentlayer/generated"
-      ]
+      "@/*": ["./src/*"],
+      "@api/*": ["../api/src/*"],
+      "@engine/*": ["../engine/src/*"],
+      "@jobs/*": ["../../packages/jobs/src/*"]
     },
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
-    "allowJs": true,
-    "noEmit": true,
-    "jsx": "preserve"
+    "strict": false,
+    "noImplicitAny": false
   },
   "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "../../types",
     "next-env.d.ts",
-    ".next/types/**/*.ts",
-    "*.ts",
-    "*.tsx",
-    "*.mjs",
-    "src",
-    "contentlayer.config.ts"
+    "next.config.js",
+    "tailwind.config.ts",
+    ".next/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules", ".next"]
 }

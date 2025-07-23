@@ -282,8 +282,9 @@ export async function getDispatchOverview(
 ) {
   const result = await getSalesDispatchOverview(ctx, query);
   const dispatch = result.deliveries.find((d) => d.id === query.dispatchId);
-  result.dispatchables;
+  const address = result.order.shippingAddress;
   return {
     dispatch,
+    address,
   };
 }

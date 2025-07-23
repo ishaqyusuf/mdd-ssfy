@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import { refreshTabData } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet.bin/helper";
-import { salesOverviewStore } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet.bin/store";
+import { useState } from "react";
+
 import { assignAllPendingToProductionAction } from "@/app/(clean-code)/(sales)/_common/data-actions/production-actions/batch-action";
 import { getSalesProdWorkersAsSelectOption } from "@/app/(clean-code)/(sales)/_common/use-case/sales-prod-workers-use-case";
 import { Icons } from "@/components/_v1/icons";
@@ -23,7 +22,7 @@ import { TabFloatingAction } from "./tab-floating-action";
 
 export function BatchAssignActionMenu() {
     const ctx = useSalesOverviewItemsTab();
-    const store = salesOverviewStore();
+    // const store = salesOverviewStore();
     return (
         <>
             <Menu.Item
@@ -37,7 +36,7 @@ export function BatchAssignActionMenu() {
                                 // );
                                 // ctx.form.setValue("selectMode", true);
 
-                                const selections = store.itemOverview.items
+                                const selections = ctx?.items
                                     .filter(
                                         (a) =>
                                             a.produceable &&
@@ -129,7 +128,7 @@ export function BatchAssignAction() {
 function AssignBtn() {
     const form = useFormContext();
     const ctx = useSalesOverviewItemsTab();
-    const store = salesOverviewStore();
+    // const store = salesOverviewStore();
 
     async function onSubmit() {
         const { dueDate, assignedToId } = form.getValues();
@@ -143,7 +142,7 @@ function AssignBtn() {
         );
         await assignAllPendingToProductionAction(
             {
-                salesId: store.overview.id,
+                salesId: ctx?.store.overview.id,
                 dueDate,
                 assignedToId,
                 controlIds: ctx.selections?.map((a) => a.itemUid),
@@ -151,7 +150,7 @@ function AssignBtn() {
             true,
         );
         toast.success("Assigned to production");
-        refreshTabData("items");
+
         ctx.form.reset({
             batchAction: null,
             selectMode: false,

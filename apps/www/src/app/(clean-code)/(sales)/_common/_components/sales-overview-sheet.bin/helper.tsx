@@ -15,7 +15,7 @@ interface LoadPageDataProps {
 export const loaders: Partial<{ [k in keyof Data]: any }> = {
     overview: async () => {
         await validateSalesStatControlAction(
-            salesOverviewStore.getState().salesId
+            salesOverviewStore.getState().salesId,
         );
         return loadSalesOverviewAction(salesOverviewStore.getState().salesId);
     },
@@ -42,7 +42,7 @@ export const tabLoaders: Partial<{ [k in SalesTabs]: (keyof Data)[] }> = {
 export const getOpenItem = () => {
     const state = salesOverviewStore.getState();
     return state?.itemOverview?.items?.find(
-        (item) => item.itemControlUid == state?.itemViewId
+        (item) => item.itemControlUid == state?.itemViewId,
     );
 };
 export const getPendingAssignments = () => {
@@ -71,15 +71,15 @@ export const getPendingAssignments = () => {
     return { forms, data };
 };
 export async function refreshTabData(tab: SalesTabs) {
-    await Promise.all(
-        tabLoaders?.[tab]?.map(
-            async (dataKey) => await loadPageData({ dataKey, reload: true })
-        )
-    );
+    // await Promise.all(
+    //     tabLoaders?.[tab]?.map(
+    //         async (dataKey) => await loadPageData({ dataKey, reload: true })
+    //     )
+    // );
 }
 
 export async function loadPageData({ dataKey, reload }: LoadPageDataProps) {
-    const loadFn = loaders[dataKey];
+    const loadFn = loaders[dataKey as any];
     const store = salesOverviewStore.getState();
     if (store.tabPageLoading && store.tabPageLoadingTitle == dataKey) return;
     if (store[dataKey as any] && !reload) {
