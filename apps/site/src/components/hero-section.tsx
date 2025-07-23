@@ -1,16 +1,47 @@
 import { Button } from "@gnd/ui/button";
+import Image from "next/image";
 import Link from "next/link";
 
 export function HeroSection() {
+  const images = [
+    "https://gndmillwork.com/wp-content/uploads/2020/07/interior-bedroom-door-with-modern-home-luxury-mia-vetro-modern-interior-door-wenge.jpg",
+    "https://gndmillwork.com/wp-content/uploads/2020/07/modern-doors-fashion_C2en_1252.jpg",
+    "https://gndmillwork.com/wp-content/uploads/2020/07/solutions-sliding_doors-02.jpg",
+  ];
+
   return (
-    <section className="relative h-[80vh] w-full overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-      <img
-        src="/placeholder.svg"
-        alt="Hero Background"
-        className="h-full w-full object-cover"
-      />
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white">
+    <section className="relative h-[150vh] w-full overflow-hidden">
+      <div className="absolute inset-0 bg-black/60" />
+      <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-2">
+        <div className="col-span-1 row-span-1 relative">
+          <Image
+            src={images[0]}
+            alt="Hero Background 1"
+            layout="fill"
+            objectFit="cover"
+            className="rounded-lg"
+          />
+        </div>
+        <div className="col-span-1 row-span-1 relative">
+          <Image
+            src={images[1]}
+            alt="Hero Background 2"
+            layout="fill"
+            objectFit="cover"
+            className="rounded-lg"
+          />
+        </div>
+        <div className="col-span-2 row-span-1 relative">
+          <Image
+            src={images[2]}
+            alt="Hero Background 3"
+            layout="fill"
+            objectFit="cover"
+            className="rounded-lg"
+          />
+        </div>
+      </div>
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center text-gray-900">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
           Get Any Door Custom Design
         </h1>

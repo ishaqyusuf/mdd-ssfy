@@ -1,20 +1,12 @@
-import "@/styles/globals.css";
-import "@gnd/ui/globals.css";
+import { SiteHeader } from "@/components/site-header";
 
-import { Inter as FontSans } from "next/font/google";
-import localFont from "next/font/local";
+import "@gnd/ui/globals.css";
 
 import { cn } from "@gnd/ui/cn";
 
-const fontSans = FontSans({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
-
-const fontHeading = localFont({
-  src: "../styles/fonts/CalSans-SemiBold.woff2",
-  variable: "--font-heading",
-});
+import { TRPCReactProvider } from "@/trpc/client";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { GlobalModals } from "@/components/modals/global-modals";
 
 export default function RootLayout({
   children,
@@ -24,14 +16,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head />
-      <body
-        className={cn(
-          "min-h-screen bg-background font-sans antialiased",
-          fontSans.variable,
-          fontHeading.variable
-        )}
-      >
-        {children}
+
+      <body className={cn("min-h-screen bg-background font-sans antialiased")}>
+        <NuqsAdapter>
+          <TRPCReactProvider>
+            <SiteHeader />
+            {children}
+            <GlobalModals />
+          </TRPCReactProvider>
+        </NuqsAdapter>
       </body>
     </html>
   );

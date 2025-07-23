@@ -1,7 +1,12 @@
-import baseConfig from "@gnd/tailwind-config";
+import baseConfig from "@gnd/ui/tailwind.config";
 import type { Config } from "tailwindcss";
 
 export default {
-  content: [...baseConfig.content, "../../packages/ui/src/**/*.{ts,tsx}"],
-  presets: [baseConfig],
+    content: [
+        "./src/**/*.{ts,tsx}",
+        "../../packages/ui/src/**/*.{ts,tsx}",
+        "../../packages/invoice/src/**/*.{ts,tsx}",
+    ],
+    presets: [baseConfig],
+    plugins: [],
 } satisfies Config;

@@ -1,85 +1,188 @@
 @tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+/* @tailwind components; */
+/* @tailwind utilities; */
 @layer base {
-  :root {
-    --background: 0deg 0% 100%;
-    --foreground: 222.2deg 47.4% 11.2%;
+    :root {
+        --background: 0, 0%, 100%;
+        --foreground: 0, 0%, 7%;
+        --card: 45 18% 96%;
+        --card-foreground: 240 10% 3.9%;
+        --popover: 45 18% 96%;
+        --popover-foreground: 240 10% 3.9%;
+        --primary: 240 5.9% 10%;
+        --primary-foreground: 0 0% 98%;
+        --secondary: 40, 11%, 89%;
+        --secondary-foreground: 240 5.9% 10%;
+        --muted: 40, 11%, 89%;
+        --muted-foreground: 240 3.8% 46.1%;
+        --accent: 40, 10%, 94%;
+        --accent-foreground: 240 5.9% 10%;
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 0 0% 98%;
+        --muted-foreground: 0, 0%, 38%;
+        --border: 45, 5%, 85%;
+        --input: 240 5.9% 90%;
+        --ring: 240 5.9% 10%;
+        --radius: 0.5rem;
+    }
 
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
+    .dark {
+        --background: 0, 0%, 7%;
+        --foreground: 0 0% 98%;
+        --card: 0, 0%, 7%;
+        --card-foreground: 0 0% 98%;
+        --popover: 0, 0%, 7%;
+        --popover-foreground: 0 0% 98%;
+        --primary: 0 0% 98%;
+        --primary-foreground: 240 5.9% 10%;
+        --secondary: 0, 0%, 11%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 0, 0%, 11%;
+        --muted-foreground: 240 5% 64.9%;
+        --accent: 0, 0%, 11%;
+        --accent-foreground: 0 0% 98%;
+        --destructive: 359, 100%, 61%;
+        --destructive-foreground: 0, 0%, 100%;
+        --muted-foreground: 0, 0%, 38%;
+        --border: 0, 0%, 17%;
+        --input: 0, 0%, 11%;
+        --ring: 240 4.9% 83.9%;
+    }
+}
+.data-highlighted\:text-accent-foreground[data-highlighted] {
+    color: var(--accent-foreground);
+}
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+table#invoiceFooter tr {
+    @apply hover:bg-inherit !important;
+}
 
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
+#floatingFooter table th {
+    height: unset;
+    @apply px-0;
+}
+#unitModelForm tbody td {
+    @apply p-0.5;
+}
+.printly td,
+.printly tr,
+.printly th {
+    @apply min-h-[20px] border-slate-300;
+}
 
-    --card: 0deg 0% 100%;
-    --card-foreground: 222.2deg 47.4% 11.2%;
+#assignmentModal th {
+    @apply h-8 px-2;
+}
+#assignmentModal td {
+    @apply p-2;
+}
+#assignmentModal tr {
+    @apply hover:bg-transparent;
+}
+section.content {
+    @apply p-4 sm:p-8;
+}
+#housePackageTable td,
+#housePackageTable th {
+    @apply p-1;
+}
+table.size-sm td {
+    @apply p-2;
+}
+.printly .text-primary {
+    @apply text-black/90;
+}
 
-    --primary: 222.2deg 47.4% 11.2%;
-    --primary-foreground: 210deg 40% 98%;
+.side-modal-rounded-h-content {
+    @apply h-screen sm:h-[calc(95vh)] lg:h-[calc(95vh-3vh)] !important;
+}
+.side-modal-rounded {
+    @apply flex flex-col max-sm:h-screen max-sm:overflow-hidden max-sm:p-0 lg:mx-4 lg:mt-[2.5vh] lg:h-[95vh] lg:rounded-xl !important;
+}
 
-    --secondary: 210deg 40% 96.1%;
-    --secondary-foreground: 222.2deg 47.4% 11.2%;
-
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-
-    --destructive: 0deg 100% 50%;
-    --destructive-foreground: 210deg 40% 98%;
-
-    --ring: 215deg 20.2% 65.1%;
-
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 240 10% 3.9%;
-    /* --background: 224 71% 4%; */
-    --foreground: 0 0% 98%;
-
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 0 0% 63.9%;
-
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-
-    --card: 224 71% 4%;
-    --card-foreground: 213 31% 91%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 1.2%;
-
-    --secondary: 222.2 47.4% 11.2%;
-    --secondary-foreground: 210 40% 98%;
-
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-
-    --ring: 216 34% 17%;
-
-    --radius: 0.5rem;
-  }
+table.styled thead {
+    @apply bg-muted dark:bg-muted-foreground;
+}
+table.table-sm th {
+    @apply h-auto px-2 py-2;
+}
+table.table-sm td {
+    @apply px-2 py-2;
+}
+table.styled tr,
+table.styled thead {
+    @apply border-b !important;
+}
+table.styled td.action {
+    @apply flex items-center justify-end gap-2;
 }
 
 @layer base {
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings:
-      "rlig" 1,
-      "calt" 1;
-  }
+    * {
+        @apply border-border outline-ring/50;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+}
 
-  .container {
-    @apply max-sm:px-4;
-  }
+.custom-sheet {
+}
+.watermark-text {
+    /* background-image: radial-gradient(
+        circle,
+        rgba(0, 0, 0, 0.8) 1px,
+        rgba(0, 0, 0, 0) 1px
+    ); */
+    background-image: radial-gradient(
+        circle,
+        rgba(255, 0, 0, 0.8) 1px,
+        rgba(0, 0, 0, 0) 1px
+    );
+    background-size: 2.5px 2.5px; /* Controls dot spacing */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* opacity: 0.3; Controls overall visibility */
+}
+.text-stroke {
+    color: red;
+    text-shadow:
+        -1px 1px 0 rgb(99, 45, 45),
+        1px 1px 0 rgb(99, 45, 45),
+        1px -1px 0 rgb(99, 45, 45),
+        -1px -1px 0 rgb(99, 45, 45);
+}
+input {
+    @apply outline-none focus:outline-none;
+}
+.midday input,
+.midday button,
+button.midday,
+input.midday {
+    @apply focus:rounded-none focus:border-b focus:ring-transparent;
+}
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.dark .dotted-bg {
+    background-image: radial-gradient(
+        circle at 1px 1px,
+        #232323 0.5px,
+        transparent 0
+    );
+    background-size: 6px 6px;
+}
+
+.light .dotted-bg {
+    background-size: 6px 6px;
+    background-image: radial-gradient(
+        circle at 1px 1px,
+        #e0e0e0 0.5px,
+        transparent 0
+    );
 }
