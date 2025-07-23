@@ -7,8 +7,6 @@ import { toast } from "sonner";
 import { Button } from "@gnd/ui/button";
 
 import { Icons } from "./_v1/icons";
-import { revalidateTable } from "./(clean-code)/data-table/use-infinity-data-table";
-
 export function InlineTextEditor({
     children,
     value,

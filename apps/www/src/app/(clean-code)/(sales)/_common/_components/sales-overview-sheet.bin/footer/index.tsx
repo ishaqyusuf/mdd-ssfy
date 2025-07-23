@@ -2,7 +2,6 @@ import { Env } from "@/components/env";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";
-import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import { Menu } from "@/components/(clean-code)/menu";
 
 import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
@@ -23,6 +22,7 @@ import { CopyMenuAction } from "./copy.menu.action";
 import { MoveMenuAction } from "./move.menu.action";
 import { PrintMenuAction } from "./print.menu.action";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
+import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 
 export function Footer({}) {
     const store = salesOverviewStore();
@@ -31,6 +31,7 @@ export function Footer({}) {
         sPreview.preview(store.overview?.orderId, store.overview.type as any);
     }
     const customerQuery = useCustomerOverviewQuery();
+    const sq = useSalesQueryClient();
     return (
         <div className="flex w-full gap-4 border-t py-2">
             <div className="flex-1"></div>
@@ -40,7 +41,9 @@ export function Footer({}) {
                 onClick={async () => {
                     const id = store?.salesId;
                     await deleteSalesUseCase(id);
-                    revalidateTable();
+
+                    sq.invalidate.salesList();
+                    sq.invalidate.quoteList();
                     toast("Deleted", {
                         action: {
                             label: "Undo",

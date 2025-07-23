@@ -12,7 +12,6 @@ import QueryString from "qs";
 
 import { ToastAction } from "@gnd/ui/toast";
 
-import { revalidateTable } from "./(clean-code)/data-table/use-infinity-data-table";
 import { Menu } from "./(clean-code)/menu";
 
 interface Props {

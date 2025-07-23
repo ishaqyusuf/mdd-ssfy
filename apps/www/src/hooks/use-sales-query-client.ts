@@ -10,6 +10,7 @@ export function useSalesQueryClient() {
         });
     const invalidate = {
         salesList: () => _invalidate(trpc.sales.index.infiniteQueryKey()),
+        quoteList: () => _invalidate(trpc.sales.quotes.infiniteQueryKey()),
         productionOverview: () =>
             _invalidate(trpc.sales.productionOverview.queryKey()),
         saleOverview: () => _invalidate(trpc.sales.getSaleOverview.queryKey()),
@@ -25,6 +26,9 @@ export function useSalesQueryClient() {
         },
         dispatchUpdated: () => {
             events.assignmentUpdated();
+        },
+        quoteCreated: () => {
+            invalidate.salesList();
         },
         salesCreated: () => {
             invalidate.salesList();

@@ -7,7 +7,6 @@ import {
 } from "@/app/(clean-code)/(sales)/_common/use-case/sales-use-case";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@/components/_v1/icons";
-import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import { Menu } from "@/components/(clean-code)/menu";
 import { MenuItemSalesCopy } from "@/components/menu-item-sales-copy";
 import { MenuItemSalesMove } from "@/components/menu-item-sales-move";
@@ -30,6 +29,7 @@ import { SalesType } from "@api/type";
 import { copySalesUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
+import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 
 export function GeneralFooter({}) {
     const { data } = useSaleOverview();
@@ -58,11 +58,14 @@ export function GeneralFooter({}) {
         sPreview.preview(data?.orderId, data?.type);
     }
     const loader = useLoadingToast();
+    const sq = useSalesQueryClient();
     const deleteSale = async () => {
         // const id = store?.salesId;
         loader.loading("Deleting...");
         await deleteSalesUseCase(data?.id);
-        revalidateTable();
+        data?.type == "order"
+            ? sq.invalidate.salesList()
+            : sq.invalidate.quoteList();
         loader.success("Deleted", {
             description: "Undo delete?",
             action: (
@@ -103,7 +106,9 @@ export function GeneralFooter({}) {
                     </ToastAction>
                 ),
             });
-            revalidateTable();
+            as == "order"
+                ? sq.invalidate.salesList()
+                : sq.invalidate.quoteList();
         }
     }
     return (

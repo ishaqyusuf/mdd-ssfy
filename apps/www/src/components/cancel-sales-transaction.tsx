@@ -10,19 +10,7 @@ export function CancelSalesTransactionAction({
     status,
 }) {
     const toast = useLoadingToast();
-    // const cancelTx = useAction(cancelSalesPaymentAction, {
-    //     onSuccess(args) {
-    //         toast.display({
-    //             title: "Cancelled",
-    //             duration: 2000,
-    //             variant: "destructive",
-    //         });
-    //         revalidateTable();
-    //         // skel?.load();
-    //         // onDelete?.();
-    //     },
-    //     onExecute(args) {},
-    // });
+
     function __cancel(reason) {
         // cancelTx.execute({
         //     customerTransactionId,

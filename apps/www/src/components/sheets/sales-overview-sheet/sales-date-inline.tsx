@@ -9,17 +9,18 @@ import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
 
 import { DatePicker } from "../../_v1/date-range-picker";
-import { revalidateTable } from "../../(clean-code)/data-table/use-infinity-data-table";
+import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 
 export function SalesDateInline() {
     const store = salesOverviewStore();
     const overview = store.overview;
     const [value, setValue] = useState(store.overview?.createdAt);
+    const qs = useSalesQueryClient();
     const updateSalesDate = useAction(updateSalesDateAction, {
         onSuccess(args) {
             toast.success("Date updated");
             refreshTabData(store.currentTab);
-            revalidateTable();
+            qs.salesCreated();
             setValue(args.input.newDate);
         },
         onError(e) {

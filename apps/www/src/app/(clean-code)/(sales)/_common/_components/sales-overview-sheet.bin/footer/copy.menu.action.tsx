@@ -1,7 +1,6 @@
 import { useRouter } from "next/navigation";
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import { __revalidatePath } from "@/app/(v1)/_actions/_revalidate";
-import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import { Menu } from "@/components/(clean-code)/menu";
 import { _modal } from "@/components/common/modal/provider";
 import { openLink } from "@/lib/open-link";
@@ -11,12 +10,12 @@ import { toast } from "sonner";
 
 import { copySalesUseCase } from "../../../use-case/sales-book-form-use-case";
 import { salesOverviewStore } from "../store";
+import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 
 export function CopyMenuAction({}) {
     const ctx = salesOverviewStore();
-    // const type = ctx.overview.type;
-    // const isDyke = ctx.overview.dyke;
-    // const route = useRouter();
+    const salesQuery = useSalesQueryClient();
+
     async function copyAs(as: SalesType) {
         const orderId = ctx.overview.orderId;
         const result = await copySalesUseCase(orderId, as);
@@ -30,7 +29,9 @@ export function CopyMenuAction({}) {
                     },
                 },
             });
-            revalidateTable();
+            as == "order"
+                ? salesQuery.invalidate.salesList()
+                : salesQuery.invalidate.quoteList();
         }
     }
     return (

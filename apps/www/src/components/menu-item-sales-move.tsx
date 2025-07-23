@@ -16,8 +16,8 @@ import QueryString from "qs";
 
 import { ToastAction } from "@gnd/ui/toast";
 
-import { revalidateTable } from "./(clean-code)/data-table/use-infinity-data-table";
 import { Menu } from "./(clean-code)/menu";
+import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 
 interface Props {
     type: SalesType;
@@ -28,6 +28,7 @@ interface Props {
 export function MenuItemSalesMove(props: Props) {
     const loader = useLoadingToast();
     const { type, slug, onOpenMenu } = props;
+    const sq = useSalesQueryClient();
     async function _moveSales(e) {
         e.preventDefault();
         loader.loading("Moving...");
@@ -46,7 +47,8 @@ export function MenuItemSalesMove(props: Props) {
                     </ToastAction>
                 ),
             });
-            revalidateTable();
+            sq.invalidate.salesList();
+            sq.invalidate.quoteList();
             onOpenMenu?.(false);
         }
     }

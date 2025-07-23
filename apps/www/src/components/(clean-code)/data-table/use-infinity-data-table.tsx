@@ -29,10 +29,6 @@ import { TableProps } from "./use-table-compose";
 export const ctx = {
     refetch: null,
 };
-export function revalidateTable() {
-    // if (!!ctx.refetch) return;
-    ctx?.refetch?.();
-}
 export function useInfiniteDataTableContext({
     columns,
     // data,

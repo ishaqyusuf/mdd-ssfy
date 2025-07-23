@@ -1,9 +1,5 @@
 import { getCustomerTransactionsAction } from "@/actions/get-customer-tx-action";
-import { getSalesPaymentsAction } from "@/actions/get-sales-payment";
-import { TCell } from "@/components/(clean-code)/data-table/table-cells";
-import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
-import { CancelSalesTransactionAction } from "@/components/cancel-sales-transaction";
-import { DataSkeleton } from "@/components/data-skeleton";
+
 import { EmptyState } from "@/components/empty-state";
 import { CustomerTxDataTable } from "@/components/tables/sales-accounting/table.customer-transaction";
 import {
@@ -11,20 +7,6 @@ import {
     useCreateDataSkeletonCtx,
 } from "@/hooks/use-data-skeleton";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
-import { formatDate } from "@/lib/use-day";
-import { cn } from "@/lib/utils";
-
-import { Badge } from "@gnd/ui/badge";
-import { Button } from "@gnd/ui/button";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@gnd/ui/table";
-import { useAction } from "next-safe-action/hooks";
 
 interface Props {
     accountNo?: string;

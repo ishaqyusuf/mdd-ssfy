@@ -2,12 +2,8 @@ import { useEffect, useState } from "react";
 import { cancelTerminaPaymentAction } from "@/actions/cancel-terminal-payment-action";
 import { createSalesPaymentAction } from "@/actions/create-sales-payment";
 import { getCustomerPayPortalAction } from "@/actions/get-customer-pay-portal-action";
-import {
-    getTerminalPaymentStatusAction,
-    terminalPaymentStatus,
-} from "@/actions/get-terminal-payment-status";
+import { terminalPaymentStatus } from "@/actions/get-terminal-payment-status";
 import { createPaymentSchema } from "@/actions/schema";
-import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import {
     DataSkeletonProvider,
@@ -27,6 +23,7 @@ import { z } from "zod";
 
 import { ToastAction } from "@gnd/ui/toast";
 import { useToast } from "@gnd/ui/use-toast";
+import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 
 export function usePayPortal() {
     const query = useCustomerOverviewQuery();
@@ -86,6 +83,7 @@ export function usePayPortal() {
     const pm = form.watch("paymentMethod");
     const terminalPaymentSession = form.watch("terminalPaymentSession");
     const salesQ = useSalesOverviewQuery();
+    const sq = useSalesQueryClient();
     const makePayment = useAction(createSalesPaymentAction, {
         onSuccess: (args) => {
             if (args.data?.terminalPaymentSession) {
@@ -101,7 +99,7 @@ export function usePayPortal() {
                 if (args.data.status) {
                     form.setValue("terminalPaymentSession", null);
                     toast.success("", toastDetail("payment-success"));
-                    revalidateTable();
+                    sq.invalidate.salesList();
                     query.setParams({
                         "pay-selections": null,
                         tab: "transactions",

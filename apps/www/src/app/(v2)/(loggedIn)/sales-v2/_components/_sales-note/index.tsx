@@ -23,7 +23,6 @@ import { Textarea } from "@gnd/ui/textarea";
 import { getSalesNote } from "./_actions/get-sales-notes";
 import { saveNote } from "./_actions/save-notes";
 import Note from "./note";
-import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 
 export default function SalesNotes({
     salesId,

@@ -9,16 +9,7 @@ import { formatMoney } from "@/lib/use-number";
 import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
 import { Progress } from "@/components/(clean-code)/progress";
 import { cn } from "@gnd/ui/cn";
-import { Button } from "@gnd/ui/button";
-import { Menu } from "@/components/(clean-code)/menu";
-import {
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-} from "@gnd/ui/dropdown-menu";
-import { useAction } from "next-safe-action/hooks";
-import { cancelSalesPaymentAction } from "@/actions/cancel-sales-payment";
-import { useLoadingToast } from "@/hooks/use-loading-toast";
-import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
+
 import { CancelSalesTransactionAction } from "@/components/cancel-sales-transaction";
 
 export type Item = PageItemData<typeof getCustomerTransactionsAction>;

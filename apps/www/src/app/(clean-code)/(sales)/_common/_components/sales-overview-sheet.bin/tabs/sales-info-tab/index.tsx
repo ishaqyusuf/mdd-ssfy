@@ -1,26 +1,10 @@
 import React from "react";
-import Link from "@/components/link";
-import { Env } from "@/components/env";
-import { Icons } from "@/components/_v1/icons";
-import Money from "@/components/_v1/money";
-import Button from "@/components/common/button";
+
 import { _modal } from "@/components/common/modal/provider";
-import { SalesInvoiceDueStatus } from "@/components/sales-invoice-due-status";
-import { LaborCostInline } from "@/components/sheets/sales-overview-sheet/labor-cost-inline";
-import { PoInline } from "@/components/sheets/sales-overview-sheet/po-inline";
-import { SalesDateInline } from "@/components/sheets/sales-overview-sheet/sales-date-inline";
-import { SalesDeliveryCostInline } from "@/components/sheets/sales-overview-sheet/sales-delivery-cost-inline";
+
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { cn } from "@/lib/utils";
-import Note from "@/modules/notes";
-import { noteTagFilter } from "@/modules/notes/utils";
-import { ExternalLink } from "lucide-react";
 
-import { buttonVariants } from "@gnd/ui/button";
-import { Label } from "@gnd/ui/label";
-
-import { composeSalesUrl } from "../../../../utils/sales-utils";
 import { salesOverviewStore } from "../../store";
 
 export function SalesInfoTab({}) {

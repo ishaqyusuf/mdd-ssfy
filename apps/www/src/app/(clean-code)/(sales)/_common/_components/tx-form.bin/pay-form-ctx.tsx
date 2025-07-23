@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { createPaymentSchemaOld } from "@/actions/schema";
-import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import { _modal } from "@/components/common/modal/provider";
 import { isProdClient } from "@/lib/is-prod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,7 +9,6 @@ import { toast } from "sonner";
 import {
     cancelTerminalCheckoutAction,
     checkTerminalPaymentStatusAction,
-    // createTerminalPaymentAction,
     CreateTerminalPaymentAction,
     paymentReceivedAction,
 } from "../../data-actions/sales-payment/terminal-payment.action";
@@ -19,6 +17,7 @@ import {
     getPaymentTerminalsUseCase,
 } from "../../use-case/sales-payment-use-case";
 import { txStore } from "./store";
+import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 
 export type UsePayForm = ReturnType<typeof usePayForm>;
 export const usePayForm = () => {
@@ -34,6 +33,7 @@ export const usePayForm = () => {
             enableTip: undefined,
         },
     });
+    const sq = useSalesQueryClient();
     const profile = tx.customerProfiles[tx.phoneNo];
     useEffect(() => {
         form.setValue("amount", tx.totalPay);
@@ -167,7 +167,7 @@ export const usePayForm = () => {
             squarePaymentId: data.terminal?.squarePaymentId,
             checkNo: data?.checkNo,
         });
-        revalidateTable();
+        sq.invalidate.salesList();
         _modal.close();
         toast.success("Payment Applied");
     }

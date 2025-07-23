@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { updateSalesMetaAction } from "@/actions/update-sales-meta-action";
-import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { LabelInput } from "@/components/label-input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { generateRandomString } from "@/lib/utils";
 
 export function SalesPO({ value, salesId }) {
     const ctx = useSalesOverviewQuery();
@@ -24,10 +22,8 @@ export function SalesPO({ value, salesId }) {
             updateSalesMetaAction(salesId, {
                 po: deb?.toUpperCase(),
             }).then(() => {
-                ctx.setParams({
-                    refreshTok: generateRandomString(),
-                });
-                revalidateTable();
+                ctx.salesQuery.invalidate.saleOverview();
+                ctx.salesQuery.invalidate.salesList();
             });
         }
     }, [deb, value, salesId]);

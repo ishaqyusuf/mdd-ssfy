@@ -1,6 +1,5 @@
 import { useState } from "react";
 import Link from "@/components/link";
-import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import { Menu } from "@/components/(clean-code)/menu";
 import { _modal } from "@/components/common/modal/provider";
 import { Move } from "lucide-react";
@@ -10,12 +9,14 @@ import { useToast } from "@gnd/ui/use-toast";
 
 import { moveOrderUseCase } from "../../../use-case/sales-book-form-use-case";
 import { salesOverviewStore } from "../store";
+import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 
 export function MoveMenuAction({}) {
     const ctx = salesOverviewStore();
     const type = ctx?.overview?.type;
     // const isDyke = ctx.overview.dyke;
     const { toast, dismiss, update } = useToast();
+    const sq = useSalesQueryClient();
     async function _moveSales() {
         const to = type == "order" ? "quote" : "order";
         const { id } = toast({
@@ -24,8 +25,9 @@ export function MoveMenuAction({}) {
             variant: "spinner",
         });
         const resp = await moveOrderUseCase(ctx.overview.orderId, to);
-        revalidateTable();
 
+        sq.invalidate.salesList();
+        sq.invalidate.quoteList();
         if (resp.error) {
             update(id, {
                 variant: "destructive",
