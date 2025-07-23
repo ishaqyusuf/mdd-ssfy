@@ -48,35 +48,6 @@ export function openSalesOverview(props: OpenSalesOverviewProps) {
     });
     _modal.openSheet(<SalesOverviewModal />);
 }
-export function openSalesProductionModal(props: OpenSalesOverviewProps) {
-    salesOverviewStore.getState().reset({
-        salesId: props.salesId,
-        tabs: salesTabs.admin,
-        currentTab: "items",
-        adminMode: true,
-    });
-    _modal.openSheet(<SalesOverviewModal />);
-}
-export function openDispatchModal(props: OpenSalesOverviewProps) {
-    salesOverviewStore.getState().reset({
-        salesId: props.salesId,
-        tabs: salesTabs.admin,
-        currentTab: "shipping_overview",
-        shippingViewId: props.shippingId,
-        adminMode: true,
-        showTabs: true,
-    });
-    _modal.openSheet(<SalesOverviewModal />);
-}
-export function openSalesProductionTasksModal(props: OpenSalesOverviewProps) {
-    salesOverviewStore.getState().reset({
-        salesId: props.salesId,
-        tabs: salesTabs.productionTasks,
-        currentTab: "items",
-        showTabs: true,
-    });
-    _modal.openSheet(<SalesOverviewModal />);
-}
 
 interface Props {}
 export default function SalesOverviewModal({}: Props) {
@@ -88,23 +59,6 @@ export default function SalesOverviewModal({}: Props) {
             </Modal.Pane>
         </Modal.MultiPane>
     );
-    // return (
-    //     <Modal.Content size="none" className="side-modal-rounded">
-    //         <div className="flex-1 flex">
-    //             {/* PRIMARY TAB */}
-    //             <PrimaryTab />
-    //             {/* <div className="w-[600px] flex flex-col side-modal-rounded-h-content">
-    //                 <Modal.Header title="Title" />
-    //                 <Modal.ScrollArea>
-    //                     <div className="min-h-screen bg-red-50">abc</div>
-    //                 </Modal.ScrollArea>
-    //                 <Modal.Footer>
-    //                     <div className="abc h-16 flex-1 bg-red-400">a</div>
-    //                 </Modal.Footer>
-    //             </div> */}
-    //         </div>
-    //     </Modal.Content>
-    // );
 }
 function PrimaryTab({}) {
     const store = salesOverviewStore();

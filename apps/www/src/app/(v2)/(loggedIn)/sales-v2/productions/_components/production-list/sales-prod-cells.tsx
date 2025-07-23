@@ -1,14 +1,8 @@
 "use client";
 
-import { openSalesProductionModal } from "@/app/(clean-code)/(sales)/_common/_components/sales-overview-sheet.bin";
-import {
-    MenuItem,
-    RowActionMoreMenu,
-} from "@/components/_v1/data-table/data-table-row-actions";
 import { TableCol } from "@/components/common/data-table/table-cells";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { cn, sum } from "@/lib/utils";
-import { Dot } from "lucide-react";
+import { sum } from "@/lib/utils";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";

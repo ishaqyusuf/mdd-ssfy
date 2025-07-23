@@ -53,7 +53,7 @@ function Content() {
                         salesTab: e as any,
                         "prod-item-tab": null,
                         "prod-item-view": null,
-                        refreshTok: null,
+
                         dispatchOverviewId: null,
                     });
                 }}
