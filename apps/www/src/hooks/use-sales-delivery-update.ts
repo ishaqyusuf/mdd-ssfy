@@ -1,5 +1,5 @@
 import { useTRPC } from "@/trpc/client";
-import { UpdateSalesDeliveryOptionSchema } from "@api/schemas/dispatch";
+import { UpdateSalesDeliveryOptionSchema } from "@api/schemas/sales";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface Props {

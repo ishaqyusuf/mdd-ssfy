@@ -50,6 +50,7 @@ const { useContext: useDispatch, Provider: DispatchProvider } =
                 },
                 {
                     enabled: !!ctx.params["sales-overview-id"],
+                    refetchOnMount: true,
                 },
             ),
         );

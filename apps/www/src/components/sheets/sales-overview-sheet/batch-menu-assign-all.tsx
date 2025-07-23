@@ -16,7 +16,6 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
 } from "@gnd/ui/dropdown-menu";
-import { Label } from "@gnd/ui/label";
 
 import { useProduction } from "./context";
 
