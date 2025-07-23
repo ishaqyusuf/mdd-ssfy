@@ -253,16 +253,17 @@ export function GeneralTab({}) {
                                             </p>
                                         </DataSkeleton>
                                     </div>
-                                    <div>
-                                        <p className="text-muted-foreground">
-                                            Delivery Option
-                                        </p>
-                                        {!saleData.id || (
+                                    {isQuote || (
+                                        <div>
+                                            <p className="text-muted-foreground">
+                                                Delivery Option
+                                            </p>
+
                                             <DeliveryOption
                                                 salesId={saleData.id}
                                             />
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
                                     <SalesPO
                                         salesId={saleData.id}
                                         value={saleData.poNo}
