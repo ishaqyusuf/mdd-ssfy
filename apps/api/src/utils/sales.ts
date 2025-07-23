@@ -254,3 +254,202 @@ export const SalesIncludeAll = {
   itemDeliveries: excludeDeleted,
   taxes: excludeDeleted,
 } satisfies Prisma.SalesOrdersInclude;
+export const FullSalesSelect = {
+  meta: true,
+  orderId: true,
+  isDyke: true,
+  id: true,
+
+  deliveries: {
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      status: true,
+      deliveryMode: true,
+      id: true,
+      createdBy: {
+        select: {
+          name: true,
+        },
+      },
+      driver: {
+        select: {
+          name: true,
+          id: true,
+        },
+      },
+      createdAt: true,
+      dueDate: true,
+      items: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          qty: true,
+          lhQty: true,
+          rhQty: true,
+          orderProductionSubmissionId: true,
+          status: true,
+        },
+      },
+    },
+  },
+  assignments: {
+    where: {
+      assignedToId: undefined, // !producerId ? undefined : producerId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      itemId: true,
+      dueDate: true,
+      lhQty: true,
+      rhQty: true,
+      salesDoorId: true,
+      qtyAssigned: true,
+      createdAt: true,
+      salesItemControlUid: true,
+      shelfItemId: true,
+      assignedTo: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      submissions: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          createdAt: true,
+          note: true,
+          qty: true,
+          rhQty: true,
+          lhQty: true,
+        },
+      },
+    },
+  },
+  items: {
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      shelfItems: {
+        select: {
+          id: true,
+        },
+      },
+      multiDykeUid: true,
+      multiDyke: true,
+      description: true,
+      dykeDescription: true,
+      dykeProduction: true,
+      qty: true,
+      id: true,
+      meta: true,
+      total: true,
+      swing: true,
+      rate: true,
+      formSteps: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          prodUid: true,
+          value: true,
+          step: {
+            select: {
+              title: true,
+            },
+          },
+        },
+      },
+      housePackageTool: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          stepProduct: {
+            where: {
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          door: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+          doors: {
+            where: {
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              dimension: true,
+              swing: true,
+              lineTotal: true,
+              unitPrice: true,
+              rhQty: true,
+              lhQty: true,
+              totalQty: true,
+              meta: true,
+              stepProduct: {
+                select: {
+                  name: true,
+                  door: {
+                    select: {
+                      title: true,
+                    },
+                  },
+                  product: {
+                    select: {
+                      id: true,
+                      title: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  itemControls: {
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      shippable: true,
+      produceable: true,
+      sectionTitle: true,
+      title: true,
+      uid: true,
+      qtyControls: {
+        where: {
+          deletedAt: null,
+          type: {
+            in: [
+              "dispatchCompleted",
+              "prodAssigned",
+              "prodCompleted",
+              "qty",
+              "dispatchAssigned",
+              "dispatchInProgress",
+            ] as QtyControlType[],
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.SalesOrdersSelect;

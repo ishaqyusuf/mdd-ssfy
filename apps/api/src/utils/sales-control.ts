@@ -606,5 +606,43 @@ export function composeControls(order: GetSalesItemControllables) {
   });
   return response;
 }
-
-// export function transformHandlesQty({lhQty,rhQty,qty,})
+const hiddenDisplaySteps = [
+  "Door",
+  "Item Type",
+  "Moulding",
+  "House Package Tool",
+  "Height",
+  "Hand",
+  "Width",
+];
+export const composeStepFormDisplay = (
+  stepForms: any[],
+  sectionTitle: any = null
+) => {
+  const configs = stepForms
+    ?.map((stepForm) => {
+      let color: any = null;
+      let label = stepForm?.step?.title?.toLowerCase();
+      let value = stepForm?.value?.toLowerCase();
+      let hidden =
+        hiddenDisplaySteps?.map((a) => a.toLowerCase()).includes(value) ||
+        !value;
+      if (label == "item type" && !sectionTitle) sectionTitle = value;
+      let red = [
+        label == "hinge finish" && !value?.startsWith("us15"),
+        label?.includes("jamb") && !value?.startsWith("4-5/8"),
+      ];
+      if (red.some(Boolean)) color = "red";
+      return {
+        color,
+        label,
+        value,
+        hidden,
+      };
+    })
+    .filter((a) => !a.hidden);
+  return {
+    configs,
+    sectionTitle,
+  };
+};

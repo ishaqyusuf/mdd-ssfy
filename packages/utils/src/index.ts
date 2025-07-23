@@ -130,3 +130,8 @@ export function sumArrayKeys<T>(
   });
   return ret;
 }
+export function formatCurrency(value: any) {
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+  }).format(value);
+}

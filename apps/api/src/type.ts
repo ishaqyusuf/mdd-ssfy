@@ -110,6 +110,22 @@ export type SalesMeta = {
     }[];
   };
 };
+export interface SalesItemMeta {
+  tax?: boolean;
+
+  lineIndex;
+
+  doorType: DykeDoorType;
+}
+export type DykeDoorType =
+  | "Interior"
+  | "Exterior"
+  | "Shelf Items"
+  | "Garage"
+  | "Bifold"
+  | "Moulding"
+  | "Door Slabs Only"
+  | "Services";
 export type SalesPaymentOptions =
   | "Cash"
   | "Credit Card"

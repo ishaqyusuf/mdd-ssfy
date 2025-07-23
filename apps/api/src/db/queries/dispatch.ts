@@ -11,6 +11,7 @@ import { SalesIncludeAll, SalesListInclude } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import { getSalesSetting } from "./settings";
+import { getFullSalesData, getSalesLifeCycle } from "./sales";
 
 export async function getDispatches(
   ctx: TRPCContext,
@@ -174,14 +175,5 @@ export async function getSalesDispatchOverview(
   ctx: TRPCContext,
   { salesId, driverId }: SalesDispatchOverviewSchema
 ) {
-  let include = SalesIncludeAll;
-  const order = await ctx.db.salesOrders.findFirstOrThrow({
-    where: {
-      id: salesId,
-      type: "order" as SalesType,
-    },
-    include,
-  });
-  const setting = await getSalesSetting(ctx);
-  const meta: SalesMeta = order.meta as any;
+  const sale = await getSalesLifeCycle(ctx, { salesId });
 }
