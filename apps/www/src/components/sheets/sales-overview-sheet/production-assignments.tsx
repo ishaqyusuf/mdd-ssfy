@@ -38,7 +38,7 @@ export const {
             queryCtx.assignedTo,
         );
         return result;
-    }, [item.controlUid, queryCtx.refreshTok]);
+    }, [item.controlUid]);
     return {
         data,
         item,

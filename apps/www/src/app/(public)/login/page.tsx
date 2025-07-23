@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 export default async function Page() {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+        <div className="min-h-screen     flex items-center justify-center p-4">
             <header className="absolute top-0 left-0 z-30 w-full">
                 <div className="p-6 md:p-8">
                     <div className="h-8 w-auto">

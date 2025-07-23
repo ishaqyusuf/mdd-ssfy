@@ -4,13 +4,11 @@ import {
     DataTable,
     InfiniteDataTablePageProps,
 } from "@/components/(clean-code)/data-table";
-import { DataTableFilterCommand } from "@/components/(clean-code)/data-table/filter-command";
 import { DataTableInfinityToolbar } from "@/components/(clean-code)/data-table/infinity/data-table-toolbar";
 import { useTableCompose } from "@/components/(clean-code)/data-table/use-table-compose";
 import { _modal } from "@/components/common/modal/provider";
 import { TaskProductionTabs } from "@/components/task-production-tabs";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-
 import { __filters } from "../../../_common/utils/contants";
 import { Cells } from "./production-page-cells";
 import { MiddaySearchFilter } from "@/components/midday-search-filter/search-filter";
@@ -28,9 +26,7 @@ export default function ProductionTasksPageClient({
                 ctx.Column("Customer", "customer", Cells.Customer),
                 ctx.Column("Order #", "order.no", Cells.Order),
                 ctx.Column("Sales Rep", "sales.rep", Cells.SalesRep),
-                // ctx.Column("Assigned To", "assignments", Cells.Assignments),
                 ctx.Column("Status", "status", Cells.Status),
-                // ...__filters()["sales-productions"].filterColumns,
             ];
         },
         filterFields,
@@ -45,7 +41,7 @@ export default function ProductionTasksPageClient({
     });
     const ctx = useSalesOverviewQuery();
     return (
-        <div className="bg-white">
+        <div className="bg-muted">
             <DataTable.Infinity
                 checkable
                 ActionCell={Cells.Action}
@@ -63,7 +59,7 @@ export default function ProductionTasksPageClient({
                         <Menu.Trash action={() => {}}>Delete</Menu.Trash>
                     </Menu> */}
                 </DataTable.BatchAction>
-                <DataTable.Header top="xs" className="bg-white">
+                <DataTable.Header top="xs" className="bg-muted">
                     <div className="flex justify-between">
                         <div className="flex-1">
                             {/* <DataTableFilterCommand /> */}
