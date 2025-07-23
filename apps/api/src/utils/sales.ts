@@ -3,6 +3,7 @@ import type { SalesQueryParamsSchema } from "@api/schemas/sales";
 import type {
   AddressBookMeta,
   CustomerMeta,
+  ItemStatConfigProps,
   QtyControlType,
   SalesStatStatus,
 } from "@api/type";
@@ -13,7 +14,7 @@ import { padStart } from "lodash";
 
 export function salesAddressLines(
   address: Prisma.AddressBooksGetPayload<{}>,
-  customer?: Prisma.CustomersGetPayload<{}>,
+  customer?: Prisma.CustomersGetPayload<{}>
 ) {
   let meta = address?.meta as any as AddressBookMeta;
   let cMeta = customer?.meta as any as CustomerMeta;
@@ -77,7 +78,7 @@ export function overallStatus(dataStats: Prisma.SalesStatGetPayload<{}>[]) {
   const sk = statToKeyValueDto(dataStats);
   const dispatch = sumArrayKeys(
     [sk.dispatchAssigned, sk.dispatchInProgress, sk.dispatchCompleted],
-    ["score", "total", "percentage"],
+    ["score", "total", "percentage"]
   );
 
   return {
@@ -126,6 +127,28 @@ export function statStatus(stat: Prisma.SalesStatGetPayload<{}>): {
     status: "unknown",
     scoreStatus,
   };
+}
+
+export function getItemStatConfig({ setting, ...props }: ItemStatConfigProps) {
+  const mainStep = props.formSteps?.[0];
+  const stepConfigUid = mainStep?.prodUid;
+  let config = setting?.route?.[stepConfigUid]?.config;
+
+  const isService = mainStep?.value?.toLowerCase() == "services";
+
+  return props.isDyke
+    ? {
+        production: isService
+          ? props.dykeProduction
+          : props?.prodOverride
+            ? props?.prodOverride?.production
+            : config?.production,
+        shipping: config?.shipping,
+      }
+    : {
+        production: !!(props.qty && props.swing),
+        shipping: !!props.qty,
+      };
 }
 export const SalesListInclude = {
   customer: {

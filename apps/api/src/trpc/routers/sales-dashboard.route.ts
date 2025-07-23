@@ -6,7 +6,7 @@ import {
   getSalesRepLeaderboard,
   getTopProducts,
 } from "../../db/queries/sales-dashboard";
-import { salesDashboardFilterSchema } from "../../schemas/sales-dashboard";
+import { salesDashboardFilterSchema } from "@api/schemas/sales";
 import { createTRPCRouter, publicProcedure } from "../init";
 
 export const salesDashboardRouter = createTRPCRouter({

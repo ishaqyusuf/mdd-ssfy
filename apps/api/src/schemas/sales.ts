@@ -1,3 +1,5 @@
+import { paginationSchema } from "./common";
+import { salesDispatchStatus } from "@gnd/utils/constants";
 import { z } from "@hono/zod-openapi";
 import {
   inboundFilterStatus,
@@ -6,10 +8,34 @@ import {
   PRODUCTION_FILTER_OPTIONS,
   PRODUCTION_STATUS,
   SALES_DISPATCH_FILTER_OPTIONS,
-  salesDispatchStatus,
   salesType,
 } from "@gnd/utils/constants";
-import { paginationSchema } from "./common";
+export const dispatchQueryParamsSchema = z
+  .object({
+    driversId: z.array(z.number()).optional().nullable(),
+    status: z.enum(salesDispatchStatus).optional().nullable(),
+    scheduleDate: z
+      .array(z.string().optional().nullable())
+      .optional()
+      .nullable(),
+  })
+  .merge(paginationSchema);
+export type DispatchQueryParamsSchema = z.infer<
+  typeof dispatchQueryParamsSchema
+>;
+
+export const updateSalesDeliveryOptionSchema = z.object({
+  deliveryId: z.number().nullable().optional(),
+  salesId: z.number(),
+  driverId: z.number().nullable().optional(),
+  status: z.string().nullable().optional(),
+  option: z.string().nullable().optional(),
+  defaultOption: z.string().nullable().optional(),
+  date: z.date().nullable().optional(),
+});
+export type UpdateSalesDeliveryOptionSchema = z.infer<
+  typeof updateSalesDeliveryOptionSchema
+>;
 
 export const salesQueryParamsSchema = z
   .object({
@@ -50,3 +76,15 @@ export const startNewSalesSchema = z.object({
 });
 
 export type StartNewSalesSchema = z.infer<typeof startNewSalesSchema>;
+export const salesDashboardFilterSchema = z.object({
+  from: z.string().optional(),
+  to: z.string().optional(),
+});
+
+export const salesDispatchOverviewSchema = z.object({
+  salesId: z.number(),
+  driverId: z.number().nullable().optional(),
+});
+export type SalesDispatchOverviewSchema = z.infer<
+  typeof salesDispatchOverviewSchema
+>;

@@ -2,23 +2,26 @@ import { whereDispatch } from "@api/prisma-where";
 import { composeQueryData } from "@api/query-response";
 import type {
   DispatchQueryParamsSchema,
+  SalesDispatchOverviewSchema,
   UpdateSalesDeliveryOptionSchema,
-} from "@api/schemas/dispatch";
+} from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
-import type { QtyControlType } from "@api/type";
+import type { QtyControlType, SalesMeta, SalesType } from "@api/type";
+import { SalesIncludeAll, SalesListInclude } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
+import { getSalesSetting } from "./settings";
 
 export async function getDispatches(
   ctx: TRPCContext,
-  query: DispatchQueryParamsSchema,
+  query: DispatchQueryParamsSchema
 ) {
   const { db } = ctx;
   query.sort = "dueDate,createdAt";
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereDispatch(query),
-    db.orderDelivery,
+    db.orderDelivery
   );
   const data = await db.orderDelivery.findMany({
     where,
@@ -72,7 +75,7 @@ export async function getDispatches(
         ...a,
         uid: String(a.id),
       };
-    }),
+    })
   );
 }
 
@@ -102,7 +105,7 @@ export async function getSalesDeliveryInfo(ctx: TRPCContext, salesId) {
 }
 export async function updateSalesDeliveryOption(
   ctx: TRPCContext,
-  data: UpdateSalesDeliveryOptionSchema,
+  data: UpdateSalesDeliveryOptionSchema
 ) {
   if (data.option && !data.deliveryId) {
     await ctx.db.salesOrders.update({
@@ -166,4 +169,19 @@ export async function updateSalesDeliveryOption(
       data: updateData,
     });
   }
+}
+export async function getSalesDispatchOverview(
+  ctx: TRPCContext,
+  { salesId, driverId }: SalesDispatchOverviewSchema
+) {
+  let include = SalesIncludeAll;
+  const order = await ctx.db.salesOrders.findFirstOrThrow({
+    where: {
+      id: salesId,
+      type: "order" as SalesType,
+    },
+    include,
+  });
+  const setting = await getSalesSetting(ctx);
+  const meta: SalesMeta = order.meta as any;
 }

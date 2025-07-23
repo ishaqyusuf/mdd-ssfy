@@ -1,7 +1,7 @@
 import { SalesPriority, type Prisma } from "@gnd/db";
 import type { SalesQueryParamsSchema } from "./schemas/sales";
 import { composeQuery } from "./query-response";
-import type { DispatchQueryParamsSchema } from "./schemas/dispatch";
+import type { DispatchQueryParamsSchema } from "./schemas/sales";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import type { EmployeesQueryParams } from "./schemas/hrm";
 import { addSpacesToCamelCase } from "@gnd/utils";

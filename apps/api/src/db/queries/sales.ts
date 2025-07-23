@@ -7,14 +7,14 @@ import { SalesListInclude } from "@api/utils/sales";
 
 export async function getSales(
   ctx: TRPCContext,
-  query: SalesQueryParamsSchema,
+  query: SalesQueryParamsSchema
 ) {
   query.salesType = "order";
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereSales(query),
-    db.salesOrders,
+    db.salesOrders
   );
 
   const data = await db.salesOrders.findMany({
@@ -24,28 +24,28 @@ export async function getSales(
   });
   const notCounts = await salesNotesCount(
     data?.map((a) => a.id),
-    ctx.db,
+    ctx.db
   );
 
   const result = await response(
     data.map(salesOrderDto).map((d) => ({
       ...d,
       ...(notCounts[d.id.toString()] || {}),
-    })),
+    }))
   );
 
   return result;
 }
 export async function getQuotes(
   ctx: TRPCContext,
-  query: SalesQueryParamsSchema,
+  query: SalesQueryParamsSchema
 ) {
   query.salesType = "quote";
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereSales(query),
-    db.salesOrders,
+    db.salesOrders
   );
 
   const data = await db.salesOrders.findMany({
@@ -57,7 +57,7 @@ export async function getQuotes(
   return await response(
     data.map(salesQuoteDto).map((d) => ({
       ...d,
-    })),
+    }))
   );
 }
 
@@ -122,7 +122,7 @@ export async function salesNotesCount(salesIds: number[], prisma) {
 
   salesIds.forEach((s) => {
     const noteCount = notes?.filter((a) =>
-      a.tags?.some((t) => t.tagValue === String(s)),
+      a.tags?.some((t) => t.tagValue === String(s))
     )?.length;
     if (noteCount)
       resp[String(s)] = {
@@ -134,7 +134,7 @@ export async function salesNotesCount(salesIds: number[], prisma) {
 
 export async function startNewSales(
   ctx: TRPCContext,
-  customerId?: number | null,
+  customerId?: number | null
 ) {
   const { db } = ctx;
   // const newSalesOrder = await db.salesOrders.create({
@@ -147,3 +147,5 @@ export async function startNewSales(
   // });
   // return newSalesOrder;
 }
+
+export async function getSaleFullDataById(ctx: TRPCContext, id) {}

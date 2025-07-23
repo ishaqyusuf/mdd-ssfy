@@ -57,6 +57,27 @@ export function sum<T>(array?: T[], key: keyof T | undefined = undefined) {
       .reduce((sum, val) => (sum || 0) + (val as number), 0) || 0
   );
 }
+export function addPercentage(value: any, percentage: any) {
+  return value + (value || 0) * ((percentage || 100) / 100);
+}
+export function toFixed(value: any) {
+  const number = typeof value == "string" ? parseFloat(value) : value;
+  if (isNaN(value) || !value) return value;
+  return number.toFixed(2);
+}
+export function formatMoney(value: any) {
+  const v = toFixed(value);
+  if (!v) return 0;
+  return +v;
+}
+export function percentageValue(value: any, percent: any) {
+  if (!percent || !value) return 0;
+  return formatMoney(((value || 0) * percent) / 100);
+}
+export function percent(score: any, total: any, def = 0) {
+  if (!score || !total) return def;
+  return Math.round((Number(score) / Number(total)) * 100);
+}
 export function generateRandomNumber(length = 15) {
   const charset = "0123456789";
   let randomString = "";
@@ -99,7 +120,7 @@ export function getNameInitials(name?: string) {
 export function sumArrayKeys<T>(
   array?: T[],
   keys: (keyof T | undefined)[] = undefined!,
-  subtract = false,
+  subtract = false
 ) {
   if (!array?.length) return array;
   let [first, ...others] = array;

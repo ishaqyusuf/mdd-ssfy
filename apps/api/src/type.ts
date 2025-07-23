@@ -1,4 +1,6 @@
 import type { Prisma } from "@gnd/db";
+import type { getItemStatConfig } from "./utils/sales";
+import type { composeSalesItemControlStat, Qty } from "./utils/sales-control";
 
 // import type { IconKeys } from "@ui/components/custom/icons";
 export type PageDataMeta = {
@@ -115,3 +117,91 @@ export type SalesPaymentOptions =
   | "COD"
   | "Zelle";
 export type SalesType = "order" | "quote";
+export type SalesSettingsMeta = {
+  route: {
+    [primaryRouteUid in string]: {
+      routeSequence: { uid: string }[];
+      externalRouteSequence: { uid: string }[][];
+      route?: {
+        [stepUid in string]: string;
+      };
+      externalRoute?: {
+        [stepUid in string]: string;
+      };
+      config: {
+        noHandle?: boolean;
+        hasSwing?: boolean;
+        addonQty?: boolean;
+        production?: boolean;
+        shipping?: boolean;
+      };
+    };
+  };
+};
+export type SettingType = "sales-settings" | "install-price-chart";
+export interface ItemControlData {
+  title: string;
+  // produceable?: boolean;
+  configs?: { color?; label?; value?; hidden }[];
+  // shippable?: boolean;
+  subtitle?: string;
+  swing?: string;
+  size?: string;
+  unitLabor?: number;
+  sectionTitle?: string;
+  controlUid: string;
+  itemIndex?: number;
+  itemId?: number;
+  doorId?: number;
+  hptId?: number;
+  shelfId?: number;
+  dim?: string;
+  salesId?: number;
+  primary?: boolean;
+  qty: Qty;
+  // assigned?: Qty;
+  // produced?: Qty;
+  // pending?: {
+  //     assignment?: Qty;
+  //     production?: Qty;
+  //     delivery?: Qty;
+  // };
+  // delivered?: Qty;
+  unitCost?: number;
+  totalCost?: number;
+  noHandle: boolean;
+  analytics?: ReturnType<typeof composeSalesItemControlStat>;
+  itemConfig?: ReturnType<typeof getItemStatConfig>;
+  prodOverride?: DykeSalesDoorMeta["prodOverride"];
+}
+export interface DykeSalesDoorMeta {
+  _doorPrice?: number | null;
+  overridePrice?: number | string;
+  unitLabor?: number;
+  laborQty?: number;
+  prodOverride?: {
+    production?: boolean;
+  };
+}
+export interface ItemStatConfigProps {
+  isDyke?: boolean;
+  qty?;
+  formSteps;
+  setting: SalesSettingsMeta;
+  dykeProduction?: boolean;
+  swing?;
+  prodOverride?: DykeSalesDoorMeta["prodOverride"];
+}
+
+export type ItemControlTypes = "door" | "molding" | "item" | "shelf";
+export type ItemControl = {
+  type: ItemControlTypes;
+  doorId?;
+  dim?;
+  itemId?;
+  hptId?;
+  shelfId?;
+};
+export type RenturnTypeAsync<T extends (...args: any) => any> = Awaited<
+  ReturnType<T>
+>;
