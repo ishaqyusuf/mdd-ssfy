@@ -171,14 +171,14 @@ export function useSalesControlAction({ onFinish }) {
         if (!nextTriggerUID) {
             if (actions) {
                 loader.success("Submission completed.");
-                queryCtx._refreshToken();
+                queryCtx.salesQuery.assignmentSubmissionUpdated();
                 onFinish?.();
             }
             return;
         }
         if (error) {
             loader.error(error);
-            queryCtx._refreshToken();
+            queryCtx.salesQuery.assignmentSubmissionUpdated();
             onFinish?.();
             return;
         }

@@ -98,7 +98,7 @@ export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
         if (!nextTriggerUID) {
             if (actions) {
                 loader.success("Assignments completed.");
-                queryCtx._refreshToken();
+                queryCtx.salesQuery.assignmentUpdated();
                 setOpened(false);
             }
             return;

@@ -65,7 +65,7 @@ function Content() {
     const deleteAction = useAction(deleteSalesAssignmentAction, {
         onSuccess(args) {
             toast.success("Deleted");
-            queryCtx._refreshToken();
+            queryCtx.salesQuery.assignmentUpdated();
         },
         onError() {
             toast.error("Unable to complete");

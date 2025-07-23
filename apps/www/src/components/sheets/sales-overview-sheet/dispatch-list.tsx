@@ -44,7 +44,7 @@ export function DispatchList({}) {
             deliveryId: id,
         });
         loader.success("Deleted!.");
-        sq._refreshToken();
+        sq.salesQuery.dispatchUpdated();
     };
     const { setParams: setSalesPreviewParams } = useSalesPreview();
     return (

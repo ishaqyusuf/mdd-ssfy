@@ -63,7 +63,7 @@ export function ProductionAssignmentForm({ closeForm }) {
     const createAssignment = useAction(createSalesAssignmentAction, {
         onSuccess(args) {
             toast.success("Assignment Created");
-            queryCtx._refreshToken();
+            queryCtx.salesQuery.assignmentUpdated();
             revalidateTable();
             closeForm();
         },

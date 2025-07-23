@@ -18,7 +18,7 @@ export function ProductionSubmissions({}) {
     const deleteSubmission = useAction(deleteSalesAssignmentSubmissionAction, {
         onSuccess(args) {
             toast.success("Deleted");
-            item.queryCtx._refreshToken();
+            item.queryCtx.salesQuery.assignmentSubmissionUpdated();
         },
         onError() {
             toast.error("Unable to complete");

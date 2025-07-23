@@ -83,7 +83,7 @@ export function BatchMenuDeleteAssignments({ itemIds, setOpened }: Props) {
         if (!nextTriggerUID) {
             if (actions) {
                 loader.success("Submissions deleted.");
-                queryCtx._refreshToken();
+                queryCtx.salesQuery.assignmentSubmissionUpdated();
                 setOpened(false);
             }
             return;

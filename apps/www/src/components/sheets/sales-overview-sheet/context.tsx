@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-users";
 
@@ -17,20 +17,20 @@ import z from "zod";
 import { getSalesOverviewAction } from "@/actions/get-sales-overview";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { RouterOutputs } from "@api/trpc/routers/_app";
 
 const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
     createContextFactory(function () {
         const ctx = useSalesOverviewQuery();
-        const loader = async () => {
-            await timeout(100);
-            const res = await getSalesOverviewAction(
-                ctx.params["sales-overview-id"],
-            );
-            return res;
-        };
-
-        const data = useAsyncMemo(loader, [ctx.refreshTok]);
+        const { data } = useQuery(
+            ctx.salesQuery.trpc.sales.getSaleOverview.queryOptions(
+                {
+                    "order.no": ctx.params["sales-overview-id"],
+                },
+                {
+                    enabled: !!ctx.params["sales-overview-id"],
+                },
+            ),
+        );
         return {
             data,
         };
@@ -50,14 +50,13 @@ const { useContext: useDispatch, Provider: DispatchProvider } =
                 },
                 {
                     enabled: !!ctx.params["sales-overview-id"],
-                    refetchOnMount: true,
                 },
             ),
         );
-        useEffect(() => {
-            if (!ctx.refreshTok) return;
-            refetch();
-        }, [ctx.refreshTok]);
+        // useEffect(() => {
+        //     if (!ctx.refreshTok) return;
+        //     refetch();
+        // }, [ctx.refreshTok]);
         const [openForm, setOpenForm] = useState(false);
         const bachWorker = useSalesControlAction({
             onFinish() {},
@@ -107,7 +106,7 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
             return await getCachedProductionUsers();
         }, []);
         const trpc = useTRPC();
-        const { data, refetch } = useQuery(
+        const { data } = useQuery(
             trpc.sales.productionOverview.queryOptions(
                 {
                     salesNo: ctx.params["sales-overview-id"],
@@ -118,14 +117,12 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
                 },
             ),
         );
-        // (property) qty?: unknown
-        // const data2 = data as RouterOutputs['sales']['productionOverview']
-        data?.items?.[0]?.qty.qty;
-        useEffect(() => {
-            if (!ctx.refreshTok) return;
-            refetch();
-        }, [ctx.refreshTok]);
+        // useEffect(() => {
+        //     if (!ctx.refreshTok) return;
+        //     refetch();
+        // }, [ctx.refreshTok]);
         const [selections, setSelections] = useState({});
+
         return {
             selections,
             setSelections,

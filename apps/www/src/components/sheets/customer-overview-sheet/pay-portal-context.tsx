@@ -108,7 +108,7 @@ export function usePayPortal() {
                     });
                     setTimeout(() => {
                         if (salesQ?.params?.["sales-overview-id"]) {
-                            salesQ._refreshToken();
+                            salesQ.salesQuery.salesPaymentUpdated();
                             query?.setParams(null);
                         }
                         printSalesData({

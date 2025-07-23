@@ -13,6 +13,7 @@ import {
 
 import { useOnCloseQuery } from "./use-on-close-query";
 import { z } from "zod";
+import { useSalesQueryClient } from "./use-sales-query-client";
 
 const openModes = [
     "quote",
@@ -40,7 +41,7 @@ export function useSalesOverviewQuery() {
             "notification",
             "packing",
         ] as const),
-        refreshTok: parseAsString,
+        // refreshTok: parseAsString,
         dispatchOverviewId: parseAsInteger,
     });
     const session = useSession({
@@ -53,20 +54,22 @@ export function useSalesOverviewQuery() {
         session?.data?.can?.viewProduction && !session?.data?.can?.viewOrders
             ? session?.data?.user.id
             : null;
+    const salesQuery = useSalesQueryClient();
     return {
         ...params,
         dispatchMode: !!params.dispatchId,
+        salesQuery,
         params,
         assignedTo,
         close() {
             setParams(null);
             onCloseQuery.handle(params, setParams);
         },
-        _refreshToken() {
-            setParams({
-                refreshTok: generateRandomString(),
-            });
-        },
+        // _refreshToken() {
+        //     // setParams({
+        //     //     refreshTok: generateRandomString(),
+        //     // });
+        // },
         setParams,
         openDispatch(
             orderNo: string,

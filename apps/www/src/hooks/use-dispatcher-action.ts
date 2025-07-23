@@ -248,7 +248,7 @@ export function useDispatcherAction() {
                     // throw new Error("BREAK!");
                     loader.success("Completed!");
                     setOpenForm(false);
-                    queryCtx._refreshToken();
+                    queryCtx.salesQuery.dispatchUpdated();
                 } catch (error) {
                     loader.error("Unable to complete", {
                         description: error?.message,

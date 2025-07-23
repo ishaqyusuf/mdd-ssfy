@@ -1,23 +1,17 @@
-import { useEffect } from "react";
 import { redirect } from "next/navigation";
-import { createSalesAssignmentAction } from "@/actions/create-sales-assignment";
+
 import { createSubmissionSchema } from "@/actions/schema";
 import { submitSalesAssignmentAction } from "@/actions/submit-sales-assignment";
-import { revalidateTable } from "@/components/(clean-code)/data-table/use-infinity-data-table";
 import FormInput from "@/components/common/controls/form-input";
-import FormSelect from "@/components/common/controls/form-select";
 import { NumberInput } from "@/components/currency-input";
-import { DataSkeleton } from "@/components/data-skeleton";
 import { SubmitButton } from "@/components/submit-button";
-import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
-import { timeout } from "@/lib/timeout";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
 import { useAction } from "next-safe-action/hooks";
 import { useController, useForm, useFormContext } from "react-hook-form";
 import { NumericFormatProps } from "react-number-format";
-import { useAsyncMemo } from "use-async-memo";
 import z from "zod";
 
 import { Button } from "@gnd/ui/button";
@@ -70,8 +64,7 @@ export function ProductionSubmitForm({}) {
             toast.success("Submitted");
             toast.clearToastId();
             ctx.setOpenSubmitForm(false);
-            queryCtx._refreshToken();
-            revalidateTable();
+            queryCtx.salesQuery.productionUpdated();
         },
         onError(e) {
             toast.error("Unable to complete");
