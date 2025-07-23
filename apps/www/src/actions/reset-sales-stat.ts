@@ -3,8 +3,7 @@
 import { QtyControlType } from "@/app/(clean-code)/(sales)/types";
 import { Prisma, prisma } from "@/db";
 import { percent, sum } from "@/lib/utils";
-
-import { getSalesItemsOverviewAction } from "./get-sales-items-overview-action";
+import { trpcGetSalesItemsOverviewAction } from "./trpc";
 
 export async function resetSalesStatAction(id, salesNo) {
     return await prisma.$transaction(async (tx) => {
@@ -21,7 +20,7 @@ export async function resetSalesStatAction(id, salesNo) {
             },
         });
 
-        const overview = await getSalesItemsOverviewAction(salesNo);
+        const overview = await trpcGetSalesItemsOverviewAction(salesNo);
         let qc: Prisma.QtyControlCreateManyInput[] = [];
         let salesItemControls: Prisma.SalesItemControlCreateManyInput[] = [];
         overview.items.map((item) => {

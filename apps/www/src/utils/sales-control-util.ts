@@ -1,4 +1,3 @@
-import { ItemControlData } from "@/actions/get-sales-items-overview-action";
 import { generateItemControlUid } from "@/app/(clean-code)/(sales)/_common/utils/item-control-utils";
 import {
     QtyControlType,
@@ -6,6 +5,7 @@ import {
 } from "@/app/(clean-code)/(sales)/types";
 import { Prisma } from "@/db";
 import { sum } from "@/lib/utils";
+import { ItemControlData } from "@api/type";
 
 export interface Qty {
     lh?;

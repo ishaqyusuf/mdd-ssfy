@@ -11,7 +11,7 @@ import { SalesIncludeAll, SalesListInclude } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import { getSalesSetting } from "./settings";
-import { getFullSalesData, getSalesLifeCycle } from "./sales";
+import { getSalesLifeCycle } from "./sales";
 
 export async function getDispatches(
   ctx: TRPCContext,

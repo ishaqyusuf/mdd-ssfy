@@ -1,14 +1,12 @@
-import { useState } from "react";
-import { getCachedDispatchers } from "@/actions/cache/get-cached-dispatchers";
+import { useEffect, useState } from "react";
+
 import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-users";
 import { getSalesDispatchDataAction } from "@/actions/get-sales-dispatch-data";
-import { getSalesItemsOverviewAction } from "@/actions/get-sales-items-overview-action";
 
 import {
     createSalesDispatchItemsSchema,
     createSalesDispatchSchema,
 } from "@/actions/schema";
-import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { useSalesControlAction } from "@/hooks/use-sales-control-action";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { timeout } from "@/lib/timeout";
@@ -101,17 +99,22 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
             await timeout(80);
             return await getCachedProductionUsers();
         }, []);
-        const loader = async () => {
-            await timeout(100);
-            const res = await getSalesItemsOverviewAction(
-                ctx.params["sales-overview-id"],
-                ctx?.assignedTo,
-            );
-
-            return res;
-        };
-        const customerQuery = useCustomerOverviewQuery();
-        const data = useAsyncMemo(loader, [ctx.refreshTok]);
+        const trpc = useTRPC();
+        const { data, refetch } = useQuery(
+            trpc.sales.productionOverview.queryOptions(
+                {
+                    salesNo: ctx.params["sales-overview-id"],
+                    assignedToId: ctx?.assignedTo,
+                },
+                {
+                    enabled: !!ctx.params["sales-overview-id"],
+                },
+            ),
+        );
+        useEffect(() => {
+            if (!ctx.refreshTok) return;
+            refetch();
+        }, [ctx.refreshTok]);
         const [selections, setSelections] = useState({});
 
         return {
@@ -122,4 +125,3 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
             users,
         };
     });
-// export { useProduction };

@@ -4,11 +4,11 @@ import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import { qtyMatrixDifference, qtyMatrixSum } from "@/utils/sales-control-util";
 
-import { getSalesItemsOverviewAction } from "./get-sales-items-overview-action";
 import { laborRate } from "@/utils/sales-utils";
+import { trpcGetSalesItemsOverviewAction } from "./trpc";
 
 export async function getSalesDispatchDataAction(orderId) {
-    const overview = await getSalesItemsOverviewAction(orderId);
+    const overview = await trpcGetSalesItemsOverviewAction(orderId);
     // const dispatchList =  await prisma.
     const availableDispatchQty = sum(
         overview.items.map((item) => item.analytics.dispatch.available.qty),

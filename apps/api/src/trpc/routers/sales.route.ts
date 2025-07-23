@@ -1,6 +1,15 @@
 import { createTRPCRouter, publicProcedure } from "../init";
-import { inboundQuerySchema, salesQueryParamsSchema } from "@api/schemas/sales";
-import { getQuotes, getSales, startNewSales } from "@api/db/queries/sales";
+import {
+  getFullSalesDataSchema,
+  inboundQuerySchema,
+  salesQueryParamsSchema,
+} from "@api/schemas/sales";
+import {
+  getQuotes,
+  getSales,
+  getSalesLifeCycle,
+  startNewSales,
+} from "@api/db/queries/sales";
 import { getInbounds, getInboundSummary } from "@api/db/queries/inbound";
 import { startNewSalesSchema } from "@api/schemas/sales";
 import { transformSalesFilterQuery } from "@api/utils/sales";
@@ -26,5 +35,10 @@ export const salesRouter = createTRPCRouter({
     .input(startNewSalesSchema)
     .mutation(async (props) => {
       return startNewSales(props.ctx, props.input.customerId);
+    }),
+  productionOverview: publicProcedure
+    .input(getFullSalesDataSchema)
+    .query(async (props) => {
+      return getSalesLifeCycle(props.ctx, props.input);
     }),
 });
