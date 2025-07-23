@@ -1,10 +1,7 @@
 import { NextRequest } from "next/server";
-import { getSalesOrdersDta } from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
+
 import { getProductionListPageAction } from "@/app/(clean-code)/(sales)/_common/data-actions/production-actions/productions-list-action";
-import {
-    searchParamsCache,
-    SearchParamsType,
-} from "@/components/(clean-code)/data-table/search-params";
+import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 
 export async function GET(req: NextRequest) {
     const _search: Map<string, string> = new Map();

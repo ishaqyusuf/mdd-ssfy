@@ -1,4 +1,3 @@
-import { employeesFilterData } from "@/actions/cached-hrm";
 import { EmptyState, NoResults } from "./empty-states";
 import { DataTable } from "./table";
 import { hasQuery } from "@/utils/has-query";

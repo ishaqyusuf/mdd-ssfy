@@ -2,7 +2,6 @@
 
 import { getCustomerQuoteList } from "@/actions/get-customer-quotes-list";
 
-import { getSalesOrdersDta } from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
 import { EmptyState } from "@/components/empty-state";
 import {
     DataSkeletonProvider,
