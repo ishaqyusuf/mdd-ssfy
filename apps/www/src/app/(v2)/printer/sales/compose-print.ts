@@ -9,7 +9,7 @@ import {
     DykeSalesShelfItem,
 } from "@/db";
 import { formatDate } from "@/lib/use-day";
-import { formatCurrency, ftToIn, inToFt, sum } from "@/lib/utils";
+import { formatCurrency, ftToIn, sum } from "@/lib/utils";
 import { IAddressMeta } from "@/types/sales";
 
 import {

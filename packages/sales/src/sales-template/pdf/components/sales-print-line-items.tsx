@@ -1,0 +1,45 @@
+import { Text, View } from "@react-pdf/renderer";
+import { SalesInvoiceTemplateProps } from "../../types";
+import { cn } from "../../utils/cn";
+
+export function SalesPrintLineItems({ printData }: SalesInvoiceTemplateProps) {
+  const { sale } = printData;
+  if (!sale.lineItems) return null;
+
+  return (
+    <View style={cn("uppercase")}>
+      <View style={cn("w-full")}>
+        <View style={cn("flex", "border border-gray-400 bg-slate-100")}>
+          {sale.lineItems.heading.map((col: any) => (
+            <View
+              key={col.title}
+              style={cn("border border-gray-400  uppercase p-0.5", "flex-1")}
+            >
+              <Text>{col.title}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={cn("flex-col")}>
+          {sale.lineItems.lines.map((line: any) => (
+            <View
+              key={line.id}
+              style={cn(!line.total && "bg-slate-200", "flex")}
+            >
+              {line.cells.map((cell: any, i: number) => (
+                <View
+                  key={i}
+                  style={cn("border border-gray-400 uppercase", "flex-1")}
+                >
+                  <Text style={cn("p-0.5")} {...cell.style}>
+                    {cell.title}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}

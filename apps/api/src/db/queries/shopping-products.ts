@@ -1,6 +1,7 @@
 import type { TRPCContext } from "@api/trpc/init";
 import type { ProductSearchSchema } from "@api/schemas/shopping-products";
 import { composeQueryData } from "@api/query-response";
+import { getSalesSetting } from "./settings";
 
 export async function searchProducts(
   ctx: TRPCContext,
@@ -24,6 +25,7 @@ export async function searchProducts(
       name: true,
       img: true,
       id: true,
+      uid: true,
     },
   });
   const result = await response(
@@ -31,6 +33,7 @@ export async function searchProducts(
       let price = 100;
       return {
         id: item.id,
+        uid: item.uid,
         price,
         name: item.name,
         img: item.img,
@@ -61,13 +64,18 @@ export async function searchProducts(
 }
 
 export async function getProductById(ctx: TRPCContext, query) {
-  const product = await searchProducts(ctx, {
+  const {
+    data: [product],
+  } = await searchProducts(ctx, {
     productId: query.productID,
   });
+  product?.price;
+  const setting = await getSalesSetting(ctx);
 
   return {
-    ...product.data?.[0],
+    ...product,
   };
 }
+
 export async function getProductReviews(ctx: TRPCContext, query) {}
 export async function getSimilarProducts(ctx: TRPCContext, query) {}
