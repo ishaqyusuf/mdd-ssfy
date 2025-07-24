@@ -1,33 +1,20 @@
 import { usePacking, usePackingItem } from "@/hooks/use-sales-packing";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { Button } from "@gnd/ui/button";
-import { Card } from "@gnd/ui/card";
-import { cn } from "@gnd/ui/cn";
 import { Form } from "@gnd/ui/form";
-import { Package } from "lucide-react";
 import { z } from "zod";
 import FormInput from "./common/controls/form-input";
 import { SubmitButton } from "./submit-button";
 import { Icons } from "@gnd/ui/icons";
+import { qtyFormSchema, qtySuperRefine } from "@gnd/utils/sales";
 
-const schema = z.object({
-    pending: z.object({
-        lh: z.number().min(0).optional(),
-        rh: z.number().min(0).optional(),
-        qty: z.number().min(0).optional(),
-    }),
-    available: z.object({
-        lh: z.number().min(0).optional(),
-        rh: z.number().min(0).optional(),
-        qty: z.number().min(0).optional(),
-    }),
-    packing: z.object({
-        lh: z.number().min(0).optional(),
-        rh: z.number().min(0).optional(),
-        qty: z.number().min(0).optional(),
+const schema = z
+    .object({
         note: z.string().optional(),
-    }),
-});
+    })
+    .merge(qtyFormSchema)
+    .superRefine(qtySuperRefine);
+
 export function PackingItemForm({}) {
     const packing = usePacking();
     const { item } = usePackingItem();
@@ -36,27 +23,25 @@ export function PackingItemForm({}) {
     const availableQty = item?.availableQty;
     const form = useZodForm(schema, {
         defaultValues: {
-            pending: pendingQty,
-            available: availableQty,
-            packing: {
-                lh: null,
-                rh: null,
-                qty: null,
+            // pending: pendingQty,
+            pending: availableQty,
+            qty: {
+                ...availableQty,
             },
         },
     });
-    const handleSubmit = () => {};
+    const onSubmit = () => {};
     return (
         <div className="p-4 border-t  bg-muted/10">
             <Form {...form}>
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
                     <div className="flex gap-2">
                         <div className="flex-1 grid grid-cols-2">
                             {availableQty.noHandle ? (
                                 <FormInput
                                     label="Qty"
                                     control={form.control}
-                                    name="packing.qty"
+                                    name="qty.qty"
                                     numericProps={{
                                         allowNegative: false,
                                         suffix: `/${availableQty?.qty}`,
@@ -74,7 +59,7 @@ export function PackingItemForm({}) {
                                                 key={hand}
                                                 label={label}
                                                 control={form.control}
-                                                name={`packing.${hand}` as any}
+                                                name={`qty.${hand}` as any}
                                                 numericProps={{
                                                     allowNegative: false,
                                                     suffix: `/${availableQty?.[hand]} ${label}`,
@@ -92,7 +77,7 @@ export function PackingItemForm({}) {
                                 label={"Note (Optional)"}
                                 placeholder="Add packing note.."
                                 control={form.control}
-                                name="packing.note"
+                                name="note"
                             />
                         </div>
                         <div className="inline-flex gap-2 items-end">

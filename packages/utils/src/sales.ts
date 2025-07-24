@@ -59,18 +59,21 @@ export const createSalesDispatchItemsSchema = z.object({
     })
   ),
 });
+export const qtyFormSchema = z.object({
+  pending: z.object({
+    lh: z.number().nullable().optional(),
+    rh: z.number().nullable().optional(),
+    qty: z.number().nullable().optional(),
+  }),
+  qty: z.object({
+    lh: z.number().nullable().optional(),
+    rh: z.number().nullable().optional(),
+    qty: z.number().nullable().optional(),
+  }),
+});
+// .superRefine(qtySuperRefine);
 export const createSubmissionSchema = z
   .object({
-    pending: z.object({
-      lh: z.number().nullable().optional(),
-      rh: z.number().nullable().optional(),
-      qty: z.number().nullable().optional(),
-    }),
-    qty: z.object({
-      lh: z.number().nullable().optional(),
-      rh: z.number().nullable().optional(),
-      qty: z.number().nullable().optional(),
-    }),
     assignmentId: z.number(),
     note: z.string().optional(),
     salesId: z.number(),
@@ -79,8 +82,8 @@ export const createSubmissionSchema = z
     itemUid: z.string(),
     // unitWage: z.number().optional(),
   })
-  .superRefine(qtySuperRefine);
-function qtySuperRefine(data: any, ctx: any) {
+  .merge(qtyFormSchema);
+export function qtySuperRefine(data: any, ctx: any) {
   let totalQty = 0;
 
   ["qty", "lh", "rh"].map((a) => {

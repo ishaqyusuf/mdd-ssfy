@@ -1,4 +1,5 @@
 import { SiteHeader } from "@/components/site-header";
+import { PreHeader } from "@/components/pre-header";
 
 import "@gnd/ui/globals.css";
 
@@ -20,6 +21,7 @@ export default function RootLayout({
       <body className={cn("min-h-screen bg-background font-sans antialiased")}>
         <NuqsAdapter>
           <TRPCReactProvider>
+            <PreHeader />
             <SiteHeader />
             {children}
             <GlobalModals />

@@ -14,6 +14,7 @@ import { userRoutes } from "./user.route";
 import { filterRouters } from "./filters.route";
 import { salesDashboardRouter } from "./sales-dashboard.route";
 import { customerRouter } from "./customer.route";
+import { shoppingProductsRouter } from "./shopping-products.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
@@ -31,6 +32,7 @@ export const appRouter = createTRPCRouter({
   siteActions: siteActionsRoutes,
   user: userRoutes,
   customers: customerRouter,
+  shoppingProducts: shoppingProductsRouter,
 });
 
 export type AppRouter = typeof appRouter;

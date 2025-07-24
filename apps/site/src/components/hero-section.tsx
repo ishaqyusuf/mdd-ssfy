@@ -41,7 +41,7 @@ export function HeroSection() {
           />
         </div>
       </div>
-      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center text-gray-900">
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center text-primary-foreground">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
           Get Any Door Custom Design
         </h1>
