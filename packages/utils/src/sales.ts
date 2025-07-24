@@ -56,7 +56,7 @@ export const createSalesDispatchItemsSchema = z.object({
       status: z.string().optional() as z.ZodType<SalesDispatchStatus>,
       itemUid: z.string(),
       totalItemQty: z.number(),
-    }),
+    })
   ),
 });
 export const createSubmissionSchema = z
@@ -118,3 +118,5 @@ export type QtyControlType =
   | "dispatchInProgress"
   | "dispatchCompleted"
   | "dispatchCancelled";
+
+export const qtyHasHandle = (qty: any) => !!qty?.lh || !!qty?.rh;

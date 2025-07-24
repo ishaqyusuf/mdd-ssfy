@@ -3,6 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Suspense, useEffect } from "react";
 import { PackingTabSkeleton } from "./packing-tab.skeleton";
 import { PackingOrderInformation } from "@/components/packing-order-information";
+import { PackingDriverInformation } from "@/components/packing-driver-information";
+import { PackingItemsList } from "@/components/packing-items-list";
+import { PackingProvider } from "@/hooks/use-sales-packing";
 
 export function PackingTab({}) {
     const query = useSalesOverviewQuery();
@@ -18,14 +21,20 @@ export function PackingTab({}) {
             },
         ),
     );
-    useEffect(() => {
-        console.log(data);
-    }, [data]);
+
     if (isLoading) return <PackingTabSkeleton />;
     return (
-        <div>
-            <PackingOrderInformation data={data} />
-        </div>
+        <PackingProvider
+            args={[
+                {
+                    data,
+                },
+            ]}
+        >
+            <PackingOrderInformation />
+            <PackingDriverInformation />
+            <PackingItemsList />
+        </PackingProvider>
     );
 }
 

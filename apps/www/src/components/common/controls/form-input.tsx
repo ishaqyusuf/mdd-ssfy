@@ -9,6 +9,7 @@ import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Textarea } from "@gnd/ui/textarea";
+import { NumericFormat, NumericFormatProps } from "react-number-format";
 
 interface Props<T> {
     label?: string;
@@ -22,6 +23,7 @@ interface Props<T> {
     tabIndex?;
     uppercase?: boolean;
     inputProps?: InputHTMLAttributes<HTMLInputElement>;
+    numericProps?: NumericFormatProps;
     // defaultValue?:boolean
 }
 export default function FormInput<
@@ -40,6 +42,7 @@ export default function FormInput<
     tabIndex,
     size = "default",
     inputProps,
+    numericProps,
     ...props
 }: Partial<ControllerProps<TFieldValues, TName>> & Props<TOptionType>) {
     const load = useDataSkeleton();
@@ -64,6 +67,16 @@ export default function FormInput<
                     <FormControl {...inputProps}>
                         {load?.loading ? (
                             <Skeleton className="h-8 w-full" />
+                        ) : numericProps ? (
+                            <div className="relative font-mono">
+                                <NumericFormat
+                                    customInput={Input}
+                                    {...numericProps}
+                                    onValueChange={(e) => {
+                                        field.onChange(e.floatValue);
+                                    }}
+                                />
+                            </div>
                         ) : (
                             <div
                                 className={cn(

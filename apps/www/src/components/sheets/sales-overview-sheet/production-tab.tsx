@@ -99,7 +99,7 @@ function ItemCard({ item }: ItemCardProps) {
                 value={item.controlUid}
                 className={cn(
                     "overflow-hidden border-border",
-                    opened ? "" : "",
+
                     !item?.itemConfig?.production && "hidden",
                 )}
             >

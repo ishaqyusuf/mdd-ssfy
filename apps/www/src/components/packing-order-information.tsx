@@ -1,69 +1,51 @@
-import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Progress } from "./(clean-code)/progress";
 import { formatDate } from "@gnd/utils/dayjs";
 import { Badge } from "@gnd/ui/badge";
 import { MapPin } from "lucide-react";
-import { qtyMatrixSum } from "@api/utils/sales-control";
+import { getColorFromName } from "@/lib/color";
+import { getScheduleStatusInfo } from "@gnd/utils";
+import { cn } from "@gnd/ui/cn";
+import { PackingProgress } from "./packing-progress";
+import { usePacking } from "@/hooks/use-sales-packing";
 
-export function PackingOrderInformation({
-    data,
-}: {
-    data: RouterOutputs["dispatch"]["dispatchOverview"];
-}) {
+export function PackingOrderInformation() {
+    const { data } = usePacking();
     const { dispatch, order, address } = data;
+    const schedule = getScheduleStatusInfo(dispatch.dueDate, {
+        duePrefix: "Overdue",
+        futurePrefix: "Due",
+    });
     return (
         <Card>
             <CardHeader className="bg-muted/20">
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                        <CardTitle className="text-lg">
-                            Dispatch Information
+                        <CardTitle className="text-lg flex items-center">
+                            <span>Dispatch Information</span>
+                            <Badge
+                                variant="outline"
+                                style={{
+                                    backgroundColor: getColorFromName(
+                                        dispatch.deliveryMode,
+                                    ),
+                                }}
+                                className="mx-2 uppercase font-mono text-muted-foreground"
+                            >
+                                {dispatch.deliveryMode}
+                            </Badge>
                         </CardTitle>
-                        <div className="flex gap-2 flex-wrap">
+
+                        <div className="flex items-center gap-2 flex-wrap">
                             <Progress>
                                 <Progress.Status>
                                     {dispatch?.status}
                                 </Progress.Status>
                             </Progress>
-                            <Badge
-                                variant="outline"
-                                className="bg-purple-50 text-purple-700 border-purple-200"
-                            >
-                                {dispatch.deliveryMode === "delivery"
-                                    ? "Delivery"
-                                    : "Pickup"}
-                            </Badge>
                         </div>
                     </div>
 
-                    <Progress>
-                        <Progress.ProgressBar
-                            className="w-full"
-                            showPercent
-                            label="Items packed"
-                            score={
-                                qtyMatrixSum(
-                                    data.dispatchItems?.map(
-                                        (a) => a.listedQty,
-                                    ) as any,
-                                )?.qty || 0
-                            }
-                            total={
-                                qtyMatrixSum(
-                                    data.dispatchItems?.map(
-                                        (a) => a.totalQty,
-                                    ) as any,
-                                )?.qty || 0
-                            }
-                        />
-                    </Progress>
-                    {/* Packing Progress Bar */}
-                    {/* <PackingProgressBar
-                        totalItems={totalItems}
-                        packedItems={packedItems}
-                        className="mt-2"
-                    /> */}
+                    <PackingProgress />
                 </div>
             </CardHeader>
 
@@ -107,9 +89,18 @@ export function PackingOrderInformation({
                                     <span className="text-sm font-medium">
                                         {formatDate(dispatch.dueDate)}
                                     </span>
-                                    <div className="text-xs text-muted-foreground">
-                                        {/* {getScheduleStatusInfo()} */}
-                                    </div>
+                                    {!schedule.status || (
+                                        <div
+                                            style={{
+                                                color: schedule.color,
+                                            }}
+                                            className={cn(
+                                                "text-xs text-muted-foreground",
+                                            )}
+                                        >
+                                            {schedule.status}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex justify-between">

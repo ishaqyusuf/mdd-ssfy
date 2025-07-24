@@ -31,7 +31,7 @@ export function NumberInput({
     const [isFocused, setIsFocused] = useState(false);
     const isPlaceholder = !value && !isFocused && !noMask && !props.placeholder;
     return (
-        <div className="midday  relative font-mono">
+        <div className="midday relative font-mono">
             <CurrencyInput
                 // suffix="%)"
                 // prefix="$"

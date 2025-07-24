@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
-import { generateRandomString } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import {
     parseAsInteger,

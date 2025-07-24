@@ -25,9 +25,10 @@ export function qtyMatrixDifference(a: Qty, b: Qty) {
   return res;
 }
 export function qtyMatrixSum(...qties: Qty[]): Qty {
+  qties = qties.map(({ lh, rh, qty }) => composeQtyMatrix(rh, lh, qty));
   if (!qties) return {} as any;
   let res: Qty = {
-    noHandle: !!qties?.every((a) => !a.noHandle),
+    noHandle: qties?.some((a) => a.noHandle),
   } as any;
   qties?.map((a) => {
     ["rh", "lh", "qty"].map((k) => (res[k] = sum([a[k], res[k]])));

@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useMediaQuery } from "react-responsive";
 import { screens } from "@/lib/responsive";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 export function DataTable({ driver = false }) {
     const trpc = useTRPC();
@@ -25,11 +26,12 @@ export function DataTable({ driver = false }) {
     });
     const { setParams: setSalesPreviewParams } = useSalesPreview();
     const { data: drivers } = useQuery(trpc.hrm.getDrivers.queryOptions({}));
-
+    // const ctx = use
     const addons: Addon = {
         drivers: drivers || [],
         driverMode: !!driver,
     };
+    const ctx = useSalesOverviewQuery();
     return (
         <TableProvider
             args={[
@@ -46,12 +48,17 @@ export function DataTable({ driver = false }) {
                             // });
                         },
                         rowClick(id, rowData) {
-                            setSalesPreviewParams({
-                                previewMode: "packing list",
-                                salesPreviewSlug: rowData?.order?.orderId,
-                                salesPreviewType: "order",
-                                dispatchId: id,
-                            });
+                            ctx.openDispatch(
+                                rowData?.order?.orderId,
+                                rowData.id,
+                                "packing",
+                            );
+                            // setSalesPreviewParams({
+                            //     previewMode: "packing list",
+                            //     salesPreviewSlug: rowData?.order?.orderId,
+                            //     salesPreviewType: "order",
+                            //     dispatchId: id,
+                            // });
                         },
                     },
                 },

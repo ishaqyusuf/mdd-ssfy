@@ -216,6 +216,7 @@ export async function getSalesDispatchOverview(
     return {
       uid: item.controlUid,
       title: item.title,
+
       itemId: item.itemId,
       unitLabor: laborRate(
         overview?.orderMeta?.laborConfig?.rate,
@@ -226,7 +227,9 @@ export async function getSalesDispatchOverview(
       dispatchStat,
       analytics: item.analytics,
       pendingSubmissions: item.analytics?.pendingSubmissions,
-      subtitle: item.subtitle,
+      subtitle: [item.sectionTitle, item.size, item.swing]
+        .filter(Boolean)
+        .join(" | "),
       availableQty: qtyMatrixDifference(
         item.itemConfig?.production
           ? item.analytics.stats.prodCompleted
@@ -291,6 +294,7 @@ export async function getDispatchOverview(
       const listedQty = qtyMatrixSum(trs ? trs : ([] as any));
 
       const dispatchable = result.dispatchables.find((d) => d.uid === item.uid);
+      const pendingQty = dispatchable?.analytics.dispatch.pending;
       const availableQty = dispatchable?.availableQty!;
       const totalQty = qtyMatrixSum([
         availableQty,
@@ -298,10 +302,14 @@ export async function getDispatchOverview(
         ...(dispatchable?.pendingSubmissions?.map((a) => a.qty) || []),
       ] as any);
       // get the following data:
+
       return {
         title: item.title,
+        sectionTitle: item.sectionTitle,
+        subtitle: dispatchable?.subtitle,
         uid: item.uid,
         availableQty,
+        pendingQty,
         listedQty,
         totalQty,
         packingHistory: listedItems?.map((a) => ({

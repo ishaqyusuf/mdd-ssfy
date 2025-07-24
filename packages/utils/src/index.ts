@@ -1,3 +1,6 @@
+import { colorsObject } from "./colors";
+import dayjs from "./dayjs";
+
 export function stripSpecialCharacters(inputString: string) {
   // Remove special characters and spaces, keep alphanumeric, hyphens/underscores, and dots
   return inputString
@@ -134,4 +137,37 @@ export function formatCurrency(value: any) {
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
   }).format(value);
+}
+interface ScheduleStatusProps {
+  duePrefix?: string;
+  dueFn?: (dayDiff: number) => any;
+  futurePrefix?: string;
+  futureFn?: (dayDiff: number) => any;
+}
+export function getScheduleStatusInfo(date: any, props?: ScheduleStatusProps) {
+  const daysdiff = dayjs().diff(date, "day");
+  if (daysdiff == 0)
+    return {
+      status: "Today",
+      color: colorsObject.orange,
+    };
+  if (daysdiff == 1)
+    return {
+      status: "Tommorrow",
+      color: colorsObject.yellow,
+    };
+  if (daysdiff > 0)
+    return {
+      status: [props?.futurePrefix, `in ${daysdiff} days`]
+        .filter(Boolean)
+        .join(" "),
+    };
+  if (daysdiff < 0)
+    return {
+      status: [props?.duePrefix, `by ${Math.abs(daysdiff)} days`]
+        .filter(Boolean)
+        .join(" "),
+      color: colorsObject.red,
+    };
+  return {};
 }

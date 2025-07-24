@@ -60,11 +60,17 @@ function ProgressBar({
 }: ProgressBarProps) {
     const value = percent(score, total, 12);
     return (
-        <div className={cn(className)}>
-            <div className="flex justify-between">
-                <div>{label ? `${score} of ${total} ${label}` : ""}</div>
-                <div>{showPercent ? `${value}%` : null}</div>
-            </div>
+        <div className={cn(className, "space-y-2")}>
+            {(!showPercent && !label) || (
+                <div className="flex text-muted-foreground font-medium justify-between">
+                    <span className="text-sm">
+                        {label ? `${score} of ${total} ${label}` : ""}
+                    </span>
+                    <span className="text-sm font-medium">
+                        {showPercent ? `${value}%` : null}
+                    </span>
+                </div>
+            )}
             <BaseProgress className="h-2" value={value} />
         </div>
     );
