@@ -38,6 +38,7 @@ model OrderItemDelivery {
     rhQty                       Int?                        @default(0)
     qty                         Int                         @default(0)
     meta                        Json?                       @db.Json
+    note                        String?
     status                      String?
     createdAt                   DateTime?                   @default(now()) @db.Timestamp(0)
     updatedAt                   DateTime                    @updatedAt

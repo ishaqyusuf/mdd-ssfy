@@ -39,10 +39,7 @@ interface DispatchFormProps {
 
 export function DispatchForm({ dispatch, onSubmit }: DispatchFormProps) {
     const ctx = useDispatch();
-    const [selectedItems, setSelectedItems] = useState<any[]>(
-        dispatch?.items || [],
-    );
-    const [allSelected, setAllSelected] = useState(false);
+
     const { form, formSchema } = useDispatch();
 
     useEffect(() => {

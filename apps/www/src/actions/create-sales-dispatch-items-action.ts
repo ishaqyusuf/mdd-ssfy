@@ -19,6 +19,7 @@ export async function createSalesDispatchItems(
             orderItemId: a.orderItemId,
             lhQty: a.qty.lh,
             rhQty: a.qty.rh,
+            note: a.note,
             orderProductionSubmissionId: a.submissionId,
             qty: a.qty.qty,
             orderDeliveryId: data.deliveryId,

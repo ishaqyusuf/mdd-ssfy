@@ -301,7 +301,6 @@ export async function getDispatchOverview(
         listedQty,
         ...(dispatchable?.pendingSubmissions?.map((a) => a.qty) || []),
       ] as any);
-      // get the following data:
 
       return {
         title: item.title,
@@ -312,6 +311,7 @@ export async function getDispatchOverview(
         pendingQty,
         listedQty,
         totalQty,
+        dispatchable,
         packingHistory: listedItems?.map((a) => ({
           qty: a.qty,
           date: a.createdAt,
@@ -325,6 +325,11 @@ export async function getDispatchOverview(
     order: {
       orderId: order.orderId,
       date: order.createdAt,
+      id: order.id,
     },
   };
+}
+
+export async function enlistItemToForDispatch(ctx: TRPCContext) {
+  //
 }

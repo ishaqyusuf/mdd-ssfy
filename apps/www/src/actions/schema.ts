@@ -184,7 +184,7 @@ export const updateDispatchStatusSchema = z.object({
     oldStatus: z.string() as z.ZodType<SalesDispatchStatus>,
 });
 export const createSalesDispatchItemsSchema = z.object({
-    deliveryMode: z.string(),
+    // deliveryMode: z.string(),
     orderId: z.number(),
     deliveryId: z.number(),
     status: z.string().optional() as z.ZodType<SalesDispatchStatus>,
@@ -204,6 +204,7 @@ export const createSalesDispatchItemsSchema = z.object({
             submissionId: z.number(),
             status: z.string().optional() as z.ZodType<SalesDispatchStatus>,
             itemUid: z.string(),
+            note: z.string().optional().nullable(),
             totalItemQty: z.number(),
         }),
     ),

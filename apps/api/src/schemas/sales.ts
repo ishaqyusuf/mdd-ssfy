@@ -96,3 +96,8 @@ export const salesDispatchOverviewSchema = z
 export type SalesDispatchOverviewSchema = z.infer<
   typeof salesDispatchOverviewSchema
 >;
+
+export const enlistDispatchItemSchema = z.object({
+  dispatchId: z.number(),
+  submissions: z.array(z.object({})),
+});

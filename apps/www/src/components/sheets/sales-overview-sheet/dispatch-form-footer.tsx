@@ -39,14 +39,6 @@ export function DispatchFormFooter({}) {
     const taskTrigger = useTaskTrigger({});
     const handleSubmit = (formData: z.infer<typeof ctx.formSchema>) => {
         const data = ctx.bachWorker.emptyActions();
-        // const formData = form.getValues();
-        // let pickings = [];
-        // taskTrigger.trigger({
-        //     taskName: "create-dispatch",
-        //     payload: {
-        //         //
-        //     }
-        // });
         ctx.data?.dispatchables?.map((item) => {
             const itemData = formData?.itemData?.items?.[item.uid];
             let qty = itemData?.qty;

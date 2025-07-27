@@ -1,6 +1,5 @@
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useQuery } from "@tanstack/react-query";
-import { Suspense, useEffect } from "react";
 import { PackingTabSkeleton } from "./packing-tab.skeleton";
 import { PackingOrderInformation } from "@/components/packing-order-information";
 import { PackingDriverInformation } from "@/components/packing-driver-information";

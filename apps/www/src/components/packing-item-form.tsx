@@ -7,6 +7,9 @@ import FormInput from "./common/controls/form-input";
 import { SubmitButton } from "./submit-button";
 import { Icons } from "@gnd/ui/icons";
 import { qtyFormSchema, qtySuperRefine } from "@gnd/utils/sales";
+import { useSalesControlAction } from "@/hooks/use-sales-control-action";
+import { useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
 
 const schema = z
     .object({
@@ -30,7 +33,26 @@ export function PackingItemForm({}) {
             },
         },
     });
-    const onSubmit = () => {};
+    const queryClient = useQueryClient();
+    const trpc = useTRPC();
+    const controller = useSalesControlAction({
+        onFinish() {
+            queryClient.invalidateQueries({
+                queryKey: trpc.dispatch.dispatchOverview.queryKey(),
+            });
+            form.reset();
+        },
+    });
+    const onSubmit = (formData: z.infer<typeof schema>) => {
+        item.packingHistory;
+        controller.packItem({
+            dispatchId: packing.data?.dispatch?.id,
+            qty: formData?.qty,
+            note: formData?.note,
+            dispatchable: item.dispatchable,
+            salesId: packing?.data?.order?.id,
+        });
+    };
     return (
         <div className="p-4 border-t  bg-muted/10">
             <Form {...form}>
