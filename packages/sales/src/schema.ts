@@ -13,6 +13,11 @@ export const getFullSalesDataSchema = z.object({
   assignedToId: z.number().optional().nullable(),
 });
 export type GetFullSalesDataSchema = z.infer<typeof getFullSalesDataSchema>;
+const qty = z.object({
+  lh: z.number().nullable().optional(),
+  rh: z.number().nullable().optional(),
+  qty: z.number().nullable().optional(),
+});
 export const updateSalesControlSchema = z.object({
   meta: z.object({
     salesId: z.number(),
@@ -20,8 +25,17 @@ export const updateSalesControlSchema = z.object({
   }),
   submitAll: z
     .object({
-      itemUid: z.string().optional().nullable(),
-      orderId: z.number(),
+      assignedToId: z.number().nullable().optional(),
+      itemUids: z.array(z.string()).optional().nullable(),
+      selections: z
+        .array(
+          z.object({
+            assignmentId: z.number(),
+            qty: qty.optional().nullable(),
+          })
+        )
+        .optional()
+        .nullable(),
     })
     .nullable(),
   packItem: z

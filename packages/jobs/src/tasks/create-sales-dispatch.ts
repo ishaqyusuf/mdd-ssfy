@@ -9,5 +9,7 @@ export const example = schemaTask({
   queue: {
     concurrencyLimit: 10,
   },
-  run: async ({}) => {},
+  run: async ({}) => {
+    // submit-sales-assignment.ts -> create-payroll.ts ?createPayrollAction
+  },
 });

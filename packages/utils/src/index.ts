@@ -174,3 +174,19 @@ export function getScheduleStatusInfo(date: any, props?: ScheduleStatusProps) {
 export type RenturnTypeAsync<T extends (...args: any) => any> = Awaited<
   ReturnType<T>
 >;
+export async function nextId(model: any, where?: any) {
+  return (await lastId(model, where)) + 1;
+}
+export async function lastId(model: any, _default = 0, where?: any) {
+  return ((
+    await model.findFirst({
+      where: {
+        deletedAt: undefined,
+        ...(where || {}),
+      },
+      orderBy: {
+        id: "desc",
+      },
+    })
+  )?.id || _default) as number;
+}
