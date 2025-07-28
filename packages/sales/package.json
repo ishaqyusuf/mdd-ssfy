@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
-    "./types": "./src/types.ts"
+    "./types": "./src/types.ts",
+    "./exports": "./src/exports.ts"
   },
   "dependencies": {
     "@gnd/ui": "workspace:*",

@@ -23,9 +23,7 @@
     "outDir": "./dist",
     "paths": {
       "@api/*": ["src/*"],
-      "@engine/*": ["../engine/src/*"],
       "@jobs/*": ["../../packages/jobs/src/*"],
-      "@ui/*": ["../../packages/ui/src/*"],
       "@sales/*": ["../../packages/sales/src/*"]
     },
     "types": ["bun-types"]

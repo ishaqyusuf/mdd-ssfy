@@ -26,7 +26,6 @@
     "@gnd/db": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@gnd/jobs": "workspace:*",
-    "@gnd/sales": "workspace:*",
     "@sindresorhus/slugify": "^2.2.1",
     "@trigger.dev/sdk": "3.3.17",
     "@trpc/server": "^11.4.1",
