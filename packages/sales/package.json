@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
+    ".": "./src/exports.ts",
     "./types": "./src/types.ts",
     "./get-sale-information": "./src/sales-control/get-sale-information.ts"
   },

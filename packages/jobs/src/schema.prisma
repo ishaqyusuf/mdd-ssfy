@@ -44,9 +44,13 @@ model AddressBooks {
     dealerBilling  DealerAuth[]  @relation(name: "primaryBillingAddress")
     dealerShipping DealerAuth[]  @relation(name: "primaryShippingAddress")
 
+    region   DispatchRegion? @relation(fields: [regionId], references: [id])
+    regionId Int?
+
     @@index([createdAt, deletedAt, name, address1])
     @@index([customerId])
     @@index([phoneNo])
+    @@index([regionId])
 }
 
 model ErrorLog {
@@ -562,10 +566,10 @@ model SalesOrders {
     salesRep          Users?                           @relation(name: "salesRep", fields: [salesRepId], references: [id])
     shippingAddress   AddressBooks?                    @relation(name: "shippingAddress", fields: [shippingAddressId], references: [id])
     stat              SalesStat[]
-    // supplies          SalesItemSupply[]
     extraCosts        SalesExtraCosts[]
     squarePayOrders   SquarePaymentOrders[]
     payrolls          Payroll[]
+    history           SalesHistory[]
 
     @@unique([orderId, type])
     @@index([createdAt, deletedAt, orderId, grandTotal, prodId, type, prodDueDate])
@@ -576,6 +580,20 @@ model SalesOrders {
     @@index([prodId])
     @@index([salesRepId])
     @@index([pickupId])
+}
+
+model SalesHistory {
+    id         String       @unique @default(uuid())
+    data       Json?        @db.Json
+    name       String?
+    authorName String?
+    salesId    Int
+    sale       SalesOrders? @relation(fields: [salesId], references: [id])
+    createdAt  DateTime?    @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime?    @updatedAt
+    deletedAt  DateTime?    @db.Timestamp(0)
+
+    @@index([salesId])
 }
 
 enum SalesPriority {
@@ -1067,7 +1085,7 @@ model Taxes {
 model SalesStat {
     salesId    Int
     status     String?
-    type       String // production, dispatch, payment
+    type       String
     score      Float?
     total      Float?
     percentage Float?
@@ -2756,13 +2774,19 @@ model OrderDelivery {
     order        SalesOrders         @relation(fields: [salesOrderId], references: [id])
     driver       Users?              @relation(name: "driver", fields: [driverId], references: [id])
     createdBy    Users?              @relation(name: "createdBy", fields: [createdById], references: [id])
-    // orderDeliveryProgress   OrderDeliveryProgress? @relation(fields: [orderDeliveryProgressId], references: [id])
-    // orderDeliveryProgressId Int?
-    // @@index([orderDeliveryProgressId])
 
     @@index([salesOrderId])
     @@index([driverId])
     @@index([createdById])
+}
+
+model DispatchRegion {
+    id        Int            @unique @default(autoincrement())
+    title     String
+    createdAt DateTime?      @default(now()) @db.Timestamp(0)
+    updatedAt DateTime       @updatedAt
+    deletedAt DateTime?      @db.Timestamp(0)
+    address   AddressBooks[]
 }
 
 model OrderItemDelivery {
@@ -2773,6 +2797,7 @@ model OrderItemDelivery {
     rhQty                       Int?                        @default(0)
     qty                         Int                         @default(0)
     meta                        Json?                       @db.Json
+    note                        String?
     status                      String?
     createdAt                   DateTime?                   @default(now()) @db.Timestamp(0)
     updatedAt                   DateTime                    @updatedAt

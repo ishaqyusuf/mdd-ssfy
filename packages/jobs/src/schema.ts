@@ -74,6 +74,10 @@ export const markSalesAsCompletedSchema = z.object({
 });
 
 export const updateSalesControlSchema = z.object({
+  meta: z.object({
+    salesId: z.number(),
+    authorId: z.number(),
+  }),
   submitAll: z
     .object({
       itemUid: z.string().optional().nullable(),
