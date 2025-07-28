@@ -72,18 +72,3 @@ export const markSalesAsCompletedSchema = z.object({
   ids: z.array(z.number()),
   authorName: z.string(),
 });
-
-export const updateSalesControlSchema = z.object({
-  meta: z.object({
-    salesId: z.number(),
-    authorId: z.number(),
-  }),
-  submitAll: z
-    .object({
-      itemUid: z.string().optional().nullable(),
-      orderId: z.number(),
-    })
-    .optional()
-    .nullable(),
-});
-export type UpdateSalesControl = z.infer<typeof updateSalesControlSchema>;

@@ -10,8 +10,8 @@
     "noImplicitAny": false,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@api/*": ["../../apps/api/src/*"]
+      // "@/*": ["./src/*"],
+      // "@api/*": ["../../apps/api/src/*"]
     }
   }
   // "compilerOptions": {

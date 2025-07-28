@@ -1,6 +1,8 @@
 import type { db, Prisma } from "@gnd/db";
 import { getItemStatConfig } from "./utils/utils";
 import { composeSalesItemControlStat } from "./utils/sales-control";
+import { getSaleInformation } from "./exports";
+import { RenturnTypeAsync } from "@gnd/utils";
 export type StepMeta = {
   custom: boolean;
   priceStepDeps: string[];
@@ -203,3 +205,6 @@ export type ItemControl = {
   shelfId?;
 };
 export type Db = typeof db;
+
+export type SalesInformation = RenturnTypeAsync<typeof getSaleInformation>;
+export type SalesInfoItem = SalesInformation["items"][number];

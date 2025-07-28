@@ -1,6 +1,6 @@
-import { TaskName, updateSalesControlSchema } from "@jobs/schema";
+import { TaskName } from "@jobs/schema";
 import { schemaTask } from "@trigger.dev/sdk/v3";
-import { getSalesSetting } from "@gnd/sales";
+import { getSalesSetting, updateSalesControlSchema } from "@gnd/sales";
 import { db } from "@gnd/db";
 export const updateSalesControl = schemaTask({
   id: "update-sales-control" as TaskName,

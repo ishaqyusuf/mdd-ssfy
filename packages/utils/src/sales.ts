@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sum } from ".";
 export function formatPaymentParams(params: any) {
   const { emailToken, orderIds } = params;
   return {
@@ -20,6 +21,12 @@ export function composePaymentOrderIdsParam(orderIds: string[]) {
 }
 
 export type DeliveryOption = "delivery" | "pickup";
+export type Qty = {
+  lh?: any;
+  rh?: any;
+  qty?: any;
+  noHandle?: boolean;
+};
 export type SalesDispatchStatus =
   | "queue"
   | "in progress"
@@ -123,3 +130,7 @@ export type QtyControlType =
   | "dispatchCancelled";
 
 export const qtyHasHandle = (qty: any) => !!qty?.lh || !!qty?.rh;
+
+export function hasQty(qty: any) {
+  return !!sum(qty?.lh, qty?.rh) || !!qty?.qty;
+}
