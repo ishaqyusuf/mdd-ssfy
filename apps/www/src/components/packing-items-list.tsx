@@ -17,14 +17,6 @@ export function PackingItemsList() {
                 </div>
             </CardHeader>
             <CardContent className="p-4">
-                {/* <AccordionItem
-                    value={item.controlUid}
-                    className={cn(
-                        "overflow-hidden border-border",
-
-                        !item?.itemConfig?.production && "hidden",
-                    )}
-                > */}
                 <div className="space-y-4">
                     {data?.dispatchItems.map((item, index) => (
                         <PackingItemProvider

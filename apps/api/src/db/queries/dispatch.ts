@@ -312,6 +312,7 @@ export async function getDispatchOverview(
         listedQty,
         totalQty,
         dispatchable,
+        salesItemId: dispatchable?.itemId,
         packingHistory: listedItems?.map((a) => ({
           qty: a.qty,
           date: a.createdAt,

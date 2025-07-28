@@ -51,6 +51,7 @@ export function PackingItemForm({}) {
             note: formData?.note,
             dispatchable: item.dispatchable,
             salesId: packing?.data?.order?.id,
+            // salesItemId: packing?.data?.
         });
     };
     return (

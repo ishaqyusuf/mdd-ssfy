@@ -76,30 +76,33 @@ export const createSalesAssignmentAction = actionClient
     })
     .action(async ({ parsedInput: input }) => {
         // if (input.assignedToId) input.assignedToId = +input.assignedToId;
-        const resp = await prisma.$transaction(async (tx: typeof prisma) => {
-            const assignment = await createSalesAssignment(input, tx);
-            await updateSalesItemStats(
-                {
-                    uid: input.itemUid,
-                    salesId: input.salesId,
-                    type: "prodAssigned",
-                    itemTotal: input.itemsTotal,
-                    qty: {
-                        ...input.qty,
-                    },
-                },
-                tx,
-            );
-            await updateSalesStatAction(
-                {
-                    salesId: input.salesId,
-                    types: ["prodAssigned"],
-                },
-                tx,
-            );
-            return {
-                assignmentId: assignment.id,
-            };
-        });
-        return resp;
+        return _createSalesAssignmentAction(input);
     });
+export const _createSalesAssignmentAction = async (input) => {
+    const resp = await prisma.$transaction(async (tx: typeof prisma) => {
+        const assignment = await createSalesAssignment(input, tx);
+        await updateSalesItemStats(
+            {
+                uid: input.itemUid,
+                salesId: input.salesId,
+                type: "prodAssigned",
+                itemTotal: input.itemsTotal,
+                qty: {
+                    ...input.qty,
+                },
+            },
+            tx,
+        );
+        await updateSalesStatAction(
+            {
+                salesId: input.salesId,
+                types: ["prodAssigned"],
+            },
+            tx,
+        );
+        return {
+            assignmentId: assignment.id,
+        };
+    });
+    return resp;
+};

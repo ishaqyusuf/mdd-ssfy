@@ -1,12 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { redirect } from "next/navigation";
-import {
-    createAssignmentSchema,
-    createSalesDispatchItemsSchema,
-    createSalesDispatchSchema,
-} from "@/actions/schema";
+import { useEffect } from "react";
+
 import { SalesDispatchStatus } from "@/app/(clean-code)/(sales)/types";
 import { DatePicker } from "@/components/(clean-code)/custom/controlled/date-picker";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
@@ -48,7 +43,7 @@ export function DispatchForm({ dispatch, onSubmit }: DispatchFormProps) {
 
             ctx.data.dispatchables.map((item) => {
                 items[item.uid] = {
-                    available: item.availableQty,
+                    // available: item.availableQty,
                     qty: {
                         ...item.availableQty,
                     },

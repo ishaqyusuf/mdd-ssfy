@@ -1,9 +1,13 @@
 import { useEffect, useId } from "react";
-import { createSalesAssignmentAction } from "@/actions/create-sales-assignment";
+import {
+    _createSalesAssignmentAction,
+    createSalesAssignmentAction,
+} from "@/actions/create-sales-assignment";
 import { createSalesDispatchAction } from "@/actions/create-sales-dispatch-action";
 import { createSalesDispatchItemsAction } from "@/actions/create-sales-dispatch-items-action";
 import {
     createAssignmentSchema,
+    createSalesDispatchItemsSchema,
     createSalesDispatchSchema,
     createSubmissionSchema,
 } from "@/actions/schema";
@@ -24,6 +28,7 @@ import { redirect } from "next/navigation";
 
 type SubmitSchema = z.infer<typeof createSubmissionSchema>;
 type SalesDispatch = z.infer<typeof createSalesDispatchSchema>;
+type SalesDispatchItem = z.infer<typeof createSalesDispatchItemsSchema>;
 interface Props {
     onFinish?;
 }
@@ -54,12 +59,14 @@ interface FormData {
         dispatch?: Partial<SalesDispatch>;
         dispatchItems: {
             [itemUid in string]: {
-                submissionId?: number;
+                // submissionId?: number;
                 dispatchId?: number;
-                note?: string;
-                qty?: Qty;
-                status?;
-            };
+                // note?: string;
+                // qty?: Qty;
+                // status?;
+                // orderItemId?;
+                // itemUid?;
+            } & SalesDispatchItem["items"][number];
         };
     };
     fallbacks: {
@@ -108,7 +115,13 @@ export function useSalesControlAction({ onFinish }) {
                 form.setValue("nextTriggerUID", generateRandomString());
             }, 150);
         },
-        onError(e) {},
+        onError(e) {
+            console.log({
+                type: "Submittion",
+                e,
+            });
+            loader.error(`Failed to create submission`);
+        },
     });
     const createDispatch = useAction(createSalesDispatchAction, {
         onSuccess(args) {
@@ -122,7 +135,11 @@ export function useSalesControlAction({ onFinish }) {
             }, 150);
         },
         onError(e) {
-            console.log(e);
+            console.log({
+                type: "Dispatch",
+                e,
+            });
+            loader.error(`Failed to create dispatch`);
         },
     });
     const createAssignment = useAction(createSalesAssignmentAction, {
@@ -156,7 +173,11 @@ export function useSalesControlAction({ onFinish }) {
             }, 150);
         },
         onError(e) {
-            console.log(e);
+            console.log({
+                type: "Assignment",
+                e,
+            });
+            loader.error(`Failed to create assignment`);
         },
     });
     const createDispatchItem = useAction(createSalesDispatchItemsAction, {
@@ -164,7 +185,7 @@ export function useSalesControlAction({ onFinish }) {
             Object.values(args.input.items).map((item) => {
                 form.setValue(
                     `actions.dispatchItems.${item.itemUid}.status`,
-                    "success",
+                    "queue",
                 );
             });
 
@@ -177,7 +198,11 @@ export function useSalesControlAction({ onFinish }) {
             }, 150);
         },
         onError(e) {
-            console.log(e);
+            console.log({
+                type: "Dispatch Item",
+                e,
+            });
+            loader.error(`Failed to create dispatch item.`);
         },
     });
 
@@ -256,7 +281,7 @@ export function useSalesControlAction({ onFinish }) {
             const deliveryItems = Object.entries(actions.dispatchItems)
                 .filter(([uid, data]) => !data.status)
                 .filter(([uid, data], index) => index < 10);
-            // .map(([uid, data]) => data);
+
             if (deliveryItems.length == 0) {
                 form.setValue("nextTriggerUID", null);
                 return;
@@ -279,10 +304,24 @@ export function useSalesControlAction({ onFinish }) {
     });
     const ctx = {
         form,
-        start() {
-            setTimeout(() => {
-                form.setValue("nextTriggerUID", generateRandomString());
-            }, 200);
+        async start() {
+            const _actions = { ...actions };
+            // setTimeout(() => {
+            //     form.setValue("nextTriggerUID", generateRandomString());
+            // }, 200);
+            // object for each key value
+            for (const [key, value] of Object.entries(
+                _actions.assignmentActions,
+            )) {
+                if (value?.assignmentId) continue;
+                if (_actions.dispatch)
+                    loader.loading("Preparing items for dispatch");
+                else loader.loading("Creating Assingments");
+                const res = await _createSalesAssignmentAction({
+                    ...value.meta,
+                });
+                _actions.assignmentActions[key].assignmentId = res.assignmentId;
+            }
         },
         loader,
         currentActionId,
@@ -338,6 +377,13 @@ export function useSalesControlAction({ onFinish }) {
                     data.dispatchItems[generateRandomString()] = {
                         submissionId: ds.submissionId,
                         qty: pickQty,
+                        status: null,
+                        dispatchId,
+                        note: props.note,
+                        orderItemId: props.dispatchable.itemId,
+                        itemUid: props.dispatchable.uid,
+                        totalItemQty:
+                            props.dispatchable.analytics?.stats?.qty?.qty,
                     };
             });
             if (qty.qty) {
@@ -378,7 +424,10 @@ export function useSalesControlAction({ onFinish }) {
                     status: null,
                     dispatchId,
                     note: props.note,
-                };
+                    orderItemId: props.dispatchable.itemId,
+                    itemUid: props.dispatchable.uid,
+                    totalItemQty: props.dispatchable.analytics?.stats?.qty?.qty,
+                } as SalesDispatchItem["items"][number];
             }
             data.dispatch = {
                 id: dispatchId,

@@ -191,18 +191,21 @@ export const createSalesDispatchItemsSchema = z.object({
     items: z.record(
         z.object({
             orderItemId: z.number(),
-            available: z.object({
-                lh: z.number().nullable().optional(),
-                rh: z.number().nullable().optional(),
-                qty: z.number().nullable().optional(),
-            }),
+            // available: z.object({
+            //     lh: z.number().nullable().optional(),
+            //     rh: z.number().nullable().optional(),
+            //     qty: z.number().nullable().optional(),
+            // }),
             qty: z.object({
                 lh: z.number().nullable().optional(),
                 rh: z.number().nullable().optional(),
                 qty: z.number().nullable().optional(),
             }),
             submissionId: z.number(),
-            status: z.string().optional() as z.ZodType<SalesDispatchStatus>,
+            status: z
+                .string()
+                .optional()
+                .nullable() as z.ZodType<SalesDispatchStatus>,
             itemUid: z.string(),
             note: z.string().optional().nullable(),
             totalItemQty: z.number(),

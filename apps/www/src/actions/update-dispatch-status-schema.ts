@@ -6,10 +6,7 @@ import { getDispatchControlType } from "@/utils/sales-utils";
 import z from "zod";
 
 import { actionClient } from "./safe-action";
-import {
-    createSalesDispatchItemsSchema,
-    updateDispatchStatusSchema,
-} from "./schema";
+import { updateDispatchStatusSchema } from "./schema";
 import { updateSalesItemStats } from "./update-sales-item-stat";
 import { updateSalesStatAction } from "./update-sales-stat";
 

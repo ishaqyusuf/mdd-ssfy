@@ -23,7 +23,7 @@ export async function createSalesDispatchItems(
             orderProductionSubmissionId: a.submissionId,
             qty: a.qty.qty,
             orderDeliveryId: data.deliveryId,
-            status: a.status,
+            status: a.status || data.status,
         })),
     });
     return dispatch;
