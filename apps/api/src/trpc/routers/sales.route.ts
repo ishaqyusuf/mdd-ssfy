@@ -4,12 +4,7 @@ import {
   inboundQuerySchema,
   salesQueryParamsSchema,
 } from "@api/schemas/sales";
-import {
-  getQuotes,
-  getSales,
-  getSalesLifeCycle,
-  startNewSales,
-} from "@api/db/queries/sales";
+import { getQuotes, getSales, startNewSales } from "@api/db/queries/sales";
 import { getInbounds, getInboundSummary } from "@api/db/queries/inbound";
 import { startNewSalesSchema } from "@api/schemas/sales";
 import { transformSalesFilterQuery } from "@api/utils/sales";

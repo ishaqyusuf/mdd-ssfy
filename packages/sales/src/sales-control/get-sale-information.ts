@@ -8,7 +8,6 @@ import {
   SalesType,
 } from "@/types";
 import { FullSalesSelect, getItemStatConfig } from "@/utils/utils";
-import { db as prisma } from "@gnd/db";
 import { getSalesSetting } from "./settings";
 import {
   composeQtyMatrix,

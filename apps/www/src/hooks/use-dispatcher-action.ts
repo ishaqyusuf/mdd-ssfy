@@ -107,13 +107,13 @@ export function useDispatcherAction() {
                             ) => {
                                 const resp = await createSalesDispatchItems({
                                     deliveryId: dispatch.id,
-                                    deliveryMode: dispatch.deliveryMode,
+                                    // deliveryMode: dispatch.deliveryMode,
                                     orderId: dispatch.salesOrderId,
                                     status: dispatch.status as any,
                                     items: {
                                         ".": {
                                             qty,
-                                            available: qty,
+                                            // available: qty as any,
                                             itemUid: item.uid,
                                             orderItemId: item.itemId,
                                             submissionId: submissionId,
