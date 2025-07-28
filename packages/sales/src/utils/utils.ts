@@ -1,16 +1,24 @@
-import { statToKeyValueDto, type Item } from "@api/dto/sales-dto";
-import type { SalesQueryParamsSchema } from "@api/schemas/sales";
-import type {
+// import { statToKeyValueDto, type Item } from "@api/dto/sales-dto";
+// import type { SalesQueryParamsSchema } from "@api/schemas/sales";
+// import type {
+//   AddressBookMeta,
+//   CustomerMeta,
+//   ItemStatConfigProps,
+//   QtyControlType,
+//   SalesStatStatus,
+// } from "@api/type";
+import type { Prisma } from "@gnd/db";
+import { sumArrayKeys } from "@gnd/utils";
+import dayjs from "@gnd/utils/dayjs";
+import { padStart } from "lodash";
+import {
   AddressBookMeta,
   CustomerMeta,
   ItemStatConfigProps,
   QtyControlType,
   SalesStatStatus,
-} from "@api/type";
-import type { Prisma } from "@gnd/db";
-import { sumArrayKeys } from "@gnd/utils";
-import dayjs from "@gnd/utils/dayjs";
-import { padStart } from "lodash";
+} from "../types";
+import { SalesQueryParamsSchema } from "../schema";
 
 export function salesAddressLines(
   address: Prisma.AddressBooksGetPayload<{}>,
@@ -62,31 +70,9 @@ export function transformSalesFilterQuery(query: SalesQueryParamsSchema) {
   }
   return query;
 }
-export function salesLinks(data: Item) {
-  return {
-    edit: data.isDyke ? `` : ``,
-    overview: `/sales-book/${data.type}/${data.slug}`,
-    customer: data.customer
-      ? `/sales-book/customer/${data.customer?.id}`
-      : null,
-  };
-}
+
 export function dispatchTitle(id, prefix = "#DISPATCH") {
   return `${prefix}-${padStart(id.toString(), 4, "0")}`;
-}
-export function overallStatus(dataStats: Prisma.SalesStatGetPayload<{}>[]) {
-  const sk = statToKeyValueDto(dataStats);
-  const dispatch = sumArrayKeys(
-    [sk.dispatchAssigned, sk.dispatchInProgress, sk.dispatchCompleted],
-    ["score", "total", "percentage"]
-  );
-
-  return {
-    production: statStatus(sk.prodCompleted),
-    assignment: statStatus(sk.prodAssigned),
-    // payment: statStatus(sk.),
-    delivery: statStatus(dispatch as any),
-  };
 }
 
 export function statStatus(stat: Prisma.SalesStatGetPayload<{}>): {
