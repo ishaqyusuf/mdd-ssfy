@@ -6,13 +6,12 @@ import type {
   QtyControlByType,
   QtyControlType,
   SalesDispatchStatus,
-} from "@/types";
+} from "../types";
 import type { Prisma } from "@gnd/db";
 import { percent, sum } from "@gnd/utils";
 import { isEqual } from "lodash";
 import { qtyControlsByType } from "./utils";
-import { GetSalesItemControllables } from "@/sales-control";
-
+import { GetSalesItemControllables } from "../sales-control";
 export const composeQtyMatrix = (rh, lh, qty) => {
   if (!qty || rh || lh) qty = sum([rh, lh]);
   return { rh, lh, qty, noHandle: !rh && !lh };
