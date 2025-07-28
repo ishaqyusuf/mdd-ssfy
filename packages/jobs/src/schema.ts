@@ -73,4 +73,13 @@ export const markSalesAsCompletedSchema = z.object({
   authorName: z.string(),
 });
 
-export const updateSalesControlSchema = z.object({});
+export const updateSalesControlSchema = z.object({
+  submitAll: z
+    .object({
+      itemUid: z.string().optional().nullable(),
+      orderId: z.number(),
+    })
+    .optional()
+    .nullable(),
+});
+export type UpdateSalesControl = z.infer<typeof updateSalesControlSchema>;

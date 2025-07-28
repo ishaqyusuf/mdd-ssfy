@@ -13,8 +13,7 @@ import {
 import { getInbounds, getInboundSummary } from "@api/db/queries/inbound";
 import { startNewSalesSchema } from "@api/schemas/sales";
 import { transformSalesFilterQuery } from "@api/utils/sales";
-import type { RenturnTypeAsync } from "@api/type";
-
+import { getSaleInformation } from "@sales/sales-control/get-sale-information";
 export const salesRouter = createTRPCRouter({
   index: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
     return getSales(props.ctx, transformSalesFilterQuery(props.input));
@@ -50,9 +49,8 @@ export const salesRouter = createTRPCRouter({
   productionOverview: publicProcedure
     .input(getFullSalesDataSchema)
     .query(async (props) => {
-      const resp = await getSalesLifeCycle(props.ctx, props.input);
-      // (property) ItemControlData.qty: Qty
-      resp?.items?.[0]?.qty.qty;
-      return resp as RenturnTypeAsync<typeof getSalesLifeCycle>;
+      // const resp = await getSalesLifeCycle(props.ctx, props.input);
+      // return resp;
+      return await getSaleInformation(props.ctx.db, props.input);
     }),
 });

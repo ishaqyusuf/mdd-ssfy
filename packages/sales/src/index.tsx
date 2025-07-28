@@ -1,6 +1,3 @@
-export * from "./midday-template/html";
-export * from "./midday-template/pdf";
-export * from "./midday-template/og";
 export * from "./editor";
 export * from "./utils/logo";
 

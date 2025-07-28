@@ -1,10 +1,4 @@
 import { db } from "@gnd/db";
+import { UpdateSalesControl } from "@jobs/schema";
 
-export class SalesController {
-  constructor(public prisma: typeof db) {}
-  async submitAssignment() {
-    // this.prisma.orderProductionSubmissions.create({
-    //   data: {},
-    // });
-  }
-}
+export async function submitAllSalesControlAction(input: UpdateSalesControl) {}

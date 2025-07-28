@@ -54,10 +54,6 @@ const { useContext: useDispatch, Provider: DispatchProvider } =
                 },
             ),
         );
-        // useEffect(() => {
-        //     if (!ctx.refreshTok) return;
-        //     refetch();
-        // }, [ctx.refreshTok]);
         const [openForm, setOpenForm] = useState(false);
         const bachWorker = useSalesControlAction({
             onFinish() {},
