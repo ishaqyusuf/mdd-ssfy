@@ -27,6 +27,7 @@
         "@gnd/printer": "workspace:*",
         "@gnd/ui": "workspace:*",
         "@gnd/utils": "workspace:*",
+        "@gnd/sales": "workspace:*",
         "@headlessui/react": "^1.7.17",
         "@hookform/resolvers": "^3.10.0",
         "@mdx-js/loader": "^3.0.0",
