@@ -10,7 +10,7 @@
   },
   "exports": {
     "./types": "./src/types.ts",
-    "./exports": "./src/exports.ts"
+    "./get-sale-information": "./src/sales-control/get-sale-information.ts"
   },
   "dependencies": {
     "@gnd/ui": "workspace:*",
