@@ -1,6 +1,6 @@
-import { composeSalesItemControlStat } from "@api/utils/sales-control";
 import type { db, Prisma } from "@gnd/db";
 import { getItemStatConfig } from "./utils/utils";
+import { composeSalesItemControlStat } from "./utils/sales-control";
 export type StepMeta = {
   custom: boolean;
   priceStepDeps: string[];

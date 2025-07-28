@@ -1,4 +1,4 @@
-import { Db, SalesSettingsMeta, SettingType } from "@/types";
+import { Db, SalesSettingsMeta, SettingType } from "../types";
 
 export const salesSettingsKey: SettingType = "sales-settings";
 export async function getSalesSetting(prisma: Db) {

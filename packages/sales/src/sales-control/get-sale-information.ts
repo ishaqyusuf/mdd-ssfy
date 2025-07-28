@@ -1,4 +1,4 @@
-import { GetFullSalesDataSchema } from "@/schema";
+import { GetFullSalesDataSchema } from "../schema";
 import {
   Db,
   DykeSalesDoorMeta,
@@ -6,8 +6,8 @@ import {
   SalesItemMeta,
   SalesMeta,
   SalesType,
-} from "@/types";
-import { FullSalesSelect, getItemStatConfig } from "@/utils/utils";
+} from "../types";
+import { FullSalesSelect, getItemStatConfig } from "../utils/utils";
 import { getSalesSetting } from "./settings";
 import {
   composeQtyMatrix,
@@ -16,7 +16,7 @@ import {
   doorItemControlUid,
   itemItemControlUid,
   mouldingItemControlUid,
-} from "@/utils/sales-control";
+} from "../utils/sales-control";
 import { formatCurrency } from "@gnd/utils";
 
 export async function getSaleInformation(

@@ -1,4 +1,4 @@
-import { Db, SalesDispatchStatus } from "@/types";
+import { Db, SalesDispatchStatus } from "../types";
 
 import { RenturnTypeAsync } from "@gnd/utils";
 import { getSalesSetting } from "./settings";
@@ -9,7 +9,7 @@ export type GetSalesItemControllables = RenturnTypeAsync<
 export async function getSalesItemControllablesInfoAction(
   //   ctx: TRPCContext,
   prisma: Db,
-  salesId
+  salesId: any
 ) {
   //   const prisma = ctx.db;
   const order = await prisma.salesOrders.findFirstOrThrow({
@@ -151,8 +151,8 @@ export async function getSalesItemControllablesInfoAction(
       const stepConfigUid = mainStep?.prodUid;
       let config =
         setting?.data?.route?.[stepConfigUid!]?.config ||
-        groupConfig?.[item.multiDykeUid!];
-      if (config) groupConfig[item.multiDykeUid!] = config;
+        (groupConfig as any)?.[item.multiDykeUid!];
+      if (config) (groupConfig as any)[item.multiDykeUid!] = config;
       const isService = mainStep?.value?.toLowerCase() == "services";
       return {
         ...item,
