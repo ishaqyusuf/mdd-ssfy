@@ -50,7 +50,7 @@ export async function getSalesItemControllablesInfoAction(
               itemDeliveries: {
                 where: {
                   deletedAt: null,
-                  packingStatus: "packed" as SalesDispatchStatus,
+                  // packingStatus: "packed" as SalesDispatchStatus,
                 },
                 select: {
                   status: true,
