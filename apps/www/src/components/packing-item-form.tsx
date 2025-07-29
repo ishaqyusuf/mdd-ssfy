@@ -41,7 +41,11 @@ export function PackingItemForm({}) {
     const trpc = useTRPC();
 
     const trigger = useTaskTrigger({
-        onSucces() {},
+        onSucces() {
+            queryClient.invalidateQueries({
+                queryKey: trpc.dispatch.dispatchOverview.queryKey(),
+            });
+        },
     });
     const auth = useAuth();
     const onSubmit = (formData: z.infer<typeof schema>) => {
@@ -84,7 +88,7 @@ export function PackingItemForm({}) {
             return;
         }
         console.log(packItems, qty, item.deliverables);
-        return;
+        // return;
         trigger.trigger({
             taskName: "update-sales-control",
             payload: {
@@ -155,10 +159,14 @@ export function PackingItemForm({}) {
                             />
                         </div>
                         <div className="inline-flex gap-2 items-end">
-                            <SubmitButton isSubmitting={false}>
+                            <SubmitButton isSubmitting={trigger?.isLoading}>
                                 <Icons.Add className="size-4" />
                             </SubmitButton>
-                            <Button type="button" variant="destructive">
+                            <Button
+                                disabled={trigger?.isLoading}
+                                type="button"
+                                variant="destructive"
+                            >
                                 <Icons.Close className="size-4" />
                             </Button>
                         </div>
