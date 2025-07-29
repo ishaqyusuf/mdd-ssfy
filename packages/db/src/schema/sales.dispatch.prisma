@@ -41,6 +41,7 @@ model OrderItemDelivery {
     meta                        Json?                       @db.Json
     note                        String?
     status                      String?
+    packingStatus               String?
     createdAt                   DateTime?                   @default(now()) @db.Timestamp(0)
     packedBy                    String?
     updatedAt                   DateTime                    @updatedAt
