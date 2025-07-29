@@ -277,8 +277,8 @@ export async function packDispatchItemsAction(
 ) {
   const { data } = props;
   await db.orderItemDelivery.createMany({
-    data: props.packItems
-      .packingList!.map((pi) => {
+    data: props
+      .packItems!.packingList!.map((pi) => {
         const packingUid = generateRandomString(4);
         return pi.submissions.map(
           (ps) =>
@@ -289,10 +289,10 @@ export async function packDispatchItemsAction(
               rhQty: ps.qty.rh,
               note: pi.note,
               packingUid,
-              status: props.packItems.dispatchStatus,
+              status: props.packItems!.dispatchStatus,
               qty: ps.qty.qty || sum([ps.qty.rh, ps.qty.lh]),
               meta: {},
-              orderDeliveryId: props.packItems.dispatchId,
+              orderDeliveryId: props.packItems!.dispatchId,
               orderProductionSubmissionId: ps.submissionId,
               packedBy: props.authorName,
               packingStatus: "packed" as DispatchItemPackingStatus,
@@ -305,7 +305,7 @@ export async function packDispatchItemsAction(
     await updateSalesStatAction(
       {
         salesId: data?.order.id,
-        types: [getDispatchControlType(props.packItems.dispatchStatus as any)],
+        types: [getDispatchControlType(props.packItems!.dispatchStatus as any)],
       },
       db
     );

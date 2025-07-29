@@ -42,26 +42,30 @@ export const updateSalesControlSchema = z.object({
         .optional()
         .nullable(),
     })
-    .nullable(),
-  packItems: z.object({
-    dispatchId: z.number(),
-    dispatchStatus: z.enum(SALES_DISPATCH_STATUS),
-    packingList: z
-      .array(
-        z.object({
-          salesItemId: z.number(),
-          // itemControlUid: z.string(),
-          submissions: z.array(
-            z.object({
-              submissionId: z.number(),
-              qty: qty,
-            })
-          ),
-          note: z.string().optional(),
-        })
-      )
-      .nullable(),
-  }),
+    .nullable()
+    .optional(),
+  packItems: z
+    .object({
+      dispatchId: z.number(),
+      dispatchStatus: z.enum(SALES_DISPATCH_STATUS),
+      packingList: z
+        .array(
+          z.object({
+            salesItemId: z.number(),
+            // itemControlUid: z.string(),
+            submissions: z.array(
+              z.object({
+                submissionId: z.number(),
+                qty: qty,
+              })
+            ),
+            note: z.string().optional(),
+          })
+        )
+        .nullable(),
+    })
+    .nullable()
+    .optional(),
 });
 export type UpdateSalesControl = z.infer<typeof updateSalesControlSchema>;
 
@@ -104,5 +108,6 @@ export const deletePackingSchema = z.object({
   salesId: z.number(),
   packingId: z.number().optional().nullable(),
   packingUid: z.string().optional().nullable(),
+  deleteBy: z.string(),
 });
 export type DeletePackingSchema = z.infer<typeof deletePackingSchema>;

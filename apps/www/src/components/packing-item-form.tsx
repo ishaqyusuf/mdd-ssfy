@@ -152,6 +152,7 @@ export function PackingItemForm({}) {
                                 </div>
                             )}
                             <FormInput
+                                disabled={trigger?.isLoading}
                                 label={"Note (Optional)"}
                                 placeholder="Add packing note.."
                                 control={form.control}
@@ -159,7 +160,10 @@ export function PackingItemForm({}) {
                             />
                         </div>
                         <div className="inline-flex gap-2 items-end">
-                            <SubmitButton isSubmitting={trigger?.isLoading}>
+                            <SubmitButton
+                                disabled={!availableQty?.qty}
+                                isSubmitting={trigger?.isLoading}
+                            >
                                 <Icons.Add className="size-4" />
                             </SubmitButton>
                             <Button

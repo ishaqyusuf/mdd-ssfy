@@ -44,6 +44,7 @@ model OrderItemDelivery {
     packingStatus               String?
     createdAt                   DateTime?                   @default(now()) @db.Timestamp(0)
     packedBy                    String?
+    unpackedBy                  String?
     updatedAt                   DateTime                    @updatedAt
     deletedAt                   DateTime?                   @db.Timestamp(0)
     orderDeliveryId             Int?
