@@ -36,7 +36,6 @@ export function DispatchFormFooter({}) {
     });
     const action = useDispatcherAction();
     if (!openForm) return null;
-    const taskTrigger = useTaskTrigger({});
     const handleSubmit = (formData: z.infer<typeof ctx.formSchema>) => {
         const data = ctx.bachWorker.emptyActions();
         ctx.data?.dispatchables?.map((item) => {

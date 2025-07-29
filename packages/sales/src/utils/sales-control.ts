@@ -16,6 +16,12 @@ export const composeQtyMatrix = (rh, lh, qty) => {
   if (!qty || rh || lh) qty = sum([rh, lh]);
   return { rh, lh, qty, noHandle: !rh && !lh };
 };
+export const recomposeQty = (q: Qty) => ({
+  noHandle: !q.lh && !q.rh,
+  rh: q.rh,
+  lh: q.lh,
+  qty: q.rh || q.lh ? sum([q.rh, q.lh]) : q.qty,
+});
 export function qtyMatrixDifference(a: Qty, b: Qty) {
   let res: Qty = {
     noHandle: a.noHandle,

@@ -7,6 +7,7 @@ import {
   salesType,
 } from "@gnd/utils/constants";
 import { z } from "zod";
+import { SALES_DISPATCH_STATUS } from "./utils/constants";
 export const getFullSalesDataSchema = z.object({
   salesId: z.number().optional().nullable(),
   salesNo: z.string().optional().nullable(),
@@ -41,7 +42,7 @@ export const updateSalesControlSchema = z.object({
     .nullable(),
   packItems: z.object({
     dispatchId: z.number(),
-    dispatchStatus: z.string(),
+    dispatchStatus: z.enum(SALES_DISPATCH_STATUS),
     packingList: z
       .array(
         z.object({

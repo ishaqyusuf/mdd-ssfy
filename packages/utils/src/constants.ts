@@ -43,7 +43,7 @@ export const salesDispatchStatus = [
 export type SalesDispatchStatus = (typeof salesDispatchStatus)[number];
 
 export const ROLES = ["Production"] as const;
-export type Roles = (typeof salesDispatchStatus)[number];
+export type Roles = (typeof ROLES)[number];
 export const PERMISSIONS = [
   "viewProject",
   "editProject",

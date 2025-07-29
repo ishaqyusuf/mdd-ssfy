@@ -10,6 +10,10 @@ import { qtyFormSchema, qtySuperRefine } from "@gnd/utils/sales";
 import { useSalesControlAction } from "@/hooks/use-sales-control-action";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { UpdateSalesControl } from "@sales/schema";
+import { useAuth } from "@/hooks/use-auth";
+import { recomposeQty } from "@sales/utils/sales-control";
 
 const schema = z
     .object({
@@ -35,24 +39,55 @@ export function PackingItemForm({}) {
     });
     const queryClient = useQueryClient();
     const trpc = useTRPC();
-    const controller = useSalesControlAction({
-        onFinish() {
-            queryClient.invalidateQueries({
-                queryKey: trpc.dispatch.dispatchOverview.queryKey(),
-            });
-            form.reset();
-        },
+    // const controller = useSalesControlAction({
+    //     onFinish() {
+    //         queryClient.invalidateQueries({
+    //             queryKey: trpc.dispatch.dispatchOverview.queryKey(),
+    //         });
+    //         form.reset();
+    //     },
+    // });
+    const trigger = useTaskTrigger({
+        onSucces() {},
     });
+    const auth = useAuth();
     const onSubmit = (formData: z.infer<typeof schema>) => {
-        item.packingHistory;
-        controller.packItem({
+        const packItems: UpdateSalesControl["packItems"] = {
             dispatchId: packing.data?.dispatch?.id,
-            qty: formData?.qty,
-            note: formData?.note,
-            dispatchable: item.dispatchable,
-            salesId: packing?.data?.order?.id,
-            // salesItemId: packing?.data?.
+            dispatchStatus: (packing.data?.dispatch?.status as any) || "queue",
+            packingList: [
+                {
+                    note: formData.note,
+                    salesItemId: item?.salesItemId,
+                    submissions: [],
+                },
+            ],
+        };
+
+        let qty = formData.qty;
+        item.dispatchable.dispatchStat.map((a) => {
+            const dispatchableQty = recomposeQty(a.available);
         });
+
+        trigger.trigger({
+            taskName: "update-sales-control",
+            payload: {
+                meta: {
+                    authorId: auth.id,
+                    authorName: auth.name,
+                    salesId: packing.data?.order?.id,
+                },
+                packItems,
+            } as UpdateSalesControl,
+        });
+        // controller.packItem({
+        //     dispatchId: packing.data?.dispatch?.id,
+        //     qty: formData?.qty,
+        //     note: formData?.note,
+        //     dispatchable: item.dispatchable,
+        //     salesId: packing?.data?.order?.id,
+        //     // salesItemId: packing?.data?.
+        // });
     };
     return (
         <div className="p-4 border-t  bg-muted/10">

@@ -2791,6 +2791,7 @@ model DispatchRegion {
 
 model OrderItemDelivery {
     id                          Int                         @unique @default(autoincrement())
+    packingUid                  String?
     orderItemId                 Int
     orderId                     Int
     lhQty                       Int?                        @default(0)
@@ -2800,6 +2801,7 @@ model OrderItemDelivery {
     note                        String?
     status                      String?
     createdAt                   DateTime?                   @default(now()) @db.Timestamp(0)
+    packedBy                    String?
     updatedAt                   DateTime                    @updatedAt
     deletedAt                   DateTime?                   @db.Timestamp(0)
     orderDeliveryId             Int?
