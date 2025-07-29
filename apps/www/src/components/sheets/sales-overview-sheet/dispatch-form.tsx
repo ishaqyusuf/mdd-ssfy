@@ -49,7 +49,7 @@ export function DispatchForm({ dispatch, onSubmit }: DispatchFormProps) {
                     },
                     orderItemId: item.itemId,
                     itemUid: item.uid,
-                    totalItemQty: item.totalQty,
+                    totalItemQty: item.totalQty?.qty,
                 };
             });
             form.reset({
