@@ -287,7 +287,7 @@ export async function packDispatchItemsAction(
               orderItemId: pi.salesItemId,
               lhQty: ps.qty.lh,
               rhQty: ps.qty.rh,
-              note: pi.note,
+              // note: pi.note,
               packingUid,
               status: props.packItems.dispatchStatus,
               qty: ps.qty.qty || sum([ps.qty.rh, ps.qty.lh]),
