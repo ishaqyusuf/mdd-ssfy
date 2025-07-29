@@ -15,6 +15,7 @@ export const taskNames = [
   "send-password-reset-to-default-email",
   "update-sales-control",
   "sales-commission",
+  "reset-sales-control",
 ] as const;
 export type TaskName = (typeof taskNames)[number];
 export const createSalesDispatchSchemaTask = z.object({

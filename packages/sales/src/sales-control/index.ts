@@ -1,7 +1,8 @@
-import { Db, SalesDispatchStatus } from "../types";
+import { Db, QtyControlType, SalesDispatchStatus } from "../types";
 
-import { RenturnTypeAsync } from "@gnd/utils";
+import { percent, RenturnTypeAsync, sum } from "@gnd/utils";
 import { getSalesSetting } from "./settings";
+import { composeControls } from "../utils/sales-control";
 
 export type GetSalesItemControllables = RenturnTypeAsync<
   typeof getSalesItemControllablesInfoAction
@@ -188,4 +189,108 @@ export async function getSalesItemControllablesInfoAction(
       };
     }),
   };
+}
+export async function updateSalesStatControlAction(db: Db, salesId) {
+  const order = await db.salesOrders.findFirstOrThrow({
+    where: {
+      id: salesId,
+    },
+    select: {
+      stat: true,
+      itemControls: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          produceable: true,
+          shippable: true,
+          qtyControls: true,
+        },
+      },
+    },
+  });
+
+  const qtyControls = order.itemControls
+    .map((a) =>
+      a.qtyControls.map((c) => ({
+        ...c,
+        produceable: a.produceable,
+        shippable: a.shippable,
+        type: c.type as QtyControlType,
+      }))
+    )
+    .flat();
+
+  const totalProduceable = sum(
+    qtyControls.filter((t) => t.produceable && t.type == "prodAssigned"),
+    "itemTotal"
+  );
+  const totalShippable = sum(
+    qtyControls.filter((t) => t.shippable && t.type == "dispatchAssigned"),
+    "itemTotal"
+  );
+
+  async function createStat(type: QtyControlType, total) {
+    const score = sum(
+      qtyControls.filter((a) => a.type == type),
+      "total"
+    );
+    const percentage = percent(score, total);
+    await db.salesStat.upsert({
+      where: {
+        salesId_type: {
+          type,
+          salesId,
+        },
+      },
+      create: {
+        type,
+        salesId,
+        percentage,
+        score,
+        total,
+      },
+      update: {
+        percentage,
+        score,
+        total,
+      },
+    });
+  }
+  await createStat("dispatchAssigned", totalShippable);
+  await createStat("dispatchCompleted", totalShippable);
+  await createStat("dispatchInProgress", totalShippable);
+  await createStat("prodAssigned", totalProduceable);
+  await createStat("prodCompleted", totalProduceable);
+}
+export async function updateSalesItemControlAction(db: Db, salesId) {
+  const order = await getSalesItemControllablesInfoAction(db, salesId);
+
+  const controls = composeControls(order);
+
+  // const resp = await prisma.$transaction((async (tx: typeof prisma) => {
+  const tx = db;
+  const del = await tx.qtyControl.deleteMany({
+    where: {
+      itemControl: {
+        salesId: order.id,
+      },
+    },
+  });
+  const arr = await Promise.all(
+    controls.map(async (c) => {
+      if (c.create) return await tx.salesItemControl.create({ data: c.create });
+      if (c.update)
+        return await tx.salesItemControl.update({
+          data: c.update,
+          where: {
+            uid: c.uid,
+          },
+        });
+    })
+  );
+  return { del, arr };
+  // }) as any);
+
+  // return resp;
 }

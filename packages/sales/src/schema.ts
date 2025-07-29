@@ -19,6 +19,9 @@ const qty = z.object({
   rh: z.number().nullable().optional(),
   qty: z.number().nullable().optional(),
 });
+export const resetSalesControlSchema = z.object({
+  salesId: z.number(),
+});
 export const updateSalesControlSchema = z.object({
   meta: z.object({
     salesId: z.number(),

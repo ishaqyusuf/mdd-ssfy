@@ -1,3 +1,4 @@
+import { updateSalesItemControlAction, updateSalesStatControlAction } from ".";
 import { GetFullSalesDataSchema, UpdateSalesControl } from "../schema";
 import { Db } from "../types";
 import {
@@ -68,6 +69,17 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
         authorName: data.meta.authorName,
         update: true,
       });
+    },
+    {
+      maxWait: 30 * 1000,
+    }
+  );
+}
+export async function resetSalesTask(db: Db, salesId) {
+  const response = await db.$transaction(
+    async (tx) => {
+      await updateSalesItemControlAction(tx as any, salesId);
+      await updateSalesStatControlAction(tx as any, salesId);
     },
     {
       maxWait: 30 * 1000,
