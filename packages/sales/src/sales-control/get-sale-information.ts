@@ -57,8 +57,8 @@ export async function getSaleInformation(
 
       item.deliverables = [];
       order.assignments
-        .filter((a) =>
-          a.submissions.filter((s) => {
+        .map((a) =>
+          a.submissions.map((s) => {
             const submissionQty = transformQtyHandle(s);
             const dispatchQty = qtyMatrixSum(
               ...order.deliveries
@@ -207,20 +207,27 @@ export async function getSaleInformation(
         });
     })
   );
-  let orderRequiresUpdate = false;
-  // items?.map((item) => {
-  //   const stats = item.analytics?.stats;
-  //   const totalDeliverableQty = sum(item.deliverables?.map((a) => a.qty.qty));
-  //   const totalQty = stats?.qty.qty;
-  //   const packedQty = stats?.dispatchAssigned.qty;
-  //   if (
-  //     totalQty &&
-  //     totalQty != packedQty &&
-  //     totalDeliverableQty < totalQty - packedQty
-  //   ) {
-  //     orderRequiresUpdate = true;
-  //   }
-  // });
+  let orderRequiresUpdate = //= {};
+    items?.map((item) => {
+      const stats = item.analytics?.stats;
+      const totalDeliverableQty = sum(item.deliverables?.map((a) => a.qty.qty));
+      const totalQty = stats?.qty.qty;
+      const packedQty = stats?.dispatchAssigned.qty;
+      if (
+        !item.itemConfig?.production &&
+        totalQty &&
+        totalQty != packedQty &&
+        totalDeliverableQty < totalQty - packedQty
+      ) {
+        // orderRequiresUpdate = true;
+      }
+      return {
+        totalDeliverableQty,
+        totalQty,
+        packedQty,
+        production: item.itemConfig?.production,
+      };
+    });
   return {
     items,
     orderNo: order.orderId,

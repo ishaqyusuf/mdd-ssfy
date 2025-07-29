@@ -54,6 +54,7 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
         overview?.orderMeta?.laborConfig?.rate,
         item.unitLabor
       ),
+      deliverables: item.deliverables,
       totalQty: item.qty.qty,
       doorId: item.doorId,
       dispatchStat,
