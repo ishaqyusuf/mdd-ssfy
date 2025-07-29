@@ -1,4 +1,9 @@
-import { lastId, RenturnTypeAsync, sum } from "@gnd/utils";
+import {
+  generateRandomString,
+  lastId,
+  RenturnTypeAsync,
+  sum,
+} from "@gnd/utils";
 import { Db, Qty, SalesInfoItem } from "../types";
 import { Prisma } from "@prisma/client";
 import { updateSalesItemStats } from "./update-sales-item-stat";
@@ -7,6 +12,7 @@ import { hasQty } from "@gnd/utils/sales";
 import { getSaleInformation } from "./get-sale-information";
 import { z } from "zod";
 import { updateSalesControlSchema } from "../schema";
+import { getDispatchControlType } from "src/utils/utils";
 
 export interface CreateSalesAssignmentProps {
   submit?: boolean;
@@ -249,4 +255,57 @@ export async function submitNonProductionsAction(
     salesId: data.order.id,
     items: createSubmissions,
   });
+  return {
+    assignmentsCreated: createAssignments?.length,
+    submissionsCreated: createSubmissions.length,
+    updated: !!createAssignments.length || createSubmissions?.length,
+  };
+}
+
+type PackDispatch = z.infer<typeof updateSalesControlSchema>["packItems"];
+type PackDispatchItemsAction = {
+  data: RenturnTypeAsync<typeof getSaleInformation>;
+  authorId;
+  packItems: PackDispatch;
+  update?: boolean;
+  authorName: string;
+};
+
+export async function packDispatchItemsAction(
+  db: Db,
+  props: PackDispatchItemsAction
+) {
+  const { data } = props;
+  await db.orderItemDelivery.createMany({
+    data: props.packItems
+      .packingList!.map((pi) => {
+        const packingUid = generateRandomString(4);
+        return pi.submissions.map(
+          (ps) =>
+            ({
+              orderId: data.order.id,
+              orderItemId: pi.salesItemId,
+              lhQty: ps.qty.lh,
+              rhQty: ps.qty.rh,
+              note: pi.note,
+              packingUid,
+              status: props.packItems.dispatchStatus,
+              qty: ps.qty.qty || sum([ps.qty.rh, ps.qty.lh]),
+              meta: {},
+              orderDeliveryId: props.packItems.dispatchId,
+              orderProductionSubmissionId: ps.submissionId,
+              packedBy: props.authorName,
+            }) satisfies Prisma.OrderItemDeliveryCreateManyInput
+        );
+      })
+      .flat(),
+  });
+  if (props.update)
+    await updateSalesStatAction(
+      {
+        salesId: data?.order.id,
+        types: [getDispatchControlType(props.packItems.dispatchStatus as any)],
+      },
+      db
+    );
 }

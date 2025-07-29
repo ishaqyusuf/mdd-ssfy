@@ -16,8 +16,12 @@ import {
   doorItemControlUid,
   itemItemControlUid,
   mouldingItemControlUid,
+  qtyMatrixDifference,
+  qtyMatrixSum,
+  transformQtyHandle,
 } from "../utils/sales-control";
 import { formatCurrency } from "@gnd/utils";
+import { hasQty } from "@gnd/utils/sales";
 
 export async function getSaleInformation(
   //   ctx: TRPCContext,
@@ -50,6 +54,31 @@ export async function getSaleInformation(
         : item;
     function addItem(item: ItemControlData) {
       item.salesId = order.id;
+
+      item.deliverables = [];
+      order.assignments
+        .filter((a) =>
+          a.submissions.filter((s) => {
+            const submissionQty = transformQtyHandle(s);
+            const dispatchQty = qtyMatrixSum(
+              ...order.deliveries
+                .map((d) =>
+                  d.items
+                    .filter((di) => di.orderProductionSubmissionId === s.id)
+                    .map((b) => transformQtyHandle(b))
+                )
+                .flat()
+            );
+            const pendingQty = qtyMatrixDifference(submissionQty, dispatchQty);
+            if (hasQty(pendingQty))
+              item.deliverables!.push({
+                submissionId: s.id,
+                qty: pendingQty,
+              });
+          })
+        )
+        .flat();
+
       item.itemConfig = getItemStatConfig({
         isDyke: !!order.isDyke,
         formSteps: baseItem.formSteps,

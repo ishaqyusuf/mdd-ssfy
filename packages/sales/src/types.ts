@@ -175,6 +175,7 @@ export interface ItemControlData {
   analytics?: ReturnType<typeof composeSalesItemControlStat>;
   itemConfig?: ReturnType<typeof getItemStatConfig>;
   prodOverride?: DykeSalesDoorMeta["prodOverride"];
+  deliverables?: { submissionId: number; qty: Qty }[];
 }
 export interface DykeSalesDoorMeta {
   _doorPrice?: number | null;

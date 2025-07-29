@@ -1,6 +1,10 @@
 import { UpdateSalesControl } from "../schema";
 import { Db } from "../types";
-import { submitNonProductionsAction, submitAssignmentsAction } from "./actions";
+import {
+  submitNonProductionsAction,
+  submitAssignmentsAction,
+  packDispatchItemsAction,
+} from "./actions";
 import { getSaleInformation } from "./get-sale-information";
 
 export async function submitAllTask(db: Db, data: UpdateSalesControl) {
@@ -8,11 +12,18 @@ export async function submitAllTask(db: Db, data: UpdateSalesControl) {
   const info = await getSaleInformation(db, {
     salesId: data.meta.salesId,
   });
-  await submitAssignmentsAction(db, {
-    authorId: data.meta.authorId,
-    data: info,
-    ...submitArgs,
-  });
+  await db.$transaction(
+    async (tx) => {
+      await submitAssignmentsAction(tx as any, {
+        authorId: data.meta.authorId,
+        data: info,
+        ...submitArgs,
+      });
+    },
+    {
+      maxWait: 30 * 1000,
+    }
+  );
 }
 export async function submitNonProductionsTask(
   db: Db,
@@ -21,8 +32,44 @@ export async function submitNonProductionsTask(
   const info = await getSaleInformation(db, {
     salesId: data.meta.salesId,
   });
-  await submitNonProductionsAction(db, {
-    data: info,
-    authorId: data.meta.authorId,
+  const response = await db.$transaction(
+    async (tx) => {
+      return await submitNonProductionsAction(tx as any, {
+        data: info,
+        authorId: data.meta.authorId,
+      });
+    },
+    {
+      maxWait: 30 * 1000,
+    }
+  );
+  return {
+    info,
+    response,
+  };
+}
+export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
+  // const notProds = await submitNonProductionsTask(db, data);
+  // let info = !notProds?.response?.updated
+  //   ? notProds?.info
+  //   : await getSaleInformation(db, {
+  //       salesId: data.meta.salesId,
+  //     });
+  const info = await getSaleInformation(db, {
+    salesId: data.meta.salesId,
   });
+  const response = await db.$transaction(
+    async (tx) => {
+      return await packDispatchItemsAction(tx as any, {
+        data: info,
+        authorId: data.meta.authorId!,
+        packItems: data.packItems,
+        authorName: data.meta.authorName,
+        update: true,
+      });
+    },
+    {
+      maxWait: 30 * 1000,
+    }
+  );
 }

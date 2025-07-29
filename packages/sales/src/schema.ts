@@ -22,6 +22,7 @@ export const updateSalesControlSchema = z.object({
   meta: z.object({
     salesId: z.number(),
     authorId: z.number(),
+    authorName: z.string(),
   }),
   submitAll: z
     .object({
@@ -38,20 +39,25 @@ export const updateSalesControlSchema = z.object({
         .nullable(),
     })
     .nullable(),
-  packItem: z
-    .object({
-      salesItemId: z.number(),
-      dispatchId: z.number(),
-      // itemUid: z.string(),
-      // itemControlUid: z.string(),
-      // note: z.string().optional(),
-      qty: z.object({
-        lh: z.number().nullable(),
-        rh: z.number().nullable(),
-        qty: z.number().nullable(),
-      }),
-    })
-    .nullable(),
+  packItems: z.object({
+    dispatchId: z.number(),
+    dispatchStatus: z.string(),
+    packingList: z
+      .array(
+        z.object({
+          salesItemId: z.number(),
+          // itemControlUid: z.string(),
+          submissions: z.array(
+            z.object({
+              submissionId: z.number(),
+              qty: qty,
+            })
+          ),
+          note: z.string().optional(),
+        })
+      )
+      .nullable(),
+  }),
 });
 export type UpdateSalesControl = z.infer<typeof updateSalesControlSchema>;
 

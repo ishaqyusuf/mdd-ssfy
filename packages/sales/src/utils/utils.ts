@@ -446,3 +446,23 @@ export const FullSalesSelect = {
     },
   },
 } satisfies Prisma.SalesOrdersSelect;
+export type SalesDispatchStatus =
+  | "queue"
+  | "in progress"
+  | "completed"
+  | "cancelled";
+
+export function getDispatchControlType(
+  status: SalesDispatchStatus
+): QtyControlType {
+  switch (status) {
+    case "cancelled":
+      return "dispatchCancelled";
+    case "completed":
+      return "dispatchCompleted";
+    case "in progress":
+      return "dispatchInProgress";
+    default:
+      return "dispatchAssigned";
+  }
+}
