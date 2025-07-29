@@ -22,7 +22,7 @@ export function PackingDriverInformation() {
                                 Driver Name:
                             </span>
                             <span className="text-sm font-medium">
-                                {driver.name}
+                                {driver?.name}
                             </span>
                         </div>
                         <div className="flex justify-between">
@@ -30,7 +30,7 @@ export function PackingDriverInformation() {
                                 Driver ID:
                             </span>
                             <span className="text-sm font-medium">
-                                #{driver.id}
+                                #{driver?.id}
                             </span>
                         </div>
                         <div className="flex justify-between">

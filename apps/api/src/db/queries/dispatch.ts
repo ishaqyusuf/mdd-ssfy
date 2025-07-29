@@ -239,7 +239,6 @@ export async function getSalesDispatchOverview(
     };
   });
   const deliveries = overview.deliveries.map((delivery) => {
-    delivery.driver;
     return {
       ...delivery,
       dispatchNumber: `DISP-${padStart(delivery.id?.toString(), 5, "0")}`,
@@ -283,7 +282,8 @@ export async function getDispatchOverview(
   const result = await getSalesDispatchOverview(ctx, query);
   // result.dispatchables[0].
   const dispatch = result.deliveries.find((d) => d.id === query.dispatchId);
-  const address = result.order.shippingAddress;
+  let address = result.order.shippingAddress;
+  if (!address) address = {} as any;
   const order = result.order;
   return {
     dispatch,
@@ -322,7 +322,7 @@ export async function getDispatchOverview(
         })),
       };
     }),
-    address,
+    address: address || ({} as any),
     // scheduleDate: dispatch?.dueDate,
     order: {
       orderId: order.orderId,
