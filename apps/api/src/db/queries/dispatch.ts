@@ -9,7 +9,6 @@ import type { TRPCContext } from "@api/trpc/init";
 import type { ItemControlData, QtyControlType } from "@api/type";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
-import { getSalesLifeCycle } from "./sales";
 import { sum } from "@gnd/utils";
 import {
   laborRate,
@@ -18,6 +17,7 @@ import {
   transformQtyHandle,
 } from "@api/utils/sales-control";
 import { padStart } from "lodash";
+import { getSaleInformation, getSalesDispatchOverview } from "@sales/exports";
 
 export async function getDispatches(
   ctx: TRPCContext,
@@ -177,109 +177,15 @@ export async function updateSalesDeliveryOption(
     });
   }
 }
-export async function getSalesDispatchOverview(
-  ctx: TRPCContext,
-  { salesId, salesNo, driverId }: SalesDispatchOverviewSchema
-) {
-  const overview = await getSalesLifeCycle(ctx, { salesId, salesNo });
-  const availableDispatchQty = sum(
-    overview.items.map((item) => item?.analytics?.dispatch.available.qty)
-  );
-  const pendingDispatchQty = sum(
-    overview.items.map((item) => item?.analytics?.dispatch.pending?.qty)
-  );
-  const dispatchedQty = sum(
-    overview.items.map((item) => item?.analytics?.deliveredQty)
-  );
-  const pendingProductionQty =
-    sum(
-      overview.items
-        ?.filter((a) => a.itemConfig?.production)
-        .map((item) => item.analytics?.production?.pending?.qty)
-    ) +
-    sum(
-      overview.items
-        ?.filter((a) => a.itemConfig?.production)
-        .map((item) => item.analytics?.assignment?.pending?.qty)
-    );
-  const dispatchables = overview.items.map((item) => {
-    // if (!item.analytics) return;
-    item.analytics = item.analytics as NonNullable<
-      ItemControlData["analytics"]
-    >;
-    const currentDispatchQty = qtyMatrixSum(
-      item.analytics.stats.dispatchAssigned,
-      item.analytics.stats.dispatchCompleted,
-      item.analytics.stats.dispatchInProgress
-    );
-    const dispatchStat = item.analytics.deliverables;
-    return {
-      uid: item.controlUid,
-      title: item.title,
 
-      itemId: item.itemId,
-      unitLabor: laborRate(
-        overview?.orderMeta?.laborConfig?.rate,
-        item.unitLabor
-      ),
-      totalQty: item.qty.qty,
-      doorId: item.doorId,
-      dispatchStat,
-      analytics: item.analytics,
-      pendingSubmissions: item.analytics?.pendingSubmissions,
-      subtitle: [item.sectionTitle, item.size, item.swing]
-        .filter(Boolean)
-        .join(" | "),
-      availableQty: qtyMatrixDifference(
-        item.itemConfig?.production
-          ? item.analytics.stats.prodCompleted
-          : item.analytics.stats.qty,
-        currentDispatchQty
-      ),
-    };
-  });
-  const deliveries = overview.deliveries.map((delivery) => {
-    return {
-      ...delivery,
-      dispatchNumber: `DISP-${padStart(delivery.id?.toString(), 5, "0")}`,
-      items: delivery.items.map((item) => {
-        const _item = overview.items.find((i) =>
-          i?.analytics?.submissionIds.includes(
-            item.orderProductionSubmissionId!
-          )
-        );
-        const { controlUid, title, sectionTitle, subtitle } = _item || {};
-        return {
-          ...item,
-          item: {
-            controlUid,
-            title,
-            sectionTitle,
-            subtitle,
-          },
-        };
-      }),
-    };
-  });
-  return {
-    id: overview.orderId,
-    orderUid: overview.orderNo,
-    dispatchables,
-    deliveries,
-    order: overview.order,
-    progress: {
-      availableDispatchQty,
-      dispatchedQty,
-      pendingDispatchQty,
-      pendingProductionQty,
-    },
-  };
-}
 export async function getDispatchOverview(
   ctx: TRPCContext,
   query: SalesDispatchOverviewSchema
 ) {
-  const result = await getSalesDispatchOverview(ctx, query);
+  const result = await getSalesDispatchOverview(ctx.db, {
+    salesId: query.salesId,
+    salesNo: query.salesNo,
+  });
   // result.dispatchables[0].
   const dispatch = result.deliveries.find((d) => d.id === query.dispatchId);
   let address = result.order.shippingAddress;

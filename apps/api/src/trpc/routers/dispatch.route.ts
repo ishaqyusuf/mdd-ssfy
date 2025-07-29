@@ -8,10 +8,10 @@ import {
   getDispatches,
   getDispatchOverview,
   getSalesDeliveryInfo,
-  getSalesDispatchOverview,
   updateSalesDeliveryOption,
 } from "@api/db/queries/dispatch";
 import { z } from "zod";
+import { getSalesDispatchOverview } from "@sales/exports";
 
 export const dispatchRouters = createTRPCRouter({
   index: publicProcedure
@@ -42,7 +42,10 @@ export const dispatchRouters = createTRPCRouter({
   orderDispatchOverview: publicProcedure
     .input(salesDispatchOverviewSchema)
     .query(async (props) => {
-      return getSalesDispatchOverview(props.ctx, props.input);
+      return getSalesDispatchOverview(props.ctx.db, {
+        salesId: props.input.salesId,
+        salesNo: props.input.salesNo,
+      });
     }),
   dispatchOverview: publicProcedure
     .input(salesDispatchOverviewSchema)
