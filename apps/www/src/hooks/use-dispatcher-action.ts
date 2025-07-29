@@ -118,7 +118,7 @@ export function useDispatcherAction() {
                                             orderItemId: item.itemId,
                                             submissionId: submissionId,
                                             status: dispatch.status as any,
-                                            totalItemQty: item.totalQty,
+                                            totalItemQty: item.totalQty.qty,
                                         },
                                     },
                                 });
@@ -132,7 +132,7 @@ export function useDispatcherAction() {
 
                                 loader.description(`${baseTitle} | 20%`);
                                 const resp = await createSalesAssignment({
-                                    itemsTotal: item.totalQty,
+                                    itemsTotal: item.totalQty.qty,
                                     qty,
                                     pending: qty,
                                     itemUid: item.uid,

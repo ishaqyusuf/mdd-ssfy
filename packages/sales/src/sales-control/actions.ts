@@ -4,7 +4,7 @@ import {
   RenturnTypeAsync,
   sum,
 } from "@gnd/utils";
-import { Db, Qty, SalesInfoItem } from "../types";
+import { Db, DispatchItemPackingStatus, Qty, SalesInfoItem } from "../types";
 import { Prisma } from "@prisma/client";
 import { updateSalesItemStats } from "./update-sales-item-stat";
 import { updateSalesStatAction } from "./update-sales-stat";
@@ -295,6 +295,7 @@ export async function packDispatchItemsAction(
               orderDeliveryId: props.packItems.dispatchId,
               orderProductionSubmissionId: ps.submissionId,
               packedBy: props.authorName,
+              packingStatus: "packed" as DispatchItemPackingStatus,
             }) satisfies Prisma.OrderItemDeliveryCreateManyInput
         );
       })

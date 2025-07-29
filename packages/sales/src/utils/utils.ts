@@ -280,6 +280,7 @@ export const FullSalesSelect = {
       items: {
         where: {
           deletedAt: null,
+          packingStatus: "packed" as DispatchItemPackingStatus,
         },
         select: {
           id: true,

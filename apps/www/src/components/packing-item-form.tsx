@@ -58,8 +58,8 @@ export function PackingItemForm({}) {
         };
 
         let qty = recomposeQty(formData.qty as any);
-        item.dispatchable.dispatchStat.map((a) => {
-            const dispatchableQty = recomposeQty(a.available);
+        item.deliverables.map((a) => {
+            const dispatchableQty = recomposeQty(a.qty);
             if (hasQty(qty)) {
                 const { pendingPick, picked, remainder } = pickQtyFrom(
                     qty,
@@ -74,8 +74,7 @@ export function PackingItemForm({}) {
                 }
             }
         });
-        console.log(packItems, qty, item.dispatchable.dispatchStat);
-        return;
+
         if (hasQty(qty)) {
             toast({
                 variant: "destructive",
@@ -84,6 +83,8 @@ export function PackingItemForm({}) {
             });
             return;
         }
+        console.log(packItems, qty, item.deliverables);
+        return;
         trigger.trigger({
             taskName: "update-sales-control",
             payload: {

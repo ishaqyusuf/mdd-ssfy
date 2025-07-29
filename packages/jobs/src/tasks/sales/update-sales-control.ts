@@ -1,6 +1,10 @@
 import { TaskName } from "@jobs/schema";
 import { schemaTask } from "@trigger.dev/sdk/v3";
-import { submitAllTask, updateSalesControlSchema } from "@gnd/sales";
+import {
+  packDispatchItemTask,
+  submitAllTask,
+  updateSalesControlSchema,
+} from "@gnd/sales";
 import { db } from "@gnd/db";
 
 export const updateSalesControl = schemaTask({
@@ -12,5 +16,6 @@ export const updateSalesControl = schemaTask({
   },
   run: async (input) => {
     if (input.submitAll) return submitAllTask(db, input);
+    if (input.packItems) return packDispatchItemTask(db, input);
   },
 });
