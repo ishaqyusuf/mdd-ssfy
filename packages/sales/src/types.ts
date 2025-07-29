@@ -3,6 +3,7 @@ import { getItemStatConfig } from "./utils/utils";
 import { composeSalesItemControlStat } from "./utils/sales-control";
 import { getSaleInformation } from "./exports";
 import { RenturnTypeAsync } from "@gnd/utils";
+import { DISPATCH_ITEM_PACKING_STATUS } from "./utils/constants";
 export type StepMeta = {
   custom: boolean;
   priceStepDeps: string[];
@@ -34,6 +35,8 @@ export type SalesDispatchStatus =
   | "in progress"
   | "completed"
   | "cancelled";
+export type DispatchItemPackingStatus =
+  (typeof DISPATCH_ITEM_PACKING_STATUS)[number];
 export type SalesStatStatus =
   | "pending"
   | "in progress"
