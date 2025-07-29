@@ -4,7 +4,6 @@ import { PackingItem } from "./packing-item";
 import { PackingItemProvider, usePacking } from "@/hooks/use-sales-packing";
 import { PackingItemForm } from "./packing-item-form";
 import { PackingItemListings } from "./packing-item-listings";
-import { Accordion, AccordionContent, AccordionItem } from "@gnd/ui/accordion";
 
 export function PackingItemsList() {
     const { data, packItemUid } = usePacking();

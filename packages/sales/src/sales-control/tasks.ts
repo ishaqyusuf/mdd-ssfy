@@ -1,5 +1,9 @@
 import { updateSalesItemControlAction, updateSalesStatControlAction } from ".";
-import { GetFullSalesDataSchema, UpdateSalesControl } from "../schema";
+import {
+  DeletePackingSchema,
+  GetFullSalesDataSchema,
+  UpdateSalesControl,
+} from "../schema";
 import { Db } from "../types";
 import {
   submitNonProductionsAction,
@@ -86,3 +90,5 @@ export async function resetSalesTask(db: Db, salesId) {
     }
   );
 }
+
+export async function deletePackingItem(db: Db, data: DeletePackingSchema) {}

@@ -11,7 +11,11 @@ import {
   updateSalesDeliveryOption,
 } from "@api/db/queries/dispatch";
 import { z } from "zod";
-import { getSalesDispatchOverview } from "@sales/exports";
+import {
+  deletePackingItem,
+  deletePackingSchema,
+  getSalesDispatchOverview,
+} from "@sales/exports";
 
 export const dispatchRouters = createTRPCRouter({
   index: publicProcedure
@@ -24,6 +28,11 @@ export const dispatchRouters = createTRPCRouter({
     .query(async (props) => {
       props.input.driversId = [props.ctx?.userId];
       return getDispatches(props.ctx, props.input);
+    }),
+  deletePackingItem: publicProcedure
+    .input(deletePackingSchema)
+    .mutation(async (props) => {
+      return deletePackingItem(props.ctx.db, props.input);
     }),
   updateSalesDeliveryOption: publicProcedure
     .input(updateSalesDeliveryOptionSchema)

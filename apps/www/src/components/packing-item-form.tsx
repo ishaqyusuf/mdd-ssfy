@@ -27,8 +27,7 @@ export function PackingItemForm({}) {
     const packing = usePacking();
     const { item } = usePackingItem();
 
-    const pendingQty = item?.pendingQty;
-    const availableQty = item?.availableQty;
+    const availableQty = item?.deliverableQty;
     const form = useZodForm(schema, {
         defaultValues: {
             // pending: pendingQty,

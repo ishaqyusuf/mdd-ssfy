@@ -99,3 +99,10 @@ export const salesQueryParamsSchema = z
   })
   .merge(paginationSchema);
 export type SalesQueryParamsSchema = z.infer<typeof salesQueryParamsSchema>;
+
+export const deletePackingSchema = z.object({
+  salesId: z.number(),
+  packingId: z.number().optional().nullable(),
+  packingUid: z.string().optional().nullable(),
+});
+export type DeletePackingSchema = z.infer<typeof deletePackingSchema>;

@@ -45,6 +45,7 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
       item.analytics.stats.dispatchInProgress
     );
     const dispatchStat = item.analytics.deliverables;
+
     return {
       uid: item.controlUid,
       title: item.title,
@@ -55,7 +56,7 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
         item.unitLabor
       ),
       deliverables: item.deliverables,
-      totalQty: item.qty.qty,
+      totalQty: item.qty,
       doorId: item.doorId,
       dispatchStat,
       analytics: item.analytics,

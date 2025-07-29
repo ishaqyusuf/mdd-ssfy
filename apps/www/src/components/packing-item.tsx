@@ -9,8 +9,8 @@ export function PackingItem({}) {
     const packing = usePacking();
     const { item } = usePackingItem();
 
-    const pendingQty = item?.pendingQty?.qty || 0;
-    const availableQty = item?.availableQty?.qty || 0;
+    const pendingQty = item?.nonDeliverableQty?.qty || 0;
+    const availableQty = item?.deliverableQty;
     return (
         <div className="p-4 cursor-pointer hover:bg-muted bg-muted/10">
             <div
@@ -40,7 +40,7 @@ export function PackingItem({}) {
                                 Available:{" "}
                             </span>
                             <span className="font-medium">
-                                <QtyLabel {...item.availableQty} />
+                                <QtyLabel {...availableQty} />
                             </span>
                         </div>
                         <div>
@@ -57,12 +57,12 @@ export function PackingItem({}) {
                             </span>
                             <span
                                 className={
-                                    item?.pendingQty?.qty > 0
+                                    item?.nonDeliverableQty?.qty > 0
                                         ? "text-amber-600 font-medium"
                                         : "text-muted-foreground"
                                 }
                             >
-                                <QtyLabel {...item.pendingQty} />
+                                <QtyLabel {...item.nonDeliverableQty} />
                             </span>
                         </div>
                         {/* <div>

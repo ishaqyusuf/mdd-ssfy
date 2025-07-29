@@ -6,18 +6,13 @@ import type {
   UpdateSalesDeliveryOptionSchema,
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
-import type { ItemControlData, QtyControlType } from "@api/type";
+import type { QtyControlType } from "@api/type";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
-import { sum } from "@gnd/utils";
-import {
-  laborRate,
-  qtyMatrixDifference,
-  qtyMatrixSum,
-  transformQtyHandle,
-} from "@api/utils/sales-control";
-import { padStart } from "lodash";
-import { getSaleInformation, getSalesDispatchOverview } from "@sales/exports";
+
+import { qtyMatrixSum, transformQtyHandle } from "@api/utils/sales-control";
+import { getSalesDispatchOverview } from "@sales/exports";
+import { qtyMatrixDifference, recomposeQty } from "@sales/utils/sales-control";
 
 export async function getDispatches(
   ctx: TRPCContext,
@@ -197,34 +192,62 @@ export async function getDispatchOverview(
       const listedItems = dispatch?.items.filter(
         (a) => a.item?.controlUid == item.uid
       );
+      const totalListedQty = recomposeQty(
+        qtyMatrixSum(
+          ...result.deliveries
+            .map((d) =>
+              d.items
+                .filter((i) => i.item.controlUid === item.uid)
+                .map(transformQtyHandle)
+                .flat()
+            )
+            .flat()
+        )
+      );
       const trs = listedItems?.map(transformQtyHandle);
       const listedQty = qtyMatrixSum(trs ? trs : ([] as any));
 
       const dispatchable = result.dispatchables.find((d) => d.uid === item.uid);
-      const pendingQty = dispatchable?.analytics.dispatch.pending;
-      const availableQty = dispatchable?.availableQty!;
-      const totalQty = qtyMatrixSum([
-        availableQty,
-        listedQty,
-        ...(dispatchable?.pendingSubmissions?.map((a) => a.qty) || []),
-      ] as any);
-
+      // const pendingQty = dispatchable?.analytics.dispatch.pending;
+      // const availableQty = qtyMatrixSum(
+      //   ...(dispatchable?.deliverables?.map((a) => a.qty) || [])
+      // );
+      // const totalQty = qtyMatrixSum([
+      //   availableQty,
+      //   listedQty,
+      //   ...(dispatchable?.pendingSubmissions?.map((a) => a.qty) || []),
+      // ] as any);
+      const deliverableQty = recomposeQty(
+        qtyMatrixSum(...(dispatchable?.deliverables?.map((a) => a.qty) || []))
+      );
+      const nonDeliverableQty = recomposeQty(
+        qtyMatrixDifference(
+          dispatchable?.totalQty!,
+          qtyMatrixSum(deliverableQty, totalListedQty)
+        )
+      );
       return {
         title: item.title,
         sectionTitle: item.sectionTitle,
         subtitle: dispatchable?.subtitle,
         uid: item.uid,
-        availableQty,
-        pendingQty,
-        listedQty,
-        totalQty,
+        deliverables: dispatchable?.deliverables,
+        deliverableQty,
         dispatchable,
+        listedQty,
+        nonDeliverableQty,
+        // availableQty,
+        // pendingQty,
+        // listedQty,
+        totalQty: dispatchable?.totalQty!,
+        // dispatchable,
         salesItemId: dispatchable?.itemId,
         packingHistory: listedItems?.map((a) => ({
           qty: a.qty,
           date: a.createdAt,
           note: "",
           packedBy: "me",
+          id: a.id,
         })),
       };
     }),

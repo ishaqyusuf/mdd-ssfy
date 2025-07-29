@@ -49,6 +49,7 @@ export function PackingTab({}) {
         >
             <div className="">
                 <Button
+                    disabled={trigger?.isLoading}
                     onClick={(e) => {
                         trigger.trigger({
                             taskName: "reset-sales-control",
