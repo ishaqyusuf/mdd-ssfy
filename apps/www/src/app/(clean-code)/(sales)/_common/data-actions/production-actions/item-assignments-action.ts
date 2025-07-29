@@ -2,6 +2,7 @@
 
 import { prisma } from "@/db";
 import { itemControlUidObject } from "../../utils/item-control-utils";
+import { DispatchItemPackingStatus } from "@sales/types";
 
 export async function getSalesAssignmentsByUidAction(cuid) {
     const uidobjt = itemControlUidObject(cuid);
@@ -45,7 +46,11 @@ export async function getSalesAssignmentsByUidAction(cuid) {
                     rhQty: true,
                     lhQty: true,
                     itemDeliveries: {
-                        where: { deletedAt: null },
+                        where: {
+                            deletedAt: null,
+                            packingStatus:
+                                "packed" as DispatchItemPackingStatus,
+                        },
                         select: {
                             id: true,
                             qty: true,

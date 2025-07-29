@@ -1,4 +1,9 @@
-import { Db, QtyControlType, SalesDispatchStatus } from "../types";
+import {
+  Db,
+  DispatchItemPackingStatus,
+  QtyControlType,
+  SalesDispatchStatus,
+} from "../types";
 
 import { percent, RenturnTypeAsync, sum } from "@gnd/utils";
 import { getSalesSetting } from "./settings";
@@ -50,7 +55,7 @@ export async function getSalesItemControllablesInfoAction(
               itemDeliveries: {
                 where: {
                   deletedAt: null,
-                  // packingStatus: "packed" as SalesDispatchStatus,
+                  packingStatus: "packed" as DispatchItemPackingStatus,
                 },
                 select: {
                   status: true,

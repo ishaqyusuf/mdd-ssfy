@@ -8,6 +8,7 @@ import {
     transformQtyHandle,
 } from "@/utils/sales-control-util";
 import { productionStatus } from "@/utils/sales-utils";
+import { DispatchItemPackingStatus } from "@sales/types";
 
 export async function getSalesItemAssignments(
     salesItemControlUid,
@@ -35,6 +36,8 @@ export async function getSalesItemAssignments(
                     itemDeliveries: {
                         where: {
                             deletedAt: null,
+                            packingStatus:
+                                "packed" as DispatchItemPackingStatus,
                             delivery: {
                                 deletedAt: null,
                             },

@@ -1,6 +1,7 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { getSalesSetting } from "./settings";
 import type { RenturnTypeAsync, SalesDispatchStatus } from "@api/type";
+import type { DispatchItemPackingStatus } from "@sales/types";
 
 export type GetSalesItemControllables = RenturnTypeAsync<
   typeof getSalesItemControllablesInfoAction
@@ -45,7 +46,10 @@ export async function getSalesItemControllablesInfoAction(
               rhQty: true,
               lhQty: true,
               itemDeliveries: {
-                where: { deletedAt: null },
+                where: {
+                  deletedAt: null,
+                  packingStatus: "packed" as DispatchItemPackingStatus,
+                },
                 select: {
                   status: true,
                   orderDeliveryId: true,

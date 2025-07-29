@@ -12,6 +12,7 @@ import {
     composeControls,
     itemControlUidObject,
 } from "../utils/item-control-utils";
+import { DispatchItemPackingStatus } from "@sales/types";
 
 export async function updateQtyControlAutoComplete(
     data,
@@ -158,7 +159,11 @@ export async function getSalesItemControllablesInfoAction(salesId) {
                             rhQty: true,
                             lhQty: true,
                             itemDeliveries: {
-                                where: { deletedAt: null },
+                                where: {
+                                    deletedAt: null,
+                                    packingStatus:
+                                        "packed" as DispatchItemPackingStatus,
+                                },
                                 select: {
                                     status: true,
                                     orderDeliveryId: true,

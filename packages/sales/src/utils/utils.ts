@@ -14,6 +14,7 @@ import { padStart } from "lodash";
 import {
   AddressBookMeta,
   CustomerMeta,
+  DispatchItemPackingStatus,
   ItemStatConfigProps,
   QtyControlType,
   SalesStatStatus,
@@ -172,7 +173,10 @@ const AssignmentsInclude = {
       ...excludeDeleted,
       include: {
         itemDeliveries: {
-          ...excludeDeleted,
+          where: {
+            ...excludeDeleted.where,
+            packingStatus: "packed" as DispatchItemPackingStatus,
+          },
         },
       },
     },

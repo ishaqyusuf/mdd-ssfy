@@ -21,6 +21,7 @@ import { _revalidate } from "../../../_actions/_revalidate";
 import { getProgress, saveProgress } from "../../../_actions/progress";
 import { user, userId } from "../../../_actions/utils";
 import { fixSalesPaymentAction } from "./sales-payment";
+import { DispatchItemPackingStatus } from "@sales/types";
 
 export async function getSalesOrder(query: SalesQueryParams) {
     query.type = "order";
@@ -66,7 +67,11 @@ export async function getOrderAction(orderId, isProd = false) {
                   }
                 : false,
             productions: isProd,
-            itemDeliveries: true,
+            itemDeliveries: {
+                where: {
+                    packingStatus: "packed" as DispatchItemPackingStatus,
+                },
+            },
         },
     });
     if (!order) return null;

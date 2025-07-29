@@ -10,6 +10,7 @@ import type {
 import type { Prisma } from "@gnd/db";
 import { sumArrayKeys } from "@gnd/utils";
 import dayjs from "@gnd/utils/dayjs";
+import type { DispatchItemPackingStatus } from "@sales/types";
 import { padStart } from "lodash";
 
 export function salesAddressLines(
@@ -186,7 +187,10 @@ const AssignmentsInclude = {
       ...excludeDeleted,
       include: {
         itemDeliveries: {
-          ...excludeDeleted,
+          where: {
+            ...excludeDeleted.where,
+            packingStatus: "packed" as DispatchItemPackingStatus,
+          },
         },
       },
     },

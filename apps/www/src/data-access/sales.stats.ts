@@ -8,6 +8,7 @@ import {
 import { composeSalesStatKeyValue } from "@/data/compose-sales";
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
+import { DispatchItemPackingStatus } from "@sales/types";
 
 export async function updateSalesStat(id) {
     const data = await prisma.salesOrders.findUnique({
@@ -17,6 +18,9 @@ export async function updateSalesStat(id) {
             stat: true,
             isDyke: true,
             itemDeliveries: {
+                where: {
+                    packingStatus: "packed" as DispatchItemPackingStatus,
+                },
                 select: { deletedAt: true, qty: true },
             },
             items: {

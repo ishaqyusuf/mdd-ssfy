@@ -8,6 +8,7 @@ import {
     salesAssignmentCreated,
     updateSalesProgressDta,
 } from "./sales-progress.dta";
+import { DispatchItemPackingStatus } from "@sales/types";
 
 export async function createItemAssignmentDta(
     data: Prisma.OrderItemProductionAssignmentsCreateInput,
@@ -51,7 +52,11 @@ export async function deleteAssignmentDta(
                     id: true,
                     qty: true,
                     itemDeliveries: {
-                        ...excludeDeleted,
+                        where: {
+                            ...excludeDeleted.where,
+                            packingStatus:
+                                "packed" as DispatchItemPackingStatus,
+                        },
                         select: {
                             id: true,
                             qty: true,
