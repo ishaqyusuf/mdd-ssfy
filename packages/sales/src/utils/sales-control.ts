@@ -22,6 +22,57 @@ export const recomposeQty = (q: Qty) => ({
   lh: q.lh,
   qty: q.rh || q.lh ? sum([q.rh, q.lh]) : q.qty,
 });
+export function pickQtyFrom(pick: Qty, fromBasket: Qty) {
+  pick = recomposeQty(pick);
+  fromBasket = recomposeQty(fromBasket);
+
+  const picked: Qty = { lh: 0, rh: 0, qty: 0 };
+  const pendingPick: Qty = { lh: 0, rh: 0, qty: 0 };
+  const remainder: Qty = {
+    lh: fromBasket.lh,
+    rh: fromBasket.rh,
+    qty: fromBasket.qty,
+  };
+
+  let remainingPick = pick.qty;
+
+  // Pick from RH first
+  if (fromBasket.rh && remainingPick > 0) {
+    const take = Math.min(fromBasket.rh, remainingPick);
+    picked.rh = take;
+    remainder.rh = fromBasket.rh - take;
+    remainingPick -= take;
+  }
+
+  // Pick from LH next
+  if (fromBasket.lh && remainingPick > 0) {
+    const take = Math.min(fromBasket.lh, remainingPick);
+    picked.lh = take;
+    remainder.lh = fromBasket.lh - take;
+    remainingPick -= take;
+  }
+
+  // Calculate final qty values
+  picked.qty = sum([picked.rh, picked.lh]);
+  remainder.qty = sum([remainder.rh, remainder.lh]);
+
+  // Anything left unpicked is pendingPick
+  if (remainingPick > 0) {
+    pendingPick.qty = remainingPick;
+    pendingPick.noHandle = true;
+  }
+
+  // Set handle flags
+  picked.noHandle = !picked.rh && !picked.lh;
+  remainder.noHandle = !remainder.rh && !remainder.lh;
+
+  return {
+    picked: picked.qty > 0 ? picked : null,
+    pendingPick: pendingPick.qty > 0 ? pendingPick : null,
+    remainder: remainder.qty > 0 ? remainder : null,
+  };
+}
+
 export function qtyMatrixDifference(a: Qty, b: Qty) {
   let res: Qty = {
     noHandle: a.noHandle,

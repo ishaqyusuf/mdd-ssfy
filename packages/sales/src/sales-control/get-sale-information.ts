@@ -20,7 +20,7 @@ import {
   qtyMatrixSum,
   transformQtyHandle,
 } from "../utils/sales-control";
-import { formatCurrency } from "@gnd/utils";
+import { formatCurrency, sum } from "@gnd/utils";
 import { hasQty } from "@gnd/utils/sales";
 
 export async function getSaleInformation(
@@ -207,7 +207,20 @@ export async function getSaleInformation(
         });
     })
   );
-
+  let orderRequiresUpdate = false;
+  // items?.map((item) => {
+  //   const stats = item.analytics?.stats;
+  //   const totalDeliverableQty = sum(item.deliverables?.map((a) => a.qty.qty));
+  //   const totalQty = stats?.qty.qty;
+  //   const packedQty = stats?.dispatchAssigned.qty;
+  //   if (
+  //     totalQty &&
+  //     totalQty != packedQty &&
+  //     totalDeliverableQty < totalQty - packedQty
+  //   ) {
+  //     orderRequiresUpdate = true;
+  //   }
+  // });
   return {
     items,
     orderNo: order.orderId,
@@ -215,6 +228,7 @@ export async function getSaleInformation(
     deliveries: order.deliveries,
     order,
     orderMeta: order.meta as any as SalesMeta,
+    orderRequiresUpdate,
     // order
   };
 }

@@ -6,14 +6,15 @@ import { z } from "zod";
 import FormInput from "./common/controls/form-input";
 import { SubmitButton } from "./submit-button";
 import { Icons } from "@gnd/ui/icons";
-import { qtyFormSchema, qtySuperRefine } from "@gnd/utils/sales";
+import { hasQty, qtyFormSchema, qtySuperRefine } from "@gnd/utils/sales";
 import { useSalesControlAction } from "@/hooks/use-sales-control-action";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { UpdateSalesControl } from "@sales/schema";
 import { useAuth } from "@/hooks/use-auth";
-import { recomposeQty } from "@sales/utils/sales-control";
+import { pickQtyFrom, recomposeQty } from "@sales/utils/sales-control";
+import { toast } from "@gnd/ui/use-toast";
 
 const schema = z
     .object({
@@ -39,14 +40,7 @@ export function PackingItemForm({}) {
     });
     const queryClient = useQueryClient();
     const trpc = useTRPC();
-    // const controller = useSalesControlAction({
-    //     onFinish() {
-    //         queryClient.invalidateQueries({
-    //             queryKey: trpc.dispatch.dispatchOverview.queryKey(),
-    //         });
-    //         form.reset();
-    //     },
-    // });
+
     const trigger = useTaskTrigger({
         onSucces() {},
     });
@@ -64,11 +58,33 @@ export function PackingItemForm({}) {
             ],
         };
 
-        let qty = formData.qty;
+        let qty = recomposeQty(formData.qty as any);
         item.dispatchable.dispatchStat.map((a) => {
             const dispatchableQty = recomposeQty(a.available);
+            if (hasQty(qty)) {
+                const { pendingPick, picked, remainder } = pickQtyFrom(
+                    qty,
+                    dispatchableQty,
+                );
+                if (hasQty(picked)) {
+                    packItems.packingList[0].submissions.push({
+                        qty: picked,
+                        submissionId: a.submissionId,
+                    });
+                    qty = { ...pendingPick } as any;
+                }
+            }
         });
-
+        console.log(packItems, qty, item.dispatchable.dispatchStat);
+        return;
+        if (hasQty(qty)) {
+            toast({
+                variant: "destructive",
+                description: "Not enough stock to complete packing",
+                title: "Unable to proceed",
+            });
+            return;
+        }
         trigger.trigger({
             taskName: "update-sales-control",
             payload: {

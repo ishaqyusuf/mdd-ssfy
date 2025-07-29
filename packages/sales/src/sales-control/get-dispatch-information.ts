@@ -9,6 +9,7 @@ import {
 import { padStart } from "lodash";
 
 export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
+  //   throw new Error("ERRORR!");
   const overview = await getSaleInformation(db, {
     salesId,
     salesNo,
@@ -98,6 +99,7 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
     dispatchables,
     deliveries,
     order: overview.order,
+    orderRequiresUpdate: overview.orderRequiresUpdate,
     progress: {
       availableDispatchQty,
       dispatchedQty,

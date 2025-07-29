@@ -186,7 +186,7 @@ export async function getDispatchOverview(
     salesId: query.salesId,
     salesNo: query.salesNo,
   });
-  // result.dispatchables[0].
+
   const dispatch = result.deliveries.find((d) => d.id === query.dispatchId);
   let address = result.order.shippingAddress;
   if (!address) address = {} as any;
@@ -235,6 +235,7 @@ export async function getDispatchOverview(
       date: order.createdAt,
       id: order.id,
     },
+    orderRequiresUpdate: result.orderRequiresUpdate,
   };
 }
 

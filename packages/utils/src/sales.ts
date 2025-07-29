@@ -132,5 +132,6 @@ export type QtyControlType =
 export const qtyHasHandle = (qty: any) => !!qty?.lh || !!qty?.rh;
 
 export function hasQty(qty: any) {
-  return !!sum(qty?.lh, qty?.rh) || !!qty?.qty;
+  if (!qty) return false;
+  return !!sum([qty.lh!, qty.rh!]) || !!qty?.qty;
 }

@@ -5,6 +5,7 @@ import { PackingOrderInformation } from "@/components/packing-order-information"
 import { PackingDriverInformation } from "@/components/packing-driver-information";
 import { PackingItemsList } from "@/components/packing-items-list";
 import { PackingProvider } from "@/hooks/use-sales-packing";
+import { useEffect } from "react";
 
 export function PackingTab({}) {
     const query = useSalesOverviewQuery();
@@ -17,11 +18,17 @@ export function PackingTab({}) {
             },
             {
                 enabled: !!query.params.dispatchId,
+                // throwOnError(error, query) {
+                //     console.log(error);
+                // },
             },
         ),
     );
-
+    useEffect(() => {
+        console.log(data);
+    }, [data]);
     if (isLoading) return <PackingTabSkeleton />;
+    if (!data) return <>Error</>;
     return (
         <PackingProvider
             args={[
