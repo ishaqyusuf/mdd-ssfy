@@ -12,7 +12,7 @@ import { hasQty } from "@gnd/utils/sales";
 import { getSaleInformation } from "./get-sale-information";
 import { z } from "zod";
 import { updateSalesControlSchema } from "../schema";
-import { getDispatchControlType } from "src/utils/utils";
+import { getDispatchControlType } from "../utils/utils";
 
 export interface CreateSalesAssignmentProps {
   submit?: boolean;
