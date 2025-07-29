@@ -58,7 +58,7 @@ export async function deletePackingItem(db: Db, data: DeletePackingSchema) {
     where: {},
     data: {
       packingStatus: "unpacked" as DispatchItemPackingStatus,
-      // packedBy
+      packedBy: data.deleteBy,
     },
   });
 }

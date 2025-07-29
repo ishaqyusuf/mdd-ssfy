@@ -393,7 +393,7 @@ export function useSalesControlAction({ onFinish }) {
                         qty,
                         pending: qty,
                         itemUid: dispatchable.uid,
-                        itemsTotal: dispatchable.totalQty,
+                        itemsTotal: dispatchable.totalQty.qty,
                         salesId,
                         salesDoorId: dispatchable.doorId,
                         salesItemId: dispatchable.itemId,
