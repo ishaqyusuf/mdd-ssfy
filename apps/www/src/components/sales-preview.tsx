@@ -4,7 +4,7 @@ import { OrderBasePrinter } from "@/app/(v2)/printer/sales/order-base-printer";
 import SalesPrintDisplay from "@/app/(v2)/printer/sales/sales-print-display";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { rndTimeout } from "@/lib/timeout";
-import { SalesInvoicePdfTemplate } from "@gnd/printer/templates/sales-invoice";
+
 import { useAsyncMemo } from "use-async-memo";
 
 export function SalesPreview({}) {
@@ -27,14 +27,14 @@ export function SalesPreview({}) {
     return (
         <div className="">
             <OrderBasePrinter mode={params?.previewMode as any}>
-                <Env isDev>
+                {/* <Env isDev>
                     <SalesInvoicePdfTemplate
                         printData={{
                             sale: data,
                             mode: params?.previewMode,
                         }}
                     />
-                </Env>
+                </Env> */}
                 <SalesPrintDisplay data={data} slug={params.salesPreviewSlug} />
             </OrderBasePrinter>
         </div>

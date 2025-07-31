@@ -13,7 +13,7 @@ import { getSaleInformation } from "./get-sale-information";
 import { z } from "zod";
 import { updateSalesControlSchema } from "../schema";
 import { getDispatchControlType } from "../utils/utils";
-import { qtyMatrixDifference, recomposeQty } from "src/utils/sales-control";
+import { qtyMatrixDifference, recomposeQty } from "../utils/sales-control";
 
 export interface CreateSalesAssignmentProps {
   submit?: boolean;

@@ -11,31 +11,14 @@ import { ExampleTemplate } from "./example-template";
 
 export function SalesInvoicePdfTemplate(props: SalesInvoiceTemplateProps) {
   const { size = "a4", printData } = props;
-  // if (!printData)
-  // return <ExampleTemplate />;
-  // return (
-  //   <Document>
-  //     <Page
-  //       size="A4"
-  //       style={cn("p-4 bg-white text-black font-helvetica text-xs")}
-  //     >
-  //       <View>
-  //         <Text>NOTHING TO DOWNLOAD</Text>
-  //       </View>
-  //     </Page>
-  //   </Document>
-  // );
+
   const { orderedPrinting = [], order, isPacking } = printData?.sale || {};
 
   return (
     <Document>
       <Page
         size="A4"
-        style={cn("p-4 bg-white text-black text-sm font-helvetica", {
-          // paddingTop: 80,
-          // paddingBottom: 80,
-          // paddingHorizontal: 40,
-        })}
+        style={cn("p-4 bg-white text-black text-sm font-helvetica", {})}
       >
         <View style={cn("mb-2 flex-col")}>
           <SalesPrintHeader printData={printData} />
@@ -55,7 +38,7 @@ export function SalesInvoicePdfTemplate(props: SalesInvoiceTemplateProps) {
                   index={i}
                   printData={printData}
                 />
-              ),
+              )
             )}
 
             <SalesPrintLineItems printData={printData} />
