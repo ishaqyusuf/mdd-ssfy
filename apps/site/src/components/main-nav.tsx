@@ -52,13 +52,14 @@ export function MainNav({ items }: MainNavProps) {
               ) : (
                 item.href && (
                   <NavigationMenuItem key={index}>
-                    <Link href={item.href} passHref>
-                      <NavigationMenuLink
-                        className={navigationMenuTriggerStyle()}
-                      >
-                        {item.title}
-                      </NavigationMenuLink>
-                    </Link>
+                    {/* <Link href={item.href}> */}
+                    <NavigationMenuLink
+                      href={item.href}
+                      className={navigationMenuTriggerStyle()}
+                    >
+                      {item.title}
+                    </NavigationMenuLink>
+                    {/* </Link> */}
                   </NavigationMenuItem>
                 )
               )

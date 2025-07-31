@@ -1,48 +1,53 @@
 import Image from "next/image";
 import Link from "next/link";
-
-import { formatPrice } from "@/lib/utils";
+import { Card, CardContent } from "@gnd/ui/card";
 import { Button } from "@gnd/ui/button";
-import { RouterOutputs } from "@api/trpc/routers/_app";
-import { env } from "@/env.mjs";
-import { AspectRatio } from "@gnd/ui/aspect-ratio";
+import { StarIcon } from "lucide-react";
+import type { Product } from "@/lib/types"; // Assuming a types file for Product
 
 interface ProductCardProps {
-  product: RouterOutputs["shoppingProducts"]["search"]["data"][number];
+  product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
   return (
-    <Link href={`/product/${product.id}`} className="group relative block">
-      <div className="overflow-hidden rounded-md">
-        <AspectRatio ratio={4 / 3}>
-          <Image
-            src={`${env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/dyke/${product.img}`}
-            alt={product.name}
-            className="object-cover"
-            sizes="(min-width: 1024px) 20vw, (min-width: 768px) 25vw, (min-width: 640px) 33vw, (min-width: 475px) 50vw, 100vw"
-            fill
-            loading="lazy"
-          />
-        </AspectRatio>
-      </div>
-      <div className="mt-4 flex justify-between">
-        <div>
-          <h3 className="text-sm text-foreground">
-            <span aria-hidden="true" className="absolute inset-0" />
-            {product.name}
-          </h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {/* {product.} */}
-          </p>
-        </div>
-        <p className="text-sm font-medium text-primary">
-          {formatPrice(product.price)}
+    <Card className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-transform duration-300 ease-in-out hover:-translate-y-2">
+      <Link
+        href={`/product/${product.slug}`}
+        className="absolute inset-0 z-10"
+        prefetch={false}
+      >
+        <span className="sr-only">View {product.name}</span>
+      </Link>
+      <Image
+        src={product.imageUrl || "/placeholder.svg"}
+        alt={product.name}
+        width={400}
+        height={300}
+        className="w-full h-48 object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
+      />
+      <CardContent className="p-4 bg-white dark:bg-gray-950">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-50 mb-1">
+          {product.name}
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+          {product.description}
         </p>
-      </div>
-      <div className="mt-4">
-        <Button className="w-full">Add to cart</Button>
-      </div>
-    </Link>
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-xl font-bold text-gray-900 dark:text-gray-50">
+            ${product.price.toFixed(2)}
+          </span>
+          <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+            <StarIcon className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <span>
+              {product.rating.toFixed(1)} ({product.reviews})
+            </span>
+          </div>
+        </div>
+        <Button variant="outline" className="w-full bg-transparent">
+          View Details
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
