@@ -1,6 +1,7 @@
 import { TaskName } from "@jobs/schema";
 import { schemaTask } from "@trigger.dev/sdk/v3";
 import {
+  clearPackingTask,
   packDispatchItemTask,
   submitAllTask,
   updateSalesControlSchema,
@@ -17,5 +18,6 @@ export const updateSalesControl = schemaTask({
   run: async (input) => {
     if (input.submitAll) return submitAllTask(db, input);
     if (input.packItems) return packDispatchItemTask(db, input);
+    if (input.clearPackings) return clearPackingTask(db, input);
   },
 });

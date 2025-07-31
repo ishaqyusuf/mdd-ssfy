@@ -26,12 +26,19 @@ export const resetSalesControlSchema = z.object({
     authorName: z.string(),
   }),
 });
+export type ResetSalesControl = z.infer<typeof resetSalesControlSchema>;
 export const updateSalesControlSchema = z.object({
   meta: z.object({
     salesId: z.number(),
     authorId: z.number(),
     authorName: z.string(),
   }),
+  clearPackings: z
+    .object({
+      dispatchId: z.number().nullable().optional(), //if null, it clears all packing for every dispatch
+    })
+    .nullable()
+    .optional(),
   submitAll: z
     .object({
       assignedToId: z.number().nullable().optional(),

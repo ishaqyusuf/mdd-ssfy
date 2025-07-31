@@ -53,6 +53,25 @@ export async function submitNonProductionsTask(
     response,
   };
 }
+export async function clearPackingTask(db: Db, data: UpdateSalesControl) {
+  const clearData = data.clearPackings;
+  await db.orderItemDelivery.updateMany({
+    where: {
+      // id: !data.packingUid ? data.packingId! : undefined,
+      // packingUid: data.packingUid ? data.packingUid : undefined,
+      orderId: !clearData?.dispatchId ? data.meta.salesId : undefined,
+      orderDeliveryId: !clearData?.dispatchId
+        ? undefined
+        : clearData?.dispatchId,
+      packingStatus: "packed",
+    },
+    data: {
+      packingStatus: "unpacked" as DispatchItemPackingStatus,
+      unpackedBy: data.meta.authorName,
+    },
+  });
+  await resetSalesTask(db, data.meta.salesId);
+}
 export async function deletePackingItem(db: Db, data: DeletePackingSchema) {
   await db.orderItemDelivery.updateMany({
     where: {

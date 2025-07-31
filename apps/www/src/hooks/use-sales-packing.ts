@@ -5,7 +5,7 @@ import { RouterOutputs } from "@api/trpc/routers/_app";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTaskTrigger } from "./use-task-trigger";
-import { UpdateSalesControl } from "@sales/schema";
+import { ResetSalesControl, UpdateSalesControl } from "@sales/schema";
 import { useAuth } from "./use-auth";
 
 interface Props {
@@ -34,7 +34,21 @@ export const { Provider: PackingProvider, useContext: usePacking } =
         const onCompleteDispatch = () => {};
         const onDeleteDispatch = () => {};
         const onCancelDispatch = () => {};
-        const onClearPacking = () => {};
+        const onClearPacking = () => {
+            trigger.trigger({
+                taskName: "reset-sales-control",
+                payload: {
+                    meta: {
+                        authorId: auth.id,
+                        salesId: data?.order?.id,
+                        authorName: auth.name,
+                    },
+                    clearPackings: {
+                        dispatchId: data?.dispatch.id,
+                    },
+                } as UpdateSalesControl,
+            });
+        };
         const auth = useAuth();
         const onResetSalesStat = () => {
             trigger.trigger({
@@ -45,7 +59,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                         salesId: data?.order?.id,
                         authorName: auth.name,
                     },
-                } as UpdateSalesControl,
+                } as ResetSalesControl,
             });
         };
         const onUnstartDispatch = () => {};
