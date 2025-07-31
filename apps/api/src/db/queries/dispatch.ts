@@ -205,18 +205,9 @@ export async function getDispatchOverview(
         )
       );
       const trs = listedItems?.map(transformQtyHandle);
-      const listedQty = qtyMatrixSum(trs ? trs : ([] as any));
+      const listedQty = qtyMatrixSum(...(trs || ([] as any)));
 
       const dispatchable = result.dispatchables.find((d) => d.uid === item.uid);
-      // const pendingQty = dispatchable?.analytics.dispatch.pending;
-      // const availableQty = qtyMatrixSum(
-      //   ...(dispatchable?.deliverables?.map((a) => a.qty) || [])
-      // );
-      // const totalQty = qtyMatrixSum([
-      //   availableQty,
-      //   listedQty,
-      //   ...(dispatchable?.pendingSubmissions?.map((a) => a.qty) || []),
-      // ] as any);
       const deliverableQty = recomposeQty(
         qtyMatrixSum(...(dispatchable?.deliverables?.map((a) => a.qty) || []))
       );
@@ -226,6 +217,30 @@ export async function getDispatchOverview(
           qtyMatrixSum(deliverableQty, totalListedQty)
         )
       );
+      let packingHistory = listedItems?.map((a) => ({
+        qty: transformQtyHandle(a),
+        date: a.createdAt,
+        note: "",
+        packedBy: a.packedBy,
+        id: a.id,
+        packingUid: a.packingUid,
+      }))!;
+      packingHistory = packingHistory
+        .filter(
+          (p, o) =>
+            !p.packingUid ||
+            (p.packingUid &&
+              packingHistory?.findIndex((a) => a.packingUid === p.packingUid) ==
+                o)
+        )
+        .map((d) => ({
+          ...d,
+          qty: !d.packingUid
+            ? d.qty
+            : qtyMatrixSum(
+                ...packingHistory?.filter((p) => p.packingUid === d.packingUid)!
+              ),
+        }));
       return {
         title: item.title,
         sectionTitle: item.sectionTitle,
@@ -242,13 +257,8 @@ export async function getDispatchOverview(
         totalQty: dispatchable?.totalQty!,
         // dispatchable,
         salesItemId: dispatchable?.itemId,
-        packingHistory: listedItems?.map((a) => ({
-          qty: a.qty,
-          date: a.createdAt,
-          note: "",
-          packedBy: "me",
-          id: a.id,
-        })),
+        packingHistory,
+        // itemConfig: item.produceable
       };
     }),
     address: address || ({} as any),

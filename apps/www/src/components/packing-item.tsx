@@ -4,6 +4,7 @@ import { Card } from "@gnd/ui/card";
 import { cn } from "@gnd/ui/cn";
 import { qtyHasHandle } from "@gnd/utils/sales";
 import { Package } from "lucide-react";
+import { QtyLabel } from "./qty-label";
 
 export function PackingItem({}) {
     const packing = usePacking();
@@ -120,14 +121,5 @@ export function PackingItem({}) {
                 )} */}
         </div>
     );
-}
-
-function QtyLabel({ lh = null, rh = null, qty, className = "" }) {
-    if (!lh && !rh) return <span className={cn(className)}>{qty}</span>;
-    const label = [lh, rh]
-        .map((a, i) => (a > 0 ? (i == 0 ? `${a} LH` : `${a} RH`) : null))
-        .filter(Boolean)
-        .join(" & ");
-    return <span className={cn("whitespace-nowrap", className)}>{label}</span>;
 }
 

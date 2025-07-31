@@ -20,7 +20,11 @@ const qty = z.object({
   qty: z.number().nullable().optional(),
 });
 export const resetSalesControlSchema = z.object({
-  salesId: z.number(),
+  meta: z.object({
+    salesId: z.number(),
+    authorId: z.number(),
+    authorName: z.string(),
+  }),
 });
 export const updateSalesControlSchema = z.object({
   meta: z.object({

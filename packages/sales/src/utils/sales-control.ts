@@ -51,15 +51,21 @@ export function pickQtyFrom(pick: Qty, fromBasket: Qty) {
     remainder.lh = fromBasket.lh - take;
     remainingPick -= take;
   }
-
+  if (fromBasket.noHandle && fromBasket.qty && remainingPick > 0) {
+    const take = Math.min(fromBasket.qty, remainingPick);
+    picked.qty = take;
+    remainder.qty = fromBasket.qty - take;
+    remainingPick -= take;
+  }
+  // if (!fromBasket.lh)
   // Calculate final qty values
-  picked.qty = sum([picked.rh, picked.lh]);
-  remainder.qty = sum([remainder.rh, remainder.lh]);
+  picked.qty = picked.qty || sum([picked.rh, picked.lh]);
+  remainder.qty = remainder.qty || sum([remainder.rh, remainder.lh]);
 
   // Anything left unpicked is pendingPick
   if (remainingPick > 0) {
     pendingPick.qty = remainingPick;
-    pendingPick.noHandle = true;
+    // pendingPick.noHandle = true;
   }
 
   // Set handle flags

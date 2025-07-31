@@ -15,12 +15,12 @@ export function PackingProgress() {
                 label="Items packed"
                 score={
                     qtyMatrixSum(
-                        data.dispatchItems?.map((a) => a.listedQty) as any,
+                        ...(data.dispatchItems?.map((a) => a.listedQty) as any),
                     )?.qty || 0
                 }
                 total={
                     qtyMatrixSum(
-                        data.dispatchItems?.map((a) => a.totalQty) as any,
+                        ...(data.dispatchItems?.map((a) => a.totalQty) as any),
                     )?.qty || 0
                 }
             />

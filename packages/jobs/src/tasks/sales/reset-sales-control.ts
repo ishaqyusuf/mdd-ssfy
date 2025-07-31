@@ -16,12 +16,10 @@ export const resetSalesControl = schemaTask({
   },
   run: async (input) => {
     await submitNonProductionsTask(db, {
-      meta: {
-        salesId: input.salesId,
-      } as any,
+      meta: input.meta,
       packItems: null as any,
       submitAll: null,
     });
-    await resetSalesTask(db, input.salesId);
+    await resetSalesTask(db, input.meta.salesId);
   },
 });

@@ -1,5 +1,5 @@
 import { sum } from "@gnd/utils";
-import { Db, ItemControlData } from "../types";
+import { Db, ItemControlData, SalesDispatchStatus } from "../types";
 import { getSaleInformation } from "./get-sale-information";
 import {
   laborRate,
@@ -59,6 +59,7 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
       totalQty: item.qty,
       doorId: item.doorId,
       dispatchStat,
+      itemConfig: item.itemConfig,
       analytics: item.analytics,
       pendingSubmissions: item.analytics?.pendingSubmissions,
       subtitle: [item.sectionTitle, item.size, item.swing]
@@ -75,6 +76,7 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
   const deliveries = overview.deliveries.map((delivery) => {
     return {
       ...delivery,
+      status: delivery.status as SalesDispatchStatus,
       dispatchNumber: `DISP-${padStart(delivery.id?.toString(), 5, "0")}`,
       items: delivery.items.map((item) => {
         const _item = overview.items.find((i) =>

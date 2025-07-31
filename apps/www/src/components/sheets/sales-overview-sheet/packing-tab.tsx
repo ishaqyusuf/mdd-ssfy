@@ -6,8 +6,8 @@ import { PackingDriverInformation } from "@/components/packing-driver-informatio
 import { PackingItemsList } from "@/components/packing-items-list";
 import { PackingProvider } from "@/hooks/use-sales-packing";
 import { useEffect } from "react";
-import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { Button } from "@gnd/ui/button";
+
+import { DispatchActions } from "@/components/dispatch-actions";
 
 export function PackingTab({}) {
     const query = useSalesOverviewQuery();
@@ -30,13 +30,7 @@ export function PackingTab({}) {
         console.log(data);
     }, [data]);
     const qc = useQueryClient();
-    const trigger = useTaskTrigger({
-        onSucces() {
-            qc.invalidateQueries({
-                queryKey: trpc.dispatch.dispatchOverview.queryKey(),
-            });
-        },
-    });
+
     if (isLoading) return <PackingTabSkeleton />;
     if (!data) return <>Error</>;
     return (
@@ -47,24 +41,12 @@ export function PackingTab({}) {
                 },
             ]}
         >
-            <div className="">
-                <Button
-                    disabled={trigger?.isLoading}
-                    onClick={(e) => {
-                        trigger.trigger({
-                            taskName: "reset-sales-control",
-                            payload: {
-                                salesId: data?.order?.id,
-                            },
-                        });
-                    }}
-                >
-                    Reset
-                </Button>
+            <div className="flex flex-col gap-4">
+                <DispatchActions />
+                <PackingOrderInformation />
+                <PackingDriverInformation />
+                <PackingItemsList />
             </div>
-            <PackingOrderInformation />
-            <PackingDriverInformation />
-            <PackingItemsList />
         </PackingProvider>
     );
 }

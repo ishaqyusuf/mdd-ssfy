@@ -13,6 +13,7 @@ import { getSaleInformation } from "./get-sale-information";
 import { z } from "zod";
 import { updateSalesControlSchema } from "../schema";
 import { getDispatchControlType } from "../utils/utils";
+import { qtyMatrixDifference, recomposeQty } from "src/utils/sales-control";
 
 export interface CreateSalesAssignmentProps {
   submit?: boolean;
@@ -227,13 +228,28 @@ export async function submitNonProductionsAction(
   const createAssignments: CreateSalesAssignmentProps["items"] = [];
   const createSubmissions: CreateSalesAssignmentSubmissionProps["items"] = [];
   for (const item of data.items) {
-    if (item.itemConfig?.production) continue;
-    const pendingProds = item.analytics?.production.pending!;
+    if (!!item.itemConfig?.production) {
+      continue;
+    }
+    const pendingProds = recomposeQty(
+      qtyMatrixDifference(
+        item.analytics?.stats.qty!,
+        item.analytics?.stats.prodAssigned!
+      )
+    );
+
+    console.log(
+      `${item.title} - ${item.itemConfig?.production} : ${pendingProds.qty}`
+    );
+    // const pendingProds = item.analytics?.production!;
+    const deliverables = item.deliverables;
+
     if (hasQty(pendingProds))
       createAssignments.push({
         itemInfo: item,
         qty: pendingProds,
       });
+
     for (const s of item.analytics?.pendingSubmissions!) {
       if (hasQty(s.qty)) {
         createSubmissions.push({
@@ -244,6 +260,8 @@ export async function submitNonProductionsAction(
       }
     }
   }
+  console.log(`Assignments created: ${createAssignments.length}`);
+  console.log(`Submissions created: ${createSubmissions.length}`);
   await createSalesAssignmentAction(db, {
     items: createAssignments,
     submit: true,

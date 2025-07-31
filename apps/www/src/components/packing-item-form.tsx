@@ -15,6 +15,7 @@ import { UpdateSalesControl } from "@sales/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { pickQtyFrom, recomposeQty } from "@sales/utils/sales-control";
 import { toast } from "@gnd/ui/use-toast";
+import ConfirmBtn from "./confirm-button";
 
 const schema = z
     .object({
@@ -71,14 +72,14 @@ export function PackingItemForm({}) {
                 );
                 if (hasQty(picked)) {
                     packItems.packingList[0].submissions.push({
-                        qty: picked,
+                        qty: recomposeQty(picked),
                         submissionId: a.submissionId,
                     });
                     qty = { ...pendingPick } as any;
                 }
             }
         });
-
+        console.log({ packItems, qty });
         if (hasQty(qty)) {
             toast({
                 variant: "destructive",
@@ -87,8 +88,6 @@ export function PackingItemForm({}) {
             });
             return;
         }
-        console.log(packItems, qty, item.deliverables);
-        // return;
         trigger.trigger({
             taskName: "update-sales-control",
             payload: {
@@ -109,6 +108,7 @@ export function PackingItemForm({}) {
         //     // salesItemId: packing?.data?.
         // });
     };
+    if (!hasQty(availableQty)) return null;
     return (
         <div className="p-4 border-t  bg-muted/10">
             <Form {...form}>
@@ -122,8 +122,8 @@ export function PackingItemForm({}) {
                                     name="qty.qty"
                                     numericProps={{
                                         allowNegative: false,
-                                        suffix: `/${availableQty?.qty}`,
-                                        placeholder: `0/${availableQty?.qty}`,
+                                        suffix: `/${availableQty?.qty || 0}`,
+                                        placeholder: `0/${availableQty?.qty || "0"}`,
                                         max: availableQty?.qty,
                                         disabled: !availableQty?.qty,
                                     }}
@@ -166,6 +166,7 @@ export function PackingItemForm({}) {
                             >
                                 <Icons.Add className="size-4" />
                             </SubmitButton>
+
                             <Button
                                 disabled={trigger?.isLoading}
                                 type="button"

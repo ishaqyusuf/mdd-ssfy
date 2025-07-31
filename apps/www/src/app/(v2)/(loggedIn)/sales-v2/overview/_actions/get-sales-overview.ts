@@ -15,6 +15,7 @@ import {
 import { composeSalesItems } from "../../_utils/compose-sales-items";
 import { DykeDoorType } from "../../type";
 import { isComponentType } from "../is-component-type";
+import { DispatchItemPackingStatus } from "@sales/types";
 
 export async function getSalesOverview({
     type,
@@ -258,6 +259,7 @@ const SalesIncludes = {
             items: {
                 where: {
                     deletedAt: null,
+                    packingStatus: "packed" as DispatchItemPackingStatus,
                 },
                 include: {
                     submission: {

@@ -290,6 +290,8 @@ export const FullSalesSelect = {
           orderProductionSubmissionId: true,
           status: true,
           createdAt: true,
+          packedBy: true,
+          packingUid: true,
         },
       },
     },

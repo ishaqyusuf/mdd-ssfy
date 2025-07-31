@@ -10,8 +10,11 @@ import {
     TableRow,
 } from "@gnd/ui/table";
 import { formatDate } from "@gnd/utils/dayjs";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
+import { QtyLabel } from "./qty-label";
+import ConfirmBtn from "./confirm-button";
+import { useAuth } from "@/hooks/use-auth";
 
 export function PackingItemListings({}) {
     const packing = usePacking();
@@ -25,10 +28,17 @@ export function PackingItemListings({}) {
             </div>
         );
     const trpc = useTRPC();
+    const qc = useQueryClient();
     const deletePacking = useMutation(
-        trpc.dispatch.deletePackingItem.mutationOptions({}),
+        trpc.dispatch.deletePackingItem.mutationOptions({
+            onSuccess() {
+                qc.invalidateQueries({
+                    queryKey: trpc.dispatch.dispatchOverview.queryKey(),
+                });
+            },
+        }),
     );
-    async function onDelete(id) {}
+    const auth = useAuth();
     return (
         <div className="p-4 border-t">
             <h5 className="text-sm font-medium mb-3">Packing History</h5>
@@ -46,19 +56,27 @@ export function PackingItemListings({}) {
                     {item.packingHistory.map((historyItem) => (
                         <TableRow key={historyItem.id}>
                             <TableCell>{historyItem.packedBy}</TableCell>
-                            <TableCell>{historyItem.qty}</TableCell>
+                            <TableCell>
+                                <QtyLabel {...historyItem.qty} />
+                            </TableCell>
                             <TableCell>
                                 {formatDate(historyItem.date)}
                             </TableCell>
                             <TableCell>{historyItem.note || "-"}</TableCell>
                             <TableCell>
-                                <Button
-                                    variant="ghost"
+                                <ConfirmBtn
+                                    trash
+                                    disabled={deletePacking.isPending}
                                     size="icon"
-                                    onClick={() => onDelete(historyItem.id)}
-                                >
-                                    <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
+                                    onClick={() =>
+                                        deletePacking.mutate({
+                                            deleteBy: auth.name,
+                                            salesId: packing.data.order.id,
+                                            packingId: historyItem.id,
+                                            packingUid: historyItem.packingUid,
+                                        })
+                                    }
+                                />
                             </TableCell>
                         </TableRow>
                     ))}

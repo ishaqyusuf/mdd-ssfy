@@ -55,7 +55,10 @@ export async function submitNonProductionsTask(
 }
 export async function deletePackingItem(db: Db, data: DeletePackingSchema) {
   await db.orderItemDelivery.updateMany({
-    where: {},
+    where: {
+      id: !data.packingUid ? data.packingId! : undefined,
+      packingUid: data.packingUid ? data.packingUid : undefined,
+    },
     data: {
       packingStatus: "unpacked" as DispatchItemPackingStatus,
       packedBy: data.deleteBy,
