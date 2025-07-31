@@ -67,7 +67,7 @@ export function composeSalesItemControl(
     item.dykeDescription
   );
   const doorMeta = door?.meta as DykeSalesDoorMeta;
-  const meta = item.meta as any as SalesItemMeta;
+  // const meta = item.meta as any as SalesItemMeta;
   if (door) {
     unitLabor = doorMeta?.unitLabor || order?.meta?.laborConfig?.rate;
     title = `${
@@ -137,6 +137,7 @@ export function composeSalesItemControl(
     swing: baseItem.swing,
     prodOverride,
   });
+
   const composed = {
     salesId: order.id,
     title,
@@ -158,6 +159,7 @@ export function composeSalesItemControl(
     size: door?.dimension,
     itemConfig,
     deliverables,
+    shelfId: null,
   };
   const analytics = composeSalesItemControlStat({
     order,
@@ -204,11 +206,10 @@ export async function getSaleInformation(
   db: Db,
   params: GetFullSalesDataSchema
 ) {
-  let items: ItemControlData[] = [];
   const data = await salesInformationData(db, params);
   const { order } = data;
 
-  order.items
+  let items = order.items
     .map((item) => {
       const { multiDyke, multiDykeUid } = item;
 

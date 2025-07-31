@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-users";
 
@@ -114,6 +114,9 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
                 },
             ),
         );
+        useEffect(() => {
+            console.log(data);
+        }, [data]);
         // useEffect(() => {
         //     if (!ctx.refreshTok) return;
         //     refetch();
