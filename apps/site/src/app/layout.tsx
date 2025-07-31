@@ -1,6 +1,3 @@
-import { SiteHeader } from "@/components/site-header";
-import { PreHeader } from "@/components/pre-header";
-
 import "@gnd/ui/globals.css";
 
 import { cn } from "@gnd/ui/cn";

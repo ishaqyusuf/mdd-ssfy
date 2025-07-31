@@ -23,6 +23,7 @@ export const createCustomerSchema = z
         addressOnly: z.boolean().nullable().optional(),
         phoneNo: z.string().optional(),
         phoneNo2: z.string().optional(),
+        route: z.string().optional(),
         email: z.string().optional(),
         address1: z.string().optional().nullable(),
         formattedAddress: z.string().optional().nullable(),

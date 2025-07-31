@@ -56,6 +56,7 @@ export function CustomerForm({ data }: Props) {
             email: undefined,
             id: undefined,
             name: undefined,
+            route: undefined,
             netTerm: undefined,
             phoneNo: undefined,
             phoneNo2: undefined,
@@ -346,6 +347,12 @@ export function CustomerForm({ data }: Props) {
                                         control={form.control}
                                         name="address1"
                                         label="Address Line 1"
+                                        size="sm"
+                                    />
+                                    <FormInput
+                                        control={form.control}
+                                        name="route"
+                                        label="Route"
                                         size="sm"
                                     />
                                     <FormInput

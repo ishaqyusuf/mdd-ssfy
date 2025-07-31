@@ -64,6 +64,7 @@ export async function GET(req: NextRequest) {
             data: {
                 address: formattedData,
                 adrAddress: data.adrFormatAddress,
+                raw: data,
             },
             error: null,
         });

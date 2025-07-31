@@ -15,24 +15,26 @@ import { filterRouters } from "./filters.route";
 import { salesDashboardRouter } from "./sales-dashboard.route";
 import { customerRouter } from "./customer.route";
 import { shoppingProductsRouter } from "./shopping-products.route";
+import { google } from "./google-place.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
   // students: studentsRouter,
-  salesDashboard: salesDashboardRouter,
-  filters: filterRouters,
-  checkout: checkoutRouters,
-  dispatch: dispatchRouters,
   backlogs: backlogRouters,
+  checkout: checkoutRouters,
+  customers: customerRouter,
+  dispatch: dispatchRouters,
   emails: emailsRoute,
+  filters: filterRouters,
+  google: google,
   hrm: hrmRoutes,
   notes: notesRouter,
   sales: salesRouter,
+  salesDashboard: salesDashboardRouter,
   search: searchRouter,
+  shoppingProducts: shoppingProductsRouter,
   siteActions: siteActionsRoutes,
   user: userRoutes,
-  customers: customerRouter,
-  shoppingProducts: shoppingProductsRouter,
 });
 
 export type AppRouter = typeof appRouter;

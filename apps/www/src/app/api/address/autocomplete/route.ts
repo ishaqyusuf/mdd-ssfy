@@ -45,7 +45,6 @@ export async function GET(req: NextRequest) {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-
         const data = await response.json();
 
         return NextResponse.json({ data: data.suggestions, error: null });

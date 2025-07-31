@@ -10,6 +10,8 @@ import useSWR from "swr";
 // import AddressDialog from "./address-dialog";
 
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export interface AddressType {
     address1: string;
@@ -53,8 +55,21 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
 
     const [selectedPlaceId, setSelectedPlaceId] = useState("");
     const [isOpen, setIsOpen] = useState(false);
-
-    const { data, isLoading } = useSWR(
+    const trpc = useTRPC();
+    // const { data } = useQuery(
+    //     trpc.google.place.queryOptions(
+    //         {
+    //             placeId: selectedPlaceId,
+    //         },
+    //         {
+    //             enabled: !!selectedPlaceId,
+    //             throwOnError(error, query) {
+    //                 console.log({ error, query });
+    //             },
+    //         },
+    //     ),
+    // );
+    const { data: fData, isLoading } = useSWR(
         // For real use case: /api/address/place?placeId=${selectedPlaceId}
         selectedPlaceId === ""
             ? null
@@ -64,13 +79,13 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
             revalidateOnFocus: false,
         },
     );
-
-    const adrAddress = data?.data?.adrAddress;
+    const data = fData?.data;
+    const adrAddress = data?.adrAddress;
 
     useEffect(() => {
-        if (data?.data?.address) {
-            setAddress(data.data.address as AddressType);
-            __setAddress(data.data.address as AddressType);
+        if (data?.address) {
+            setAddress(data.address as AddressType);
+            __setAddress(data.address as AddressType);
         }
     }, [data, setAddress]);
     const [address, __setAddress] = useState<any>({});
@@ -142,18 +157,32 @@ function AddressAutoCompleteInput(props: CommonProps) {
 
     const debouncedSearchInput = useDebounce(searchInput, 500);
 
-    const { data, isLoading } = useSWR(
-        // For real use case: /api/address/autocomplete?input=${debouncedSearchInput}
-        `/api/address/autocomplete?input=${debouncedSearchInput}`,
-        fetcher,
+    // const { data, isLoading } = useSWR(
+    //     // For real use case: /api/address/autocomplete?input=${debouncedSearchInput}
+    //     `/api/address/autocomplete?input=${debouncedSearchInput}`,
+    //     fetcher,
+    // );
+    const trpc = useTRPC();
+    const { data } = useQuery(
+        trpc.google.places.queryOptions(
+            {
+                q: debouncedSearchInput,
+            },
+            {
+                enabled: !!debouncedSearchInput,
+            },
+        ),
     );
-
-    const predictions: Prediction[] = data?.data || [];
+    useEffect(() => {
+        console.log(data);
+    }, [data]);
+    const predictions: Prediction[] = data || [];
     return (
         <div>
             <ComboboxDropdown
                 placeholder="Search Address"
                 onSelect={(item) => {
+                    console.log(item);
                     setSelectedPlaceId(item?.placePrediction?.placeId);
                 }}
                 items={predictions?.map((prediction) => ({
