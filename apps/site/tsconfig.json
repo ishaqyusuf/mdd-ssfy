@@ -1,28 +1,29 @@
 {
-    "extends": "@gnd/tsconfig/nextjs.json",
-    "compilerOptions": {
-        "target": "es2017",
-        "lib": ["dom", "dom.iterable", "esnext"],
-        "baseUrl": ".",
-        "paths": {
-            "@/*": ["./src/*"],
-            "@api/*": ["../api/src/*"],
-            "@engine/*": ["../engine/src/*"],
-            "@jobs/*": ["../../packages/jobs/src/*"]
-        },
-        "strict": false,
-        "noImplicitAny": false
+  "extends": "@gnd/tsconfig/nextjs.json",
+  "compilerOptions": {
+    "target": "es2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@api/*": ["../api/src/*"],
+      "@engine/*": ["../engine/src/*"],
+      "@jobs/*": ["../../packages/jobs/src/*"],
+      "@sales/*": ["../../packages/sales/src/*"]
     },
-    "include": [
-        "**/*.ts",
-        "**/*.tsx",
-        "../../types",
-        "next-env.d.ts",
-        "next.config.js",
-        "tailwind.config.ts",
-        ".next/types/**/*.ts"
-    ],
-    "exclude": ["node_modules", ".next"]
+    "strict": false,
+    "noImplicitAny": false
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "../../types",
+    "next-env.d.ts",
+    "next.config.js",
+    "tailwind.config.ts",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next"]
 }
 // {
 //     "compilerOptions": {
@@ -85,4 +86,3 @@
 //     ],
 //     "exclude": ["node_modules"]
 // }
-

@@ -1,7 +1,7 @@
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Progress } from "./(clean-code)/progress";
-import { qtyMatrixSum } from "@api/utils/sales-control";
 import { usePacking } from "@/hooks/use-sales-packing";
+import { qtyMatrixSum } from "@sales/utils/sales-control";
 
 export function PackingProgress() {
     const { data } = usePacking();

@@ -1,7 +1,15 @@
 import { usePacking } from "@/hooks/use-sales-packing";
 import { Progress } from "./(clean-code)/progress";
 import { Button } from "@gnd/ui/button";
-import { CheckCircle, MoreHorizontal, Play, X } from "lucide-react";
+import {
+    AlertTriangle,
+    CheckCircle,
+    MoreHorizontal,
+    Play,
+    Printer,
+    Trash2,
+    X,
+} from "lucide-react";
 import { Icons } from "@gnd/ui/custom/icons";
 import {
     AlertDialog,
@@ -14,11 +22,16 @@ import { DispatchDeleteConfirmDialog } from "./dispatch-delete-confirm-dialog";
 import { DispatchCancelConfirmDialog } from "./dispatch-cancel-confirm-dialog";
 import { DispatchClearPackingConfirmDialog } from "./dispatch-clear-packing-confirm-dialog";
 import { Menu } from "./(clean-code)/menu";
+import {
+    DropdownMenuItem,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
+} from "@gnd/ui/dropdown-menu";
 
 export function DispatchActions({}) {
     const { data, ...ctx } = usePacking();
     const { dispatch, order, address } = data;
-
+    const { isCancelled, isInProgress, isQueue, onClearPacking } = ctx;
     return (
         <>
             <div className="flex flex-col sm:flex-row gap-3 p-4 bg-muted/20 rounded-lg border">
@@ -89,8 +102,27 @@ export function DispatchActions({}) {
                             }}
                             Icon={MoreHorizontal}
                         >
-                            Update Packing Availability
+                            Refresh Packing
                         </Menu.Item>
+                        <DropdownMenuItem
+                            onClick={onClearPacking}
+                            className="text-orange-600"
+                            disabled={!isQueue}
+                        >
+                            <AlertTriangle className="h-4 w-4 mr-2" />
+                            Clear All Packing
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <Menu.Item Icon={Printer}>Print Packing Slip</Menu.Item>
+                        <Menu.Item Icon={Printer}>Print Order</Menu.Item>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            onClick={ctx.onDeleteDispatch}
+                            className="text-red-600"
+                        >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Dispatch
+                        </DropdownMenuItem>
                     </Menu>
                 </div>
             </div>

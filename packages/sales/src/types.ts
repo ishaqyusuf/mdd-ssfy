@@ -1,7 +1,6 @@
 import type { db, Prisma } from "@gnd/db";
 import { getItemStatConfig } from "./utils/utils";
-import { composeSalesItemControlStat } from "./utils/sales-control";
-import { getSaleInformation } from "./exports";
+import { composeSalesItemControl, getSaleInformation } from "./exports";
 import { RenturnTypeAsync } from "@gnd/utils";
 import { DISPATCH_ITEM_PACKING_STATUS } from "./utils/constants";
 export type StepMeta = {
@@ -141,45 +140,7 @@ export type Qty = {
   qty;
   noHandle?: boolean;
 };
-export interface ItemControlData {
-  title: string;
-  // produceable?: boolean;
-  configs?: { color?; label?; value?; hidden }[];
-  // shippable?: boolean;
-  subtitle?: string;
-  swing?: string;
-  size?: string;
-  unitLabor?: number;
-  sectionTitle?: string;
-  controlUid: string;
-  itemIndex?: number;
-  itemId?: number;
-  doorId?: number;
-  hptId?: number;
-  shelfId?: number;
-  dim?: string;
-  salesId?: number;
-  primary?: boolean;
-  qty: Qty;
-  // __qty: {
-  //   id: number
-  // };
-  // assigned?: Qty;
-  // produced?: Qty;
-  // pending?: {
-  //     assignment?: Qty;
-  //     production?: Qty;
-  //     delivery?: Qty;
-  // };
-  // delivered?: Qty;
-  unitCost?: number;
-  totalCost?: number;
-  noHandle: boolean;
-  analytics?: ReturnType<typeof composeSalesItemControlStat>;
-  itemConfig?: ReturnType<typeof getItemStatConfig>;
-  prodOverride?: DykeSalesDoorMeta["prodOverride"];
-  deliverables?: { submissionId: number; qty: Qty }[];
-}
+export type ItemControlData = ReturnType<typeof composeSalesItemControl>;
 export interface DykeSalesDoorMeta {
   _doorPrice?: number | null;
   overridePrice?: number | string;

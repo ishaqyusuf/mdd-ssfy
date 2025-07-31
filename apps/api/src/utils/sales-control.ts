@@ -12,12 +12,15 @@ import type { Prisma } from "@gnd/db";
 import { percent, sum } from "@gnd/utils";
 import { isEqual } from "lodash";
 import { qtyControlsByType } from "./sales";
+import { recomposeQty } from "@sales/utils/sales-control";
 
 export const composeQtyMatrix = (rh, lh, qty) => {
   if (!qty || rh || lh) qty = sum([rh, lh]);
   return { rh, lh, qty, noHandle: !rh && !lh };
 };
 export function qtyMatrixDifference(a: Qty, b: Qty) {
+  a = recomposeQty(a);
+  b = recomposeQty(b);
   let res: Qty = {
     noHandle: a.noHandle,
   } as any;
@@ -25,7 +28,9 @@ export function qtyMatrixDifference(a: Qty, b: Qty) {
   return res;
 }
 export function qtyMatrixSum(...qties: Qty[]): Qty {
-  qties = qties.map(({ lh, rh, qty }) => composeQtyMatrix(rh, lh, qty));
+  qties = qties
+    ?.filter(Boolean)
+    .map(({ lh, rh, qty }) => composeQtyMatrix(rh, lh, qty));
   if (!qties) return {} as any;
   let res: Qty = {
     noHandle: qties?.some((a) => a.noHandle),

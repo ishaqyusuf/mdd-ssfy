@@ -10,7 +10,7 @@ import type { QtyControlType } from "@api/type";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 
-import { qtyMatrixSum, transformQtyHandle } from "@api/utils/sales-control";
+import { qtyMatrixSum, transformQtyHandle } from "@sales/utils/sales-control";
 import { getSalesDispatchOverview } from "@sales/exports";
 import { qtyMatrixDifference, recomposeQty } from "@sales/utils/sales-control";
 
@@ -268,7 +268,7 @@ export async function getDispatchOverview(
       date: order.createdAt,
       id: order.id,
     },
-    orderRequiresUpdate: result.orderRequiresUpdate,
+    // orderRequiresUpdate: result.orderRequiresUpdate,
   };
 }
 

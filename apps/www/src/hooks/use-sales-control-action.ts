@@ -22,9 +22,9 @@ import { useLoadingToast } from "./use-loading-toast";
 import { useSalesOverviewQuery } from "./use-sales-overview-query";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { sum } from "@gnd/utils";
-import { qtyMatrixDifference } from "@api/utils/sales-control";
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
+import { qtyMatrixDifference } from "@sales/utils/sales-control";
 
 type SubmitSchema = z.infer<typeof createSubmissionSchema>;
 type SalesDispatch = z.infer<typeof createSalesDispatchSchema>;

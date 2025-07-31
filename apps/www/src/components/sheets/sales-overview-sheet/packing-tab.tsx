@@ -8,6 +8,7 @@ import { PackingProvider } from "@/hooks/use-sales-packing";
 import { useEffect } from "react";
 
 import { DispatchActions } from "@/components/dispatch-actions";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 export function PackingTab({}) {
     const query = useSalesOverviewQuery();
@@ -20,9 +21,6 @@ export function PackingTab({}) {
             },
             {
                 enabled: !!query.params.dispatchId,
-                // throwOnError(error, query) {
-                //     console.log(error);
-                // },
             },
         ),
     );
@@ -43,9 +41,23 @@ export function PackingTab({}) {
         >
             <div className="flex flex-col gap-4">
                 <DispatchActions />
-                <PackingOrderInformation />
-                <PackingDriverInformation />
-                <PackingItemsList />
+                <Tabs defaultValue="general">
+                    <TabsList>
+                        <TabsTrigger value="general">Dispatch Info</TabsTrigger>
+                        <TabsTrigger value="packing">Packing List</TabsTrigger>
+                        {/* <TabsTrigger value="finalize">
+                            Finalize Dispatch
+                        </TabsTrigger> */}
+                    </TabsList>
+                    <TabsContent value="general">
+                        <PackingOrderInformation />
+
+                        <PackingDriverInformation />
+                    </TabsContent>
+                    <TabsContent value="packing">
+                        <PackingItemsList />
+                    </TabsContent>
+                </Tabs>
             </div>
         </PackingProvider>
     );

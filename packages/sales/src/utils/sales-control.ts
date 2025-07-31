@@ -10,17 +10,18 @@ import type {
 import type { Prisma } from "@gnd/db";
 import { percent, sum } from "@gnd/utils";
 import { isEqual } from "lodash";
-import { qtyControlsByType } from "./utils";
+import { getItemStatConfig, qtyControlsByType } from "./utils";
 import { GetSalesItemControllables } from "../sales-control";
+import { SalesInfoData } from "../exports";
 export const composeQtyMatrix = (rh, lh, qty) => {
   if (!qty || rh || lh) qty = sum([rh, lh]);
   return { rh, lh, qty, noHandle: !rh && !lh };
 };
 export const recomposeQty = (q: Qty) => ({
-  noHandle: !q.lh && !q.rh,
-  rh: q.rh,
-  lh: q.lh,
-  qty: q.rh || q.lh ? sum([q.rh, q.lh]) : q.qty,
+  noHandle: !q?.lh && !q?.rh,
+  rh: q?.rh,
+  lh: q?.lh,
+  qty: q?.rh || q?.lh ? sum([q?.rh, q?.lh]) : q?.qty,
 });
 export function pickQtyFrom(pick: Qty, fromBasket: Qty) {
   pick = recomposeQty(pick);
@@ -80,6 +81,8 @@ export function pickQtyFrom(pick: Qty, fromBasket: Qty) {
 }
 
 export function qtyMatrixDifference(a: Qty, b: Qty) {
+  a = recomposeQty(a);
+  b = recomposeQty(b);
   let res: Qty = {
     noHandle: a.noHandle,
   } as any;
@@ -87,7 +90,9 @@ export function qtyMatrixDifference(a: Qty, b: Qty) {
   return res;
 }
 export function qtyMatrixSum(...qties: Qty[]): Qty {
-  qties = qties.map(({ lh, rh, qty }) => composeQtyMatrix(rh, lh, qty));
+  qties = qties
+    ?.filter(Boolean)
+    .map(({ lh, rh, qty }) => composeQtyMatrix(rh, lh, qty));
   if (!qties) return {} as any;
   let res: Qty = {
     noHandle: qties?.some((a) => a.noHandle),
@@ -114,58 +119,88 @@ export function negativeQty({ lh, rh, qty, ...rest }: Qty): Qty {
     qty: qty * -1,
   };
 }
-export function composeSalesItemControlStat(
-  // uid,
-  // qty: Qty,
-  item: ItemControlData,
-  _order
-  // { production, shipping },
-) {
-  const {
-    controlUid: uid,
-    qty,
-    itemConfig: { production } = {},
-    doorId,
-    hptId,
-    dim,
-    itemId,
-  } = item;
-  const order = _order as Prisma.SalesOrdersGetPayload<{
-    select: {
-      deliveries: {
-        select: {
-          status: true;
-          items: true;
-        };
-      };
-      assignments: {
-        select: {
-          id: true;
-          itemId: true;
-          shelfItemId: true;
-          salesDoorId: true;
-          qtyAssigned: true;
-          lhQty: true;
-          rhQty: true;
-          salesItemControlUid: true;
-          submissions: {
-            select: {
-              id: true;
-              qty: true;
-              lhQty: true;
-              rhQty: true;
-            };
-          };
-        };
-      };
-    };
-  }>;
+type ComposeSalesItemControlStatProps = {
+  controlUid: string;
+  qty: Qty;
+  // _order: Prisma.SalesOrdersGetPayload<{
+  //   select: {
+  //     deliveries: {
+  //       select: {
+  //         status: true;
+  //         items: true;
+  //       };
+  //     };
+  //     assignments: {
+  //       select: {
+  //         id: true;
+  //         itemId: true;
+  //         shelfItemId: true;
+  //         salesDoorId: true;
+  //         qtyAssigned: true;
+  //         lhQty: true;
+  //         rhQty: true;
+  //         salesItemControlUid: true;
+  //         submissions: {
+  //           select: {
+  //             id: true;
+  //             qty: true;
+  //             lhQty: true;
+  //             rhQty: true;
+  //           };
+  //         };
+  //       };
+  //     };
+  //   };
+  // }>;
+  order: SalesInfoData["order"];
+  itemConfig: ReturnType<typeof getItemStatConfig>;
+  itemId;
+  doorId;
+  shelfId;
+  hptId;
+  dim;
+};
+export function composeSalesItemControlStat({
+  order,
+  ...props
+}: ComposeSalesItemControlStatProps) {
+  const { controlUid: uid, qty, itemConfig: { production } = {} } = props;
+  // const order = _order as Prisma.SalesOrdersGetPayload<{
+  //   select: {
+  //     deliveries: {
+  //       select: {
+  //         status: true;
+  //         items: true;
+  //       };
+  //     };
+  //     assignments: {
+  //       select: {
+  //         id: true;
+  //         itemId: true;
+  //         shelfItemId: true;
+  //         salesDoorId: true;
+  //         qtyAssigned: true;
+  //         lhQty: true;
+  //         rhQty: true;
+  //         salesItemControlUid: true;
+  //         submissions: {
+  //           select: {
+  //             id: true;
+  //             qty: true;
+  //             lhQty: true;
+  //             rhQty: true;
+  //           };
+  //         };
+  //       };
+  //     };
+  //   };
+  // }>;
   const assignments = order.assignments
     .filter(
       (a) =>
-        a.itemId == item.itemId &&
-        a.salesDoorId == item.doorId &&
-        a.shelfItemId == item.shelfId
+        a.itemId == props.itemId &&
+        a.salesDoorId == props.doorId &&
+        a.shelfItemId == props.shelfId
     )
     .filter((a) => {
       if (a.salesDoorId) return true;
@@ -174,10 +209,10 @@ export function composeSalesItemControlStat(
           shelfId: a.shelfItemId,
           itemId: a.itemId,
           doorId: a.salesDoorId,
-          hptId: item.hptId,
-          dim: item.dim,
+          hptId: props.hptId,
+          dim: props.dim,
         } as any);
-      return a.salesItemControlUid == item.controlUid;
+      return a.salesItemControlUid == props.controlUid;
     });
 
   // throw new Error("...");
@@ -300,7 +335,7 @@ export function composeSalesItemControlStat(
   return {
     // orderAssignments: order.assignments,
     assignmentUidUpdates: assignments
-      .filter((a) => a.salesItemControlUid != item.controlUid)
+      .filter((a) => a.salesItemControlUid != props.controlUid)
       .map((a) => a.id),
     stats,
     submissionIds,

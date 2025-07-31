@@ -103,7 +103,7 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
     dispatchables,
     deliveries,
     order: overview.order,
-    orderRequiresUpdate: overview.orderRequiresUpdate,
+    // orderRequiresUpdate: overview.orderRequiresUpdate,
     progress: {
       availableDispatchQty,
       dispatchedQty,

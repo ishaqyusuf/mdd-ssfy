@@ -4,7 +4,7 @@ import { prisma } from "@/db";
 import {
   qtyMatrixDifference,
   transformQtyHandle,
-} from "@api/utils/sales-control";
+} from "@sales/utils/sales-control";
 import { DispatchItemPackingStatus, Qty } from "@gnd/sales/types";
 import { sum } from "@gnd/utils";
 
