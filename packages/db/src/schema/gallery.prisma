@@ -1,0 +1,14 @@
+model Attachment {
+    path String @unique
+
+    fileType   String
+    bucket     String
+    title      String
+    authorName String?
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    @@unique([path, deletedAt])
+}
