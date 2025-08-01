@@ -2,7 +2,7 @@
 import { cn } from "@gnd/ui/cn";
 import { useState, useRef, useEffect } from "react";
 import { Icons } from "./_v1/icons";
-import { MainMenu } from "./main-menu";
+import { MainMenu, MainMenuContext } from "./main-menu";
 import Link from "next/link";
 
 export function Sidebar({}) {
@@ -38,8 +38,11 @@ export function Sidebar({}) {
                 </Link>
             </div>
 
-            <div ref={mainMenuRef} className="flex flex-col overflow-y-auto scrollbar-hide w-full pt-[70px] flex-1">
-                <MainMenu isExpanded={isExpanded} />
+            <div
+                ref={mainMenuRef}
+                className="flex flex-col overflow-y-auto scrollbar-hide w-full pt-[70px] flex-1"
+            >
+                <MainMenuContext isExpanded={isExpanded} />
             </div>
 
             {/* <TeamDropdown isExpanded={isExpanded} /> */}

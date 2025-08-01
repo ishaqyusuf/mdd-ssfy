@@ -10,7 +10,8 @@ import { SideBar } from "@/components/sidebar/sidebar";
 import { HydrateClient } from "@/trpc/server";
 import { Suspense } from "react";
 
-export default async function Layout({ children }) {
+// export default
+async function Layout({ children }) {
     return (
         <HydrateClient>
             <div className="relative">
@@ -20,9 +21,7 @@ export default async function Layout({ children }) {
                     <Header />
                     <div className="px-6">{children}</div>
                 </div>
-
                 {/* <ExportStatus /> */}
-
                 <Suspense>
                     <GlobalSheets />
                     <GlobalModals />
@@ -34,7 +33,7 @@ export default async function Layout({ children }) {
         </HydrateClient>
     );
 }
-async function SideBarLayout({ children }) {
+export default async function SideBarLayout({ children }) {
     const [user, pageTabs] = await Promise.all([
         getLoggedInProfile(),
         loadPageTabs(),

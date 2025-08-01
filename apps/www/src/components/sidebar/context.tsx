@@ -80,9 +80,9 @@ const { useContext: useSidebar, Provider: SidebarContext } =
             state,
             data,
             isMobile,
-            form: {
-                setValue: store.update,
-            },
+            // form: {
+            //     setValue: store.update,
+            // },
             linkModules,
             renderMode: linkModules.renderMode,
             activeLink,

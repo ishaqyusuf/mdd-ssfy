@@ -8,6 +8,7 @@ import { cva } from "class-variance-authority";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "./_v1/icons";
+import { MainMenuProvider, useMainNav } from "@/hooks/use-sidebar";
 type Props = {
     onSelect?: () => void;
     isExpanded?: boolean;
@@ -50,32 +51,23 @@ const sectionLabel = cva("", {
         renderMode: "default",
     },
 });
-export function MainMenu({ isExpanded, onSelect }: Props) {
-    const user = useAuth();
-    const linkModules = useMemo(
-        () =>
-            getLinkModules(
-                validateLinks({
-                    role: user.role,
-                    can: user.can,
-                    userId: user?.id,
-                }),
-            ),
-        [],
+export function MainMenuContext({ isExpanded, onSelect }: Props) {
+    return (
+        <MainMenuProvider
+            args={[
+                {
+                    isExpanded,
+                    onSelect,
+                },
+            ]}
+        >
+            <MainMenu />
+        </MainMenuProvider>
     );
-    const pathName = usePathname();
-    const [activeLink, setActiveLink] = useState<{ name?; module? }>({});
-    useEffect(() => {
-        const active = Object.entries(linkModules.linksNameMap || {}).find(
-            ([href, data]) =>
-                data.match == "part"
-                    ? pathName?.toLocaleLowerCase()?.startsWith(href)
-                    : href?.toLocaleLowerCase() ===
-                      pathName?.toLocaleLowerCase(),
-        )?.["1"];
-        console.log({ active });
-        setActiveLink(active || {});
-    }, [pathName, linkModules]);
+}
+export function MainMenu() {
+    const { linkModules, activeLink, onSelect, isExpanded } = useMainNav();
+
     return (
         <div className="mt-6 w-full">
             <nav className="w-full overflow-auto">
@@ -103,7 +95,7 @@ export function MainMenu({ isExpanded, onSelect }: Props) {
                                         {!isExpanded && si > 0 ? null : (
                                             <div
                                                 className={cn(
-                                                    "uppercase",
+                                                    "uppercase hidden",
                                                     activeLink?.module !=
                                                         module.name &&
                                                         sectionLabel({
@@ -117,9 +109,9 @@ export function MainMenu({ isExpanded, onSelect }: Props) {
                                                         (si > 0 ||
                                                             !module?.name) &&
                                                         "hidden",
-                                                    !isExpanded &&
+                                                    isExpanded &&
                                                         si > 0 &&
-                                                        "hidden",
+                                                        "block",
                                                 )}
                                             >
                                                 {si == 0 && !isExpanded
@@ -135,6 +127,7 @@ export function MainMenu({ isExpanded, onSelect }: Props) {
                                                     <Fragment key={li}>
                                                         {/* {link?.subLinks?.length ? } */}
                                                         <Item
+                                                            onSelect={onSelect}
                                                             item={link}
                                                             key={li}
                                                             module={module}
