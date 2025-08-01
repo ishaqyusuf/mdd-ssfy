@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import { AuthGuard } from "@/components/auth-guard";
-import { _role } from "@/components/sidebar/links";
+import { _perm, _role } from "@/components/sidebar/links";
 import { ResolutionCenter } from "@/components/resolution-center";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 
@@ -23,7 +23,7 @@ export default async function HomePage({ searchParams }) {
     });
     return (
         <ErrorBoundary errorComponent={ErrorFallback}>
-            <AuthGuard rules={[_role.is("Super Admin")]}>
+            <AuthGuard rules={[_perm.is("viewSalesResolution")]}>
                 <FPage title="Resolution Center">
                     <Suspense fallback={<TableSkeleton />} key={loadingKey}>
                         <ResolutionCenter query={searchQuery} />
