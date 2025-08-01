@@ -1,3 +1,6 @@
+export const blobPaths = ["inbound-documents", "dispatch-documents"] as const;
+export type BlobPath = (typeof blobPaths)[number];
+
 export const inboundFilterStatus = [
   "total",
   "pending",

@@ -27,6 +27,7 @@ import Image from "next/image";
 import { env } from "@/env.mjs";
 import ConfirmBtn from "../confirm-button";
 import { useDispatchstatusModal } from "@/hooks/use-dispatch-status-modal";
+import { AttachmentGallery } from "../attachment-gallery";
 
 // get schema from zod input
 const formSchema = saveInboundNoteSchema;
@@ -113,31 +114,12 @@ export function DispatchStatusModal({}) {
                                 />
                             </div>
                             <div className="flex gap-4">
-                                {attachments.fields.map((a, ai) => (
-                                    <div key={a._id}>
-                                        <Image
-                                            src={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${a.pathname}`}
-                                            alt={a.pathname}
-                                            width={75}
-                                            height={75}
-                                        />
-                                        <div className="flex gap-4">
-                                            <ConfirmBtn
-                                                trash
-                                                onClick={(e) => {
-                                                    del(a.pathname)
-                                                        .then((e) => {
-                                                            attachments.remove(
-                                                                ai,
-                                                            );
-                                                        })
-                                                        .catch((e) => {});
-                                                }}
-                                                type="button"
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
+                                <AttachmentGallery
+                                    attachments={attachments.fields as any}
+                                    onDelete={(data, index) => {
+                                        attachments.remove(index);
+                                    }}
+                                />
                                 <InboundDocumentUploadZone
                                     onUploadComplete={(e) => {
                                         e.map((a) => {

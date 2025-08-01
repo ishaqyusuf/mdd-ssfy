@@ -18,6 +18,7 @@ import {
 } from "@gnd/ui/dropdown-menu";
 
 import { Cell, StatusCell } from "../columns/base-columns";
+import { Progress } from "@/components/(clean-code)/progress";
 
 interface Props {
     workOrder: IWorkOrder;
@@ -89,7 +90,11 @@ export function WorkOrderStatusCell({ workOrder }: Props) {
                 <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="h-8 p-0">
-                            <StatusCell status={workOrder.status} />
+                            <Progress>
+                                <Progress.Status>
+                                    {workOrder.status}
+                                </Progress.Status>
+                            </Progress>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent

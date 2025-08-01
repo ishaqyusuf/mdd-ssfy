@@ -4,12 +4,19 @@ import type React from "react";
 import { useState } from "react";
 import { Button } from "@gnd/ui/button";
 import { Label } from "@gnd/ui/label";
+import { put } from "@vercel/blob";
+import { BlobPath } from "@gnd/utils/constants";
+import { env } from "@/env.mjs";
 
 interface SignaturePadProps {
     onSignatureChange: (signature: string) => void;
+    signatureId: string;
 }
 
-export function SignaturePad({ onSignatureChange }: SignaturePadProps) {
+export function SignaturePad({
+    onSignatureChange,
+    signatureId,
+}: SignaturePadProps) {
     const [isDrawing, setIsDrawing] = useState(false);
 
     const startDrawing = (
@@ -70,7 +77,7 @@ export function SignaturePad({ onSignatureChange }: SignaturePadProps) {
 
     const clearSignature = () => {
         const canvas = document.getElementById(
-            "signature-canvas",
+            signatureId,
         ) as HTMLCanvasElement;
         if (canvas) {
             const ctx = canvas.getContext("2d");
@@ -81,22 +88,12 @@ export function SignaturePad({ onSignatureChange }: SignaturePadProps) {
         onSignatureChange("");
     };
 
-    const saveSignature = () => {
-        const canvas = document.getElementById(
-            "signature-canvas",
-        ) as HTMLCanvasElement;
-        if (canvas) {
-            const dataURL = canvas.toDataURL();
-            onSignatureChange(dataURL);
-        }
-    };
-
     return (
         <div className="space-y-2">
             <Label>Digital Signature</Label>
             <div className="border rounded-lg p-4 bg-white">
                 <canvas
-                    id="signature-canvas"
+                    id={signatureId}
                     width={400}
                     height={200}
                     className="border border-dashed border-gray-300 w-full h-32 cursor-crosshair"

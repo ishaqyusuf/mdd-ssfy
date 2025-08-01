@@ -83,6 +83,23 @@ export const updateSalesControlSchema = z.object({
     })
     .nullable()
     .optional(),
+  submitDispatch: z
+    .object({
+      dispatchId: z.number(),
+      receivedBy: z.string(),
+      receivedDate: z.date().optional().nullable(),
+      note: z.string().optional(),
+      attachments: z
+        .array(
+          z.object({
+            pathname: z.string(),
+          })
+        )
+        .optional()
+        .nullable(),
+    })
+    .optional()
+    .nullable(),
 });
 export type UpdateSalesControl = z.infer<typeof updateSalesControlSchema>;
 

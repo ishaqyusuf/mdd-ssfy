@@ -8,7 +8,10 @@ import { z } from "zod";
 import FormInput from "./common/controls/form-input";
 import { SubmitButton } from "./submit-button";
 import { SignaturePad } from "./signature-pad";
-import { FileUpload } from "./file-upload";
+
+import { AttachmentGallery } from "./attachment-gallery";
+import { useFieldArray } from "react-hook-form";
+import { useSignature } from "@/hooks/use-signature";
 
 export function DispatchCompleteForm({}) {
     const ctx = usePacking();
@@ -20,11 +23,33 @@ export function DispatchCompleteForm({}) {
         z.object({
             receivedBy: z.string(),
             note: z.string(),
+            attachments: z.array(
+                z.object({
+                    pathname: z.string(),
+                }),
+            ),
         }),
         {
-            defaultValues: {},
+            defaultValues: {
+                receivedBy: ctx?.data?.address?.name,
+                note: "",
+                attachments: [],
+            },
         },
     );
+    const {
+        fields: attachments,
+        append,
+        remove,
+        insert,
+    } = useFieldArray({
+        control: form.control,
+        name: "attachments",
+    });
+    const sig = useSignature({
+        id: `dispatch-${ctx.data?.dispatch?.id}`,
+        title: `Dispatch ${ctx.data?.dispatch?.id} Signature`,
+    });
     return (
         <div className="">
             <Card>
@@ -105,9 +130,16 @@ export function DispatchCompleteForm({}) {
 
                             {/* Signature Pad */}
                             <SignaturePad
-                                onSignatureChange={(signature) =>
+                                signatureId={sig.id}
+                                onSignatureChange={
+                                    async (signature) => {
+                                        const blobData = await fetch(
+                                            signature,
+                                        ).then((res) => res.blob());
+                                        console.log(blobData);
+                                    }
+
                                     // onCompletionDataChange({ signature })
-                                    {}
                                 }
                             />
 
@@ -119,6 +151,38 @@ export function DispatchCompleteForm({}) {
                             }
                         /> */}
 
+                            <AttachmentGallery
+                                attachments={attachments as any}
+                                path="dispatch-documents"
+                                onAttached={(result) => {
+                                    for (const a of result)
+                                        append({
+                                            pathname: a.pathname,
+                                        });
+                                }}
+                                onDelete={(data, i) => {
+                                    remove(i);
+                                }}
+                            />
+                            {/* <FileUpload
+                                label="Attach Photo (Optional)"
+                                path="dispatch-documents"
+                                onUploadComplete={(e) => {
+                                    console.log(e);
+                                }}
+                            >
+                                <Label
+                                    onClick={() =>
+                                        document
+                                            .getElementById("upload-files")
+                                            ?.click()
+                                    }
+                                    className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50"
+                                >
+                                    <Camera className="size-4" />
+                                    <span>Take Photo</span>
+                                </Label>
+                            </FileUpload> */}
                             {/* Note */}
                             <div className="space-y-2">
                                 <FormInput

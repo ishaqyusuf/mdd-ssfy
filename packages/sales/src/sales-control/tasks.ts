@@ -108,6 +108,17 @@ export async function startDispatchTask(db: Db, data: UpdateSalesControl) {
   });
   await resetSalesTask(db, data.meta.salesId);
 }
+export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
+  await db.orderDelivery.update({
+    where: {
+      id: data.startDispatch?.dispatchId!,
+    },
+    data: {
+      status: "in progress" as SalesDispatchStatus,
+    },
+  });
+  await resetSalesTask(db, data.meta.salesId);
+}
 export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
   // const notProds = await submitNonProductionsTask(db, data);
   // let info = !notProds?.response?.updated

@@ -6,7 +6,7 @@ import { GlobalModals } from "@/components/modals/global-modals";
 import { GlobalSheets } from "@/components/sheets/global-sheets";
 import { Sidebar } from "@/components/sidebar";
 import { getLinkModules, validateLinks } from "@/components/sidebar/links";
-import { SideBar } from "@/components/sidebar/sidebar";
+import { SideBar as OldSideBar } from "@/components/sidebar/sidebar";
 import { HydrateClient } from "@/trpc/server";
 import { Suspense } from "react";
 
@@ -47,12 +47,12 @@ export default async function SideBarLayout({ children }) {
     );
     const menuMode = await getSideMenuMode();
     return (
-        <SideBar user={user} menuMode={menuMode} validLinks={validLinks}>
+        <OldSideBar user={user} menuMode={menuMode} validLinks={validLinks}>
             {children}
             <Suspense>
                 <GlobalSheets />
                 <GlobalModals />
             </Suspense>
-        </SideBar>
+        </OldSideBar>
     );
 }

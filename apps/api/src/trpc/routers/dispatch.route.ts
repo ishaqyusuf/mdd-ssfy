@@ -17,6 +17,7 @@ import {
   deletePackingSchema,
   getSalesDispatchOverview,
   startDispatchTask,
+  submitDispatchTask,
   updateSalesControlSchema,
 } from "@sales/exports";
 
@@ -46,6 +47,11 @@ export const dispatchRouters = createTRPCRouter({
     .input(updateSalesControlSchema)
     .mutation(async (props) => {
       return startDispatchTask(props.ctx.db, props.input);
+    }),
+  submitDispatch: publicProcedure
+    .input(updateSalesControlSchema)
+    .mutation(async (props) => {
+      return submitDispatchTask(props.ctx.db, props.input);
     }),
   updateSalesDeliveryOption: publicProcedure
     .input(updateSalesDeliveryOptionSchema)
