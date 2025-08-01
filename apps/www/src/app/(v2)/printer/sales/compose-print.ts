@@ -20,6 +20,7 @@ import { isComponentType } from "../../(loggedIn)/sales-v2/overview/is-component
 import salesFormUtils from "../../(loggedIn)/sales/edit/sales-form-utils";
 import { PrintTextProps } from "../components/print-text";
 import { SalesPrintProps } from "./page";
+import { Note } from "@gnd/utils/note";
 
 type PrintData = {
     order: ViewSaleType;
@@ -28,6 +29,7 @@ type PrintData = {
     isPacking?: boolean;
     isOrder?: boolean;
     query?: SalesPrintProps["searchParams"];
+    dispatchNote?: Note;
 } & ReturnType<typeof composeSalesItems>;
 
 type PrintStyles = "base" | "lg-bold";

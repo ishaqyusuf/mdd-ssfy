@@ -10,6 +10,8 @@ import SalesPrintLineItems from "./components/sales-print-line-items";
 import SalesPrintShelfItems from "./components/sales-print-shelf-items";
 import SalesPrintDoorItems from "./components/sales-print-door-items";
 import SalesPrintFooter from "./components/sales-print-footer";
+import { env } from "@/env.mjs";
+import { formatDate } from "@gnd/utils/dayjs";
 
 export type SalesPrintData = NonNullable<
     Awaited<ReturnType<typeof getSalesPrintData>>
@@ -73,15 +75,49 @@ export default function SalesPrintBlock({ action, slug, className }: Props) {
                             {[
                                 "Employee Sig. & Date",
                                 "Customer Sig. & Date",
-                            ].map((s) => (
-                                <div
-                                    key={s}
-                                    className="w-1/4 italic text-sm font-semibold"
-                                >
-                                    <div className="border-b h-10 border-dashed border-muted-foreground"></div>
-                                    <div className="m-1">{s}</div>
-                                </div>
-                            ))}
+                            ].map((s, si) => {
+                                const note = data?.dispatchNote;
+                                const sig = note?.tag?.signature;
+                                return (
+                                    <div
+                                        key={s}
+                                        className="w-1/4 italic text-sm font-semibold"
+                                    >
+                                        {!(sig && si == 1) ? (
+                                            <div className="h-20"></div>
+                                        ) : (
+                                            <div className="h-20">
+                                                <div className="h-16 mt-6">
+                                                    <img
+                                                        src={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${sig?.value}`}
+                                                        alt={
+                                                            note?.tag
+                                                                ?.dispatchRecipient
+                                                                ?.value
+                                                        }
+                                                    />
+                                                </div>
+                                                <div className="flex gap-4 justify-end">
+                                                    <span>
+                                                        {
+                                                            note?.tag
+                                                                ?.dispatchRecipient
+                                                                ?.value
+                                                        }
+                                                    </span>
+                                                    <span>
+                                                        {formatDate(
+                                                            note?.createdAt,
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="border-b border-dashed border-muted-foreground"></div>
+                                        <div className="m-1">{s}</div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </section>

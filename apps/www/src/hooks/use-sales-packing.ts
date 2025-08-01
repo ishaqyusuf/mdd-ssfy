@@ -12,8 +12,6 @@ import {
 } from "@sales/schema";
 import { useAuth } from "./use-auth";
 import { z } from "zod";
-import { useNote } from "./use-note";
-import { NoteTagTypes } from "@gnd/utils/constants";
 import { toast } from "@gnd/ui/use-toast";
 
 interface Props {
@@ -56,7 +54,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                 },
             });
         };
-        const note = useNote();
+
         const onSubmitDispatch = (formData: z.infer<typeof dispatchForm>) => {
             submitDispatch.mutate({
                 meta: {
@@ -70,62 +68,19 @@ export const { Provider: PackingProvider, useContext: usePacking } =
         const submitDispatch = useMutation(
             trpc.dispatch.submitDispatch.mutationOptions({
                 async onSuccess(resp, input) {
-                    const { submitDispatch, meta } = input as Exclude<
-                        typeof input,
-                        void
-                    >;
                     invalidate();
-
                     toast({
                         title: "Sales Dispatch Completed",
                         variant: "success",
                         description: "Sales Dispatch Completed",
                     });
-
-                    note.mutate(
-                        {
-                            headline: auth.name,
-                            subject: `Sales Dispatch Completed`,
-                            note: submitDispatch?.note,
-                            tags: [
-                                note.tag("signature", submitDispatch.signature),
-                                note.tag(
-                                    "dispatchRecipient",
-                                    submitDispatch.receivedBy,
-                                ),
-                                note.tag("salesId", meta.salesId),
-                                note.tag(
-                                    "deliveryId",
-                                    submitDispatch.dispatchId,
-                                ),
-                                note.tag("type", "dispatch" as NoteTagTypes),
-                                ...submitDispatch?.attachments
-                                    ?.filter((a) => a.pathname)
-                                    ?.map((a) =>
-                                        note.tag("attachment", a.pathname),
-                                    ),
-                            ],
-                        },
-                        {
-                            onSuccess(data, variables, context) {
-                                setMainTab("main");
-                                toast({
-                                    title: "Sales Dispatch Completed",
-                                    variant: "success",
-                                    description: "Sales Dispatch Completed",
-                                });
-                            },
-                            onError(error, variables, context) {
-                                toast({
-                                    title: "Dispatch Note Failed",
-                                    variant: "error",
-                                    description: "Dispatch Note Failed",
-                                });
-                            },
-                        },
-                    );
+                    setMainTab("main");
                 },
                 onError(error, variables, context) {
+                    console.log({
+                        error,
+                        variables,
+                    });
                     toast({
                         title: "Dispatch Failed",
                         variant: "error",
@@ -156,6 +111,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
         );
         const isStarting = startDispatch.isPending;
         const trigger = useTaskTrigger({
+            debug: true,
             onSucces() {
                 qc.invalidateQueries({
                     queryKey: trpc.dispatch.dispatchOverview.queryKey(),
@@ -193,7 +149,16 @@ export const { Provider: PackingProvider, useContext: usePacking } =
             });
         };
         const onUnstartDispatch = () => {
-            cancelDispatch;
+            cancelDispatch.mutate({
+                meta: {
+                    salesId: data?.order?.id,
+                    authorId: auth?.id,
+                    authorName: auth?.name,
+                },
+                cancelDispatch: {
+                    dispatchId: data?.dispatch.id,
+                },
+            });
         };
         const onPrintPacking = () => {
             printSalesData({
@@ -212,6 +177,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
             isQueue,
             isInProgress,
             isCancelled,
+            isCancelling: cancelDispatch.isPending,
             onStartDispatch,
             onDeleteDispatch,
             onCompleteDispatch,

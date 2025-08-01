@@ -79,6 +79,7 @@ export function DispatchActions({}) {
 
                             <Button
                                 variant="outline"
+                                disabled={ctx.isCancelling}
                                 onClick={ctx.onUnstartDispatch}
                                 className="border-orange-500 text-orange-600 hover:bg-orange-50 bg-transparent"
                             >

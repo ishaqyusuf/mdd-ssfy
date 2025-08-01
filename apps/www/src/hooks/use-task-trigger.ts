@@ -99,7 +99,9 @@ export function useTaskTrigger(props?: Props) {
         onError(e) {
             if (props?.debug) console.log({ e });
             setRunId(undefined);
-            setStatus("FAILED");
+
+            console.log(e);
+
             if (!props.silent)
                 toast({
                     duration: 3500,

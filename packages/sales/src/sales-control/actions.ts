@@ -14,6 +14,9 @@ import { z } from "zod";
 import { updateSalesControlSchema } from "../schema";
 import { getDispatchControlType } from "../utils/utils";
 import { qtyMatrixDifference, recomposeQty } from "../utils/sales-control";
+import { updateSalesItemControlAction, updateSalesStatControlAction } from ".";
+import { NoteTagNames } from "@gnd/utils/constants";
+import { transformNote } from "@gnd/utils/note";
 
 export interface CreateSalesAssignmentProps {
   submit?: boolean;
@@ -164,6 +167,87 @@ export async function createSalesAssignmentSubmissionAction(
     );
   }
 }
+
+export async function getDispatchCompletetionNotes(db: Db, dispatchId) {
+  const note = await db.notePad.findFirst({
+    where: {
+      deletedAt: null,
+      AND: [
+        {
+          tags: {
+            some: {
+              tagName: "deliveryId" as NoteTagNames,
+              tagValue: String(dispatchId),
+            },
+          },
+        },
+        {
+          OR: [
+            {
+              tags: {
+                some: { tagName: "dispatchRecipient" as NoteTagNames },
+              },
+            },
+            {
+              tags: {
+                some: { tagName: "signature" as NoteTagNames },
+              },
+            },
+          ],
+        },
+      ],
+    },
+    include: {
+      tags: true,
+    },
+  });
+  if (!note) return null;
+  return transformNote(note);
+}
+export async function packDispatchItemsAction(
+  db: Db,
+  props: PackDispatchItemsAction
+) {
+  const { data } = props;
+  await db.orderItemDelivery.createMany({
+    data: props
+      .packItems!.packingList!.map((pi) => {
+        const packingUid = generateRandomString(4);
+        return pi.submissions.map(
+          (ps) =>
+            ({
+              orderId: data.order.id,
+              orderItemId: pi.salesItemId,
+              lhQty: ps.qty.lh,
+              rhQty: ps.qty.rh,
+              note: pi.note,
+              packingUid,
+              status: props.packItems!.dispatchStatus,
+              qty: ps.qty.qty || sum([ps.qty.rh, ps.qty.lh]),
+              meta: {},
+              orderDeliveryId: props.packItems!.dispatchId,
+              orderProductionSubmissionId: ps.submissionId,
+              packedBy: props.authorName,
+              packingStatus: "packed" as DispatchItemPackingStatus,
+            }) satisfies Prisma.OrderItemDeliveryCreateManyInput
+        );
+      })
+      .flat(),
+  });
+  if (props.update)
+    await updateSalesStatAction(
+      {
+        salesId: data?.order.id,
+        types: [getDispatchControlType(props.packItems!.dispatchStatus as any)],
+      },
+      db
+    );
+}
+
+export async function resetSalesAction(db: Db, salesId) {
+  await updateSalesItemControlAction(db, salesId);
+  await updateSalesStatControlAction(db, salesId);
+}
 type SubmitAll = z.infer<typeof updateSalesControlSchema>["submitAll"];
 type SubmitAssingmentsAction = {
   data: RenturnTypeAsync<typeof getSaleInformation>;
@@ -288,43 +372,3 @@ type PackDispatchItemsAction = {
   update?: boolean;
   authorName: string;
 };
-
-export async function packDispatchItemsAction(
-  db: Db,
-  props: PackDispatchItemsAction
-) {
-  const { data } = props;
-  await db.orderItemDelivery.createMany({
-    data: props
-      .packItems!.packingList!.map((pi) => {
-        const packingUid = generateRandomString(4);
-        return pi.submissions.map(
-          (ps) =>
-            ({
-              orderId: data.order.id,
-              orderItemId: pi.salesItemId,
-              lhQty: ps.qty.lh,
-              rhQty: ps.qty.rh,
-              note: pi.note,
-              packingUid,
-              status: props.packItems!.dispatchStatus,
-              qty: ps.qty.qty || sum([ps.qty.rh, ps.qty.lh]),
-              meta: {},
-              orderDeliveryId: props.packItems!.dispatchId,
-              orderProductionSubmissionId: ps.submissionId,
-              packedBy: props.authorName,
-              packingStatus: "packed" as DispatchItemPackingStatus,
-            }) satisfies Prisma.OrderItemDeliveryCreateManyInput
-        );
-      })
-      .flat(),
-  });
-  if (props.update)
-    await updateSalesStatAction(
-      {
-        salesId: data?.order.id,
-        types: [getDispatchControlType(props.packItems!.dispatchStatus as any)],
-      },
-      db
-    );
-}

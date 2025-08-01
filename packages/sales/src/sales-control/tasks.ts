@@ -6,9 +6,15 @@ import {
   submitNonProductionsAction,
   submitAssignmentsAction,
   packDispatchItemsAction,
+  resetSalesAction,
 } from "./actions";
 import { getSaleInformation } from "./get-sale-information";
-import { composeNote, noteTag, saveNote } from "@gnd/utils/note";
+import {
+  composeNote,
+  noteTag,
+  saveNote,
+  SaveNoteSchema,
+} from "@gnd/utils/note";
 export async function submitAllTask(db: Db, data: UpdateSalesControl) {
   const submitArgs = data.submitAll;
   const info = await getSaleInformation(db, {
@@ -86,7 +92,7 @@ export async function deletePackingItem(db: Db, data: DeletePackingSchema) {
 export async function cancelDispatchTask(db: Db, data: UpdateSalesControl) {
   await db.orderDelivery.update({
     where: {
-      id: data.startDispatch?.dispatchId!,
+      id: data.cancelDispatch?.dispatchId!,
     },
     data: {
       status: "cancelled" as SalesDispatchStatus,
@@ -117,11 +123,13 @@ export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
           status: "completed" as SalesDispatchStatus,
         },
       });
-      await resetSalesTask(tx as any, data.meta.salesId);
-      const note = {
+      // await resetSalesTask(tx as any, data.meta.salesId);
+      const salesId = data.meta.salesId;
+      await resetSalesAction(tx as any, salesId);
+      const note: SaveNoteSchema = {
         headline: data.meta.authorName,
         subject: `Sales Dispatch Completed`,
-        note: task?.note,
+        note: task?.note!,
         tags: [
           noteTag("signature", task.signature),
           noteTag("dispatchRecipient", task.receivedBy),
@@ -130,7 +138,7 @@ export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
           noteTag("type", "dispatch" as NoteTagTypes),
           ...task
             ?.attachments!?.filter((a) => a.pathname)
-            ?.map((a) => note.tag("attachment", a.pathname)),
+            ?.map((a) => noteTag("attachment", a.pathname)),
         ],
       };
       await saveNote(tx, note, data.meta.authorId);
@@ -139,6 +147,7 @@ export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
       maxWait: 30 * 1000,
     }
   );
+  return response;
 }
 export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
   // const notProds = await submitNonProductionsTask(db, data);
@@ -168,8 +177,7 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
 export async function resetSalesTask(db: Db, salesId) {
   const response = await db.$transaction(
     async (tx) => {
-      await updateSalesItemControlAction(tx as any, salesId);
-      await updateSalesStatControlAction(tx as any, salesId);
+      await resetSalesAction(tx as any, salesId);
     },
     {
       maxWait: 30 * 1000,

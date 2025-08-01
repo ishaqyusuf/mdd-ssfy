@@ -87,3 +87,23 @@ export async function saveNote(db, data: SaveNoteSchema, authId) {
   });
   return note;
 }
+export type Note = ReturnType<typeof transformNote>;
+export function transformNote(_note) {
+  const { tags, id, headline, subject, color, note, createdAt, ...data } =
+    (_note as any) || {};
+  const tag: { [k in NoteTagNames]: { id; value } } = {} as any;
+  tags?.map((t) => {
+    tag[t.tagName] = {
+      id: t.id,
+      value: t.tagValue,
+    };
+  });
+  return {
+    headline,
+    subject,
+    note,
+    createdAt,
+    color,
+    tag,
+  };
+}
