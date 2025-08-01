@@ -1,9 +1,6 @@
+import { NoteTagTypes } from "@gnd/utils/constants";
 import { updateSalesItemControlAction, updateSalesStatControlAction } from ".";
-import {
-  DeletePackingSchema,
-  GetFullSalesDataSchema,
-  UpdateSalesControl,
-} from "../schema";
+import { DeletePackingSchema, UpdateSalesControl } from "../schema";
 import { Db, DispatchItemPackingStatus, SalesDispatchStatus } from "../types";
 import {
   submitNonProductionsAction,
@@ -11,7 +8,7 @@ import {
   packDispatchItemsAction,
 } from "./actions";
 import { getSaleInformation } from "./get-sale-information";
-
+import { composeNote, noteTag, saveNote } from "@gnd/utils/note";
 export async function submitAllTask(db: Db, data: UpdateSalesControl) {
   const submitArgs = data.submitAll;
   const info = await getSaleInformation(db, {
@@ -109,17 +106,39 @@ export async function startDispatchTask(db: Db, data: UpdateSalesControl) {
   await resetSalesTask(db, data.meta.salesId);
 }
 export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
-  const task = data.submitDispatch;
-  await db.orderDelivery.update({
-    where: {
-      id: task?.dispatchId!,
+  const task = data.submitDispatch!;
+  const response = await db.$transaction(
+    async (tx) => {
+      await tx.orderDelivery.update({
+        where: {
+          id: task?.dispatchId!,
+        },
+        data: {
+          status: "completed" as SalesDispatchStatus,
+        },
+      });
+      await resetSalesTask(tx as any, data.meta.salesId);
+      const note = {
+        headline: data.meta.authorName,
+        subject: `Sales Dispatch Completed`,
+        note: task?.note,
+        tags: [
+          noteTag("signature", task.signature),
+          noteTag("dispatchRecipient", task.receivedBy),
+          noteTag("salesId", data.meta.salesId),
+          noteTag("deliveryId", task.dispatchId),
+          noteTag("type", "dispatch" as NoteTagTypes),
+          ...task
+            ?.attachments!?.filter((a) => a.pathname)
+            ?.map((a) => note.tag("attachment", a.pathname)),
+        ],
+      };
+      await saveNote(tx, note, data.meta.authorId);
     },
-    data: {
-      status: "completed" as SalesDispatchStatus,
-    },
-  });
-
-  await resetSalesTask(db, data.meta.salesId);
+    {
+      maxWait: 30 * 1000,
+    }
+  );
 }
 export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
   // const notProds = await submitNonProductionsTask(db, data);

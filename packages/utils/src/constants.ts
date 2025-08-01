@@ -12,6 +12,7 @@ export type InboundFilterStatus = (typeof inboundFilterStatus)[number];
 export const noteTagNames = [
   "itemControlUID",
   "deliveryId",
+  "dispatchRecipient",
   "salesId",
   "salesItemId",
   "salesAssignment",

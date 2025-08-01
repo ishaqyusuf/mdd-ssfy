@@ -1,29 +1,29 @@
-import type { SaveInboundNoteSchema, SaveNoteSchema } from "@api/schemas/notes";
+import type { SaveInboundNoteSchema } from "@api/schemas/notes";
 import type { TRPCContext } from "@api/trpc/init";
 import { getAuthUser } from "./user";
 import type { NoteTagNames } from "@gnd/utils/constants";
 
-export async function saveNote(ctx: TRPCContext, data: SaveNoteSchema) {
-  const senderId = await getSenderId(ctx);
-  const note = await ctx.db.notePad.create({
-    data: {
-      headline: data.headline,
-      subject: data.subject,
-      note: `${data.note}`,
-      color: data.noteColor,
-      senderContact: {
-        connect: {
-          id: senderId,
-        },
-      },
-      tags: {
-        createMany: {
-          data: data.tags,
-        },
-      },
-    },
-  });
-}
+// export async function saveNote(ctx: TRPCContext, data: SaveNoteSchema) {
+//   const senderId = await getSenderId(ctx);
+//   const note = await ctx.db.notePad.create({
+//     data: {
+//       headline: data.headline,
+//       subject: data.subject,
+//       note: `${data.note}`,
+//       color: data.noteColor,
+//       senderContact: {
+//         connect: {
+//           id: senderId,
+//         },
+//       },
+//       tags: {
+//         createMany: {
+//           data: data.tags,
+//         },
+//       },
+//     },
+//   });
+// }
 export async function saveInboundNote(
   ctx: TRPCContext,
   data: SaveInboundNoteSchema

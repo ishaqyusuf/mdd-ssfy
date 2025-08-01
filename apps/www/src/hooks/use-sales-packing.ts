@@ -89,6 +89,10 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                             note: submitDispatch?.note,
                             tags: [
                                 note.tag("signature", submitDispatch.signature),
+                                note.tag(
+                                    "dispatchRecipient",
+                                    submitDispatch.receivedBy,
+                                ),
                                 note.tag("salesId", meta.salesId),
                                 note.tag(
                                     "deliveryId",

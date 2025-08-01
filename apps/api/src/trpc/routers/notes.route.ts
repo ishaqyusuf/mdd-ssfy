@@ -1,6 +1,7 @@
 import { createTRPCRouter, publicProcedure } from "../init";
-import { saveInboundNoteSchema, saveNoteSchema } from "@api/schemas/notes";
-import { saveInboundNote, saveNote } from "@api/db/queries/note";
+import { saveInboundNoteSchema } from "@api/schemas/notes";
+import { saveInboundNote } from "@api/db/queries/note";
+import { saveNote, saveNoteSchema } from "@gnd/utils/note";
 
 export const notesRouter = createTRPCRouter({
   saveInboundNote: publicProcedure
@@ -9,6 +10,6 @@ export const notesRouter = createTRPCRouter({
       return saveInboundNote(props.ctx, props.input);
     }),
   saveNote: publicProcedure.input(saveNoteSchema).mutation(async (props) => {
-    return saveNote(props.ctx, props.input);
+    return saveNote(props.ctx.db, props.input, props.ctx.userId);
   }),
 });
