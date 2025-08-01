@@ -12,31 +12,32 @@ import { SignaturePad } from "./signature-pad";
 import { AttachmentGallery } from "./attachment-gallery";
 import { useFieldArray } from "react-hook-form";
 import { useSignature } from "@/hooks/use-signature";
+import { dispatchForm } from "@sales/schema";
 
+// const schema = z.object({
+//     receivedBy: z.string(),
+//     note: z.string(),
+//     attachments: z.array(
+//         z.object({
+//             pathname: z.string(),
+//         }),
+//     ),
+// });
 export function DispatchCompleteForm({}) {
     const ctx = usePacking();
     const showPackingWarning = true;
     const onCancel = () => {
         ctx.setMainTab("main");
     };
-    const form = useZodForm(
-        z.object({
-            receivedBy: z.string(),
-            note: z.string(),
-            attachments: z.array(
-                z.object({
-                    pathname: z.string(),
-                }),
-            ),
-        }),
-        {
-            defaultValues: {
-                receivedBy: ctx?.data?.address?.name,
-                note: "",
-                attachments: [],
-            },
+    const form = useZodForm(dispatchForm, {
+        defaultValues: {
+            receivedBy: ctx?.data?.address?.name,
+            note: "",
+            attachments: [],
+            signature: null,
+            dispatchId: ctx.data.dispatch.id,
         },
-    );
+    });
     const {
         fields: attachments,
         append,
@@ -68,7 +69,16 @@ export function DispatchCompleteForm({}) {
                     <Form {...form}>
                         <form
                             className="p-6 space-y-6"
-                            onSubmit={form.handleSubmit(ctx.onSubmitDispatch)}
+                            onSubmit={form.handleSubmit(
+                                async (data: z.infer<typeof dispatchForm>) => {
+                                    const signature = await sig.saveSignature(
+                                        "dispatch-documents",
+                                        `${data.receivedBy}`,
+                                    );
+                                    data.signature = signature;
+                                    ctx.onSubmitDispatch(data);
+                                },
+                            )}
                         >
                             {/* Packing Warning */}
                             {showPackingWarning && (

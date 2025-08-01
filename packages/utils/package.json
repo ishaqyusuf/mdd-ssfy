@@ -15,11 +15,12 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./envs": "./src/envs.ts",
     "./colors": "./src/colors.ts",
-    "./format": "./src/format.ts",
     "./constants": "./src/constants.ts",
-    "./sales": "./src/sales.ts",
-    "./dayjs": "./src/dayjs.ts"
+    "./dayjs": "./src/dayjs.ts",
+    "./envs": "./src/envs.ts",
+    "./format": "./src/format.ts",
+    "./note": "./src/note.ts",
+    "./sales": "./src/sales.ts"
   }
 }

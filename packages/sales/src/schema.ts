@@ -27,6 +27,22 @@ export const resetSalesControlSchema = z.object({
   }),
 });
 export type ResetSalesControl = z.infer<typeof resetSalesControlSchema>;
+
+export const dispatchForm = z.object({
+  dispatchId: z.number(),
+  receivedBy: z.string(),
+  receivedDate: z.date().optional().nullable(),
+  note: z.string().optional(),
+  signature: z.string().optional().nullable(),
+  attachments: z
+    .array(
+      z.object({
+        pathname: z.string(),
+      })
+    )
+    .optional()
+    .nullable(),
+});
 export const updateSalesControlSchema = z.object({
   meta: z.object({
     salesId: z.number(),
@@ -83,24 +99,9 @@ export const updateSalesControlSchema = z.object({
     })
     .nullable()
     .optional(),
-  submitDispatch: z
-    .object({
-      dispatchId: z.number(),
-      receivedBy: z.string(),
-      receivedDate: z.date().optional().nullable(),
-      note: z.string().optional(),
-      attachments: z
-        .array(
-          z.object({
-            pathname: z.string(),
-          })
-        )
-        .optional()
-        .nullable(),
-    })
-    .optional()
-    .nullable(),
+  submitDispatch: dispatchForm.optional().nullable(),
 });
+
 export type UpdateSalesControl = z.infer<typeof updateSalesControlSchema>;
 
 export const paginationSchema = z.object({

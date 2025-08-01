@@ -5,8 +5,16 @@ import { RouterOutputs } from "@api/trpc/routers/_app";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTaskTrigger } from "./use-task-trigger";
-import { ResetSalesControl, UpdateSalesControl } from "@sales/schema";
+import {
+    dispatchForm,
+    ResetSalesControl,
+    UpdateSalesControl,
+} from "@sales/schema";
 import { useAuth } from "./use-auth";
+import { z } from "zod";
+import { useNote } from "./use-note";
+import { NoteTagTypes } from "@gnd/utils/constants";
+import { toast } from "@gnd/ui/use-toast";
 
 interface Props {
     data: RouterOutputs["dispatch"]["dispatchOverview"];
@@ -48,25 +56,77 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                 },
             });
         };
-        const onSubmitDispatch = () => {
+        const note = useNote();
+        const onSubmitDispatch = (formData: z.infer<typeof dispatchForm>) => {
             submitDispatch.mutate({
                 meta: {
                     salesId: data?.order?.id,
                     authorId: auth?.id,
                     authorName: auth?.name,
                 },
-                startDispatch: {
-                    dispatchId: data?.dispatch?.id,
-                },
+                submitDispatch: formData,
             });
         };
         const submitDispatch = useMutation(
-            trpc.dispatch.startDispatch.mutationOptions({
-                onSuccess() {
+            trpc.dispatch.submitDispatch.mutationOptions({
+                async onSuccess(resp, input) {
+                    const { submitDispatch, meta } = input as Exclude<
+                        typeof input,
+                        void
+                    >;
                     invalidate();
+
+                    toast({
+                        title: "Sales Dispatch Completed",
+                        variant: "success",
+                        description: "Sales Dispatch Completed",
+                    });
+
+                    note.mutate(
+                        {
+                            headline: auth.name,
+                            subject: `Sales Dispatch Completed`,
+                            note: submitDispatch?.note,
+                            tags: [
+                                note.tag("signature", submitDispatch.signature),
+                                note.tag("salesId", meta.salesId),
+                                note.tag(
+                                    "deliveryId",
+                                    submitDispatch.dispatchId,
+                                ),
+                                note.tag("type", "dispatch" as NoteTagTypes),
+                                ...submitDispatch?.attachments
+                                    ?.filter((a) => a.pathname)
+                                    ?.map((a) =>
+                                        note.tag("attachment", a.pathname),
+                                    ),
+                            ],
+                        },
+                        {
+                            onSuccess(data, variables, context) {
+                                setMainTab("main");
+                                toast({
+                                    title: "Sales Dispatch Completed",
+                                    variant: "success",
+                                    description: "Sales Dispatch Completed",
+                                });
+                            },
+                            onError(error, variables, context) {
+                                toast({
+                                    title: "Dispatch Note Failed",
+                                    variant: "error",
+                                    description: "Dispatch Note Failed",
+                                });
+                            },
+                        },
+                    );
                 },
                 onError(error, variables, context) {
-                    console.log({ error });
+                    toast({
+                        title: "Dispatch Failed",
+                        variant: "error",
+                        description: "Dispatch Failed",
+                    });
                 },
             }),
         );

@@ -21,11 +21,9 @@ import { useEffect } from "react";
 import { SubmitButton } from "../submit-button";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
-import { del } from "@vercel/blob";
+
 import { InboundDocumentUploadZone } from "../sales-inbound/inbound-document-upload-zone";
-import Image from "next/image";
-import { env } from "@/env.mjs";
-import ConfirmBtn from "../confirm-button";
+
 import { useDispatchstatusModal } from "@/hooks/use-dispatch-status-modal";
 import { AttachmentGallery } from "../attachment-gallery";
 
