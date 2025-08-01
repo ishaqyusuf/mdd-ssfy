@@ -8,7 +8,7 @@ export type Icon = LucideIcon;
 
 export const Icons = {
     ...BaseIcon,
-    Logo: () => <Image alt="" src={"/logo.png"} width={48} height={48} />,
+    Logo: () => <Image alt="" src={"/logo_mini.png"} width={48} height={48} />,
     LogoLg: () => <Image alt="" src={"/logo.png"} height={48} width={120} />,
     logoLg: ({ width = 120 }) => (
         <Link href="/">

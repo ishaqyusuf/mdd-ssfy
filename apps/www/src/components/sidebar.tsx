@@ -1,11 +1,19 @@
+"use client";
 import { cn } from "@gnd/ui/cn";
-import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Icons } from "./_v1/icons";
 import { MainMenu } from "./main-menu";
+import Link from "next/link";
 
 export function Sidebar({}) {
     const [isExpanded, setIsExpanded] = useState(false);
+    const mainMenuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!isExpanded && mainMenuRef.current) {
+            mainMenuRef.current.scrollTop = 0;
+        }
+    }, [isExpanded]);
     return (
         <aside
             className={cn(
@@ -23,14 +31,14 @@ export function Sidebar({}) {
                 )}
             >
                 <Link href="/" className="absolute left-[22px] transition-none">
-                    <Icons.logo />
+                    {isExpanded ? <Icons.LogoLg /> : <Icons.Logo />}
                     {/* <div className="flex">
                          <Icons.logoLg width={100} />
                      </div> */}
                 </Link>
             </div>
 
-            <div className="flex flex-col w-full pt-[70px] flex-1">
+            <div ref={mainMenuRef} className="flex flex-col overflow-y-auto scrollbar-hide w-full pt-[70px] flex-1">
                 <MainMenu isExpanded={isExpanded} />
             </div>
 
@@ -38,3 +46,4 @@ export function Sidebar({}) {
         </aside>
     );
 }
+

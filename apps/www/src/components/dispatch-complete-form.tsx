@@ -7,6 +7,8 @@ import { CheckCircle, X } from "lucide-react";
 import { z } from "zod";
 import FormInput from "./common/controls/form-input";
 import { SubmitButton } from "./submit-button";
+import { SignaturePad } from "./signature-pad";
+import { FileUpload } from "./file-upload";
 
 export function DispatchCompleteForm({}) {
     const ctx = usePacking();
@@ -37,9 +39,10 @@ export function DispatchCompleteForm({}) {
                         </Button>
                     </div>
                 </CardHeader>
-                <CardContent className="p-6 space-y-6">
+                <CardContent>
                     <Form {...form}>
                         <form
+                            className="p-6 space-y-6"
                             onSubmit={form.handleSubmit(ctx.onSubmitDispatch)}
                         >
                             {/* Packing Warning */}
@@ -101,14 +104,15 @@ export function DispatchCompleteForm({}) {
                             </div>
 
                             {/* Signature Pad */}
-                            {/* <SignaturePad
-                            onSignatureChange={(signature) =>
-                                onCompletionDataChange({ signature })
-                            }
-                        /> */}
+                            <SignaturePad
+                                onSignatureChange={(signature) =>
+                                    // onCompletionDataChange({ signature })
+                                    {}
+                                }
+                            />
 
                             {/* Photo Upload */}
-                            {/* <PhotoUpload
+                            {/* <FileUpload
                             photo={completionData.photo}
                             onPhotoChange={(photo) =>
                                 onCompletionDataChange({ photo })
@@ -130,7 +134,7 @@ export function DispatchCompleteForm({}) {
                             <div className="flex gap-3 pt-4">
                                 <SubmitButton
                                     className="flex-1 bg-green-600 hover:bg-green-700"
-                                    isSubmitting={!ctx.submitDispatch.isPending}
+                                    isSubmitting={ctx.submitDispatch.isPending}
                                 >
                                     Complete Dispatch & Confirm Delivery
                                 </SubmitButton>

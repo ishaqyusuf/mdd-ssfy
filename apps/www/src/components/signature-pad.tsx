@@ -111,6 +111,7 @@ export function SignaturePad({ onSignatureChange }: SignaturePadProps) {
                 <div className="flex justify-between mt-2">
                     <p className="text-xs text-muted-foreground">Sign above</p>
                     <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         onClick={clearSignature}
