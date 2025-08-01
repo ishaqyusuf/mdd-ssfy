@@ -4,7 +4,7 @@ import {
   GetFullSalesDataSchema,
   UpdateSalesControl,
 } from "../schema";
-import { Db, DispatchItemPackingStatus } from "../types";
+import { Db, DispatchItemPackingStatus, SalesDispatchStatus } from "../types";
 import {
   submitNonProductionsAction,
   submitAssignmentsAction,
@@ -63,7 +63,9 @@ export async function clearPackingTask(db: Db, data: UpdateSalesControl) {
       orderDeliveryId: !clearData?.dispatchId
         ? undefined
         : clearData?.dispatchId,
-      packingStatus: "packed",
+      packingStatus: {
+        not: "unpacked",
+      },
     },
     data: {
       packingStatus: "unpacked" as DispatchItemPackingStatus,
@@ -83,6 +85,28 @@ export async function deletePackingItem(db: Db, data: DeletePackingSchema) {
       packedBy: data.deleteBy,
     },
   });
+}
+export async function cancelDispatchTask(db: Db, data: UpdateSalesControl) {
+  await db.orderDelivery.update({
+    where: {
+      id: data.startDispatch?.dispatchId!,
+    },
+    data: {
+      status: "cancelled" as SalesDispatchStatus,
+    },
+  });
+  await resetSalesTask(db, data.meta.salesId);
+}
+export async function startDispatchTask(db: Db, data: UpdateSalesControl) {
+  await db.orderDelivery.update({
+    where: {
+      id: data.startDispatch?.dispatchId!,
+    },
+    data: {
+      status: "in progress" as SalesDispatchStatus,
+    },
+  });
+  await resetSalesTask(db, data.meta.salesId);
 }
 export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
   // const notProds = await submitNonProductionsTask(db, data);

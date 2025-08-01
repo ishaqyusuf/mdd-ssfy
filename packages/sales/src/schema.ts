@@ -33,6 +33,12 @@ export const updateSalesControlSchema = z.object({
     authorId: z.number(),
     authorName: z.string(),
   }),
+  startDispatch: z
+    .object({
+      dispatchId: z.number().nullable().optional(), //if null, it clears all packing for every dispatch
+    })
+    .nullable()
+    .optional(),
   clearPackings: z
     .object({
       dispatchId: z.number().nullable().optional(), //if null, it clears all packing for every dispatch

@@ -2,7 +2,7 @@ import { useTRPC } from "@/trpc/client";
 import { createContextFactory } from "@/utils/context-factory";
 import { printSalesData } from "@/utils/sales-print-utils";
 import { RouterOutputs } from "@api/trpc/routers/_app";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTaskTrigger } from "./use-task-trigger";
 import { ResetSalesControl, UpdateSalesControl } from "@sales/schema";
@@ -23,7 +23,74 @@ export const { Provider: PackingProvider, useContext: usePacking } =
         const isQueue = data?.dispatch?.status === "queue";
         const isInProgress = data?.dispatch?.status === "in progress";
         const isCancelled = data?.dispatch?.status === "cancelled";
-        const onStartDispatch = () => {};
+        const [mainTab, setMainTab] = useState("main");
+        const onStartDispatch = () => {
+            startDispatch.mutate({
+                meta: {
+                    salesId: data?.order?.id,
+                    authorId: auth?.id,
+                    authorName: auth?.name,
+                },
+                startDispatch: {
+                    dispatchId: data?.dispatch?.id,
+                },
+            });
+        };
+        const onCancelDispatch = () => {
+            cancelDispatch.mutate({
+                meta: {
+                    salesId: data?.order?.id,
+                    authorId: auth?.id,
+                    authorName: auth?.name,
+                },
+                startDispatch: {
+                    dispatchId: data?.dispatch?.id,
+                },
+            });
+        };
+        const onSubmitDispatch = () => {
+            submitDispatch.mutate({
+                meta: {
+                    salesId: data?.order?.id,
+                    authorId: auth?.id,
+                    authorName: auth?.name,
+                },
+                startDispatch: {
+                    dispatchId: data?.dispatch?.id,
+                },
+            });
+        };
+        const submitDispatch = useMutation(
+            trpc.dispatch.startDispatch.mutationOptions({
+                onSuccess() {
+                    invalidate();
+                },
+                onError(error, variables, context) {
+                    console.log({ error });
+                },
+            }),
+        );
+        const startDispatch = useMutation(
+            trpc.dispatch.startDispatch.mutationOptions({
+                onSuccess() {
+                    invalidate();
+                },
+                onError(error, variables, context) {
+                    console.log({ error });
+                },
+            }),
+        );
+        const cancelDispatch = useMutation(
+            trpc.dispatch.cancelDispatch.mutationOptions({
+                onSuccess() {
+                    invalidate();
+                },
+                onError(error, variables, context) {
+                    console.log({ error });
+                },
+            }),
+        );
+        const isStarting = startDispatch.isPending;
         const trigger = useTaskTrigger({
             onSucces() {
                 qc.invalidateQueries({
@@ -33,10 +100,9 @@ export const { Provider: PackingProvider, useContext: usePacking } =
         });
         const onCompleteDispatch = () => {};
         const onDeleteDispatch = () => {};
-        const onCancelDispatch = () => {};
         const onClearPacking = () => {
             trigger.trigger({
-                taskName: "reset-sales-control",
+                taskName: "update-sales-control",
                 payload: {
                     meta: {
                         authorId: auth.id,
@@ -62,7 +128,9 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                 } as ResetSalesControl,
             });
         };
-        const onUnstartDispatch = () => {};
+        const onUnstartDispatch = () => {
+            cancelDispatch;
+        };
         const onPrintPacking = () => {
             printSalesData({
                 mode: "packing list",
@@ -74,6 +142,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
         };
         return {
             data,
+            isStarting,
             packItemUid,
             setPackItemUid,
             isQueue,
@@ -82,13 +151,17 @@ export const { Provider: PackingProvider, useContext: usePacking } =
             onStartDispatch,
             onDeleteDispatch,
             onCompleteDispatch,
+            onUnstartDispatch,
             onCancelDispatch,
             onClearPacking,
-            onUnstartDispatch,
             onPrintPacking,
             invalidate,
             trigger,
             onResetSalesStat,
+            mainTab,
+            setMainTab,
+            onSubmitDispatch,
+            submitDispatch,
         };
     });
 export const { Provider: PackingItemProvider, useContext: usePackingItem } =

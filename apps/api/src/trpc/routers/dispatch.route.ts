@@ -12,9 +12,12 @@ import {
 } from "@api/db/queries/dispatch";
 import { z } from "zod";
 import {
+  cancelDispatchTask,
   deletePackingItem,
   deletePackingSchema,
   getSalesDispatchOverview,
+  startDispatchTask,
+  updateSalesControlSchema,
 } from "@sales/exports";
 
 export const dispatchRouters = createTRPCRouter({
@@ -33,6 +36,16 @@ export const dispatchRouters = createTRPCRouter({
     .input(deletePackingSchema)
     .mutation(async (props) => {
       return deletePackingItem(props.ctx.db, props.input);
+    }),
+  cancelDispatch: publicProcedure
+    .input(updateSalesControlSchema)
+    .mutation(async (props) => {
+      return cancelDispatchTask(props.ctx.db, props.input);
+    }),
+  startDispatch: publicProcedure
+    .input(updateSalesControlSchema)
+    .mutation(async (props) => {
+      return startDispatchTask(props.ctx.db, props.input);
     }),
   updateSalesDeliveryOption: publicProcedure
     .input(updateSalesDeliveryOptionSchema)

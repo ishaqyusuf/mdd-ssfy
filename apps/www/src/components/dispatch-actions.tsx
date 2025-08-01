@@ -4,6 +4,7 @@ import { Button } from "@gnd/ui/button";
 import {
     AlertTriangle,
     CheckCircle,
+    Group,
     MoreHorizontal,
     Play,
     Printer,
@@ -54,6 +55,7 @@ export function DispatchActions({}) {
                     {/* Primary Actions based on status */}
                     {ctx.isQueue && (
                         <Button
+                            disabled={ctx.isStarting}
                             onClick={ctx.onStartDispatch}
                             className="bg-blue-600 hover:bg-blue-700"
                         >
@@ -61,40 +63,42 @@ export function DispatchActions({}) {
                             Start Dispatch
                         </Button>
                     )}
-
+                    {/* <span>abc-{dispatch?.status}</span> */}
                     {ctx.isInProgress && (
                         <div className="flex items-center gap-2">
                             {/* Always show Complete Dispatch button when in progress */}
                             <Button
-                                onClick={ctx.onCompleteDispatch}
+                                onClick={() => {
+                                    ctx.setMainTab("finalize");
+                                }}
                                 className="bg-green-600 hover:bg-green-700"
                             >
                                 <CheckCircle className="h-4 w-4 mr-2" />
                                 Complete Dispatch
                             </Button>
 
-                            {/* Show Unstart button only if not all items are packed */}
-                            {/* {!allItemsPacked && (
-                                     <Button
-                                         variant="outline"
-                                         onClick={onUnstartDispatch}
-                                         className="border-orange-500 text-orange-600 hover:bg-orange-50 bg-transparent"
-                                     >
-                                         <X className="h-4 w-4 mr-2" />
-                                         Unstart
-                                     </Button>
-                                 )} */}
+                            <Button
+                                variant="outline"
+                                onClick={ctx.onUnstartDispatch}
+                                className="border-orange-500 text-orange-600 hover:bg-orange-50 bg-transparent"
+                            >
+                                <X className="h-4 w-4 mr-2" />
+                                Cancel
+                            </Button>
                         </div>
                     )}
 
                     {/* Print Actions */}
-                    <Button variant="outline" onClick={ctx.onPrintPacking}>
-                        <Icons.print className="h-4 w-4 mr-2" />
-                        Print Packing List
+                    <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={ctx.onPrintPacking}
+                    >
+                        <Icons.print className="h-4 w-4" />
                     </Button>
 
                     {/* More Actions Dropdown */}
-                    <Menu noSize Icon={MoreHorizontal}>
+                    <Menu className="w-[200px]" noSize Icon={MoreHorizontal}>
                         <Menu.Label>Dispatch Actions</Menu.Label>
                         <Menu.Item
                             onClick={(e) => {
@@ -113,6 +117,7 @@ export function DispatchActions({}) {
                             Clear All Packing
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
+                        <Menu.Item Icon={Group}>Batch Packing</Menu.Item>
                         <Menu.Item Icon={Printer}>Print Packing Slip</Menu.Item>
                         <Menu.Item Icon={Printer}>Print Order</Menu.Item>
                         <DropdownMenuSeparator />
