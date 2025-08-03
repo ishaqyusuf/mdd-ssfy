@@ -104,6 +104,7 @@ model InventoryVariantAttribute {
     attributedInventoryId Int
     attributedInventory   Inventory @relation(fields: [attributedInventoryId], references: [id])
 
+    // the inventoryType for the attribute i.e attributedInventoryTypeAttribute
     inventoryTypeAttribute   InventoryTypeAttribute @relation(fields: [inventoryTypeAttributeId], references: [id])
     inventoryTypeAttributeId Int
 
