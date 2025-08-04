@@ -39,7 +39,8 @@ export default async function CommunityTemplatesPage(props) {
             </Breadcrumbs>
             <PageHeader
                 title="Community Templates"
-                Action={OpenCommunityTemplateModal}
+                newDialog="communityTemplate"
+                // Action={OpenCommunityTemplateModal}
             />
             <CommunityTemplateTableShell
                 searchParams={searchParams}

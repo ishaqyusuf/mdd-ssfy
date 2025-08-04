@@ -16,9 +16,11 @@ export function useBatchSales() {
         for (const id of ids) {
             try {
                 await markSalesDispatchAsComplete(id);
-            } catch (error) {}
+                loading.success("Marked as fulfilled");
+            } catch (error) {
+                loading.error("Unable to mark as complete!");
+            }
         }
-        loading.success("Marked as fulfilled");
         queryClient.invalidateQueries({
             queryKey: trpc.sales.index.pathKey(),
         });

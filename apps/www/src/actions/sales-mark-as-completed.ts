@@ -66,6 +66,7 @@ export async function markSalesDispatchAsComplete(id) {
             status: "completed" as SalesDispatchStatus,
         },
     });
+    return order;
 }
 export async function markSalesProductionAsCompleted(id) {
     const authorName = (await authUser()).name;

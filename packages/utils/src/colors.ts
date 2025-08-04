@@ -149,8 +149,8 @@ export type Colors = keyof typeof colorsObject;
 export function customHash(value: string) {
   let hash = 0;
 
-  for (let i = 0; i < value.length; i++) {
-    hash = (hash << 5) + value.charCodeAt(i);
+  for (let i = 0; i < value?.length; i++) {
+    hash = (hash << 5) + value?.charCodeAt(i);
     hash = hash & hash;
   }
 

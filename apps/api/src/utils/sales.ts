@@ -53,14 +53,16 @@ export function qtyControlsByType(controls: Prisma.QtyControlGetPayload<{}>[]) {
 }
 
 export function transformSalesFilterQuery(query: SalesQueryParamsSchema) {
+  const keys: (keyof SalesQueryParamsSchema)[] = ["cursor", "salesType"];
   if (
     Object.entries(query)
       .filter(([a, b]) => !!b)
-      .every(([a]) => ["sales.type", "start"].includes(a))
+      .every(([a]) => keys.includes(a as any))
   ) {
     query["dispatch.status"] = "pending";
   } else {
   }
+  // query["dispatch.status"] = "completed";
   return query;
 }
 export function salesLinks(data: Item) {

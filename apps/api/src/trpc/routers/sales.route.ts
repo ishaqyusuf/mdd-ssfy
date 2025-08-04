@@ -11,7 +11,9 @@ import { transformSalesFilterQuery } from "@api/utils/sales";
 import { getSaleInformation } from "@gnd/sales/get-sale-information";
 export const salesRouter = createTRPCRouter({
   index: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
-    return getSales(props.ctx, transformSalesFilterQuery(props.input));
+    const query = props.input;
+
+    return getSales(props.ctx, transformSalesFilterQuery(query));
   }),
   getSaleOverview: publicProcedure
     .input(salesQueryParamsSchema)

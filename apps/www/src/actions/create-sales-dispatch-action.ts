@@ -13,7 +13,7 @@ export async function createSalesDispatch(
 ) {
     const dispatch = await tx.orderDelivery.create({
         data: {
-            deliveryMode: data.deliveryMode,
+            deliveryMode: data.deliveryMode || "delivery",
             status: data.status,
             dueDate: data.deliveryDate,
             driver: !data.driverId
