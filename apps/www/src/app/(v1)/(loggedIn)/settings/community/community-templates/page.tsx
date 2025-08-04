@@ -15,9 +15,10 @@ import {
 } from "@/app/(v1)/_actions/community/_community-pivot";
 import CommunityModelCostModal from "@/components/_v1/modals/community-model-cost/modal";
 import CommunityInstallCostModal from "@/components/_v1/modals/community-install-cost";
-import { _synchronizePivot } from "@/app/(v2)/(loggedIn)/community-settings/community-templates/_actions/synchronize-pivots";
+
 import CommunityTemplateTableShell from "./community-templates-table-shell";
 import { getCommunityTemplates } from "../_components/home-template";
+import { OpenCommunityTemplateModal } from "@/components/open-community-template-modal";
 
 export const metadata: Metadata = {
     title: "Community Templates",
@@ -38,7 +39,7 @@ export default async function CommunityTemplatesPage(props) {
             </Breadcrumbs>
             <PageHeader
                 title="Community Templates"
-                newDialog="communityTemplate"
+                Action={OpenCommunityTemplateModal}
             />
             <CommunityTemplateTableShell
                 searchParams={searchParams}

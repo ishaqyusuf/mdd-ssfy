@@ -1,6 +1,7 @@
 "use client";
 
 import { SuperAdminGuard } from "../auth-guard";
+import { CommunityTemplateModal } from "./community-template-modal";
 import { DispatchStatusModal } from "./dispatch-status-modal";
 import { EmployeeFormModal } from "./employee-form-modal";
 import { InboundSalesModal } from "./inbound-status-modal";
@@ -19,6 +20,7 @@ export function GlobalModals() {
             <EmployeeFormModal />
             <SalesPreviewModal />
             <SalesEmailSenderModal />
+            <CommunityTemplateModal />
         </>
     );
 }

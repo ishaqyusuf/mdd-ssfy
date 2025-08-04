@@ -2,7 +2,7 @@
 
 import { ISlicer } from "@/store/slicers";
 import { DynamicFilter } from "../data-table/data-table-dynamic-filter";
-import { staticProjectsAction } from "@/app/(v1)/_actions/community/projects";
+
 import {
     TaskNameWhere,
     _taskNames,

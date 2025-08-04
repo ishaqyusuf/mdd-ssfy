@@ -6,7 +6,7 @@ import {
     CheckColumn as __CheckColumn,
     ColumnHeader,
 } from "../columns/base-columns";
-import React, { ReactElement, useMemo, useState } from "react";
+import React, { Fragment, ReactElement, useMemo, useState } from "react";
 import LinkableNode from "../link-node";
 import { cn, labelValue } from "@/lib/utils";
 import { formatDate } from "@/lib/use-day";
@@ -53,7 +53,7 @@ export function SmartTable<T>(data) {
                     >
                         {_content.story?.map((story, id) =>
                             React.isValidElement(story) ? (
-                                <>{story}</>
+                                <Fragment key={id}>{story}</Fragment>
                             ) : (
                                 <Story
                                     story={story}

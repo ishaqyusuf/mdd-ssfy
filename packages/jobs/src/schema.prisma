@@ -1818,9 +1818,13 @@ model InventoryType {
     id                       Int                      @id @default(autoincrement())
     name                     String
     uid                      String
+    img                      String?
     attributes               InventoryTypeAttribute[] @relation(name: "inventoryType")
     attributedInventoryTypes InventoryTypeAttribute[] @relation(name: "attributedInventoryType")
+    type                     String // shelf-item, components
     inventories              Inventory[]
+    categories               InventoryCategory[]
+    featured                 Boolean?
     published                DateTime?
     createdAt                DateTime?                @default(now()) @db.Timestamp(0)
     updatedAt                DateTime?                @updatedAt
@@ -1850,7 +1854,7 @@ model InventoryTypeAttribute {
 model InventoryCategory {
     id       Int                 @id @default(autoincrement())
     name     String
-    parentId Int?
+    parentId Int? // null if it is main category.
     parent   InventoryCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
     children InventoryCategory[] @relation("CategoryHierarchy")
     items    Inventory[]
@@ -1859,8 +1863,12 @@ model InventoryCategory {
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
+    inventoryTypeId Int?
+    inventoryType   InventoryType? @relation(fields: [inventoryTypeId], references: [id])
+
     @@unique([name, parentId])
     @@index([parentId])
+    @@index([inventoryTypeId])
 }
 
 model Inventory {
@@ -1920,6 +1928,7 @@ model InventoryVariantAttribute {
     attributedInventoryId Int
     attributedInventory   Inventory @relation(fields: [attributedInventoryId], references: [id])
 
+    // the inventoryType for the attribute i.e attributedInventoryTypeAttribute
     inventoryTypeAttribute   InventoryTypeAttribute @relation(fields: [inventoryTypeAttributeId], references: [id])
     inventoryTypeAttributeId Int
 
@@ -2430,6 +2439,22 @@ model CheckoutTenders {
     @@index([salesCheckoutId])
 }
 
+// ---- gallery.prisma ----
+model Attachment {
+    path String @unique
+
+    fileType   String
+    bucket     String
+    title      String
+    authorName String?
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    @@unique([path, deletedAt])
+}
+
 // ---- community.prisma ----
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model Projects {
@@ -2803,6 +2828,7 @@ model OrderItemDelivery {
     packingStatus               String?
     createdAt                   DateTime?                   @default(now()) @db.Timestamp(0)
     packedBy                    String?
+    unpackedBy                  String?
     updatedAt                   DateTime                    @updatedAt
     deletedAt                   DateTime?                   @db.Timestamp(0)
     orderDeliveryId             Int?
