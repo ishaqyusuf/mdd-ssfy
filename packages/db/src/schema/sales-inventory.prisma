@@ -2,11 +2,13 @@ model InventoryType {
     id                       Int                      @id @default(autoincrement())
     name                     String
     uid                      String
+    img                      String?
     attributes               InventoryTypeAttribute[] @relation(name: "inventoryType")
     attributedInventoryTypes InventoryTypeAttribute[] @relation(name: "attributedInventoryType")
     type                     String // shelf-item, components
     inventories              Inventory[]
     categories               InventoryCategory[]
+    featured                 Boolean?
     published                DateTime?
     createdAt                DateTime?                @default(now()) @db.Timestamp(0)
     updatedAt                DateTime?                @updatedAt

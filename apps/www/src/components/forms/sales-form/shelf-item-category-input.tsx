@@ -18,6 +18,7 @@ import {
 import { useToast } from "@gnd/ui/use-toast";
 
 import { ClearCategoryModal } from "./clear-category";
+import { InventoryShelfCategory } from "@/components/inventory-shelf-cateogory";
 
 export function ShelfItemCategoryInput({}) {
     const ctx = useShelfItem();
@@ -165,6 +166,7 @@ export function ShelfItemCategoryInput({}) {
                     </ComboboxContent>
                 )}
             </Combobox>
+            <InventoryShelfCategory categoryId={Number(categoryIds?.[0])} />
         </>
     );
 }

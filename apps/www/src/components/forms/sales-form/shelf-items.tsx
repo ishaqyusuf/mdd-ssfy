@@ -130,7 +130,6 @@ export function ShelfItemLine({ shelfUid, index, isLast }) {
                                         key={puid}
                                     />
                                 ))}
-
                                 <TableRow>
                                     <TableCell>
                                         <div className="flex justify-end">
