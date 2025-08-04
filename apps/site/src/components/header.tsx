@@ -59,11 +59,11 @@ export function Header({ cartItems }: HeaderProps) {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-1">
               <Phone className="h-4 w-4" />
-              <span>(555) 123-4567</span>
+              <span>(305) 278-6555</span>
             </div>
             <div className="flex items-center space-x-1">
               <Mail className="h-4 w-4" />
-              <span>info@millworkpro.com</span>
+              <span>support@gndmillwork.com</span>
             </div>
           </div>
           <div className="flex items-center space-x-1">

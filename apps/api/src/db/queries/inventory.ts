@@ -343,3 +343,387 @@ export async function upsertInventoriesForDykeProducts(
     inventoryTypes,
   };
 }
+
+export async function upsertInventoriesForDykeProductsOptimized(
+  ctx: TRPCContext,
+  data: UpsertInventoriesForDykeProducts
+) {
+  const { db } = ctx;
+  const { step, products } = data;
+
+  // 1. Collect all unique UIDs for inventory types and products
+  const allDeps = products.flatMap(
+    (p) => p.variants?.flatMap((v) => v.deps) ?? []
+  );
+  const typeUids = Array.from(
+    new Set([step.uid, ...allDeps.map((d) => d.stepUid)])
+  );
+  const productUids = Array.from(
+    new Set([
+      ...products.map((p) => p.uid).filter(Boolean),
+      ...allDeps.map((d) => d.productUid),
+    ])
+  );
+
+  // 2. Upsert InventoryTypes
+  const existingTypes = await db.inventoryType.findMany({
+    where: { uid: { in: typeUids } },
+  });
+  const existingTypeUids = new Set(existingTypes.map((t) => t.uid));
+  const typesToCreate = typeUids
+    .filter((uid) => !existingTypeUids.has(uid))
+    .map((uid) => {
+      const dep = allDeps.find((d) => d.stepUid === uid);
+      return { uid, name: dep?.stepTitle ?? uid };
+    });
+
+  if (typesToCreate.length > 0) {
+    await db.inventoryType.createMany({
+      data: typesToCreate,
+      skipDuplicates: true,
+    });
+  }
+  const allTypes = await db.inventoryType.findMany({
+    where: { uid: { in: typeUids } },
+  });
+  const typeMap = new Map(allTypes.map((t) => [t.uid, t]));
+  const stepInventoryType = typeMap.get(step.uid);
+  if (!stepInventoryType) {
+    throw new Error(
+      `Failed to find or create step inventory type with UID: ${step.uid}`
+    );
+  }
+
+  // 3. Upsert InventoryTypeAttributes
+  const uniqueDeps = allDeps.filter(
+    (dep, index, self) =>
+      index === self.findIndex((d) => d.stepUid === dep.stepUid)
+  );
+  const attributesToCreate = uniqueDeps.map((dep) => ({
+    inventoryTypeId: stepInventoryType.id,
+    attributedInventoryTypeId: typeMap.get(dep.stepUid)!.id,
+    order: 0,
+    isRequired: false,
+  }));
+  if (attributesToCreate.length > 0) {
+    await db.inventoryTypeAttribute.createMany({
+      data: attributesToCreate,
+      skipDuplicates: true,
+    });
+  }
+  const allAttributes = await db.inventoryTypeAttribute.findMany({
+    where: { inventoryTypeId: stepInventoryType.id },
+  });
+  const attributeMap = new Map(
+    allAttributes.map((attr) => [attr.attributedInventoryTypeId, attr])
+  );
+
+  // 4. Upsert all Inventories (products)
+  const existingInventories = await db.inventory.findMany({
+    where: { uid: { in: productUids as string[] } },
+  });
+  const existingInventoryUids = new Set(existingInventories.map((i) => i.uid));
+  const allProductDefs = [
+    ...products.map((p) => ({
+      uid: p.uid,
+      name: p.name,
+      img: p.img,
+      typeUid: step.uid,
+    })),
+    ...allDeps.map((d) => ({
+      uid: d.productUid,
+      name: d.productName,
+      img: null,
+      typeUid: d.stepUid,
+    })),
+  ].filter(
+    (p, index, self) =>
+      p.uid && index === self.findIndex((sp) => sp.uid === p.uid)
+  );
+
+  const inventoriesToCreate = allProductDefs
+    .filter((p) => !existingInventoryUids.has(p.uid!))
+    .map((p) => ({
+      uid: p.uid!,
+      title: p.name!,
+      img: p.img,
+      typeId: typeMap.get(p.typeUid)!.id,
+    }));
+
+  if (inventoriesToCreate.length > 0) {
+    await db.inventory.createMany({
+      data: inventoriesToCreate,
+      skipDuplicates: true,
+    });
+  }
+  const allInventories = await db.inventory.findMany({
+    where: { uid: { in: productUids as string[] } },
+  });
+  const inventoryMap = new Map(allInventories.map((i) => [i.uid, i]));
+
+  // 5. Create Variants and Pricing within a transaction
+  return db.$transaction(async (tx) => {
+    for (const product of products) {
+      if (!product.uid) continue;
+      const mainInventory = inventoryMap.get(product.uid);
+      if (!mainInventory) continue;
+
+      // Clear existing variants for idempotency
+      await tx.inventoryVariant.deleteMany({
+        where: { inventoryId: mainInventory.id },
+      });
+
+      if (product.variants && product.variants.length > 0) {
+        // Product with dependencies
+        for (const variant of product.variants) {
+          const variantPrice = variant.deps.reduce(
+            (acc, dep) => acc + (dep.price ?? 0),
+            0
+          );
+          await tx.inventoryVariant.create({
+            data: {
+              inventoryId: mainInventory.id,
+              uid: mainInventory.uid,
+              variantTitle: mainInventory.title,
+              pricings: {
+                create: {
+                  inventoryId: mainInventory.id,
+                  costPrice: variantPrice,
+                },
+              },
+              attributes: {
+                createMany: {
+                  data: variant.deps.map((dep) => {
+                    const attributedInventory = inventoryMap.get(
+                      dep.productUid
+                    );
+                    const attributeType = attributeMap.get(
+                      typeMap.get(dep.stepUid)!.id
+                    );
+                    if (!attributedInventory || !attributeType) {
+                      throw new Error(
+                        "Missing inventory or attribute for dependency"
+                      );
+                    }
+                    return {
+                      attributedInventoryId: attributedInventory.id,
+                      inventoryTypeAttributeId: attributeType.id,
+                    };
+                  }),
+                },
+              },
+            },
+          });
+        }
+      } else if (product.price !== null && product.price !== undefined) {
+        // Simple product with a price
+        await tx.inventoryVariant.create({
+          data: {
+            inventoryId: mainInventory.id,
+            uid: mainInventory.uid,
+            variantTitle: mainInventory.title,
+            pricings: {
+              create: {
+                inventoryId: mainInventory.id,
+                costPrice: product.price,
+              },
+            },
+          },
+        });
+      }
+    }
+    // Return final state
+    const finalInventories = await tx.inventory.findMany({
+      where: {
+        uid: { in: products.map((p) => p.uid).filter(Boolean) as string[] },
+      },
+      include: {
+        variants: {
+          include: {
+            attributes: true,
+            pricings: true,
+          },
+        },
+      },
+    });
+    return {
+      inventories: finalInventories,
+      inventoryTypes: allTypes,
+    };
+  });
+}
+
+const createProductInventorySchema = z.object({
+  id: z.number(),
+});
+
+type CreateProductInventory = z.infer<typeof createProductInventorySchema>;
+
+export async function createProductInventory(
+  ctx: TRPCContext,
+  data: CreateProductInventory
+) {
+  const product = await ctx.db.dykeStepProducts.findUnique({
+    where: {
+      id: data.id,
+    },
+    include: {
+      step: true,
+    },
+  });
+  let inventoryType = await db.inventoryType.findFirst({
+    where: {
+      uid: product?.uid!,
+    },
+  });
+  if (!product) throw new Error("Product not found");
+  if (!inventoryType)
+    throw new Error("Inventory not initialized for this step");
+  const inventory = await db.inventory.create({
+    data: {
+      uid: product.uid!,
+      title: product.name!,
+      typeId: inventoryType.id,
+      img: product.img,
+    },
+  });
+}
+export async function updateBaseInventoryPrice(ctx: TRPCContext, uid, price) {
+  const inventory = await ctx.db.inventory.findFirst({
+    where: {
+      uid,
+    },
+    include: {
+      variants: {
+        where: {
+          uid,
+        },
+        include: {
+          pricings: true,
+        },
+      },
+    },
+  });
+  if (!inventory) throw new Error("Inventory not found");
+  let variant = inventory?.variants?.[0];
+  if (!variant) {
+    variant = await ctx.db.inventoryVariant.create({
+      data: {
+        uid,
+        inventoryId: inventory!.id,
+        img: inventory.img,
+        pricings: {
+          create: {
+            costPrice: price,
+            inventoryId: inventory!.id,
+          },
+        },
+      },
+      include: {
+        pricings: true,
+      },
+    });
+  }
+  let pricing = variant?.pricings?.[0];
+  if (!pricing)
+    await ctx.db.inventoryVariantPrice.create({
+      data: {
+        costPrice: price!,
+        inventoryId: inventory.id,
+        inventoryVariantId: variant.id,
+      },
+    });
+}
+const updateInventoryVariantPriceSchema = z.object({
+  variantUid: z.string(),
+  inventoryUid: z.string(),
+  deps: z.array(
+    z.object({
+      stepUid: z.string(),
+      stepTitle: z.string(),
+      productUid: z.string(),
+      productName: z.string(),
+      price: z.number().optional().nullable(),
+    })
+  ),
+});
+export type UpdateInventoryVariantPrice = z.infer<
+  typeof updateInventoryVariantPriceSchema
+>;
+export async function updateInventoryVariantPrice(
+  ctx: TRPCContext,
+  data: UpdateInventoryVariantPrice,
+) {
+  const { db } = ctx;
+  const { inventoryUid, deps } = data;
+
+  const mainInventory = await db.inventory.findUnique({
+    where: { uid: inventoryUid },
+    select: { id: true },
+  });
+
+  if (!mainInventory) {
+    throw new Error(`Inventory with UID "${inventoryUid}" not found.`);
+  }
+
+  const depProductUids = deps.map((d) => d.productUid);
+  const depInventories = await db.inventory.findMany({
+    where: { uid: { in: depProductUids } },
+    select: { id: true },
+  });
+  const depInventoryIds = depInventories.map((i) => i.id);
+
+  if (depInventories.length !== depProductUids.length) {
+    throw new Error("One or more dependency products not found.");
+  }
+
+  const variants = await db.inventoryVariant.findMany({
+    where: {
+      inventoryId: mainInventory.id,
+      attributes: {
+        every: {
+          attributedInventoryId: { in: depInventoryIds },
+        },
+      },
+    },
+    include: {
+      attributes: {
+        select: {
+          attributedInventoryId: true,
+        },
+      },
+      pricings: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  const targetVariant = variants.find(
+    (v) => v.attributes.length === depInventoryIds.length,
+  );
+
+  if (!targetVariant) {
+    throw new Error("Variant not found for the given dependencies.");
+  }
+
+  const newCostPrice = deps.reduce((sum, dep) => sum + (dep.price ?? 0), 0);
+
+  const pricing = targetVariant.pricings[0];
+
+  if (pricing) {
+    return db.inventoryVariantPrice.update({
+      where: { id: pricing.id },
+      data: { costPrice: newCostPrice },
+    });
+  } else {
+    return db.inventoryVariantPrice.create({
+      data: {
+        inventoryId: mainInventory.id,
+        inventoryVariantId: targetVariant.id,
+        costPrice: newCostPrice,
+      },
+    });
+  }
+}

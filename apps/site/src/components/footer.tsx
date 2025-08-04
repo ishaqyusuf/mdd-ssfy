@@ -104,15 +104,15 @@ export function Footer() {
             <div className="space-y-2 text-gray-300">
               <p className="flex items-center">
                 <Phone className="h-4 w-4 mr-2" />
-                (555) 123-4567
+                (305) 278-6555
               </p>
               <p className="flex items-center">
                 <Mail className="h-4 w-4 mr-2" />
-                info@millworkpro.com
+                support@gndmillwork.com
               </p>
               <p className="flex items-center">
                 <MapPin className="h-4 w-4 mr-2" />
-                123 Millwork Ave, City, ST 12345
+                13285 SW 131th St Miami, FL 33186
               </p>
             </div>
           </div>
