@@ -1,6 +1,6 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { db, type Prisma } from "@gnd/db";
-import { nextId } from "@gnd/utils";
+import { addPercentage, nextId } from "@gnd/utils";
 import { z } from "zod";
 
 const createInventoryTypeSchema = z.object({
@@ -28,6 +28,7 @@ export async function createInventoryType(
       },
     },
     create: {
+      type: "component",
       published: new Date(),
       name: data.name,
       uid: data.uid,
@@ -186,6 +187,7 @@ export async function upsertInventoriesForDykeProducts(
       return {
         uid: uid,
         name: step?.stepTitle || uid, // Use step title or fallback to UID
+        type: "component",
       };
     });
     await ctx.db.inventoryType.createMany({
@@ -374,7 +376,7 @@ export async function upsertInventoriesForDykeProductsOptimized(
     .filter((uid) => !existingTypeUids.has(uid))
     .map((uid) => {
       const dep = allDeps.find((d) => d.stepUid === uid);
-      return { uid, name: dep?.stepTitle ?? uid };
+      return { uid, name: dep?.stepTitle ?? uid, type: "component" };
     });
 
   if (typesToCreate.length > 0) {
@@ -652,7 +654,7 @@ export type UpdateInventoryVariantPrice = z.infer<
 >;
 export async function updateInventoryVariantPrice(
   ctx: TRPCContext,
-  data: UpdateInventoryVariantPrice,
+  data: UpdateInventoryVariantPrice
 ) {
   const { db } = ctx;
   const { inventoryUid, deps } = data;
@@ -701,7 +703,7 @@ export async function updateInventoryVariantPrice(
   });
 
   const targetVariant = variants.find(
-    (v) => v.attributes.length === depInventoryIds.length,
+    (v) => v.attributes.length === depInventoryIds.length
   );
 
   if (!targetVariant) {
@@ -726,4 +728,90 @@ export async function updateInventoryVariantPrice(
       },
     });
   }
+}
+const upsertInventoriesForDykeShelfProductsSchema = z.object({
+  categoryId: z.number(),
+});
+export async function upsertInventoriesForDykeShelfProducts(
+  ctx: TRPCContext,
+  data: z.infer<typeof upsertInventoriesForDykeShelfProductsSchema>
+) {
+  const products = await ctx.db.dykeShelfProducts.findMany({
+    where: {
+      parentCategoryId: data.categoryId,
+    },
+    // select: {
+    //   // parentCategory: true,
+    // },
+  });
+  const parentCategory = await ctx.db.dykeShelfCategories.findUnique({
+    where: {
+      id: data.categoryId,
+    },
+  });
+  const inventoryType = await ctx.db.inventoryType.create({
+    data: {
+      name: parentCategory?.name!,
+      uid: `shelf-${data.categoryId}`,
+      type: "shelf-item",
+    },
+  });
+  const categories = await ctx.db.dykeShelfCategories.findMany({
+    where: {
+      parentCategoryId: data.categoryId,
+    },
+  });
+  let inventoryCategories = [] as Prisma.InventoryCategoryCreateManyInput[];
+  let nextInventoryCategoryId = await nextId(ctx.db.inventoryCategory);
+  const inventoryCategoryIdMapByDykeCategory = {};
+  function createCategory(parentId, inventoryParentId?) {
+    categories
+      .filter((c) => c.parentCategoryId == parentId)
+      .map((category) => {
+        let icId = nextInventoryCategoryId++;
+        inventoryCategories.push({
+          id: icId,
+          name: category.name,
+          parentId: inventoryParentId,
+          inventoryTypeId: inventoryType.id!,
+        });
+        inventoryCategoryIdMapByDykeCategory[String(category.id)] = icId;
+        createCategory(category.id, icId);
+      });
+  }
+  createCategory(data.categoryId);
+  await ctx.db.inventoryCategory.createMany({
+    data: inventoryCategories,
+  });
+  const __inventories: Prisma.InventoryCreateManyInput[] = [];
+  // const __inventoryVariants: Prisma.InventoryCreateManyInput[] = [];
+  const __inventoryVariantPricings: Prisma.InventoryVariantPriceCreateManyInput[] =
+    [];
+  let nextInventoryId = await nextId(db.inventory);
+  let nextInventoryPriceId = await nextId(db.inventoryVariantPrice);
+  products.map((product) => {
+    let ivId = nextInventoryId++;
+    let priceId = nextInventoryPriceId++;
+    __inventories.push({
+      uid: `shelf-prod-${product.id}`,
+      id: ivId,
+      img: product.img,
+      typeId: inventoryType.id,
+      title: product.title,
+      categoryId:
+        inventoryCategoryIdMapByDykeCategory[String(product.categoryId)],
+    });
+    __inventoryVariantPricings.push({
+      id: priceId,
+      inventoryId: ivId,
+      costPrice: product.unitPrice,
+    });
+  });
+  await ctx.db.inventory.createMany({
+    data: __inventories,
+  });
+  await ctx.db.inventoryVariantPrice.createMany({
+    data: __inventoryVariantPricings,
+  });
+  // inventory type is parent category name, uid is "shelf-cat-${cat.id}", type is shelf-item
 }
