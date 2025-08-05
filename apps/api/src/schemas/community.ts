@@ -8,3 +8,12 @@ export const communityTemplateFormSchema = z.object({
   oldModelName: z.string().nullable().optional(),
 });
 export type CommunityTemplateForm = z.infer<typeof communityTemplateFormSchema>;
+
+export const createCommunityModelCostSchema = z.object({
+  builderId: z.number(),
+  modelName: z.string(),
+  builderName: z.string().optional().nullable(),
+});
+export type CreateCommunityModelCost = z.infer<
+  typeof createCommunityModelCostSchema
+>;

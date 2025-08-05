@@ -16,6 +16,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./colors": "./src/colors.ts",
+    "./community": "./src/community.ts",
     "./constants": "./src/constants.ts",
     "./dayjs": "./src/dayjs.ts",
     "./envs": "./src/envs.ts",

@@ -10,6 +10,8 @@ import ModelInstallCostModal from "@/app/(v1)/(loggedIn)/settings/community/comm
 import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 import { getHomeTemplates } from "../_components/home-template";
 
+import { OpenCommunitModelCostCreateModal } from "@/components/open-community-model-cost-create-modal";
+
 export const metadata: Metadata = {
     title: "Model Costs",
 };
@@ -24,15 +26,18 @@ export default async function ModelCosts(props) {
                     <BreadLink title="Community" />
                     <BreadLink isLast title="Model Costs" />
                 </Breadcrumbs>
-                <PageHeader title="Model Costs" newDialog="modelTemplate" />
+                <PageHeader
+                    title="Model Costs"
+                    Action={OpenCommunitModelCostCreateModal}
+                />
                 <ModelCostTableShell
                     searchParams={searchParams}
                     {...response}
                 />
                 <ModelCostModal />
-                {/* <ModelTemplateModal /> */}
                 <ModelInstallCostModal />
             </CommunitySettingsLayoutComponent>
         </AuthGuard>
     );
 }
+

@@ -5,7 +5,6 @@ import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 import { queryParams } from "@/app/(v1)/_actions/action-utils";
 
-import ModelTemplateModal from "@/components/_v1/modals/model-template-modal";
 import ModelInstallCostModal from "@/app/(v1)/(loggedIn)/settings/community/community-templates/install-cost-modal/model-install-cost-modal";
 
 import {
@@ -46,7 +45,7 @@ export default async function CommunityTemplatesPage(props) {
                 searchParams={searchParams}
                 {...response}
             />
-            <ModelTemplateModal formType="communityTemplate" />
+
             <ModelInstallCostModal community />
             <CommunityModelCostModal />
             <CommunityInstallCostModal />

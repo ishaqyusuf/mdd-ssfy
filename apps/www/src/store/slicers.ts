@@ -111,7 +111,7 @@ export type ModalName =
     | "inboundModal"
     | "importModelTemplate"
     | "jobOverview"
-    | "modelTemplate"
+    // | "modelTemplate"
     | "modelCost"
     | "paymentOverview"
     | "pickup"

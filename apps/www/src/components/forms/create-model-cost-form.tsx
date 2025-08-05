@@ -5,35 +5,39 @@ import { DialogFooter } from "@gnd/ui/dialog";
 import { SubmitButton } from "../submit-button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
-import { communityTemplateFormSchema } from "@api/schemas/community";
+import {
+    communityTemplateFormSchema,
+    createCommunityModelCostSchema,
+} from "@api/schemas/community";
 import FormInput from "../common/controls/form-input";
 import { useMemo } from "react";
 import { FormCombobox } from "../common/controls/form-combobox";
 import { z } from "zod";
-import { useCommunityProjectList } from "@/hooks/use-community-lists";
+import {
+    useCommunityBuildersList,
+    useCommunityProjectList,
+} from "@/hooks/use-community-lists";
+import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 import { toast } from "@gnd/ui/use-toast";
-import { useCommunityTemplateParams } from "@/hooks/use-community-template-params";
 
-interface Props {
-    data;
-}
+interface Props {}
 // const schema = z.object({
 //     projectId: z.number(),
 //     builderId: z.number()
 // })
-export function CommunityTemplateForm({ data }: Props) {
-    const form = useZodForm(communityTemplateFormSchema, {
+export function CreateModelCostForm({}: Props) {
+    const form = useZodForm(createCommunityModelCostSchema, {
         defaultValues: {
             modelName: "",
-            id: undefined,
-            projectId: null,
+            builderId: null,
+            builderName: "",
         },
     });
     const trpc = useTRPC();
-    const { setParams } = useCommunityTemplateParams();
     const qc = useQueryClient();
+    const { setParams } = useCommunityModelCostParams();
     const saveTemplateMutate = useMutation(
-        trpc.community.saveCommunityTemplateData.mutationOptions({
+        trpc.community.createCommunityModelCost.mutationOptions({
             onSuccess(data, variables, context) {
                 qc.invalidateQueries({
                     //  queryKey: trpc..queryKey()
@@ -45,14 +49,15 @@ export function CommunityTemplateForm({ data }: Props) {
             },
         }),
     );
-    const { options: projectList } = useCommunityProjectList(true);
+    const { options: buildersOptions } = useCommunityBuildersList(true);
+
     async function onSubmit(
-        formData: z.infer<typeof communityTemplateFormSchema>,
+        formData: z.infer<typeof createCommunityModelCostSchema>,
     ) {
-        // console.log(formData);
-        formData.projectName = projectList.find(
-            (p) => formData.projectId === +p.id,
-        )?.label;
+        formData.builderName = buildersOptions.find(
+            (b) => b.data.id === formData.builderId,
+        ).data.name;
+
         saveTemplateMutate.mutate({
             ...formData,
         });
@@ -67,11 +72,11 @@ export function CommunityTemplateForm({ data }: Props) {
                 />
                 <FormCombobox
                     control={form.control}
-                    name="projectId"
-                    label="Project"
+                    name="builderId"
+                    label="Builder"
                     transformSelectionValue={(data) => Number(data.id)}
                     comboProps={{
-                        items: projectList,
+                        items: buildersOptions,
                     }}
                 />
                 {/* <span>{projectId}</span> */}

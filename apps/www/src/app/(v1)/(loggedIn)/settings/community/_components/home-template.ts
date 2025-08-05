@@ -212,16 +212,3 @@ export async function saveCommunityTemplateDesign(slug, _meta) {
     });
 }
 export async function deleteHomeTemplateAction(id) {}
-
-export async function _createModelTemplate(data, builderName) {
-    const slug = slugify(`${builderName} ${data.modelName}`);
-
-    await prisma.homeTemplates.create({
-        data: {
-            // slug: slugify(data.modelName)
-            ...data,
-            ...transformData({}),
-        },
-    });
-    revalidatePath("/settings/community/model-templates", "page");
-}
