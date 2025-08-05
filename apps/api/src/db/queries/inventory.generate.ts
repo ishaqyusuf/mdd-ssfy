@@ -91,6 +91,7 @@ export async function uploadInventoriesForDykeProducts(
       if (!typeId) {
         console.error(`InventoryType not found for uid: ${data.step.uid}`);
       }
+      // product.stepUid
       return {
         uid: product.uid as any,
         name: product.name as any,
@@ -102,10 +103,10 @@ export async function uploadInventoriesForDykeProducts(
     const ls = data.products.filter((a) =>
       productsNotFound.every((p) => p.uid != a.uid)
     );
-    // Inventory Category Variant Attributes
+    // Inventory Category Variant Attributes.
     const icvaToCreate =
       [] as Prisma.ExInventoryCategoryVariantAttributeCreateManyInput[];
-    // Inventory Variant Attributes
+    // Inventory Variant Attributes.
     const ivaToCreate =
       [] as Prisma.ExInventoryVariantAttributeCreateManyInput[];
     const variantsToCreate = ls
@@ -140,7 +141,6 @@ export async function uploadInventoriesForDykeProducts(
           // variantTitle: prod.name,
           id: newInventoryVariantId++,
         } satisfies Prisma.ExInventoryVariantCreateManyInput;
-
         _var.deps.map((dep) => {
           const vicId = inventoryTypes.find(
             (it) => it.uid === dep.stepUid
@@ -276,7 +276,7 @@ export async function upsertInventoriesForDykeShelfProducts(
   const inventoryCategoryIdMapByDykeCategory = {};
   function createCategory(
     parentId,
-    parentInventoryCategoryId?,
+    // parentInventoryCategoryId?,
     parentSubCategoryUid?
   ) {
     categories
@@ -287,13 +287,13 @@ export async function upsertInventoriesForDykeShelfProducts(
         inventorySubCategories.push({
           id: icId,
           title: category.name,
-          parentInventoryCategoryId,
+          parentInventoryCategoryId: inventoryCategory.id,
           uid,
           parentSubCategoryUid,
           // inventoryTypeId: inventoryType.id!,
         });
         inventoryCategoryIdMapByDykeCategory[String(category.id)] = icId;
-        createCategory(category.id, icId, uid);
+        createCategory(category.id, uid);
       });
   }
   createCategory(data.categoryId);
@@ -304,8 +304,8 @@ export async function upsertInventoriesForDykeShelfProducts(
   const __inventoryVariantPricings: Prisma.ExInventoryVariantPricingCreateManyInput[] =
     [];
   const invItemSubCat: Prisma.ExInventoryItemSubCategoryCreateManyInput[] = [];
-  let nextInventoryId = await nextId(ctx.db.inventory);
-  let nextInventoryPriceId = await nextId(ctx.db.inventoryVariantPrice);
+  let nextInventoryId = await nextId(ctx.db.exInventory);
+  let nextInventoryPriceId = await nextId(ctx.db.exInventoryVariant);
   products.map((product) => {
     let ivId = nextInventoryId++;
     let priceId = nextInventoryPriceId++;
@@ -316,11 +316,7 @@ export async function upsertInventoriesForDykeShelfProducts(
       img: product.img,
       inventoryCategoryId: inventoryCategory.id,
       name: product.title,
-
-      //  categoryId:
-      //  inventoryCategoryIdMapByDykeCategory[String(product.categoryId)],
     });
-    // let cid = product.categoryId;
     const catIds = (product.meta as any)?.categoryIds || [];
     for (let i = 1; i < catIds.length; i++) {
       const cid = catIds?.[i];
