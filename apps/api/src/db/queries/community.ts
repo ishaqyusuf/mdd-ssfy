@@ -36,7 +36,8 @@ export async function getCommunityTemplateForm(ctx: TRPCContext, templateId) {
   });
   return {
     projectId: data.projectId,
-    // builderId: data.
+    modelName: data.modelName,
+    id: data.id,
   };
 }
 export async function saveCommunityTemplateForm(

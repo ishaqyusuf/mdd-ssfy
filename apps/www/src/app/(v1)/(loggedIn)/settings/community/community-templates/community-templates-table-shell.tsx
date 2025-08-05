@@ -43,6 +43,7 @@ import {
 } from "@/app/(v1)/_actions/community/community-model-cost";
 import { timeout } from "@/lib/timeout";
 import { ExternalLink, Import } from "lucide-react";
+import { useCommunityTemplateParams } from "@/hooks/use-community-template-params";
 
 export default function CommunityTemplateTableShell<T>({
     data,
@@ -51,6 +52,7 @@ export default function CommunityTemplateTableShell<T>({
 }: TableShellProps<ICommunityTemplate>) {
     const [isPending, startTransition] = useTransition();
 
+    const { setParams } = useCommunityTemplateParams();
     const [selectedRowIds, setSelectedRowIds] = useState<number[]>([]);
     const columns = useMemo<ColumnDef<ICommunityTemplate, unknown>[]>(
         () => [
@@ -139,9 +141,11 @@ export default function CommunityTemplateTableShell<T>({
                 cell: ({ row }) => (
                     <RowActionCell>
                         <EditRowAction
-                            onClick={(e) =>
-                                openModal("communityTemplate", row.original)
-                            }
+                            onClick={(e) => {
+                                setParams({
+                                    templateId: row.original.id,
+                                });
+                            }}
                         />
                         <DeleteRowAction
                             noRefresh

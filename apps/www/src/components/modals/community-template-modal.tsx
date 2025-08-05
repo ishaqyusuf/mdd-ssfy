@@ -3,6 +3,7 @@ import { CustomModal, CustomModalContent } from "./custom-modal";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { CommunityTemplateForm } from "../forms/community-template-form";
+import { useEffect } from "react";
 
 export function CommunityTemplateModal({}) {
     const { createTemplate, templateId, setParams } =
@@ -19,7 +20,10 @@ export function CommunityTemplateModal({}) {
             },
         ),
     );
-
+    useEffect(() => {
+        console.log(error);
+        console.log(data);
+    }, [error, data]);
     return (
         <CustomModal
             className=" "

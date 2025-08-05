@@ -27,6 +27,7 @@ export function CommunityTemplateForm({ data }: Props) {
             modelName: "",
             id: undefined,
             projectId: null,
+            ...(data || {}),
         },
     });
     const trpc = useTRPC();
