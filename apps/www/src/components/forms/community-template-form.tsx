@@ -3,12 +3,13 @@ import { Form } from "@gnd/ui/form";
 import { CustomModalPortal } from "../modals/custom-modal";
 import { DialogFooter } from "@gnd/ui/dialog";
 import { SubmitButton } from "../submit-button";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { communityTemplateFormSchema } from "@api/schemas/community";
 import FormInput from "../common/controls/form-input";
 import { useMemo } from "react";
 import { FormCombobox } from "../common/controls/form-combobox";
+import { z } from "zod";
 
 interface Props {
     data;
@@ -18,37 +19,45 @@ interface Props {
 //     builderId: z.number()
 // })
 export function CommunityTemplateForm({ data }: Props) {
-    const form = useZodForm(communityTemplateFormSchema);
+    const form = useZodForm(communityTemplateFormSchema, {
+        defaultValues: {
+            modelName: "",
+            id: undefined,
+            projectId: null,
+        },
+    });
     const trpc = useTRPC();
+    const qc = useQueryClient();
     const saveTemplateMutate = useMutation(
         trpc.community.saveCommunityTemplateData.mutationOptions({
-            onSuccess(data, variables, context) {},
+            onSuccess(data, variables, context) {
+                qc.invalidateQueries({
+                    //  queryKey: trpc..queryKey()
+                });
+            },
         }),
     );
-    const {
-        data: projects,
-        isPending,
-        error,
-    } = useQuery(
+    const { data: projects } = useQuery(
         trpc.community.projectsList.queryOptions(null, {
             enabled: true,
         }),
     );
-    const projectList = useMemo(() => {
-        if (!projects) return [];
-        console.log(projects);
-        return projects.map((project) => ({
-            label: project.title,
-            id: String(project.id),
-            data: project,
-        }));
-    }, [projects]);
-    // useEffect(() => {
-    //     console.log(projects);
-    //     console.log(error);
-    // }, [projects, error]);
-    async function onSubmit({}) {}
-    const projectId = form.watch("projectId");
+    const projectList = projects?.map((project) => ({
+        label: project.title,
+        id: String(project.id),
+        data: project,
+    }));
+    async function onSubmit(
+        formData: z.infer<typeof communityTemplateFormSchema>,
+    ) {
+        // console.log(formData);
+        formData.projectName = projectList.find(
+            (p) => formData.projectId === +p.id,
+        )?.label;
+        saveTemplateMutate.mutate({
+            ...formData,
+        });
+    }
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -68,13 +77,15 @@ export function CommunityTemplateForm({ data }: Props) {
                 />
                 {/* <span>{projectId}</span> */}
                 <CustomModalPortal>
-                    <DialogFooter className="">
-                        <SubmitButton
-                            isSubmitting={saveTemplateMutate.isPending}
-                        >
-                            Save
-                        </SubmitButton>
-                    </DialogFooter>
+                    <form onSubmit={form.handleSubmit(onSubmit)}>
+                        <DialogFooter className="">
+                            <SubmitButton
+                                isSubmitting={saveTemplateMutate.isPending}
+                            >
+                                Save
+                            </SubmitButton>
+                        </DialogFooter>
+                    </form>
                 </CustomModalPortal>
             </form>
         </Form>
