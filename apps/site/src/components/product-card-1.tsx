@@ -87,7 +87,7 @@ export function ProductCard({
   };
 
   return (
-    <Link href={`/product/${id}`}>
+    <Link href={`/product/type/${id}`}>
       <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
         <CardHeader className="p-0">
           <div className="relative overflow-hidden rounded-t-lg">
