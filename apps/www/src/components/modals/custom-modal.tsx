@@ -23,7 +23,8 @@ const sheetContentVariant = cva("flex flex-col w-full ", {
             true: "md:rounded-xl",
         },
         height: {
-            default: "sm:h-[45vh]",
+            default: "",
+            sm: "sm:h-[45vh]",
         },
         size: {
             xl: "sm:max-w-xl",

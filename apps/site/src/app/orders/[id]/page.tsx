@@ -201,7 +201,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
             </p>
           </div>
           <div className="text-right">
-            <Badge className={getStatusColor(order.status)} size="lg">
+            <Badge className={getStatusColor(order.status)}>
               {order.status}
             </Badge>
             <p className="text-2xl font-bold mt-2">${order.total.toFixed(2)}</p>
