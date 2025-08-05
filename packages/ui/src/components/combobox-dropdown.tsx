@@ -21,7 +21,7 @@ export interface ComboboxItem {
   disabled?: boolean;
 }
 
-interface Props<T> {
+export interface ComboboxProps<T> {
   placeholder?: React.ReactNode;
   searchPlaceholder?: string;
   items: T[];
@@ -65,7 +65,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   pageSize = 20,
   onSearch,
   noSearch,
-}: Props<T>) {
+}: ComboboxProps<T>) {
   const [open, setOpen] = React.useState(false);
   const [internalSelectedItem, setInternalSelectedItem] = React.useState<
     T | undefined
@@ -74,9 +74,10 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   const selectedItem = incomingSelectedItem ?? internalSelectedItem;
 
   const [inputValue, setInputValue] = React.useState("");
-  const filteredItems = items.filter((item) =>
-    item.label.toLowerCase().includes(inputValue.toLowerCase())
-  );
+  const filteredItems =
+    items?.filter((item) =>
+      item.label.toLowerCase().includes(inputValue.toLowerCase())
+    ) || [];
   const [cursor, setCusor] = React.useState(0);
   React.useEffect(() => {
     setCusor(0);

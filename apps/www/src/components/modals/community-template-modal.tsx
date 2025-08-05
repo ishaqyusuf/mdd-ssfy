@@ -24,7 +24,7 @@ export function CommunityTemplateModal({}) {
         <CustomModal
             className=" "
             size="md"
-            title="Template Form"
+            title="Community Template Form"
             open={opened}
             onOpenChange={(e) => {
                 setParams(null);

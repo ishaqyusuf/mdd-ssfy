@@ -2,7 +2,7 @@ import type { TRPCContext } from "@api/trpc/init";
 import { db, type Prisma } from "@gnd/db";
 import { addPercentage, nextId } from "@gnd/utils";
 import { z } from "zod";
-import { generateInventoryTypeUidFromShelfCategoryId } from "@gnd/sales/inventory-utils";
+import { generateInventoryCategoryUidFromShelfCategoryId } from "@gnd/sales/inventory-utils";
 const createInventoryTypeSchema = z.object({
   name: z.string(),
   uid: z.string(),
@@ -160,7 +160,7 @@ const upsertInventoriesForDykeProductsSchema = z.object({
     })
   ),
 });
-type UpsertInventoriesForDykeProducts = z.infer<
+export type UpsertInventoriesForDykeProducts = z.infer<
   typeof upsertInventoriesForDykeProductsSchema
 >;
 export async function upsertInventoriesForDykeProducts(
@@ -193,7 +193,6 @@ export async function upsertInventoriesForDykeProducts(
     await ctx.db.inventoryType.createMany({
       data: newInventoryTypes,
     });
-
     inventoryTypes = await getInventoryTypesByUids(ctx, stepUids);
   }
 
@@ -795,8 +794,8 @@ export async function upsertInventoriesForDykeShelfProducts(
   // const __inventoryVariants: Prisma.InventoryCreateManyInput[] = [];
   const __inventoryVariantPricings: Prisma.InventoryVariantPriceCreateManyInput[] =
     [];
-  let nextInventoryId = await nextId(db.inventory);
-  let nextInventoryPriceId = await nextId(db.inventoryVariantPrice);
+  let nextInventoryId = await nextId(ctx.db.inventory);
+  let nextInventoryPriceId = await nextId(ctx.db.inventoryVariantPrice);
   products.map((product) => {
     let ivId = nextInventoryId++;
     let priceId = nextInventoryPriceId++;
@@ -837,12 +836,11 @@ export async function upsertInventoriesForDykeShelfProducts(
   );
   // inventory type is parent category name, uid is "shelf-cat-${cat.id}", type is shelf-item
 }
-
 // export const getInventoryTypeByShelfIdSchema = z.object({
 //   categoryId: z.number()
 // })
 export async function getInventoryTypeByShelfId(ctx: TRPCContext, categoryId) {
-  const uid = generateInventoryTypeUidFromShelfCategoryId(categoryId);
+  const uid = generateInventoryCategoryUidFromShelfCategoryId(categoryId);
   const inventoryType = await ctx.db.inventoryType.findFirst({
     where: {
       uid,

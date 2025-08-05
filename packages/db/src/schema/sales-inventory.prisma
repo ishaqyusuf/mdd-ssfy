@@ -1,3 +1,4 @@
+// more like a branch that has 
 model InventoryType {
     id                       Int                      @id @default(autoincrement())
     name                     String
@@ -17,6 +18,7 @@ model InventoryType {
     @@unique([name, uid])
 }
 
+// these are the variant attributes,
 model InventoryTypeAttribute {
     id                        Int                         @id @default(autoincrement())
     inventoryTypeId           Int
@@ -35,6 +37,7 @@ model InventoryTypeAttribute {
     @@index([attributedInventoryTypeId])
 }
 
+// model Inventory
 model InventoryCategory {
     id       Int                 @id @default(autoincrement())
     name     String

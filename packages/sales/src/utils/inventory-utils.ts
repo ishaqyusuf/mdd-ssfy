@@ -1,3 +1,4 @@
-export const inventoryTypeTypes = ["shelf-item"] as const;
-export const generateInventoryTypeUidFromShelfCategoryId = (id) =>
+export const inventoryCategoryTypes = ["shelf-item"] as const;
+export type InventoryCategoryTypes = (typeof inventoryCategoryTypes)[number];
+export const generateInventoryCategoryUidFromShelfCategoryId = (id) =>
   `shelf-${id}`;
