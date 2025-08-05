@@ -183,7 +183,7 @@ interface ProductPageProps {
 }
 
 export default function ProductPage({ params }: ProductPageProps) {
-  const { id } = await params;
+  // const { id } = await params;
   const { getTotalItems, addItem } = useCartStore();
   const [mounted, setMounted] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState("natural");
