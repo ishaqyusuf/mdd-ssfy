@@ -3,6 +3,7 @@ import { DatePicker } from "@/components/_v1/date-range-picker";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { useSalesDeliveryUpdate } from "@/hooks/use-sales-delivery-update";
 import { useTRPC } from "@/trpc/client";
+import { DeliveryOption as DispatchOption } from "@/types/sales";
 import { salesDeliveryMode } from "@gnd/utils/constants";
 import { useQuery } from "@tanstack/react-query";
 
@@ -30,16 +31,14 @@ export function DeliveryOption({ salesId }) {
             ...payload,
         });
     };
+    const mode: DispatchOption = (dispatch?.deliveryMode ||
+        data?.deliveryOption) as any;
     return (
         <DataSkeleton className="font-medium" placeholder="Standard">
             <Menu
                 Icon={null}
                 variant="secondary"
-                label={
-                    <p className="font-medium uppercase">
-                        {dispatch?.deliveryMode || data?.deliveryOption}
-                    </p>
-                }
+                label={<p className="font-medium uppercase">{mode}</p>}
             >
                 {salesDeliveryMode.map((d) => (
                     <Menu.Item
@@ -56,7 +55,9 @@ export function DeliveryOption({ salesId }) {
                 ))}
             </Menu>
             <DatePicker
-                placeholder={`Delivery Date`}
+                placeholder={
+                    mode == "delivery" ? `Delivery Date` : "Pickup Date"
+                }
                 hideIcon
                 value={dispatch?.dueDate}
                 onSelect={(e) => {
