@@ -211,6 +211,11 @@ export const PRODUCTION_FILTER_OPTIONS = [
   "in progress",
   "completed",
 ] as const;
+export const RESOLUTION_FILTER_OPTIONS = [
+  "Resolved",
+  "Resolved Today",
+  "Unresolved",
+] as const;
 export const INVOICE_FILTER_OPTIONS = [
   "paid",
   "pending",

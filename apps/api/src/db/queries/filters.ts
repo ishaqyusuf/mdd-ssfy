@@ -12,11 +12,13 @@ import {
   PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
   PRODUCTION_FILTER_OPTIONS,
   PRODUCTION_STATUS,
+  RESOLUTION_FILTER_OPTIONS,
   SALES_DISPATCH_FILTER_OPTIONS,
   salesDispatchStatus,
   salesType,
 } from "@gnd/utils/constants";
 import { buildersList, projectList } from "./community";
+import type { GetSalesResolutions } from "./sales-resolution";
 
 export async function getDispatchFilters(ctx: TRPCContext) {
   type T = keyof DispatchQueryParamsSchema;
@@ -215,6 +217,27 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
     ),
   ];
   return resp as FilterData[];
+}
+
+export async function getResolutionFilters(ctx: TRPCContext) {
+  const baseFilters = await getSalesOrderFilters(ctx);
+  type T = keyof GetSalesResolutions;
+  type FilterData = PageFilterData<T>;
+
+  const resp: FilterData[] = baseFilters.filter((a) =>
+    (["q"] as T[]).includes(a.value as any)
+  ) as any;
+  resp.push(
+    optionFilter<T>(
+      "status",
+      "Status",
+      RESOLUTION_FILTER_OPTIONS.map((status) => ({
+        label: `${status}`,
+        value: status,
+      }))
+    )
+  );
+  return resp;
 }
 export async function getSalesQuoteFilter(ctx: TRPCContext) {
   type T = keyof SalesQueryParamsSchema;

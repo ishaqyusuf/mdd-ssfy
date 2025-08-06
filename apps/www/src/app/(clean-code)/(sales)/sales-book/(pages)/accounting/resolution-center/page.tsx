@@ -9,6 +9,7 @@ import { _perm, _role } from "@/components/sidebar/links";
 import { ResolutionCenter } from "@/components/resolution-center";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { loadResolutionCenterFilterParams } from "@/hooks/use-resolution-center-filter-params";
+import { SalesResolutionHeader } from "@/components/sales-resolution-header";
 
 export async function generateMetadata({}) {
     return constructMetadata({
@@ -18,14 +19,17 @@ export async function generateMetadata({}) {
 export default async function Page({ searchParams }) {
     // loadResolutionCenterFilterParams(await searchParams);
     return (
-        <ErrorBoundary errorComponent={ErrorFallback}>
-            <AuthGuard rules={[_perm.is("viewSalesResolution")]}>
-                <FPage title="Resolution Center">
-                    <Suspense fallback={<TableSkeleton />}>
-                        <ResolutionCenter />
-                    </Suspense>
-                </FPage>
-            </AuthGuard>
-        </ErrorBoundary>
+        <AuthGuard rules={[_perm.is("viewSalesResolution")]}>
+            <FPage title="Resolution Center">
+                <div className="flex flex-col gap-6">
+                    <SalesResolutionHeader />
+                    <ErrorBoundary errorComponent={ErrorFallback}>
+                        <Suspense fallback={<TableSkeleton />}>
+                            <ResolutionCenter />
+                        </Suspense>
+                    </ErrorBoundary>
+                </div>
+            </FPage>
+        </AuthGuard>
     );
 }

@@ -2,7 +2,6 @@
 
 import { ColumnDef, PageItemData } from "@/types/type";
 import { _perm } from "@/components/sidebar/links";
-import { getSalesResolutions } from "@/actions/get-sales-resolutions";
 
 import {
     Collapsible,
