@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { communityTemplateFormSchema } from "@api/schemas/community";
 import FormInput from "../common/controls/form-input";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { FormCombobox } from "../common/controls/form-combobox";
 import { z } from "zod";
 import { useCommunityProjectList } from "@/hooks/use-community-lists";
@@ -27,9 +27,15 @@ export function CommunityTemplateForm({ data }: Props) {
             modelName: "",
             id: undefined,
             projectId: null,
-            ...(data || {}),
+            // ...(data || {}),
         },
     });
+    useEffect(() => {
+        if (data)
+            form.reset({
+                ...data,
+            });
+    }, [data]);
     const trpc = useTRPC();
     const { setParams } = useCommunityTemplateParams();
     const qc = useQueryClient();

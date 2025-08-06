@@ -23,11 +23,20 @@ export type Item = Prisma.SalesOrdersGetPayload<{
   Partial<{}>;
 export function salesOrderDto(data: Item) {
   const deliveryOption = data?.deliveryOption;
-  let deliveryStatus = data?.deliveries?.[0]?.status as SalesDispatchStatus;
+  let deliveryStatus = data?.deliveries?.find((a) => !!a?._count?.items)?.[0]
+    ?.status as SalesDispatchStatus;
   const d = data?.stat?.find(
     (d) => d.type == ("dispatchCompleted" as QtyControlType)
   );
-  if (d?.percentage == 100) deliveryStatus = "completed";
+  const status = overallStatus(data.stat);
+  if (d?.percentage == 100 || deliveryStatus == "completed") {
+    deliveryStatus = "completed";
+    status.production.scoreStatus = null!;
+    status.production.status = "completed";
+  } else {
+    deliveryStatus = status.delivery?.status as any;
+  }
+
   // if (data.orderId == "04780AD") {
 
   // }
@@ -46,7 +55,7 @@ export function salesOrderDto(data: Item) {
     }),
     due,
     stats: statToKeyValueDto(data.stat),
-    status: overallStatus(data.stat),
+    status,
     addressData: {
       shipping: getAddressDto(
         data.shippingAddress || data.billingAddress,

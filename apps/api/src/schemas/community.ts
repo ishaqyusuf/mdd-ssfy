@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { paginationSchema } from "./common";
 
 export const communityTemplateFormSchema = z.object({
   id: z.number().optional().nullable(),
@@ -16,4 +17,16 @@ export const createCommunityModelCostSchema = z.object({
 });
 export type CreateCommunityModelCost = z.infer<
   typeof createCommunityModelCostSchema
+>;
+
+export const communityTemplateQueryParamsSchema = z
+  .object({
+    // example: z.string(),
+    _q: z.string().optional().nullable(),
+    builderId: z.number().optional().nullable(),
+    projectId: z.number().optional().nullable(),
+  })
+  .merge(paginationSchema);
+export type CommunityTemplateQueryParams = z.infer<
+  typeof communityTemplateQueryParamsSchema
 >;

@@ -1,3 +1,4 @@
+import type { CommunityTemplateQueryParams } from "@api/schemas/community";
 import type { DispatchQueryParamsSchema } from "@api/schemas/sales";
 import type {
   InboundQuerySchema,
@@ -15,6 +16,7 @@ import {
   salesDispatchStatus,
   salesType,
 } from "@gnd/utils/constants";
+import { buildersList, projectList } from "./community";
 
 export async function getDispatchFilters(ctx: TRPCContext) {
   type T = keyof DispatchQueryParamsSchema;
@@ -69,7 +71,33 @@ const searchFilter = {
   type: "input",
   value: "q",
 };
+export async function getCommunityTemplateFilters(ctx: TRPCContext) {
+  type T = keyof CommunityTemplateQueryParams;
+  type FilterData = PageFilterData<keyof CommunityTemplateQueryParams>;
 
+  const builders = await buildersList(ctx);
+  const projects = await projectList(ctx);
+  const resp = [
+    searchFilter,
+    optionFilter<T>(
+      "builderId",
+      "Builder",
+      builders.map((b) => ({
+        label: b.name,
+        value: b.id,
+      }))
+    ),
+    optionFilter<T>(
+      "projectId",
+      "Projects",
+      projects.map((b) => ({
+        label: b.title,
+        value: b.id,
+      }))
+    ),
+  ];
+  return resp as FilterData[];
+}
 export async function getSalesOrderFilters(ctx: TRPCContext) {
   type T = keyof SalesQueryParamsSchema;
   type FilterData = PageFilterData<T>;

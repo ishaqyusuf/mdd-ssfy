@@ -171,7 +171,22 @@ export const SalesListInclude = {
       name: true,
     },
   },
-  deliveries: true,
+  deliveries: {
+    where: {
+      deletedAt: null,
+    },
+    include: {
+      _count: {
+        select: {
+          items: {
+            where: {
+              deletedAt: null,
+            },
+          },
+        },
+      },
+    },
+  },
   stat: true,
   extraCosts: true,
 } satisfies Prisma.SalesOrdersInclude;
