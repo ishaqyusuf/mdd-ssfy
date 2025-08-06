@@ -494,26 +494,42 @@ export function whereSales(query: SalesQueryParamsSchema) {
             ],
           },
           {
-            deliveries: {
-              none: {
-                deletedAt: null,
-                // OR: [
-                //   {
-                //     items: {},
-                //   },
-                //   {
-                items: {
+            OR: [
+              {
+                deliveries: {
                   none: {
                     deletedAt: null,
+                    // OR: [
+                    //   {
+                    //     items: {},
+                    //   },
+                    //   {
+                    items: {
+                      none: {
+                        deletedAt: null,
+                      },
+                    },
+                    status: {
+                      not: "completed" as SalesDispatchStatus,
+                    },
+                    //   },
+                    // ],
                   },
                 },
-                status: {
-                  not: "completed" as SalesDispatchStatus,
-                },
-                //   },
-                // ],
               },
-            },
+              {
+                deliveries: {
+                  some: {
+                    deletedAt: null,
+                    status: {
+                      not: "completed" as SalesDispatchStatus,
+                    },
+                    //   },
+                    // ],
+                  },
+                },
+              },
+            ],
           },
         ],
       });
