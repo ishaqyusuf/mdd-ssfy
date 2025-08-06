@@ -907,7 +907,9 @@ function addressLine(
                           address?.phoneNo2 ? `(${address?.phoneNo2})` : ""
                       }`,
                       address?.email || customer?.email,
-                      address?.address1 || customer?.address,
+                      address?.address1 ||
+                          address?.address2 ||
+                          customer?.address,
                       [address?.city, address?.state, address?.meta?.zip_code]
                           ?.filter(Boolean)
                           ?.join(" "),

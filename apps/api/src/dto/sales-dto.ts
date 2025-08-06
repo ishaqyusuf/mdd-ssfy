@@ -114,7 +114,11 @@ function commonListData(data: Item) {
     isDyke: data.isDyke,
     slug: data.slug,
     salesStat,
-    address: data.shippingAddress?.address1 || data.billingAddress?.address1,
+    address:
+      data.shippingAddress?.address1 ||
+      data.shippingAddress?.address2 ||
+      data.billingAddress?.address1 ||
+      data.billingAddress?.address2,
     displayName:
       data.customer?.name ||
       data.customer?.businessName ||

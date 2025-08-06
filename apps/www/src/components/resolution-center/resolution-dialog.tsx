@@ -34,12 +34,11 @@ import { useAction } from "next-safe-action/hooks";
 import { resolvePaymentAction } from "@/actions/resolve-payment-issue";
 import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
 import { generateRandomString } from "@/lib/utils";
-
-interface ResolutionFormData {
-    action: string;
-    reason?: string;
-    note?: string;
-}
+import { ResolvePayment, resolvePaymentSchema } from "@api/db/queries/wallet";
+import { useZodForm } from "@/hooks/use-zod-form";
+import FormSelect from "../common/controls/form-select";
+import FormInput from "../common/controls/form-input";
+import { cn } from "@gnd/ui/cn";
 
 interface ResolutionDialogProps {
     payment: GetSalesResolutionData["payments"][number];
@@ -47,7 +46,16 @@ interface ResolutionDialogProps {
 
 const RESOLUTION_ACTIONS = [
     { value: "cancel", label: "Cancel Payment" },
-    // { value: "refund", label: "Process Refund" },
+    { value: "refund", label: "Process Refund" },
+];
+const REFUND_MODES = [
+    { value: "full", label: "Full Refund" },
+    { value: "part", label: "Part Refund" },
+];
+const REFUND_METHOD = [
+    { value: "wallet", label: "Wallet" },
+    { value: "cash", label: "Cash" },
+    { value: "other", label: "Other" },
 ];
 
 const CANCELLATION_REASONS = [
@@ -73,17 +81,22 @@ export function ResolutionDialog({
 }: ResolutionDialogProps) {
     const [open, setOpen] = useState(false);
 
-    const form = useForm<ResolutionFormData>({
+    const form = useZodForm(resolvePaymentSchema, {
         defaultValues: {
             action: "cancel",
+            transactionId: payment.id,
             reason: "",
             note: "",
+            refundMethod: "wallet",
+            refundMode: "full",
+            refundAmount: payment?.amount,
         },
     });
 
     const watchedAction = form.watch("action");
+    const refundMode = form.watch("refundMode");
     const rcp = useResolutionCenterParams();
-    const onSubmit = (data: ResolutionFormData) => {
+    const onSubmit = (data: ResolvePayment) => {
         // onResolve(data.action, data.reason, data.note);
         // setOpen(false);
         resolveAction.execute({
@@ -123,7 +136,7 @@ export function ResolutionDialog({
     const shouldShowReasonField =
         watchedAction === "cancel" || watchedAction === "refund";
     const reasonOptions = getReasonsForAction(watchedAction);
-
+    const refundAmount = form.watch("refundAmount");
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
@@ -152,44 +165,14 @@ export function ResolutionDialog({
                         onSubmit={form.handleSubmit(onSubmit)}
                         className="space-y-4"
                     >
-                        <FormField
+                        <FormSelect
                             control={form.control}
                             name="action"
-                            rules={{
-                                required: "Please select a resolution action",
-                            }}
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Resolution Action</FormLabel>
-                                    <Select
-                                        onValueChange={field.onChange}
-                                        defaultValue={field.value}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select action" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {RESOLUTION_ACTIONS.map(
-                                                (action) => (
-                                                    <SelectItem
-                                                        key={action.value}
-                                                        value={action.value}
-                                                    >
-                                                        {action.label}
-                                                    </SelectItem>
-                                                ),
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                            options={RESOLUTION_ACTIONS}
+                            label={"Resolution Action"}
                         />
-
                         {shouldShowReasonField && (
-                            <FormField
+                            <FormSelect
                                 control={form.control}
                                 name="reason"
                                 rules={{
@@ -197,55 +180,63 @@ export function ResolutionDialog({
                                         ? "Please select a reason"
                                         : false,
                                 }}
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>
-                                            {watchedAction === "cancel"
-                                                ? "Cancellation Reason"
-                                                : "Refund Reason"}
-                                        </FormLabel>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            defaultValue={field.value}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select reason" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {reasonOptions.map((reason) => (
-                                                    <SelectItem
-                                                        key={reason.value}
-                                                        value={reason.value}
-                                                    >
-                                                        {reason.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
+                                label={
+                                    watchedAction === "cancel"
+                                        ? "Cancellation Reason"
+                                        : "Refund Reason"
+                                }
+                                options={reasonOptions}
                             />
                         )}
-
-                        <FormField
+                        {watchedAction == "refund" && (
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormSelect
+                                    control={form.control}
+                                    name="refundMethod"
+                                    rules={{
+                                        required: "Please select a method",
+                                    }}
+                                    label={"Refund Method"}
+                                    options={REFUND_METHOD}
+                                />
+                                <FormSelect
+                                    control={form.control}
+                                    name="refundMode"
+                                    rules={{
+                                        required: "Please select a mode",
+                                    }}
+                                    label={"Refund Mode"}
+                                    options={REFUND_MODES}
+                                />
+                                <div className="col-span-2">
+                                    <FormInput
+                                        control={form.control}
+                                        name="refundAmount"
+                                        label="Refund Amount"
+                                        disabled={refundMode === "full"}
+                                        numericProps={{
+                                            prefix: `$`,
+                                            type: "tel",
+                                            max: payment?.amount,
+                                            min: 0,
+                                            placeholder: `$0 / $${payment?.amount}`,
+                                            suffix: ` / $${payment?.amount}`,
+                                            className: cn(
+                                                refundAmount > payment?.amount
+                                                    ? "text-red-800"
+                                                    : "",
+                                            ),
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        <FormInput
                             control={form.control}
+                            type="textarea"
                             name="note"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Additional Notes</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Enter any additional notes..."
-                                            className="resize-none"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                            label="Additional Notes"
+                            placeholder="Enter any additional notes..."
                         />
 
                         <DialogFooter>
