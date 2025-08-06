@@ -17,12 +17,14 @@ import type { Prisma } from "@gnd/db";
 import { getNameInitials, toNumber } from "@gnd/utils";
 
 import { timeAgo } from "@gnd/utils/dayjs";
+import type { DeliveryOption } from "@gnd/utils/sales";
 export type Item = Prisma.SalesOrdersGetPayload<{
   include: typeof SalesListInclude;
 }> &
   Partial<{}>;
 export function salesOrderDto(data: Item) {
-  const deliveryOption = data?.deliveryOption;
+  const deliveryOption: DeliveryOption =
+    (data?.deliveryOption as any) || "pickup";
   let deliveryStatus = data?.deliveries?.find((a) => !!a?._count?.items)?.[0]
     ?.status as SalesDispatchStatus;
   const d = data?.stat?.find(
