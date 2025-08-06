@@ -28,12 +28,12 @@ export async function getCustomerWalletAction(accountNo) {
                 // },
                 {
                     type: "wallet" as CustomerTransactionType,
-                    status: "COMPLETED" as SquarePaymentStatus,
+                    status: "success", // as SquarePaymentStatus,
                 },
-                {
-                    status: "canceled",
-                    statusReason: "refund-wallet",
-                },
+                // {
+                //     status: "canceled",
+                //     statusReason: "refund-wallet",
+                // },
             ],
         },
     });

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { Button } from "@gnd/ui/button";
 import {
     Dialog,
@@ -12,23 +11,9 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@gnd/ui/dialog";
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@gnd/ui/form";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@gnd/ui/select";
+import { Form } from "@gnd/ui/form";
+
 import { Icons } from "@gnd/ui/custom/icons";
-import { Textarea } from "@gnd/ui/textarea";
 import { GetSalesResolutionData } from "@/actions/get-sales-resolution-data";
 import { useAction } from "next-safe-action/hooks";
 import { resolvePaymentAction } from "@/actions/resolve-payment-issue";
@@ -39,6 +24,9 @@ import { useZodForm } from "@/hooks/use-zod-form";
 import FormSelect from "../common/controls/form-select";
 import FormInput from "../common/controls/form-input";
 import { cn } from "@gnd/ui/cn";
+import { useMutation } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
+import { toast } from "@gnd/ui/use-toast";
 
 interface ResolutionDialogProps {
     payment: GetSalesResolutionData["payments"][number];
@@ -96,25 +84,44 @@ export function ResolutionDialog({
     const watchedAction = form.watch("action");
     const refundMode = form.watch("refundMode");
     const rcp = useResolutionCenterParams();
+    const trpc = useTRPC();
+    const resolveAction = useMutation(
+        trpc.sales.resolvePayment.mutationOptions({
+            onSuccess(data, variables, context) {
+                toast({
+                    title: "Success",
+                    variant: "success",
+                });
+            },
+            onError(error, variables, context) {
+                toast({
+                    title: "Error",
+                    variant: "error",
+                    description: error.message,
+                });
+            },
+        }),
+    );
     const onSubmit = (data: ResolvePayment) => {
         // onResolve(data.action, data.reason, data.note);
         // setOpen(false);
-        resolveAction.execute({
-            action: data.action,
-            note: data.note,
-            reason: data.reason,
-            customerTransactionId: payment?.id,
+        resolveAction.mutate({
+            ...data,
+            // action: data.action,
+            // note: data.note,
+            // reason: data.reason,
+            // customerTransactionId: payment?.id,
         });
     };
-    const resolveAction = useAction(resolvePaymentAction, {
-        onSuccess() {
-            form.reset();
-            setOpen(false);
-            rcp.setParams({
-                refreshToken: generateRandomString(),
-            });
-        },
-    });
+    // const resolveAction = useAction(resolvePaymentAction, {
+    //     onSuccess() {
+    //         form.reset();
+    //         setOpen(false);
+    //         rcp.setParams({
+    //             refreshToken: generateRandomString(),
+    //         });
+    //     },
+    // });
     const handleOpenChange = (newOpen: boolean) => {
         setOpen(newOpen);
         if (!newOpen) {
@@ -165,29 +172,33 @@ export function ResolutionDialog({
                         onSubmit={form.handleSubmit(onSubmit)}
                         className="space-y-4"
                     >
-                        <FormSelect
-                            control={form.control}
-                            name="action"
-                            options={RESOLUTION_ACTIONS}
-                            label={"Resolution Action"}
-                        />
-                        {shouldShowReasonField && (
+                        <div className="grid grid-cols-2 gap-4">
                             <FormSelect
                                 control={form.control}
-                                name="reason"
-                                rules={{
-                                    required: shouldShowReasonField
-                                        ? "Please select a reason"
-                                        : false,
-                                }}
-                                label={
-                                    watchedAction === "cancel"
-                                        ? "Cancellation Reason"
-                                        : "Refund Reason"
-                                }
-                                options={reasonOptions}
+                                name="action"
+                                size="sm"
+                                options={RESOLUTION_ACTIONS}
+                                label={"Resolution Action"}
                             />
-                        )}
+                            {shouldShowReasonField && (
+                                <FormSelect
+                                    control={form.control}
+                                    name="reason"
+                                    size="sm"
+                                    rules={{
+                                        required: shouldShowReasonField
+                                            ? "Please select a reason"
+                                            : false,
+                                    }}
+                                    label={
+                                        watchedAction === "cancel"
+                                            ? "Cancellation Reason"
+                                            : "Refund Reason"
+                                    }
+                                    options={reasonOptions}
+                                />
+                            )}
+                        </div>
                         {watchedAction == "refund" && (
                             <div className="grid grid-cols-2 gap-4">
                                 <FormSelect
@@ -220,6 +231,7 @@ export function ResolutionDialog({
                                             max: payment?.amount,
                                             min: 0,
                                             placeholder: `$0 / $${payment?.amount}`,
+                                            disabled: refundMode == "full",
                                             suffix: ` / $${payment?.amount}`,
                                             className: cn(
                                                 refundAmount > payment?.amount
@@ -241,7 +253,7 @@ export function ResolutionDialog({
 
                         <DialogFooter>
                             <Button
-                                disabled={resolveAction?.isExecuting}
+                                disabled={resolveAction?.isPending}
                                 type="button"
                                 variant="outline"
                                 onClick={() => setOpen(false)}
@@ -253,11 +265,11 @@ export function ResolutionDialog({
                                 disabled={
                                     !form.formState.isValid ||
                                     form.formState.isSubmitting ||
-                                    resolveAction?.isExecuting
+                                    resolveAction?.isPending
                                 }
                             >
                                 {form.formState.isSubmitting ||
-                                resolveAction?.isExecuting
+                                resolveAction?.isPending
                                     ? "Applying..."
                                     : "Apply Resolution"}
                             </Button>

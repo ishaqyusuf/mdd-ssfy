@@ -874,7 +874,6 @@ function styled(title, value?, style?: PrintTextProps) {
     };
 }
 function address({ type, customer, billingAddress, shippingAddress }) {
-    // const { estimate, order } = data;
     const estimate = type == "quote";
     return [
         addressLine(
@@ -917,4 +916,3 @@ function addressLine(
                 : ["No Address"],
     };
 }
-//

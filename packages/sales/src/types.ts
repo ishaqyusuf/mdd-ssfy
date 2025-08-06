@@ -173,3 +173,5 @@ export type Db = typeof db;
 
 export type SalesInformation = RenturnTypeAsync<typeof getSaleInformation>;
 export type SalesInfoItem = SalesInformation["items"][number];
+
+export type CustomerTransactionType = "wallet" | "transaction";

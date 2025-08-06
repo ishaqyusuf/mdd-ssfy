@@ -5,3 +5,20 @@ export const conflictType = [
   "overpayment",
   "resolved",
 ] as const;
+
+export const SALES_PAYMENT_STATUS = [
+  "created",
+  "pending",
+  "success",
+  "cancelled",
+] as const;
+
+export type SalesPaymentStatus = (typeof SALES_PAYMENT_STATUS)[number];
+
+export const CUSTOMER_TRANSACTION_STATUS = [
+  "draft",
+  "success",
+  "cancelled",
+] as const;
+export type CustomerTransanctionStatus =
+  (typeof CUSTOMER_TRANSACTION_STATUS)[number];

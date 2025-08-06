@@ -27,7 +27,9 @@ import {
   itemItemControlUid,
   mouldingItemControlUid,
 } from "@api/utils/sales-control";
-import { formatCurrency } from "@gnd/utils";
+import { formatCurrency, formatMoney, sum } from "@gnd/utils";
+import type { db } from "@gnd/db";
+import type { SalesPaymentStatus } from "@sales/constants";
 
 export async function getSales(
   ctx: TRPCContext,
@@ -342,4 +344,46 @@ export async function getSalesLifeCycle(
     orderMeta: order.meta as any as SalesMeta,
     // order
   };
+}
+
+export async function updateSalesDueAmount(id, _tx) {
+  const tx: typeof db = _tx;
+  const order = await tx.salesOrders.findUniqueOrThrow({
+    where: {
+      id,
+    },
+    select: {
+      amountDue: true,
+      grandTotal: true,
+      id: true,
+      payments: {
+        where: {
+          status: "success" as SalesPaymentStatus,
+          deletedAt: null,
+        },
+        select: {
+          amount: true,
+          transaction: {
+            where: {
+              deletedAt: null,
+            },
+            select: {
+              amount: true,
+              type: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  const totalPaid = formatMoney(sum(order.payments, "amount"));
+  const amountDue = formatMoney(order.grandTotal! - totalPaid);
+  if (amountDue !== order.amountDue) {
+    await tx.salesOrders.update({
+      where: { id: order.id },
+      data: {
+        amountDue,
+      },
+    });
+  }
 }
