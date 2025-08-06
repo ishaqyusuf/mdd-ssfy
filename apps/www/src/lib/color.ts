@@ -13,6 +13,7 @@ export function statusColor(status, _default = "slate") {
     return color || _default;
 }
 export function getColorFromName(name) {
+    // if name is "6/8", "8/10" convert to percentage and get color for percentage level
     const color =
         StatusColorMap[(name?.toLowerCase() || "").replace(" ", "_")] ||
         baseGetColorFromName(name);

@@ -25,7 +25,10 @@ export default async function ModelTemplatesPage(props) {
                     <BreadLink title="Community" />
                     <BreadLink isLast title="Model Templates" />
                 </Breadcrumbs>
-                <PageHeader title="Model Templates" newDialog="modelTemplate" />
+                <PageHeader
+                    title="Model Templates"
+                    // newDialog="modelTemplate"
+                />
                 <HomeTemplatesTableShell
                     searchParams={searchParams}
                     {...response}
@@ -35,3 +38,4 @@ export default async function ModelTemplatesPage(props) {
         </AuthGuard>
     );
 }
+
