@@ -179,5 +179,5 @@ export const useTableData = ({ filter, route }) => {
             fetchNextPage();
         }
     }, [inView, isFetching]);
-    return { ref, data: tableData, hasNextPage };
+    return { ref, data: tableData, queryData: data, hasNextPage };
 };

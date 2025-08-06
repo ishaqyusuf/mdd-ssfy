@@ -4,14 +4,16 @@ import { useTRPC } from "@/trpc/client";
 import { useResolutionCenterFilterParams } from "@/hooks/use-resolution-center-filter-params";
 import { columns } from "./resolution-center-content";
 import { Table, TableBody } from "@gnd/ui/table";
-import { TableHeaderComponent } from "../tables/table-header";
 import { TableRow } from "../tables/table-row";
 import { LoadMoreTRPC } from "../tables/load-more";
+import Portal from "../_v1/portal";
+import { Badge } from "@gnd/ui/badge";
+import { AlertTriangle } from "lucide-react";
 
 export function ResolutionCenter({}) {
     const { filters } = useResolutionCenterFilterParams();
     const trpc = useTRPC();
-    const { hasNextPage, ref, data } = useTableData({
+    const { hasNextPage, queryData, ref, data } = useTableData({
         filter: filters,
         route: trpc.sales.getSalesResolutions,
     });
@@ -33,6 +35,14 @@ export function ResolutionCenter({}) {
                 },
             ]}
         >
+            <Portal nodeId={"resolutionHeaderActions"}>
+                <div className="flex items-center gap-4">
+                    <Badge variant="destructive" className="text-sm">
+                        <AlertTriangle className="h-4 w-4 mr-1" />
+                        {(queryData?.pages?.[0] as any)?.meta?.count} Conflicts
+                    </Badge>
+                </div>
+            </Portal>
             <div className="flex flex-col gap-4 w-full">
                 <div
                     // {/* ref={tableScroll.containerRef} */}
