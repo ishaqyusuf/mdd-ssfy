@@ -11,6 +11,7 @@ import { transformSalesBookForm } from "./dto/sales-book-form-dto";
 import { getLoggedInDealerAccountDta } from "./sales-dealer-dta";
 import { getSalesFormStepByIdDta } from "./sales-form-step-dta";
 import { salesTaxForm } from "./sales-tax.persistent";
+import { DeliveryOption } from "@/types/sales";
 
 export interface GetSalesBookFormDataProps {
     type?: SalesType;
@@ -102,6 +103,7 @@ export async function createSalesBookFormDataDta(
             taxPercentage: +ctx.settings?.tax_percentage,
             paymentTerm: ctx.defaultProfile?.meta?.net,
             goodUntil,
+            deliveryOption: "pickup" as DeliveryOption,
             meta: {
                 sales_percentage: ctx.defaultProfile?.coefficient,
                 ccc_percentage: +ctx?.settings?.ccc,
