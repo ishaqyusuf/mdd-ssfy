@@ -9,6 +9,10 @@ import { getInbounds, getInboundSummary } from "@api/db/queries/inbound";
 import { startNewSalesSchema } from "@api/schemas/sales";
 import { transformSalesFilterQuery } from "@api/utils/sales";
 import { getSaleInformation } from "@gnd/sales/get-sale-information";
+import {
+  getSalesResolutions,
+  getSalesResolutionsSchema,
+} from "@api/db/queries/sales-resolution";
 export const salesRouter = createTRPCRouter({
   index: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
     const query = props.input;
@@ -25,9 +29,12 @@ export const salesRouter = createTRPCRouter({
       const [sale] = result.data;
       return sale;
     }),
-  quotes: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
-    return getQuotes(props.ctx, props.input);
-  }),
+  getSalesResolutions: publicProcedure
+    .input(getSalesResolutionsSchema)
+    .query(async (props) => {
+      const result = await getSalesResolutions(props.ctx, props.input);
+      return result;
+    }),
   inboundIndex: publicProcedure
     .input(inboundQuerySchema)
     .query(async (props) => {
@@ -38,16 +45,19 @@ export const salesRouter = createTRPCRouter({
     .query(async (props) => {
       return getInboundSummary(props.ctx, props.input);
     }),
-  startNewSales: publicProcedure
-    .input(startNewSalesSchema)
-    .mutation(async (props) => {
-      return startNewSales(props.ctx, props.input.customerId);
-    }),
   productionOverview: publicProcedure
     .input(getFullSalesDataSchema)
     .query(async (props) => {
       // const resp = await getSalesLifeCycle(props.ctx, props.input);
       // return resp;
       return await getSaleInformation(props.ctx.db, props.input);
+    }),
+  quotes: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
+    return getQuotes(props.ctx, props.input);
+  }),
+  startNewSales: publicProcedure
+    .input(startNewSalesSchema)
+    .mutation(async (props) => {
+      return startNewSales(props.ctx, props.input.customerId);
     }),
 });

@@ -30,6 +30,8 @@ import { copySalesUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sa
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
+import { AuthGuard } from "@/components/auth-guard";
+import { _perm } from "@/components/sidebar/links";
 
 export function GeneralFooter({}) {
     const { data } = useSaleOverview();
@@ -164,6 +166,23 @@ export function GeneralFooter({}) {
                     >
                         Reset Stats
                     </Menu.Item>
+                    <AuthGuard rules={[_perm.is("viewSalesResolution")]}>
+                        <Menu.Item
+                            Icon={RefreshCcw}
+                            onClick={(e) => {
+                                openLink(
+                                    `/sales-book/accounting/resolution-center`,
+                                    {
+                                        search: data.orderId,
+                                    },
+                                    true,
+                                );
+                            }}
+                            disabled={loading}
+                        >
+                            Resolution Center
+                        </Menu.Item>
+                    </AuthGuard>
                 </Menu>
             </SheetFooter>
         </CustomSheetContentPortal>

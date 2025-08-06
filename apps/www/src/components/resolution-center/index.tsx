@@ -1,42 +1,54 @@
-import { EmptyState, NoResults } from "./empty-states";
-import { DataTable } from "./table";
-import { hasQuery } from "@/utils/has-query";
-import { getCustomerTransactionsAction } from "@/actions/get-customer-tx-action";
-import { salesAccountingFilterData } from "@/actions/cached-sales-accounting";
-import { getSalesResolutions } from "@/actions/get-sales-resolutions";
-import { salesPaymentResoltionFilters } from "@/actions/cached-sales-payment-resolution";
+"use client";
+import { TableProvider, useTableData } from "../tables";
+import { useTRPC } from "@/trpc/client";
+import { useResolutionCenterFilterParams } from "@/hooks/use-resolution-center-filter-params";
+import { columns } from "./resolution-center-content";
+import { Table, TableBody } from "@gnd/ui/table";
+import { TableHeaderComponent } from "../tables/table-header";
+import { TableRow } from "../tables/table-row";
+import { LoadMoreTRPC } from "../tables/load-more";
 
-const pageSize = 25;
-export async function ResolutionCenter({ query }) {
-    const filterDataPromise = salesPaymentResoltionFilters();
-
-    const loadMore = async (params?) => {
-        "use server";
-        return getSalesResolutions({
-            ...query,
-            ...(params || {}),
-        });
-    };
-    const { data, meta } = await getSalesResolutions({
-        ...query,
+export function ResolutionCenter({}) {
+    const { filters } = useResolutionCenterFilterParams();
+    const trpc = useTRPC();
+    const { hasNextPage, ref, data } = useTableData({
+        filter: filters,
+        route: trpc.sales.getSalesResolutions,
     });
-    const nextMeta = meta?.next;
 
-    if (!data?.length) {
-        if (hasQuery(query)) {
-            return <NoResults />;
-        }
-
-        return <EmptyState />;
-    }
     return (
-        <DataTable
-            filterDataPromise={filterDataPromise}
-            data={data}
-            loadMore={loadMore}
-            pageSize={pageSize}
-            nextMeta={nextMeta}
-            count={meta?.count}
-        />
+        <TableProvider
+            args={[
+                {
+                    columns: columns,
+                    //mobileColumn: mobileColumn,
+                    data,
+                    //checkbox: true,
+                    //tableScroll,
+                    //rowSelection,
+                    //setRowSelection,
+                    tableMeta: {
+                        //rowClick(id, rowData) {},
+                    },
+                },
+            ]}
+        >
+            <div className="flex flex-col gap-4 w-full">
+                <div
+                    // {/* ref={tableScroll.containerRef} */}
+                    className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
+                >
+                    <Table>
+                        <TableBody>
+                            <TableRow />
+                        </TableBody>
+                    </Table>
+                </div>
+                {hasNextPage && (
+                    <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />
+                )}
+                {/* <BatchActions /> */}
+            </div>
+        </TableProvider>
     );
 }

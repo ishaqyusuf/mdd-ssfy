@@ -10,6 +10,7 @@
   },
   "exports": {
     ".": "./src/exports.ts",
+    "./constants": "./src/constants.ts",
     "./utils": "./src/utils/utils.ts",
     "./inventory-utils": "./src/utils/inventory-utils.ts",
     "./types": "./src/types.ts",
