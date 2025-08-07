@@ -132,7 +132,7 @@ export default function FormSelect<
                                 disabled={props.disabled}
                                 onValueChange={(v) => {
                                     field.onChange(v);
-                                    onSelect && onSelect(v);
+                                    onSelect && onSelect(v as any);
                                 }}
                                 {...(listMode
                                     ? {

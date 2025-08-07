@@ -20,7 +20,7 @@ import { formatDate } from "@gnd/utils/dayjs";
 import { formatCurrency, formatMoney, sum } from "@gnd/utils";
 import { getSalesSetting, SalesSetting } from "../exports";
 import { z } from "zod";
-import { INVOICE_PRINT_MODES } from "src/constants";
+import { INVOICE_PRINT_MODES } from "../constants";
 import { CSSProperties } from "react";
 export const printInvoiceSchema = z.object({
   ids: z.array(z.number()).optional().nullable(),

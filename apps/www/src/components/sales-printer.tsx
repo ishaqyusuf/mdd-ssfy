@@ -13,7 +13,7 @@ export function SalesInvoiceView({}) {
     } = useQuery(
         trpc.sales.printInvoice.queryOptions(
             {
-                ...ctx.params,
+                ...(ctx.params as any),
             },
             {
                 enabled: !!ctx.params.ids?.length || !!ctx.params.slug?.length,
