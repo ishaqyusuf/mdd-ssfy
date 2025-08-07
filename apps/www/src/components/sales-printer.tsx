@@ -16,7 +16,7 @@ export function SalesInvoiceView({}) {
                 ...(ctx.params as any),
             },
             {
-                enabled: !!ctx.params.ids?.length || !!ctx.params.slug?.length,
+                enabled: !!ctx.params.ids?.length || !!ctx.params.slugs?.length,
             },
         ),
     );
