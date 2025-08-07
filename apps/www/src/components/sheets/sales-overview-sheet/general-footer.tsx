@@ -32,6 +32,8 @@ import { salesFormUrl } from "@/utils/sales-utils";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { AuthGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";
+import { useSalesPrintParams } from "@/hooks/use-sales-print-params";
+import { InvoicePrintModes } from "@sales/types";
 
 export function GeneralFooter({}) {
     const { data } = useSaleOverview();
@@ -55,10 +57,7 @@ export function GeneralFooter({}) {
         });
     }
     const [menuOpen, setMenuOpen] = useState(false);
-    const sPreview = useSalesPreview();
-    function preview() {
-        sPreview.preview(data?.orderId, data?.type);
-    }
+    const printer = useSalesPrintParams();
     const loader = useLoadingToast();
     const sq = useSalesQueryClient();
     const deleteSale = async () => {
@@ -123,7 +122,19 @@ export function GeneralFooter({}) {
                     trash
                     variant="destructive"
                 />
-                <Button size="sm" onClick={preview}>
+                <Button
+                    size="sm"
+                    onClick={(e) => {
+                        printer.setParams({
+                            ids: [data?.id],
+                            modal: true,
+                            type: data?.type,
+                            preview: true,
+                            access: "internal",
+                            mode: "invoice" as InvoicePrintModes,
+                        });
+                    }}
+                >
                     Preview
                 </Button>
                 <Menu

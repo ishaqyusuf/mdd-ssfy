@@ -1,8 +1,13 @@
 import type { db, Prisma } from "@gnd/db";
 import { getItemStatConfig } from "./utils/utils";
-import { composeSalesItemControl, getSaleInformation } from "./exports";
+import {
+  composeSalesItemControl,
+  getSaleInformation,
+  PrintInvoice,
+} from "./exports";
 import { RenturnTypeAsync } from "@gnd/utils";
 import { DISPATCH_ITEM_PACKING_STATUS } from "./utils/constants";
+import { CSSProperties } from "react";
 export type StepMeta = {
   custom: boolean;
   priceStepDeps: string[];
@@ -133,6 +138,24 @@ export type SalesSettingsMeta = {
     };
   };
 };
+export interface StepComponentMeta {
+  stepSequence?: { id?: number }[];
+  deleted?: { [uid in string]: boolean };
+  show?: { [uid in string]: boolean };
+  variations?: {
+    rules: {
+      stepUid: string;
+      operator: "is" | "isNot";
+      componentsUid: string[];
+    }[];
+  }[];
+  sortIndex?;
+  sectionOverride?: {
+    hasSwing?: boolean;
+    noHandle?: boolean;
+    overrideMode?: boolean;
+  };
+}
 export type SettingType = "sales-settings" | "install-price-chart";
 export type Qty = {
   lh?;
@@ -170,8 +193,72 @@ export type ItemControl = {
   shelfId?;
 };
 export type Db = typeof db;
-
+export type { Prisma };
 export type SalesInformation = RenturnTypeAsync<typeof getSaleInformation>;
 export type SalesInfoItem = SalesInformation["items"][number];
 
 export type CustomerTransactionType = "wallet" | "transaction";
+
+export type InvoicePrintModes =
+  | "customer"
+  | "invoice"
+  | "packing slip"
+  | "quote";
+export interface PrintData {
+  id?;
+  salesNo?;
+  billing: string[];
+  shipping: string[];
+  meta: {
+    title: string;
+    details: {
+      label: string;
+      value: string;
+      style?: CSSProperties;
+    }[];
+  };
+  label: InvoicePrintModes;
+  type: SalesType;
+  date: string;
+  salesRep?: string;
+  poNo?: string;
+  status?: "PAID" | "PENDING";
+  total?: string;
+  due?: string;
+  paid?: string;
+  subTotal?: string;
+  extraCosts?: {
+    label?: string;
+    value?: string;
+  }[];
+  linesSection: {
+    title?: string;
+    index?: number;
+    configurations?: { label: string; value: string }[];
+    tableHeader: PrintDataTable[];
+    tableRows: {
+      [id in TableHeaders]: PrintDataTable;
+    }[];
+  }[];
+  query?: PrintInvoice;
+}
+export type PrintLineSection = PrintData["linesSection"][number];
+export type TableHeaders =
+  | "#"
+  | "Door"
+  | "Size"
+  | "Left Hand"
+  | "Right Hand"
+  | "Rate"
+  | "Shipped Qty"
+  | "Moulding"
+  | "Description"
+  | "Qty"
+  | "Swing"
+  | "Total";
+export interface PrintDataTable {
+  text: string[];
+  align?: "start" | "center" | "end";
+  bold?: boolean;
+  width?: "xs" | "sm" | "md";
+}

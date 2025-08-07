@@ -431,7 +431,6 @@ function getDoorsTable(
                         (!item.multiDyke && i.id == item.id) ||
                         (item.multiDyke && item.multiDykeUid == i.multiDykeUid),
                 );
-
                 _multies.map((m, _) => {
                     const getVal = (
                         cell: Cell,
@@ -530,7 +529,6 @@ function getDoorsTable(
                         });
                     }
                 });
-
                 return {
                     _index: item?.meta?.lineIndex,
                     doorType: item.meta.doorType,

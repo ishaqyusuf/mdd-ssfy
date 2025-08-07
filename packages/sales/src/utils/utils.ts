@@ -15,6 +15,7 @@ import {
   AddressBookMeta,
   CustomerMeta,
   DispatchItemPackingStatus,
+  DykeDoorType,
   ItemStatConfigProps,
   QtyControlType,
   SalesStatStatus,
@@ -193,6 +194,7 @@ export const SalesIncludeAll = {
         ...excludeDeleted,
         include: {
           step: true,
+          component: true,
         },
       },
       salesDoors: {
@@ -224,8 +226,35 @@ export const SalesIncludeAll = {
           casing: excludeDeleted,
           door: excludeDeleted,
           jambSize: excludeDeleted,
+          stepProduct: {
+            select: {
+              name: true,
+              product: {
+                select: {
+                  title: true,
+                },
+              },
+            },
+          },
           doors: {
             ...excludeDeleted,
+            include: {
+              stepProduct: {
+                select: {
+                  name: true,
+                  door: {
+                    select: {
+                      title: true,
+                    },
+                  },
+                  product: {
+                    select: {
+                      title: true,
+                    },
+                  },
+                },
+              },
+            },
           },
           molding: excludeDeleted,
         },
@@ -240,7 +269,20 @@ export const SalesIncludeAll = {
   productions: excludeDeleted,
   payments: excludeDeleted,
   stat: excludeDeleted,
-  deliveries: excludeDeleted,
+  deliveries: {
+    ...excludeDeleted,
+    include: {
+      items: {
+        include: {
+          submission: {
+            include: {
+              assignment: true,
+            },
+          },
+        },
+      },
+    },
+  },
   itemDeliveries: excludeDeleted,
   taxes: excludeDeleted,
 } satisfies Prisma.SalesOrdersInclude;
@@ -472,4 +514,60 @@ export function getDispatchControlType(
     default:
       return "dispatchAssigned";
   }
+}
+export function isComponentType(type: DykeDoorType) {
+  const resp = {
+    slab: type == "Door Slabs Only",
+    bifold: type == "Bifold",
+    service: type == "Services",
+    garage: type == "Garage",
+    shelf: type == "Shelf Items",
+    exterior: type == "Exterior",
+    interior: type == "Interior",
+    moulding: type == "Moulding",
+    hasSwing: false,
+    multiHandles: false,
+  };
+  resp.hasSwing = resp.garage;
+  resp.multiHandles = resp.interior || resp.exterior || resp.garage;
+  // resp.interior || resp.exterior || resp.garage || !type;
+  return resp;
+}
+export function inToFt(_in) {
+  let _ft = _in;
+  const duo = _ft.split("x");
+  if (duo.length == 2) {
+    return `${inToFt(duo[0]?.trim())} x ${inToFt(duo[1]?.trim())}`;
+  }
+  try {
+    _ft = +_in.split('"')?.[0]?.split("'")[0]?.split("in")?.[0];
+
+    if (_ft > 0) {
+      _ft = +_ft;
+      const ft = Math.floor(_ft / 12);
+      const rem = _ft % 12;
+
+      return `${ft}-${rem}`;
+    }
+  } catch (e) {}
+  return _in;
+}
+export function ftToIn(h) {
+  const [ft, _in] = h
+    ?.split(" ")?.[0]
+    ?.split("-")
+    ?.map((s) => s?.trim())
+    .filter(Boolean);
+  return `${+_in + +ft * 12}in`;
+}
+export function calculatePaymentTerm(paymentTerm, createdAt) {
+  const t = parseInt(paymentTerm?.replace("Net", ""));
+  let goodUntil: any = null;
+  if (t) {
+    goodUntil = dayjs(createdAt).add(t, "days").toISOString();
+  }
+
+  // form.setValue("goodUntil", goodUntil);
+
+  return goodUntil;
 }

@@ -24,9 +24,10 @@ import { useZodForm } from "@/hooks/use-zod-form";
 import FormSelect from "../common/controls/form-select";
 import FormInput from "../common/controls/form-input";
 import { cn } from "@gnd/ui/cn";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { toast } from "@gnd/ui/use-toast";
+import { useQueryState } from "nuqs";
 
 interface ResolutionDialogProps {
     payment: GetSalesResolutionData["payments"][number];
@@ -85,12 +86,17 @@ export function ResolutionDialog({
     const refundMode = form.watch("refundMode");
     const rcp = useResolutionCenterParams();
     const trpc = useTRPC();
+    const qc = useQueryClient();
     const resolveAction = useMutation(
         trpc.sales.resolvePayment.mutationOptions({
             onSuccess(data, variables, context) {
                 toast({
                     title: "Success",
                     variant: "success",
+                });
+                setOpen(false);
+                qc.invalidateQueries({
+                    queryKey: trpc.sales.getSalesResolutions.queryKey(),
                 });
             },
             onError(error, variables, context) {

@@ -1,25 +1,27 @@
-import React from "react";
-import { SalesPrintData, SalesInvoiceTemplateProps } from "../types";
 import { cn } from "../utils/cn";
 import { SalesPrintHeader } from "./components/sales-print-header";
 import { SalesPrintLineItems } from "./components/sales-print-line-items";
 import { SalesPrintShelfItems } from "./components/sales-print-shelf-items";
 import { SalesPrintDoorItems } from "./components/sales-print-door-items";
 import { SalesPrintFooter } from "./components/sales-print-footer";
+import { PrintData } from "../../types";
+import { SalesPrintSection } from "./components/sales-print-section";
 
-export function HtmlTemplate({ printData }: SalesInvoiceTemplateProps) {
-  // const { sale } = printData;
-  let sale = printData;
-  if (!sale) {
-    return null;
-  }
-
+export interface TemplateProps {
+  data: PrintData;
+}
+export function SalesInvoiceHtmlTemplate({ data }: { data: PrintData }) {
   return (
-    <div className="" id={`salesPrinter`}>
-      <section id={`s${sale.order?.id}`} className={cn("")}>
-        <table className="main mr-10s w-full text-xs table-fixed">
-          <SalesPrintHeader printData={printData} />
-          {sale?.order?.id && (
+    <div className="font-monos" id={`salesPrinter`}>
+      <section id={`s${data?.id}`} className={cn("")}>
+        <table className="main mr-10s w-full text-xs font-monos">
+          <SalesPrintHeader data={data} />
+          <tbody className="">
+            {data.linesSection.map((section, o) => (
+              <SalesPrintSection section={section} data={data} key={o} />
+            ))}
+          </tbody>
+          {/* {sale?.order?.id && (
             <tbody>
               {sale?.orderedPrinting?.map((p, i) =>
                 p.nonShelf ? (
@@ -39,9 +41,9 @@ export function HtmlTemplate({ printData }: SalesInvoiceTemplateProps) {
               <SalesPrintLineItems printData={printData} />
             </tbody>
           )}
-          <SalesPrintFooter printData={printData} />
+          <SalesPrintFooter printData={printData} /> */}
         </table>
-        {sale.isPacking && (
+        {/* {sale.isPacking && (
           <div className="flex px-4 justify-between">
             {["Employee Sig. & Date", "Customer Sig. & Date"].map((s) => (
               <div key={s} className="w-1/4 italic text-sm font-semibold">
@@ -50,7 +52,7 @@ export function HtmlTemplate({ printData }: SalesInvoiceTemplateProps) {
               </div>
             ))}
           </div>
-        )}
+        )} */}
       </section>
     </div>
   );

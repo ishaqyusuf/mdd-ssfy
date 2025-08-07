@@ -1,4 +1,3 @@
-import { Env } from "@/components/env";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";
@@ -21,15 +20,11 @@ import { salesOverviewStore } from "../store";
 import { CopyMenuAction } from "./copy.menu.action";
 import { MoveMenuAction } from "./move.menu.action";
 import { PrintMenuAction } from "./print.menu.action";
-import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 
 export function Footer({}) {
     const store = salesOverviewStore();
-    const sPreview = useSalesPreview();
-    function preview() {
-        sPreview.preview(store.overview?.orderId, store.overview.type as any);
-    }
+
     const customerQuery = useCustomerOverviewQuery();
     const sq = useSalesQueryClient();
     return (
@@ -62,7 +57,7 @@ export function Footer({}) {
                 className="bg-purple-600 hover:bg-purple-700"
                 variant="destructive"
                 size="xs"
-                onClick={preview}
+                onClick={(e) => {}}
             >
                 Preview
             </Button>

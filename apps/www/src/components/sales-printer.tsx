@@ -1,0 +1,34 @@
+import { useTRPC } from "@/trpc/client";
+import { useSalesPrintParams } from "../hooks/use-sales-print-params";
+import { useQuery } from "@tanstack/react-query";
+import { SalesInvoiceHtmlTemplate } from "@sales/sales-template/html";
+import { useEffect } from "react";
+export function SalesInvoiceView({}) {
+    const ctx = useSalesPrintParams();
+    const trpc = useTRPC();
+    const {
+        data: printList,
+        isPending,
+        error,
+    } = useQuery(
+        trpc.sales.printInvoice.queryOptions(
+            {
+                ...ctx.params,
+            },
+            {
+                enabled: !!ctx.params.ids?.length || !!ctx.params.slug?.length,
+            },
+        ),
+    );
+    useEffect(() => {
+        console.log(error);
+    }, [error]);
+    return (
+        <div className="">
+            {printList?.map((data, i) => (
+                <SalesInvoiceHtmlTemplate data={data as any} key={i} />
+            ))}
+        </div>
+    );
+}
+

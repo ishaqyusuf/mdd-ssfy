@@ -22,3 +22,11 @@ export const CUSTOMER_TRANSACTION_STATUS = [
 ] as const;
 export type CustomerTransanctionStatus =
   (typeof CUSTOMER_TRANSACTION_STATUS)[number];
+
+export const INVOICE_PRINT_MODES = [
+  // "customer",
+  "invoice",
+  "packing slip",
+  "quote",
+  "production",
+] as const;

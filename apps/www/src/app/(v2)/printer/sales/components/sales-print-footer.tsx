@@ -44,30 +44,35 @@ export default function SalesPrintFooter() {
             <td className="relative" colSpan={6}>
                 <div>
                     <table className="h-full w-full">
-                        {lines.map((line, index) => (
-                            <tr className="border border-gray-400" key={index}>
-                                <td
-                                    className="bg-slate-200"
-                                    align="left"
-                                    colSpan={4}
+                        <tbody>
+                            {lines.map((line, index) => (
+                                <tr
+                                    className="border border-gray-400"
+                                    key={index}
                                 >
-                                    <Text
-                                        {...line.style}
-                                        className="whitespace-nowrap px-1 py-1.5"
+                                    <td
+                                        className="bg-slate-200"
+                                        align="left"
+                                        colSpan={4}
                                     >
-                                        {line.title}
-                                    </Text>
-                                </td>
-                                <td className="py-1" colSpan={2}>
-                                    <Text
-                                        {...line.style}
-                                        className="whitespace-nowrap px-1"
-                                    >
-                                        {line.value}
-                                    </Text>
-                                </td>
-                            </tr>
-                        ))}
+                                        <Text
+                                            {...line.style}
+                                            className="whitespace-nowrap px-1 py-1.5"
+                                        >
+                                            {line.title}
+                                        </Text>
+                                    </td>
+                                    <td className="py-1" colSpan={2}>
+                                        <Text
+                                            {...line.style}
+                                            className="whitespace-nowrap px-1"
+                                        >
+                                            {line.value}
+                                        </Text>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
                     </table>
                 </div>
             </td>

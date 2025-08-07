@@ -162,6 +162,6 @@ export type SalesPrintShelfItemsTableData = {
 
 export type SalesPrintOrderedPrinting = {
   _index: number;
-  shelf?: SalesPrintShelfItemsTableData["shelfItems"];
+  shelf?; //: SalesPrintShelfItemsTableData["shelfItems"];
   nonShelf?: SalesPrintDoorsTableData["doors"][0];
 };

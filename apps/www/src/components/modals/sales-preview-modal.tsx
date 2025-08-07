@@ -1,12 +1,18 @@
 "use client";
 
-import { Dialog, DialogContent } from "@gnd/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@gnd/ui/dialog";
 
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { SalesPreview } from "../sales-preview";
 import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
 import { Button } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
 
 // export function useSalesPreviewModal() {
 //     const [q, setQ] = useQueryStates({
@@ -55,7 +61,15 @@ export function SalesPreviewModal({}) {
             open={ctx.opened}
         >
             <DialogContent className="w-[800px]s max-w-4xl">
-                <ScrollArea className="h-[90vh] pb-24 overflow-auto">
+                <DialogHeader>
+                    <DialogTitle></DialogTitle>
+                </DialogHeader>
+                <ScrollArea
+                    className={cn(
+                        "h-[90vh] overflow-auto",
+                        !inboundCtx?.params?.inboundOrderId || "pb-24",
+                    )}
+                >
                     <SalesPreview />
                 </ScrollArea>
                 {!inboundCtx?.params?.inboundOrderId || (

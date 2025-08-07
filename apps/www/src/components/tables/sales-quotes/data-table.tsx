@@ -7,7 +7,6 @@ import { Table, TableBody } from "@gnd/ui/table";
 import { TableHeaderComponent } from "../table-header";
 import { TableRow } from "../table-row";
 import { LoadMoreTRPC } from "../load-more";
-import { useSalesPreview } from "@/hooks/use-sales-preview";
 
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { BatchActions } from "./batch-actions";
@@ -21,7 +20,7 @@ export function DataTable() {
         filter: filters,
         route: trpc.sales.quotes,
     });
-    const { setParams: setSalesPreviewParams } = useSalesPreview();
+
     const tableScroll = useTableScroll({
         useColumnWidths: true,
         startFromColumn: 2,

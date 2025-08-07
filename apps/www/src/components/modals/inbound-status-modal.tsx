@@ -20,7 +20,7 @@ import { useTRPC } from "@/trpc/client";
 import { useEffect } from "react";
 import { SubmitButton } from "../submit-button";
 import { ScrollArea } from "@gnd/ui/scroll-area";
-import { useSalesPreview } from "@/hooks/use-sales-preview";
+
 import { del } from "@vercel/blob";
 import { InboundDocumentUploadZone } from "../sales-inbound/inbound-document-upload-zone";
 import Image from "next/image";
@@ -63,7 +63,6 @@ export function InboundSalesModal({}) {
         }),
     );
     const statusList = inboundFilterStatus.filter((a) => a != "total");
-    const salesPreview = useSalesPreview();
     useEffect(() => {
         if (params.inboundOrderId) {
             form.reset({
