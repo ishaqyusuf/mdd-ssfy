@@ -10,7 +10,7 @@ import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { formatMoney } from "@/lib/use-number";
 import { cn } from "@/lib/utils";
 import { salesPaymentMethods } from "@/utils/constants";
-import { CheckCircle, Dot } from "lucide-react";
+import { CheckCircle, Dot, Wallet } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import { Form } from "@gnd/ui/form";
@@ -27,6 +27,7 @@ import {
 
 import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { usePayPortal } from "./pay-portal-context";
+import { useState } from "react";
 
 export function PayPortalTab({}) {
     const {
@@ -41,6 +42,7 @@ export function PayPortalTab({}) {
         pm,
         toast,
     } = usePayPortal();
+    const [showAll, setShowAll] = useState(false);
     return (
         <EmptyState
             empty={data?.totalPayable == 0}
@@ -73,8 +75,8 @@ export function PayPortalTab({}) {
                                     className={cn(
                                         "cursor-pointer",
                                         selections?.includes(sale?.id)
-                                            ? "bg-muted hover:bg-muted/30"
-                                            : "hover:bg-muted/25",
+                                            ? "bg-muted hover:bg-muted"
+                                            : "hover:bg-muted",
                                     )}
                                     onClick={(e) => {
                                         let sels = [...(selections || [])];
@@ -156,109 +158,143 @@ export function PayPortalTab({}) {
                 )}
                 <CustomSheetContentPortal>
                     <SheetFooter className="-m-4 -mb-2 border-t p-4 shadow-xl">
-                        <Form {...form}>
-                            <form
-                                onSubmit={form.handleSubmit((e) => {
-                                    // pToast.updateNotification("loading");
-                                    toast.start();
-                                    makePayment.execute(e);
-                                })}
-                                className="grid w-full grid-cols-2 gap-2"
-                            >
-                                <FormSelect
-                                    size="sm"
-                                    control={form.control}
-                                    name="paymentMethod"
-                                    options={salesPaymentMethods}
-                                    titleKey="label"
-                                    valueKey="value"
-                                    label="Payment Method"
-                                />
-
-                                <FormInput
-                                    control={form.control}
-                                    name="amount"
-                                    type="number"
-                                    size="sm"
-                                    label={"Amounts"}
-                                    prefix="$"
-                                    // disabled
-                                    // disabled={tx.inProgress}
-                                />
-                                <FormInput
-                                    control={form.control}
-                                    name="checkNo"
-                                    size="sm"
-                                    label={"Check No."}
-                                    disabled={pm != "check"}
-                                    // disabled={tx.inProgress}
-                                />
-                                <FormSelect
-                                    options={data?.terminals || []}
-                                    control={form.control}
-                                    size="sm"
-                                    onSelect={(e) => {
-                                        form.setValue("deviceName", e.label);
-                                    }}
-                                    name="deviceId"
-                                    disabled={pm != "terminal"}
-                                    SelectItem={({ option }) => (
-                                        <SelectItem
-                                            value={option.value}
-                                            disabled={
-                                                env.NEXT_PUBLIC_NODE_ENV ==
-                                                "production"
-                                                    ? option.status != "PAIRED"
-                                                    : false
-                                            }
-                                            className=""
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <Dot
-                                                    className={cn(
-                                                        option.status ==
-                                                            "PAIRED"
-                                                            ? "text-green-500"
-                                                            : "text-red-600",
-                                                    )}
-                                                />
-                                                <span>{option.label}</span>
-                                            </div>
-                                        </SelectItem>
-                                    )}
-                                    label="Terminal"
-                                />
-                                <div className="col-span-2 flex justify-end">
-                                    <Env isDev>
-                                        <Button
-                                            type="button"
-                                            onClick={(e) => {
-                                                form.trigger().then((e) => {
-                                                    console.log(
-                                                        form.formState.errors,
-                                                    );
-                                                });
-                                            }}
-                                        >
-                                            AAA
-                                        </Button>
-                                    </Env>
-                                    <SubmitButton
-                                        isSubmitting={
-                                            makePayment.isExecuting ||
-                                            !!terminalPaymentSession
-                                        }
-                                        disabled={
-                                            makePayment.isExecuting ||
-                                            !form.formState.isValid ||
-                                            !!terminalPaymentSession
-                                        }
+                        <div className="flex flex-col w-full">
+                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                                <div className="flex items-center gap-2">
+                                    <Wallet className="h-4 w-4 text-green-600" />
+                                    <span className="font-medium">
+                                        Current Wallet Balance
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-bold text-green-600">
+                                        ${data?.wallet?.balance?.toFixed(2)}
+                                    </span>
+                                    <Button
+                                        disabled={!data?.wallet?.balance}
+                                        className="h-6 px-3"
+                                        size="xs"
                                     >
                                         Pay
-                                    </SubmitButton>
+                                    </Button>
                                 </div>
-                            </form>
-                        </Form>
+                            </div>
+                            <div>
+                                <Form {...form}>
+                                    <form
+                                        onSubmit={form.handleSubmit((e) => {
+                                            // pToast.updateNotification("loading");
+                                            toast.start();
+                                            makePayment.execute(e);
+                                        })}
+                                        className="grid w-full grid-cols-2 gap-2"
+                                    >
+                                        <FormSelect
+                                            size="sm"
+                                            control={form.control}
+                                            name="paymentMethod"
+                                            options={salesPaymentMethods}
+                                            titleKey="label"
+                                            valueKey="value"
+                                            label="Payment Method"
+                                        />
+
+                                        <FormInput
+                                            control={form.control}
+                                            name="amount"
+                                            type="number"
+                                            size="sm"
+                                            label={"Amounts"}
+                                            prefix="$"
+                                            // disabled
+                                            // disabled={tx.inProgress}
+                                        />
+                                        <FormInput
+                                            control={form.control}
+                                            name="checkNo"
+                                            size="sm"
+                                            label={"Check No."}
+                                            disabled={pm != "check"}
+                                            // disabled={tx.inProgress}
+                                        />
+                                        <FormSelect
+                                            options={data?.terminals || []}
+                                            control={form.control}
+                                            size="sm"
+                                            onSelect={(e) => {
+                                                form.setValue(
+                                                    "deviceName",
+                                                    e.label,
+                                                );
+                                            }}
+                                            name="deviceId"
+                                            disabled={pm != "terminal"}
+                                            SelectItem={({ option }) => (
+                                                <SelectItem
+                                                    value={option.value}
+                                                    disabled={
+                                                        env.NEXT_PUBLIC_NODE_ENV ==
+                                                        "production"
+                                                            ? option.status !=
+                                                              "PAIRED"
+                                                            : false
+                                                    }
+                                                    className=""
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <Dot
+                                                            className={cn(
+                                                                option.status ==
+                                                                    "PAIRED"
+                                                                    ? "text-green-500"
+                                                                    : "text-red-600",
+                                                            )}
+                                                        />
+                                                        <span>
+                                                            {option.label}
+                                                        </span>
+                                                    </div>
+                                                </SelectItem>
+                                            )}
+                                            label="Terminal"
+                                        />
+                                        <div className="col-span-2 flex justify-end">
+                                            <Env isDev>
+                                                <Button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        form.trigger().then(
+                                                            (e) => {
+                                                                console.log(
+                                                                    form
+                                                                        .formState
+                                                                        .errors,
+                                                                );
+                                                            },
+                                                        );
+                                                    }}
+                                                >
+                                                    AAA
+                                                </Button>
+                                            </Env>
+                                            <SubmitButton
+                                                isSubmitting={
+                                                    makePayment.isExecuting ||
+                                                    !!terminalPaymentSession
+                                                }
+                                                disabled={
+                                                    makePayment.isExecuting ||
+                                                    !form.formState.isValid ||
+                                                    !!terminalPaymentSession
+                                                }
+                                            >
+                                                Pay
+                                            </SubmitButton>
+                                        </div>
+                                    </form>
+                                </Form>
+                            </div>
+                        </div>
                     </SheetFooter>
                 </CustomSheetContentPortal>
             </DataSkeletonProvider>

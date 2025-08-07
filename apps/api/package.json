@@ -23,6 +23,7 @@
     "@hono/zod-openapi": "^0.19.8",
     "@hono/zod-validator": "^0.7.0",
     "@scalar/hono-api-reference": "^0.9.1",
+    "@gnd/community": "workspace:*",
     "@gnd/db": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@gnd/jobs": "workspace:*",

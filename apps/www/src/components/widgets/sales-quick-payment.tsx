@@ -1,18 +1,11 @@
 import { useZodForm } from "@/hooks/use-zod-form";
-import {
-    AlertDialog,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@gnd/ui/alert-dialog";
 import { Form } from "@gnd/ui/form";
 import { z } from "zod";
 import FormSelect from "../common/controls/form-select";
-import { formatMoney } from "@gnd/utils";
 import { Button } from "@gnd/ui/button";
 import FormInput from "../common/controls/form-input";
+import { useSalesQuickPay } from "@/hooks/use-sales-quick-pay";
+import { CustomModalPortal } from "../modals/custom-modal";
 
 const schema = z.object({
     paymentMethod: z.string(),
@@ -20,18 +13,9 @@ const schema = z.object({
     checkNo: z.string(),
     terminal: z.string(),
 });
-interface Props {
-    salesId;
-    amount?;
-    opened?;
-    setOpened?;
-}
-export function SalesQuickPayment({
-    salesId,
-    amount,
-    opened,
-    setOpened,
-}: Props) {
+interface Props {}
+export function SalesQuickPayment({}: Props) {
+    const qpCtx = useSalesQuickPay();
     const form = useZodForm(schema, {});
     async function onSubmit({}) {}
     return (
@@ -66,7 +50,7 @@ export function SalesQuickPayment({
                             label="Terminal"
                             size="sm"
                         />
-                        <div className="col-span-2">
+                        <CustomModalPortal>
                             <Button
                                 disabled
                                 className="w-full"
@@ -74,7 +58,7 @@ export function SalesQuickPayment({
                             >
                                 Apply Payment
                             </Button>
-                        </div>
+                        </CustomModalPortal>
                     </form>
                 </Form>
             </div>

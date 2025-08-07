@@ -12,6 +12,7 @@ import { openModal } from "@/lib/modal";
 import { Badge } from "@gnd/ui/badge";
 import { groupArray } from "@/lib/utils";
 import dayjs from "dayjs";
+import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 
 interface Props {
     costs: ICostChart[];
@@ -20,13 +21,18 @@ interface Props {
 }
 export default function ModelCostCell({ costs, modal, row }: Props) {
     const cost: ICostChart = costs?.find((c) => c.current) as any;
-
+    let item: ICommunityTemplate = row;
     let money = cost?.meta?.grandTotal;
+    const { setParams } = useCommunityModelCostParams();
     return (
         <Cell
             className="cursor-pointer"
             onClick={() => {
-                openModal(modal, row);
+                // openModal(modal, row);
+                setParams({
+                    editModelCostTemplateId: row.id,
+                    editModelCostId: item?.pivot?.modelCosts?.[0]?.id || -1,
+                });
             }}
         >
             {

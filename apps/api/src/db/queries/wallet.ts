@@ -245,3 +245,17 @@ export async function getCustomerWallet(
     walletBalance,
   };
 }
+
+export const payWithWalletSchema = z.object({
+  salesIds: z.array(z.number()),
+  walletId: z.number(),
+  accountNo: z.string(),
+});
+export type PayWithWallet = z.infer<typeof payWithWalletSchema>;
+
+export async function payWithWallet(ctx: TRPCContext, data: PayWithWallet) {
+  const { db } = ctx;
+  const wallet = await getCustomerWallet(ctx, {
+    accountNo: data.accountNo,
+  });
+}

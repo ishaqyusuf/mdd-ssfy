@@ -1,9 +1,15 @@
 import { createTRPCRouter, publicProcedure } from "../init";
 import {
   buildersList,
+  communityModelCostForm,
+  communityModelCostFormSchema,
+  communityModelCostHistory,
+  communityModelCostHistorySchema,
   createCommnunityModelCost,
   getCommunityTemplateForm,
   projectList,
+  saveCommunityModelCost,
+  saveCommunityModelCostSchema,
   saveCommunityTemplateForm,
 } from "@api/db/queries/community";
 import { z } from "zod";
@@ -19,6 +25,24 @@ export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
   }),
+  communityModelCostHistory: publicProcedure
+    .input(communityModelCostHistorySchema)
+    .query(async (props) => {
+      const result = await communityModelCostHistory(props.ctx, props.input);
+      return result;
+    }),
+  communityModelCostForm: publicProcedure
+    .input(communityModelCostFormSchema)
+    .query(async (props) => {
+      const result = await communityModelCostForm(props.ctx, props.input);
+      return result;
+    }),
+  saveCommunityModelCostForm: publicProcedure
+    .input(saveCommunityModelCostSchema)
+    .mutation(async (props) => {
+      const result = await saveCommunityModelCost(props.ctx, props.input);
+      return result;
+    }),
   getCommunityTemplateForm: publicProcedure
     .input(
       z.object({

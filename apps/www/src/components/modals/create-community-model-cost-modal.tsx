@@ -9,7 +9,6 @@ import { CreateModelCostForm } from "../forms/create-model-cost-form";
 export function CreateCommunityModelCostModal({}) {
     const { createModelCost, setParams } = useCommunityModelCostParams();
     const opened = createModelCost;
-    const trpc = useTRPC();
 
     return (
         <CustomModal

@@ -22,6 +22,7 @@
     "baseUrl": ".",
     "paths": {
       "@api/*": ["src/*"],
+      "@community/*": ["../../packages/community/src/*"],
       "@jobs/*": ["../../packages/jobs/src/*"],
       "@sales/*": ["../../packages/sales/src/*"]
     },

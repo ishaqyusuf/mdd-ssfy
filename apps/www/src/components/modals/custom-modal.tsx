@@ -10,6 +10,7 @@ import { ScrollArea } from "@gnd/ui/scroll-area";
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
 } from "@gnd/ui/dialog";
@@ -27,6 +28,8 @@ const sheetContentVariant = cva("flex flex-col w-full ", {
             sm: "sm:h-[45vh]",
         },
         size: {
+            "3xl": "sm:max-w-3xl",
+            "2xl": "sm:max-w-2xl",
             xl: "sm:max-w-xl",
             default: "",
             lg: "sm:max-w-lg",
@@ -44,13 +47,15 @@ interface Props
     children?;
     open?: boolean;
     onOpenChange?;
-    title: string;
+    title?;
+    description?;
 }
 export function CustomModal({
     children,
     open,
     title,
     onOpenChange,
+    description,
     ...props
 }: Props) {
     return (
@@ -67,6 +72,9 @@ export function CustomModal({
             >
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
+                    {!description || (
+                        <DialogDescription>{description}</DialogDescription>
+                    )}
                 </DialogHeader>
                 {children}
             </DialogContent>

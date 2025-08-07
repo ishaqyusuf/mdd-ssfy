@@ -21,9 +21,7 @@ import { BuilderFilter } from "../../../../../../components/_v1/filters/builder-
 import { ICommunityTemplate } from "@/types/community";
 import InstallCostCell from "../../../../../../components/_v1/community/install-cost-cell";
 import { ProjectsFilter } from "../../../../../../components/_v1/filters/projects-filter";
-import ModelCostCell, {
-    CommunityModelCostCell,
-} from "../../../../../../components/_v1/community/model-cost-cell";
+import ModelCostCell from "../../../../../../components/_v1/community/model-cost-cell";
 import {
     DeleteRowAction,
     EditRowAction,

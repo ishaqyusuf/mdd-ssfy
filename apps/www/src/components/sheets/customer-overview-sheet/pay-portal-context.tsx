@@ -5,15 +5,11 @@ import { getCustomerPayPortalAction } from "@/actions/get-customer-pay-portal-ac
 import { terminalPaymentStatus } from "@/actions/get-terminal-payment-status";
 import { createPaymentSchema } from "@/actions/schema";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
-import {
-    DataSkeletonProvider,
-    useCreateDataSkeletonCtx,
-} from "@/hooks/use-data-skeleton";
+import { useCreateDataSkeletonCtx } from "@/hooks/use-data-skeleton";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { timeout } from "@/lib/timeout";
 import { formatMoney } from "@/lib/use-number";
-import { generateRandomString, sum } from "@/lib/utils";
+import { sum } from "@/lib/utils";
 import { TerminalCheckoutStatus } from "@/modules/square";
 import { printSalesData } from "@/utils/sales-print-utils";
 import { zodResolver } from "@hookform/resolvers/zod";

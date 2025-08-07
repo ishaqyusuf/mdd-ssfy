@@ -87,7 +87,7 @@ export default function TabbedLayout({
         </TabsList>
       </Tabs> */}
             {children && (
-                <div className={cn("space-y-4 px-4 sm:px-8", className)}>
+                <div className={cn("space-y-4 px-4", className)}>
                     {children}
                 </div>
             )}
