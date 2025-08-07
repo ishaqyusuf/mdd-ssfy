@@ -8,6 +8,7 @@ import {
     transformQtyHandle,
 } from "@/utils/sales-control-util";
 import { productionStatus } from "@/utils/sales-utils";
+import { formatDate } from "@gnd/utils/dayjs";
 import { DispatchItemPackingStatus } from "@sales/types";
 
 export async function getSalesItemAssignments(
@@ -80,7 +81,9 @@ export async function getSalesItemAssignments(
                 assignedToId: assignment.assignedToId,
                 dueDate: assignment.dueDate,
                 qty,
+                assignedBy: assignment.assignedBy?.name,
                 completed,
+                assignedOn: formatDate(assignment.createdAt),
                 pending,
                 status: productionStatus(assignment.qtyAssigned, completed.qty),
                 submissions: assignment.submissions.map(

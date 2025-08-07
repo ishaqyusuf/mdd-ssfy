@@ -85,9 +85,9 @@ function Content() {
             // onOpenChange={ctx.setOpenSubmitForm}
         >
             <div className="space-y-3 border border-border p-3">
-                <div className="flex items-center gap-2">
-                    <div className="">
-                        <div className="flex">
+                <div className="flex items-start gap-2">
+                    <div className="space-y-2">
+                        <div className="flex gap-2 items-center">
                             <p className="text-sm font-medium uppercase">
                                 {assignment.assignedTo}
                             </p>
@@ -118,23 +118,30 @@ function Content() {
                                 //     </Tooltip>
                                 // </TooltipProvider>
                             )}
+                            <div className="flex gap-2">
+                                <QtyStatus
+                                    qty={assignment.qty}
+                                    done={assignment.completed}
+                                    label="qty"
+                                />
+                                <QtyStatus
+                                    qty={assignment.qty}
+                                    done={assignment.completed}
+                                    label="rh"
+                                />
+                                <QtyStatus
+                                    qty={assignment.qty}
+                                    done={assignment.completed}
+                                    label="lh"
+                                />
+                            </div>
                         </div>
-                        <div className="flex gap-2">
-                            <QtyStatus
-                                qty={assignment.qty}
-                                done={assignment.completed}
-                                label="qty"
-                            />
-                            <QtyStatus
-                                qty={assignment.qty}
-                                done={assignment.completed}
-                                label="rh"
-                            />
-                            <QtyStatus
-                                qty={assignment.qty}
-                                done={assignment.completed}
-                                label="lh"
-                            />
+
+                        <div className="text-xs items-center font-medium flex gap-1 uppercase">
+                            <span>Assigned by</span>
+                            <Badge>{assignment.assignedBy}</Badge>
+                            {" on "}
+                            <Badge>{assignment.assignedOn}</Badge>
                         </div>
                     </div>
                     <div className="flex-1"></div>

@@ -17,7 +17,6 @@ import {
 import { Icons } from "@gnd/ui/icons";
 
 import { AccessBased } from "./access-based";
-import { ProgressItem } from "./item-progress-bar";
 import { ProductionAssignmentForm } from "./production-assignment-form";
 import { ProductionAssignmentRow } from "./production-assignment-row";
 import { useProductionItem } from "./production-tab";
