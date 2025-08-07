@@ -8,7 +8,7 @@ import { EmployeeFormModal } from "./employee-form-modal";
 import { InboundSalesModal } from "./inbound-status-modal";
 import { LaborCostModal } from "./labor-cost-modal";
 import { SalesEmailSenderModal } from "./sales-email-sender";
-import { SalesInvoicePreviewModal } from "./sales-invoice-preview";
+import { SalesInvoicePreviewModal } from "./sales-invoice-preview-modal";
 import { SalesPreviewModal } from "./sales-preview-modal";
 
 export function GlobalModals() {

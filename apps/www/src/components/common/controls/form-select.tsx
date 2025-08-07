@@ -130,7 +130,10 @@ export default function FormSelect<
                         ) : (
                             <Select
                                 disabled={props.disabled}
-                                onValueChange={field.onChange}
+                                onValueChange={(v) => {
+                                    field.onChange(v);
+                                    onSelect && onSelect(v);
+                                }}
                                 {...(listMode
                                     ? {
                                           defaultValue: field.value,
