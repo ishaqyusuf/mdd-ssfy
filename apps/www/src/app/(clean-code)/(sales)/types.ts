@@ -14,17 +14,11 @@ import { DykeForm as OldDykeForm } from "@/app/(v2)/(loggedIn)/sales-v2/type";
 
 import { GetStepComponent } from "./_common/data-access/step-components.dta";
 import { GetSalesBookForm } from "./_common/use-case/sales-book-form-use-case";
+import { SalesPaymentMethods } from "@sales/constants";
 
 export type SalesType = "order" | "quote";
 export type SalesPriority = "Low" | "High" | "Medium" | "Non";
-export type PaymentMethods =
-    | "link"
-    | "terminal"
-    | "check"
-    | "cash"
-    | "zelle"
-    | "credit-card"
-    | "wire";
+export type PaymentMethods = SalesPaymentMethods;
 export type SquarePaymentMethods = "terminal" | "link";
 export type DykeStepTitles =
     | "Category"

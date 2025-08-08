@@ -9,6 +9,7 @@ import {
 } from "@/lib/community/community-utils";
 import { Cell, DateCellContent } from "./base-columns";
 import Money from "../money";
+import { Progress } from "@/components/(clean-code)/progress";
 interface Props {
     home: ExtendedHome;
 }
@@ -49,8 +50,8 @@ export function HomeStatus({ home }: Props) {
         // setStatus(getHomeProductionStatus(home));
     }, [home]);
     return (
-        <div className="w-16">
-            <Badge
+        <div className="whitespace-nowrap">
+            {/* <Badge
                 variant={"secondary"}
                 className={cn(
                     `h-5 px-1 whitespace-nowrap  text-xs text-slate-100`,
@@ -58,7 +59,10 @@ export function HomeStatus({ home }: Props) {
                 )}
             >
                 {status.status}
-            </Badge>
+            </Badge> */}
+            <Progress>
+                <Progress.Status>{status.status}</Progress.Status>
+            </Progress>
         </div>
     );
 }

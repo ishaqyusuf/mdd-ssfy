@@ -15,10 +15,7 @@ import { Form } from "@gnd/ui/form";
 
 import { Icons } from "@gnd/ui/custom/icons";
 import { GetSalesResolutionData } from "@/actions/get-sales-resolution-data";
-import { useAction } from "next-safe-action/hooks";
-import { resolvePaymentAction } from "@/actions/resolve-payment-issue";
 import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
-import { generateRandomString } from "@/lib/utils";
 import { ResolvePayment, resolvePaymentSchema } from "@api/db/queries/wallet";
 import { useZodForm } from "@/hooks/use-zod-form";
 import FormSelect from "../common/controls/form-select";
@@ -27,7 +24,7 @@ import { cn } from "@gnd/ui/cn";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { toast } from "@gnd/ui/use-toast";
-import { useQueryState } from "nuqs";
+import { SALES_PAYMENT_METHOD_OPTIONS } from "@sales/constants";
 
 interface ResolutionDialogProps {
     payment: GetSalesResolutionData["payments"][number];
@@ -42,11 +39,7 @@ const REFUND_MODES = [
     { value: "full", label: "Full Refund" },
     { value: "part", label: "Part Refund" },
 ];
-const REFUND_METHOD = [
-    { value: "wallet", label: "Wallet" },
-    { value: "cash", label: "Cash" },
-    { value: "other", label: "Other" },
-];
+const REFUND_METHOD = SALES_PAYMENT_METHOD_OPTIONS;
 
 const CANCELLATION_REASONS = [
     { value: "refund-wallet", label: "Refund to Wallet" },
@@ -67,6 +60,7 @@ const REFUND_REASONS = [
 
 export function ResolutionDialog({
     payment,
+    refundableAmount,
     // onResolve,
 }: ResolutionDialogProps) {
     const [open, setOpen] = useState(false);
@@ -225,6 +219,18 @@ export function ResolutionDialog({
                                     }}
                                     label={"Refund Mode"}
                                     options={REFUND_MODES}
+                                    onSelect={(e) => {
+                                        if (
+                                            (e as any) == "part" &&
+                                            refundableAmount
+                                        ) {
+                                            console.log(e);
+                                            form.setValue(
+                                                "refundAmount",
+                                                refundableAmount,
+                                            );
+                                        }
+                                    }}
                                 />
                                 <div className="col-span-2">
                                     <FormInput

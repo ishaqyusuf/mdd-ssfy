@@ -10,6 +10,10 @@ import {
     PaymentMethods,
     SalesDispatchStatus,
 } from "../../types";
+import {
+    SALES_DELIVERY_OPTIONS,
+    SALES_PAYMENT_METHOD_OPTIONS,
+} from "@sales/constants";
 const SalesPriority = [] as any;
 export const SEPARATOR = ` &`;
 
@@ -176,19 +180,5 @@ export const __filters = (): Filters => ({
     },
 });
 
-export const paymentMethods: {
-    label?: string;
-    value?: PaymentMethods;
-}[] = [
-    { label: "Terminal Payment", value: "terminal" },
-    { label: "Check", value: "check" },
-    { label: "Payment Link", value: "link" },
-    { label: "Wire Transfer", value: "wire" },
-    { label: "Credit Card", value: "credit-card" },
-    { label: "Zelle", value: "zelle" },
-    { label: "Cash", value: "cash" },
-];
-export const dispatchModes: { label?: string; value?: DeliveryOption }[] = [
-    { label: "Delivery", value: "delivery" },
-    { label: "Pickup", value: "pickup" },
-];
+export const paymentMethods = SALES_PAYMENT_METHOD_OPTIONS;
+export const dispatchModes = SALES_DELIVERY_OPTIONS;

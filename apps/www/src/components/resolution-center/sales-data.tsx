@@ -53,7 +53,6 @@ export function SalesData({ sale }: { sale: Item }) {
                         </div>
                     </div>
                 </div>
-
                 <div>
                     <h4 className="font-semibold mb-3">Payment History</h4>
                     <DataSkeletonProvider

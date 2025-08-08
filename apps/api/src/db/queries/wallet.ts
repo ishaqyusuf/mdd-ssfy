@@ -1,9 +1,11 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { z } from "zod";
 import { getAuthUser } from "./user";
-import type {
-  CustomerTransanctionStatus,
-  SalesPaymentStatus,
+import {
+  SALES_PAYMENT_METHODS,
+  SALES_REFUND_METHODS,
+  type CustomerTransanctionStatus,
+  type SalesPaymentStatus,
 } from "@sales/constants";
 import type { CustomerTransactionType } from "@sales/types";
 import { updateSalesDueAmount } from "./sales";
@@ -12,7 +14,7 @@ export const resolvePaymentSchema = z.object({
   transactionId: z.number(),
   action: z.enum(["cancel", "refund"]),
   refundAmount: z.number().optional().nullable(),
-  refundMethod: z.enum(["wallet", "cash", "other"]),
+  refundMethod: z.enum(SALES_REFUND_METHODS),
   refundMode: z.enum(["full", "part"]),
   reason: z.string(),
   note: z.string().optional().nullable(),

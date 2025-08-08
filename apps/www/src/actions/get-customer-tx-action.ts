@@ -89,6 +89,11 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
                     amount: true,
                     status: true,
                     meta: true,
+                    squarePayments: {
+                        select: {
+                            paymentId: true,
+                        },
+                    },
                     order: {
                         select: {
                             subTotal: true,
@@ -154,6 +159,8 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
             const order = item?.salesPayments?.[0]?.order;
             const ordersCount = item?.salesPayments?.length;
             const multiSales = ordersCount > 1;
+            const squarePaymentId =
+                item?.salesPayments?.[0]?.squarePayments?.paymentId;
             const laborCost = order?.extraCosts?.find(
                 (a) => a.type == "Labor",
             )?.amount;
@@ -183,6 +190,7 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
                 deliveryCost,
                 grandTotal: order?.grandTotal,
                 subTotal: order?.subTotal,
+                squarePaymentId,
             };
         }),
     );
