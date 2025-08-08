@@ -28,6 +28,7 @@ export async function getSalesResolutions(
     salesNo: query.salesNo,
     "customer.name": query["customer.name"],
   });
+  console.log({ resolvables });
   let { q, size = 20, status, cursor = "0" } = query;
   const meta: PageDataMeta = {};
 
@@ -43,34 +44,33 @@ export async function getSalesResolutions(
     case "Unresolved":
       break;
   }
-  if (q) {
-    const s = q?.toLocaleLowerCase();
-    filteredResolvables = filteredResolvables.filter((a) => {
-      const searchFields = [
-        a.orderId,
-        a?.customer?.name,
-        a?.customer?.businessName,
-        a?.salesRep,
-        a?.accountNo,
-      ]
-        .filter(Boolean)
-        .map((field) => field!.toString().toLocaleLowerCase());
+  // if (q) {
+  //   const s = q?.toLocaleLowerCase();
+  //   filteredResolvables = filteredResolvables.filter((a) => {
+  //     const searchFields = [
+  //       a.orderId,
+  //       a?.customer?.name,
+  //       a?.customer?.businessName,
+  //       a?.salesRep,
+  //       a?.accountNo,
+  //     ]
+  //       .filter(Boolean)
+  //       .map((field) => field!.toString().toLocaleLowerCase());
 
-      // Split search into words and require all to match (AND search)
-      const searchWords = s.split(/\s+/).filter(Boolean);
+  //     // Split search into words and require all to match (AND search)
+  //     const searchWords = s.split(/\s+/).filter(Boolean);
 
-      return searchWords.every((word) => {
-        try {
-          const regex = new RegExp(word, "i");
-          return searchFields.some((field) => regex.test(field));
-        } catch {
-          // fallback to simple includes if regex fails
-          return searchFields.some((field) => field.includes(word));
-        }
-      });
-    });
-    console.log("Filtered resolvables by search:", filteredResolvables?.length);
-  }
+  //     return searchWords.every((word) => {
+  //       try {
+  //         const regex = new RegExp(word, "i");
+  //         return searchFields.some((field) => regex.test(field));
+  //       } catch {
+  //         // fallback to simple includes if regex fails
+  //         return searchFields.some((field) => field.includes(word));
+  //       }
+  //     });
+  //   });
+  // }
   meta.count = filteredResolvables
     .filter((a) => a.status)
     .filter((a) => a.status != "resolved").length;

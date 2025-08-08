@@ -105,7 +105,7 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
   type FilterData = PageFilterData<T>;
 
   const sales = await ctx.db.salesOrders.findMany({
-    where: { type: "quote" as SalesType },
+    where: { type: "order" as SalesType },
     select: {
       orderId: true,
       meta: true,
