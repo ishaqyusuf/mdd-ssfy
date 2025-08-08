@@ -8,7 +8,7 @@ import {
 } from "@sales/constants";
 import type { CustomerTransactionType } from "@sales/types";
 import { updateSalesDueAmount } from "./sales";
-import { squareCreateRefund } from "@square/index";
+import { squareCreateRefund } from "@gnd/square";
 export const resolvePaymentSchema = z.object({
   transactionId: z.number(),
   action: z.enum(["cancel", "refund"]),
