@@ -28,6 +28,7 @@ import Money from "../_v1/money";
 import { toast } from "@gnd/ui/use-toast";
 import { Button } from "@gnd/ui/button";
 import { FormDebugBtn } from "../form-debug-btn";
+import FormDate from "../common/controls/form-date";
 
 interface Props {
     model: RouterOutputs["community"]["communityModelCostHistory"];
@@ -35,7 +36,7 @@ interface Props {
 export function CommunityModelCostForm({ model }: Props) {
     const trpc = useTRPC();
     const { editModelCostId, setParams } = useCommunityModelCostParams();
-    const { data, error } = useQuery(
+    const { data, isPending, error } = useQuery(
         trpc.community.communityModelCostForm.queryOptions(
             {
                 id: editModelCostId,
@@ -50,7 +51,7 @@ export function CommunityModelCostForm({ model }: Props) {
             onSuccess(data, variables, context) {
                 toast({
                     title: "Saved",
-                    variant: "destructive",
+                    variant: "success",
                 });
             },
             onError(error, variables, context) {
@@ -61,7 +62,6 @@ export function CommunityModelCostForm({ model }: Props) {
             },
         }),
     );
-    useDebugPrint(save.error);
 
     const form = useZodForm(saveCommunityModelCostSchema, {
         defaultValues: {
@@ -70,9 +70,9 @@ export function CommunityModelCostForm({ model }: Props) {
             endDate: null,
             costs: {},
             tax: {},
+            communityModelId: null,
         },
     });
-    useDebugPrint(save.error);
     useEffect(() => {
         if (!model) return;
         if (editModelCostId == -1) {
@@ -81,31 +81,32 @@ export function CommunityModelCostForm({ model }: Props) {
                 id: null,
                 endDate: null,
                 costs: Object.fromEntries(
-                    model?.builderTasks?.map((t) => [t.uid, null]),
+                    model?.builderTasks?.map((t) => [t.uid, ""]),
                 ),
                 tax: Object.fromEntries(
-                    model?.builderTasks?.map((t) => [t.uid, null]),
+                    model?.builderTasks?.map((t) => [t.uid, ""]),
                 ),
                 model: model?.model?.modelName,
                 meta: {},
+                communityModelId: model?.model?.id,
             });
-
             return;
         }
         form.reset({
-            endDate: data?.endDate!,
+            endDate: data?.endDate! as any,
             id: data?.id,
-            startDate: data?.startDate!,
+            communityModelId: model?.model?.id,
+            startDate: data?.startDate! as any,
             costs: Object.fromEntries(
                 model?.builderTasks?.map((t) => [
                     t.uid,
-                    data?.meta?.costs?.[t.uid],
+                    data?.meta?.costs?.[t.uid] || "",
                 ]),
             ),
             tax: Object.fromEntries(
                 model?.builderTasks?.map((t) => [
                     t.uid,
-                    data?.meta?.tax?.[t.uid],
+                    data?.meta?.tax?.[t.uid] || "",
                 ]),
             ),
             model: model?.model?.modelName,
@@ -114,7 +115,21 @@ export function CommunityModelCostForm({ model }: Props) {
         });
     }, [data, editModelCostId, model]);
     const onSubmit = async (formData) => {
-        console.log(formData);
+        // console.log(formData);
+        save.mutate({
+            ...formData,
+            meta: data?.meta,
+            costs: Object.fromEntries(
+                Object.entries(formData.costs)
+                    .filter(([k, v]) => String(v)?.length > 0)
+                    .map(([k, v]) => [k, +v]),
+            ),
+            tax: Object.fromEntries(
+                Object.entries(formData.tax)
+                    .filter(([k, v]) => String(v)?.length > 0)
+                    .map(([k, v]) => [k, +v]),
+            ),
+        });
     };
     const [costs, tax] = form.watch(["costs", "tax"]);
     const total = sum(
@@ -124,11 +139,18 @@ export function CommunityModelCostForm({ model }: Props) {
     );
     return (
         <Form {...form}>
-            <form
-                className="grid grid-cols-2"
-                onSubmit={form.handleSubmit(onSubmit)}
-            >
+            <form className="grid grid-cols-2 gap-4">
                 {/* {JSON.stringify(form.)} */}
+                <FormDate
+                    control={form.control}
+                    name="startDate"
+                    label="Start Date"
+                />
+                <FormDate
+                    control={form.control}
+                    name="endDate"
+                    label="End Date"
+                />
                 <div className="col-span-2">
                     <Table className="table-sm w-full">
                         <TableHeader>

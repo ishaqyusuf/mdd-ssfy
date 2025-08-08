@@ -2,6 +2,7 @@ import { useFormContext } from "react-hook-form";
 
 import { Button } from "@gnd/ui/button";
 import { Env } from "@/components/env";
+import { toast } from "@gnd/ui/use-toast";
 
 export function FormDebugBtn({}) {
     const { trigger, formState } = useFormContext();
@@ -13,7 +14,20 @@ export function FormDebugBtn({}) {
                     type="button"
                     onClick={() => {
                         trigger().then((e) => {
-                            console.log(formState);
+                            if (e)
+                                toast({
+                                    title: "Sucess",
+                                    variant: "success",
+                                });
+                            else
+                                toast({
+                                    title: "Error",
+                                    variant: "destructive",
+                                });
+                            const { errors } = formState;
+                            console.log({
+                                errors,
+                            });
                         });
                     }}
                 >

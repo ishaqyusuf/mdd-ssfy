@@ -9,13 +9,15 @@ import {
   type CommunityBuilderMeta,
   type ICostChartMeta,
 } from "@gnd/utils/community";
-import { z } from "zod";
+import { object, z } from "zod";
 import {
   getCommunityPivotId,
   linkUnitsToCommunityByPivotId,
   synchronizeModelCost,
 } from "@community/db-utils";
 import dayjs, { formatDate } from "@gnd/utils/dayjs";
+import { sum } from "@gnd/utils";
+import { composeStepFormDisplay } from "@sales/utils/sales-control";
 export async function projectList(ctx: TRPCContext) {
   const list = await ctx.db.projects.findMany({
     select: {
@@ -212,13 +214,13 @@ export async function communityModelCostForm(
 }
 
 export const saveCommunityModelCostSchema = z.object({
-  startDate: z.string().optional().nullable(),
-  endDate: z.string().optional().nullable(),
+  startDate: z.date().optional().nullable(),
+  endDate: z.date().optional().nullable(),
   id: z.number().optional().nullable(),
   communityModelId: z.number(),
   pivotId: z.number().optional().nullable(),
-  costs: z.record(z.number().optional().nullable()),
-  tax: z.record(z.number().optional().nullable()),
+  costs: z.record(z.any().optional().nullable()),
+  tax: z.record(z.any().optional().nullable()),
   meta: z.any().optional().nullable(),
   model: z.string(),
 });
@@ -242,7 +244,23 @@ export async function saveCommunityModelCost(
       const current = data.endDate
         ? dayjs(data.endDate).diff(dayjs(), "days") > 0
         : true;
-      const mcMeta = data.meta || {};
+      const mcMeta: ICostChartMeta = {
+        ...(data.meta || {}),
+        costs: data.costs,
+        tax: data.tax,
+      };
+      mcMeta.totalCost = sum([
+        ...Object.values(mcMeta.costs),
+        ...Object.values(mcMeta.tax),
+      ]);
+      mcMeta.totalTax = sum([...Object.values(mcMeta.tax)]);
+      mcMeta.sumCosts = {};
+      Array.from(
+        new Set([...Object.keys(mcMeta.costs), ...Object.keys(mcMeta.tax)])
+      ).map((k) => {
+        mcMeta.sumCosts[k] = sum([mcMeta.costs[k], mcMeta.tax[k]]);
+      });
+      mcMeta.grandTotal = sum([mcMeta.totalCost, mcMeta.totalTax]);
 
       let mc;
       if (!data.id) {
@@ -263,8 +281,6 @@ export async function saveCommunityModelCost(
             },
             meta: {
               ...mcMeta,
-              costs: data.costs,
-              tax: data.tax,
             },
             type: "task-costs",
             title,
@@ -280,8 +296,6 @@ export async function saveCommunityModelCost(
             title,
             meta: {
               ...mcMeta,
-              costs: data.costs,
-              tax: data.tax,
             },
             current,
           },

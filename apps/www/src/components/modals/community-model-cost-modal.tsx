@@ -1,5 +1,5 @@
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
-import { CustomModal } from "./custom-modal";
+import { CustomModal, CustomModalContent } from "./custom-modal";
 import { CommunityModelCostForm } from "../forms/community-model-cost-form";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
@@ -51,7 +51,14 @@ export function CommunityModelCostModal() {
                         }}
                     >
                         <SelectTrigger className="h-8">
+                            {/* <span>Cost:</span> */}
                             <SelectValue placeholder="Select Cost" />
+                            {/* <SelectValue asChild placeholder="Select Cost">
+                                <div className="flex bg-red-300">
+                                    <div className="flex-1"></div>
+                                    <span>aa</span>
+                                </div>
+                            </SelectValue> */}
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="-1">New Cost</SelectItem>
@@ -74,9 +81,9 @@ export function CommunityModelCostModal() {
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="flex-1">
+                <CustomModalContent className="lg:max-h-[55vh] overflow-auto">
                     <CommunityModelCostForm model={data} />
-                </div>
+                </CustomModalContent>
             </div>
         </CustomModal>
     );
