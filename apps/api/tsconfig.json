@@ -24,7 +24,8 @@
       "@api/*": ["src/*"],
       "@community/*": ["../../packages/community/src/*"],
       "@jobs/*": ["../../packages/jobs/src/*"],
-      "@sales/*": ["../../packages/sales/src/*"]
+      "@sales/*": ["../../packages/sales/src/*"],
+      "@square/*": ["../../packages/square/src/*"]
     },
     "types": ["bun-types"]
   },

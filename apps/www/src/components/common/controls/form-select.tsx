@@ -173,6 +173,9 @@ export default function FormSelect<
                                                         value={itemValue(
                                                             option,
                                                         )}
+                                                        disabled={
+                                                            !!option?.disabled
+                                                        }
                                                     >
                                                         {Item ? (
                                                             <Item

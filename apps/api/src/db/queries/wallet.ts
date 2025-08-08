@@ -2,14 +2,13 @@ import type { TRPCContext } from "@api/trpc/init";
 import { z } from "zod";
 import { getAuthUser } from "./user";
 import {
-  SALES_PAYMENT_METHODS,
   SALES_REFUND_METHODS,
   type CustomerTransanctionStatus,
   type SalesPaymentStatus,
 } from "@sales/constants";
 import type { CustomerTransactionType } from "@sales/types";
 import { updateSalesDueAmount } from "./sales";
-
+import { squareCreateRefund } from "@square/index";
 export const resolvePaymentSchema = z.object({
   transactionId: z.number(),
   action: z.enum(["cancel", "refund"]),
@@ -18,6 +17,7 @@ export const resolvePaymentSchema = z.object({
   refundMode: z.enum(["full", "part"]),
   reason: z.string(),
   note: z.string().optional().nullable(),
+  squarePaymentId: z.string().optional().nullable(),
 });
 export type ResolvePayment = z.infer<typeof resolvePaymentSchema>;
 
@@ -26,6 +26,7 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
   const user = await getAuthUser(ctx);
   return await db.$transaction(async (prisma) => {
     let walletId, orderId;
+
     if (
       data.action == "cancel" ||
       (data.action == "refund" && data.refundMode == "full")
@@ -125,7 +126,16 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
       const sp = tx.salesPayments?.[0]!;
       orderId = sp.orderId!;
     }
-
+    if (data.refundMethod == "terminal" || data.refundMethod == "credit-card") {
+      await squareCreateRefund({
+        author: (await getAuthUser(ctx))?.name!,
+        amount: data.refundAmount!,
+        reason: data.reason,
+        squarePaymentId: data.squarePaymentId!,
+        tx: prisma,
+        note: "",
+      });
+    }
     if (data.reason == "refund-wallet" || data.action == "refund") {
       if (!walletId) throw new Error("Unable to process, invalid wallet!");
       if (!data.refundAmount) throw new Error("Invalid Refund Process");
@@ -134,7 +144,10 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
         data: {
           amount: data.refundAmount!,
           status: "success" as SalesPaymentStatus,
-          type: "wallet" as CustomerTransactionType,
+          type:
+            data.refundMethod == "wallet"
+              ? "wallet"
+              : ("transaction" as CustomerTransactionType),
           description: data.note,
           statusReason: data.reason,
           walletId,

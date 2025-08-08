@@ -3,8 +3,8 @@
 import { prisma } from "@/db";
 import { env } from "@/env.mjs";
 import { __isProd } from "@/lib/is-prod-server";
-import { SQUARE_LOCATION_ID, squareClient } from "@/utils/square-utils";
-import { ApiError, OrderLineItem, PrePopulatedData } from "square";
+import { squareClient } from "@/utils/square-utils";
+import { OrderLineItem, PrePopulatedData } from "square";
 
 export interface SquarePaymentMeta {
     squareOrderId;

@@ -74,6 +74,7 @@ export function ResolutionDialog({
             refundMethod: "wallet",
             refundMode: "full",
             refundAmount: payment?.amount,
+            squarePaymentId: payment?.squarePaymentId,
         },
     });
 
@@ -104,25 +105,10 @@ export function ResolutionDialog({
         }),
     );
     const onSubmit = (data: ResolvePayment) => {
-        // onResolve(data.action, data.reason, data.note);
-        // setOpen(false);
         resolveAction.mutate({
             ...data,
-            // action: data.action,
-            // note: data.note,
-            // reason: data.reason,
-            // customerTransactionId: payment?.id,
         });
     };
-    // const resolveAction = useAction(resolvePaymentAction, {
-    //     onSuccess() {
-    //         form.reset();
-    //         setOpen(false);
-    //         rcp.setParams({
-    //             refreshToken: generateRandomString(),
-    //         });
-    //     },
-    // });
     const handleOpenChange = (newOpen: boolean) => {
         setOpen(newOpen);
         if (!newOpen) {

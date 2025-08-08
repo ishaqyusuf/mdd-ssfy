@@ -122,6 +122,9 @@ const globalForPrisma = globalThis as unknown as {
 // })
 export const db = globalForPrisma.prisma || prismaClientSingleton();
 export type Database = typeof db;
+export type TransactionClient = Parameters<
+  Parameters<typeof db.$transaction>[0]
+>[0];
 export type Db = typeof db;
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;

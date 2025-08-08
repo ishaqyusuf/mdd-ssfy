@@ -109,9 +109,25 @@ model SquarePayments {
     orders          SquarePaymentOrders[]
     salesPayments   SalesPayments[]
     checkout        SalesCheckout?
+    refunds         SquareRefunds[]
 
     @@index([terminalId])
     @@index([createdById])
+}
+
+model SquareRefunds {
+    id              String          @id @default(cuid())
+    paymentId       String?         @unique
+    note            String?
+    reason          String
+    author          String
+    squarePayment   SquarePayments? @relation(fields: [squarePaymentId], references: [id])
+    squarePaymentId String?
+    deletedAt       DateTime?       @db.Timestamp(0)
+    createdAt       DateTime?       @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?       @updatedAt
+
+    @@index([squarePaymentId])
 }
 
 model SquarePaymentOrders {
