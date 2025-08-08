@@ -8,6 +8,7 @@ type FilterKeys = keyof Exclude<
 
 export const resolutionCenterFilterParamsSchema = {
     q: parseAsString,
+    "order.no": parseAsString,
 } satisfies Partial<Record<FilterKeys, any>>;
 
 export function useResolutionCenterFilterParams() {

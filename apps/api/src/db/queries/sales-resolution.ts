@@ -11,6 +11,7 @@ import type { PageDataMeta } from "@api/type";
 export const getSalesResolutionsSchema = z
   .object({
     status: z.string().optional().nullable(),
+    "order.no": z.string().optional().nullable(),
   })
   .merge(paginationSchema);
 export type GetSalesResolutions = z.infer<typeof getSalesResolutionsSchema>;

@@ -191,7 +191,7 @@ function Action({ item: sale }: { item: Item }) {
     return (
         <Menu disabled={updatePayment?.isExecuting} label="Resolve" noSize>
             {UpdateAmountDue}
-            <Menu.Item
+            {/* <Menu.Item
                 onClick={(e) => {
                     // updatePayment.execute({
                     //     salesId: sale.id,
@@ -212,7 +212,7 @@ function Action({ item: sale }: { item: Item }) {
                 }
             >
                 Refund
-            </Menu.Item>
+            </Menu.Item> */}
         </Menu>
     );
     // return (

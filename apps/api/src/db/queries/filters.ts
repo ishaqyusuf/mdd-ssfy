@@ -222,10 +222,11 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
 export async function getResolutionFilters(ctx: TRPCContext) {
   const baseFilters = await getSalesOrderFilters(ctx);
   type T = keyof GetSalesResolutions;
+  type TOrdersFilter = keyof SalesQueryParamsSchema;
   type FilterData = PageFilterData<T>;
 
   const resp: FilterData[] = baseFilters.filter((a) =>
-    (["q"] as T[]).includes(a.value as any)
+    (["q", "order.no"] as TOrdersFilter[]).includes(a.value as any)
   ) as any;
   resp.push(
     optionFilter<T>(
