@@ -226,7 +226,9 @@ export async function getResolutionFilters(ctx: TRPCContext) {
   type FilterData = PageFilterData<T>;
 
   const resp: FilterData[] = baseFilters.filter((a) =>
-    (["q", "orderNo"] as TOrdersFilter[]).includes(a.value as any)
+    (["q", "salesNo", "customer.name"] as TOrdersFilter[]).includes(
+      a.value as any
+    )
   ) as any;
   resp.push(
     optionFilter<T>(

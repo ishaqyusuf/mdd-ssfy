@@ -184,7 +184,7 @@ export function GeneralFooter({}) {
                                 openLink(
                                     `/sales-book/accounting/resolution-center`,
                                     {
-                                        q: data.orderId,
+                                        salesNo: data.orderId,
                                     },
                                     true,
                                 );
