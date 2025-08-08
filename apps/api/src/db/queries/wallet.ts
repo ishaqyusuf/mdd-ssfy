@@ -81,8 +81,24 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
       orderId = tx?.salesPayments?.[0]?.orderId!;
     }
     if (data.action == "refund") {
-    }
-    if (!walletId && data.action == "refund") {
+      orderId = (
+        await prisma.customerTransaction.findUniqueOrThrow({
+          where: {
+            id: data.transactionId,
+          },
+          select: {
+            salesPayments: {
+              select: {
+                order: {
+                  select: {
+                    id: true,
+                  },
+                },
+              },
+            },
+          },
+        })
+      ).salesPayments?.[0]?.order?.id;
       const tx = await prisma.customerTransaction.update({
         where: {
           id: data.transactionId,

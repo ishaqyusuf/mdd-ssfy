@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@gnd/ui/button";
 import {
     Dialog,
@@ -134,13 +134,25 @@ export function ResolutionDialog({
         watchedAction === "cancel" || watchedAction === "refund";
     const reasonOptions = getReasonsForAction(watchedAction);
     const refundAmount = form.watch("refundAmount");
-    const refundMethods = REFUND_METHOD.map((rm) => {
-        if (!payment?.squarePaymentId) {
-            if (matchValue(rm.value).in("credit-card", "terminal"))
-                (rm as any).disabled = true;
-        }
-        return rm;
-    });
+    const refundMethods = useMemo(
+        () =>
+            REFUND_METHOD.map((rm) => {
+                // if (
+                //     !payment?.squarePaymentId &&
+                //     matchValue(rm.value).in("credit-card", "terminal")
+                // )
+                //     (rm as any).disabled = true;
+                // console.log(
+                //     rm.value,
+                //     payment?.squarePaymentId,
+                //     !payment?.squarePaymentId &&
+                //         matchValue(rm.value).in("credit-card", "terminal"),
+                // );
+                return rm;
+            }),
+        [payment],
+    );
+
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
@@ -156,135 +168,143 @@ export function ResolutionDialog({
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>Resolve Payment Issue</DialogTitle>
-                    <DialogDescription>
-                        Payment ID: {payment.id} | Amount: $
-                        {payment.amount.toLocaleString()}
-                    </DialogDescription>
-                </DialogHeader>
-
-                <Form {...form}>
-                    <form
-                        onSubmit={form.handleSubmit(onSubmit)}
-                        className="space-y-4"
-                    >
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormSelect
-                                control={form.control}
-                                name="action"
-                                size="sm"
-                                options={RESOLUTION_ACTIONS}
-                                label={"Resolution Action"}
-                            />
-                            {shouldShowReasonField && (
-                                <FormSelect
-                                    control={form.control}
-                                    name="reason"
-                                    size="sm"
-                                    rules={{
-                                        required: shouldShowReasonField
-                                            ? "Please select a reason"
-                                            : false,
-                                    }}
-                                    label={
-                                        watchedAction === "cancel"
-                                            ? "Cancellation Reason"
-                                            : "Refund Reason"
-                                    }
-                                    options={reasonOptions}
-                                />
-                            )}
-                        </div>
-                        {watchedAction == "refund" && (
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormSelect
-                                    control={form.control}
-                                    name="refundMethod"
-                                    rules={{
-                                        required: "Please select a method",
-                                    }}
-                                    label={"Refund Method"}
-                                    options={refundMethods}
-                                />
-                                <FormSelect
-                                    control={form.control}
-                                    name="refundMode"
-                                    rules={{
-                                        required: "Please select a mode",
-                                    }}
-                                    label={"Refund Mode"}
-                                    options={REFUND_MODES}
-                                    onSelect={(e) => {
-                                        if (
-                                            (e as any) == "part" &&
-                                            refundableAmount
-                                        ) {
-                                            console.log(e);
-                                            form.setValue(
-                                                "refundAmount",
-                                                refundableAmount,
-                                            );
-                                        }
-                                    }}
-                                />
-                                <div className="col-span-2">
-                                    <FormInput
+                {!open || (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle>Resolve Payment Issue</DialogTitle>
+                            <DialogDescription>
+                                Payment ID: {payment.id} | Amount: $
+                                {payment.amount.toLocaleString()}
+                                {` | ${payment.squarePaymentId}`}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <Form {...form}>
+                            <form
+                                onSubmit={form.handleSubmit(onSubmit)}
+                                className="space-y-4"
+                            >
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormSelect
                                         control={form.control}
-                                        name="refundAmount"
-                                        label="Refund Amount"
-                                        disabled={refundMode === "full"}
-                                        numericProps={{
-                                            prefix: `$`,
-                                            type: "tel",
-                                            max: payment?.amount,
-                                            min: 0,
-                                            placeholder: `$0 / $${payment?.amount}`,
-                                            disabled: refundMode == "full",
-                                            suffix: ` / $${payment?.amount}`,
-                                            className: cn(
-                                                refundAmount > payment?.amount
-                                                    ? "text-red-800"
-                                                    : "",
-                                            ),
-                                        }}
+                                        name="action"
+                                        size="sm"
+                                        options={RESOLUTION_ACTIONS}
+                                        label={"Resolution Action"}
                                     />
+                                    {shouldShowReasonField && (
+                                        <FormSelect
+                                            control={form.control}
+                                            name="reason"
+                                            size="sm"
+                                            rules={{
+                                                required: shouldShowReasonField
+                                                    ? "Please select a reason"
+                                                    : false,
+                                            }}
+                                            label={
+                                                watchedAction === "cancel"
+                                                    ? "Cancellation Reason"
+                                                    : "Refund Reason"
+                                            }
+                                            options={reasonOptions}
+                                        />
+                                    )}
                                 </div>
-                            </div>
-                        )}
-                        <FormInput
-                            control={form.control}
-                            type="textarea"
-                            name="note"
-                            label="Additional Notes"
-                            placeholder="Enter any additional notes..."
-                        />
+                                {watchedAction == "refund" && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormSelect
+                                            control={form.control}
+                                            name="refundMethod"
+                                            rules={{
+                                                required:
+                                                    "Please select a method",
+                                            }}
+                                            label={"Refund Method"}
+                                            options={refundMethods}
+                                        />
+                                        <FormSelect
+                                            control={form.control}
+                                            name="refundMode"
+                                            rules={{
+                                                required:
+                                                    "Please select a mode",
+                                            }}
+                                            label={"Refund Mode"}
+                                            options={REFUND_MODES}
+                                            onSelect={(e) => {
+                                                if (
+                                                    (e as any) == "part" &&
+                                                    refundableAmount
+                                                ) {
+                                                    console.log(e);
+                                                    form.setValue(
+                                                        "refundAmount",
+                                                        refundableAmount,
+                                                    );
+                                                }
+                                            }}
+                                        />
+                                        <div className="col-span-2">
+                                            <FormInput
+                                                control={form.control}
+                                                name="refundAmount"
+                                                label="Refund Amount"
+                                                disabled={refundMode === "full"}
+                                                numericProps={{
+                                                    prefix: `$`,
+                                                    type: "tel",
+                                                    max: payment?.amount,
+                                                    min: 0,
+                                                    placeholder: `$0 / $${payment?.amount}`,
+                                                    disabled:
+                                                        refundMode == "full",
+                                                    suffix: ` / $${payment?.amount}`,
+                                                    className: cn(
+                                                        refundAmount >
+                                                            payment?.amount
+                                                            ? "text-red-800"
+                                                            : "",
+                                                    ),
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                                <FormInput
+                                    control={form.control}
+                                    type="textarea"
+                                    name="note"
+                                    label="Additional Notes"
+                                    placeholder="Enter any additional notes..."
+                                />
 
-                        <DialogFooter>
-                            <Button
-                                disabled={resolveAction?.isPending}
-                                type="button"
-                                variant="outline"
-                                onClick={() => setOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={
-                                    !form.formState.isValid ||
-                                    form.formState.isSubmitting ||
-                                    resolveAction?.isPending
-                                }
-                            >
-                                {form.formState.isSubmitting ||
-                                resolveAction?.isPending
-                                    ? "Applying..."
-                                    : "Apply Resolution"}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
+                                <DialogFooter>
+                                    <Button
+                                        disabled={resolveAction?.isPending}
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setOpen(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        disabled={
+                                            !form.formState.isValid ||
+                                            form.formState.isSubmitting ||
+                                            resolveAction?.isPending
+                                        }
+                                    >
+                                        {form.formState.isSubmitting ||
+                                        resolveAction?.isPending
+                                            ? "Applying..."
+                                            : "Apply Resolution"}
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </Form>
+                    </>
+                )}
             </DialogContent>
         </Dialog>
     );

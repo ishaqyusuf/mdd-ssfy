@@ -174,7 +174,7 @@ export default function FormSelect<
                                                             option,
                                                         )}
                                                         disabled={
-                                                            !!option?.disabled
+                                                            option?.disabled
                                                         }
                                                     >
                                                         {Item ? (

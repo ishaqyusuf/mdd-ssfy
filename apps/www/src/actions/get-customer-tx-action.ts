@@ -11,6 +11,7 @@ import { salesAccountingQueryMetaData } from "@/utils/db/query.sales-accounting"
 import { PaymentMethods, SalesHaving } from "@/utils/constants";
 import { __getPaymentCountBySales } from "./cached-sales-accounting";
 import { padStart } from "lodash";
+import { sum } from "@gnd/utils";
 
 export type GetSalesCustomerTx = AsyncFnType<
     typeof getCustomerTransactionsAction
@@ -131,7 +132,10 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
     // );
     return await response(
         list.map((item) => {
-            const amount = formatMoney(Math.abs(item.amount));
+            const amount =
+                item.salesPayments?.length > 0
+                    ? sum(item.salesPayments.map((a) => a.amount))
+                    : formatMoney(Math.abs(item.amount));
             const orderIds = item.salesPayments.map((a) => a.order.orderId);
             const orderIdsString = orderIds
                 .join(", ")
