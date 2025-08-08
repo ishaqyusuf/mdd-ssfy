@@ -24,7 +24,10 @@ export async function getSalesResolutions(
   query: GetSalesResolutions
 ) {
   const { db } = ctx;
-  const resolvables = await getSalesResolvables(ctx, query);
+  const resolvables = await getSalesResolvables(ctx, {
+    salesNo: query.salesNo,
+    "customer.name": query["customer.name"],
+  });
   let { q, size = 20, status, cursor = "0" } = query;
   const meta: PageDataMeta = {};
 
@@ -101,6 +104,7 @@ export async function getSalesResolvables(
   });
   const _whereSales = whereSales(query);
   const isDefaultFilter = filterIsDefault(query);
+
   const list = await prisma.salesOrders.findMany({
     where: {
       type: "order" as SalesType,
@@ -195,7 +199,7 @@ export async function getSalesResolvables(
       };
     })
     .filter(
-      isDefaultFilter
+      !isDefaultFilter
         ? Boolean
         : (a) => a.status || !!resolvedToday?.find((b) => b.salesId == a.id)
     )

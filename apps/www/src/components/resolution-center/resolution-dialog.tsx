@@ -31,6 +31,7 @@ import { useQueryState } from "nuqs";
 
 interface ResolutionDialogProps {
     payment: GetSalesResolutionData["payments"][number];
+    refundableAmount?;
 }
 
 const RESOLUTION_ACTIONS = [

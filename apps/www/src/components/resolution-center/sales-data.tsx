@@ -138,6 +138,14 @@ export function SalesData({ sale }: { sale: Item }) {
                                             <DataSkeleton pok="textLg">
                                                 <ResolutionDialog
                                                     payment={payment}
+                                                    refundableAmount={
+                                                        sale?.due < 0
+                                                            ? Math.min(
+                                                                  sale.due * -1,
+                                                                  payment.amount,
+                                                              )
+                                                            : 0
+                                                    }
                                                     // onResolve={(action, reason, note) =>
                                                     //     handleResolve(
                                                     //         sale.id,
