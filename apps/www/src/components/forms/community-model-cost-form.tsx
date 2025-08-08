@@ -15,7 +15,7 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { TCell } from "../(clean-code)/data-table/table-cells";
 import { CustomModalPortal } from "../modals/custom-modal";
@@ -29,6 +29,8 @@ import { toast } from "@gnd/ui/use-toast";
 import { Button } from "@gnd/ui/button";
 import { FormDebugBtn } from "../form-debug-btn";
 import FormDate from "../common/controls/form-date";
+import { revalidatePathAction } from "@/actions/revalidate-path";
+import { useQueryState } from "nuqs";
 
 interface Props {
     model: RouterOutputs["community"]["communityModelCostHistory"];
@@ -46,12 +48,17 @@ export function CommunityModelCostForm({ model }: Props) {
             },
         ),
     );
+    const qc = useQueryClient();
     const save = useMutation(
         trpc.community.saveCommunityModelCostForm.mutationOptions({
             onSuccess(data, variables, context) {
                 toast({
                     title: "Saved",
                     variant: "success",
+                });
+                revalidatePathAction("/settings/community/community-templates");
+                qc.invalidateQueries({
+                    queryKey: trpc.community.communityModelCostForm.queryKey(),
                 });
             },
             onError(error, variables, context) {
@@ -197,7 +204,6 @@ export function CommunityModelCostForm({ model }: Props) {
                         </TableBody>
                     </Table>
                 </div>
-
                 <CustomModalPortal>
                     <DialogFooter className="flex items-center justify-end gap-4">
                         <div className="text-xl font-semibold">

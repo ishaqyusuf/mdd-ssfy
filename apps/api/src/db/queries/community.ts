@@ -249,10 +249,7 @@ export async function saveCommunityModelCost(
         costs: data.costs,
         tax: data.tax,
       };
-      mcMeta.totalCost = sum([
-        ...Object.values(mcMeta.costs),
-        ...Object.values(mcMeta.tax),
-      ]);
+      mcMeta.totalCost = sum([...Object.values(mcMeta.costs)]);
       mcMeta.totalTax = sum([...Object.values(mcMeta.tax)]);
       mcMeta.sumCosts = {};
       Array.from(
@@ -308,4 +305,20 @@ export async function saveCommunityModelCost(
       timeout: 20 * 1000,
     }
   );
+}
+export const deleteModelCostSchema = z.object({
+  modelCostId: z.number(),
+});
+export type DeleteModelCost = z.infer<typeof deleteModelCostSchema>;
+
+export async function deleteModelCost(ctx: TRPCContext, data: DeleteModelCost) {
+  const { db } = ctx;
+  await db.communityModelCost.update({
+    where: {
+      id: data.modelCostId,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
 }

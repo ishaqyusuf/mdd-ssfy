@@ -6,6 +6,8 @@ import {
   communityModelCostHistory,
   communityModelCostHistorySchema,
   createCommnunityModelCost,
+  deleteModelCost,
+  deleteModelCostSchema,
   getCommunityTemplateForm,
   projectList,
   saveCommunityModelCost,
@@ -19,9 +21,6 @@ import {
 } from "@api/schemas/community";
 
 export const communityRouters = createTRPCRouter({
-  projectsList: publicProcedure.query(async (q) => {
-    return projectList(q.ctx);
-  }),
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
   }),
@@ -37,11 +36,15 @@ export const communityRouters = createTRPCRouter({
       const result = await communityModelCostForm(props.ctx, props.input);
       return result;
     }),
-  saveCommunityModelCostForm: publicProcedure
-    .input(saveCommunityModelCostSchema)
+  createCommunityModelCost: publicProcedure
+    .input(createCommunityModelCostSchema)
     .mutation(async (props) => {
-      const result = await saveCommunityModelCost(props.ctx, props.input);
-      return result;
+      return createCommnunityModelCost(props.ctx, props.input);
+    }),
+  deleteModelCost: publicProcedure
+    .input(deleteModelCostSchema)
+    .mutation(async (props) => {
+      return deleteModelCost(props.ctx, props.input);
     }),
   getCommunityTemplateForm: publicProcedure
     .input(
@@ -52,16 +55,21 @@ export const communityRouters = createTRPCRouter({
     .query(async (props) => {
       return getCommunityTemplateForm(props.ctx, props.input?.templateId);
     }),
+  projectsList: publicProcedure.query(async (q) => {
+    return projectList(q.ctx);
+  }),
+  saveCommunityModelCostForm: publicProcedure
+    .input(saveCommunityModelCostSchema)
+    .mutation(async (props) => {
+      const result = await saveCommunityModelCost(props.ctx, props.input);
+      return result;
+    }),
   saveCommunityTemplateData: publicProcedure
     .input(communityTemplateFormSchema)
     .mutation(async (props) => {
       return saveCommunityTemplateForm(props.ctx, props.input);
     }),
-  createCommunityModelCost: publicProcedure
-    .input(createCommunityModelCostSchema)
-    .mutation(async (props) => {
-      return createCommnunityModelCost(props.ctx, props.input);
-    }),
+
   // getProjectForm: publicProcedure.query(async (props) => {
   //   return;
   // }),

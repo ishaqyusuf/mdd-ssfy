@@ -101,7 +101,6 @@ export function CommunityCostForm({ form, data, watchIndex }: ModelCostProps) {
                 cost.model = data.modelName;
 
                 const { _id, community, ..._cost } = cost as any;
-
                 const c = await _saveCommunitModelCostData(
                     _cost as any,
                     data.id,
