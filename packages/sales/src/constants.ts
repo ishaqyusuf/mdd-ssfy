@@ -43,6 +43,7 @@ export const SALES_PAYMENT_METHODS = [
   "zelle",
   "credit-card",
   "wire",
+  "wallet",
 ] as const;
 export type SalesPaymentMethods = (typeof SALES_PAYMENT_METHODS)[number];
 export const SALES_PAYMENT_METHOD_OPTIONS: {
@@ -76,7 +77,7 @@ export const SALES_PAYMENT_CANCELLATION_REASONS = [
 
 export const SALES_REFUND_METHODS = [
   ...SALES_PAYMENT_METHODS,
-  "wallet",
+  // "wallet",
 ] as const;
 export type SalesRefundMethods = (typeof SALES_REFUND_METHODS)[number];
 export const SALES_REFUND_METHODS_OPTIONS: {

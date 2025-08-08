@@ -15,6 +15,7 @@
     "./inventory-utils": "./src/utils/inventory-utils.ts",
     "./types": "./src/types.ts",
     "./get-sale-information": "./src/sales-control/get-sale-information.ts",
+    "./sales-transaction": "./src/sales-transaction.ts",
     "./wallet": "./src/wallet.ts"
   },
   "dependencies": {

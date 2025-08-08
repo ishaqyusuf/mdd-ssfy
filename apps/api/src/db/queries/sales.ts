@@ -28,11 +28,7 @@ import {
   mouldingItemControlUid,
 } from "@api/utils/sales-control";
 import { formatCurrency, formatMoney, sum } from "@gnd/utils";
-import type { db } from "@gnd/db";
-import { INVOICE_PRINT_MODES, type SalesPaymentStatus } from "@sales/constants";
-import { z } from "zod";
-import { getInvoicePrintData } from "@sales/exports";
-
+import { calculateSalesDueAmount } from "@sales/sales-transaction";
 export async function getSales(
   ctx: TRPCContext,
   query: SalesQueryParamsSchema
@@ -348,43 +344,5 @@ export async function getSalesLifeCycle(
   };
 }
 export async function updateSalesDueAmount(id, _tx) {
-  const tx: typeof db = _tx;
-  const order = await tx.salesOrders.findUniqueOrThrow({
-    where: {
-      id,
-    },
-    select: {
-      amountDue: true,
-      grandTotal: true,
-      id: true,
-      payments: {
-        where: {
-          status: "success" as SalesPaymentStatus,
-          deletedAt: null,
-        },
-        select: {
-          amount: true,
-          transaction: {
-            where: {
-              deletedAt: null,
-            },
-            select: {
-              amount: true,
-              type: true,
-            },
-          },
-        },
-      },
-    },
-  });
-  const totalPaid = formatMoney(sum(order.payments, "amount"));
-  const amountDue = formatMoney(order.grandTotal! - totalPaid);
-  if (amountDue !== order.amountDue) {
-    await tx.salesOrders.update({
-      where: { id: order.id },
-      data: {
-        amountDue,
-      },
-    });
-  }
+  await calculateSalesDueAmount(_tx, id);
 }

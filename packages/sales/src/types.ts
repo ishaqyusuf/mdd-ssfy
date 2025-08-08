@@ -196,7 +196,13 @@ export type { Prisma };
 export type SalesInformation = RenturnTypeAsync<typeof getSaleInformation>;
 export type SalesInfoItem = SalesInformation["items"][number];
 
-export type CustomerTransactionType = "wallet" | "transaction";
+export const CUSTOMER_TRANSACTION_TYPES = [
+  "wallet",
+  "transaction",
+  "pay-with-wallet",
+] as const;
+export type CustomerTransactionType =
+  (typeof CUSTOMER_TRANSACTION_TYPES)[number];
 
 export type InvoicePrintModes =
   | "customer"
