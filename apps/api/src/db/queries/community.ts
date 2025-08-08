@@ -306,12 +306,17 @@ export async function saveCommunityModelCost(
     }
   );
 }
-export const deleteModelCostSchema = z.object({
+export const deleteCommunityModelCostSchema = z.object({
   modelCostId: z.number(),
 });
-export type DeleteModelCost = z.infer<typeof deleteModelCostSchema>;
+export type DeleteCommunityModelCost = z.infer<
+  typeof deleteCommunityModelCostSchema
+>;
 
-export async function deleteModelCost(ctx: TRPCContext, data: DeleteModelCost) {
+export async function deleteCommunityModelCost(
+  ctx: TRPCContext,
+  data: DeleteCommunityModelCost
+) {
   const { db } = ctx;
   await db.communityModelCost.update({
     where: {

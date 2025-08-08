@@ -72,7 +72,23 @@ export function CommunityModelCostForm({ model }: Props) {
             },
         }),
     );
-
+    const { mutate: deleteCommunityModel } = useMutation(
+        trpc.community.deleteCommunityModelCost.mutationOptions({
+            onSuccess(data, variables, context) {
+                toast({
+                    title: "Deleted",
+                    variant: "success",
+                });
+                revalidatePathAction("/settings/community/community-templates");
+                qc.invalidateQueries({
+                    queryKey: trpc.community.communityModelCostForm.queryKey(),
+                });
+                setParams({
+                    editModelCostId: -1,
+                });
+            },
+        }),
+    );
     const form = useZodForm(saveCommunityModelCostSchema, {
         defaultValues: {
             id: null,
@@ -181,13 +197,18 @@ export function CommunityModelCostForm({ model }: Props) {
                         >
                             Create Copy
                         </Menu.Item>
-                        <Menu.Item
-                            disabled={editModelCostId == -1}
-                            className="bg-destructive text-destructive-foreground"
-                            icon="Delete"
+                        <Menu.Trash
+                            action={(e) => {
+                                if (editModelCostId != -1)
+                                    deleteCommunityModel({
+                                        modelCostId: editModelCostId,
+                                    });
+                            }}
+                            // disabled={editModelCostId == -1}
+                            // className="bg-destructive text-destructive-foreground"
                         >
                             Delete
-                        </Menu.Item>
+                        </Menu.Trash>
                     </Menu>
                 </Portal>
                 {/* {JSON.stringify(form.)} */}

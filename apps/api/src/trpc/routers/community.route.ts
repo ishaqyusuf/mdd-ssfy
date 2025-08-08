@@ -6,8 +6,8 @@ import {
   communityModelCostHistory,
   communityModelCostHistorySchema,
   createCommnunityModelCost,
-  deleteModelCost,
-  deleteModelCostSchema,
+  deleteCommunityModelCost,
+  deleteCommunityModelCostSchema,
   getCommunityTemplateForm,
   projectList,
   saveCommunityModelCost,
@@ -41,10 +41,10 @@ export const communityRouters = createTRPCRouter({
     .mutation(async (props) => {
       return createCommnunityModelCost(props.ctx, props.input);
     }),
-  deleteModelCost: publicProcedure
-    .input(deleteModelCostSchema)
+  deleteCommunityModelCost: publicProcedure
+    .input(deleteCommunityModelCostSchema)
     .mutation(async (props) => {
-      return deleteModelCost(props.ctx, props.input);
+      return deleteCommunityModelCost(props.ctx, props.input);
     }),
   getCommunityTemplateForm: publicProcedure
     .input(
