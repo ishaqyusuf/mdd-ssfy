@@ -24,7 +24,7 @@ export default function ProductionsPageClient({
             return [
                 ctx.Column("Due Date", "date", Cells.Date),
                 ctx.Column("", "alert", Cells.Alert),
-                ctx.Column("Order #", "order.no", Cells.Order),
+                ctx.Column("Order #", "orderNo", Cells.Order),
                 ctx.Column("Customer", "customer", Cells.Customer),
                 ctx.Column("Sales Rep", "sales.rep", Cells.SalesRep),
                 ctx.Column("Assigned To", "assignments", Cells.Assignments),

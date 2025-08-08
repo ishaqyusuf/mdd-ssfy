@@ -48,7 +48,7 @@ export const getSalesPageQueryData = async (params?: SearchParamsType) => {
                 },
             });
             const result: Partial<{ [k in FilterKeys]: any }> = {
-                "order.no": sales.map((s) => s.orderId),
+                orderNo: sales.map((s) => s.orderId),
                 phone: [
                     ...new Set(
                         sales

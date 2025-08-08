@@ -24,7 +24,7 @@ const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
         const { data } = useQuery(
             ctx.salesQuery.trpc.sales.getSaleOverview.queryOptions(
                 {
-                    "order.no": ctx.params["sales-overview-id"],
+                    orderNo: ctx.params["sales-overview-id"],
                     salesType: ctx.params["sales-type"],
                 },
                 {

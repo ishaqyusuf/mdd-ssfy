@@ -196,7 +196,7 @@ export function whereSales(query: SalesQueryParamsSchema) {
       //       id: Number(query.id),
       //     });
       //   break;
-      case "order.no":
+      case "orderNo":
       case "salesNo":
         if (val?.includes(","))
           where.push({

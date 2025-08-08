@@ -75,7 +75,7 @@ export function whereSales(query: SearchParamsType) {
                     id: query.id,
                 });
                 break;
-            case "order.no":
+            case "orderNo":
                 whereAnd.push({
                     orderId: {
                         contains: val,

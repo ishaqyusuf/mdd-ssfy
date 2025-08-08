@@ -62,7 +62,7 @@ export async function getSalesPageQueryDataDta() {
         },
     });
     const result: Partial<{ [k in FilterKeys]: any }> = {
-        "order.no": sales.map((s) => s.orderId),
+        orderNo: sales.map((s) => s.orderId),
         phone: [
             ...new Set(
                 sales
@@ -71,7 +71,7 @@ export async function getSalesPageQueryDataDta() {
                         s.billingAddress?.phoneNo,
                     ])
                     .flat()
-                    .filter(Boolean)
+                    .filter(Boolean),
             ),
         ],
         "customer.name": [
@@ -80,9 +80,9 @@ export async function getSalesPageQueryDataDta() {
                     .map((s) =>
                         [s.customer?.name, s.customer?.businessName]
                             .flat()
-                            .filter(Boolean)
+                            .filter(Boolean),
                     )
-                    .flat()
+                    .flat(),
             ),
         ],
         "sales.rep": [

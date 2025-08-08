@@ -6,7 +6,7 @@ import { createSearchParamsCache } from "nuqs/server";
 
 const {
     "salesRep.id": salesRepId,
-    "order.no": orderNo,
+    orderNo: orderNo,
     "payment.type": paymentType,
     "sales.having": salesHaving,
     employeeProfileId,
@@ -17,7 +17,7 @@ export const accountingPageQuery = {
     "salesRep.id": salesRepId,
     "payment.type": paymentType,
     "sales.having": salesHaving,
-    "order.no": orderNo,
+    orderNo: orderNo,
     employeeProfileId,
 } as { [k in SearchParamsKeys]: any };
 export const searchParamsCache = createSearchParamsCache(accountingPageQuery);

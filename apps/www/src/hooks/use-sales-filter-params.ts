@@ -9,7 +9,7 @@ export const salesFilterParamsSchema = {
     phone: parseAsString,
     po: parseAsString,
     "sales.rep": parseAsString,
-    "order.no": parseAsString,
+    orderNo: parseAsString,
     "production.assignment": parseAsString,
     "production.status": parseAsString,
     "dispatch.status": parseAsString,

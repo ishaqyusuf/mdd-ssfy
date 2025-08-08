@@ -36,7 +36,7 @@ export default function OrdersPageClient({
         cells(ctx) {
             return [
                 ctx.Column("Date", "date", Cells.Date),
-                ctx.Column("Order #", "order.no", Cells.Order),
+                ctx.Column("Order #", "orderNo", Cells.Order),
                 ctx.Column("P.O", "po", Cells.Po),
                 ctx.Column("Customer", "customer", Cells.Customer),
                 ctx.Column("Phone", "phone", Cells.CustomerPhone),

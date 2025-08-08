@@ -45,7 +45,7 @@ export const columns: ColumnDef<Item>[] = [
     },
     {
         header: "Order #",
-        accessorKey: "order.no",
+        accessorKey: "orderNo",
         cell: ({ row: { original: item } }) => (
             <TCell.Secondary className="whitespace-nowrap inline-flex items-center gap-1">
                 <span>{item.orderId}</span>

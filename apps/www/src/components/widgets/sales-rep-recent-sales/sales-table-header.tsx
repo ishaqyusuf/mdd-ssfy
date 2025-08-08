@@ -35,7 +35,7 @@ export function SalesTableHeader({}) {
                     <TableHead
                         key={cid}
                         className={cn(
-                            column.id == "order.no" && "hidden md:table-cell",
+                            column.id == "orderNo" && "hidden md:table-cell",
                         )}
                     >
                         <Button

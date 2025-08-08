@@ -75,7 +75,7 @@ export const __filters = (): Filters => ({
     "production-tasks": {
         fields: [
             // filterFields["production.assignedToId"],
-            filterFields["order.no"],
+            filterFields["orderNo"],
             filterFields["production"],
             filterFields.search,
             filterFields["production.dueDate"],
@@ -87,7 +87,7 @@ export const __filters = (): Filters => ({
     },
     "sales-productions": {
         fields: [
-            filterFields["order.no"],
+            filterFields["orderNo"],
             filterFields["production"],
             filterFields.search,
             filterFields["production.dueDate"],
@@ -112,7 +112,7 @@ export const __filters = (): Filters => ({
     },
     orders: {
         fields: [
-            filterFields["order.no"],
+            filterFields["orderNo"],
             filterFields.po,
             filterFields.phone,
             filterFields["customer.name"],
@@ -125,7 +125,7 @@ export const __filters = (): Filters => ({
             filterFields["sales.priority"],
         ],
         filterColumns: [
-            filterCol("order.no"),
+            filterCol("orderNo"),
             filterCol("customer.name"),
             filterCol("dispatch.status"),
             filterCol("production.assignment"),
@@ -146,7 +146,7 @@ export const __filters = (): Filters => ({
     quotes: {
         fields: [
             filterFields.search,
-            filterFields["order.no"],
+            filterFields["orderNo"],
             filterFields.po,
             filterFields.phone,
             filterFields["customer.name"],
@@ -167,11 +167,11 @@ export const __filters = (): Filters => ({
     "sales-accounting": {
         fields: [
             filterFields.search,
-            filterFields["order.no"],
+            filterFields["orderNo"],
 
             //
         ],
-        // filterColumns: [filterCol("search"), filterCol("order.no")],
+        // filterColumns: [filterCol("search"), filterCol("orderNo")],
         options: {},
     },
 });

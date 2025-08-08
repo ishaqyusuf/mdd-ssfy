@@ -24,7 +24,7 @@ export default async function Page(props) {
             </Portal>
             <TablePage
                 queryData={{
-                    "order.no": orderNos,
+                    orderNo: orderNos,
                 }}
                 PageClient={ProductionTasksPageClient}
                 searchParams={searchParams}
@@ -33,3 +33,4 @@ export default async function Page(props) {
         </FPage>
     );
 }
+

@@ -15,10 +15,10 @@ export function whereSalesPayment(query: SearchParamsType) {
             },
         });
     }
-    if (query["order.no"])
+    if (query["orderNo"])
         whereAnd.push({
             order: {
-                orderId: query["order.no"],
+                orderId: query["orderNo"],
             },
         });
     if (query["customer.tx.id"])

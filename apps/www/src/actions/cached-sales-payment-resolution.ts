@@ -94,7 +94,7 @@ export async function salesPaymentResoltionFilters() {
             },
         });
         response.push({
-            value: "order.no",
+            value: "orderNo",
             label: "Order No",
             type: "checkbox",
             options: salesIds.map((a) => ({

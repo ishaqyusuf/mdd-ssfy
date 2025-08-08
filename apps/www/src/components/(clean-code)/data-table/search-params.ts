@@ -97,7 +97,7 @@ export const searchParamsParser: {
     "production.status": parseAsInteger,
     "production.dueDate": parseAsArrayOf(parseAsString),
     // ": parseAsString,
-    "order.no": parseAsString,
+    orderNo: parseAsString,
     po: parseAsString,
     phone: parseAsString,
     resolvedAt: parseAsString,
@@ -144,7 +144,7 @@ export const searchSchema = z
         "date.to": z.string().optional(),
         "date.filter": z.string().optional(),
 
-        "order.no": z.string().optional(),
+        orderNo: z.string().optional(),
         po: z.string().optional(),
         phone: z.string().optional(),
         "dispatch.status": z.enum(DISPATCH_FILTER_OPTIONS).optional(),

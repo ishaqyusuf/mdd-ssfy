@@ -104,7 +104,7 @@ export function whereSales(params: SearchParamsType) {
             case "invoice":
                 whereInvoice(queries, params);
                 break;
-            case "order.no":
+            case "orderNo":
                 if (val?.includes(","))
                     queries.push({
                         orderId: {

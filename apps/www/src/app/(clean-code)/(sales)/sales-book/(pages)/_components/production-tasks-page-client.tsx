@@ -24,7 +24,7 @@ export default function ProductionTasksPageClient({
                 ctx.Column("Due Date", "date", Cells.Date),
                 ctx.Column("Assigned To", "assignedTo", Cells.AssignedTo),
                 ctx.Column("Customer", "customer", Cells.Customer),
-                ctx.Column("Order #", "order.no", Cells.Order),
+                ctx.Column("Order #", "orderNo", Cells.Order),
                 ctx.Column("Sales Rep", "sales.rep", Cells.SalesRep),
                 ctx.Column("Status", "status", Cells.Status),
             ];

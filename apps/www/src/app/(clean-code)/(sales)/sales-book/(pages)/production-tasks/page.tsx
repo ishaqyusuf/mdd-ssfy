@@ -19,7 +19,7 @@ export default async function SalesBookPage(props) {
             <FPage className="" title="Productions">
                 <TablePage
                     queryData={{
-                        "order.no": orderNos,
+                        orderNo: orderNos,
                     }}
                     PageClient={ProductionTasksPageClient}
                     searchParams={searchParams}
@@ -29,3 +29,4 @@ export default async function SalesBookPage(props) {
         </AuthGuard>
     );
 }
+

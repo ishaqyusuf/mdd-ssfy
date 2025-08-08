@@ -56,7 +56,7 @@ export const filterFields: Partial<{
 }> = {
     ...filterField("customer.name"),
     ...filterField("address"),
-    ...filterField("order.no"),
+    ...filterField("orderNo"),
     ...filterField("po"),
     ...filterField("phone"),
     ...filterField("dispatch.status", "checkbox"),

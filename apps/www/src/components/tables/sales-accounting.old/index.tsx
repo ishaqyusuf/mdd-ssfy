@@ -40,7 +40,7 @@ export default function SalesAccountingTable({
                 ctx.Column("Processed By", "recieved_by", PaymentAuthorCell),
                 ctx.Column("Status", "status", StatusCell),
                 // ...__filters()["sales-accounting"]?.filterColumns,
-                // ctx.Column("Order #", "order.no", Cells.Order),
+                // ctx.Column("Order #", "orderNo", Cells.Order),
                 // ctx.Column("Sales Rep", "sales.rep", Cells.SalesRep),
                 // // ctx.Column("Assigned To", "assignments", Cells.Assignments),
                 // ctx.Column("Status", "status", Cells.Status),

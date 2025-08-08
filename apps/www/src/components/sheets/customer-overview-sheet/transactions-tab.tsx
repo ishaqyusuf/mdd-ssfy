@@ -15,7 +15,7 @@ interface Props {
 export function TransactionsTab({ accountNo, salesId }: Props) {
     const loader = async () => {
         const resp = await getCustomerTransactionsAction({
-            "order.no": salesId,
+            orderNo: salesId,
             // "account.no": accountNo,
         });
         return {
