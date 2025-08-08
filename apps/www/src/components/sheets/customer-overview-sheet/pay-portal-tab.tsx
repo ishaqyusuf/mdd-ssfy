@@ -42,7 +42,6 @@ export function PayPortalTab({}) {
         pm,
         toast,
     } = usePayPortal();
-    const [showAll, setShowAll] = useState(false);
     return (
         <EmptyState
             empty={data?.totalPayable == 0}
@@ -159,21 +158,22 @@ export function PayPortalTab({}) {
                 <CustomSheetContentPortal>
                     <SheetFooter className="-m-4 -mb-2 border-t p-4 shadow-xl">
                         <div className="flex flex-col w-full">
-                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-secondary-foreground text-secondary rounded-lg">
                                 <div className="flex items-center gap-2">
-                                    <Wallet className="h-4 w-4 text-green-600" />
+                                    <Wallet className="h-4 w-4" />
                                     <span className="font-medium">
                                         Current Wallet Balance
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="font-bold text-green-600">
-                                        ${data?.wallet?.balance?.toFixed(2)}
+                                        ${data?.walletBalance?.toFixed(2)}
                                     </span>
                                     <Button
-                                        disabled={!data?.wallet?.balance}
+                                        disabled={!data?.walletBalance}
                                         className="h-6 px-3"
                                         size="xs"
+                                        variant="secondary"
                                     >
                                         Pay
                                     </Button>

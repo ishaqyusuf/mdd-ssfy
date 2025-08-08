@@ -24,9 +24,11 @@ import { cn } from "@gnd/ui/cn";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { toast } from "@gnd/ui/use-toast";
-import { SALES_PAYMENT_METHOD_OPTIONS } from "@sales/constants";
+import {
+    SALES_PAYMENT_METHOD_OPTIONS,
+    SALES_REFUND_METHODS_OPTIONS,
+} from "@sales/constants";
 import { useDebugPrint } from "@/hooks/use-debug-print";
-import { matchValue } from "@gnd/utils";
 
 interface ResolutionDialogProps {
     payment: GetSalesResolutionData["payments"][number];
@@ -41,7 +43,6 @@ const REFUND_MODES = [
     { value: "full", label: "Full Refund" },
     { value: "part", label: "Part Refund" },
 ];
-const REFUND_METHOD = SALES_PAYMENT_METHOD_OPTIONS;
 
 const CANCELLATION_REASONS = [
     { value: "refund-wallet", label: "Refund to Wallet" },
@@ -136,7 +137,7 @@ export function ResolutionDialog({
     const refundAmount = form.watch("refundAmount");
     const refundMethods = useMemo(
         () =>
-            REFUND_METHOD.map((rm) => {
+            SALES_REFUND_METHODS_OPTIONS.map((rm) => {
                 // if (
                 //     !payment?.squarePaymentId &&
                 //     matchValue(rm.value).in("credit-card", "terminal")
