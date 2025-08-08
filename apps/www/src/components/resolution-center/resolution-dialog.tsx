@@ -25,6 +25,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { toast } from "@gnd/ui/use-toast";
 import { SALES_REFUND_METHODS_OPTIONS } from "@sales/constants";
+import { generateRandomString } from "@gnd/utils";
 
 interface ResolutionDialogProps {
     payment: GetSalesResolutionData["payments"][number];
@@ -74,6 +75,7 @@ export function ResolutionDialog({
             refundMode: "full",
             refundAmount: payment?.amount,
             squarePaymentId: payment?.squarePaymentId,
+            paymentMethod: payment.paymentMethod,
         },
     });
 
@@ -93,6 +95,9 @@ export function ResolutionDialog({
                 qc.invalidateQueries({
                     queryKey: trpc.sales.getSalesResolutions.queryKey(),
                 });
+                rcp.setParams({
+                    refreshToken: generateRandomString(),
+                });
             },
             onError(error, variables, context) {
                 toast({
@@ -106,7 +111,7 @@ export function ResolutionDialog({
     const onSubmit = (data: ResolvePayment) => {
         resolveAction.mutate({
             ...data,
-            paymentMethod: payment.paymentMethod,
+            // paymentMethod: payment.paymentMethod,
         });
     };
     const handleOpenChange = (newOpen: boolean) => {
@@ -154,9 +159,9 @@ export function ResolutionDialog({
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 <Button
-                    // disabled={
-                    //     payment?.status?.toLocaleLowerCase() == "canceled"
-                    // }
+                    disabled={
+                        payment?.status?.toLocaleLowerCase() == "canceled"
+                    }
                     variant="outline"
                     size="sm"
                 >

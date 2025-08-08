@@ -197,7 +197,7 @@ export function PayPortalTab({}) {
                                         disabled={!data?.walletBalance}
                                         className="h-6 px-3"
                                         size="xs"
-                                        variant="secondary"
+                                        variant="outline"
                                         onClick={walletPay}
                                     >
                                         Pay
