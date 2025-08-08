@@ -3,9 +3,7 @@ import { SearchFilterProvider } from "@/hooks/use-search-filter";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
-import { salesFilterParamsSchema } from "@/hooks/use-sales-filter-params";
 import { resolutionCenterFilterParamsSchema } from "@/hooks/use-resolution-center-filter-params";
-import { useDebugPrint } from "@/hooks/use-debug-print";
 
 export function SalesResoltionSearchFilter() {
     return (
@@ -25,7 +23,6 @@ function Content({}) {
     const { data: trpcFilterData } = useQuery({
         ...trpc.filters.salesResolutions.queryOptions(),
     });
-    useDebugPrint("RESOLUTION FILTER DATA", trpcFilterData);
     return (
         <>
             <SearchFilterTRPC

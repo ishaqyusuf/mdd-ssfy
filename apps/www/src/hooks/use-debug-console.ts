@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 
-export function useDebugPrint(...deps) {
+export function useDebugConsole(...deps) {
     useEffect(() => {
         console.log({
             ...deps,
         });
     }, deps);
 }
+

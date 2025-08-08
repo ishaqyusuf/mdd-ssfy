@@ -2,6 +2,7 @@ import type { TRPCContext } from "@api/trpc/init";
 import { z } from "zod";
 import { getAuthUser } from "./user";
 import {
+  SALES_PAYMENT_METHODS,
   SALES_REFUND_METHODS,
   type CustomerTransanctionStatus,
   type SalesPaymentStatus,
@@ -14,6 +15,7 @@ export const resolvePaymentSchema = z.object({
   action: z.enum(["cancel", "refund"]),
   refundAmount: z.number().optional().nullable(),
   refundMethod: z.enum(SALES_REFUND_METHODS),
+  paymentMethod: z.enum(SALES_PAYMENT_METHODS),
   refundMode: z.enum(["full", "part"]),
   reason: z.string(),
   note: z.string().optional().nullable(),
@@ -172,7 +174,11 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
         note: "",
       });
     }
-    if (data.reason == "refund-wallet" || data.action == "refund") {
+    if (
+      data.reason == "refund-wallet" ||
+      data.action == "refund" ||
+      (data.action == "cancel" && data.paymentMethod == "wallet")
+    ) {
       if (!walletId) throw new Error("Unable to process, invalid wallet!");
       if (!data.refundAmount) throw new Error("Invalid Refund Process");
 

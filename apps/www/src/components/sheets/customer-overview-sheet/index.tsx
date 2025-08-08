@@ -62,7 +62,7 @@ function Modal() {
             >
                 <SheetHeader>
                     <SheetTitle>Customer Overview</SheetTitle>
-                    <SheetDescription>
+                    <SheetDescription asChild>
                         <TabsList className="flex w-full justify-start">
                             <TabsTrigger value="general">General</TabsTrigger>
                             <TabsTrigger value="sales">Sales</TabsTrigger>

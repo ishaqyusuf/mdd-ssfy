@@ -30,6 +30,8 @@ import { usePayPortal } from "./pay-portal-context";
 import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useDebugConsole } from "@/hooks/use-debug-console";
+import { toast } from "@gnd/ui/use-toast";
 
 export function PayPortalTab({}) {
     const {
@@ -42,14 +44,19 @@ export function PayPortalTab({}) {
         form,
         makePayment,
         pm,
-        toast,
+        toast: loadingToast,
     } = usePayPortal();
     const trpc = useTRPC();
     const payWithWallet = useMutation(
         trpc.sales.salesPayWithWallet.mutationOptions({
-            onSuccess(data, variables, context) {},
+            onSuccess(data, variables, context) {
+                toast({
+                    title: "Payment Applied",
+                });
+            },
         }),
     );
+
     const auth = useAuth();
     const walletPay = async () => {
         payWithWallet.mutate({
@@ -202,7 +209,7 @@ export function PayPortalTab({}) {
                                     <form
                                         onSubmit={form.handleSubmit((e) => {
                                             // pToast.updateNotification("loading");
-                                            toast.start();
+                                            loadingToast.start();
                                             makePayment.execute(e);
                                         })}
                                         className="grid w-full grid-cols-2 gap-2"

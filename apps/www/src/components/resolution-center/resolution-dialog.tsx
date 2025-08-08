@@ -24,11 +24,7 @@ import { cn } from "@gnd/ui/cn";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { toast } from "@gnd/ui/use-toast";
-import {
-    SALES_PAYMENT_METHOD_OPTIONS,
-    SALES_REFUND_METHODS_OPTIONS,
-} from "@sales/constants";
-import { useDebugPrint } from "@/hooks/use-debug-print";
+import { SALES_REFUND_METHODS_OPTIONS } from "@sales/constants";
 
 interface ResolutionDialogProps {
     payment: GetSalesResolutionData["payments"][number];
@@ -107,10 +103,10 @@ export function ResolutionDialog({
             },
         }),
     );
-    useDebugPrint(resolveAction.error);
     const onSubmit = (data: ResolvePayment) => {
         resolveAction.mutate({
             ...data,
+            paymentMethod: payment.paymentMethod,
         });
     };
     const handleOpenChange = (newOpen: boolean) => {

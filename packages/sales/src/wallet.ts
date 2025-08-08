@@ -39,7 +39,6 @@ export async function getCustomerWallet(db: Db, accountNo) {
       status: "success",
     },
   });
-
   const walletBalance = balance._sum.amount! - debit._sum.amount!;
   return {
     id: wallet.id,
