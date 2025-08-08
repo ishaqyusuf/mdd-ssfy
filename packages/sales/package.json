@@ -14,7 +14,8 @@
     "./utils": "./src/utils/utils.ts",
     "./inventory-utils": "./src/utils/inventory-utils.ts",
     "./types": "./src/types.ts",
-    "./get-sale-information": "./src/sales-control/get-sale-information.ts"
+    "./get-sale-information": "./src/sales-control/get-sale-information.ts",
+    "./wallet": "./src/wallet.ts"
   },
   "dependencies": {
     "@gnd/ui": "workspace:*",

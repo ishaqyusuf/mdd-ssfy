@@ -13,12 +13,12 @@ import { z } from "zod";
 
 import { createPayrollAction } from "./create-payroll";
 import { getCustomerPendingSales } from "./get-customer-pending-sales";
-import { getCustomerWalletAction } from "./get-customer-wallet";
 import { actionClient } from "./safe-action";
 import { createPaymentSchema } from "./schema";
 import { updateSalesDueAmount } from "./update-sales-due-amount";
 import { CustomerTransactionStatus } from "@/utils/constants";
 import { CustomerTransactionType } from "./get-customer-tx-action";
+import { getCustomerWallet } from "@sales/wallet";
 
 export const createSalesPaymentAction = actionClient
     .schema(createPaymentSchema)
@@ -54,7 +54,7 @@ export const createSalesPaymentAction = actionClient
 
 async function applySalesPayment(props: z.infer<typeof createPaymentSchema>) {
     return prisma.$transaction((async (tx: typeof prisma) => {
-        const wallet = await getCustomerWalletAction(props.accountNo);
+        const wallet = await getCustomerWallet(tx, props.accountNo);
         if (!wallet) throw new Error("Customer not found.");
         const pendingSalesData = await getCustomerPendingSales(props.accountNo);
         let balance = +props.amount;

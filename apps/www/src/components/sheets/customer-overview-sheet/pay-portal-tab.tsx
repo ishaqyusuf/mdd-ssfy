@@ -27,7 +27,8 @@ import {
 
 import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { usePayPortal } from "./pay-portal-context";
-import { useState } from "react";
+import { useTRPC } from "@/trpc/client";
+import { useMutation } from "@tanstack/react-query";
 
 export function PayPortalTab({}) {
     const {
@@ -42,6 +43,18 @@ export function PayPortalTab({}) {
         pm,
         toast,
     } = usePayPortal();
+    const trpc = useTRPC();
+    const payWithWallet = useMutation(
+        trpc.sales.salesPayWithWallet.mutationOptions({
+            onSuccess(data, variables, context) {},
+        }),
+    );
+    const walletPay = async () => {
+        payWithWallet.mutate({
+            salesIds: selections,
+            walletId: data.wallet.id,
+        });
+    };
     return (
         <EmptyState
             empty={data?.totalPayable == 0}
@@ -174,6 +187,7 @@ export function PayPortalTab({}) {
                                         className="h-6 px-3"
                                         size="xs"
                                         variant="secondary"
+                                        onClick={walletPay}
                                     >
                                         Pay
                                     </Button>

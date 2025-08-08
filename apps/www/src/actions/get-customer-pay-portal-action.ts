@@ -4,15 +4,12 @@ import { getCustomerPendingSales } from "./get-customer-pending-sales";
 import { getSquareDevices } from "@/modules/square";
 import { cookies } from "next/headers";
 import { Cookies } from "@/utils/constants";
-import {
-    getCustomerWalletDta,
-    getWalletBalance,
-} from "@/app/(clean-code)/(sales)/_common/data-access/wallet/wallet-dta";
+import { getCustomerWallet } from "@sales/wallet";
+import { prisma } from "@/db";
 
 export async function getCustomerPayPortalAction(accountNo) {
     const pendingSales = await getCustomerPendingSales(accountNo);
-    const wallet = await getCustomerWalletDta(accountNo);
-    const walletBalance = await getWalletBalance(wallet?.id!);
+    const wallet = await getCustomerWallet(prisma, accountNo);
     const totalPayable = sum(pendingSales, "amountDue");
     const terminals = await getSquareDevices();
     const lastUsedTerminalId = (await cookies()).get(
@@ -24,6 +21,6 @@ export async function getCustomerPayPortalAction(accountNo) {
         terminals,
         lastUsedTerminalId,
         wallet,
-        walletBalance,
+        walletBalance: wallet.balance,
     };
 }

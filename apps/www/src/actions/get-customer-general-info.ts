@@ -7,7 +7,7 @@ import { AsyncFnType } from "@/types";
 import { getCustomerPendingSales } from "./get-customer-pending-sales";
 import { getCustomerRecentSales } from "./get-customer-recent-sales";
 import { getRecentCustomerSalesTx } from "./get-customer-recent-transaction";
-import { getCustomerWalletAction } from "./get-customer-wallet";
+import { getCustomerWallet } from "@sales/wallet";
 
 export type CustomerGeneralInfo = AsyncFnType<
     typeof getCustomerGeneralInfoAction
@@ -19,7 +19,7 @@ export async function getCustomerGeneralInfoAction(accountNo) {
         phoneNo: pref == "cust" ? undefined : accountNo,
         id: pref == "cust" ? id : undefined,
     };
-    const wallet = await getCustomerWalletAction(accountNo);
+    const wallet = await getCustomerWallet(prisma, accountNo);
     const customer = await prisma.customers.findFirst({
         where,
         select: {
@@ -45,7 +45,7 @@ export async function getCustomerGeneralInfoAction(accountNo) {
         displayName,
         isBusiness: !!customer?.businessName,
         accountNo,
-        walletBalance: wallet?.walletBalance,
+        walletBalance: wallet?.balance,
         pendingPayment,
         recentTx,
         recentSales,

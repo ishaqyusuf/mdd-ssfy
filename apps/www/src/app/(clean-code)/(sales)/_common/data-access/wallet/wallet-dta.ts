@@ -2,19 +2,9 @@ import { authId, userId } from "@/app/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import { SalesPaymentStatus } from "../../../types";
-
+import { getCustomerWallet } from "@gnd/sales/wallet";
 export async function getCustomerWalletDta(accountNo) {
-    const wallet = await prisma.customerWallet.upsert({
-        where: {
-            accountNo,
-        },
-        update: {},
-        create: {
-            balance: 0,
-            accountNo,
-        },
-    });
-    return wallet;
+    return await getCustomerWallet(prisma, accountNo);
 }
 export async function fundCustomerWalletDta({
     accountId,
@@ -57,30 +47,17 @@ export async function fundCustomerWalletDta({
     return tx;
 }
 export async function getCustomerWalletInfoDta(accountId) {
-    const wallet = await getCustomerWalletDta(accountId);
-    let customerBalance = await getWalletBalance(wallet.id);
+    const wallet = await getCustomerWallet(prisma, accountId);
     return {
         id: wallet.id,
-        customerBalance,
+        customerBalance: wallet.balance,
     };
-}
-export async function getWalletBalance(walletId) {
-    const tx = await prisma.customerTransaction.findMany({
-        where: {
-            walletId,
-            status: "success",
-        },
-        select: {
-            amount: true,
-        },
-    });
-    return sum(tx, "amount");
 }
 export async function applyPaymentDta(
     walletId,
     transactionIds,
     paymentMethod,
-    checkNo?
+    checkNo?,
 ) {
     const transactions = await prisma.salesPayments.findMany({
         where: {
@@ -126,6 +103,6 @@ export async function applyPaymentDta(
                     },
                 },
             });
-        })
+        }),
     );
 }

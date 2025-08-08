@@ -15,6 +15,7 @@ import {
 } from "@api/db/queries/sales-resolution";
 import { resolvePayment, resolvePaymentSchema } from "@api/db/queries/wallet";
 import { getInvoicePrintData, printInvoiceSchema } from "@sales/exports";
+import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
 export const salesRouter = createTRPCRouter({
   index: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
     const query = props.input;
@@ -57,6 +58,11 @@ export const salesRouter = createTRPCRouter({
   quotes: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
     return getQuotes(props.ctx, props.input);
   }),
+  salesPayWithWallet: publicProcedure
+    .input(salesPayWithWalletSchema)
+    .mutation(async (props) => {
+      return salesPayWithWallet(props.ctx.db, props.input);
+    }),
   startNewSales: publicProcedure
     .input(startNewSalesSchema)
     .mutation(async (props) => {
