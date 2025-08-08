@@ -1,6 +1,5 @@
 import type {
   ItemControl,
-  ItemControlData,
   ItemControlTypes,
   Qty,
   QtyControlByType,

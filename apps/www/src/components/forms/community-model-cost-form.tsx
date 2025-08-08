@@ -25,6 +25,9 @@ import FormInput from "../common/controls/form-input";
 import { useDebugPrint } from "@/hooks/use-debug-print";
 import { sum } from "@gnd/utils";
 import Money from "../_v1/money";
+import { toast } from "@gnd/ui/use-toast";
+import { Button } from "@gnd/ui/button";
+import { FormDebugBtn } from "../form-debug-btn";
 
 interface Props {
     model: RouterOutputs["community"]["communityModelCostHistory"];
@@ -44,9 +47,21 @@ export function CommunityModelCostForm({ model }: Props) {
     );
     const save = useMutation(
         trpc.community.saveCommunityModelCostForm.mutationOptions({
-            onSuccess(data, variables, context) {},
+            onSuccess(data, variables, context) {
+                toast({
+                    title: "Saved",
+                    variant: "destructive",
+                });
+            },
+            onError(error, variables, context) {
+                toast({
+                    title: "Unable to complete",
+                    variant: "destructive",
+                });
+            },
         }),
     );
+    useDebugPrint(save.error);
 
     const form = useZodForm(saveCommunityModelCostSchema, {
         defaultValues: {
@@ -57,6 +72,7 @@ export function CommunityModelCostForm({ model }: Props) {
             tax: {},
         },
     });
+    useDebugPrint(save.error);
     useEffect(() => {
         if (!model) return;
         if (editModelCostId == -1) {
@@ -70,8 +86,10 @@ export function CommunityModelCostForm({ model }: Props) {
                 tax: Object.fromEntries(
                     model?.builderTasks?.map((t) => [t.uid, null]),
                 ),
+                model: model?.model?.modelName,
+                meta: {},
             });
-            console.log("REFRESH!!!!");
+
             return;
         }
         form.reset({
@@ -90,9 +108,14 @@ export function CommunityModelCostForm({ model }: Props) {
                     data?.meta?.tax?.[t.uid],
                 ]),
             ),
+            model: model?.model?.modelName,
+            meta: data?.meta || {},
+            pivotId: data?.pivotId,
         });
     }, [data, editModelCostId, model]);
-    const onSubmit = async (formData) => {};
+    const onSubmit = async (formData) => {
+        console.log(formData);
+    };
     const [costs, tax] = form.watch(["costs", "tax"]);
     const total = sum(
         model?.builderTasks
@@ -105,6 +128,7 @@ export function CommunityModelCostForm({ model }: Props) {
                 className="grid grid-cols-2"
                 onSubmit={form.handleSubmit(onSubmit)}
             >
+                {/* {JSON.stringify(form.)} */}
                 <div className="col-span-2">
                     <Table className="table-sm w-full">
                         <TableHeader>
@@ -157,9 +181,13 @@ export function CommunityModelCostForm({ model }: Props) {
                         <div className="text-xl font-semibold">
                             <Money value={total} />
                         </div>
-                        <SubmitButton isSubmitting={save.isPending}>
-                            Save
-                        </SubmitButton>
+
+                        <FormDebugBtn />
+                        <form onSubmit={form.handleSubmit(onSubmit)}>
+                            <SubmitButton isSubmitting={save.isPending}>
+                                Save
+                            </SubmitButton>
+                        </form>
                     </DialogFooter>
                 </CustomModalPortal>
             </form>

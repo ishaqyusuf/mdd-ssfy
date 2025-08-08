@@ -10,7 +10,12 @@ import {
   type ICostChartMeta,
 } from "@gnd/utils/community";
 import { z } from "zod";
-import { extendZodWithOpenApi } from "@hono/zod-openapi";
+import {
+  getCommunityPivotId,
+  linkUnitsToCommunityByPivotId,
+  synchronizeModelCost,
+} from "@community/db-utils";
+import dayjs, { formatDate } from "@gnd/utils/dayjs";
 export async function projectList(ctx: TRPCContext) {
   const list = await ctx.db.projects.findMany({
     select: {
@@ -210,9 +215,12 @@ export const saveCommunityModelCostSchema = z.object({
   startDate: z.string().optional().nullable(),
   endDate: z.string().optional().nullable(),
   id: z.number().optional().nullable(),
+  communityModelId: z.number(),
   pivotId: z.number().optional().nullable(),
   costs: z.record(z.number().optional().nullable()),
   tax: z.record(z.number().optional().nullable()),
+  meta: z.any().optional().nullable(),
+  model: z.string(),
 });
 export type SaveCommunityModelCost = z.infer<
   typeof saveCommunityModelCostSchema
@@ -221,5 +229,69 @@ export async function saveCommunityModelCost(
   ctx: TRPCContext,
   data: SaveCommunityModelCost
 ) {
-  const { db } = ctx;
+  return await ctx.db.$transaction(
+    async (__tx) => {
+      const tx = __tx as any;
+      // const { db } = ctx;
+      data.pivotId =
+        data.pivotId || (await getCommunityPivotId(data.communityModelId, tx));
+      const title = [
+        data?.startDate ? formatDate(data?.startDate, "MM/DD/YY") : null,
+        data?.endDate ? formatDate(data?.endDate, "MM/DD/YY") : "To Date",
+      ].join(" - ");
+      const current = data.endDate
+        ? dayjs(data.endDate).diff(dayjs(), "days") > 0
+        : true;
+      const mcMeta = data.meta || {};
+
+      let mc;
+      if (!data.id) {
+        mc = await __tx.communityModelCost.create({
+          data: {
+            startDate: data.startDate!,
+            endDate: data.endDate,
+            current,
+            pivot: {
+              connect: {
+                id: data.pivotId!,
+              },
+            },
+            community: {
+              connect: {
+                id: data.communityModelId,
+              },
+            },
+            meta: {
+              ...mcMeta,
+              costs: data.costs,
+              tax: data.tax,
+            },
+            type: "task-costs",
+            title,
+            model: data.model,
+          },
+        });
+      } else {
+        mc = await __tx.communityModelCost.update({
+          where: {
+            id: data.id,
+          },
+          data: {
+            title,
+            meta: {
+              ...mcMeta,
+              costs: data.costs,
+              tax: data.tax,
+            },
+            current,
+          },
+        });
+      }
+      await linkUnitsToCommunityByPivotId(data.pivotId, tx);
+      await synchronizeModelCost(mc.id, data.pivotId, tx);
+    },
+    {
+      timeout: 20 * 1000,
+    }
+  );
 }

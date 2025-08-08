@@ -10,6 +10,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
+    "./db-utils": "./src/db-utils.ts",
     "./constants": "./src/constants.ts",
     "./schema": "./src/schema.ts",
     "./utils": "./src/utils.ts",

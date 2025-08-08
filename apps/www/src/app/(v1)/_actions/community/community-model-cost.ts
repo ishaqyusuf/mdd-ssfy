@@ -14,6 +14,7 @@ import dayjs from "dayjs";
 
 import { _revalidate } from "../_revalidate";
 import { fixDbTime } from "../action-utils";
+import { linkUnitsToCommunityByPivotId } from "@community/db-utils";
 
 export async function _importModelCostData(
     id,
@@ -145,29 +146,7 @@ export async function _saveCommunitModelCostData(
     return _c;
 }
 export async function _attachedUnitsToCommunity(pivotId) {
-    const pivot = await prisma.communityModelPivot.findUnique({
-        where: {
-            id: pivotId,
-        },
-        include: {
-            communityModels: true,
-        },
-    });
-    if (pivot) {
-        await Promise.all(
-            pivot.communityModels.map(async (model) => {
-                await prisma.homes.updateMany({
-                    where: {
-                        projectId: model.projectId,
-                        modelName: model.modelName,
-                    },
-                    data: {
-                        communityTemplateId: model.id,
-                    },
-                });
-            }),
-        );
-    }
+    return linkUnitsToCommunityByPivotId(pivotId, prisma);
 }
 export async function _findOrGeneratePivotForCommunity(id) {
     const c = await prisma.communityModels.findUnique({ where: { id } });

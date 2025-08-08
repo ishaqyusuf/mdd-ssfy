@@ -190,3 +190,34 @@ export async function lastId(model: any, _default = 0, where?: any) {
     })
   )?.id || _default) as number;
 }
+export function dateQuery({
+  date,
+  from,
+  to,
+  _dateType = "createdAt",
+}: {
+  date?;
+  from?;
+  to?;
+  _dateType?;
+}) {
+  const where: any = {};
+
+  if (date) {
+    const _whereDate = {
+      gte: fixDbTime(dayjs(date)).toISOString(),
+      lte: fixDbTime(dayjs(date), 23, 59, 59).toISOString(),
+    };
+    where[_dateType] = _whereDate;
+  }
+  if (from || to) {
+    where[_dateType] = {
+      gte: !from ? undefined : fixDbTime(dayjs(from)).toISOString(),
+      lte: !to ? undefined : fixDbTime(dayjs(to), 23, 59, 59).toISOString(),
+    };
+  }
+  return where;
+}
+export function fixDbTime(date: dayjs.Dayjs, h = 0, m = 0, s = 0) {
+  return date.set("hours", h).set("minutes", m).set("seconds", s);
+}

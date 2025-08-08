@@ -1,5 +1,4 @@
 import type { db, Prisma } from "@gnd/db";
-import { getItemStatConfig } from "./utils/utils";
 import {
   composeSalesItemControl,
   getSaleInformation,
