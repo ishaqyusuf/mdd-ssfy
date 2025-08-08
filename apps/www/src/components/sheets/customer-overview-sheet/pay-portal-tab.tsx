@@ -29,6 +29,7 @@ import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { usePayPortal } from "./pay-portal-context";
 import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 
 export function PayPortalTab({}) {
     const {
@@ -49,10 +50,13 @@ export function PayPortalTab({}) {
             onSuccess(data, variables, context) {},
         }),
     );
+    const auth = useAuth();
     const walletPay = async () => {
         payWithWallet.mutate({
             salesIds: selections,
-            walletId: data.wallet.id,
+            // walletId: data.wallet.id,
+            accountNo: data.wallet.accountNo,
+            authorId: auth.id,
         });
     };
     return (

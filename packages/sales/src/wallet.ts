@@ -44,6 +44,7 @@ export async function getCustomerWallet(db: Db, accountNo) {
   return {
     id: wallet.id,
     balance: walletBalance,
+    accountNo,
   };
 }
 export const salesPayWithWalletSchema = z.object({
