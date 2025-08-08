@@ -80,7 +80,7 @@ function Content({ item: sale }: { item: Item }) {
                                     <CardTitle className="text-lg uppercase">
                                         <Button
                                             size="xs"
-                                            className="uppercase"
+                                            className="uppercase border-b border-muted hover:border-muted-foreground"
                                             variant="secondary"
                                             onClick={(e) => {
                                                 e.preventDefault();
@@ -103,7 +103,7 @@ function Content({ item: sale }: { item: Item }) {
                                                     sale?.accountNo,
                                                 );
                                             }}
-                                            className="uppercase"
+                                            className="uppercase border-b border-muted hover:border-muted-foreground"
                                             variant="secondary"
                                         >
                                             {sale?.customer?.businessName ||

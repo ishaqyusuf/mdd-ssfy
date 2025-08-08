@@ -228,3 +228,12 @@ export function filterIsDefault(query) {
     .filter(([a, b]) => !defaultFilterKeys?.includes(a))
     ?.every(([a, b]) => !b);
 }
+
+export function matchValue<T>(item: T) {
+  return {
+    in: (...ins: T[]) => ins.includes(item),
+    notIn: (...outs: T[]) => !outs.includes(item),
+    is: (value: T) => item === value,
+    not: (value: T) => item !== value,
+  };
+}

@@ -25,6 +25,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { toast } from "@gnd/ui/use-toast";
 import { SALES_PAYMENT_METHOD_OPTIONS } from "@sales/constants";
+import { useDebugPrint } from "@/hooks/use-debug-print";
+import { matchValue } from "@gnd/utils";
 
 interface ResolutionDialogProps {
     payment: GetSalesResolutionData["payments"][number];
@@ -104,6 +106,7 @@ export function ResolutionDialog({
             },
         }),
     );
+    useDebugPrint(resolveAction.error);
     const onSubmit = (data: ResolvePayment) => {
         resolveAction.mutate({
             ...data,
@@ -131,6 +134,13 @@ export function ResolutionDialog({
         watchedAction === "cancel" || watchedAction === "refund";
     const reasonOptions = getReasonsForAction(watchedAction);
     const refundAmount = form.watch("refundAmount");
+    const refundMethods = REFUND_METHOD.map((rm) => {
+        if (!payment?.squarePaymentId) {
+            if (matchValue(rm.value).in("credit-card", "terminal"))
+                (rm as any).disabled = true;
+        }
+        return rm;
+    });
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
@@ -195,7 +205,7 @@ export function ResolutionDialog({
                                         required: "Please select a method",
                                     }}
                                     label={"Refund Method"}
-                                    options={REFUND_METHOD}
+                                    options={refundMethods}
                                 />
                                 <FormSelect
                                     control={form.control}

@@ -54,6 +54,7 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
             status: true,
             paymentMethod: true,
             meta: true,
+
             history: {
                 select: {
                     id: true,

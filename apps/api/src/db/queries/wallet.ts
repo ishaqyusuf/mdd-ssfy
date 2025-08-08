@@ -28,8 +28,9 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
     let walletId, orderId;
 
     if (
-      data.action == "cancel" ||
-      (data.action == "refund" && data.refundMode == "full")
+      data.action == "cancel"
+      // ||
+      // (data.action == "refund" && data.refundMode == "full")
     ) {
       const tx = await prisma.customerTransaction.update({
         where: {
@@ -44,7 +45,8 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
               status: "CANCELED",
               description: data.note,
               reason: `${data.reason}${
-                data.action == "refund" ? ` | refund: ${data.refundMethod}` : ""
+                ""
+                // data.action == "refund" ? ` | refund: ${data.refundMethod}` : ""
               }`,
               authorId: ctx.userId,
               authorName: user.name,
@@ -78,7 +80,9 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
       walletId = tx.wallet?.id!;
       orderId = tx?.salesPayments?.[0]?.orderId!;
     }
-    if (!walletId && data.action == "refund" && data.refundMode == "part") {
+    if (data.action == "refund") {
+    }
+    if (!walletId && data.action == "refund") {
       const tx = await prisma.customerTransaction.update({
         where: {
           id: data.transactionId,
@@ -95,6 +99,22 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
               }`,
               authorId: ctx.userId,
               authorName: user.name,
+            },
+          },
+          salesPayments: {
+            create: {
+              order: {
+                connect: {
+                  id: orderId,
+                },
+              },
+              amount: -1 * data.refundAmount!,
+              status: "success" as SalesPaymentStatus,
+              // transaction: {
+              //   connect: {
+              //     id: refundTx.id,
+              //   },
+              // },
             },
           },
           // salesPayments: {
@@ -153,24 +173,24 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
           walletId,
         },
       });
-      if (data.refundMode == "part") {
-        await prisma.salesPayments.create({
-          data: {
-            order: {
-              connect: {
-                id: orderId,
-              },
-            },
-            amount: -1 * data.refundAmount!,
-            status: "success" as SalesPaymentStatus,
-            transaction: {
-              connect: {
-                id: refundTx.id,
-              },
-            },
-          },
-        });
-      }
+      // if (data.refundMode == "part") {
+      //   await prisma.salesPayments.create({
+      //     data: {
+      //       order: {
+      //         connect: {
+      //           id: orderId,
+      //         },
+      //       },
+      //       amount: -1 * data.refundAmount!,
+      //       status: "success" as SalesPaymentStatus,
+      //       transaction: {
+      //         connect: {
+      //           id: refundTx.id,
+      //         },
+      //       },
+      //     },
+      //   });
+      // }
       if (orderId) {
         await updateSalesDueAmount(orderId, prisma);
         //  await deleteSalesCommission(sp?.id);
