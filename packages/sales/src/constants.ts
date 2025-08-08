@@ -4,6 +4,7 @@ export const conflictType = [
   "payment not up to date",
   "overpayment",
   "resolved",
+  "no conflict",
 ] as const;
 
 export const SALES_PAYMENT_STATUS = [

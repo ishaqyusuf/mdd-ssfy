@@ -29,6 +29,7 @@
         "@gnd/ui": "workspace:*",
         "@gnd/utils": "workspace:*",
         "@gnd/sales": "workspace:*",
+        "@gnd/square": "workspace:*",
         "@headlessui/react": "^1.7.17",
         "@hookform/resolvers": "^3.10.0",
         "@mdx-js/loader": "^3.0.0",
@@ -145,3 +146,4 @@
         "tailwindcss": "^3.4.15"
     }
 }
+

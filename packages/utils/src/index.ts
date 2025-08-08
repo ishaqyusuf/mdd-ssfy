@@ -221,3 +221,10 @@ export function dateQuery({
 export function fixDbTime(date: dayjs.Dayjs, h = 0, m = 0, s = 0) {
   return date.set("hours", h).set("minutes", m).set("seconds", s);
 }
+
+export function filterIsDefault(query) {
+  const defaultFilterKeys = ["cursor", "start", "sort", "size"];
+  return Object.entries(query || {})
+    .filter(([a, b]) => !defaultFilterKeys?.includes(a))
+    ?.every(([a, b]) => !b);
+}

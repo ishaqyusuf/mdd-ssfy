@@ -2,12 +2,14 @@ import { composeQueryData } from "@api/query-response";
 import { paginationSchema } from "@api/schemas/common";
 import type { TRPCContext } from "@api/trpc/init";
 import { dateEquals } from "@api/utils/db";
-import { formatMoney, sum } from "@gnd/utils";
+import { filterIsDefault, formatMoney, sum } from "@gnd/utils";
 import type { SalesType } from "@sales/types";
 import { z } from "zod";
 import type { SalesResolutionConflictType } from "@sales/constants";
 import { formatDate } from "@gnd/utils/dayjs";
 import type { PageDataMeta } from "@api/type";
+import { whereSales } from "@api/prisma-where";
+import type { SalesQueryParamsSchema } from "@sales/schema";
 export const getSalesResolutionsSchema = z
   .object({
     status: z.string().optional().nullable(),
@@ -22,7 +24,7 @@ export async function getSalesResolutions(
   query: GetSalesResolutions
 ) {
   const { db } = ctx;
-  const resolvables = await getSalesResolvables(ctx);
+  const resolvables = await getSalesResolvables(ctx, query);
   let { q, size = 20, status, cursor = "0" } = query;
   const meta: PageDataMeta = {};
 
@@ -81,9 +83,11 @@ export async function getSalesResolutions(
     meta,
   };
 }
-export async function getSalesResolvables(ctx: TRPCContext) {
+export async function getSalesResolvables(
+  ctx: TRPCContext,
+  query: SalesQueryParamsSchema
+) {
   const { db: prisma } = ctx;
-  const tags = ["sales-resolvables"];
 
   const resolvedToday = await prisma.salesResolution.findMany({
     where: {
@@ -95,7 +99,8 @@ export async function getSalesResolvables(ctx: TRPCContext) {
       createdAt: true,
     },
   });
-
+  const _whereSales = whereSales(query);
+  const isDefaultFilter = filterIsDefault(query);
   const list = await prisma.salesOrders.findMany({
     where: {
       type: "order" as SalesType,
@@ -107,6 +112,7 @@ export async function getSalesResolvables(ctx: TRPCContext) {
           // },
         },
       },
+      ..._whereSales,
     },
     select: {
       id: true,
@@ -170,6 +176,7 @@ export async function getSalesResolvables(ctx: TRPCContext) {
       if (rData) {
         status = "resolved";
       }
+      if (!isDefaultFilter && !status) status = "no conflict";
       return {
         id: ls.id,
         customer,
@@ -187,6 +194,10 @@ export async function getSalesResolvables(ctx: TRPCContext) {
         resolvedAt: rData?.createdAt,
       };
     })
-    .filter((a) => a.status || !!resolvedToday?.find((b) => b.salesId == a.id))
+    .filter(
+      isDefaultFilter
+        ? Boolean
+        : (a) => a.status || !!resolvedToday?.find((b) => b.salesId == a.id)
+    )
     .sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
 }

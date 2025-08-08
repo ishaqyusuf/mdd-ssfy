@@ -10,7 +10,8 @@
             "@community/*": ["../../packages/community/src/*"],
             "@engine/*": ["../engine/src/*"],
             "@jobs/*": ["../../packages/jobs/src/*"],
-            "@sales/*": ["../../packages/sales/src/*"]
+            "@sales/*": ["../../packages/sales/src/*"],
+            "@square/*": ["../../packages/jobs/src/*"]
         },
         "strict": false,
         "noImplicitAny": false
