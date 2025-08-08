@@ -31,6 +31,9 @@ import { FormDebugBtn } from "../form-debug-btn";
 import FormDate from "../common/controls/form-date";
 import { revalidatePathAction } from "@/actions/revalidate-path";
 import { useQueryState } from "nuqs";
+import Portal from "../_v1/portal";
+import { Menu } from "../(clean-code)/menu";
+import { deepCopy } from "@/lib/deep-copy";
 
 interface Props {
     model: RouterOutputs["community"]["communityModelCostHistory"];
@@ -80,6 +83,10 @@ export function CommunityModelCostForm({ model }: Props) {
             communityModelId: null,
         },
     });
+    const emptyCosts = () => ({
+        costs: Object.fromEntries(model?.builderTasks?.map((t) => [t.uid, ""])),
+        tax: Object.fromEntries(model?.builderTasks?.map((t) => [t.uid, ""])),
+    });
     useEffect(() => {
         if (!model) return;
         if (editModelCostId == -1) {
@@ -87,12 +94,7 @@ export function CommunityModelCostForm({ model }: Props) {
                 startDate: null,
                 id: null,
                 endDate: null,
-                costs: Object.fromEntries(
-                    model?.builderTasks?.map((t) => [t.uid, ""]),
-                ),
-                tax: Object.fromEntries(
-                    model?.builderTasks?.map((t) => [t.uid, ""]),
-                ),
+                ...emptyCosts(),
                 model: model?.model?.modelName,
                 meta: {},
                 communityModelId: model?.model?.id,
@@ -147,6 +149,47 @@ export function CommunityModelCostForm({ model }: Props) {
     return (
         <Form {...form}>
             <form className="grid grid-cols-2 gap-4">
+                <Portal nodeId={"cmcAction"}>
+                    <Menu noSize>
+                        <Menu.Item
+                            onClick={(e) => {
+                                form.reset({
+                                    ...emptyCosts(),
+                                });
+                            }}
+                            icon="clear"
+                        >
+                            Clear Costs
+                        </Menu.Item>
+                        <Menu.Item
+                            onClick={(e) => {
+                                const copyData = deepCopy(form.getValues());
+                                copyData.id = null;
+                                copyData.startDate = null;
+                                copyData.endDate = null;
+                                setParams({
+                                    editModelCostId: -1,
+                                });
+                                setTimeout(() => {
+                                    form.reset({
+                                        ...copyData,
+                                    });
+                                }, 1000);
+                            }}
+                            icon="copy"
+                            disabled={editModelCostId == -1}
+                        >
+                            Create Copy
+                        </Menu.Item>
+                        <Menu.Item
+                            disabled={editModelCostId == -1}
+                            className="bg-destructive text-destructive-foreground"
+                            icon="Delete"
+                        >
+                            Delete
+                        </Menu.Item>
+                    </Menu>
+                </Portal>
                 {/* {JSON.stringify(form.)} */}
                 <FormDate
                     control={form.control}

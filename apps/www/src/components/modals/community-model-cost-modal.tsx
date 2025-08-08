@@ -3,11 +3,9 @@ import { CustomModal, CustomModalContent } from "./custom-modal";
 import { CommunityModelCostForm } from "../forms/community-model-cost-form";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
-import { TCell } from "../(clean-code)/data-table/table-cells";
+
 import Money from "../_v1/money";
-import { Button } from "@gnd/ui/button";
-import { Icons } from "@gnd/ui/custom/icons";
+
 import {
     Select,
     SelectContent,
@@ -80,6 +78,7 @@ export function CommunityModelCostModal() {
                             ))}
                         </SelectContent>
                     </Select>
+                    <div id="cmcAction"></div>
                 </div>
                 <CustomModalContent className="lg:max-h-[55vh] overflow-auto">
                     <CommunityModelCostForm model={data} />

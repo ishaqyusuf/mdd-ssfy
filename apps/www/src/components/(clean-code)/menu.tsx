@@ -167,7 +167,7 @@ function Item({
         <DropdownMenuItem
             {...props}
             onClick={link || href ? null : (onClick as any)}
-            className="gap-2"
+            className={cn("gap-2", className)}
         >
             {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground/70" />}
             {children}
