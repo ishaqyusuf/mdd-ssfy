@@ -90,7 +90,7 @@ export function generateRandomNumber(length = 15) {
     randomString += charset.charAt(randomIndex);
   }
 
-  return randomString;
+  return +randomString;
 }
 export function generateRandomString(length = 15) {
   const charset =
@@ -246,6 +246,6 @@ export function selectOptions<T>(
   return data?.map((d) => ({
     data: d,
     label: d?.[labelKey],
-    id: d?.[valueKey],
+    id: String(d?.[valueKey]),
   }));
 }

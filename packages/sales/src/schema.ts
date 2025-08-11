@@ -170,3 +170,10 @@ export const inventoryProductFormSchema = z.object({
     stockMonitor: z.boolean().optional().default(false),
   }),
 });
+
+export const getInventoryCategoriesSchema = z.object({
+  // example: z.string(),
+});
+export type GetInventoryCategories = z.infer<
+  typeof getInventoryCategoriesSchema
+>;

@@ -61,19 +61,27 @@ export const columns: ColumnDef<Item>[] = [
     {
         header: "Total Stock",
         accessorKey: "TotalStock",
+        meta: {
+            className: "text-center",
+        },
         cell: ({ row: { original: item } }) => (
             <>
-                <TCell.Secondary>{item?.totalStocks}</TCell.Secondary>
+                <TCell.Secondary>{"N/A"}</TCell.Secondary>
             </>
         ),
     },
     {
         header: "Stock Value",
         accessorKey: "Stock Value",
+        meta: {
+            className: "text-end",
+        },
         cell: ({ row: { original: item } }) => (
-            <>
-                <TCell.Money>{item.stockValue}</TCell.Money>
-            </>
+            <div className="flex justify-end gap-4">
+                <TCell.Primary>
+                    <TCell.Money>{item.stockValue}</TCell.Money>
+                </TCell.Primary>
+            </div>
         ),
     },
 
@@ -126,7 +134,19 @@ function ProductCell({ item: product }: { item: Item }) {
             </div>
             <div>
                 <div className="font-medium">{product.title}</div>
-                <div className="text-sm text-gray-500">{product.category}</div>
+                <div className="flex gap-4">
+                    <div className="text-sm text-gray-500">
+                        {product.category}
+                    </div>
+                    {!product.stockStatus || (
+                        <Badge
+                            className="whitespace-nowrap"
+                            variant="destructive"
+                        >
+                            {product.stockStatus}
+                        </Badge>
+                    )}
+                </div>
                 {product.images.length > 1 && (
                     <Badge variant="outline" className="text-xs mt-1">
                         +{product.images.length - 1} more

@@ -16,9 +16,25 @@ import { FormDescription } from "@gnd/ui/form";
 import { cn } from "@gnd/ui/cn";
 import { Separator } from "@gnd/ui/separator";
 import { ProductImageGallery } from "@/components/product-image-gallery";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
+import { selectOptions } from "@gnd/utils";
 
 export function ProductInformationSection({}) {
     const form = useInventoryProductForm();
+    const trpc = useTRPC();
+    const {
+        data: categories,
+        isPending,
+        error,
+    } = useQuery(
+        trpc.inventories.getInventoryCategories.queryOptions(
+            {},
+            {
+                enabled: true,
+            },
+        ),
+    );
 
     const stockMonitor = form.watch("product.stockMonitor");
     return (
@@ -40,11 +56,15 @@ export function ProductInformationSection({}) {
                         control={form.control}
                         name="product.name"
                     />
-                    <FormInput
+                    <FormCombobox
                         label="Category"
-                        placeholder="Select Category"
                         control={form.control}
                         name="product.categoryId"
+                        transformSelectionValue={(data) => Number(data.id)}
+                        comboProps={{
+                            placeholder: "Select Category",
+                            items: selectOptions(categories, "title", "id"),
+                        }}
                     />
                     <FormInput
                         className="col-span-2"

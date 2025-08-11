@@ -6,6 +6,8 @@ import {
   upsertInventoriesForDykeShelfProducts,
   upsertInventoriesForDykeShelfProductsSchema,
 } from "@api/db/queries/inventory.generate";
+import { getInventoryCategoriesSchema } from "@sales/schema";
+import { getInventoryCategories } from "@sales/inventory";
 
 export const inventoriesRouter = createTRPCRouter({
   getInventoryTypeByShelfId: publicProcedure
@@ -21,5 +23,11 @@ export const inventoriesRouter = createTRPCRouter({
     .input(upsertInventoriesForDykeShelfProductsSchema)
     .mutation(async (props) => {
       return upsertInventoriesForDykeShelfProducts(props.ctx, props.input);
+    }),
+  getInventoryCategories: publicProcedure
+    .input(getInventoryCategoriesSchema)
+    .query(async (props) => {
+      const result = await getInventoryCategories(props.ctx.db, props.input);
+      return result;
     }),
 });

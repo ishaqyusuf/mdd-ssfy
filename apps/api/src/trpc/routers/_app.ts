@@ -16,7 +16,7 @@ import { salesDashboardRouter } from "./sales-dashboard.route";
 import { customerRouter } from "./customer.route";
 import { shoppingProductsRouter } from "./shopping-products.route";
 import { google } from "./google-place.route";
-import { inventoriesRouter } from "./inventories";
+import { inventoriesRouter } from "./inventories.route";
 import { communityRouters } from "./community.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
