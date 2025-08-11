@@ -341,19 +341,19 @@ export async function upsertInventoriesForDykeShelfProducts(
   });
   return ctx.db.$transaction(
     async (tx) => {
-      await tx.exInventorySubCategory.createMany({
+      await tx.inventorySubCategory.createMany({
         data: inventorySubCategories,
       });
-      await tx.exInventory.createMany({
+      await tx.inventory.createMany({
         data: __inventories,
       });
-      await tx.exInventoryVariant.createMany({
+      await tx.inventoryVariant.createMany({
         data: __inventoryVariants,
       });
-      await tx.exInventoryItemSubCategory.createMany({
+      await tx.inventoryItemSubCategory.createMany({
         data: invItemSubCat,
       });
-      await tx.exInventoryVariantPricing.createMany({
+      await tx.inventoryVariantPricing.createMany({
         data: __inventoryVariantPricings,
       });
     },
