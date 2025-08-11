@@ -1,9 +1,10 @@
-import { upsertInventoriesForDykeShelfProductsSchema } from "@api/db/queries/inventory";
+// import { upsertInventoriesForDykeShelfProductsSchema } from "@api/db/queries/inventory";
 import { createTRPCRouter, publicProcedure } from "../init";
 import { z } from "zod";
 import {
   getInventoryCategoryByShelfId,
   upsertInventoriesForDykeShelfProducts,
+  upsertInventoriesForDykeShelfProductsSchema,
 } from "@api/db/queries/inventory.generate";
 
 export const inventoriesRouter = createTRPCRouter({

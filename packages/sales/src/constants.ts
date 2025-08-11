@@ -89,6 +89,9 @@ export const STOCK_STATUS = ["not managed", "in stock", "low stock"] as const;
 
 export type StockStatus = (typeof STOCK_STATUS)[number];
 
+export const STOCK_MODES = ["monitored", "unmonitored"] as const;
+export type StockModes = (typeof STOCK_MODES)[number];
+
 export const INVENTORY_STATUS = ["draft", "published", "archived"] as const;
 export type INVENTORY_STATUS = (typeof INVENTORY_STATUS)[number];
 export const INVENTORY_STATUS_OPTIONS: {

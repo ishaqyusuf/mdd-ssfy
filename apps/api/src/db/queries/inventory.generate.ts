@@ -1,5 +1,4 @@
 import type { TRPCContext } from "@api/trpc/init";
-import type { UpsertInventoriesForDykeProducts } from "./inventory";
 import type { Prisma } from "@gnd/db";
 import { generateRandomString, nextId } from "@gnd/utils";
 import { z } from "zod";
@@ -230,6 +229,7 @@ export async function getInventoryTypesByUids(
 export const upsertInventoriesForDykeShelfProductsSchema = z.object({
   categoryId: z.number(),
 });
+
 export async function upsertInventoriesForDykeShelfProducts(
   ctx: TRPCContext,
   data: z.infer<typeof upsertInventoriesForDykeShelfProductsSchema>
@@ -374,3 +374,37 @@ export async function getInventoryCategoryByShelfId(
   });
   return inventoryType;
 }
+const upsertInventoriesForDykeProductsSchema = z.object({
+  step: z.object({
+    // id: z.number(),
+    uid: z.string(),
+    title: z.string(),
+  }),
+  products: z.array(
+    z.object({
+      uid: z.string().optional().nullable(),
+      name: z.string().optional().nullable(),
+      img: z.string().optional().nullable(),
+      price: z.number().optional().nullable(),
+      variants: z
+        .array(
+          z.object({
+            deps: z.array(
+              z.object({
+                stepUid: z.string(),
+                stepTitle: z.string(),
+                productUid: z.string(),
+                productName: z.string(),
+                price: z.number().optional().nullable(),
+              })
+            ),
+          })
+        )
+        .optional()
+        .nullable(),
+    })
+  ),
+});
+export type UpsertInventoriesForDykeProducts = z.infer<
+  typeof upsertInventoriesForDykeProductsSchema
+>;

@@ -1,7 +1,7 @@
 import { Db, Prisma } from "@gnd/db";
 import { InventoryProductsList } from "./schema";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
-import { StockStatus } from "./constants";
+import { INVENTORY_STATUS, StockModes, StockStatus } from "./constants";
 export async function inventoryProductsList(
   db: Db,
   query: InventoryProductsList
@@ -16,6 +16,7 @@ export async function inventoryProductsList(
   });
   const response = await params.response(
     data.map((r) => {
+      const stockMode = r.stockMode as StockModes;
       return {
         id: r.id,
         title: r.name,
@@ -25,7 +26,9 @@ export async function inventoryProductsList(
         variantCount: 1,
         totalStocks: "-",
         stockValue: 500,
-        status: "not managed" as StockStatus,
+        status: r.status as INVENTORY_STATUS,
+        stockMode,
+        stockMonitored: stockMode == "monitored",
       };
     })
   );

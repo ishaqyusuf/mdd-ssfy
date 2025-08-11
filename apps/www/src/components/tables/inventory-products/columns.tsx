@@ -4,6 +4,7 @@ import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip"
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Menu } from "@/components/(clean-code)/menu";
 import { Progress } from "@/components/(clean-code)/progress";
+import { StockModeStatus } from "@/components/stock-mode-status";
 import { SalesPayWidget } from "@/components/widgets/sales-pay-widget";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -27,19 +28,33 @@ export const columns: ColumnDef<Item>[] = [
     },
     {
         header: "Status",
-        accessorKey: "category",
+        accessorKey: "Status",
         cell: ({ row: { original: item } }) => (
             <>
-                <TCell.Secondary>{item.category}</TCell.Secondary>
+                <Progress>
+                    <Progress.Status>{item.status}</Progress.Status>
+                </Progress>
+            </>
+        ),
+    },
+    {
+        header: "Stock Mode",
+        accessorKey: "Stock Mode",
+        cell: ({ row: { original: item } }) => (
+            <>
+                <StockModeStatus status={item.stockMode} />
             </>
         ),
     },
     {
         header: "Variants",
         accessorKey: "Variants",
+        meta: {
+            className: "text-center",
+        },
         cell: ({ row: { original: item } }) => (
             <>
-                <TCell.Secondary>{item.variantCount}</TCell.Secondary>
+                <TCell.Primary>{item.variantCount}</TCell.Primary>
             </>
         ),
     },
@@ -58,17 +73,6 @@ export const columns: ColumnDef<Item>[] = [
         cell: ({ row: { original: item } }) => (
             <>
                 <TCell.Money>{item.stockValue}</TCell.Money>
-            </>
-        ),
-    },
-    {
-        header: "Status",
-        accessorKey: "Status",
-        cell: ({ row: { original: item } }) => (
-            <>
-                <Progress>
-                    <Progress.Status>{item.status}</Progress.Status>
-                </Progress>
             </>
         ),
     },
