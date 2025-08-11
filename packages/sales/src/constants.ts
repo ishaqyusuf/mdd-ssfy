@@ -93,9 +93,9 @@ export const INVENTORY_STATUS = ["draft", "published", "archived"] as const;
 export type INVENTORY_STATUS = (typeof INVENTORY_STATUS)[number];
 export const INVENTORY_STATUS_OPTIONS: {
   label?: string;
-  value?: INVENTORY_STATUS;
+  id?: INVENTORY_STATUS;
 }[] = [
-  { label: "Draft", value: "draft" },
-  { label: "Published", value: "published" },
-  { label: "Archive", value: "archived" },
+  { label: "Draft", id: "draft" },
+  { label: "Published", id: "published" },
+  { label: "Archive", id: "archived" },
 ];

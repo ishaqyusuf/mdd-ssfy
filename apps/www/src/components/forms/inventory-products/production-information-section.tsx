@@ -15,7 +15,7 @@ import { Label } from "@gnd/ui/label";
 import { FormDescription } from "@gnd/ui/form";
 import { cn } from "@gnd/ui/cn";
 import { Separator } from "@gnd/ui/separator";
-import { ProductImage } from "@/components/product-image-gallery";
+import { ProductImageGallery } from "@/components/product-image-gallery";
 
 export function ProductInformationSection({}) {
     const form = useInventoryProductForm();
@@ -103,7 +103,7 @@ export function ProductInformationSection({}) {
                         </div>
                     </div>
                     <Separator className="col-span-2" />
-                    <ProductImage />
+                    <ProductImageGallery />
                 </div>
             </AccordionContent>
         </AccordionItem>

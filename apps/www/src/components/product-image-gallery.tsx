@@ -1,7 +1,7 @@
 import { ProductImageDisplay } from "./product-image-display";
 
 interface Props {}
-export function ProductImage(props: Props) {
+export function ProductImageGallery(props: Props) {
     return (
         <div className="col-span-2">
             <ProductImageDisplay
