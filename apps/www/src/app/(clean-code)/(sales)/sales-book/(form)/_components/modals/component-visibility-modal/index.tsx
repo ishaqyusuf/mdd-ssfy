@@ -18,6 +18,8 @@ import { Form } from "@gnd/ui/form";
 import { useFormDataStore } from "../../../_common/_stores/form-data-store";
 import { ComponentHelperClass } from "../../../_utils/helpers/zus/step-component-class";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
+import { FormCombobox } from "@/components/common/controls/form-combobox";
+import { selectOptions } from "@gnd/utils";
 
 interface Props {
     cls: ComponentHelperClass;
@@ -159,6 +161,7 @@ function RuleComponent({ index }) {
 
     return (
         <div className="flex flex-col gap-2 overflow-y-auto py-0.5 pr-1">
+            {/* {JSON.stringify(ctx?.data?.steps)} */}
             {rulesArray?.fields?.map((field, fieldIndex) => (
                 <div className="flex items-center gap-2" key={fieldIndex}>
                     <div className="min-w-[4.5rem] text-center">
@@ -166,10 +169,19 @@ function RuleComponent({ index }) {
                             {fieldIndex == 0 ? "Where" : "and"}
                         </span>
                     </div>
-                    <ComboxBox
-                        options={ctx.data?.steps}
-                        labelKey="title"
-                        valueKey="uid"
+
+                    <FormCombobox
+                        // ={ctx.data?.steps}
+                        comboProps={{
+                            items: selectOptions(
+                                ctx?.data?.steps,
+                                "title",
+                                "uid",
+                            ),
+                            // items: ctx.data?.steps,
+                            // :"title",
+                            // valueKey:"uid"
+                        }}
                         control={ctx.form.control}
                         name={`variations.${index}.rules.${fieldIndex}.stepUid`}
                     />

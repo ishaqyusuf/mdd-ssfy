@@ -237,3 +237,15 @@ export function matchValue<T>(item: T) {
     not: (value: T) => item !== value,
   };
 }
+
+export function selectOptions<T>(
+  data: T[],
+  labelKey: keyof T,
+  valueKey: keyof T
+) {
+  return data?.map((d) => ({
+    data: d,
+    label: d?.[labelKey],
+    id: d?.[valueKey],
+  }));
+}

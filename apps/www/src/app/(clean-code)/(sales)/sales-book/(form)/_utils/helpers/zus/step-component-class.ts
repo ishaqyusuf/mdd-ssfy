@@ -254,6 +254,7 @@ export class StepHelperClass extends SettingsClass {
                         stepData.components || [];
                 }
             });
+        console.log(data);
 
         return data;
     }
