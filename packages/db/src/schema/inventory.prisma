@@ -118,8 +118,8 @@ model InventoryVariantPricing {
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
-    inventoryVariantId Int              @unique
+    inventoryVariant   InventoryVariant? @relation(fields: [inventoryVariantId], references: [id])
+    inventoryVariantId Int?              @unique
 
     inventory   Inventory? @relation(fields: [inventoryId], references: [id])
     inventoryId Int?
