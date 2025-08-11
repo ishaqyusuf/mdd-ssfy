@@ -24,7 +24,7 @@ export async function uploadInventoriesForDykeProducts(
     (uid) => !inventoryTypes.some((it) => it.uid === uid)
   );
   if (missingInventoryTypeUids.length > 0) {
-    const newInventoryTypes: Prisma.ExInventoryCategoryCreateManyInput[] =
+    const newInventoryTypes: Prisma.InventoryCategoryCreateManyInput[] =
       missingInventoryTypeUids.map((uid) => {
         // const product = data.products.find((p) => p.step.uid === uid);
         const step = deps.find((a) => a.stepUid === uid);
@@ -34,14 +34,14 @@ export async function uploadInventoriesForDykeProducts(
           // type: "component",
         };
       });
-    await ctx.db.exInventoryCategory.createMany({
+    await ctx.db.inventoryCategory.createMany({
       data: newInventoryTypes,
     });
     inventoryTypes = await getInventoryTypesByUids(ctx, stepUids);
   }
   const productUids = data.products.map((p) => p.uid)?.filter(Boolean);
   const stepInventoryType = inventoryTypes.find((a) => a.uid == stepUids[0]);
-  await ctx.db.exInventoryCategoryVariantAttribute.createMany({
+  await ctx.db.inventoryCategoryVariantAttribute.createMany({
     data: deps
       .filter((d, di) => deps.findIndex((a) => a.stepUid === d.stepUid) == di)
       .map((ta) => ({
@@ -52,7 +52,7 @@ export async function uploadInventoriesForDykeProducts(
       })),
     skipDuplicates: true,
   });
-  let inventories = await ctx.db.exInventory.findMany({
+  let inventories = await ctx.db.inventory.findMany({
     where: {
       uid: {
         in: productUids as any,
@@ -78,10 +78,10 @@ export async function uploadInventoriesForDykeProducts(
   const productsNotFound = __allProducts.filter(
     (p) => p.uid && !inventories.some((i) => i.uid === p.uid)
   );
-  let newInventoryId = await nextId(ctx.db.exInventory);
-  let newInventoryVariantId = await nextId(ctx.db.exInventoryVariant);
-  let newICVAId = await nextId(ctx.db.exInventoryCategoryVariantAttribute);
-  // let newIVAId = await nextId(ctx.db.exInventoryVariantAttribute);
+  let newInventoryId = await nextId(ctx.db.inventory);
+  let newInventoryVariantId = await nextId(ctx.db.inventoryVariant);
+  let newICVAId = await nextId(ctx.db.inventoryCategoryVariantAttribute);
+  // let newIVAId = await nextId(ctx.db.inventoryVariantAttribute);
   if (productsNotFound.length) {
     const inventoriesToCreate = productsNotFound.map((product) => {
       const inventoryType = inventoryTypes.find(
@@ -98,17 +98,16 @@ export async function uploadInventoriesForDykeProducts(
         inventoryCategoryId: typeId as number,
         img: product.img,
         id: newInventoryId++,
-      } satisfies Prisma.ExInventoryCreateManyInput;
+      } satisfies Prisma.InventoryCreateManyInput;
     });
     const ls = data.products.filter((a) =>
       productsNotFound.every((p) => p.uid != a.uid)
     );
     // Inventory Category Variant Attributes.
     const icvaToCreate =
-      [] as Prisma.ExInventoryCategoryVariantAttributeCreateManyInput[];
+      [] as Prisma.InventoryCategoryVariantAttributeCreateManyInput[];
     // Inventory Variant Attributes.
-    const ivaToCreate =
-      [] as Prisma.ExInventoryVariantAttributeCreateManyInput[];
+    const ivaToCreate = [] as Prisma.InventoryVariantAttributeCreateManyInput[];
     const variantsToCreate = ls
       .filter((a) => a.price || (!a.price && !a.variants?.length))
       .map(
@@ -119,7 +118,7 @@ export async function uploadInventoriesForDykeProducts(
             uid: prod.uid!,
             img: prod.img,
             id: newInventoryVariantId++,
-          }) satisfies Prisma.ExInventoryVariantCreateManyInput
+          }) satisfies Prisma.InventoryVariantCreateManyInput
       );
     const variantPricingsToCreate = ls
       .filter((a) => a.price)
@@ -130,7 +129,7 @@ export async function uploadInventoriesForDykeProducts(
               ?.id!,
             price: prod.price!,
             inventoryVariantId: undefined,
-          }) satisfies Prisma.ExInventoryVariantPricingCreateManyInput
+          }) satisfies Prisma.InventoryVariantPricingCreateManyInput
       );
     ls.filter((a) => a.variants?.length).map((prod) =>
       prod.variants?.map((_var) => {
@@ -140,7 +139,7 @@ export async function uploadInventoriesForDykeProducts(
           img: prod.img,
           // variantTitle: prod.name,
           id: newInventoryVariantId++,
-        } satisfies Prisma.ExInventoryVariantCreateManyInput;
+        } satisfies Prisma.InventoryVariantCreateManyInput;
         _var.deps.map((dep) => {
           const vicId = inventoryTypes.find(
             (it) => it.uid === dep.stepUid
@@ -150,7 +149,7 @@ export async function uploadInventoriesForDykeProducts(
             valuesInventoryCategoryId: vicId,
             id: undefined,
             // id: icvaToCreate.find(a => )
-          } satisfies Prisma.ExInventoryCategoryVariantAttributeCreateManyInput;
+          } satisfies Prisma.InventoryCategoryVariantAttributeCreateManyInput;
           let icvaId = icvaToCreate.find(
             (a) =>
               icva.inventoryCategoryId == a.inventoryCategoryId &&
@@ -176,22 +175,22 @@ export async function uploadInventoriesForDykeProducts(
         });
       })
     );
-    await ctx.db.exInventory.createMany({
+    await ctx.db.inventory.createMany({
       data: inventoriesToCreate,
     });
-    await ctx.db.exInventoryVariant.createMany({
+    await ctx.db.inventoryVariant.createMany({
       data: variantsToCreate,
     });
-    await ctx.db.exInventoryVariantPricing.createMany({
+    await ctx.db.inventoryVariantPricing.createMany({
       data: variantPricingsToCreate,
     });
-    await ctx.db.exInventoryCategoryVariantAttribute.createMany({
+    await ctx.db.inventoryCategoryVariantAttribute.createMany({
       data: icvaToCreate,
     });
-    await ctx.db.exInventoryVariantAttribute.createMany({
+    await ctx.db.inventoryVariantAttribute.createMany({
       data: ivaToCreate,
     });
-    inventories = await ctx.db.exInventory.findMany({
+    inventories = await ctx.db.inventory.findMany({
       where: {
         uid: {
           in: productUids as any,
@@ -213,7 +212,7 @@ export async function getInventoryTypesByUids(
   ctx: TRPCContext,
   uids: string[]
 ) {
-  const inventoryCategories = await ctx.db.exInventoryCategory.findMany({
+  const inventoryCategories = await ctx.db.inventoryCategory.findMany({
     where: {
       uid: {
         in: uids,
@@ -250,13 +249,13 @@ export async function upsertInventoriesForDykeShelfProducts(
   });
   const uid = generateInventoryCategoryUidFromShelfCategoryId(data.categoryId);
   const inventoryCategory =
-    (await ctx.db.exInventoryCategory.findFirst({
+    (await ctx.db.inventoryCategory.findFirst({
       where: {
         // uid: `shelf-${data.categoryId}`,
         uid,
       },
     })) ||
-    (await ctx.db.exInventoryCategory.create({
+    (await ctx.db.inventoryCategory.create({
       data: {
         title: parentCategory?.name!,
         // uid: `shelf-${data.categoryId}`,
@@ -270,9 +269,9 @@ export async function upsertInventoriesForDykeShelfProducts(
     },
   });
   let inventorySubCategories =
-    [] as Prisma.ExInventorySubCategoryCreateManyInput[];
-  let nextInventorySubCategoryId = await nextId(ctx.db.exInventorySubCategory);
-  let nextInventoryVariantId = await nextId(ctx.db.exInventoryVariant);
+    [] as Prisma.InventorySubCategoryCreateManyInput[];
+  let nextInventorySubCategoryId = await nextId(ctx.db.inventorySubCategory);
+  let nextInventoryVariantId = await nextId(ctx.db.inventoryVariant);
   const inventoryCategoryIdMapByDykeCategory = {};
   function createCategory(
     parentId,
@@ -298,14 +297,14 @@ export async function upsertInventoriesForDykeShelfProducts(
   }
   createCategory(data.categoryId);
 
-  const __inventories: Prisma.ExInventoryCreateManyInput[] = [];
+  const __inventories: Prisma.InventoryCreateManyInput[] = [];
   // const __inventoryVariants: Prisma.InventoryCreateManyInput[] = [];
-  const __inventoryVariants: Prisma.ExInventoryVariantCreateManyInput[] = [];
-  const __inventoryVariantPricings: Prisma.ExInventoryVariantPricingCreateManyInput[] =
+  const __inventoryVariants: Prisma.InventoryVariantCreateManyInput[] = [];
+  const __inventoryVariantPricings: Prisma.InventoryVariantPricingCreateManyInput[] =
     [];
-  const invItemSubCat: Prisma.ExInventoryItemSubCategoryCreateManyInput[] = [];
-  let nextInventoryId = await nextId(ctx.db.exInventory);
-  let nextInventoryPriceId = await nextId(ctx.db.exInventoryVariant);
+  const invItemSubCat: Prisma.InventoryItemSubCategoryCreateManyInput[] = [];
+  let nextInventoryId = await nextId(ctx.db.inventory);
+  let nextInventoryPriceId = await nextId(ctx.db.inventoryVariant);
   products.map((product) => {
     let ivId = nextInventoryId++;
     let priceId = nextInventoryPriceId++;
@@ -368,7 +367,7 @@ export async function getInventoryCategoryByShelfId(
   categoryId
 ) {
   const uid = generateInventoryCategoryUidFromShelfCategoryId(categoryId);
-  const inventoryType = await ctx.db.exInventoryCategory.findFirst({
+  const inventoryType = await ctx.db.inventoryCategory.findFirst({
     where: {
       uid,
     },

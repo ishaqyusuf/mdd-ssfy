@@ -26,11 +26,17 @@ export function Sidebar({}) {
         >
             <div
                 className={cn(
-                    "absolute top-0 left-0 h-[70px] flex items-center justify-center bg-background border-b border-border transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                    isExpanded ? "w-full" : "w-[69px]",
+                    "absolute top-0 left-0 h-[70px] flex items-center justify-center bg-background border-b border-border transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] z-10",
+                    isExpanded ? "w-full justify-starts" : "w-[69px]",
                 )}
             >
-                <Link href="/" className="absolute left-[22px] transition-none">
+                <Link
+                    href="/"
+                    className={cn(
+                        "absolute left-[8px] transition-none",
+                        isExpanded && "left-[16px]s  ",
+                    )}
+                >
                     {isExpanded ? <Icons.LogoLg /> : <Icons.Logo />}
                     {/* <div className="flex">
                          <Icons.logoLg width={100} />

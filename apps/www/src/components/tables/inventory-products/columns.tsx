@@ -1,0 +1,137 @@
+"use client";
+
+import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
+import { TCell } from "@/components/(clean-code)/data-table/table-cells";
+import { Menu } from "@/components/(clean-code)/menu";
+import { Progress } from "@/components/(clean-code)/progress";
+import { SalesPayWidget } from "@/components/widgets/sales-pay-widget";
+import { useBatchSales } from "@/hooks/use-batch-sales";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { cn } from "@/lib/utils";
+import { ColumnDef } from "@/types/type";
+import { RouterOutputs } from "@api/trpc/routers/_app";
+
+import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
+import { Icons } from "@gnd/ui/icons";
+import { Eye, Package, StickyNote } from "lucide-react";
+import { InvoiceColumn } from "./column.invoice";
+import { ActionCell } from "../action-cell";
+
+export type Item = RouterOutputs["sales"]["inventoryProducts"]["data"][number];
+export const columns: ColumnDef<Item>[] = [
+    {
+        header: "Product",
+        accessorKey: "product",
+        meta: {},
+        cell: ({ row: { original: item } }) => <ProductCell item={item} />,
+    },
+    {
+        header: "Category",
+        accessorKey: "category",
+        cell: ({ row: { original: item } }) => (
+            <>
+                <TCell.Secondary>{item.category}</TCell.Secondary>
+            </>
+        ),
+    },
+    {
+        header: "Variants",
+        accessorKey: "Variants",
+        cell: ({ row: { original: item } }) => (
+            <>
+                <TCell.Secondary>{item.variantCount}</TCell.Secondary>
+            </>
+        ),
+    },
+    {
+        header: "Total Stock",
+        accessorKey: "TotalStock",
+        cell: ({ row: { original: item } }) => (
+            <>
+                <TCell.Secondary>{item?.totalStocks}</TCell.Secondary>
+            </>
+        ),
+    },
+    {
+        header: "Stock Value",
+        accessorKey: "Stock Value",
+        cell: ({ row: { original: item } }) => (
+            <>
+                <TCell.Money>{item.stockValue}</TCell.Money>
+            </>
+        ),
+    },
+    {
+        header: "Status",
+        accessorKey: "Status",
+        cell: ({ row: { original: item } }) => (
+            <>
+                <Progress>
+                    <Progress.Status>{item.status}</Progress.Status>
+                </Progress>
+            </>
+        ),
+    },
+
+    {
+        header: "",
+        accessorKey: "action",
+        meta: {
+            actionCell: true,
+            preventDefault: true,
+        },
+        cell: ({ row: { original: item } }) => {
+            const handleEditProduct = () => {};
+            return (
+                <div className="flex gap-2">
+                    <Button variant="ghost" size="sm">
+                        <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleEditProduct}
+                    >
+                        <Icons.Edit className="w-4 h-4" />
+                    </Button>
+                </div>
+            );
+        },
+    },
+];
+
+function ProductCell({ item: product }: { item: Item }) {
+    const handleEditProduct = () => {};
+    return (
+        <div className="flex items-center gap-3">
+            <div
+                className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+                onClick={handleEditProduct}
+            >
+                {product.images.length > 0 ? (
+                    <img
+                        src={product.images[0] || "/placeholder.svg"}
+                        alt={product.title}
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                        <Package className="w-6 h-6 text-gray-400" />
+                    </div>
+                )}
+            </div>
+            <div>
+                <div className="font-medium">{product.title}</div>
+                <div className="text-sm text-gray-500">{product.brand}</div>
+                {product.images.length > 1 && (
+                    <Badge variant="outline" className="text-xs mt-1">
+                        +{product.images.length - 1} more
+                    </Badge>
+                )}
+            </div>
+        </div>
+    );
+}
+

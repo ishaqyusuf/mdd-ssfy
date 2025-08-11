@@ -38,12 +38,12 @@ type Link = {
 const _section = (
     name: string,
     title?: string,
-    links?: ReturnType<typeof _link>["data"][],
+    links?: (ReturnType<typeof _link>["data"] | undefined)[],
     access: Access[] = [],
 ) => ({
     name,
     title,
-    links,
+    links: links.filter(Boolean).map((a) => a),
     access,
     index: -1,
     globalIndex: -1,
@@ -370,6 +370,9 @@ export const linkModules = [
                 .childPaths("sales-book/create-quote", "sales-book/edit-quote")
                 .data,
             // .childPaths("sales-book/create-quote", "sales-book/edit-quote")
+            process.env.NODE_ENV == "production"
+                ? undefined
+                : _link("Inventory", "inbound", "/inventory").data,
             _link(
                 "Inbounds Managment",
                 "inbound",

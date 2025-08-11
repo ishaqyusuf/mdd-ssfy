@@ -4,7 +4,14 @@ import { cn } from "@/lib/utils";
 import { createContextFactory } from "@/utils/context-factory";
 import { cva, VariantProps } from "class-variance-authority";
 
-import { Sheet, SheetContent, SheetContentProps } from "@gnd/ui/sheet";
+import {
+    Sheet,
+    SheetContent,
+    SheetContentProps,
+    SheetHeader as ShadSheetHeader,
+    SheetTitle,
+    SheetDescription,
+} from "@gnd/ui/sheet";
 
 import Portal from "../_v1/portal";
 import { ScrollArea } from "@gnd/ui/scroll-area";
@@ -40,6 +47,8 @@ interface Props
     open?: boolean;
     onOpenChange?;
     sheetName: string;
+    title?: string;
+    description?: string;
 }
 const { Provider: SheetProvider, useContext: useSheet } = createContextFactory(
     function (sheetName) {
@@ -113,3 +122,17 @@ export function CustomSheetContent({ children = null, className = "" }) {
         </ScrollArea>
     );
 }
+
+function BaseSheetHeader({ children = null }) {
+    return <ShadSheetHeader className="">{children}</ShadSheetHeader>;
+}
+function Title({ children }) {
+    return <SheetTitle>{children}</SheetTitle>;
+}
+function Description({ children }) {
+    return <SheetDescription>{children}</SheetDescription>;
+}
+export const SheetHeader = Object.assign(BaseSheetHeader, {
+    Title,
+    Description,
+});

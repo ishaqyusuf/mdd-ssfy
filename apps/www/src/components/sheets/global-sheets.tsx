@@ -5,6 +5,7 @@ import { _perm } from "../sidebar/links";
 import { CustomerCreateSheet } from "./customer-create-sheet";
 import { CustomerOverviewSheet } from "./customer-overview-sheet";
 import { InboundOverviewSheet } from "./inbound-overview-sheet";
+import { InventoryProductSheet } from "./inventory-product-sheet";
 import RolesProfilesSheet from "./roles-profile-sheet";
 import SalesOverviewSheet from "./sales-overview-sheet";
 
@@ -22,6 +23,7 @@ export function GlobalSheets({}) {
             <InboundOverviewSheet />
             <SalesOverviewSheet /> <CustomerOverviewSheet />{" "}
             <CustomerCreateSheet />
+            <InventoryProductSheet />
         </>
     );
 }

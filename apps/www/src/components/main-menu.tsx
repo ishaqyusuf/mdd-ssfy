@@ -31,7 +31,7 @@ const moduleVariants = cva("", {
     },
     compoundVariants: [
         {
-            renderMode: "default",
+            // renderMode: "default",
             isCurrent: false,
             className: "hidden",
             moduleType: "module",
@@ -72,6 +72,7 @@ export function MainMenu() {
         <div className="mt-6 w-full">
             <nav className="w-full overflow-auto">
                 <div className="flex flex-col gap-2">
+                    {/* <span>{JSON.stringify({ activeLink })}</span> */}
                     {linkModules?.modules
                         ?.filter((a) => a.activeLinkCount)
                         .map((module, mi) => (
@@ -95,7 +96,7 @@ export function MainMenu() {
                                         {!isExpanded && si > 0 ? null : (
                                             <div
                                                 className={cn(
-                                                    "uppercase hidden",
+                                                    "uppercase hidden text-xs mx-4 mt-4 font-semibold text-muted-foreground",
                                                     activeLink?.module !=
                                                         module.name &&
                                                         sectionLabel({

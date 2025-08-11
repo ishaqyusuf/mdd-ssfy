@@ -7,15 +7,11 @@ import type {
 import type { TRPCContext } from "@api/trpc/init";
 import type { PageFilterData, SalesType } from "@api/type";
 import {
-  DISPATCH_FILTER_OPTIONS,
   INVOICE_FILTER_OPTIONS,
-  PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
   PRODUCTION_FILTER_OPTIONS,
-  PRODUCTION_STATUS,
   RESOLUTION_FILTER_OPTIONS,
   SALES_DISPATCH_FILTER_OPTIONS,
   salesDispatchStatus,
-  salesType,
 } from "@gnd/utils/constants";
 import { buildersList, projectList } from "./community";
 import type { GetSalesResolutions } from "./sales-resolution";
@@ -218,7 +214,6 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
   ];
   return resp as FilterData[];
 }
-
 export async function getResolutionFilters(ctx: TRPCContext) {
   const baseFilters = await getSalesOrderFilters(ctx);
   type T = keyof GetSalesResolutions;

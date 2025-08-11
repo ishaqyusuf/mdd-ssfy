@@ -5,23 +5,28 @@ import { Header } from "@/components/header";
 import { GlobalModals } from "@/components/modals/global-modals";
 import { GlobalSheets } from "@/components/sheets/global-sheets";
 import { Sidebar } from "@/components/sidebar";
+import { SidebarContent } from "@/components/sidebar-content";
 import { getLinkModules, validateLinks } from "@/components/sidebar/links";
 import { SideBar as OldSideBar } from "@/components/sidebar/sidebar";
 import { HydrateClient } from "@/trpc/server";
+import { env } from "process";
 import { Suspense } from "react";
 
 // export default
 async function Layout({ children }) {
+    // return <>{children}</>;
     return (
         <HydrateClient>
             <div className="relative">
-                <Sidebar />
+                <SidebarContent>
+                    <Sidebar />
 
-                <div className="md:ml-[70px] pb-8">
-                    <Header />
-                    <div className="px-6">{children}</div>
-                </div>
-                {/* <ExportStatus /> */}
+                    <div className="md:ml-[70px] pb-8">
+                        <Header />
+                        <div className="px-6">{children}</div>
+                    </div>
+                </SidebarContent>
+
                 <Suspense>
                     <GlobalSheets />
                     <GlobalModals />
@@ -33,7 +38,7 @@ async function Layout({ children }) {
         </HydrateClient>
     );
 }
-export default async function SideBarLayout({ children }) {
+async function SideBarLayout({ children }) {
     const [user, pageTabs] = await Promise.all([
         getLoggedInProfile(),
         loadPageTabs(),
@@ -56,3 +61,4 @@ export default async function SideBarLayout({ children }) {
         </OldSideBar>
     );
 }
+export default env.NODE_ENV == "development" ? Layout : SideBarLayout;

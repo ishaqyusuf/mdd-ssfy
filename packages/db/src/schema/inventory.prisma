@@ -1,24 +1,24 @@
-model ExInventoryCategory {
+model InventoryCategory {
     id    Int     @id @default(autoincrement())
     title String
     img   String?
     uid   String
     type  String?
 
-    inventories                        ExInventory[]
+    inventories                        Inventory[]
     // for shelf item
-    shelfItemSubCategories             ExInventorySubCategory[]
+    shelfItemSubCategories             InventorySubCategory[]
     // for components
-    inventoryItemSubCategories         ExInventoryItemSubCategory[]
-    categoryVariantAttributes          ExInventoryCategoryVariantAttribute[] @relation(name: "inventoryCategory")
-    attributedCategoryVariantAttribute ExInventoryCategoryVariantAttribute[] @relation(name: "valuesInventoryCategory")
+    inventoryItemSubCategories         InventoryItemSubCategory[]
+    categoryVariantAttributes          InventoryCategoryVariantAttribute[] @relation(name: "inventoryCategory")
+    attributedCategoryVariantAttribute InventoryCategoryVariantAttribute[] @relation(name: "valuesInventoryCategory")
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 }
 
-model ExInventory {
+model Inventory {
     id   Int     @id @default(autoincrement())
     name String
     img  String?
@@ -28,19 +28,20 @@ model ExInventory {
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    inventoryCategory   ExInventoryCategory? @relation(fields: [inventoryCategoryId], references: [id])
+    inventoryCategory   InventoryCategory? @relation(fields: [inventoryCategoryId], references: [id])
     inventoryCategoryId Int
 
-    inventoryItemSubCategories ExInventoryItemSubCategory[]
-    variants                   ExInventoryVariant[]
+    inventoryItemSubCategories InventoryItemSubCategory[]
+    variants                   InventoryVariant[]
 
-    pricings          ExInventoryVariantPricing[]
-    variantAtrributes ExInventoryVariantAttribute[]
+    pricings          InventoryVariantPricing[]
+    variantAtrributes InventoryVariantAttribute[]
+    logs              InventoryLog[]
 
     @@index([inventoryCategoryId])
 }
 
-model ExInventoryVariant {
+model InventoryVariant {
     id  Int     @id @default(autoincrement())
     img String?
     sku String?
@@ -50,30 +51,32 @@ model ExInventoryVariant {
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    inventory   ExInventory @relation(fields: [inventoryId], references: [id])
+    inventory   Inventory @relation(fields: [inventoryId], references: [id])
     inventoryId Int
 
-    pricings   ExInventoryVariantPricing[]
-    attributes ExInventoryVariantAttribute[]
+    pricings   InventoryVariantPricing[]
+    attributes InventoryVariantAttribute[]
+    stocks     InventoryStock[]
+    logs       InventoryLog[]
 
     @@index([inventoryId])
 }
 
-model ExInventoryVariantAttribute {
+model InventoryVariantAttribute {
     id Int @id @default(autoincrement())
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    inventoryVariant   ExInventoryVariant? @relation(fields: [inventoryVariantId], references: [id])
+    inventoryVariant   InventoryVariant? @relation(fields: [inventoryVariantId], references: [id])
     inventoryVariantId Int?
 
     //
-    inventoryCategoryVariantAttribute   ExInventoryCategoryVariantAttribute? @relation(fields: [inventoryCategoryVariantAttributeId], references: [id])
+    inventoryCategoryVariantAttribute   InventoryCategoryVariantAttribute? @relation(fields: [inventoryCategoryVariantAttributeId], references: [id])
     inventoryCategoryVariantAttributeId Int?
 
-    value   ExInventory? @relation(fields: [valueId], references: [id])
+    value   Inventory? @relation(fields: [valueId], references: [id])
     valueId Int?
 
     @@index([valueId])
@@ -81,27 +84,27 @@ model ExInventoryVariantAttribute {
     @@index([inventoryCategoryVariantAttributeId])
 }
 
-model ExInventoryCategoryVariantAttribute {
+model InventoryCategoryVariantAttribute {
     id Int @id @default(autoincrement())
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    inventoryCategory   ExInventoryCategory @relation(name: "inventoryCategory", fields: [inventoryCategoryId], references: [id])
+    inventoryCategory   InventoryCategory @relation(name: "inventoryCategory", fields: [inventoryCategoryId], references: [id])
     inventoryCategoryId Int
 
-    valuesInventoryCategory   ExInventoryCategory @relation(name: "valuesInventoryCategory", fields: [valuesInventoryCategoryId], references: [id])
+    valuesInventoryCategory   InventoryCategory @relation(name: "valuesInventoryCategory", fields: [valuesInventoryCategoryId], references: [id])
     valuesInventoryCategoryId Int
 
-    variantAttributes ExInventoryVariantAttribute[]
+    variantAttributes InventoryVariantAttribute[]
 
     @@unique([inventoryCategoryId, valuesInventoryCategoryId])
     @@index([inventoryCategoryId])
     @@index([valuesInventoryCategoryId])
 }
 
-model ExInventoryVariantPricing {
+model InventoryVariantPricing {
     id    Int   @id @default(autoincrement())
     price Float
 
@@ -109,10 +112,10 @@ model ExInventoryVariantPricing {
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    inventoryVariant   ExInventoryVariant? @relation(fields: [inventoryVariantId], references: [id])
+    inventoryVariant   InventoryVariant? @relation(fields: [inventoryVariantId], references: [id])
     inventoryVariantId Int?
 
-    inventory   ExInventory? @relation(fields: [inventoryId], references: [id])
+    inventory   Inventory? @relation(fields: [inventoryId], references: [id])
     inventoryId Int?
 
     @@index([inventoryVariantId])
@@ -120,23 +123,23 @@ model ExInventoryVariantPricing {
 }
 
 // example: 
-model ExInventoryItemSubCategory {
+model InventoryItemSubCategory {
     id Int @id @default(autoincrement())
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    inventory   ExInventory @relation(fields: [inventoryId], references: [id])
+    inventory   Inventory @relation(fields: [inventoryId], references: [id])
     inventoryId Int
 
     // for components steps
-    values                    ExInventoryItemSubCategoryValues[]
-    valuesInventoryCategory   ExInventoryCategory?               @relation(fields: [valuesInventoryCategoryId], references: [id])
+    values                    InventoryItemSubCategoryValues[]
+    valuesInventoryCategory   InventoryCategory?               @relation(fields: [valuesInventoryCategoryId], references: [id])
     valuesInventoryCategoryId Int?
 
     // for shelf items
-    inventorySubCategory   ExInventorySubCategory? @relation(fields: [inventorySubCategoryId], references: [id])
+    inventorySubCategory   InventorySubCategory? @relation(fields: [inventorySubCategoryId], references: [id])
     inventorySubCategoryId Int?
 
     @@index([inventoryId])
@@ -145,14 +148,14 @@ model ExInventoryItemSubCategory {
 }
 
 // for step components
-model ExInventoryItemSubCategoryValues {
+model InventoryItemSubCategoryValues {
     id Int @id @default(autoincrement())
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    inventoryItemSubCategory   ExInventoryItemSubCategory? @relation(fields: [inventoryItemSubCategoryId], references: [id])
+    inventoryItemSubCategory   InventoryItemSubCategory? @relation(fields: [inventoryItemSubCategoryId], references: [id])
     inventoryItemSubCategoryId Int?
     // @@index([inventoryCategoryId])
 
@@ -165,7 +168,7 @@ model ExInventoryItemSubCategoryValues {
 // sub categories: exterior single rabbet jambs,
 // select Jambs in shelf items, it loads inventorysubcategories where parentSubCatuid is null,
 // select next category, it loads categories where parentUid is prev, if no categories in next, it loads products in the selected categories...
-model ExInventorySubCategory {
+model InventorySubCategory {
     id                   Int     @id @default(autoincrement())
     title                String?
     uid                  String
@@ -175,10 +178,60 @@ model ExInventorySubCategory {
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    parentInventoryCategory   ExInventoryCategory @relation(fields: [parentInventoryCategoryId], references: [id])
+    parentInventoryCategory   InventoryCategory @relation(fields: [parentInventoryCategoryId], references: [id])
     parentInventoryCategoryId Int
 
-    inventoryItemSubCategories ExInventoryItemSubCategory[]
+    inventoryItemSubCategories InventoryItemSubCategory[]
 
     @@index([parentInventoryCategoryId])
+}
+
+model InventoryStock {
+    id                 Int              @id @default(autoincrement())
+    inventoryVariantId Int
+    inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
+
+    quantity   Float
+    location   String?
+    supplierId Int?
+    supplier   Supplier? @relation(fields: [supplierId], references: [id])
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@index([inventoryVariantId])
+    @@index([supplierId])
+}
+
+model Supplier {
+    id       Int              @id @default(autoincrement())
+    name     String
+    email    String?
+    phone    String?
+    address  String?
+    supplies InventoryStock[]
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+}
+
+model InventoryLog {
+    id                 Int              @id @default(autoincrement())
+    action             String
+    quantity           Float
+    notes              String?
+    inventoryVariantId Int
+    inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
+    createdBy          String?
+
+    createdAt   DateTime?  @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime?  @updatedAt
+    deletedAt   DateTime?  @db.Timestamp(0)
+    Inventory   Inventory? @relation(fields: [inventoryId], references: [id])
+    inventoryId Int?
+
+    @@index([inventoryVariantId])
+    @@index([inventoryId])
 }

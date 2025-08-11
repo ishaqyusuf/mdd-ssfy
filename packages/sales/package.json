@@ -12,10 +12,12 @@
     ".": "./src/exports.ts",
     "./constants": "./src/constants.ts",
     "./utils": "./src/utils/utils.ts",
+    "./inventory": "./src/inventory.ts",
     "./inventory-utils": "./src/utils/inventory-utils.ts",
     "./types": "./src/types.ts",
     "./get-sale-information": "./src/sales-control/get-sale-information.ts",
     "./sales-transaction": "./src/sales-transaction.ts",
+    "./schema": "./src/schema.ts",
     "./wallet": "./src/wallet.ts"
   },
   "dependencies": {

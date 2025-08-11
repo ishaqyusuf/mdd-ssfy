@@ -8,6 +8,7 @@ import {
 } from "@gnd/utils/constants";
 import { z } from "zod";
 import { SALES_DISPATCH_STATUS } from "./utils/constants";
+import { INVENTORY_STATUS } from "./constants";
 export const getFullSalesDataSchema = z.object({
   salesId: z.number().optional().nullable(),
   salesNo: z.string().optional().nullable(),
@@ -152,3 +153,20 @@ export const deletePackingSchema = z.object({
   deleteBy: z.string(),
 });
 export type DeletePackingSchema = z.infer<typeof deletePackingSchema>;
+
+export const inventoryProductsListSchema = z
+  .object({
+    // example: z.string(),
+  })
+  .merge(paginationSchema);
+export type InventoryProductsList = z.infer<typeof inventoryProductsListSchema>;
+
+export const inventoryProductFormSchema = z.object({
+  product: z.object({
+    description: z.string().optional().nullable(),
+    name: z.string(),
+    categoryId: z.number(),
+    status: z.enum(INVENTORY_STATUS),
+    stockMonitor: z.boolean().optional().default(false),
+  }),
+});
