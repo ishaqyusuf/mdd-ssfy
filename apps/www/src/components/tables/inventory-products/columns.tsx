@@ -16,8 +16,6 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Eye, Package, StickyNote } from "lucide-react";
-import { InvoiceColumn } from "./column.invoice";
-import { ActionCell } from "../action-cell";
 
 export type Item = RouterOutputs["sales"]["inventoryProducts"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
@@ -28,7 +26,7 @@ export const columns: ColumnDef<Item>[] = [
         cell: ({ row: { original: item } }) => <ProductCell item={item} />,
     },
     {
-        header: "Category",
+        header: "Status",
         accessorKey: "category",
         cell: ({ row: { original: item } }) => (
             <>
@@ -124,7 +122,7 @@ function ProductCell({ item: product }: { item: Item }) {
             </div>
             <div>
                 <div className="font-medium">{product.title}</div>
-                <div className="text-sm text-gray-500">{product.brand}</div>
+                <div className="text-sm text-gray-500">{product.category}</div>
                 {product.images.length > 1 && (
                     <Badge variant="outline" className="text-xs mt-1">
                         +{product.images.length - 1} more

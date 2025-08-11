@@ -5,6 +5,7 @@ import { Package, Edit, Star, ImageIcon } from "lucide-react";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent } from "@gnd/ui/card";
+import { ImageManagementModal } from "./modals/img-management-modal";
 // import { ImageManagementModal } from "./image-management-modal";
 // import type { ImageAsset } from "../types/inventory";
 
@@ -192,7 +193,7 @@ export function ProductImageDisplay({
                 )}
             </div>
 
-            {/* <ImageManagementModal
+            <ImageManagementModal
                 isOpen={isImageModalOpen}
                 onClose={() => setIsImageModalOpen(false)}
                 currentImages={images}
@@ -201,7 +202,7 @@ export function ProductImageDisplay({
                 onImageUpload={onImageUpload}
                 onImageDelete={onImageDelete}
                 title={title}
-            /> */}
+            />
         </>
     );
 }

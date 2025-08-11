@@ -19,10 +19,11 @@ model InventoryCategory {
 }
 
 model Inventory {
-    id   Int     @id @default(autoincrement())
-    name String
-    img  String?
-    uid  String
+    id        Int     @id @default(autoincrement())
+    name      String
+    img       String?
+    uid       String
+    stockMode String?
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
@@ -51,6 +52,9 @@ model InventoryVariant {
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
+
+    status      String?
+    publishedAt DateTime?
 
     inventory   Inventory @relation(fields: [inventoryId], references: [id])
     inventoryId Int
@@ -269,9 +273,10 @@ model InventoryLog {
 }
 
 model ImageGallery {
-    id   Int    @id @default(autoincrement())
-    name String // gallery name (e.g., "Summer Collection", "Jamb Variants")
-
+    id     Int               @id @default(autoincrement())
+    name   String // gallery name (e.g., "Summer Collection", "Jamb Variants")
+    path   String
+    bucket String
     images InventoryImage[]
     // tags   ImageTag[] // searchable tags
     tags   ImageGalleryTag[]
@@ -309,7 +314,7 @@ model ImageGalleryTag {
 // Update InventoryImage to link to gallery
 model InventoryImage {
     id       Int     @id @default(autoincrement())
-    url      String // image path or CDN URL
+    // url      String // image path or CDN URL
     altText  String? // optional description for accessibility
     position Int? // optional ordering for gallery
 
