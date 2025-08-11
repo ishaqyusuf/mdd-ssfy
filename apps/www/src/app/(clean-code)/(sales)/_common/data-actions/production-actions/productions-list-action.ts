@@ -50,6 +50,7 @@ export async function getProductionListPageAction(
                   "sales.type": query["sales.type"],
                   "production.assignedToId": assignedToId,
                   "production.status": "due today",
+                  size: 99,
               })
             : [];
     const pastDue =
@@ -58,6 +59,7 @@ export async function getProductionListPageAction(
                   "sales.type": query["sales.type"],
                   "production.assignedToId": assignedToId,
                   "production.status": "past due",
+                  size: 99,
               })
             : [];
     const customs = [...dueToday, ...pastDue]

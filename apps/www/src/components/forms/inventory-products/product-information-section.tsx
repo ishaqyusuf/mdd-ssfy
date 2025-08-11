@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { useInventoryProductForm } from "./form-context";
 import { Eye, EyeOff, Package } from "lucide-react";
 import { Progress } from "@/components/(clean-code)/progress";

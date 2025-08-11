@@ -7,7 +7,10 @@ import {
   upsertInventoriesForDykeShelfProductsSchema,
 } from "@api/db/queries/inventory.generate";
 import { getInventoryCategoriesSchema } from "@sales/schema";
-import { getInventoryCategories } from "@sales/inventory";
+import {
+  getInventoryCategories,
+  getInventoryCategoryAttributes,
+} from "@sales/inventory";
 
 export const inventoriesRouter = createTRPCRouter({
   getInventoryTypeByShelfId: publicProcedure
@@ -29,5 +32,17 @@ export const inventoriesRouter = createTRPCRouter({
     .query(async (props) => {
       const result = await getInventoryCategories(props.ctx.db, props.input);
       return result;
+    }),
+  getInventoryCategoryAttributes: publicProcedure
+    .input(
+      z.object({
+        categoryId: z.number(),
+      })
+    )
+    .query(async (props) => {
+      return await getInventoryCategoryAttributes(
+        props.ctx.db,
+        props.input.categoryId
+      );
     }),
 });

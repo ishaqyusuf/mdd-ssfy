@@ -41,7 +41,7 @@ export default function ProductionTasksPageClient({
     });
     const ctx = useSalesOverviewQuery();
     return (
-        <div className="bg-muted">
+        <div className="">
             <DataTable.Infinity
                 checkable
                 ActionCell={Cells.Action}
@@ -59,7 +59,7 @@ export default function ProductionTasksPageClient({
                         <Menu.Trash action={() => {}}>Delete</Menu.Trash>
                     </Menu> */}
                 </DataTable.BatchAction>
-                <DataTable.Header top="xs" className="bg-muted">
+                <DataTable.Header top="xs" className="">
                     <div className="flex justify-between">
                         <div className="flex-1">
                             {/* <DataTableFilterCommand /> */}

@@ -14,7 +14,22 @@ export function FormContext({ children, data }: FormContextProps) {
     });
     useEffect(() => {
         form.reset({
-            ...(data ?? {}),
+            ...(data ?? {
+                product: {
+                    categoryId: undefined,
+                    description: undefined,
+                    name: undefined,
+                    status: "draft",
+                    stockMonitor: false,
+                },
+                variants: [
+                    {
+                        attributes: [],
+                        name: "",
+                        sku: "",
+                    },
+                ],
+            }),
         });
     }, [data]);
 
@@ -23,3 +38,4 @@ export function FormContext({ children, data }: FormContextProps) {
 
 export const useInventoryProductForm = () =>
     useFormContext<z.infer<typeof inventoryProductFormSchema>>();
+

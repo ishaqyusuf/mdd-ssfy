@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Icons } from "./_v1/icons";
 import { MainMenu, MainMenuContext } from "./main-menu";
 import Link from "next/link";
+import { SidebarNavUser } from "./sidebar-nav-user";
 
 export function Sidebar({}) {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -50,7 +51,7 @@ export function Sidebar({}) {
             >
                 <MainMenuContext isExpanded={isExpanded} />
             </div>
-
+            <SidebarNavUser isExpanded={isExpanded} />
             {/* <TeamDropdown isExpanded={isExpanded} /> */}
         </aside>
     );

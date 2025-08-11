@@ -169,6 +169,23 @@ export const inventoryProductFormSchema = z.object({
     status: z.enum(INVENTORY_STATUS),
     stockMonitor: z.boolean().optional().default(false),
   }),
+  variants: z.array(
+    z.object({
+      sku: z.string().optional().nullable(),
+      name: z.string().optional().nullable(),
+      price: z.number().optional().nullable(),
+      cost: z.number().optional().nullable(),
+      stock: z.number().optional().nullable(),
+      lowStockAlert: z.number().optional().nullable(),
+      attributes: z.array(
+        z.object({
+          id: z.number(),
+          attributeId: z.number(),
+          attributeInventoryId: z.number(),
+        })
+      ),
+    })
+  ),
 });
 
 export const getInventoryCategoriesSchema = z.object({

@@ -1,7 +1,12 @@
 import { Db, Prisma } from "@gnd/db";
 import { GetInventoryCategories, InventoryProductsList } from "./schema";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
-import { INVENTORY_STATUS, StockModes, StockStatus } from "./constants";
+import {
+  INVENTORY_STATUS,
+  InventoryVariantStatus,
+  StockModes,
+  StockStatus,
+} from "./constants";
 import { generateRandomNumber } from "@gnd/utils";
 export async function inventoryProductsList(
   db: Db,
@@ -59,4 +64,124 @@ export async function getInventoryCategories(
     },
   });
   return categories;
+}
+export async function getInventoryCategoryAttributes(db: Db, categoryId) {
+  const attribute = await db.inventoryCategory.findUniqueOrThrow({
+    where: {
+      id: categoryId,
+    },
+    include: {
+      categoryVariantAttributes: {
+        include: {
+          inventoryCategory: {
+            include: {
+              inventories: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  const attributes = attribute.categoryVariantAttributes.map((a) => {
+    return {
+      attributeId: attribute.id, //equals: inventoryCategoryVariantAttributeId
+      name: a.inventoryCategory.title,
+      values: a.inventoryCategory.inventories.map((i) => ({
+        id: i.id,
+        label: i.name,
+      })),
+    };
+  });
+  return {
+    attributes,
+  };
+}
+export async function getInventoryVariantsList(db: Db, inventoryId) {
+  const inventory = await db.inventory.findUniqueOrThrow({
+    where: {
+      id: inventoryId,
+    },
+    include: {
+      variants: {
+        include: {
+          attributes: true,
+          pricing: true,
+        },
+      },
+    },
+  });
+  const { attributes } = await getInventoryCategoryAttributes(
+    db,
+    inventory.inventoryCategoryId
+  );
+  function generateCombinations(
+    attrs: typeof attributes,
+    index = 0,
+    current: any[] = []
+  ) {
+    if (index === attrs.length) return [...current];
+    const result: { attributeId: number; inventoryId: number }[] = [];
+    for (const val of attrs[index]!?.values) {
+      result.push(
+        ...generateCombinations(attrs, index + 1, [
+          ...current,
+          { attributeId: attrs[index]!?.attributeId, inventoryId: val.id },
+        ])
+      );
+    }
+    return result;
+  }
+  const allCombinations = generateCombinations(attributes);
+  const inventoryAttributes = allCombinations.map((combo) => {
+    const existing = inventory.variants.find((variant) => {
+      if (variant.attributes.length !== combo.length) return false;
+      return combo.every((c) =>
+        variant.attributes.some(
+          (va) =>
+            va.inventoryCategoryVariantAttributeId === c.attributeId &&
+            va.valueId === c.inventoryId
+        )
+      );
+    });
+
+    return {
+      variant: existing
+        ? {
+            id: existing.id,
+            cost: existing?.pricing?.costPrice!,
+            price: existing?.pricing?.price!,
+            status: existing?.status! as any as InventoryVariantStatus,
+            sku: existing?.sku,
+            publishedAt: existing?.publishedAt,
+            uid: existing?.uid,
+            // include other needed fields...
+          }
+        : {
+            id: null,
+            status: "draft" as InventoryVariantStatus,
+            cost: null,
+            price: null,
+          },
+      attributes: combo,
+    };
+  });
+  const defaultVariant = inventory.variants.find((v) => !v.attributes?.length);
+  if (defaultVariant) {
+    inventoryAttributes.unshift({
+      attributes: [],
+      variant: {
+        id: defaultVariant.id,
+        cost: defaultVariant?.pricing?.costPrice!,
+        status: defaultVariant?.status as InventoryVariantStatus,
+        price: defaultVariant?.pricing?.price!,
+        publishedAt: defaultVariant?.publishedAt,
+        sku: defaultVariant?.sku,
+        uid: defaultVariant?.uid,
+      },
+    });
+  }
+  return {
+    inventoryAttributes,
+    categoryAttributes: attributes,
+  };
 }

@@ -8,6 +8,7 @@ export function useAuth() {
         name: session?.user?.name,
         can: session?.can,
         role: session?.role,
+        avatar: null,
     };
 }
 

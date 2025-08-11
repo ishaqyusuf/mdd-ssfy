@@ -85,6 +85,26 @@ export const SALES_REFUND_METHODS_OPTIONS: {
   value?: SalesRefundMethods;
 }[] = [...SALES_PAYMENT_METHOD_OPTIONS, { label: "Wallet", value: "wallet" }];
 
+export const INVENTORY_VARIANT_STATUS = [
+  "draft",
+  "published",
+  "archived",
+] as const;
+export type InventoryVariantStatus = (typeof INVENTORY_VARIANT_STATUS)[number];
+export const INVENTORY_VARIANT_STATUS_OPTIONS: {
+  label?: string;
+  id?: InventoryVariantStatus;
+}[] = [
+  { label: "Draft", id: "draft" },
+  {
+    label: "Published",
+    id: "published",
+  },
+  {
+    label: "Archived",
+    id: "archived",
+  },
+];
 export const STOCK_STATUS = ["not managed", "in stock", "low stock"] as const;
 
 export type StockStatus = (typeof STOCK_STATUS)[number];

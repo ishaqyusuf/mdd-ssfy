@@ -370,9 +370,9 @@ export const linkModules = [
                 .childPaths("sales-book/create-quote", "sales-book/edit-quote")
                 .data,
             // .childPaths("sales-book/create-quote", "sales-book/edit-quote")
-            process.env.NODE_ENV == "production"
-                ? undefined
-                : _link("Inventory", "inbound", "/inventory").data,
+            _link("Inventory", "inbound", "/inventory").access(
+                _role.is("Super Admin"),
+            ).data,
             _link(
                 "Inbounds Managment",
                 "inbound",

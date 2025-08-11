@@ -249,3 +249,18 @@ export function selectOptions<T>(
     id: String(d?.[valueKey]),
   }));
 }
+
+export const generateSKU = (length = 6) => {
+  const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let out = "";
+  // Use crypto if available (browser/node)
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    const bytes = new Uint8Array(length);
+    crypto.getRandomValues(bytes);
+    for (let i = 0; i < length; i++) out += chars[bytes[i]! % chars.length];
+  } else {
+    for (let i = 0; i < length; i++)
+      out += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return out;
+};
