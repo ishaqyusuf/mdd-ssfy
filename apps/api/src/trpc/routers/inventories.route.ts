@@ -6,10 +6,18 @@ import {
   upsertInventoriesForDykeShelfProducts,
   upsertInventoriesForDykeShelfProductsSchema,
 } from "@api/db/queries/inventory.generate";
-import { getInventoryCategoriesSchema } from "@sales/schema";
+import {
+  getInventoryCategoriesSchema,
+  inventoryFormSchema,
+  inventoryProductsListSchema,
+} from "@sales/schema";
 import {
   getInventoryCategories,
   getInventoryCategoryAttributes,
+  inventoryForm,
+  inventoryProductsList,
+  inventoryVariants,
+  saveInventory,
 } from "@sales/inventory";
 
 export const inventoriesRouter = createTRPCRouter({
@@ -44,5 +52,35 @@ export const inventoriesRouter = createTRPCRouter({
         props.ctx.db,
         props.input.categoryId
       );
+    }),
+  inventoryProducts: publicProcedure
+    .input(inventoryProductsListSchema)
+    .query(async (props) => {
+      return inventoryProductsList(props.ctx.db, props.input);
+    }),
+  inventoryForm: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+      })
+    )
+    .query(async (props) => {
+      const result = await inventoryForm(props.ctx.db, props.input.id);
+      return result;
+    }),
+  inventoryVariants: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+      })
+    )
+    .query(async (props) => {
+      const result = await inventoryVariants(props.ctx.db, props.input.id);
+      return result;
+    }),
+  saveInventory: publicProcedure
+    .input(inventoryFormSchema)
+    .mutation(async (props) => {
+      return saveInventory(props.ctx.db, props.input);
     }),
 });

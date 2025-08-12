@@ -319,11 +319,11 @@ model ImageGalleryTag {
 
 // Update InventoryImage to link to gallery
 model InventoryImage {
-    id       Int     @id @default(autoincrement())
+    id          Int        @id @default(autoincrement())
     // url      String // image path or CDN URL
-    altText  String? // optional description for accessibility
-    position Int? // optional ordering for gallery
-
+    altText     String? // optional description for accessibility
+    position    Int? // optional ordering for gallery
+    primary     Boolean    @default(false)
     inventoryId Int?
     inventory   Inventory? @relation(fields: [inventoryId], references: [id])
 
@@ -334,8 +334,8 @@ model InventoryImage {
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    imageGalleryId Int?
-    imageGallery   ImageGallery? @relation(fields: [imageGalleryId], references: [id])
+    imageGalleryId Int
+    imageGallery   ImageGallery @relation(fields: [imageGalleryId], references: [id])
 
     @@index([inventoryId])
     @@index([inventoryVariantId])

@@ -7,7 +7,7 @@ import { ProductVariantsSection } from "./product-variants-section";
 import { ProductProvider } from "./context";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 
-export function InventoryProductForm({}) {
+export function InventoryForm({}) {
     const form = useInventoryForm();
     const { productId } = useInventoryParams();
     const [sections, setSections] = useState<string[]>(

@@ -10,7 +10,7 @@ import {
   InventoryVariantStatus,
   StockModes,
 } from "./constants";
-import { generateRandomNumber } from "@gnd/utils";
+import { generateRandomNumber, generateRandomString, sum } from "@gnd/utils";
 export async function inventoryProductsList(
   db: Db,
   query: InventoryProductsList
@@ -215,7 +215,67 @@ export async function inventoryForm(db: Db, inventoryId) {
       id: inv.inventoryCategoryId,
       enablePricing: inv.inventoryCategory?.enablePricing!,
     },
+    images: [],
   } satisfies InventoryForm;
 
   return formData;
+}
+
+export async function totalInventorySummary(db: Db) {
+  const i = await db.inventory.findMany({
+    where: {
+      status: "published",
+    },
+    select: {
+      _count: {
+        select: {
+          variants: {
+            where: {
+              status: "published",
+            },
+          },
+        },
+      },
+    },
+  });
+  return {
+    inventories: i.length,
+    inventoryVariants: sum(i.map((a) => a._count.variants)),
+  };
+}
+export async function lowStockSummary(db: Db) {}
+export async function pendingInboundSummary(db: Db) {}
+
+export async function saveInventory(db: Db, data: InventoryForm) {
+  let inventoryId = data.product.id;
+  const { product } = data;
+  const stockMode: StockModes = product.stockMonitor
+    ? "monitored"
+    : "unmonitored";
+  if (!inventoryId) {
+  } else {
+    const inventory = await db.inventory.create({
+      data: {
+        name: product.name,
+        uid: generateRandomString(4),
+        description: product.description,
+        status: product.status,
+        publishedAt: product.status == "published" ? new Date() : null,
+        stockMode,
+        images: !data.images?.length
+          ? undefined
+          : {
+              createMany: {
+                data: data.images.map((i) => ({
+                  altText: i.altText,
+                  imageGalleryId: i.imageGalleryId,
+                  position: i.position,
+                })),
+              },
+            },
+      },
+    });
+    inventoryId = inventory.id;
+  }
+  return { inventoryId };
 }

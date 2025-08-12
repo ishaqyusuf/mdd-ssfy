@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 export function ProductVariants({ inventoryId }) {
     const trpc = useTRPC();
     const { data } = useQuery(
-        trpc.sales.inventoryVariants.queryOptions(
+        trpc.inventories.inventoryVariants.queryOptions(
             {
                 id: inventoryId,
             },

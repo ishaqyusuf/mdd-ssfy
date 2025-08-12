@@ -17,7 +17,7 @@ export function DataTable() {
     const { filters } = useInventoryProductsFilterParams();
     const { data, ref, hasNextPage } = useTableData({
         filter: filters,
-        route: trpc.sales.inventoryProducts,
+        route: trpc.inventories.inventoryProducts,
     });
 
     const tableScroll = useTableScroll({

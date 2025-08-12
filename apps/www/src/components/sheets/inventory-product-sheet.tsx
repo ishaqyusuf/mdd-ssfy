@@ -3,11 +3,14 @@ import { useTRPC } from "@/trpc/client";
 import {
     CustomSheet,
     CustomSheetContent,
+    CustomSheetContentPortal,
     SheetHeader,
 } from "./custom-sheet-content";
 import { FormContext } from "../forms/inventory-products/form-context";
-import { InventoryProductForm } from "../forms/inventory-products/inventory-form";
+import { InventoryForm } from "../forms/inventory-products/inventory-form";
 import { useQuery } from "@tanstack/react-query";
+import { SheetFooter } from "@gnd/ui/sheet";
+import { InventoryFormAction } from "../forms/inventory-products/inventory-form-action";
 
 export function InventoryProductSheet() {
     const trpc = useTRPC();
@@ -20,7 +23,7 @@ export function InventoryProductSheet() {
         setParams(null);
     };
     const { data: formData } = useQuery(
-        trpc.sales.inventoryForm.queryOptions(
+        trpc.inventories.inventoryForm.queryOptions(
             {
                 id: params.productId,
             },
@@ -47,7 +50,12 @@ export function InventoryProductSheet() {
             </SheetHeader>
             <CustomSheetContent className="">
                 <FormContext data={formData}>
-                    <InventoryProductForm />
+                    <InventoryForm />
+                    <CustomSheetContentPortal>
+                        <SheetFooter className="w-full border-t">
+                            <InventoryFormAction onCancel={(e) => {}} />
+                        </SheetFooter>
+                    </CustomSheetContentPortal>
                 </FormContext>
             </CustomSheetContent>
         </CustomSheet>

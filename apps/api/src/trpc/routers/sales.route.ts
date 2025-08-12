@@ -73,31 +73,6 @@ export const salesRouter = createTRPCRouter({
     .query(async (props) => {
       return getInboundSummary(props.ctx, props.input);
     }),
-  inventoryProducts: publicProcedure
-    .input(inventoryProductsListSchema)
-    .query(async (props) => {
-      return inventoryProductsList(props.ctx.db, props.input);
-    }),
-  inventoryForm: publicProcedure
-    .input(
-      z.object({
-        id: z.number(),
-      })
-    )
-    .query(async (props) => {
-      const result = await inventoryForm(props.ctx.db, props.input.id);
-      return result;
-    }),
-  inventoryVariants: publicProcedure
-    .input(
-      z.object({
-        id: z.number(),
-      })
-    )
-    .query(async (props) => {
-      const result = await inventoryVariants(props.ctx.db, props.input.id);
-      return result;
-    }),
   productionOverview: publicProcedure
     .input(getFullSalesDataSchema)
     .query(async (props) => {

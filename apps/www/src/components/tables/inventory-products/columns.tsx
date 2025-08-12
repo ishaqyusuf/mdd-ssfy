@@ -19,7 +19,8 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Eye, Package, StickyNote } from "lucide-react";
 
-export type Item = RouterOutputs["sales"]["inventoryProducts"]["data"][number];
+export type Item =
+    RouterOutputs["inventories"]["inventoryProducts"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
     {
         header: "Product",
