@@ -252,7 +252,7 @@ export async function saveInventory(db: Db, data: InventoryForm) {
   const stockMode: StockModes = product.stockMonitor
     ? "monitored"
     : "unmonitored";
-  if (!inventoryId) {
+  if (inventoryId) {
   } else {
     const inventory = await db.inventory.create({
       data: {
@@ -262,6 +262,11 @@ export async function saveInventory(db: Db, data: InventoryForm) {
         status: product.status,
         publishedAt: product.status == "published" ? new Date() : null,
         stockMode,
+        inventoryCategory: {
+          connect: {
+            id: product.categoryId,
+          },
+        },
         images: !data.images?.length
           ? undefined
           : {

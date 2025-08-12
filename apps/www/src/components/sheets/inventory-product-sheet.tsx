@@ -11,6 +11,7 @@ import { InventoryForm } from "../forms/inventory-products/inventory-form";
 import { useQuery } from "@tanstack/react-query";
 import { SheetFooter } from "@gnd/ui/sheet";
 import { InventoryFormAction } from "../forms/inventory-products/inventory-form-action";
+import { useDebugConsole } from "@/hooks/use-debug-console";
 
 export function InventoryProductSheet() {
     const trpc = useTRPC();
@@ -22,7 +23,7 @@ export function InventoryProductSheet() {
         }
         setParams(null);
     };
-    const { data: formData } = useQuery(
+    const { data: formData, error } = useQuery(
         trpc.inventories.inventoryForm.queryOptions(
             {
                 id: params.productId,
@@ -32,6 +33,7 @@ export function InventoryProductSheet() {
             },
         ),
     );
+
     return (
         <CustomSheet
             sheetName="Inventory-product"

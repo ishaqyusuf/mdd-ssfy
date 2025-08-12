@@ -3,16 +3,28 @@ import { useProduct } from "./context";
 import { Button } from "@gnd/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { useTRPC } from "@/trpc/client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@gnd/ui/use-toast";
+import { useInventoryForm } from "./form-context";
+import { FormDebugBtn } from "@/components/form-debug-btn";
+import { useDebugConsole } from "@/hooks/use-debug-console";
 
 export function InventoryFormAction({ onCancel }) {
     const { productId, setParams } = useInventoryParams();
+    const form = useInventoryForm();
     const isEditing = productId > 0;
     const trpc = useTRPC();
-    const { isPending: isSubmitting } = useMutation(
+    const qc = useQueryClient();
+    const {
+        isPending: isSubmitting,
+        mutate,
+        error,
+    } = useMutation(
         trpc.inventories.saveInventory.mutationOptions({
             onSuccess(data) {
+                qc.invalidateQueries({
+                    queryKey: trpc.inventories.inventoryProducts.queryKey(),
+                });
                 toast({
                     title: "Saved",
                     variant: "success",
@@ -24,6 +36,11 @@ export function InventoryFormAction({ onCancel }) {
             },
         }),
     );
+    const onSubmit = async (data) => {
+        mutate({
+            ...data,
+        });
+    };
     return (
         <div className="flex flex-1 py-4 items-center gap-4">
             <div className="text-sm text-muted-foreground">
@@ -41,14 +58,15 @@ export function InventoryFormAction({ onCancel }) {
                 >
                     Cancel
                 </Button>
-                <SubmitButton
-                    type="submit"
-                    form="product-form"
-                    isSubmitting={isSubmitting}
-                    className="min-w-[120px]"
-                >
-                    {isEditing ? "Update Product" : "Create Product"}
-                </SubmitButton>
+                <FormDebugBtn />
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                    <SubmitButton
+                        isSubmitting={isSubmitting}
+                        className="min-w-[120px]"
+                    >
+                        {isEditing ? "Update Product" : "Create Product"}
+                    </SubmitButton>
+                </form>
             </div>
         </div>
     );

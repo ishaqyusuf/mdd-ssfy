@@ -164,14 +164,17 @@ export const inventoryFormSchema = z.object({
     status: z.enum(INVENTORY_STATUS),
     stockMonitor: z.boolean().optional().default(false),
   }),
-  images: z.array(
-    z.object({
-      altText: z.string().optional().nullable(),
-      id: z.number(),
-      imageGalleryId: z.number(),
-      position: z.number(),
-    })
-  ),
+  images: z
+    .array(
+      z.object({
+        altText: z.string().optional().nullable(),
+        id: z.number(),
+        imageGalleryId: z.number(),
+        position: z.number(),
+      })
+    )
+    .optional()
+    .nullable(),
   category: z
     .object({
       id: z.number(),
@@ -179,23 +182,26 @@ export const inventoryFormSchema = z.object({
     })
     .optional()
     .nullable(),
-  variants: z.array(
-    z.object({
-      sku: z.string().optional().nullable(),
-      name: z.string().optional().nullable(),
-      price: z.number().optional().nullable(),
-      cost: z.number().optional().nullable(),
-      stock: z.number().optional().nullable(),
-      lowStockAlert: z.number().optional().nullable(),
-      attributes: z.array(
-        z.object({
-          id: z.number(),
-          attributeId: z.number(),
-          attributeInventoryId: z.number(),
-        })
-      ),
-    })
-  ),
+  variants: z
+    .array(
+      z.object({
+        sku: z.string().optional().nullable(),
+        name: z.string().optional().nullable(),
+        price: z.number().optional().nullable(),
+        cost: z.number().optional().nullable(),
+        stock: z.number().optional().nullable(),
+        lowStockAlert: z.number().optional().nullable(),
+        attributes: z.array(
+          z.object({
+            id: z.number(),
+            attributeId: z.number(),
+            attributeInventoryId: z.number(),
+          })
+        ),
+      })
+    )
+    .optional()
+    .nullable(),
 });
 export type InventoryForm = z.infer<typeof inventoryFormSchema>;
 export const getInventoryCategoriesSchema = z.object({

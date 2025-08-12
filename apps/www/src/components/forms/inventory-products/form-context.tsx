@@ -10,7 +10,18 @@ interface FormContextProps {
 }
 export function FormContext({ children, data }: FormContextProps) {
     const form = useZodForm(inventoryFormSchema, {
-        defaultValues: {},
+        defaultValues: {
+            product: {
+                id: undefined,
+                categoryId: undefined,
+                description: undefined,
+                name: undefined,
+                status: "draft",
+                stockMonitor: false,
+            },
+            variants: [],
+            images: [],
+        },
     });
     useEffect(() => {
         form.reset({
@@ -21,14 +32,9 @@ export function FormContext({ children, data }: FormContextProps) {
                     name: undefined,
                     status: "draft",
                     stockMonitor: false,
+                    id: undefined,
                 },
-                variants: [
-                    {
-                        attributes: [],
-                        name: "",
-                        sku: "",
-                    },
-                ],
+                variants: [],
             }),
         });
     }, [data]);
