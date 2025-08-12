@@ -23,6 +23,7 @@
     "./format": "./src/format.ts",
     "./note": "./src/note.ts",
     "./query-response": "./src/query-response.ts",
+    "./schema": "./src/schema.ts",
     "./sales": "./src/sales.ts"
   }
 }

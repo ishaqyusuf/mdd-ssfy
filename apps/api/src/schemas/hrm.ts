@@ -1,5 +1,4 @@
-import type { Roles } from "@gnd/db";
-import type { PermissionScope } from "@gnd/utils/constants";
+import type { PermissionScope, Roles } from "@gnd/utils/constants";
 import { z } from "zod";
 
 export const employeesQueryParamsSchema = z.object({

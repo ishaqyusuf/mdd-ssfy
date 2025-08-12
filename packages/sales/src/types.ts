@@ -1,4 +1,4 @@
-import type { db, Prisma } from "@gnd/db";
+import type { db, Prisma, SalesStat } from "@gnd/db";
 import {
   composeSalesItemControl,
   getSaleInformation,
@@ -267,3 +267,8 @@ export interface PrintDataTable {
   bold?: boolean;
   width?: "xs" | "sm" | "md";
 }
+export type TypedSalesStat = Omit<SalesStat, "status" | "type" | "id"> & {
+  type: QtyControlType;
+  id?: number;
+  status?: SalesStatStatus;
+};

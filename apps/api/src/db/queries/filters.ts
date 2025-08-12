@@ -12,9 +12,14 @@ import {
   RESOLUTION_FILTER_OPTIONS,
   SALES_DISPATCH_FILTER_OPTIONS,
   salesDispatchStatus,
+  type Roles,
 } from "@gnd/utils/constants";
 import { buildersList, projectList } from "./community";
 import type { GetSalesResolutions } from "./sales-resolution";
+import type { SalesProductionQueryParams } from "@sales/schema";
+import { getEmployeesList } from "./hrm";
+import { labelValueOptions } from "@gnd/utils";
+import { SALES_PRODUCTION_STATUS_FILTER_OPTIONS } from "@sales/constants";
 
 export async function getDispatchFilters(ctx: TRPCContext) {
   type T = keyof DispatchQueryParamsSchema;
@@ -182,11 +187,6 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
         value: status,
       }))
     ),
-    // optionFilter<T>(
-    //   "production.status",
-    //   "Production Status",
-    //   PRODUCTION_STATUS.map((status) => ({ label: status, value: status })),
-    // ),
     optionFilter<T>(
       "invoice",
       "Invoice Status",
@@ -195,14 +195,6 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
         value: status,
       }))
     ),
-    // optionFilter<T>(
-    //   "production.assignment",
-    //   "Production Assignment",
-    //   PRODUCTION_ASSIGNMENT_FILTER_OPTIONS.map((status) => ({
-    //     label: status,
-    //     value: status,
-    //   })),
-    // ),
     optionFilter<T>(
       "production",
       "Production",
@@ -235,6 +227,50 @@ export async function getResolutionFilters(ctx: TRPCContext) {
       }))
     )
   );
+  return resp;
+}
+function transformFilter<T extends { key: string; value: any }>(
+  filters: T[],
+  k: T["key"],
+  v: any
+) {
+  const filter = filters.find((f) => f.key === k);
+  if (filter) {
+    filter.value = v;
+  }
+  return filter;
+}
+
+export async function getSalesProductionFilters(ctx: TRPCContext) {
+  const baseFilters = await getSalesOrderFilters(ctx);
+  type T = keyof SalesProductionQueryParams;
+  type TOrdersFilter = keyof SalesQueryParamsSchema;
+  type FilterData = PageFilterData<T>;
+
+  const resp: FilterData[] = [
+    ...(baseFilters.filter((a) =>
+      (["q", "salesNo"] as TOrdersFilter[]).includes(a.value as any)
+    ) as any),
+    {
+      value: "production",
+      type: "checkbox",
+      label: "Production Status",
+      options: labelValueOptions([...SALES_PRODUCTION_STATUS_FILTER_OPTIONS]),
+    },
+    {
+      value: "assignedToId",
+      type: "checkbox",
+      label: "Assigned To",
+      options: labelValueOptions(
+        await getEmployeesList(ctx, {
+          roles: ["Production"],
+        }),
+        "name",
+        "id"
+      ),
+    },
+  ];
+
   return resp;
 }
 export async function getSalesQuoteFilter(ctx: TRPCContext) {

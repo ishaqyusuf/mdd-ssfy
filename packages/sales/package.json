@@ -16,8 +16,10 @@
     "./inventory-utils": "./src/utils/inventory-utils.ts",
     "./types": "./src/types.ts",
     "./get-sale-information": "./src/sales-control/get-sale-information.ts",
+    "./sales-production": "./src/sales-production.ts",
     "./sales-transaction": "./src/sales-transaction.ts",
     "./schema": "./src/schema.ts",
+    "./utils/where-queries": "./src/utils/where-queries.ts",
     "./wallet": "./src/wallet.ts"
   },
   "dependencies": {

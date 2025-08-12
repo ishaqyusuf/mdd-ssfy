@@ -8,7 +8,8 @@ import {
 } from "@gnd/utils/constants";
 import { z } from "zod";
 import { SALES_DISPATCH_STATUS } from "./utils/constants";
-import { INVENTORY_STATUS } from "./constants";
+import { INVENTORY_STATUS, SalesProductionStatusFilter } from "./constants";
+import { paginationSchema } from "@gnd/utils/schema";
 export const getFullSalesDataSchema = z.object({
   salesId: z.number().optional().nullable(),
   salesNo: z.string().optional().nullable(),
@@ -111,14 +112,6 @@ export const updateSalesControlSchema = z.object({
 
 export type UpdateSalesControl = z.infer<typeof updateSalesControlSchema>;
 
-export const paginationSchema = z.object({
-  size: z.number().nullable().optional(),
-  sort: z.string().nullable().optional(),
-  // start: z.number().nullable().optional(),
-  cursor: z.string().nullable().optional(),
-  q: z.string().nullable().optional(),
-});
-
 export const salesQueryParamsSchema = z
   .object({
     salesNo: z.string().optional().nullable(),
@@ -134,6 +127,7 @@ export const salesQueryParamsSchema = z
       .enum(SALES_DISPATCH_FILTER_OPTIONS)
       .optional()
       .nullable(),
+    "production.assignedToId": z.number().optional().nullable(),
     "production.dueDate": z.array(z.any()).optional().nullable(),
     "production.status": z.enum(PRODUCTION_STATUS).optional().nullable(),
     "production.assignment": z
@@ -193,4 +187,16 @@ export const getInventoryCategoriesSchema = z.object({
 });
 export type GetInventoryCategories = z.infer<
   typeof getInventoryCategoriesSchema
+>;
+
+export const salesProductionQueryParamsSchema = z
+  .object({
+    assignedToId: z.number().optional().nullable(),
+    workerId: z.number().optional().nullable(),
+    production: z.custom<SalesProductionStatusFilter>().optional().nullable(),
+    salesNo: z.string().optional().nullable(),
+  })
+  .merge(paginationSchema);
+export type SalesProductionQueryParams = z.infer<
+  typeof salesProductionQueryParamsSchema
 >;

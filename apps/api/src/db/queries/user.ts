@@ -5,8 +5,6 @@ import type {
   UpdateUserProfileSchema,
 } from "@api/schemas/hrm";
 import type { TRPCContext } from "@api/trpc/init";
-import { saveEmployee } from "./hrm";
-import { whereEmployees } from "@api/prisma-where";
 
 export async function getAuthUser(ctx: TRPCContext) {
   const user = await ctx.db.users.findFirstOrThrow({
@@ -24,7 +22,7 @@ export async function getAuthUser(ctx: TRPCContext) {
 }
 export async function updateUserProfileAction(
   ctx: TRPCContext,
-  data: UpdateUserProfileSchema,
+  data: UpdateUserProfileSchema
 ) {
   // await saveEmployee(ctx, {
   //   id: ctx.userId,
@@ -36,7 +34,7 @@ export async function updateUserProfileAction(
 
 export async function getLoginByToken(
   ctx: TRPCContext,
-  data: LoginByTokenSchema,
+  data: LoginByTokenSchema
 ) {
   const token = await ctx.db.emailTokenLogin.findFirst({
     where: {

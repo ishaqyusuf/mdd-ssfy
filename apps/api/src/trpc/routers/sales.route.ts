@@ -18,15 +18,29 @@ import {
   getInvoicePrintData,
   inventoryProductsListSchema,
   printInvoiceSchema,
+  salesProductionQueryParamsSchema,
 } from "@sales/exports";
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
 import { inventoryProductsList } from "@sales/inventory";
+import { getSalesProductions } from "@sales/sales-production";
 export const salesRouter = createTRPCRouter({
   index: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
     const query = props.input;
 
     return getSales(props.ctx, transformSalesFilterQuery(query));
   }),
+  productions: publicProcedure
+    .input(salesProductionQueryParamsSchema)
+    .query(async (props) => {
+      return getSalesProductions(props.ctx.db, props.input);
+    }),
+  productionTasks: publicProcedure
+    .input(salesProductionQueryParamsSchema)
+    .query(async (props) => {
+      const input = { ...props.input };
+      input.workerId = props.ctx.userId;
+      return getSalesProductions(props.ctx.db, input);
+    }),
   getSaleOverview: publicProcedure
     .input(salesQueryParamsSchema)
     .query(async (props) => {

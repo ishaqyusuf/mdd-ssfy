@@ -6,17 +6,18 @@ import type {
   GetEmployeeFormDataSchema,
 } from "@api/schemas/hrm";
 import type { TRPCContext } from "@api/trpc/init";
+import { db } from "@gnd/db";
 import { hash } from "bcrypt-ts";
 
 export async function getEmployees(
   ctx: TRPCContext,
-  query: EmployeesQueryParams,
+  query: EmployeesQueryParams
 ) {
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereEmployees(query),
-    db.users,
+    db.users
   );
   const data = await ctx.db.users.findMany({
     where,
@@ -50,8 +51,15 @@ export async function getEmployees(
       name: user.name,
       email: user.email,
       role: user?.roles?.[0]?.role?.name,
-    })),
+    }))
   );
+}
+export async function getEmployeesList(
+  ctx: TRPCContext,
+  query: EmployeesQueryParams
+) {
+  const resp = await getEmployees(ctx, query);
+  return resp.data;
 }
 export async function saveEmployee(ctx: TRPCContext, data: EmployeeFormSchema) {
   const { id, password: passwordString, ...formData } = data;
@@ -104,7 +112,7 @@ async function hashPassword(pwrd) {
 }
 export async function getEmployeeFormData(
   ctx: TRPCContext,
-  { id }: GetEmployeeFormDataSchema,
+  { id }: GetEmployeeFormDataSchema
 ): Promise<EmployeeFormSchema> {
   const employee = await ctx.db.users.findUniqueOrThrow({
     where: {

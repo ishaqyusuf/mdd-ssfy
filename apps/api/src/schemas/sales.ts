@@ -1,4 +1,4 @@
-import { paginationSchema } from "./common";
+import { paginationSchema } from "@gnd/utils/schema";
 import { salesDispatchStatus } from "@gnd/utils/constants";
 import { z } from "@hono/zod-openapi";
 import {

@@ -122,3 +122,10 @@ export const INVENTORY_STATUS_OPTIONS: {
   { label: "Published", id: "published" },
   { label: "Archive", id: "archived" },
 ];
+export const SALES_PRODUCTION_STATUS_FILTER_OPTIONS = [
+  "pending",
+  "in progress",
+  "completed",
+] as const;
+export type SalesProductionStatusFilter =
+  (typeof SALES_PRODUCTION_STATUS_FILTER_OPTIONS)[number];

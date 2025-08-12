@@ -1,3 +1,4 @@
+import { getStatusFromPercentage } from "@gnd/utils";
 import {
     colorsObject,
     getColorFromName as baseGetColorFromName,
@@ -14,6 +15,14 @@ export function statusColor(status, _default = "slate") {
 }
 export function getColorFromName(name) {
     // if name is "6/8", "8/10" convert to percentage and get color for percentage level
+    if (/^\d+\/\d+$/.test(name)) {
+        const [num, den] = name.split("/").map(Number);
+        if (den !== 0) {
+            const percent = (num / den) * 100;
+            const status = getStatusFromPercentage(percent);
+            return StatusColorMap[status];
+        }
+    }
     const color =
         StatusColorMap[(name?.toLowerCase() || "").replace(" ", "_")] ||
         baseGetColorFromName(name);
@@ -65,6 +74,11 @@ const StatusColorMap: { [key: string]: string } = {
     deco: colorsObject.orange,
     evaluating: colorsObject.orange,
     punchout: colorsObject.emerald,
+    empty: colorsObject.gray, // 0%
+    low: colorsObject.red, // 1%–39%
+    medium: colorsObject.orange, // 40%–69%
+    high: colorsObject.blue, // 70%–99%
+    full: colorsObject.emerald, // 100%
 } as const;
 
 // const __colors = Object.values(StatusColorMap) as const;

@@ -221,7 +221,21 @@ export function dateQuery({
 export function fixDbTime(date: dayjs.Dayjs, h = 0, m = 0, s = 0) {
   return date.set("hours", h).set("minutes", m).set("seconds", s);
 }
-
+export function dateEquals(date) {
+  return {
+    gte: dayjs(date).startOf("day").toDate(),
+    lte: dayjs(date).endOf("day").toDate(),
+  };
+  // return {
+  //     gte: fixDbTime(dayjs(date)).toISOString(),
+  //     lte: fixDbTime(dayjs(date), 23, 59, 59).toISOString(),
+  // };
+}
+export function anyDateQuery() {
+  return {
+    lte: fixDbTime(dayjs()).toISOString(),
+  };
+}
 export function filterIsDefault(query) {
   const defaultFilterKeys = ["cursor", "start", "sort", "size"];
   return Object.entries(query || {})
@@ -238,6 +252,16 @@ export function matchValue<T>(item: T) {
   };
 }
 
+export function labelValueOptions<T>(
+  data: T[],
+  labelKey?: keyof T,
+  valueKey?: keyof T
+) {
+  return data?.map((d) => ({
+    label: typeof d == "string" ? d : d?.[labelKey!],
+    value: typeof d == "string" ? d : String(d?.[valueKey!]),
+  }));
+}
 export function selectOptions<T>(
   data: T[],
   labelKey: keyof T,
@@ -264,3 +288,10 @@ export const generateSKU = (length = 6) => {
   }
   return out;
 };
+export function getStatusFromPercentage(percent: number) {
+  if (percent <= 0) return "empty"; // 0%
+  if (percent < 40) return "low"; // 1%–39%
+  if (percent < 70) return "medium"; // 40%–69%
+  if (percent < 100) return "high"; // 70%–99%
+  return "full"; // 100%
+}
