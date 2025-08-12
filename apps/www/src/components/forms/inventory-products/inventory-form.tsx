@@ -1,5 +1,5 @@
 import { Form } from "@gnd/ui/form";
-import { useInventoryProductForm } from "./form-context";
+import { useInventoryForm } from "./form-context";
 import { ProductInformationSection } from "./product-information-section";
 import { Accordion } from "@gnd/ui/accordion";
 import { useState } from "react";
@@ -8,7 +8,7 @@ import { ProductProvider } from "./context";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 
 export function InventoryProductForm({}) {
-    const form = useInventoryProductForm();
+    const form = useInventoryForm();
     const { productId } = useInventoryParams();
     const [sections, setSections] = useState<string[]>(
         productId > 0 ? ["variants"] : ["general"],

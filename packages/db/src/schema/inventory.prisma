@@ -1,10 +1,11 @@
 model InventoryCategory {
-    id          Int     @id @default(autoincrement())
-    title       String
-    img         String?
-    uid         String
-    type        String?
-    description String?
+    id            Int      @id @default(autoincrement())
+    title         String
+    img           String?
+    uid           String
+    type          String?
+    description   String?
+    enablePricing Boolean?
 
     inventories                        Inventory[]
     // for shelf item
@@ -27,6 +28,7 @@ model Inventory {
     stockMode   String?
     status      String?
     publishedAt DateTime?
+    description String?
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
@@ -58,6 +60,7 @@ model InventoryVariant {
 
     status      String?
     publishedAt DateTime?
+    description String?
 
     inventory   Inventory @relation(fields: [inventoryId], references: [id])
     inventoryId Int

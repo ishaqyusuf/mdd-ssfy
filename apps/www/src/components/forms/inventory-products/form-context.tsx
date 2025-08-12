@@ -36,6 +36,6 @@ export function FormContext({ children, data }: FormContextProps) {
     return <FormProvider {...form}>{children}</FormProvider>;
 }
 
-export const useInventoryProductForm = () =>
+export const useInventoryForm = () =>
     useFormContext<z.infer<typeof inventoryFormSchema>>();
 

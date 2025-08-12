@@ -1,5 +1,5 @@
-import { useInventoryProductForm } from "./form-context";
-import { Eye, EyeOff, Package } from "lucide-react";
+import { useInventoryForm } from "./form-context";
+import { DollarSign, Eye, EyeOff, Package } from "lucide-react";
 import { Progress } from "@/components/(clean-code)/progress";
 import {
     AccordionContent,
@@ -18,9 +18,11 @@ import { ProductImageGallery } from "@/components/product-image-gallery";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { selectOptions } from "@gnd/utils";
+import { useProduct } from "./context";
+import { Badge } from "@gnd/ui/badge";
 
 export function ProductInformationSection({}) {
-    const form = useInventoryProductForm();
+    const form = useInventoryForm();
     const trpc = useTRPC();
     const {
         data: categories,
@@ -34,8 +36,7 @@ export function ProductInformationSection({}) {
             },
         ),
     );
-
-    const stockMonitor = form.watch("product.stockMonitor");
+    const { stockMonitor, status, isPriceEnabled } = useProduct();
     return (
         <AccordionItem value="general">
             <AccordionTrigger className="">
@@ -43,8 +44,20 @@ export function ProductInformationSection({}) {
                     <Package className="size-4" />
                     <span>Product Information</span>
                     <Progress>
-                        <Progress.Status>draft</Progress.Status>
+                        <Progress.Status>{status || "draft"}</Progress.Status>
                     </Progress>
+                    {!stockMonitor || (
+                        <Badge variant="outline" className="gap-1">
+                            <EyeOff className="h-3 w-3" />
+                            Stock Unmonitored
+                        </Badge>
+                    )}
+                    {!isPriceEnabled && (
+                        <Badge variant="outline" className="gap-1">
+                            <DollarSign className="h-3 w-3" />
+                            Price Disabled
+                        </Badge>
+                    )}
                 </div>
             </AccordionTrigger>
             <AccordionContent className="">

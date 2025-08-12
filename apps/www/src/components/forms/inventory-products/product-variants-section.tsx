@@ -1,4 +1,4 @@
-import { useInventoryProductForm } from "./form-context";
+import { useInventoryForm } from "./form-context";
 import { Eye, EyeOff, Package, Plus, Save, Tag } from "lucide-react";
 import {
     AccordionContent,
@@ -29,7 +29,7 @@ import {
 import { Card } from "@gnd/ui/card";
 
 export function ProductVariantsSection({}) {
-    const form = useInventoryProductForm();
+    const form = useInventoryForm();
     const context = useProduct();
     const { attributes, inventoryId, variantFields } = context;
     function addAttribute(variantIndex) {}
@@ -103,7 +103,7 @@ export function ProductVariantsSection({}) {
 
 function ProductVariantSection() {
     const context = useProduct();
-    const form = useInventoryProductForm();
+    const form = useInventoryForm();
     const { attributes, noAttributes, variantFields } = context;
     const variantContext = useProductVariant();
     const { variantIndex } = variantContext;

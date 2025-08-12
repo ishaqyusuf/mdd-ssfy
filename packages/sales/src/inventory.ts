@@ -193,6 +193,13 @@ export async function inventoryForm(db: Db, inventoryId) {
     where: {
       id: inventoryId,
     },
+    include: {
+      inventoryCategory: {
+        select: {
+          enablePricing: true,
+        },
+      },
+    },
   });
   const formData = {
     product: {
@@ -200,10 +207,14 @@ export async function inventoryForm(db: Db, inventoryId) {
       name: inv.name,
       status: inv.status as any,
       stockMonitor: (inv.stockMode as StockModes) == "monitored",
-      description: inv.uid,
+      description: inv.description,
       id: inv?.id!,
     },
     variants: [],
+    category: {
+      id: inv.inventoryCategoryId,
+      enablePricing: inv.inventoryCategory?.enablePricing!,
+    },
   } satisfies InventoryForm;
 
   return formData;

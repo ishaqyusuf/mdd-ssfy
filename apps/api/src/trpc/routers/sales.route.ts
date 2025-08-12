@@ -85,7 +85,7 @@ export const salesRouter = createTRPCRouter({
       })
     )
     .query(async (props) => {
-      const result = await inventoryForm(props.ctx.db, props.input);
+      const result = await inventoryForm(props.ctx.db, props.input.id);
       return result;
     }),
   inventoryVariants: publicProcedure

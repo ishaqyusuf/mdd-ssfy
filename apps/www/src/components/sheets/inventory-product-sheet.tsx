@@ -6,7 +6,7 @@ import {
     SheetHeader,
 } from "./custom-sheet-content";
 import { FormContext } from "../forms/inventory-products/form-context";
-import { InventoryProductForm } from "../forms/inventory-products/inventory-product-form";
+import { InventoryProductForm } from "../forms/inventory-products/inventory-form";
 import { useQuery } from "@tanstack/react-query";
 
 export function InventoryProductSheet() {

@@ -164,6 +164,13 @@ export const inventoryFormSchema = z.object({
     status: z.enum(INVENTORY_STATUS),
     stockMonitor: z.boolean().optional().default(false),
   }),
+  category: z
+    .object({
+      id: z.number(),
+      enablePricing: z.boolean(),
+    })
+    .optional()
+    .nullable(),
   variants: z.array(
     z.object({
       sku: z.string().optional().nullable(),
