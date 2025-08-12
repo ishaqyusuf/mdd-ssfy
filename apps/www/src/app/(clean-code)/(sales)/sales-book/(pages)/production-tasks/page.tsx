@@ -8,6 +8,7 @@ import { ErrorFallback } from "@/components/error-fallback";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { DataTable } from "@/components/tables/sales-production/data-table";
 import { Suspense } from "react";
+import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 
 export async function generateMetadata({}) {
     return constructMetadata({
@@ -16,7 +17,7 @@ export async function generateMetadata({}) {
 }
 export default async function SalesBookPage(props) {
     return (
-        <AuthGuard can={["viewProduction"]}>
+        <FPage title="Productions" can={["viewProduction"]}>
             <div className="flex flex-col gap-6">
                 <SalesProductHeader workerMode />
                 <ErrorBoundary errorComponent={ErrorFallback}>
@@ -25,7 +26,7 @@ export default async function SalesBookPage(props) {
                     </Suspense>
                 </ErrorBoundary>
             </div>
-        </AuthGuard>
+        </FPage>
     );
 }
 
