@@ -16,13 +16,19 @@ import {
 import { resolvePayment, resolvePaymentSchema } from "@api/db/queries/wallet";
 import {
   getInvoicePrintData,
+  inventoryFormSchema,
   inventoryProductsListSchema,
   printInvoiceSchema,
   salesProductionQueryParamsSchema,
 } from "@sales/exports";
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
-import { inventoryProductsList } from "@sales/inventory";
+import {
+  inventoryForm,
+  inventoryProductsList,
+  inventoryVariants,
+} from "@sales/inventory";
 import { getSalesProductions } from "@sales/sales-production";
+import { z } from "zod";
 export const salesRouter = createTRPCRouter({
   index: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
     const query = props.input;
@@ -71,6 +77,26 @@ export const salesRouter = createTRPCRouter({
     .input(inventoryProductsListSchema)
     .query(async (props) => {
       return inventoryProductsList(props.ctx.db, props.input);
+    }),
+  inventoryForm: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+      })
+    )
+    .query(async (props) => {
+      const result = await inventoryForm(props.ctx.db, props.input);
+      return result;
+    }),
+  inventoryVariants: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+      })
+    )
+    .query(async (props) => {
+      const result = await inventoryVariants(props.ctx.db, props.input.id);
+      return result;
     }),
   productionOverview: publicProcedure
     .input(getFullSalesDataSchema)

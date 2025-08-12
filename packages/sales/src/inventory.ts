@@ -1,11 +1,14 @@
 import { Db, Prisma } from "@gnd/db";
-import { GetInventoryCategories, InventoryProductsList } from "./schema";
+import {
+  GetInventoryCategories,
+  InventoryForm,
+  InventoryProductsList,
+} from "./schema";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import {
   INVENTORY_STATUS,
   InventoryVariantStatus,
   StockModes,
-  StockStatus,
 } from "./constants";
 import { generateRandomNumber } from "@gnd/utils";
 export async function inventoryProductsList(
@@ -96,7 +99,7 @@ export async function getInventoryCategoryAttributes(db: Db, categoryId) {
     attributes,
   };
 }
-export async function getInventoryVariantsList(db: Db, inventoryId) {
+export async function inventoryVariants(db: Db, inventoryId) {
   const inventory = await db.inventory.findUniqueOrThrow({
     where: {
       id: inventoryId,
@@ -166,17 +169,17 @@ export async function getInventoryVariantsList(db: Db, inventoryId) {
     };
   });
   const defaultVariant = inventory.variants.find((v) => !v.attributes?.length);
-  if (defaultVariant) {
+  if (defaultVariant || !inventoryAttributes?.length) {
     inventoryAttributes.unshift({
       attributes: [],
       variant: {
-        id: defaultVariant.id,
+        id: defaultVariant?.id!,
         cost: defaultVariant?.pricing?.costPrice!,
         status: defaultVariant?.status as InventoryVariantStatus,
         price: defaultVariant?.pricing?.price!,
-        publishedAt: defaultVariant?.publishedAt,
-        sku: defaultVariant?.sku,
-        uid: defaultVariant?.uid,
+        publishedAt: defaultVariant?.publishedAt!,
+        sku: defaultVariant?.sku!,
+        uid: defaultVariant?.uid!,
       },
     });
   }
@@ -184,4 +187,24 @@ export async function getInventoryVariantsList(db: Db, inventoryId) {
     inventoryAttributes,
     categoryAttributes: attributes,
   };
+}
+export async function inventoryForm(db: Db, inventoryId) {
+  const inv = await db.inventory.findUniqueOrThrow({
+    where: {
+      id: inventoryId,
+    },
+  });
+  const formData = {
+    product: {
+      categoryId: inv.inventoryCategoryId,
+      name: inv.name,
+      status: inv.status as any,
+      stockMonitor: (inv.stockMode as StockModes) == "monitored",
+      description: inv.uid,
+      id: inv?.id!,
+    },
+    variants: [],
+  } satisfies InventoryForm;
+
+  return formData;
 }

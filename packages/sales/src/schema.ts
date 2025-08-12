@@ -155,11 +155,12 @@ export const inventoryProductsListSchema = z
   .merge(paginationSchema);
 export type InventoryProductsList = z.infer<typeof inventoryProductsListSchema>;
 
-export const inventoryProductFormSchema = z.object({
+export const inventoryFormSchema = z.object({
   product: z.object({
     description: z.string().optional().nullable(),
     name: z.string(),
     categoryId: z.number(),
+    id: z.number().optional().nullable(),
     status: z.enum(INVENTORY_STATUS),
     stockMonitor: z.boolean().optional().default(false),
   }),
@@ -181,7 +182,7 @@ export const inventoryProductFormSchema = z.object({
     })
   ),
 });
-
+export type InventoryForm = z.infer<typeof inventoryFormSchema>;
 export const getInventoryCategoriesSchema = z.object({
   // example: z.string(),
 });

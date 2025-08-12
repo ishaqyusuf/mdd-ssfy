@@ -5,13 +5,14 @@ import { Accordion } from "@gnd/ui/accordion";
 import { useState } from "react";
 import { ProductVariantsSection } from "./product-variants-section";
 import { ProductProvider } from "./context";
+import { useInventoryParams } from "@/hooks/use-inventory-params";
 
 export function InventoryProductForm({}) {
     const form = useInventoryProductForm();
-    const [sections, setSections] = useState<string[]>([
-        "general",
-        "variant-0",
-    ]);
+    const { productId } = useInventoryParams();
+    const [sections, setSections] = useState<string[]>(
+        productId > 0 ? ["variants"] : ["general"],
+    );
     return (
         <Form {...form}>
             <Accordion

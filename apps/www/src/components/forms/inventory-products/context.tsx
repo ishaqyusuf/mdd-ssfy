@@ -10,6 +10,7 @@ export const { Provider: ProductProvider, useContext: useProduct } =
         const form = useInventoryProductForm();
         const trpc = useTRPC();
         const categoryId = form.watch("product.categoryId");
+        const inventoryId = form.watch("product.id");
         const {
             data: attributeData,
             isPending,
@@ -36,6 +37,7 @@ export const { Provider: ProductProvider, useContext: useProduct } =
             attributes,
             noAttributes,
             stockMonitor,
+            inventoryId,
         };
     });
 interface ProductVariantContextProps {

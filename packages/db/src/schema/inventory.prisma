@@ -1,9 +1,10 @@
 model InventoryCategory {
-    id    Int     @id @default(autoincrement())
-    title String
-    img   String?
-    uid   String
-    type  String?
+    id          Int     @id @default(autoincrement())
+    title       String
+    img         String?
+    uid         String
+    type        String?
+    description String?
 
     inventories                        Inventory[]
     // for shelf item

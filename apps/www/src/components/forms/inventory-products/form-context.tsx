@@ -1,5 +1,5 @@
 import { useZodForm } from "@/hooks/use-zod-form";
-import { inventoryProductFormSchema } from "@sales/schema";
+import { inventoryFormSchema } from "@sales/schema";
 import { useEffect } from "react";
 import { FormProvider, useFormContext } from "react-hook-form";
 import { z } from "zod";
@@ -9,7 +9,7 @@ interface FormContextProps {
     data?;
 }
 export function FormContext({ children, data }: FormContextProps) {
-    const form = useZodForm(inventoryProductFormSchema, {
+    const form = useZodForm(inventoryFormSchema, {
         defaultValues: {},
     });
     useEffect(() => {
@@ -37,5 +37,5 @@ export function FormContext({ children, data }: FormContextProps) {
 }
 
 export const useInventoryProductForm = () =>
-    useFormContext<z.infer<typeof inventoryProductFormSchema>>();
+    useFormContext<z.infer<typeof inventoryFormSchema>>();
 

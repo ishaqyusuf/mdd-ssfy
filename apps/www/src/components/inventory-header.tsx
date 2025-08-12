@@ -3,10 +3,10 @@
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { InvoiceProductsSearchFilter } from "./inventory-products-search-filter";
-import { useInventoryProductParams } from "@/hooks/use-inventory-product-params";
+import { useInventoryParams } from "@/hooks/use-inventory-params";
 
 export function InventoryHeader({}) {
-    const { setParams } = useInventoryProductParams();
+    const { setParams } = useInventoryParams();
     return (
         <div className="flex justify-between">
             <InvoiceProductsSearchFilter />

@@ -13,9 +13,6 @@ type Props = {
     searchParams: Promise<SearchParams>;
 };
 export default async function Page(props: Props) {
-    const queryClient = getQueryClient();
-    const searchParams = await props.searchParams;
-
     return (
         <FPage title="Inventory">
             {/* <InventoryTabSwitch path="/inventory" /> */}
@@ -32,3 +29,4 @@ export default async function Page(props: Props) {
         </FPage>
     );
 }
+

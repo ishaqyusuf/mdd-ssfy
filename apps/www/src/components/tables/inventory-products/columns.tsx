@@ -7,6 +7,7 @@ import { Progress } from "@/components/(clean-code)/progress";
 import { StockModeStatus } from "@/components/stock-mode-status";
 import { SalesPayWidget } from "@/components/widgets/sales-pay-widget";
 import { useBatchSales } from "@/hooks/use-batch-sales";
+import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { cn } from "@/lib/utils";
@@ -93,7 +94,12 @@ export const columns: ColumnDef<Item>[] = [
             preventDefault: true,
         },
         cell: ({ row: { original: item } }) => {
-            const handleEditProduct = () => {};
+            const { setParams } = useInventoryParams();
+            const handleEditProduct = () => {
+                setParams({
+                    productId: item.id,
+                });
+            };
             return (
                 <div className="flex gap-2">
                     <Button variant="ghost" size="sm">
