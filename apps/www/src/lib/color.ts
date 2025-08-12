@@ -17,6 +17,8 @@ export function getColorFromName(name) {
     const color =
         StatusColorMap[(name?.toLowerCase() || "").replace(" ", "_")] ||
         baseGetColorFromName(name);
+    name = name?.toLowerCase();
+    if (name?.endsWith("days ago")) return colorsObject.indianRed;
     return color;
 }
 export function _getStatusColor(color) {
@@ -40,6 +42,7 @@ const StatusColorMap: { [key: string]: string } = {
     in_progress: colorsObject.pink,
     cancelled: colorsObject.red,
     canceled: colorsObject.red,
+    "due today": colorsObject.red,
     "payment not up to date": colorsObject.red,
     pickup: colorsObject.pink,
     cash: colorsObject.pink,

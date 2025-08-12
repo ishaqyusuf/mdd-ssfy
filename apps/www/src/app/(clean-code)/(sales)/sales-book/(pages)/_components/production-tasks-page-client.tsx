@@ -59,7 +59,7 @@ export default function ProductionTasksPageClient({
                         <Menu.Trash action={() => {}}>Delete</Menu.Trash>
                     </Menu> */}
                 </DataTable.BatchAction>
-                <DataTable.Header top="xs" className="">
+                <DataTable.Header top="xs" className="bg-muted">
                     <div className="flex justify-between">
                         <div className="flex-1">
                             {/* <DataTableFilterCommand /> */}

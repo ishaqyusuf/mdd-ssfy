@@ -25,11 +25,7 @@ function Date({ item }: ItemProps) {
                 {item.completed ? (
                     <></>
                 ) : (
-                    <TCell.Status
-                        noDot
-                        color={item.alert.color}
-                        status={item.alert.text}
-                    />
+                    <TCell.Status noDot status={item.alert.text} />
                 )}
             </TCell.Secondary>
         </TCell>
