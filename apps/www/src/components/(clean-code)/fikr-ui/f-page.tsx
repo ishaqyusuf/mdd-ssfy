@@ -23,7 +23,9 @@ export default function FPage({
     return (
         <AuthGuard can={can} permissionType={permissionType} roles={roles}>
             {title && <FTitle>{title}</FTitle>}
-            <div className={cn(className)}>{children}</div>
+            <div className={cn("pt-6 flex gap-4 flex-col", className)}>
+                {children}
+            </div>
         </AuthGuard>
     );
 }

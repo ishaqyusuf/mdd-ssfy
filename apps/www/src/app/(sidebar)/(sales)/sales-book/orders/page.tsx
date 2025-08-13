@@ -16,14 +16,12 @@ export async function generateMetadata(props) {
 export default async function Page() {
     return (
         <FPage can={["viewOrders"]} title="Sales">
-            <div className="flex flex-col gap-6">
-                <OrderHeader />
-                <ErrorBoundary errorComponent={ErrorFallback}>
-                    <Suspense fallback={<TableSkeleton />}>
-                        <DataTable />
-                    </Suspense>
-                </ErrorBoundary>
-            </div>
+            <OrderHeader />
+            <ErrorBoundary errorComponent={ErrorFallback}>
+                <Suspense fallback={<TableSkeleton />}>
+                    <DataTable />
+                </Suspense>
+            </ErrorBoundary>
         </FPage>
     );
 }

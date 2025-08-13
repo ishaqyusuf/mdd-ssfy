@@ -27,13 +27,14 @@ import {
     useProductVariant,
 } from "./context";
 import { Card } from "@gnd/ui/card";
+import { ProductVariants } from "./product-variants";
 
 export function ProductVariantsSection({}) {
     const form = useInventoryForm();
     const context = useProduct();
     const { attributes, inventoryId, variantFields } = context;
     function addAttribute(variantIndex) {}
-    useDebugConsole(`attributeData`, attributes);
+
     function addVariant() {}
 
     return (
@@ -60,7 +61,9 @@ export function ProductVariantsSection({}) {
                 </Button> */}
             </div>
             {inventoryId ? (
-                <></>
+                <>
+                    <ProductVariants inventoryId={inventoryId} />
+                </>
             ) : (
                 <Card className="p-8">
                     <div className="flex flex-col items-center justify-center text-center space-y-4">

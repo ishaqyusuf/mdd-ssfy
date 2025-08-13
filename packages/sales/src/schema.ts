@@ -10,6 +10,7 @@ import { z } from "zod";
 import { SALES_DISPATCH_STATUS } from "./utils/constants";
 import { INVENTORY_STATUS, SalesProductionStatusFilter } from "./constants";
 import { paginationSchema } from "@gnd/utils/schema";
+import { id } from "date-fns/locale";
 export const getFullSalesDataSchema = z.object({
   salesId: z.number().optional().nullable(),
   salesNo: z.string().optional().nullable(),
@@ -222,3 +223,33 @@ export const salesProductionQueryParamsSchema = z
 export type SalesProductionQueryParams = z.infer<
   typeof salesProductionQueryParamsSchema
 >;
+
+export const variantFormSchema = z.object({
+  id: z.number().optional().nullable(),
+  price: z.number().optional().nullable(),
+  oldPrice: z.number().optional().nullable(),
+  pricingId: z.number().optional().nullable(),
+  priceHistoryId: z.number().optional().nullable(),
+  priceUpdateType: z.enum(["edit", "change"]).optional().nullable(),
+  priceUpdateSource: z
+    .enum(["manual update", "inbound stock", "bulk update"])
+    .optional()
+    .nullable(),
+  changeReason: z.string().optional().nullable(),
+  authorName: z.string().optional().nullable(),
+  lowStockAlert: z.number().optional().nullable(),
+  inventoryId: z.number(),
+  sku: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  status: z.enum(INVENTORY_STATUS).optional().nullable(),
+  attributes: z
+    .array(
+      z.object({
+        inventoryId: z.number(),
+        attributeId: z.number(),
+      })
+    )
+    .optional()
+    .nullable(),
+});
+export type VariantForm = z.infer<typeof variantFormSchema>;

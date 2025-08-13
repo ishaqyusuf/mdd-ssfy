@@ -3,6 +3,7 @@ import {
   GetInventoryCategories,
   InventoryForm,
   InventoryProductsList,
+  VariantForm,
 } from "./schema";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import {
@@ -283,4 +284,81 @@ export async function saveInventory(db: Db, data: InventoryForm) {
     inventoryId = inventory.id;
   }
   return { inventoryId };
+}
+
+export async function saveVariantForm(db: Db, data: VariantForm) {
+  if (!data.id) {
+    const variant = await db.inventoryVariant.create({
+      data: {
+        uid: generateRandomString(5),
+        sku: data.sku,
+        description: data.description,
+        status: data.status,
+        lowStockAlert: data.lowStockAlert,
+        publishedAt: data.status == "published" ? new Date() : null,
+        attributes: {
+          createMany: data.attributes?.length
+            ? {
+                data: data.attributes!?.map((a) => ({
+                  inventoryCategoryVariantAttributeId: a.attributeId,
+                  valueId: a.inventoryId,
+                })),
+              }
+            : undefined,
+        },
+        pricingHistories: {
+          create: {
+            effectiveFrom: new Date(),
+            newCostPrice: data.price || 0,
+          },
+        },
+        pricing: {
+          create: {
+            costPrice: data.price || 0,
+          },
+        },
+        inventory: {
+          connect: {
+            id: data.inventoryId,
+          },
+        },
+      },
+    });
+  } else {
+    const priceUpdate = data.price != data.oldPrice;
+    await db.inventoryVariant.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        lowStockAlert: data.lowStockAlert,
+        pricingHistories: {
+          create: !priceUpdate
+            ? undefined
+            : {
+                changedBy: data.authorName,
+                changeReason: data.changeReason,
+                effectiveFrom: new Date(),
+                oldCostPrice: data.oldPrice,
+                newCostPrice: data.price!,
+                source: data.priceUpdateSource,
+              },
+        },
+        pricing: !priceUpdate
+          ? undefined
+          : {
+              update: !data.pricingId
+                ? undefined
+                : {
+                    costPrice: data.price!,
+                  },
+              create: data.pricingId
+                ? undefined
+                : {
+                    costPrice: data.price!,
+                  },
+            },
+      },
+    });
+  }
 }

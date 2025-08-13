@@ -10,6 +10,7 @@ import {
   getInventoryCategoriesSchema,
   inventoryFormSchema,
   inventoryProductsListSchema,
+  variantFormSchema,
 } from "@sales/schema";
 import {
   getInventoryCategories,
@@ -18,6 +19,7 @@ import {
   inventoryProductsList,
   inventoryVariants,
   saveInventory,
+  saveVariantForm,
 } from "@sales/inventory";
 
 export const inventoriesRouter = createTRPCRouter({
@@ -82,5 +84,10 @@ export const inventoriesRouter = createTRPCRouter({
     .input(inventoryFormSchema)
     .mutation(async (props) => {
       return saveInventory(props.ctx.db, props.input);
+    }),
+  saveVariantForm: publicProcedure
+    .input(variantFormSchema)
+    .mutation(async (props) => {
+      return saveVariantForm(props.ctx.db, props.input);
     }),
 });

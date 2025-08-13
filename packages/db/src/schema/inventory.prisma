@@ -11,7 +11,7 @@ model InventoryCategory {
     // for shelf item
     shelfItemSubCategories             InventorySubCategory[]
     // for components
-    inventoryItemSubCategories         InventoryItemSubCategory[]
+    // inventoryItemSubCategories         InventoryItemSubCategory[]
     categoryVariantAttributes          InventoryCategoryVariantAttribute[] @relation(name: "inventoryCategory")
     attributedCategoryVariantAttribute InventoryCategoryVariantAttribute[] @relation(name: "valuesInventoryCategory")
 
@@ -39,11 +39,11 @@ model Inventory {
 
     inventoryItemSubCategories InventoryItemSubCategory[]
     variants                   InventoryVariant[]
-
-    variantPricings   InventoryVariantPricing[]
-    variantAtrributes InventoryVariantAttribute[]
-    logs              InventoryLog[]
-    images            InventoryImage[]
+    variantPricings            InventoryVariantPricing[]
+    variantAtrributes          InventoryVariantAttribute[]
+    logs                       InventoryLog[]
+    images                     InventoryImage[]
+    asSubCategoryValues        InventoryItemSubCategoryValue[]
 
     @@index([inventoryCategoryId])
 }
@@ -58,9 +58,10 @@ model InventoryVariant {
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    status      String?
-    publishedAt DateTime?
-    description String?
+    lowStockAlert Int?
+    status        String?
+    publishedAt   DateTime?
+    description   String?
 
     inventory   Inventory @relation(fields: [inventoryId], references: [id])
     inventoryId Int
@@ -121,7 +122,7 @@ model InventoryCategoryVariantAttribute {
 
 model InventoryVariantPricing {
     id        Int    @id @default(autoincrement())
-    price     Float
+    price     Float?
     costPrice Float? // cost from supplier
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
@@ -175,32 +176,41 @@ model InventoryItemSubCategory {
     inventoryId Int
 
     // for components steps
-    values                    InventoryItemSubCategoryValues[]
-    valuesInventoryCategory   InventoryCategory?               @relation(fields: [valuesInventoryCategoryId], references: [id])
-    valuesInventoryCategoryId Int?
+    value InventoryItemSubCategoryValue?
+    // valueInventoryCategory   InventoryCategory?               @relation(fields: [valueInventoryCategory], references: [id])
+    // valueInventoryCategoryId Int?
 
     // for shelf items
     inventorySubCategory   InventorySubCategory? @relation(fields: [inventorySubCategoryId], references: [id])
     inventorySubCategoryId Int?
+    // @@index([valueInventoryCategory])
 
     @@index([inventoryId])
     @@index([inventorySubCategoryId])
-    @@index([valuesInventoryCategoryId])
 }
 
 // for step components
-model InventoryItemSubCategoryValues {
-    id Int @id @default(autoincrement())
+enum Operators {
+    is
+    isNot
+}
+
+model InventoryItemSubCategoryValue {
+    id       Int        @id @default(autoincrement())
+    operator Operators?
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    inventoryItemSubCategory   InventoryItemSubCategory? @relation(fields: [inventoryItemSubCategoryId], references: [id])
-    inventoryItemSubCategoryId Int?
+    subCategory   InventoryItemSubCategory? @relation(fields: [subCategoryId], references: [id])
+    subCategoryId Int                       @unique
     // @@index([inventoryCategoryId])
+    inventoryId   Int
+    inventory     Inventory                 @relation(fields: [inventoryId], references: [id])
 
-    @@index([inventoryItemSubCategoryId])
+    @@index([subCategoryId])
+    @@index([inventoryId])
 }
 
 // use only for shelf items.
@@ -212,7 +222,7 @@ model InventoryItemSubCategoryValues {
 model InventorySubCategory {
     id                   Int     @id @default(autoincrement())
     title                String?
-    uid                  String
+    uid                  String //inventory UID
     parentSubCategoryUid String?
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)

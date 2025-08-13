@@ -6,20 +6,123 @@ import {
   generateInventoryCategoryUidFromShelfCategoryId,
   type InventoryCategoryTypes,
 } from "@sales/utils/inventory-utils";
+import type { StepComponentMeta } from "@sales/types";
 
-export async function uploadInventoriesForDykeProducts(
+export async function migrateDykeStepToInventories(
   ctx: TRPCContext,
-  data: UpsertInventoriesForDykeProducts
+  stepId: number
 ) {
+  const step = await ctx.db.dykeSteps.findUniqueOrThrow({
+    where: {
+      id: stepId,
+    },
+    include: {
+      stepProducts: true,
+      priceSystem: {
+        include: {
+          step: {
+            select: {
+              uid: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  const components = step.stepProducts.map((product) => {
+    const meta: StepComponentMeta = product.meta as any;
+    const variations = meta.variations;
+    return {
+      ...product,
+      meta,
+      depsComponentUids:
+        variations
+          ?.map((a) => a?.rules?.map((r) => r?.componentsUid)?.flat())
+          ?.flat() || [],
+      depsStepUids:
+        variations?.map((a) => a?.rules?.map((r) => r?.stepUid))?.flat() || [],
+    };
+  });
+  const stepsUid = [
+    ...new Set(
+      ...components.map((c) => c.depsStepUids).flat(),
+      ...step.priceSystem.map((c) => c.step?.uid)
+    ),
+  ].filter(Boolean)!;
+  const depsSteps = await ctx.db.dykeSteps.findMany({
+    where: {
+      uid: {
+        in: stepsUid,
+      },
+    },
+    include: {
+      stepProducts: true,
+    },
+  });
+  const productsList = depsSteps
+    .map((a) =>
+      a.stepProducts.map((p) => ({
+        ...p,
+        stepUid: a.uid,
+      }))
+    )
+    .flat();
+  const products: UpsertInventoriesForDykeProducts["products"] =
+    step.stepProducts.map((product) => {
+      const meta: StepComponentMeta = product.meta as any;
+      const variations = meta.variations;
+      return {
+        img: product.img,
+        name: product.name,
+        uid: product.uid,
+        categories: variations
+          ?.map((v) => v?.rules)
+          ?.flat()
+          // ?.filter((a) => a.operator == "is")
+          .map((r) =>
+            r.componentsUid?.map((uid) => ({
+              stepUid: r.stepUid,
+              componentUid: uid,
+              operator: r.operator,
+              componentName: productsList.find((p) => p.uid == uid)?.name!,
+              stepTitle: depsSteps.find((s) => s.uid === r.stepUid)?.title!,
+            }))
+          )
+          .flat()!,
+        variants: step.priceSystem
+          .filter((s) => s.stepProductUid === product.uid)
+          .map((v) => ({
+            price: v.price,
+            deps: v.dependenciesUid?.split("-")?.map((uid) => ({
+              componentUid: uid,
+              stepUid: v.step!?.uid!,
+              componentName: productsList.find((p) => p.uid == uid)?.name!,
+              stepTitle: depsSteps.find((s) => s.uid === v.step?.uid)?.title!,
+            }))!,
+          })),
+      };
+    });
+  const data = {
+    products,
+    step: {
+      uid: step.uid!,
+      title: step.title!,
+    },
+  } as UpsertInventoriesForDykeProducts;
+  // }
+  // export async function uploadInventoriesForDykeProducts(
+  //   ctx: TRPCContext,
+  //   data: UpsertInventoriesForDykeProducts
+  // ) {
   const deps = data.products
     .filter((a) => a.variants?.length)
     .map((a) => a.variants!?.map((b) => b.deps).flat())
     .flat();
-  const stepUids = Array.from(
-    new Set([data.step.uid, ...deps.map((a) => a.stepUid)])
-  );
-  let inventoryTypes = await getInventoryTypesByUids(ctx, stepUids);
-  const missingInventoryTypeUids = stepUids.filter(
+  // const stepUids = Array.from(
+  //   new Set([data.step.uid, ...deps.map((a) => a.stepUid)])
+  // );
+  let inventoryTypes = await getInventoryTypesByUids(ctx, stepsUid);
+  const missingInventoryTypeUids = stepsUid.filter(
     (uid) => !inventoryTypes.some((it) => it.uid === uid)
   );
   if (missingInventoryTypeUids.length > 0) {
@@ -36,10 +139,10 @@ export async function uploadInventoriesForDykeProducts(
     await ctx.db.inventoryCategory.createMany({
       data: newInventoryTypes,
     });
-    inventoryTypes = await getInventoryTypesByUids(ctx, stepUids);
+    inventoryTypes = await getInventoryTypesByUids(ctx, stepsUid);
   }
   const productUids = data.products.map((p) => p.uid)?.filter(Boolean);
-  const stepInventoryType = inventoryTypes.find((a) => a.uid == stepUids[0]);
+  const stepInventoryType = inventoryTypes.find((a) => a.uid == stepsUid[0]);
   await ctx.db.inventoryCategoryVariantAttribute.createMany({
     data: deps
       .filter((d, di) => deps.findIndex((a) => a.stepUid === d.stepUid) == di)
@@ -62,14 +165,14 @@ export async function uploadInventoriesForDykeProducts(
     .map((product) => [
       {
         uid: product.uid,
-        stepUid: stepUids[0],
+        stepUid: stepsUid[0],
         img: product.img,
         name: product.name,
       },
       ...deps?.map((d) => ({
-        uid: d.productUid,
+        uid: d.componentUid,
         img: "",
-        name: d.productName,
+        name: d.componentName,
         stepUid: d.stepUid,
       })),
     ])
@@ -81,6 +184,10 @@ export async function uploadInventoriesForDykeProducts(
   let newInventoryVariantId = await nextId(ctx.db.inventoryVariant);
   let newICVAId = await nextId(ctx.db.inventoryCategoryVariantAttribute);
   // let newIVAId = await nextId(ctx.db.inventoryVariantAttribute);
+  // Inventory Item Sub Category Values
+  let nextIiscvId = await nextId(ctx.db.inventoryVariant);
+  // Inventory Item Sub Categories
+  let nextIiscId = await nextId(ctx.db.inventoryCategoryVariantAttribute);
   if (productsNotFound.length) {
     const inventoriesToCreate = productsNotFound.map((product) => {
       const inventoryType = inventoryTypes.find(
@@ -99,9 +206,33 @@ export async function uploadInventoriesForDykeProducts(
         id: newInventoryId++,
       } satisfies Prisma.InventoryCreateManyInput;
     });
+    const inventoryId = (uid) =>
+      inventoriesToCreate.find((i) => i.uid === uid)?.id!;
+    // Inventory Item Sub Categories
+    let nextIiscId = await nextId(ctx.db.inventoryCategoryVariantAttribute);
+    const iiscToCreate = [] as Prisma.InventoryItemSubCategoryCreateManyInput[];
+    // Inventory Item Sub Category Values
+    const iiscvToCreate =
+      [] as Prisma.InventoryItemSubCategoryValueCreateManyInput[];
     const ls = data.products.filter((a) =>
       productsNotFound.every((p) => p.uid != a.uid)
     );
+    ls.filter((a) => a.categories?.length).map((component) => {
+      component.categories?.map((category) => {
+        const cid = nextIiscId++;
+        const civd = nextIiscvId++;
+        iiscToCreate.push({
+          inventoryId: inventoryId(component.uid),
+          id: cid,
+        });
+        iiscvToCreate.push({
+          id: civd,
+          inventoryId: inventoryId(component.uid),
+          subCategoryId: cid,
+          operator: category.operator,
+        });
+      });
+    });
     // Inventory Category Variant Attributes.
     const icvaToCreate =
       [] as Prisma.InventoryCategoryVariantAttributeCreateManyInput[];
@@ -112,8 +243,7 @@ export async function uploadInventoriesForDykeProducts(
       .map(
         (prod) =>
           ({
-            inventoryId: inventoriesToCreate.find((i) => i.uid === prod.uid)
-              ?.id!,
+            inventoryId: inventoryId(prod.uid),
             uid: prod.uid!,
             img: prod.img,
             id: newInventoryVariantId++,
@@ -126,7 +256,7 @@ export async function uploadInventoriesForDykeProducts(
           ({
             inventoryId: inventoriesToCreate.find((i) => i.uid === prod.uid)
               ?.id!,
-            price: prod.price!,
+            costPrice: prod.price!,
             inventoryVariantId: undefined,
           }) satisfies Prisma.InventoryVariantPricingCreateManyInput
       );
@@ -162,16 +292,16 @@ export async function uploadInventoriesForDykeProducts(
           ivaToCreate.push({
             inventoryVariantId: variant.id,
             inventoryCategoryVariantAttributeId: icva.id!,
-            valueId: inventories.find((i) => i.uid === dep.productUid)?.id!,
+            valueId: inventories.find((i) => i.uid === dep.componentUid)?.id!,
           });
-          if (dep.price)
-            variantPricingsToCreate.push({
-              inventoryId: inventoriesToCreate.find((i) => i.uid === prod.uid)
-                ?.id!,
-              price: dep.price!,
-              inventoryVariantId: variant.id! as any,
-            });
         });
+        if (_var.price)
+          variantPricingsToCreate.push({
+            inventoryId: inventoriesToCreate.find((i) => i.uid === prod.uid)
+              ?.id!,
+            costPrice: _var.price!,
+            inventoryVariantId: variant.id! as any,
+          });
       })
     );
     await ctx.db.inventory.createMany({
@@ -386,18 +516,30 @@ const upsertInventoriesForDykeProductsSchema = z.object({
       name: z.string().optional().nullable(),
       img: z.string().optional().nullable(),
       price: z.number().optional().nullable(),
+      categories: z
+        .array(
+          z.object({
+            stepUid: z.string(),
+            componentUid: z.string(),
+            operator: z.enum(["is", "isNot"]).nullable().optional(),
+            stepTitle: z.string(),
+            componentName: z.string(),
+          })
+        )
+        .optional()
+        .nullable(),
       variants: z
         .array(
           z.object({
             deps: z.array(
               z.object({
                 stepUid: z.string(),
+                componentUid: z.string(),
                 stepTitle: z.string(),
-                productUid: z.string(),
-                productName: z.string(),
-                price: z.number().optional().nullable(),
+                componentName: z.string(),
               })
             ),
+            price: z.number().optional().nullable(),
           })
         )
         .optional()
