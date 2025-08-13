@@ -76,6 +76,17 @@ export function whereSales(query: SalesQueryParamsSchema) {
   Object.entries(query).map(([k, v]) => {
     if (v === null) return;
     switch (k as keyof SalesQueryParamsSchema) {
+      case "invoice":
+        switch (query.invoice) {
+          case "pending":
+            where.push({
+              amountDue: {
+                gt: 0,
+              },
+            });
+            break;
+        }
+        break;
       case "salesType":
         where.push({
           type: query.salesType,

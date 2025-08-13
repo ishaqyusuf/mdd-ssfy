@@ -3,6 +3,7 @@ import { createTRPCRouter, publicProcedure } from "../init";
 import { z } from "zod";
 import {
   getInventoryCategoryByShelfId,
+  migrateDykeStepToInventories,
   upsertInventoriesForDykeShelfProducts,
   upsertInventoriesForDykeShelfProductsSchema,
 } from "@api/db/queries/inventory.generate";
@@ -37,6 +38,11 @@ export const inventoriesRouter = createTRPCRouter({
     .input(upsertInventoriesForDykeShelfProductsSchema)
     .mutation(async (props) => {
       return upsertInventoriesForDykeShelfProducts(props.ctx, props.input);
+    }),
+  upsertComponents: publicProcedure
+    .input(upsertInventoriesForDykeShelfProductsSchema)
+    .mutation(async (props) => {
+      return migrateDykeStepToInventories(props.ctx, props.input.categoryId);
     }),
   getInventoryCategories: publicProcedure
     .input(getInventoryCategoriesSchema)

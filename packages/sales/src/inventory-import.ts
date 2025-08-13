@@ -14,7 +14,7 @@ export async function inventoryImport(db: Db, data: InventoryImport) {
         name: true,
         _count: {
           select: {
-            products: true,
+            groupedProducts: true,
           },
         },
       },
@@ -27,10 +27,16 @@ export async function inventoryImport(db: Db, data: InventoryImport) {
     distinct: "title",
     select: {
       uid: true,
+      id: true,
       title: true,
       _count: {
         select: {
-          stepProducts: true,
+          stepProducts: {
+            where: {
+              deletedAt: null,
+            },
+            // distinct: ""
+          },
         },
       },
     },
@@ -48,7 +54,11 @@ export async function inventoryImport(db: Db, data: InventoryImport) {
       uid: true,
       _count: {
         select: {
-          inventories: true,
+          inventories: {
+            where: {
+              deletedAt: null,
+            },
+          },
         },
       },
     },
@@ -65,9 +75,10 @@ export async function inventoryImport(db: Db, data: InventoryImport) {
       ...shelfCategories.map((c) => ({
         uid: c.uid,
         title: c.name,
-        totalProducts: c._count?.products,
+        totalProducts: c._count?.groupedProducts,
         ...inventoryInfo(c.uid),
         subCategory: "shelf item",
+        importCategoryId: c.id,
       })),
       ...categories.map((c) => ({
         uid: c.uid,
@@ -75,6 +86,7 @@ export async function inventoryImport(db: Db, data: InventoryImport) {
         totalProducts: c._count?.stepProducts,
         ...inventoryInfo(c.uid),
         subCategory: "component",
+        importCategoryId: c.id,
       })),
     ].sort((a, b) => a.title!?.localeCompare(b.title!)),
     //   ?.filter((a) => a.totalProducts > 0),

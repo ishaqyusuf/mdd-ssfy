@@ -9,7 +9,6 @@ import { TableRow } from "../table-row";
 import { LoadMoreTRPC } from "../load-more";
 import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@/hooks/use-table-scroll";
-import { useInventoryProductsFilterParams } from "@/hooks/use-inventory-products-filter-params";
 import { useInventoryImportFilterParams } from "@/hooks/use-inventory-import-filter-params";
 
 export function DataTable() {

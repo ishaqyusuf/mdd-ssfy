@@ -54,6 +54,7 @@ import { openStepPricingModal } from "../modals/step-pricing-modal";
 import { UseStepContext, useStepContext } from "./ctx";
 import { CustomComponentAction } from "./custom-component.action";
 import SearchBar from "./search-bar";
+import { Env } from "@/components/env";
 
 interface Props {
     itemStepUid;
@@ -425,9 +426,16 @@ export function Component({
                 </div>
             </button>
 
+            <Env isDev>
+                {component.uid ? (
+                    <div className="s-rotate-90 -translate-y-1/2s top-1/2s absolute left-4 top-4 transform font-mono text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        {component.uid}
+                    </div>
+                ) : null}
+            </Env>
             {component.productCode ? (
                 <div className="s-rotate-90 -translate-y-1/2s top-1/2s absolute left-4 top-4 transform font-mono text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                    {component.productCode}
+                    {component.productCode} {component.uid}
                 </div>
             ) : null}
 

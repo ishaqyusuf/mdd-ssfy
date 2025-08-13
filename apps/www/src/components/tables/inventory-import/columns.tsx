@@ -2,13 +2,16 @@
 
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Progress } from "@/components/(clean-code)/progress";
+import { useTRPC } from "@/trpc/client";
 
 import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
-import { colorsObject, getColor, hexToRgba } from "@gnd/utils/colors";
+import { toast } from "@gnd/ui/use-toast";
+import { colorsObject, hexToRgba } from "@gnd/utils/colors";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, Clock, Upload } from "lucide-react";
 
 export type Item =
@@ -77,12 +80,52 @@ const actionColumn = {
     accessorKey: "Action",
     meta: {},
     cell: ({ row: { original: item } }) => {
-        const startImport = () => {};
+        const trpc = useTRPC();
+        const qc = useQueryClient();
+        const mutationOptions = {
+            onSuccess(data) {
+                console.log({ SUCCESS: data });
+                qc.invalidateQueries({
+                    queryKey: trpc.inventories.inventoryImports.queryKey(),
+                });
+                qc.invalidateQueries({
+                    queryKey: trpc.inventories.inventoryProducts.queryKey(),
+                });
+                toast({
+                    title: "Import Successful",
+                });
+            },
+            onError(error, variables, context) {
+                console.log({ error, variables, context });
+                toast({
+                    title: "Import Failed",
+                    variant: "destructive",
+                });
+            },
+        };
+        const importShelf = useMutation(
+            trpc.inventories.upsertShelfProducts.mutationOptions(
+                mutationOptions,
+            ),
+        );
+        const importComponent = useMutation(
+            trpc.inventories.upsertComponents.mutationOptions(mutationOptions),
+        );
+        const isPending = importComponent?.isPending || importShelf?.isPending;
+        const startImport = () => {
+            // if(item.subCategory === 'component')
+            (item.subCategory === "component"
+                ? importComponent
+                : importShelf
+            ).mutate({
+                categoryId: item?.importCategoryId,
+            });
+        };
 
         return (
             <div className="gap-4 flex justify-end">
                 <Button
-                    disabled={!!item?.categoryUid}
+                    disabled={!!item?.categoryUid || isPending}
                     variant="default"
                     size="sm"
                     onClick={startImport}
