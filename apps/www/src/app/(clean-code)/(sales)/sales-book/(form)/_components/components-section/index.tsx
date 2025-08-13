@@ -90,7 +90,7 @@ export function ComponentsSection({ itemStepUid }: Props) {
     return (
         <ScrollArea
             ref={sticky.containerRef}
-            className="smax-h-[80vh] relative h-full p-4 pb-20"
+            className="smax-h-[80vh] sm:max-h-[200vh] relative h-full p-4 pb-20"
         >
             <Sortable
                 orientation="mixed"

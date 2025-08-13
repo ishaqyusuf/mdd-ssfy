@@ -36,7 +36,7 @@ export default function ItemSection({ uid }: Props) {
                 }}
             >
                 <ItemSectionHeader uid={uid} />
-                <CollapsibleContent className="flex sm:max-h-[120vh] overflow-auto border">
+                <CollapsibleContent className="flex  overflow-auto border">
                     <div className="flex flex-1 flex-col ">
                         {sequence?.map((stepUid, index) => (
                             <StepSection
