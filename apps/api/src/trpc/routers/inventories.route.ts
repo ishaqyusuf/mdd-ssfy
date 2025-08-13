@@ -9,6 +9,7 @@ import {
 import {
   getInventoryCategoriesSchema,
   inventoryFormSchema,
+  inventoryImportSchema,
   inventoryProductsListSchema,
   variantFormSchema,
 } from "@sales/schema";
@@ -21,7 +22,7 @@ import {
   saveInventory,
   saveVariantForm,
 } from "@sales/inventory";
-
+import { inventoryImport } from "@sales/inventory-import";
 export const inventoriesRouter = createTRPCRouter({
   getInventoryTypeByShelfId: publicProcedure
     .input(
@@ -54,6 +55,11 @@ export const inventoriesRouter = createTRPCRouter({
         props.ctx.db,
         props.input.categoryId
       );
+    }),
+  inventoryImports: publicProcedure
+    .input(inventoryImportSchema)
+    .query(async (props) => {
+      return inventoryImport(props.ctx.db, props.input);
     }),
   inventoryProducts: publicProcedure
     .input(inventoryProductsListSchema)

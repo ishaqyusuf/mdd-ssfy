@@ -81,6 +81,8 @@ const StatusColorMap: { [key: string]: string } = {
     medium: colorsObject.orange, // 40%–69%
     high: colorsObject.blue, // 70%–99%
     full: colorsObject.emerald, // 100%
+    "shelf item": colorsObject.yellow,
+    component: colorsObject.blueViolet,
 } as const;
 
 // const __colors = Object.values(StatusColorMap) as const;

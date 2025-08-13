@@ -20,6 +20,8 @@ export function InventoryTabs() {
                 <CustomTab value="/inventory/variants">All Variants</CustomTab>
                 <CustomTab value="/inventory/inbounds">Inbounds</CustomTab>
                 <CustomTab value="/inventory/stocks">Stock Movements</CustomTab>
+                <CustomTab value="/inventory/categories">Categories</CustomTab>
+                <CustomTab value="/inventory/imports">Imports</CustomTab>
             </TabsList>
         </Tabs>
     );

@@ -39,6 +39,10 @@ export function GeneralFooter({}) {
     const { data } = useSaleOverview();
     const [loading, startTransition] = useTransition();
     const qs = useSalesOverviewQuery();
+    const sPreview = useSalesPreview();
+    function preview() {
+        sPreview.preview(data?.orderId, data?.type);
+    }
     async function reset() {
         startTransition(async () => {
             try {
@@ -125,6 +129,8 @@ export function GeneralFooter({}) {
                 <Button
                     size="sm"
                     onClick={(e) => {
+                        preview();
+                        return;
                         printer.setParams({
                             ids: [data?.id],
                             modal: true,

@@ -149,6 +149,12 @@ export const deletePackingSchema = z.object({
 });
 export type DeletePackingSchema = z.infer<typeof deletePackingSchema>;
 
+export const inventoryImportSchema = z
+  .object({
+    // category: z.string(),
+  })
+  .merge(paginationSchema);
+export type InventoryImport = z.infer<typeof inventoryImportSchema>;
 export const inventoryProductsListSchema = z
   .object({
     // example: z.string(),
