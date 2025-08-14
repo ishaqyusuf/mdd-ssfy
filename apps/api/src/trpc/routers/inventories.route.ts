@@ -24,6 +24,7 @@ import {
   saveVariantForm,
 } from "@sales/inventory";
 import { inventoryImport } from "@sales/inventory-import";
+import { InventoryImportService } from "@sales/inventory-import-service";
 export const inventoriesRouter = createTRPCRouter({
   getInventoryTypeByShelfId: publicProcedure
     .input(
@@ -42,7 +43,12 @@ export const inventoriesRouter = createTRPCRouter({
   upsertComponents: publicProcedure
     .input(upsertInventoriesForDykeShelfProductsSchema)
     .mutation(async (props) => {
-      return migrateDykeStepToInventories(props.ctx, props.input.categoryId);
+      const iis = new InventoryImportService(props.ctx.db);
+      await iis.importComponents(props.input.categoryId);
+      return {
+        data: iis.result,
+      };
+      // return migrateDykeStepToInventories(props.ctx, props.input.categoryId);
     }),
   getInventoryCategories: publicProcedure
     .input(getInventoryCategoriesSchema)

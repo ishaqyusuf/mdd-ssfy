@@ -49,23 +49,19 @@ model Inventory {
 }
 
 model InventoryVariant {
-    id  Int     @id @default(autoincrement())
-    img String?
-    sku String?
-    uid String
-
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
-
-    lowStockAlert Int?
-    status        String?
-    publishedAt   DateTime?
-    description   String?
-
-    inventory   Inventory @relation(fields: [inventoryId], references: [id])
-    inventoryId Int
-
+    id               Int                         @id @default(autoincrement())
+    img              String?
+    sku              String?
+    uid              String
+    createdAt        DateTime?                   @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?                   @updatedAt
+    deletedAt        DateTime?                   @db.Timestamp(0)
+    lowStockAlert    Int?
+    status           String?
+    publishedAt      DateTime?
+    description      String?
+    inventory        Inventory                   @relation(fields: [inventoryId], references: [id])
+    inventoryId      Int
     attributes       InventoryVariantAttribute[]
     stocks           InventoryStock[]
     logs             InventoryLog[]
@@ -88,7 +84,6 @@ model InventoryVariantAttribute {
     inventoryVariant   InventoryVariant? @relation(fields: [inventoryVariantId], references: [id])
     inventoryVariantId Int?
 
-    //
     inventoryCategoryVariantAttribute   InventoryCategoryVariantAttribute? @relation(fields: [inventoryCategoryVariantAttributeId], references: [id])
     inventoryCategoryVariantAttributeId Int?
 
@@ -289,13 +284,14 @@ model InventoryLog {
 }
 
 model ImageGallery {
-    id     Int               @id @default(autoincrement())
-    name   String // gallery name (e.g., "Summer Collection", "Jamb Variants")
-    path   String
-    bucket String
-    images InventoryImage[]
+    id       Int               @id @default(autoincrement())
+    name     String // gallery name (e.g., "Summer Collection", "Jamb Variants")
+    path     String
+    bucket   String
+    provider String? // blob, cloudinary
+    images   InventoryImage[]
     // tags   ImageTag[] // searchable tags
-    tags   ImageGalleryTag[]
+    tags     ImageGalleryTag[]
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt

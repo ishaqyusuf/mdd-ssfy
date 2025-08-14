@@ -84,7 +84,7 @@ const actionColumn = {
         const qc = useQueryClient();
         const mutationOptions = {
             onSuccess(data) {
-                console.log({ SUCCESS: data });
+                console.log(data);
                 qc.invalidateQueries({
                     queryKey: trpc.inventories.inventoryImports.queryKey(),
                 });

@@ -14,6 +14,7 @@
     "./utils": "./src/utils/utils.ts",
     "./inventory": "./src/inventory.ts",
     "./inventory-import": "./src/inventory-import.ts",
+    "./inventory-import-service": "./src/inventory-import-service.ts",
     "./inventory-utils": "./src/utils/inventory-utils.ts",
     "./types": "./src/types.ts",
     "./get-sale-information": "./src/sales-control/get-sale-information.ts",

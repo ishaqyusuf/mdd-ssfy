@@ -111,6 +111,14 @@ export async function migrateDykeStepToInventories(
       }
       return ps;
     });
+    const priceSystemComponentUids = Array.from(
+      new Set(
+        step.priceSystem
+          .map((p) => p.dependenciesUid?.split("-")?.filter(Boolean))
+          ?.flat()
+          .map((a) => a!)
+      )
+    );
     let components = step.stepProducts
       .map((product) => {
         const meta: StepComponentMeta = product.meta as any;
@@ -148,19 +156,37 @@ export async function migrateDykeStepToInventories(
     log({ step });
     const depsSteps = await ctx.db.dykeSteps.findMany({
       where: {
-        uid: {
-          in: stepsUid,
-        },
+        OR: [
+          {
+            uid: {
+              in: stepsUid,
+            },
+          },
+          {
+            title: {
+              in: ["Width", "Height"],
+            },
+          },
+        ],
       },
+      distinct: "title",
       include: {
         stepProducts: true,
       },
     });
+    const widthStepUid = depsSteps.find((a) => a.title == "Width")?.uid;
+    const heightStepUid = depsSteps.find((a) => a.title == "Height")?.uid;
     const productsList = depsSteps
       .map((a) =>
         a.stepProducts.map((p) => ({
           ...p,
           stepUid: a.uid,
+          uid:
+            a.title == "Width"
+              ? `w${p.name}`
+              : a.title == "Height"
+                ? `h${p.name}`
+                : p.uid,
         }))
       )
       .flat();
