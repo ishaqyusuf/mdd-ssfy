@@ -16,7 +16,7 @@ interface Data {
   };
 }
 type DbKeys = keyof Db;
-const TABLE_NAMES = [
+export const TABLE_NAMES = [
   "inventoryCategory",
   "inventoryCategoryVariantAttribute",
   "inventory",
@@ -28,6 +28,7 @@ const TABLE_NAMES = [
   "inventoryVariant",
   "inventoryVariantAttribute",
   "inventoryVariantPricing",
+  "inventorySubCategory",
   "priceHistory",
 ] as const satisfies DbKeys[];
 const TABLE_ID_NAMES = [

@@ -52,7 +52,7 @@ function optionFilter<T>(
     label,
     value,
     options,
-    type: "date",
+    type: "checkbox",
   } satisfies PageFilterData<T>;
 }
 function dateFilter<T>(value: T, label) {

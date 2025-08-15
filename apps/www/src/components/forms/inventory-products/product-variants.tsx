@@ -1,20 +1,42 @@
-import { useDebugConsole } from "@/hooks/use-debug-console";
-import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@gnd/ui/table";
+import { useProductVariant } from "./context";
 
-export function ProductVariants({ inventoryId }) {
-    const trpc = useTRPC();
-    const { data, error } = useQuery(
-        trpc.inventories.inventoryVariants.queryOptions(
-            {
-                id: inventoryId,
-            },
-            {
-                enabled: !!inventoryId,
-            },
-        ),
+export function ProductVariants() {
+    const ctx = useProductVariant();
+    return (
+        <div>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Variant</TableHead>
+                        <TableHead>Cost</TableHead>
+                        <TableHead></TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {ctx.data?.attributeMaps?.map((fd, i) => (
+                        <Row key={i} data={fd}></Row>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
     );
-    useDebugConsole({ data, error });
-    return <div></div>;
+}
+
+function Row({ data }) {
+    return (
+        <>
+            <TableRow>
+                <TableCell>{data?.title}</TableCell>
+            </TableRow>
+        </>
+    );
 }
 

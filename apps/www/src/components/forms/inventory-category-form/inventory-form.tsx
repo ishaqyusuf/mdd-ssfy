@@ -12,16 +12,52 @@ import { Label } from "@gnd/ui/label";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { X } from "lucide-react";
+import { useDebugConsole } from "@/hooks/use-debug-console";
 
 export function InventoryCategoryForm({}) {
     const form = useInventoryCategoryForm();
-    const { categoryId } = useInventoryCategoryParams();
+    const { editCategoryId: categoryId } = useInventoryCategoryParams();
     const { categoryList } = useInventoryTrpc({
         enableCategoryList: true,
     });
-    function removeVariantCategory(id, index) {}
-    function selectVariantCategory(id) {}
-    const { fields, remove } = useFieldArray({
+    function removeVariantCategory(id, index) {
+        remove(index);
+    }
+    const { updateCategoryVariantAttribute: updateCatVariantAttr } =
+        useInventoryTrpc();
+    function selectVariantCategory(id) {
+        const fieldIndex = fields.findIndex(
+            (f) => f.valuesInventoryCategoryId === id,
+        );
+        const field = fields[fieldIndex];
+        if (field?.active) return;
+        updateCatVariantAttr.mutate(
+            {
+                active: true,
+                inventoryCategoryId: categoryId,
+                valuesInventoryCategoryId: id,
+                id: field?.id,
+            },
+            {
+                onSuccess(data, variables, context) {
+                    if (fieldIndex > 0)
+                        update(fieldIndex, {
+                            ...field,
+                            active: true,
+                        });
+                    else
+                        append({
+                            active: true,
+                            id: data.id,
+                            // inventoryCategoryId: data.inventoryCategoryId,
+                            valuesInventoryCategoryId:
+                                data.valuesInventoryCategoryId,
+                        });
+                },
+            },
+        );
+    }
+    const { fields, remove, update, append } = useFieldArray({
         control: form.control,
         name: "categoryVariantAttributes",
         keyName: "_id",
@@ -72,37 +108,65 @@ export function InventoryCategoryForm({}) {
                             Selected Variation Categories:
                         </Label>
                         <div className="flex flex-wrap gap-2">
-                            {fields.map(({ id, active }, index) => {
-                                if (!active) return null;
-                                const depCat = categoryList.find(
-                                    (c) => c.id === id,
-                                );
-                                return (
-                                    <Badge
-                                        key={id}
-                                        variant="secondary"
-                                        className="gap-1"
-                                    >
-                                        {depCat?.title || "Unknown"}
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="xs"
-                                            className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground"
-                                            onClick={() =>
+                            {fields.map(
+                                (
+                                    { id, active, valuesInventoryCategoryId },
+                                    index,
+                                ) => {
+                                    if (!active) return null;
+                                    const depCat = categoryList.find(
+                                        (c) =>
+                                            c.id === valuesInventoryCategoryId,
+                                    );
+                                    return (
+                                        <VariationCategory
+                                            removeVariantCategory={() =>
                                                 removeVariantCategory(id, index)
                                             }
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </Button>
-                                    </Badge>
-                                );
-                            })}
+                                            title={depCat?.title}
+                                            id={id}
+                                            key={id}
+                                        />
+                                    );
+                                },
+                            )}
                         </div>
                     </div>
                 )}
             </div>
         </Form>
+    );
+}
+
+function VariationCategory({ id, title, removeVariantCategory }) {
+    const { updateCategoryVariantAttribute: update } = useInventoryTrpc();
+    useDebugConsole(update.data, update.error);
+    return (
+        <Badge key={id} variant="secondary" className="gap-1">
+            {title || "Unknown"}
+            <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                disabled={update.isPending}
+                className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground"
+                onClick={() =>
+                    update.mutate(
+                        {
+                            id,
+                            active: false,
+                        },
+                        {
+                            onSuccess(data, variables, context) {
+                                removeVariantCategory();
+                            },
+                        },
+                    )
+                }
+            >
+                <X className="h-3 w-3" />
+            </Button>
+        </Badge>
     );
 }
 

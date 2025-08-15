@@ -6,12 +6,13 @@ import { useState } from "react";
 import { ProductVariantsSection } from "./product-variants-section";
 import { ProductProvider } from "./context";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
+import { ProductSubCategorySection } from "./product-sub-category-section";
 
 export function InventoryForm({}) {
     const form = useInventoryForm();
     const { productId } = useInventoryParams();
     const [sections, setSections] = useState<string[]>(
-        productId > 0 ? ["variants"] : ["general"],
+        productId > 0 ? ["variants", "subcategories"] : ["general"],
     );
     return (
         <Form {...form}>
@@ -23,6 +24,7 @@ export function InventoryForm({}) {
             >
                 <ProductProvider>
                     <ProductInformationSection />
+                    {productId < 0 || <ProductSubCategorySection />}
                     <ProductVariantsSection />
                 </ProductProvider>
             </Accordion>

@@ -6,34 +6,34 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@gnd/ui/use-toast";
 import { FormDebugBtn } from "@/components/form-debug-btn";
 import { useInventoryCategoryForm } from "./form-context";
+import { useDebugConsole } from "@/hooks/use-debug-console";
+import { useInventoryCategoryParams } from "@/hooks/use-inventory-category-params";
 
 export function FormAction({ onCancel }) {
-    const { productId, setParams } = useInventoryParams();
+    const { editCategoryId, setParams } = useInventoryCategoryParams();
     const form = useInventoryCategoryForm();
-    const isEditing = productId > 0;
+    const isEditing = editCategoryId > 0;
     const trpc = useTRPC();
     const qc = useQueryClient();
     const {
         isPending: isSubmitting,
         mutate,
         error,
+        data,
     } = useMutation(
-        trpc.inventories.saveInventory.mutationOptions({
+        trpc.inventories.saveInventoryCategory.mutationOptions({
             onSuccess(data) {
                 qc.invalidateQueries({
-                    queryKey: trpc.inventories.inventoryProducts.queryKey(),
+                    queryKey: trpc.inventories.inventoryCategories.queryKey(),
                 });
                 toast({
                     title: "Saved",
                     variant: "success",
                 });
-                if (productId != data.inventoryId)
-                    setParams({
-                        productId: data.inventoryId,
-                    });
             },
         }),
     );
+    useDebugConsole({ data, error });
     const onSubmit = async (data) => {
         mutate({
             ...data,
@@ -62,7 +62,7 @@ export function FormAction({ onCancel }) {
                         isSubmitting={isSubmitting}
                         className="min-w-[120px]"
                     >
-                        {isEditing ? "Update Product" : "Create Product"}
+                        {isEditing ? "Update Category" : "Create Category"}
                     </SubmitButton>
                 </form>
             </div>

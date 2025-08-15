@@ -65,7 +65,7 @@ const action: Column = {
                     <IconButton
                         onClick={(e) => {
                             setParams({
-                                categoryId: item.id,
+                                editCategoryId: item.id,
                             });
                         }}
                         icon="edit"

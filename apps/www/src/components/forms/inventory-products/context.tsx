@@ -3,6 +3,10 @@ import { useInventoryForm } from "./form-context";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { useFieldArray } from "react-hook-form";
+import { useDebugConsole } from "@/hooks/use-debug-console";
+import { parseAsString, useQueryStates } from "nuqs";
+import { labelValueOptions, selectOptions } from "@gnd/utils";
+import { useMemo } from "react";
 
 interface ProductContextProps {}
 export const { Provider: ProductProvider, useContext: useProduct } =
@@ -46,32 +50,101 @@ export const { Provider: ProductProvider, useContext: useProduct } =
         };
     });
 interface ProductVariantContextProps {
-    variantIndex: number;
+    inventoryId: number;
 }
-export const {
-    Provider: ProductVariantProvider,
-    useContext: useProductVariant,
-} = createContextFactory(({ variantIndex }: ProductVariantContextProps) => {
-    const form = useInventoryForm();
-    const trpc = useTRPC();
-    const productCtx = useProduct();
-    const addAttribute = () => {
-        addAttributeField({
-            attributeId: undefined,
-            attributeInventoryId: undefined,
-            id: undefined,
-        });
-    };
-    const {
-        fields: attributeFields,
-        remove: removeAttribute,
-        append: addAttributeField,
-    } = useFieldArray({
-        control: form.control,
-        name: `variants.${variantIndex}.attributes`,
-        keyName: "_id",
-    });
 
-    return { variantIndex, attributeFields, removeAttribute, addAttribute };
+export const {
+    Provider: ProductVariantsProvider,
+    useContext: useProductVariant,
+} = createContextFactory(({ inventoryId }: ProductVariantContextProps) => {
+    const trpc = useTRPC();
+    const { data, error } = useQuery(
+        trpc.inventories.inventoryVariantStockForm.queryOptions(
+            {
+                id: inventoryId,
+            },
+            {
+                enabled: !!inventoryId,
+            },
+        ),
+    );
+    useDebugConsole("--->", { data, error });
+
+    // const [params, setParams] = useQueryStates(
+    //     {
+    //         v__q: parseAsString,
+    //         ...Object.fromEntries(
+    //             Object.keys(data?.filterParams || {}).map((k) => [
+    //                 k,
+    //                 parseAsString,
+    //             ]),
+    //         ),
+    //     },
+    //     {},
+    // );
+    // const filteredData = useMemo(() => {
+    //     if (!data?.attributeMaps) return [];
+    //     return data?.attributeMaps;
+    //     // normalize filters from params (ignore empty ones)
+    //     const activeFilters = Object.fromEntries(
+    //         Object.entries(params).filter(([key, value]) => Boolean(value)),
+    //     );
+
+    //     const list = data.attributeMaps.filter((item) => {
+    //         // if no filters except q, default to active status
+    //         const hasSearchFilters = Object.keys(activeFilters).length > 0;
+
+    //         if (!hasSearchFilters && item.status !== "active") {
+    //             return false;
+    //         }
+
+    //         // text search filter
+    //         if (params.v__q) {
+    //             const search = params.v__q.toLowerCase();
+    //             if (!item.title.toLowerCase().includes(search)) {
+    //                 return false;
+    //             }
+    //         }
+
+    //         // attribute value filters
+    //         for (const [key, value] of Object.entries(activeFilters)) {
+    //             if (key === "v__q") continue; // skip search key
+
+    //             const attrMatch = item.attributes.some(
+    //                 (attr) =>
+    //                     attr.attributeLabel.toLowerCase() ===
+    //                         key.toLowerCase() &&
+    //                     value.includes(attr.valueLabel),
+    //             );
+    //             if (!attrMatch) return false;
+    //         }
+
+    //         return true;
+    //     });
+
+    //     return list;
+    // }, [data, params]);
+    // const filterList = [
+    //     {
+    //         label: "Search",
+    //         value: "v__q",
+    //         type: "input",
+    //     },
+    //     ...Object.entries(data?.filterParams || {}).map(([k, v]) => ({
+    //         value: k,
+    //         type: "checkbox",
+    //         options: labelValueOptions(v),
+    //     })),
+    // ];
+    return {
+        data,
+        inventoryId,
+        // filteredData,
+        // filter: {
+        //     params,
+        //     setParams,
+        //     filterList,
+        // },
+    };
 });
 

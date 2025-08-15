@@ -37,8 +37,32 @@ export function useInventoryTrpc(props: Props = {}) {
             },
         ),
     );
+    const updateCategoryVariantAttribute =
+        // {
+        //     mutate: mutateUpdateCatVariantattr,
+        //     isPending: isPendingUpdateCategoryVariantAttribute,
+        // }
+        useMutation(
+            trpc.inventories.updateCategoryVariantAttribute.mutationOptions({
+                onSuccess(data, variables, context) {
+                    toast({
+                        title: "",
+                        variant: "success",
+                        description: "",
+                    });
+                },
+                onError(error, variables, context) {
+                    toast({
+                        title: "",
+                        variant: "error",
+                        description: "",
+                    });
+                },
+            }),
+        );
     const ctx = {
         categoryList,
+        updateCategoryVariantAttribute,
         refreshKeys(...keys: (keyof typeof trpc.inventories)[]) {
             for (const k of keys)
                 qc.invalidateQueries({

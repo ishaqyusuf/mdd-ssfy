@@ -15,7 +15,7 @@ import { FormAction } from "../forms/inventory-category-form/form-action";
 export function InventoryCategorySheet() {
     const trpc = useTRPC();
     const { setParams, ...params } = useInventoryCategoryParams();
-    const isOpen = !!params.categoryId;
+    const isOpen = !!params.editCategoryId;
 
     const handleOnOpenChange = (open: boolean) => {
         if (!open) {
@@ -23,9 +23,12 @@ export function InventoryCategorySheet() {
         setParams(null);
     };
     const { data: formData, error } = useQuery(
-        trpc.inventories.inventoryCategoryForm.queryOptions(params.categoryId, {
-            enabled: params?.categoryId > 0,
-        }),
+        trpc.inventories.inventoryCategoryForm.queryOptions(
+            params.editCategoryId,
+            {
+                enabled: params?.editCategoryId > 0,
+            },
+        ),
     );
 
     return (
@@ -38,7 +41,7 @@ export function InventoryCategorySheet() {
         >
             <SheetHeader>
                 <SheetHeader.Title>
-                    {params.categoryId > 0
+                    {params.editCategoryId > 0
                         ? "Edit Category"
                         : "Create Category"}
                 </SheetHeader.Title>

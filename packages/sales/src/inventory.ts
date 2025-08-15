@@ -15,6 +15,7 @@ import {
   StockModes,
 } from "./constants";
 import { generateRandomNumber, generateRandomString, sum } from "@gnd/utils";
+import { TABLE_NAMES } from "./inventory-import-service";
 export async function inventoryList(db: Db, query: InventoryList) {
   // await db.imageGallery.updateMany({
   //   data: {
@@ -114,10 +115,17 @@ export async function getInventoryCategoryAttributes(db: Db, categoryId) {
     },
     include: {
       categoryVariantAttributes: {
+        where: {
+          deletedAt: null,
+        },
         include: {
-          inventoryCategory: {
+          valuesInventoryCategory: {
             include: {
-              inventories: true,
+              inventories: {
+                where: {
+                  deletedAt: null,
+                },
+              },
             },
           },
         },
@@ -126,9 +134,9 @@ export async function getInventoryCategoryAttributes(db: Db, categoryId) {
   });
   const attributes = attribute.categoryVariantAttributes.map((a) => {
     return {
-      attributeId: attribute.id, //equals: inventoryCategoryVariantAttributeId
-      name: a.inventoryCategory.title,
-      values: a.inventoryCategory.inventories.map((i) => ({
+      attributeId: a.id, //equals: inventoryCategoryVariantAttributeId
+      name: a.valuesInventoryCategory.title,
+      values: a.valuesInventoryCategory.inventories.map((i) => ({
         id: i.id,
         label: i.name,
       })),
@@ -138,7 +146,7 @@ export async function getInventoryCategoryAttributes(db: Db, categoryId) {
     attributes,
   };
 }
-export async function inventoryVariants(db: Db, inventoryId) {
+export async function inventoryVariantStockForm(db: Db, inventoryId) {
   const inventory = await db.inventory.findUniqueOrThrow({
     where: {
       id: inventoryId,
@@ -156,79 +164,80 @@ export async function inventoryVariants(db: Db, inventoryId) {
     db,
     inventory.inventoryCategoryId
   );
-  return {
-    inventory,
-    attributes,
-  };
-  function generateCombinations(
-    attrs: typeof attributes,
-    index = 0,
-    current: any[] = []
-  ) {
-    if (index === attrs.length) return [...current];
-    const result: { attributeId: number; inventoryId: number }[] = [];
-    for (const val of attrs[index]!?.values) {
-      result.push(
-        ...generateCombinations(attrs, index + 1, [
-          ...current,
-          { attributeId: attrs[index]!?.attributeId, inventoryId: val.id },
-        ])
-      );
-    }
-    return result;
+  function cartesianProduct<T>(arr: T[][]): T[][] {
+    return arr.reduce(
+      (a, b) => a.flatMap((x) => b.map((y) => [...x, y])),
+      [] as T[][]
+    );
   }
-  const allCombinations = generateCombinations(attributes);
-  const inventoryAttributes = allCombinations.map((combo) => {
-    const existing = inventory.variants.find((variant) => {
-      if (variant.attributes.length !== combo.length) return false;
-      return combo.every((c) =>
-        variant.attributes.some(
-          (va) =>
-            va.inventoryCategoryVariantAttributeId === c.attributeId &&
-            va.valueId === c.inventoryId
-        )
-      );
-    });
 
+  // Step 1: Get all possible value combos from attributes
+  const allCombos = cartesianProduct(
+    attributes.map((attr) =>
+      attr.values.map((v) => ({
+        valueId: v.id,
+        valueLabel: v.label,
+        attributeId: attr.attributeId,
+        attributeLabel: attr.name,
+      }))
+    )
+  );
+  const variants = inventory.variants;
+  const attributeMaps = allCombos.map((combo) => {
+    const matchedVariant = variants.find((variant) =>
+      combo.every((c) =>
+        variant.attributes.some(
+          (a) =>
+            a.valueId === c.valueId &&
+            a.inventoryCategoryVariantAttributeId === c.attributeId
+        )
+      )
+    );
+    // Merge width + height for title if present
+    const widthAttr = combo.find(
+      (c) => c.attributeLabel?.toLowerCase() === "width"
+    );
+    const heightAttr = combo.find(
+      (c) => c.attributeLabel?.toLowerCase() === "height"
+    );
+
+    let titleParts: string[];
+    if (widthAttr && heightAttr) {
+      titleParts = [
+        `${widthAttr.valueLabel} x ${heightAttr.valueLabel}`,
+        ...combo
+          .filter(
+            (c) =>
+              !["width", "height"].includes(c.attributeLabel?.toLowerCase())
+          )
+          .map((c) => c.valueLabel),
+      ];
+    } else {
+      titleParts = combo.map((c) => c.valueLabel);
+    }
     return {
-      variant: existing
-        ? {
-            id: existing.id,
-            cost: existing?.pricing?.costPrice!,
-            price: existing?.pricing?.price!,
-            status: existing?.status! as any as InventoryVariantStatus,
-            sku: existing?.sku,
-            publishedAt: existing?.publishedAt,
-            uid: existing?.uid,
-            // include other needed fields...
-          }
-        : {
-            id: null,
-            status: "draft" as InventoryVariantStatus,
-            cost: null,
-            price: null,
-          },
+      variantId: matchedVariant?.id ?? null,
+      status: matchedVariant ? matchedVariant.status ?? "active" : "draft",
       attributes: combo,
+      title: titleParts.join(" "),
     };
   });
-  const defaultVariant = inventory.variants.find((v) => !v.attributes?.length);
-  if (defaultVariant || !inventoryAttributes?.length) {
-    inventoryAttributes.unshift({
-      attributes: [],
-      variant: {
-        id: defaultVariant?.id!,
-        cost: defaultVariant?.pricing?.costPrice!,
-        status: defaultVariant?.status as InventoryVariantStatus,
-        price: defaultVariant?.pricing?.price!,
-        publishedAt: defaultVariant?.publishedAt!,
-        sku: defaultVariant?.sku!,
-        uid: defaultVariant?.uid!,
-      },
-    });
+  const filterParams: Record<string, string[]> = {};
+  for (const record of attributeMaps) {
+    for (const attr of record.attributes) {
+      if (!filterParams[attr.attributeLabel]) {
+        filterParams[attr.attributeLabel] = [];
+      }
+      if (!filterParams[attr.attributeLabel]!.includes(attr.valueLabel)) {
+        filterParams[attr.attributeLabel]!.push(attr.valueLabel);
+      }
+    }
   }
+
   return {
-    inventoryAttributes,
-    categoryAttributes: attributes,
+    attributeMaps,
+    inventory,
+    filterParams,
   };
 }
 export async function inventoryForm(db: Db, inventoryId) {
@@ -461,6 +470,7 @@ export async function getInventoryCategoryForm(
       id,
     },
     select: {
+      id: true,
       description: true,
       enablePricing: true,
       img: true,
@@ -518,7 +528,7 @@ export async function saveInventoryCategoryForm(
       },
       data: {
         title: data.title,
-        uid: generateRandomString(5),
+        // uid: generateRandomString(5),
         enablePricing: data.enablePricing,
         description: data.description,
       },
@@ -532,8 +542,8 @@ export async function updateCategoryVariantAttribute(
   if (!data.id)
     return await db.inventoryCategoryVariantAttribute.create({
       data: {
-        inventoryCategoryId: data.inventoryCategoryId,
-        valuesInventoryCategoryId: data.valuesInventoryCategoryId,
+        inventoryCategoryId: data.inventoryCategoryId!,
+        valuesInventoryCategoryId: data.valuesInventoryCategoryId!,
       },
     });
   return await db.inventoryCategoryVariantAttribute.update({
@@ -545,4 +555,24 @@ export async function updateCategoryVariantAttribute(
       deletedAt: data.active ? null : new Date(),
     },
   });
+}
+
+export async function resetInventorySystem(db: Db) {
+  const tables = TABLE_NAMES.reverse();
+  // return { tables };
+  const resetStatus: any = {};
+  try {
+    await db.$transaction(async (tx) => {
+      // tx.inventory.deleteMany({})
+      for (const table of tables) {
+        resetStatus[table] = "resetting...";
+
+        await (tx[table] as any).deleteMany({});
+        resetStatus[table] = "reset complete";
+      }
+    });
+  } catch (error) {
+    resetStatus.error = error;
+  }
+  return resetStatus;
 }

@@ -280,8 +280,8 @@ export type InventoryCategoryForm = z.infer<typeof inventoryCategoryFormSchema>;
 export const updateCategoryVariantAttributeSchema = z.object({
   id: z.number().optional().nullable(),
   active: z.boolean(),
-  inventoryCategoryId: z.number(),
-  valuesInventoryCategoryId: z.number(),
+  inventoryCategoryId: z.number().optional(),
+  valuesInventoryCategoryId: z.number().optional(),
 });
 export type UpdateCategoryVariantAttribute = z.infer<
   typeof updateCategoryVariantAttributeSchema
