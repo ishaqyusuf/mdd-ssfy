@@ -10,6 +10,7 @@ import { LoadMoreTRPC } from "../load-more";
 import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
+import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 
 export function DataTable() {
     const trpc = useTRPC();
@@ -19,7 +20,7 @@ export function DataTable() {
         filter: filters,
         route: trpc.inventories.inventoryCategories,
     });
-
+    const inventory = useInventoryTrpc();
     const tableScroll = useTableScroll({
         useColumnWidths: true,
         startFromColumn: 2,
@@ -38,7 +39,7 @@ export function DataTable() {
                     tableMeta: {
                         rowClick(id, rowData) {},
                         deleteAction(id) {
-                            //
+                            inventory.deleteCategory(id);
                         },
                     },
                 },

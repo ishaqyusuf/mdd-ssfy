@@ -1,15 +1,9 @@
 "use client";
 
-import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
-import { Menu } from "@/components/(clean-code)/menu";
 import { Progress } from "@/components/(clean-code)/progress";
 import { StockModeStatus } from "@/components/stock-mode-status";
-import { SalesPayWidget } from "@/components/widgets/sales-pay-widget";
-import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { cn } from "@/lib/utils";
 import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
@@ -18,7 +12,7 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { imageUrl } from "@gnd/utils";
-import { Eye, Package, StickyNote } from "lucide-react";
+import { Eye, Package } from "lucide-react";
 
 export type Item =
     RouterOutputs["inventories"]["inventoryProducts"]["data"][number];
@@ -87,7 +81,6 @@ export const columns: ColumnDef<Item>[] = [
             </div>
         ),
     },
-
     {
         header: "",
         accessorKey: "action",

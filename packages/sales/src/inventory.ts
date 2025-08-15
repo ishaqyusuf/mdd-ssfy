@@ -2,8 +2,10 @@ import { Db, Prisma } from "@gnd/db";
 import {
   GetInventoryCategories,
   InventoryCategories,
+  InventoryCategoryForm,
   InventoryForm,
   InventoryList,
+  UpdateCategoryVariantAttribute,
   VariantForm,
 } from "./schema";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
@@ -438,4 +440,109 @@ export async function inventoryCategories(db: Db, query: InventoryCategories) {
 function whereInventoryCategories(query: InventoryCategories) {
   const wheres: Prisma.InventoryCategoryWhereInput[] = [];
   return composeQuery(wheres);
+}
+
+export async function deleteInventoryCategory(db: Db, id) {
+  await db.inventoryCategory.update({
+    where: {
+      id,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+}
+export async function getInventoryCategoryForm(
+  db: Db,
+  id
+): Promise<InventoryCategoryForm> {
+  const category = await db.inventoryCategory.findUniqueOrThrow({
+    where: {
+      id,
+    },
+    select: {
+      description: true,
+      enablePricing: true,
+      img: true,
+      title: true,
+      categoryVariantAttributes: {
+        where: {
+          deletedAt: {},
+        },
+        select: {
+          id: true,
+          // inventoryCategoryId: true,
+          valuesInventoryCategoryId: true,
+          deletedAt: true,
+        },
+      },
+    },
+  });
+  return {
+    ...category,
+    categoryVariantAttributes: category.categoryVariantAttributes.map((a) => {
+      const { deletedAt, ...cva } = a;
+      return {
+        ...cva,
+        active: !deletedAt,
+      };
+    }),
+    categoryIdSelector: null,
+  };
+}
+export async function saveInventoryCategoryForm(
+  db: Db,
+  data: InventoryCategoryForm
+) {
+  let id = data.id;
+  if (!id) {
+    await db.inventoryCategory.create({
+      data: {
+        title: data.title,
+        uid: generateRandomString(5),
+        enablePricing: data.enablePricing,
+        description: data.description,
+        categoryVariantAttributes: {
+          createMany: {
+            data: data.categoryVariantAttributes?.map((cva) => ({
+              valuesInventoryCategoryId: cva.valuesInventoryCategoryId!,
+            })),
+          },
+        },
+      },
+    });
+  } else {
+    await db.inventoryCategory.update({
+      where: {
+        id: data.id!,
+      },
+      data: {
+        title: data.title,
+        uid: generateRandomString(5),
+        enablePricing: data.enablePricing,
+        description: data.description,
+      },
+    });
+  }
+}
+export async function updateCategoryVariantAttribute(
+  db: Db,
+  data: UpdateCategoryVariantAttribute
+) {
+  if (!data.id)
+    return await db.inventoryCategoryVariantAttribute.create({
+      data: {
+        inventoryCategoryId: data.inventoryCategoryId,
+        valuesInventoryCategoryId: data.valuesInventoryCategoryId,
+      },
+    });
+  return await db.inventoryCategoryVariantAttribute.update({
+    where: {
+      id: data.id!,
+      deletedAt: {},
+    },
+    data: {
+      deletedAt: data.active ? null : new Date(),
+    },
+  });
 }

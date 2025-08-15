@@ -20,22 +20,14 @@ import { useQuery } from "@tanstack/react-query";
 import { selectOptions } from "@gnd/utils";
 import { useProduct } from "./context";
 import { Badge } from "@gnd/ui/badge";
+import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 
 export function ProductInformationSection({}) {
     const form = useInventoryForm();
     const trpc = useTRPC();
-    const {
-        data: categories,
-        isPending,
-        error,
-    } = useQuery(
-        trpc.inventories.getInventoryCategories.queryOptions(
-            {},
-            {
-                enabled: true,
-            },
-        ),
-    );
+    const { categoryList } = useInventoryTrpc({
+        enableCategoryList: true,
+    });
     const { stockMonitor, status, isPriceEnabled } = useProduct();
     return (
         <AccordionItem value="general">
@@ -75,7 +67,7 @@ export function ProductInformationSection({}) {
                         transformSelectionValue={(data) => Number(data.id)}
                         comboProps={{
                             placeholder: "Select Category",
-                            items: selectOptions(categories, "title", "id"),
+                            items: selectOptions(categoryList, "title", "id"),
                         }}
                     />
                     <FormInput

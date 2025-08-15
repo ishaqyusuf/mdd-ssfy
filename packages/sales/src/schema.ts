@@ -260,3 +260,29 @@ export const variantFormSchema = z.object({
     .nullable(),
 });
 export type VariantForm = z.infer<typeof variantFormSchema>;
+
+export const inventoryCategoryFormSchema = z.object({
+  id: z.number().optional().nullable(),
+  title: z.string(),
+  description: z.string().optional().nullable(),
+  enablePricing: z.boolean().optional().nullable().default(false),
+  categoryIdSelector: z.number().optional().nullable(),
+  categoryVariantAttributes: z.array(
+    z.object({
+      id: z.number().optional().nullable(),
+      valuesInventoryCategoryId: z.number().nullable(),
+      active: z.boolean().nullable(),
+    })
+  ),
+});
+export type InventoryCategoryForm = z.infer<typeof inventoryCategoryFormSchema>;
+
+export const updateCategoryVariantAttributeSchema = z.object({
+  id: z.number().optional().nullable(),
+  active: z.boolean(),
+  inventoryCategoryId: z.number(),
+  valuesInventoryCategoryId: z.number(),
+});
+export type UpdateCategoryVariantAttribute = z.infer<
+  typeof updateCategoryVariantAttributeSchema
+>;

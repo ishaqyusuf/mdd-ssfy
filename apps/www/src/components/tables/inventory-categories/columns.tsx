@@ -1,12 +1,11 @@
 "use client";
 
-import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
-import { cn } from "@/lib/utils";
 import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
-import { Button } from "@gnd/ui/button";
 import { ActionCell } from "../action-cell";
+import { IconButton } from "@/components/icon-button";
+import { useInventoryCategoryParams } from "@/hooks/use-inventory-category-params";
 
 export type Item =
     RouterOutputs["inventories"]["inventoryCategories"]["data"][number];
@@ -59,9 +58,19 @@ const action: Column = {
         preventDefault: true,
     },
     cell: ({ row: { original: item } }) => {
+        const { setParams } = useInventoryCategoryParams();
         return (
-            <div className="flex gap-2">
-                <ActionCell trash itemId={item.id}></ActionCell>
+            <div className="flex justify-end gap-2">
+                <ActionCell trash itemId={item.id}>
+                    <IconButton
+                        onClick={(e) => {
+                            setParams({
+                                categoryId: item.id,
+                            });
+                        }}
+                        icon="edit"
+                    />
+                </ActionCell>
             </div>
         );
     },

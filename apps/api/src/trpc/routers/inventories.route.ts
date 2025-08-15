@@ -10,19 +10,23 @@ import {
 import {
   getInventoryCategoriesSchema,
   inventoryCategoriesSchema,
+  inventoryCategoryFormSchema,
   inventoryFormSchema,
   inventoryImportSchema,
   inventoryListSchema,
   variantFormSchema,
 } from "@sales/schema";
 import {
+  deleteInventoryCategory,
   getInventoryCategories,
   getInventoryCategoryAttributes,
+  getInventoryCategoryForm,
   inventoryCategories,
   inventoryForm,
   inventoryList,
   inventoryVariants,
   saveInventory,
+  saveInventoryCategoryForm,
   saveVariantForm,
 } from "@sales/inventory";
 import { inventoryImport } from "@sales/inventory-import";
@@ -86,6 +90,17 @@ export const inventoriesRouter = createTRPCRouter({
       const result = await inventoryCategories(props.ctx.db, props.input);
       return result;
     }),
+  inventoryCategoryForm: publicProcedure
+    .input(z.number())
+    .query(async (props) => {
+      const result = await getInventoryCategoryForm(props.ctx.db, props.input);
+      return result;
+    }),
+  saveInventoryCategory: publicProcedure
+    .input(inventoryCategoryFormSchema)
+    .mutation(async (props) => {
+      return saveInventoryCategoryForm(props.ctx.db, props.input);
+    }),
   inventoryForm: publicProcedure
     .input(
       z.object({
@@ -105,6 +120,15 @@ export const inventoriesRouter = createTRPCRouter({
     .query(async (props) => {
       const result = await inventoryVariants(props.ctx.db, props.input.id);
       return result;
+    }),
+  deleteInventory: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+      })
+    )
+    .mutation(async (props) => {
+      return deleteInventoryCategory(props.ctx.db, props.input.id);
     }),
   saveInventory: publicProcedure
     .input(inventoryFormSchema)

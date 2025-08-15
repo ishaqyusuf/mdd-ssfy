@@ -24,6 +24,7 @@ export function DataTable() {
         useColumnWidths: true,
         startFromColumn: 2,
     });
+
     return (
         <TableProvider
             args={[
