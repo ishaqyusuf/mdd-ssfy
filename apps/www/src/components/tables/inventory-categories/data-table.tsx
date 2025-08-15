@@ -17,7 +17,7 @@ export function DataTable() {
     const { filters } = useInventoryFilterParams();
     const { data, ref, hasNextPage } = useTableData({
         filter: filters,
-        route: trpc.inventories.inventoryProducts,
+        route: trpc.inventories.inventoryCategories,
     });
 
     const tableScroll = useTableScroll({
@@ -37,6 +37,9 @@ export function DataTable() {
                     // setRowSelection,
                     tableMeta: {
                         rowClick(id, rowData) {},
+                        deleteAction(id) {
+                            //
+                        },
                     },
                 },
             ]}

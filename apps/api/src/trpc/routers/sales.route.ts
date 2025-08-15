@@ -17,14 +17,14 @@ import { resolvePayment, resolvePaymentSchema } from "@api/db/queries/wallet";
 import {
   getInvoicePrintData,
   inventoryFormSchema,
-  inventoryProductsListSchema,
+  inventoryListSchema,
   printInvoiceSchema,
   salesProductionQueryParamsSchema,
 } from "@sales/exports";
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
 import {
   inventoryForm,
-  inventoryProductsList,
+  InventoryList,
   inventoryVariants,
 } from "@sales/inventory";
 import { getSalesProductions } from "@sales/sales-production";

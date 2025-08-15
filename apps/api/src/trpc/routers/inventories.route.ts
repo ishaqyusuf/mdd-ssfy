@@ -9,16 +9,18 @@ import {
 } from "@api/db/queries/inventory.generate";
 import {
   getInventoryCategoriesSchema,
+  inventoryCategoriesSchema,
   inventoryFormSchema,
   inventoryImportSchema,
-  inventoryProductsListSchema,
+  inventoryListSchema,
   variantFormSchema,
 } from "@sales/schema";
 import {
   getInventoryCategories,
   getInventoryCategoryAttributes,
+  inventoryCategories,
   inventoryForm,
-  inventoryProductsList,
+  inventoryList,
   inventoryVariants,
   saveInventory,
   saveVariantForm,
@@ -74,9 +76,15 @@ export const inventoriesRouter = createTRPCRouter({
       return inventoryImport(props.ctx.db, props.input);
     }),
   inventoryProducts: publicProcedure
-    .input(inventoryProductsListSchema)
+    .input(inventoryListSchema)
     .query(async (props) => {
-      return inventoryProductsList(props.ctx.db, props.input);
+      return inventoryList(props.ctx.db, props.input);
+    }),
+  inventoryCategories: publicProcedure
+    .input(inventoryCategoriesSchema)
+    .query(async (props) => {
+      const result = await inventoryCategories(props.ctx.db, props.input);
+      return result;
     }),
   inventoryForm: publicProcedure
     .input(

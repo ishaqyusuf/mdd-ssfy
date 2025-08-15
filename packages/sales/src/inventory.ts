@@ -1,8 +1,9 @@
 import { Db, Prisma } from "@gnd/db";
 import {
   GetInventoryCategories,
+  InventoryCategories,
   InventoryForm,
-  InventoryProductsList,
+  InventoryList,
   VariantForm,
 } from "./schema";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
@@ -12,16 +13,42 @@ import {
   StockModes,
 } from "./constants";
 import { generateRandomNumber, generateRandomString, sum } from "@gnd/utils";
-export async function inventoryProductsList(
-  db: Db,
-  query: InventoryProductsList
-) {
+export async function inventoryList(db: Db, query: InventoryList) {
+  // await db.imageGallery.updateMany({
+  //   data: {
+  //     bucket: "dyke",
+  //   },
+  // });
   const where = whereInventoryProducts(query);
   const params = await composeQueryData(query, where, db.inventory);
   const data = await db.inventory.findMany({
     ...params.queryProps,
     include: {
       inventoryCategory: true,
+      images: {
+        take: 1,
+        select: {
+          imageGallery: {
+            select: {
+              path: true,
+              provider: true,
+              bucket: true,
+            },
+          },
+        },
+        where: {
+          primary: true,
+        },
+      },
+      _count: {
+        select: {
+          variants: {
+            where: {
+              deletedAt: null,
+            },
+          },
+        },
+      },
       variantPricings: {
         select: {
           price: true,
@@ -38,7 +65,7 @@ export async function inventoryProductsList(
         brand: r.inventoryCategory?.type,
         images: [],
         category: r.inventoryCategory?.title,
-        variantCount: 1,
+        variantCount: r._count?.variants,
         totalStocks: "-",
         // stockValue: 500,
         status: (r.status || "draft") as INVENTORY_STATUS,
@@ -46,14 +73,23 @@ export async function inventoryProductsList(
         stockMonitored: stockMode == "monitored",
         stockValue: r?.variantPricings?.[0]?.price,
         stockStatus: generateRandomNumber(2) > 50 ? "Low Stock" : null,
+        img: {
+          path: r?.images?.[0]?.imageGallery?.path,
+          provider: r?.images?.[0]?.imageGallery?.provider,
+          bucket: r?.images?.[0]?.imageGallery?.bucket,
+        },
       };
     })
   );
   return response;
 }
 
-function whereInventoryProducts(query: InventoryProductsList) {
+function whereInventoryProducts(query: InventoryList) {
   const wheres: Prisma.InventoryWhereInput[] = [];
+  if (query.categoryId)
+    wheres.push({
+      inventoryCategoryId: query.categoryId,
+    });
   return composeQuery(wheres);
 }
 
@@ -118,6 +154,10 @@ export async function inventoryVariants(db: Db, inventoryId) {
     db,
     inventory.inventoryCategoryId
   );
+  return {
+    inventory,
+    attributes,
+  };
   function generateCombinations(
     attrs: typeof attributes,
     index = 0,
@@ -361,4 +401,41 @@ export async function saveVariantForm(db: Db, data: VariantForm) {
       },
     });
   }
+}
+export async function inventoryCategories(db: Db, query: InventoryCategories) {
+  const where = whereInventoryCategories(query);
+  const params = await composeQueryData(query, where, db.inventoryCategory);
+  const data = await db.inventoryCategory.findMany({
+    ...params.queryProps,
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      type: true,
+      _count: {
+        select: {
+          inventories: {
+            where: {
+              deletedAt: null,
+            },
+          },
+          categoryVariantAttributes: {
+            where: {
+              deletedAt: null,
+            },
+          },
+        },
+      },
+    },
+  });
+  const response = await params.response(
+    data.map((item) => {
+      return item;
+    })
+  );
+  return response;
+}
+function whereInventoryCategories(query: InventoryCategories) {
+  const wheres: Prisma.InventoryCategoryWhereInput[] = [];
+  return composeQuery(wheres);
 }

@@ -16,7 +16,7 @@ import {
 } from "@gnd/utils/constants";
 import { buildersList, projectList } from "./community";
 import type { GetSalesResolutions } from "./sales-resolution";
-import type { SalesProductionQueryParams } from "@sales/schema";
+import type { InventoryList, SalesProductionQueryParams } from "@sales/schema";
 import { getEmployeesList } from "./hrm";
 import { labelValueOptions } from "@gnd/utils";
 import { SALES_PRODUCTION_STATUS_FILTER_OPTIONS } from "@sales/constants";
@@ -355,4 +355,38 @@ export async function getSalesQuoteFilter(ctx: TRPCContext) {
     ),
   ];
   return resp as FilterData[];
+}
+export async function getInventoryFilters(ctx: TRPCContext) {
+  type T = keyof InventoryList;
+  type FilterData = PageFilterData<T>;
+  const categories = await ctx.db.inventoryCategory.findMany({
+    select: {
+      title: true,
+      id: true,
+      _count: {
+        select: {
+          inventories: {
+            where: {
+              deletedAt: null,
+            },
+          },
+        },
+      },
+    },
+  });
+  const resp: FilterData[] = [
+    // searchFilter,
+    {
+      ...(searchFilter as any),
+    },
+    optionFilter<T>(
+      "categoryId",
+      "Category",
+      categories.map((c) => ({
+        label: c.title,
+        value: c.id,
+      }))
+    ),
+  ];
+  return resp;
 }

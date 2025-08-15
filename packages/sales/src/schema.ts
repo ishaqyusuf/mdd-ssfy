@@ -155,13 +155,14 @@ export const inventoryImportSchema = z
   })
   .merge(paginationSchema);
 export type InventoryImport = z.infer<typeof inventoryImportSchema>;
-export const inventoryProductsListSchema = z
+export const inventoryListSchema = z
   .object({
-    // example: z.string(),
+    categoryId: z.number().nullable().optional(),
   })
   .merge(paginationSchema);
-export type InventoryProductsList = z.infer<typeof inventoryProductsListSchema>;
-
+export type InventoryList = z.infer<typeof inventoryListSchema>;
+export const inventoryCategoriesSchema = z.object({}).merge(paginationSchema);
+export type InventoryCategories = z.infer<typeof inventoryCategoriesSchema>;
 export const inventoryFormSchema = z.object({
   product: z.object({
     description: z.string().optional().nullable(),

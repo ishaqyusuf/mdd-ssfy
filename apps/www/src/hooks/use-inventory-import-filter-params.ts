@@ -1,8 +1,8 @@
 import { parseAsArrayOf, parseAsString, useQueryStates } from "nuqs";
 import { createLoader } from "nuqs/server";
 import { RouterInputs } from "@api/trpc/routers/_app";
-import { InventoryProductsList } from "@sales/schema";
-type FilterKeys = keyof InventoryProductsList;
+import { InventoryList } from "@sales/schema";
+type FilterKeys = keyof InventoryList;
 
 export const inventoryImportFilterParamsSchema = {
     q: parseAsString,

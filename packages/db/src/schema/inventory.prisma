@@ -6,6 +6,7 @@ model InventoryCategory {
     type          String?
     description   String?
     enablePricing Boolean?
+    primary       Boolean?
 
     inventories                        Inventory[]
     // for shelf item

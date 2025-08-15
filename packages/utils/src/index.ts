@@ -295,3 +295,8 @@ export function getStatusFromPercentage(percent: number) {
   if (percent < 100) return "high"; // 70%–99%
   return "full"; // 100%
 }
+
+export function imageUrl({ path, bucket, provider }) {
+  if (provider == "cloudinary")
+    return `${process.env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/${bucket}/${path}`;
+}

@@ -1,5 +1,6 @@
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import { ErrorFallback } from "@/components/error-fallback";
+import { DataTable } from "@/components/tables/inventory-categories/data-table";
 
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { getQueryClient, HydrateClient } from "@/trpc/server";
@@ -15,11 +16,13 @@ export default async function Page(props: Props) {
     const searchParams = await props.searchParams;
 
     return (
-        <FPage title="Inventory">
+        <FPage title="Category">
             {/* <InventoryTabSwitch path="/inventory" /> */}
             <HydrateClient>
                 <ErrorBoundary errorComponent={ErrorFallback}>
-                    <Suspense fallback={<TableSkeleton />}></Suspense>
+                    <Suspense fallback={<TableSkeleton />}>
+                        <DataTable />
+                    </Suspense>
                 </ErrorBoundary>
             </HydrateClient>
         </FPage>

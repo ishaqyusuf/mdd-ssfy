@@ -57,6 +57,7 @@ export default function ConfirmBtn({
             onClick={_onClick}
             variant={variant}
             className={cn(
+                "p-1 px-2",
                 className,
                 size == "icon" && "size-8 p-0",
                 size == "icon" && variant == "ghost" && "size-6",

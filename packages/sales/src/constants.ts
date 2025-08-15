@@ -111,6 +111,8 @@ export type StockStatus = (typeof STOCK_STATUS)[number];
 
 export const STOCK_MODES = ["monitored", "unmonitored"] as const;
 export type StockModes = (typeof STOCK_MODES)[number];
+export const IMAGE_PROVIDERS = ["blob", "cloudinary"] as const;
+export type ImageProviders = (typeof IMAGE_PROVIDERS)[number];
 
 export const INVENTORY_STATUS = ["draft", "published", "archived"] as const;
 export type INVENTORY_STATUS = (typeof INVENTORY_STATUS)[number];

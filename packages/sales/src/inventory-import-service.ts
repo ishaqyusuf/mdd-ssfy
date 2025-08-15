@@ -331,6 +331,7 @@ export class InventoryImportService {
         id: this.#nextId("inventoryCategory"),
         uid,
         title: stepTitle,
+        type: "component",
       } as Prisma.InventoryCategoryCreateManyInput);
     });
   }
@@ -722,7 +723,7 @@ export class InventoryImportService {
         imgId = this.#addCreateData("imageGallery", {
           id: this.#nextId("imageGallery"),
           path: img,
-          bucket: "inventory",
+          bucket: "dyke",
           name: component?.name,
           provider: "cloudinary",
         } as Prisma.ImageGalleryCreateManyInput).id;

@@ -2,6 +2,7 @@ import {
   getCommunityTemplateFilters,
   getDispatchFilters,
   getInboundFilters,
+  getInventoryFilters,
   getResolutionFilters,
   getSalesOrderFilters,
   getSalesProductionFilters,
@@ -18,6 +19,9 @@ export const filterRouters = createTRPCRouter({
   ),
   inbound: publicProcedure.query(async (props) => {
     return getInboundFilters(props.ctx);
+  }),
+  inventory: publicProcedure.query(async (props) => {
+    return getInventoryFilters(props.ctx);
   }),
   salesResolutions: publicProcedure.query(async (props) => {
     const res = await getResolutionFilters(props.ctx);

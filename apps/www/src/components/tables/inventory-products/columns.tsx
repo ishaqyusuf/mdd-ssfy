@@ -17,6 +17,7 @@ import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
+import { imageUrl } from "@gnd/utils";
 import { Eye, Package, StickyNote } from "lucide-react";
 
 export type Item =
@@ -127,9 +128,14 @@ function ProductCell({ item: product }: { item: Item }) {
                 className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
                 onClick={handleEditProduct}
             >
-                {product.images.length > 0 ? (
+                {product.img?.path ? (
                     <img
-                        src={product.images[0] || "/placeholder.svg"}
+                        // src={`${product.img?.path}`}
+                        src={imageUrl({
+                            bucket: product.img.bucket,
+                            path: product.img.path,
+                            provider: product.img.provider,
+                        })}
                         alt={product.title}
                         className="w-full h-full object-cover"
                     />
