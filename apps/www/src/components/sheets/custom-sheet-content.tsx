@@ -99,7 +99,7 @@ export function CustomSheetContentPortal({ children }) {
     // [`customSheetContent`,sheetId]
     const sheet = useSheet();
 
-    const isDesktop = useMediaQuery(screens.lg);
+    const isDesktop = useMediaQuery(screens.xl);
     const nodeId = !isDesktop ? sheet.scrollContentId : sheet.nodeId;
 
     return (

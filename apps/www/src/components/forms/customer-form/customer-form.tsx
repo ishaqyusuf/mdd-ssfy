@@ -84,7 +84,7 @@ export function CustomerForm() {
             <div className="flex flex-col overflow-x-hidden pb-32">
                 <div className="">
                     <Accordion
-                        key={sections.join("-")}
+                        key={sections?.join("-")}
                         type="multiple"
                         defaultValue={sections}
                         className="space-y-6"
