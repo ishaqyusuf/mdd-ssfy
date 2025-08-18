@@ -3,28 +3,19 @@
 import { useEffect, useState } from "react";
 import { getCustomerProfilesAction } from "@/actions/cache/get-customer-profiles";
 import { getTaxProfilesAction } from "@/actions/cache/get-tax-profiles";
-import { createCustomerAction } from "@/actions/create-customer-action";
-import { createCustomerAddressAction } from "@/actions/create-customer-address-action";
 import { getSalesListAction } from "@/actions/get-sales-list";
 import { createCustomerSchema } from "@/actions/schema";
 import salesData from "@/app/(clean-code)/(sales)/_common/utils/sales-data";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import useEffectLoader from "@/lib/use-effect-loader";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Copy } from "lucide-react";
-import { useAction } from "next-safe-action/hooks";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
-
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-
 import FormInput from "../../common/controls/form-input";
 import FormSelect from "../../common/controls/form-select";
-import { SubmitButton } from "../../submit-button";
 import {
     Accordion,
     AccordionContent,

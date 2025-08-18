@@ -20,9 +20,7 @@ import {
   salesProductionQueryParamsSchema,
 } from "@sales/exports";
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
-
 import { getSalesProductions } from "@sales/sales-production";
-import { z } from "zod";
 export const salesRouter = createTRPCRouter({
   index: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
     const query = props.input;
