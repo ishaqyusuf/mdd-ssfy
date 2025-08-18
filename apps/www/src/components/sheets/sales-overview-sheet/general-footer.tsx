@@ -118,7 +118,7 @@ export function GeneralFooter({}) {
     }
     return (
         <CustomSheetContentPortal>
-            <SheetFooter className="sm:-m-4 sm:-mb-2 sm:border-t p-4 sm:shadow-xl  max-sm:flex-row max-sm:gap-4 max-sm:justify-end max-sm:fixed max-sm:bottom-0 max-sm:bg-accent max-sm:w-full">
+            <SheetFooter className="sm:-m-4 sm:-mb-2 sm:border-t p-4  max-md:flex-row max-md:gap-4 max-md:justify-end max-md:fixed max-md:bottom-0 max-md:bg-accent max-md:w-full">
                 <ConfirmBtn
                     size="icon"
                     Icon={Icons.trash}

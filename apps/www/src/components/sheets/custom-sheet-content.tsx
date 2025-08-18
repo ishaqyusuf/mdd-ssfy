@@ -16,6 +16,8 @@ import {
 import Portal from "../_v1/portal";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useMediaQuery } from "react-responsive";
+import { screens } from "@/lib/responsive";
 
 const sheetContentVariant = cva(
     "flex flex-col h-screen w-full overflow-x-hidden ",
@@ -96,8 +98,9 @@ export function CustomSheetBase({
 export function CustomSheetContentPortal({ children }) {
     // [`customSheetContent`,sheetId]
     const sheet = useSheet();
-    const mobile = useIsMobile();
-    const nodeId = mobile ? sheet.scrollContentId : sheet.nodeId;
+
+    const isDesktop = useMediaQuery(screens.lg);
+    const nodeId = !isDesktop ? sheet.scrollContentId : sheet.nodeId;
 
     return (
         <>
