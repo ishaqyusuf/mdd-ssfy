@@ -31,6 +31,8 @@ import {
   saveInventoryCategoryForm,
   saveVariantForm,
   updateCategoryVariantAttribute,
+  updateVariantCost,
+  updateVariantCostSchema,
 } from "@sales/inventory";
 import { inventoryImport } from "@sales/inventory-import";
 import { InventoryImportService } from "@sales/inventory-import-service";
@@ -136,6 +138,11 @@ export const inventoriesRouter = createTRPCRouter({
     .input(updateCategoryVariantAttributeSchema)
     .mutation(async (props) => {
       return updateCategoryVariantAttribute(props.ctx.db, props.input);
+    }),
+  updateVariantCost: publicProcedure
+    .input(updateVariantCostSchema)
+    .mutation(async (props) => {
+      return updateVariantCost(props.ctx.db, props.input);
     }),
   deleteInventory: publicProcedure
     .input(

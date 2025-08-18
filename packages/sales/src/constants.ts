@@ -145,3 +145,10 @@ export const SALES_PRODUCTION_STATUS_FILTER_OPTIONS = [
 ] as const;
 export type SalesProductionStatusFilter =
   (typeof SALES_PRODUCTION_STATUS_FILTER_OPTIONS)[number];
+
+export const PRICE_UPDATE_SOURCE = ["manual update"] as const;
+export type PRICE_UPDATE_SOURCE = (typeof PRICE_UPDATE_SOURCE)[number];
+export const PRICE_UPDATE_SOURCE_OPTIONS: {
+  label?: string;
+  value?: PRICE_UPDATE_SOURCE;
+}[] = [{ label: "Manual Update", value: "manual update" }];

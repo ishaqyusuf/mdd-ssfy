@@ -188,48 +188,52 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
     )
   );
   const variants = inventory.variants;
-  const attributeMaps = allCombos.map((combo) => {
-    const matchedVariant = variants.find((variant) =>
-      combo.every((c) =>
-        variant.attributes.some(
-          (a) =>
-            a.valueId === c.valueId &&
-            a.inventoryCategoryVariantAttributeId === c.attributeId
-        )
-      )
-    );
-    // Merge width + height for title if present
-    const widthAttr = combo.find(
-      (c) => c.attributeLabel?.toLowerCase() === "width"
-    );
-    const heightAttr = combo.find(
-      (c) => c.attributeLabel?.toLowerCase() === "height"
-    );
-
-    let titleParts: string[];
-    if (widthAttr && heightAttr) {
-      titleParts = [
-        `${widthAttr.valueLabel} x ${heightAttr.valueLabel}`,
-        ...combo
-          .filter(
-            (c) =>
-              !["width", "height"].includes(c.attributeLabel?.toLowerCase())
+  const attributeMaps = allCombos
+    .map((combo) => {
+      const matchedVariant = variants.find((variant) =>
+        combo.every((c) =>
+          variant.attributes.some(
+            (a) =>
+              a.valueId === c.valueId &&
+              a.inventoryCategoryVariantAttributeId === c.attributeId
           )
-          .map((c) => c.valueLabel),
-      ];
-    } else {
-      titleParts = combo.map((c) => c.valueLabel);
-    }
-    return {
-      variantId: matchedVariant?.id ?? null,
-      price: matchedVariant?.pricing?.costPrice,
-      status: matchedVariant ? matchedVariant.status ?? "active" : "draft",
-      attributes: combo,
-      title: titleParts.join(" "),
-      stockCount: sum(matchedVariant?.stockMovements, "changeQty"),
-      lowStock: matchedVariant?.lowStockAlert,
-    };
-  });
+        )
+      );
+      // Merge width + height for title if present
+      const widthAttr = combo.find(
+        (c) => c.attributeLabel?.toLowerCase() === "width"
+      );
+      const heightAttr = combo.find(
+        (c) => c.attributeLabel?.toLowerCase() === "height"
+      );
+
+      let titleParts: string[];
+      if (widthAttr && heightAttr) {
+        titleParts = [
+          `${widthAttr.valueLabel} x ${heightAttr.valueLabel}`,
+          ...combo
+            .filter(
+              (c) =>
+                !["width", "height"].includes(c.attributeLabel?.toLowerCase())
+            )
+            .map((c) => c.valueLabel),
+        ];
+      } else {
+        titleParts = combo.map((c) => c.valueLabel);
+      }
+      return {
+        variantId: matchedVariant?.id ?? null,
+        price: matchedVariant?.pricing?.costPrice,
+        pricingId: matchedVariant?.pricing?.id,
+        status: matchedVariant ? matchedVariant.status ?? "active" : "draft",
+        attributes: combo,
+        title: titleParts.join(" "),
+        stockCount: sum(matchedVariant?.stockMovements, "changeQty"),
+        lowStock: matchedVariant?.lowStockAlert,
+        inventoryId,
+      };
+    })
+    .sort((a, b) => a.title.localeCompare(b.title));
   const filterParams: Record<string, string[]> = {};
   for (const record of attributeMaps) {
     for (const attr of record.attributes) {
@@ -563,9 +567,79 @@ export async function resetInventorySystem(db: Db) {
 
 export const updateVariantCostSchema = z.object({
   variantId: z.number(),
+  pricingId: z.number(),
   cost: z.number(),
+  oldCostPrice: z.number().optional().nullable(),
+  inventoryId: z.number(),
   editType: z.string(),
+  reason: z.string(),
+  authorName: z.string(),
+  effectiveFrom: z.string().optional().nullable(),
+  effectiveTo: z.string().optional().nullable(),
+  attributes: z
+    .array(
+      z.object({
+        valueId: z.number(),
+        attributeId: z.number(),
+      })
+    )
+    .optional(),
 });
 export type UpdateVariantCost = z.infer<typeof updateVariantCostSchema>;
 
-export async function updateVariantCost(db: Db, data: UpdateVariantCost) {}
+export async function updateVariantCost(db: Db, data: UpdateVariantCost) {
+  if (data.variantId)
+    await db.inventoryVariant.update({
+      where: {
+        id: data.variantId,
+      },
+      data: {
+        pricingHistories: {
+          create: {
+            changeReason: data.reason,
+            changedBy: data.authorName,
+            effectiveFrom: data.effectiveFrom || new Date(),
+            effectiveTo: data.effectiveTo,
+            oldCostPrice: data.oldCostPrice,
+            newCostPrice: data.cost,
+            source: data.editType,
+          },
+        },
+        pricing: {
+          create: !data.pricingId
+            ? {
+                costPrice: data.cost,
+                inventoryId: data.inventoryId,
+              }
+            : undefined,
+          update: !data.pricingId
+            ? undefined
+            : {
+                where: {
+                  id: data.pricingId,
+                },
+                data: {
+                  costPrice: data.cost,
+                },
+              },
+        },
+      },
+    });
+  else
+    await db.inventoryVariant.create({
+      data: {
+        inventoryId: data.inventoryId,
+        uid: generateRandomString(5),
+        attributes: {
+          createMany: !data.attributes?.length
+            ? undefined
+            : {
+                data: data.attributes.map((attribute) => ({
+                  inventoryCategoryVariantAttributeId: attribute.attributeId,
+                  valueId: attribute.valueId,
+                })),
+              },
+        },
+      },
+    });
+}

@@ -6,6 +6,7 @@ import {
 } from "@gnd/ui/accordion";
 import { useState } from "react";
 import { useVariant } from "./context";
+import { VariantPriceForm } from "./variant-price-form";
 
 export function VariantPricingTab({}) {
     const [sections, setSections] = useState<string[]>(["form"]);
@@ -18,8 +19,12 @@ export function VariantPricingTab({}) {
                 key={sections.join("-")}
             >
                 <AccordionItem value="form">
-                    <AccordionTrigger>Update Price</AccordionTrigger>
-                    <AccordionContent></AccordionContent>
+                    <AccordionTrigger className="hover:bg-accent px-4">
+                        Update Price
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <VariantPriceForm />
+                    </AccordionContent>
                 </AccordionItem>
             </Accordion>
         </>

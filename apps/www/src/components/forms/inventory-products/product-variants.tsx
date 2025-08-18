@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { Icons } from "@gnd/ui/custom/icons";
 import { ChartSpline } from "lucide-react";
 import { VariantPricingTab } from "./variant-pricing-tab";
+import { cn } from "@gnd/ui/cn";
 
 export function ProductVariants() {
     const ctx = useProductVariants();
@@ -64,6 +65,7 @@ export function ProductVariants() {
                 <TableBody>
                     {ctx?.filteredData?.map((fd, i) => (
                         <VariantProvider
+                            key={i}
                             args={[
                                 {
                                     data: fd,
@@ -88,6 +90,7 @@ function Row({}) {
                 onClick={(e) => {
                     setOpened(!opened);
                 }}
+                className={cn(!opened || "bg-accent hover:bg-transparent")}
             >
                 <TableCell>{data?.title}</TableCell>
                 <TableCell>
@@ -108,9 +111,10 @@ function Row({}) {
                         "-"
                     )}
                 </TableCell>
+                <TableCell></TableCell>
             </TableRow>
             {!opened || (
-                <TableRow className="hover:bg-transparent">
+                <TableRow className="hover:bg-transparent border-2 border-t-0 shadow-lg">
                     <TableCell colSpan={5} className="">
                         <Tabs defaultValue="price">
                             <TabsList>
