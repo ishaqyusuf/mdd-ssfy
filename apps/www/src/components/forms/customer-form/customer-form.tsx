@@ -503,7 +503,7 @@ export function CustomerForm({ data }: Props) {
                     </Accordion>
                 </div>
 
-                <div className="md:absolute bottom-0 left-0 right-0 bg-white pt-4 md:pt-0 px-4">
+                <div className="lg:absolute bottom-0 left-0 right-0 bg-white pt-4 lg:pt-0 px-4">
                     <div className="mt-auto flex justify-end space-x-4">
                         <Button
                             variant="outline"
