@@ -6,7 +6,8 @@ import { useFieldArray } from "react-hook-form";
 import { useDebugConsole } from "@/hooks/use-debug-console";
 import { parseAsString, useQueryStates } from "nuqs";
 import { labelValueOptions, selectOptions } from "@gnd/utils";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { RouterOutputs } from "@api/trpc/routers/_app";
 
 interface ProductContextProps {}
 export const { Provider: ProductProvider, useContext: useProduct } =
@@ -55,7 +56,7 @@ interface ProductVariantContextProps {
 
 export const {
     Provider: ProductVariantsProvider,
-    useContext: useProductVariant,
+    useContext: useProductVariants,
 } = createContextFactory(({ inventoryId }: ProductVariantContextProps) => {
     const trpc = useTRPC();
     const { data, error } = useQuery(
@@ -148,3 +149,16 @@ export const {
     };
 });
 
+interface VariantProviderProps {
+    data: RouterOutputs["inventories"]["inventoryVariantStockForm"]["attributeMaps"][number];
+}
+
+export const { Provider: VariantProvider, useContext: useVariant } =
+    createContextFactory(({ data }: VariantProviderProps) => {
+        const [opened, setOpened] = useState(false);
+        return {
+            opened,
+            setOpened,
+            data,
+        };
+    });

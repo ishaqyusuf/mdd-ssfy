@@ -9,15 +9,10 @@ import {
   VariantForm,
 } from "./schema";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
-import {
-  INVENTORY_STATUS,
-  InventoryVariantStatus,
-  STOCK_MOVEMENT_STATUS,
-  StockModes,
-  StockStatus,
-} from "./constants";
+import { INVENTORY_STATUS, StockModes } from "./constants";
 import { generateRandomNumber, generateRandomString, sum } from "@gnd/utils";
 import { TABLE_NAMES } from "./inventory-import-service";
+import { z } from "zod";
 export async function inventoryList(db: Db, query: InventoryList) {
   // await db.imageGallery.updateMany({
   //   data: {
@@ -565,3 +560,12 @@ export async function resetInventorySystem(db: Db) {
   }
   return resetStatus;
 }
+
+export const updateVariantCostSchema = z.object({
+  variantId: z.number(),
+  cost: z.number(),
+  editType: z.string(),
+});
+export type UpdateVariantCost = z.infer<typeof updateVariantCostSchema>;
+
+export async function updateVariantCost(db: Db, data: UpdateVariantCost) {}

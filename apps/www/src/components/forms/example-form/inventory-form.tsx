@@ -4,7 +4,7 @@ import { useInventoryCategoryForm } from "./form-context";
 
 export function InventoryCategoryForm({}) {
     const form = useInventoryCategoryForm();
-    const { categoryId } = useInventoryCategoryParams();
+    // const { categoryId } = useInventoryCategoryParams();
 
     return (
         <Form {...form}>

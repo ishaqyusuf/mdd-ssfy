@@ -6,15 +6,18 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
-import { useProductVariant } from "./context";
+import { useProductVariants, useVariant, VariantProvider } from "./context";
 import { AnimatedNumber } from "@/components/animated-number";
 import { useEffect, useRef, useState } from "react";
 import { throttle } from "lodash";
 import { useMutation } from "@tanstack/react-query";
-import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
+import { Icons } from "@gnd/ui/custom/icons";
+import { ChartSpline } from "lucide-react";
+import { VariantPricingTab } from "./variant-pricing-tab";
 
 export function ProductVariants() {
-    const ctx = useProductVariant();
+    const ctx = useProductVariants();
     const container = useRef(null);
     const containerRef = useRef(null);
     // const { ref: inViewRef, inView } = useInView();
@@ -60,7 +63,15 @@ export function ProductVariants() {
                 {VariantHeader}
                 <TableBody>
                     {ctx?.filteredData?.map((fd, i) => (
-                        <Row key={i} data={fd}></Row>
+                        <VariantProvider
+                            args={[
+                                {
+                                    data: fd,
+                                },
+                            ]}
+                        >
+                            <Row />
+                        </VariantProvider>
                     ))}
                 </TableBody>
             </Table>
@@ -68,8 +79,8 @@ export function ProductVariants() {
     );
 }
 
-function Row({ data }) {
-    const [opened, setOpened] = useState(false);
+function Row({}) {
+    const { setOpened, opened, data } = useVariant();
     const { mutate, data: mutateData } = useMutation({});
     return (
         <>
@@ -101,10 +112,24 @@ function Row({ data }) {
             {!opened || (
                 <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={5} className="">
-                        <Tabs>
+                        <Tabs defaultValue="price">
                             <TabsList>
-                                <TabsTrigger value="price">Pricing</TabsTrigger>
+                                <TabsTrigger value="price">
+                                    <ChartSpline className="size-4 mr-2" />
+                                    Pricing
+                                </TabsTrigger>
+                                <TabsTrigger value="movement">
+                                    <Icons.project className="size-4 mr-2" />
+                                    Stock Movement
+                                </TabsTrigger>
+                                <TabsTrigger value="overview">
+                                    <Icons.project className="size-4 mr-2" />
+                                    Stock Overview
+                                </TabsTrigger>
                             </TabsList>
+                            <TabsContent value="price">
+                                <VariantPricingTab />
+                            </TabsContent>
                         </Tabs>
                     </TableCell>
                 </TableRow>
