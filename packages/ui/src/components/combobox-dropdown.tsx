@@ -105,6 +105,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
           }}
           placeholder={searchPlaceholder ?? "Search item..."}
           className="px-3"
+          disabled={disabled}
         />
       )}
 

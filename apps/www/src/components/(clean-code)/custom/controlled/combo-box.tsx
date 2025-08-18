@@ -32,6 +32,7 @@ interface Props<T> {
     maxSelection?;
     placeholder?: string;
     maxStack?;
+    handleSelect?: (value, selected, callback) => void;
 }
 
 export function ComboxBox<
@@ -46,6 +47,7 @@ export function ComboxBox<
     maxSelection = 1,
     placeholder,
     maxStack = 2,
+    handleSelect,
     ...props
 }: Partial<ControllerProps<TFieldValues, TName>> & Props<TOptionType>) {
     const filterFields = props.options;
@@ -67,11 +69,15 @@ export function ComboxBox<
                 const onSelect = (value) => {
                     if (maxSelection > 1) {
                         const currentValue = [...selectedValues];
+                        const selected = !currentValue.includes(value);
                         const newValue = currentValue.includes(value)
                             ? currentValue.filter((v) => v !== value)
                             : [...currentValue, value];
-
-                        field.onChange(newValue);
+                        handleSelect
+                            ? handleSelect(value, selected, () => {
+                                  field.onChange(newValue);
+                              })
+                            : field.onChange(newValue);
                         return;
                     }
                     const filterField = filterFields.find(

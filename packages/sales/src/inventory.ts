@@ -8,11 +8,18 @@ import {
   UpdateCategoryVariantAttribute,
   VariantForm,
 } from "./schema";
-import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
+import {
+  composeQuery,
+  composeQueryData,
+  queryBuilder,
+} from "@gnd/utils/query-response";
 import { INVENTORY_STATUS, StockModes } from "./constants";
 import { generateRandomNumber, generateRandomString, sum } from "@gnd/utils";
 import { TABLE_NAMES } from "./inventory-import-service";
 import { z } from "zod";
+import { id } from "date-fns/locale";
+import { formatDate } from "@gnd/utils/dayjs";
+import { submitDispatchTask } from "./exports";
 export async function inventoryList(db: Db, query: InventoryList) {
   // await db.imageGallery.updateMany({
   //   data: {
@@ -93,18 +100,6 @@ function whereInventoryProducts(query: InventoryList) {
   return composeQuery(wheres);
 }
 
-export async function getInventoryCategories(
-  db: Db,
-  data: GetInventoryCategories
-) {
-  const categories = await db.inventoryCategory.findMany({
-    select: {
-      id: true,
-      title: true,
-    },
-  });
-  return categories;
-}
 export async function getInventoryCategoryAttributes(db: Db, categoryId) {
   const attribute = await db.inventoryCategory.findUniqueOrThrow({
     where: {
@@ -142,6 +137,85 @@ export async function getInventoryCategoryAttributes(db: Db, categoryId) {
   return {
     attributes,
   };
+}
+export async function getInventoryCategoryForm(
+  db: Db,
+  id
+): Promise<InventoryCategoryForm> {
+  const category = await db.inventoryCategory.findUniqueOrThrow({
+    where: {
+      id,
+    },
+    select: {
+      id: true,
+      description: true,
+      enablePricing: true,
+      img: true,
+      title: true,
+      categoryVariantAttributes: {
+        where: {
+          deletedAt: {},
+        },
+        select: {
+          id: true,
+          // inventoryCategoryId: true,
+          valuesInventoryCategoryId: true,
+          deletedAt: true,
+        },
+      },
+    },
+  });
+  return {
+    ...category,
+    categoryVariantAttributes: category.categoryVariantAttributes.map((a) => {
+      const { deletedAt, ...cva } = a;
+      return {
+        ...cva,
+        active: !deletedAt,
+      };
+    }),
+    categoryIdSelector: null,
+  };
+}
+export async function getInventoryCategories(
+  db: Db,
+  data: GetInventoryCategories
+) {
+  const categories = await db.inventoryCategory.findMany({
+    select: {
+      id: true,
+      title: true,
+    },
+  });
+  return categories;
+}
+export const GetVariantCostHistorySchema = z.object({
+  variantId: z.number().optional().nullable(),
+});
+export type GetVariantCostHistory = z.infer<typeof GetVariantCostHistorySchema>;
+export async function getVariantCostHistories(
+  db: Db,
+  query: GetVariantCostHistory
+) {
+  const qb = queryBuilder(query, [] as Prisma.PriceHistoryWhereInput[]);
+  const where = qb._if("variantId", () => {}).compose();
+  // const where = {};
+  const params = await composeQueryData(query, where, db.inventory);
+  const histories = await db.priceHistory.findMany({
+    where,
+  });
+  return await params.response(
+    histories?.map((h) => {
+      return {
+        id: h.id,
+        author: h.changedBy,
+        date: formatDate(h.createdAt),
+        reason: h.changeReason,
+        cost: h.newCostPrice,
+        source: h.source,
+      };
+    })
+  );
 }
 export async function inventoryVariantStockForm(db: Db, inventoryId) {
   const inventory = await db.inventory.findUniqueOrThrow({
@@ -299,6 +373,24 @@ export async function inventoryForm(db: Db, inventoryId) {
       id: inventoryId,
     },
     include: {
+      inventoryItemSubCategories: {
+        where: {
+          deletedAt: null,
+        },
+        include: {
+          inventorySubCategory: true,
+          value: {
+            select: {
+              inventoryId: true,
+              inventory: {
+                select: {
+                  inventoryCategoryId: true,
+                },
+              },
+            },
+          },
+        },
+      },
       inventoryCategory: {
         select: {
           enablePricing: true,
@@ -321,6 +413,29 @@ export async function inventoryForm(db: Db, inventoryId) {
       enablePricing: inv.inventoryCategory?.enablePricing!,
     },
     images: [],
+    subCategories: inv.inventoryItemSubCategories
+      .filter(
+        (a, ai) =>
+          inv.inventoryItemSubCategories.findIndex(
+            (b) => b.inventorySubCategoryId == a.inventorySubCategoryId
+          ) === ai
+      )
+      .map((s) => {
+        const values = inv.inventoryItemSubCategories.filter(
+          (a) => a.inventorySubCategoryId === s.inventorySubCategoryId
+        );
+        return {
+          valueIds: values
+            .filter((v) => !v.deletedAt)
+            .map((a) => String(a.value?.inventoryId)),
+          categoryId: s.value?.inventory?.inventoryCategoryId,
+          values: values.map((v) => ({
+            id: v.id,
+            inventoryId: v.inventoryId,
+            deleted: !!v.deletedAt,
+          })),
+        };
+      }),
   } satisfies InventoryForm;
 
   return formData;
@@ -449,45 +564,7 @@ export async function deleteInventoryCategory(db: Db, id) {
     },
   });
 }
-export async function getInventoryCategoryForm(
-  db: Db,
-  id
-): Promise<InventoryCategoryForm> {
-  const category = await db.inventoryCategory.findUniqueOrThrow({
-    where: {
-      id,
-    },
-    select: {
-      id: true,
-      description: true,
-      enablePricing: true,
-      img: true,
-      title: true,
-      categoryVariantAttributes: {
-        where: {
-          deletedAt: {},
-        },
-        select: {
-          id: true,
-          // inventoryCategoryId: true,
-          valuesInventoryCategoryId: true,
-          deletedAt: true,
-        },
-      },
-    },
-  });
-  return {
-    ...category,
-    categoryVariantAttributes: category.categoryVariantAttributes.map((a) => {
-      const { deletedAt, ...cva } = a;
-      return {
-        ...cva,
-        active: !deletedAt,
-      };
-    }),
-    categoryIdSelector: null,
-  };
-}
+
 export async function saveInventoryCategoryForm(
   db: Db,
   data: InventoryCategoryForm
@@ -543,6 +620,46 @@ export async function updateCategoryVariantAttribute(
       deletedAt: data.active ? null : new Date(),
     },
   });
+}
+export const updateSubCategorySchema = z.object({
+  categoryId: z.number(),
+  inventoryId: z.number(),
+  valueInventoryId: z.number(),
+});
+export type UpdateSubCategory = z.infer<typeof updateSubCategorySchema>;
+export async function updateSubCategory(db: Db, data: UpdateSubCategory) {
+  const subCat = await db.inventoryItemSubCategory.findFirst({
+    where: {
+      inventorySubCategoryId: data.categoryId,
+      deletedAt: {},
+      value: {
+        inventoryId: data.valueInventoryId,
+      },
+    },
+    include: {
+      value: {},
+    },
+  });
+  if (subCat) {
+    return await db.inventoryItemSubCategory.update({
+      where: { id: subCat.id, deletedAt: {} },
+      data: {
+        deletedAt: subCat?.deletedAt ? null : new Date(),
+      },
+    });
+  } else {
+    return await db.inventoryItemSubCategory.create({
+      data: {
+        inventoryId: data.inventoryId,
+        inventorySubCategoryId: data.categoryId,
+        value: {
+          create: {
+            inventoryId: data.valueInventoryId,
+          },
+        },
+      },
+    });
+  }
 }
 
 export async function resetInventorySystem(db: Db) {

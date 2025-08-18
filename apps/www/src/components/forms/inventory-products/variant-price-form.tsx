@@ -12,6 +12,7 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 import { toast } from "@gnd/ui/use-toast";
+import { useDebugConsole } from "@/hooks/use-debug-console";
 
 interface Props {}
 export function VariantPriceForm({}: Props) {
@@ -22,7 +23,7 @@ export function VariantPriceForm({}: Props) {
         editType: "manual update",
         cost: "" as any,
         effectiveFrom: new Date().toISOString(),
-        effectiveTo: "",
+        effectiveTo: null,
         attributes: ctx.data.attributes,
         inventoryId: ctx.data.inventoryId,
         authorName: auth.name,
@@ -36,7 +37,7 @@ export function VariantPriceForm({}: Props) {
     });
     const inv = useInventoryTrpc();
     const trpc = useTRPC();
-    const { mutate } = useMutation(
+    const { mutate, error } = useMutation(
         trpc.inventories.updateVariantCost.mutationOptions({
             onSuccess(data, variables, context) {
                 toast({
@@ -55,6 +56,7 @@ export function VariantPriceForm({}: Props) {
             },
         }),
     );
+    useDebugConsole(error);
     const onSubmit = async (data) => {
         mutate(data);
     };

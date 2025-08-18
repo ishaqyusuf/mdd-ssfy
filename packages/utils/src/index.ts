@@ -257,6 +257,7 @@ export function labelValueOptions<T>(
   labelKey?: keyof T,
   valueKey?: keyof T
 ) {
+  if (!data) return [];
   return data?.map((d) => ({
     label: typeof d == "string" ? d : d?.[labelKey!],
     value: typeof d == "string" ? d : String(d?.[valueKey!]),

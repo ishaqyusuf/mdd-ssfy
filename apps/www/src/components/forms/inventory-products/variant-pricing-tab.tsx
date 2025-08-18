@@ -7,6 +7,7 @@ import {
 import { useState } from "react";
 import { useVariant } from "./context";
 import { VariantPriceForm } from "./variant-price-form";
+import { VariantPricingHistory } from "./variant-pricing-history";
 
 export function VariantPricingTab({}) {
     const [sections, setSections] = useState<string[]>(["form"]);
@@ -20,10 +21,18 @@ export function VariantPricingTab({}) {
             >
                 <AccordionItem value="form">
                     <AccordionTrigger className="hover:bg-accent px-4">
-                        Update Price
+                        Update Cost
                     </AccordionTrigger>
                     <AccordionContent>
                         <VariantPriceForm />
+                    </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="history">
+                    <AccordionTrigger className="hover:bg-accent px-4">
+                        Cost History
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <VariantPricingHistory />
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>

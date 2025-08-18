@@ -103,3 +103,58 @@ export function composeQuery<T>(
       } as T)
     : queries[0];
 }
+export function __queryBuilder<T extends object, WhereInput>(
+  query: T,
+  queries: WhereInput[]
+) {
+  type Ctx = {
+    _if<K extends keyof T>(
+      k: K,
+      fn?: (ctx: Ctx, value: NonNullable<T[K]>) => void
+    ): Ctx;
+    _unless<K extends keyof T>(k: K, fn?: (ctx: Ctx, value: T[K]) => void): Ctx;
+    where(where: WhereInput): Ctx;
+    compose(): ReturnType<typeof composeQuery<WhereInput>>;
+  };
+
+  const ctx: Ctx = {
+    _if(k, fn) {
+      const value = query?.[k];
+      if (value !== undefined && value !== null && value !== "") {
+        fn?.(ctx, value as any);
+      }
+      return ctx;
+    },
+    _unless(k, fn) {
+      const value = query?.[k];
+      if (value === undefined || value === null || value === "") {
+        fn?.(ctx, value as any);
+      }
+      return ctx;
+    },
+    where(where) {
+      queries.push(where);
+      return ctx;
+    },
+    compose() {
+      return composeQuery(queries);
+    },
+  };
+
+  return ctx;
+}
+export function queryBuilder<T, WhereInput>(query: T, queries: WhereInput[]) {
+  const ctx = {
+    _if(k: keyof T, fn?: () => any) {
+      if (query?.[k]) fn?.();
+      // const processedData =
+      return ctx;
+    },
+    where(where: WhereInput) {
+      queries.push(where);
+      return ctx;
+    },
+    compose: () => composeQuery(queries),
+  };
+  return ctx;
+}

@@ -172,6 +172,19 @@ export const inventoryFormSchema = z.object({
     status: z.enum(INVENTORY_STATUS),
     stockMonitor: z.boolean().optional().default(false),
   }),
+  subCategories: z.array(
+    z.object({
+      categoryId: z.number().optional().nullable(),
+      valueIds: z.array(z.string()).optional().nullable(),
+      // values: z.array(
+      //   z.object({
+      //     id: z.number().optional().nullable(),
+      //     deleted: z.boolean().optional().default(false),
+      //     inventoryId: z.number().optional().nullable(),
+      //   })
+      // ),
+    })
+  ),
   images: z
     .array(
       z.object({

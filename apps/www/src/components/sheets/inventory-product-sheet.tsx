@@ -37,7 +37,6 @@ export function InventoryProductSheet() {
     return (
         <CustomSheet
             sheetName="Inventory-product"
-            title={`Inventory Product`}
             open={isOpen}
             size="2xl"
             floating
@@ -49,6 +48,9 @@ export function InventoryProductSheet() {
                         ? "Edit Inventory"
                         : "Create Inventory"}
                 </SheetHeader.Title>
+                <SheetHeader.Description>
+                    {formData?.product?.name}
+                </SheetHeader.Description>
             </SheetHeader>
             <CustomSheetContent className="">
                 <FormContext data={formData}>

@@ -28,7 +28,8 @@ export function ProductInformationSection({}) {
     const { categoryList } = useInventoryTrpc({
         enableCategoryList: true,
     });
-    const { stockMonitor, status, isPriceEnabled } = useProduct();
+
+    const { stockMonitor, status, isPriceEnabled, inventoryId } = useProduct();
     return (
         <AccordionItem value="general">
             <AccordionTrigger className="">
@@ -68,6 +69,7 @@ export function ProductInformationSection({}) {
                         comboProps={{
                             placeholder: "Select Category",
                             items: selectOptions(categoryList, "title", "id"),
+                            disabled: !!inventoryId,
                         }}
                     />
                     <FormInput

@@ -309,6 +309,7 @@ export class InventoryImportService {
       const itemSubCategory = this.#addCreateData("inventoryItemSubCategory", {
         inventoryId: id,
         id: this.#nextId("inventoryItemSubCategory"),
+        // inventorySubCategoryId:
       } satisfies Prisma.InventoryItemSubCategoryCreateManyInput);
       this.#addCreateData("inventoryItemSubCategoryValue", {
         inventoryId: depId,

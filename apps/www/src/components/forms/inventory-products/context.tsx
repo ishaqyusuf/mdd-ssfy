@@ -28,6 +28,7 @@ export const { Provider: ProductProvider, useContext: useProduct } =
                 },
             ),
         );
+
         const { fields: variantFields } = useFieldArray({
             control: form.control,
             name: "variants",
@@ -162,3 +163,4 @@ export const { Provider: VariantProvider, useContext: useVariant } =
             data,
         };
     });
+

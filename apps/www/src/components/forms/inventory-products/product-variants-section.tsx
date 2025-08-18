@@ -29,9 +29,55 @@ export function ProductVariantsSection({}) {
     const form = useInventoryForm();
     const context = useProduct();
     const { attributes, inventoryId, variantFields } = context;
-    function addAttribute(variantIndex) {}
-
-    function addVariant() {}
+    return (
+        <AccordionItem value="variants">
+            <AccordionTrigger className="">
+                <div className="flex gap-4 items-center">
+                    <Tag className="size-4" />
+                    <span> Stock Variants & Pricings</span>
+                </div>
+            </AccordionTrigger>
+            <AccordionContent className="">
+                {inventoryId ? (
+                    <ProductVariantsProvider
+                        args={[
+                            {
+                                inventoryId: inventoryId,
+                            },
+                        ]}
+                    >
+                        <ProductVariants />
+                    </ProductVariantsProvider>
+                ) : (
+                    <Card className="p-8">
+                        <div className="flex flex-col items-center justify-center text-center space-y-4">
+                            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">
+                                <Save className="h-8 w-8 text-blue-500" />
+                            </div>
+                            <div className="space-y-2">
+                                <h4 className="text-lg font-semibold text-gray-900">
+                                    Save Product First
+                                </h4>
+                                <p className="text-sm text-muted-foreground max-w-md">
+                                    Please save this product first to configure
+                                    variants. Once saved, you'll be able to add
+                                    and manage multiple product variants with
+                                    different attributes, pricing, and inventory
+                                    levels.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-gray-50 px-3 py-2 rounded-md">
+                                <Package className="h-4 w-4" />
+                                <span>
+                                    Variants will be available after saving
+                                </span>
+                            </div>
+                        </div>
+                    </Card>
+                )}
+            </AccordionContent>
+        </AccordionItem>
+    );
 
     return (
         <div className="space-y-4">

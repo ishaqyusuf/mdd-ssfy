@@ -15,12 +15,14 @@ export async function calculateSalesDueAmount(db: Db, salesId: number) {
         where: {
           status: "success" as SalesPaymentStatus,
           deletedAt: null,
+          transaction: {
+            status: "success" as SalesPaymentStatus,
+          },
         },
         select: {
           amount: true,
           transaction: {
             where: { status: "success" as SalesPaymentStatus, deletedAt: null },
-
             select: {
               amount: true,
               type: true,
