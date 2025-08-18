@@ -12,7 +12,9 @@ import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import {
   INVENTORY_STATUS,
   InventoryVariantStatus,
+  STOCK_MOVEMENT_STATUS,
   StockModes,
+  StockStatus,
 } from "./constants";
 import { generateRandomNumber, generateRandomString, sum } from "@gnd/utils";
 import { TABLE_NAMES } from "./inventory-import-service";
@@ -156,6 +158,15 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
         include: {
           attributes: true,
           pricing: true,
+          stockMovements: {
+            where: {
+              deletedAt: null,
+              status: "completed",
+            },
+            select: {
+              changeQty: true,
+            },
+          },
         },
       },
     },
@@ -165,10 +176,9 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
     inventory.inventoryCategoryId
   );
   function cartesianProduct<T>(arr: T[][]): T[][] {
-    return arr.reduce(
-      (a, b) => a.flatMap((x) => b.map((y) => [...x, y])),
-      [] as T[][]
-    );
+    return arr.reduce((a, b) => a.flatMap((x) => b.map((y) => [...x, y])), [
+      [],
+    ] as T[][]);
   }
 
   // Step 1: Get all possible value combos from attributes
@@ -217,9 +227,12 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
     }
     return {
       variantId: matchedVariant?.id ?? null,
+      price: matchedVariant?.pricing?.costPrice,
       status: matchedVariant ? matchedVariant.status ?? "active" : "draft",
       attributes: combo,
       title: titleParts.join(" "),
+      stockCount: sum(matchedVariant?.stockMovements, "changeQty"),
+      lowStock: matchedVariant?.lowStockAlert,
     };
   });
   const filterParams: Record<string, string[]> = {};
@@ -238,61 +251,6 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
     attributeMaps,
     inventory,
     filterParams,
-  };
-}
-export async function inventoryForm(db: Db, inventoryId) {
-  const inv = await db.inventory.findUniqueOrThrow({
-    where: {
-      id: inventoryId,
-    },
-    include: {
-      inventoryCategory: {
-        select: {
-          enablePricing: true,
-        },
-      },
-    },
-  });
-  const formData = {
-    product: {
-      categoryId: inv.inventoryCategoryId,
-      name: inv.name,
-      status: inv.status as any,
-      stockMonitor: (inv.stockMode as StockModes) == "monitored",
-      description: inv.description,
-      id: inv?.id!,
-    },
-    variants: [],
-    category: {
-      id: inv.inventoryCategoryId,
-      enablePricing: inv.inventoryCategory?.enablePricing!,
-    },
-    images: [],
-  } satisfies InventoryForm;
-
-  return formData;
-}
-
-export async function totalInventorySummary(db: Db) {
-  const i = await db.inventory.findMany({
-    where: {
-      status: "published",
-    },
-    select: {
-      _count: {
-        select: {
-          variants: {
-            where: {
-              status: "published",
-            },
-          },
-        },
-      },
-    },
-  });
-  return {
-    inventories: i.length,
-    inventoryVariants: sum(i.map((a) => a._count.variants)),
   };
 }
 export async function lowStockSummary(db: Db) {}
@@ -336,7 +294,38 @@ export async function saveInventory(db: Db, data: InventoryForm) {
   }
   return { inventoryId };
 }
+export async function inventoryForm(db: Db, inventoryId) {
+  const inv = await db.inventory.findUniqueOrThrow({
+    where: {
+      id: inventoryId,
+    },
+    include: {
+      inventoryCategory: {
+        select: {
+          enablePricing: true,
+        },
+      },
+    },
+  });
+  const formData = {
+    product: {
+      categoryId: inv.inventoryCategoryId,
+      name: inv.name,
+      status: inv.status as any,
+      stockMonitor: (inv.stockMode as StockModes) == "monitored",
+      description: inv.description,
+      id: inv?.id!,
+    },
+    variants: [],
+    category: {
+      id: inv.inventoryCategoryId,
+      enablePricing: inv.inventoryCategory?.enablePricing!,
+    },
+    images: [],
+  } satisfies InventoryForm;
 
+  return formData;
+}
 export async function saveVariantForm(db: Db, data: VariantForm) {
   if (!data.id) {
     const variant = await db.inventoryVariant.create({

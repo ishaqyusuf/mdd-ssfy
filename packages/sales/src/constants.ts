@@ -109,6 +109,20 @@ export const STOCK_STATUS = ["not managed", "in stock", "low stock"] as const;
 
 export type StockStatus = (typeof STOCK_STATUS)[number];
 
+export const STOCK_MOVEMENT_STATUS = [
+  "pending",
+  "low stock",
+  "completed",
+] as const;
+export type STOCK_MOVEMENT_STATUS = (typeof STOCK_MOVEMENT_STATUS)[number];
+export const STOCK_MOVEMENT_STATUS_OPTIONS: {
+  label?: string;
+  value?: STOCK_MOVEMENT_STATUS;
+}[] = STOCK_MOVEMENT_STATUS.map((value) => ({
+  label: value,
+  value,
+}));
+
 export const STOCK_MODES = ["monitored", "unmonitored"] as const;
 export type StockModes = (typeof STOCK_MODES)[number];
 export const IMAGE_PROVIDERS = ["blob", "cloudinary"] as const;

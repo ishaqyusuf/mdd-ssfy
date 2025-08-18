@@ -70,81 +70,81 @@ export const {
     );
     useDebugConsole("--->", { data, error });
 
-    // const [params, setParams] = useQueryStates(
-    //     {
-    //         v__q: parseAsString,
-    //         ...Object.fromEntries(
-    //             Object.keys(data?.filterParams || {}).map((k) => [
-    //                 k,
-    //                 parseAsString,
-    //             ]),
-    //         ),
-    //     },
-    //     {},
-    // );
-    // const filteredData = useMemo(() => {
-    //     if (!data?.attributeMaps) return [];
-    //     return data?.attributeMaps;
-    //     // normalize filters from params (ignore empty ones)
-    //     const activeFilters = Object.fromEntries(
-    //         Object.entries(params).filter(([key, value]) => Boolean(value)),
-    //     );
+    const [params, setParams] = useQueryStates(
+        {
+            v__q: parseAsString,
+            ...Object.fromEntries(
+                Object.keys(data?.filterParams || {}).map((k) => [
+                    k,
+                    parseAsString,
+                ]),
+            ),
+        },
+        {},
+    );
+    const filteredData = useMemo(() => {
+        if (!data?.attributeMaps) return [];
 
-    //     const list = data.attributeMaps.filter((item) => {
-    //         // if no filters except q, default to active status
-    //         const hasSearchFilters = Object.keys(activeFilters).length > 0;
+        // normalize filters from params (ignore empty ones)
+        const activeFilters = Object.fromEntries(
+            Object.entries(params).filter(([key, value]) => Boolean(value)),
+        );
 
-    //         if (!hasSearchFilters && item.status !== "active") {
-    //             return false;
-    //         }
+        const list = data.attributeMaps.filter((item) => {
+            // if no filters except q, default to active status
+            const hasSearchFilters = Object.keys(activeFilters).length > 0;
 
-    //         // text search filter
-    //         if (params.v__q) {
-    //             const search = params.v__q.toLowerCase();
-    //             if (!item.title.toLowerCase().includes(search)) {
-    //                 return false;
-    //             }
-    //         }
+            if (!hasSearchFilters && item.status !== "active") {
+                return false;
+            }
 
-    //         // attribute value filters
-    //         for (const [key, value] of Object.entries(activeFilters)) {
-    //             if (key === "v__q") continue; // skip search key
+            // text search filter
+            if (params.v__q) {
+                const search = params.v__q.toLowerCase();
+                if (!item.title.toLowerCase().includes(search)) {
+                    return false;
+                }
+            }
 
-    //             const attrMatch = item.attributes.some(
-    //                 (attr) =>
-    //                     attr.attributeLabel.toLowerCase() ===
-    //                         key.toLowerCase() &&
-    //                     value.includes(attr.valueLabel),
-    //             );
-    //             if (!attrMatch) return false;
-    //         }
+            // attribute value filters
+            for (const [key, value] of Object.entries(activeFilters)) {
+                if (key === "v__q") continue; // skip search key
 
-    //         return true;
-    //     });
+                const attrMatch = item.attributes.some(
+                    (attr) =>
+                        attr.attributeLabel.toLowerCase() ===
+                            key.toLowerCase() &&
+                        value.includes(attr.valueLabel),
+                );
+                if (!attrMatch) return false;
+            }
 
-    //     return list;
-    // }, [data, params]);
-    // const filterList = [
-    //     {
-    //         label: "Search",
-    //         value: "v__q",
-    //         type: "input",
-    //     },
-    //     ...Object.entries(data?.filterParams || {}).map(([k, v]) => ({
-    //         value: k,
-    //         type: "checkbox",
-    //         options: labelValueOptions(v),
-    //     })),
-    // ];
+            return true;
+        });
+
+        return list;
+    }, [data, params]);
+    const filterList = [
+        {
+            label: "Search",
+            value: "v__q",
+            type: "input",
+        },
+        ...Object.entries(data?.filterParams || {}).map(([k, v]) => ({
+            value: k,
+            type: "checkbox",
+            options: labelValueOptions(v),
+        })),
+    ];
     return {
         data,
         inventoryId,
-        // filteredData,
-        // filter: {
-        //     params,
-        //     setParams,
-        //     filterList,
-        // },
+        filteredData,
+        filter: {
+            params,
+            setParams,
+            filterList,
+        },
     };
 });
 

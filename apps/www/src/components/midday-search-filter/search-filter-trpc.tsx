@@ -35,6 +35,8 @@ interface Props {
     placeholder?;
     filterList?: PageFilterData[];
 }
+const searchKeys = ["q", "_q"];
+const searchKeyPrefix = ["_q"];
 export function SearchFilterTRPC({
     placeholder,
     defaultSearch = {},
