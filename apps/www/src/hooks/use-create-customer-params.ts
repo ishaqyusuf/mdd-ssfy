@@ -1,4 +1,5 @@
 import {
+    parseAsArrayOf,
     parseAsBoolean,
     parseAsInteger,
     parseAsJson,
@@ -18,6 +19,7 @@ export function useCreateCustomerParams() {
         customerId: parseAsInteger,
         search: parseAsString,
         address: parseAsStringEnum(["sad", "bad"]),
+        formSectionsTrigger: parseAsArrayOf(parseAsString),
         payload: parseAsJson(
             z.object({
                 addressId: z.number().optional(),

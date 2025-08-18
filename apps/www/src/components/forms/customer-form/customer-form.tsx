@@ -34,41 +34,14 @@ import {
 import { Form } from "@gnd/ui/form";
 import { ExistingCustomerResolver } from "./existing-customer-resolver";
 import AddressAutoComplete from "@/components/address-autocomplete";
+import { useCustomerForm } from "./form-context";
 
 export type CustomerFormData = z.infer<typeof createCustomerSchema>;
-type Props = {
-    data?: CustomerFormData;
-};
-export function CustomerForm({ data }: Props) {
-    const [sections, setSections] = useState<string[]>(["general"]);
 
+export function CustomerForm() {
     const { params, setParams, actionTitle } = useCreateCustomerParams();
-    const form = useForm<CustomerFormData>({
-        resolver: zodResolver(createCustomerSchema),
-        defaultValues: {
-            address1: undefined,
-            formattedAddress: undefined,
-            address2: undefined,
-            addressId: undefined,
-            businessName: undefined,
-            city: undefined,
-            country: undefined,
-            email: undefined,
-            id: undefined,
-            name: undefined,
-            route: undefined,
-            netTerm: undefined,
-            phoneNo: undefined,
-            phoneNo2: undefined,
-            profileId: undefined,
-            state: undefined,
-            zip_code: undefined,
-            customerType: "Personal",
-            addressOnly: !!params.address,
-            addressMeta: {},
-            // resolutionRequired: false,
-        },
-    });
+    const sections = params.formSectionsTrigger;
+    const form = useCustomerForm();
     const resp = useEffectLoader(
         async () => {
             const re = {
@@ -82,78 +55,11 @@ export function CustomerForm({ data }: Props) {
         },
     );
     const { taxProfiles, salesProfiles } = resp?.data || {};
-    useEffect(() => {
-        if (data) {
-            setSections(params?.address ? ["address"] : ["general", "address"]);
-            let formData = {};
-
-            Object.entries(data).map(
-                ([k, v]) => (formData[k] = v || undefined),
-            );
-            form.reset({
-                ...formData,
-                addressOnly: !!params.address,
-            });
-        } else {
-            if (
-                params.search
-                //  &&
-                // Number.isInteger(params.search?.replaceAll("-", "")?.trim())
-            ) {
-                form.reset({
-                    phoneNo: params.search,
-                });
-            }
-        }
-    }, [data, form, params]);
 
     const [customerType] = form.watch(["customerType"]);
     const [resolutionRequired, setResolutionRequired] = useState(false);
     const lt = useLoadingToast();
-    const createCustomerAddress = useAction(createCustomerAddressAction, {
-        onSuccess: ({ data: resp }) => {
-            toast.success(data?.id ? "Updated" : "Created");
-            lt.display({
-                variant: "success",
-                title: "Saved",
-            });
-            setParams({
-                payload: {
-                    customerId: resp.customerId,
-                    addressId: resp.addressId,
-                    address: params.address as any,
-                },
-            });
-            // if (resp) {
-            // setParams(null);
-            // }
-        },
-        onError(e) {
-            lt.display({
-                variant: "error",
-                title: "Unable to complete",
-            });
-        },
-    });
-    const createCustomer = useAction(createCustomerAction, {
-        onError() {},
-        onSuccess: ({ data: resp }) => {
-            toast.success(data?.id ? "Updated" : "Created");
-            // customerFormStaticCallbacks?.created?.(
-            //     resp.customerId,
-            //     resp?.addressId,
-            // );
-            setParams({
-                payload: {
-                    customerId: resp.customerId,
-                    addressId: resp.addressId,
-                    address: params.address as any,
-                },
-            });
-            // if (resp) {
-            // }
-        },
-    });
+
     const addressId = form.watch("addressId");
     const [sales, setSales] = useState([]);
     useEffect(() => {
@@ -175,15 +81,7 @@ export function CustomerForm({ data }: Props) {
     const [searchInput, setSearchInput] = useState("");
     return (
         <Form {...form}>
-            <form
-                // onSubmit={form.handleSubmit(__test)}
-                onSubmit={form.handleSubmit(
-                    params?.address
-                        ? createCustomerAddress.execute
-                        : createCustomer.execute,
-                )}
-                className="flex flex-col overflow-x-hidden pb-32"
-            >
+            <div className="flex flex-col overflow-x-hidden pb-32">
                 <div className="">
                     <Accordion
                         key={sections.join("-")}
@@ -502,33 +400,7 @@ export function CustomerForm({ data }: Props) {
                         </AccordionItem>
                     </Accordion>
                 </div>
-
-                <div className="lg:absolute bottom-0 left-0 right-0 bg-white pt-4 lg:pt-0 px-4">
-                    <div className="mt-auto flex justify-end space-x-4">
-                        <Button
-                            variant="outline"
-                            // onClick={() => setCustomerParams(null)}
-                            type="button"
-                        >
-                            Cancel
-                        </Button>
-                        <SubmitButton
-                            isSubmitting={
-                                createCustomer.isExecuting ||
-                                createCustomerAddress.isExecuting
-                            }
-                            disabled={
-                                createCustomer.isExecuting ||
-                                createCustomerAddress.isExecuting ||
-                                !form.formState.isValid ||
-                                resolutionRequired
-                            }
-                        >
-                            {actionTitle}
-                        </SubmitButton>
-                    </div>
-                </div>
-            </form>
+            </div>
         </Form>
     );
 }

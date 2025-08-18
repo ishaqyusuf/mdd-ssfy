@@ -5,10 +5,16 @@ import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { timeout } from "@/lib/timeout";
 import { useAsyncMemo } from "use-async-memo";
 
-import { SheetHeader, SheetTitle } from "@gnd/ui/sheet";
+import { SheetFooter, SheetHeader, SheetTitle } from "@gnd/ui/sheet";
 
 import { CustomerForm } from "../forms/customer-form/customer-form";
-import { CustomSheet, CustomSheetContent } from "./custom-sheet-content";
+import {
+    CustomSheet,
+    CustomSheetContent,
+    CustomSheetContentPortal,
+} from "./custom-sheet-content";
+import { FormAction } from "../forms/customer-form/form-action";
+import { FormContext } from "../forms/customer-form/form-context";
 
 export function CustomerCreateSheet() {
     const { params, setParams, title } = useCreateCustomerParams();
@@ -59,7 +65,14 @@ export function CustomerCreateSheet() {
                 <SheetTitle>{title}</SheetTitle>
             </SheetHeader>
             <CustomSheetContent>
-                <CustomerForm data={customerData} />
+                <FormContext data={customerData}>
+                    <CustomerForm />
+                    <CustomSheetContentPortal>
+                        <SheetFooter className="w-full border-t">
+                            <FormAction onCancel={(e) => {}} />
+                        </SheetFooter>
+                    </CustomSheetContentPortal>
+                </FormContext>
             </CustomSheetContent>
         </CustomSheet>
     );
