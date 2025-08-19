@@ -7,7 +7,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@gnd/ui/use-toast";
 import { useInventoryForm } from "./form-context";
 import { FormDebugBtn } from "@/components/form-debug-btn";
-import { useDebugConsole } from "@/hooks/use-debug-console";
 
 export function InventoryFormAction({ onCancel }) {
     const { productId, setParams } = useInventoryParams();

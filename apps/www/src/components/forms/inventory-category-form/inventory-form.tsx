@@ -12,7 +12,6 @@ import { Label } from "@gnd/ui/label";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { X } from "lucide-react";
-import { useDebugConsole } from "@/hooks/use-debug-console";
 
 export function InventoryCategoryForm({}) {
     const form = useInventoryCategoryForm();
@@ -140,7 +139,6 @@ export function InventoryCategoryForm({}) {
 
 function VariationCategory({ id, title, removeVariantCategory }) {
     const { updateCategoryVariantAttribute: update } = useInventoryTrpc();
-    useDebugConsole(update.data, update.error);
     return (
         <Badge key={id} variant="secondary" className="gap-1">
             {title || "Unknown"}

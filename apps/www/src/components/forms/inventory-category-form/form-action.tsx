@@ -6,7 +6,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@gnd/ui/use-toast";
 import { FormDebugBtn } from "@/components/form-debug-btn";
 import { useInventoryCategoryForm } from "./form-context";
-import { useDebugConsole } from "@/hooks/use-debug-console";
 import { useInventoryCategoryParams } from "@/hooks/use-inventory-category-params";
 
 export function FormAction({ onCancel }) {
@@ -33,7 +32,6 @@ export function FormAction({ onCancel }) {
             },
         }),
     );
-    useDebugConsole({ data, error });
     const onSubmit = async (data) => {
         mutate({
             ...data,

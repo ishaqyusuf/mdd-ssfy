@@ -6,6 +6,6 @@ import { SidebarProvider } from "@/hooks/use-sidebar";
 export function SidebarContent({ children }) {
     const auth = useAuth();
     if (!auth.id) return null;
-    return <SidebarProvider>{children}</SidebarProvider>;
+    return <SidebarProvider args={[{}]}>{children}</SidebarProvider>;
 }
 

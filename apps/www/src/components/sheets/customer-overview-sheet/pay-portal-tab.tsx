@@ -30,7 +30,6 @@ import { usePayPortal } from "./pay-portal-context";
 import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { useDebugConsole } from "@/hooks/use-debug-console";
 import { toast } from "@gnd/ui/use-toast";
 
 export function PayPortalTab({}) {

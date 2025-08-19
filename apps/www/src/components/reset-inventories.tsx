@@ -1,4 +1,3 @@
-import { useDebugConsole } from "@/hooks/use-debug-console";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { toast } from "@gnd/ui/use-toast";
@@ -24,7 +23,7 @@ export function ResetInventories() {
             },
         }),
     );
-    useDebugConsole(error, data);
+
     return (
         <Button
             disabled={isPending}

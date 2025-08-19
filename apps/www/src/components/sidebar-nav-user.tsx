@@ -17,8 +17,10 @@ import Link from "@/components/link";
 import { useAuth } from "@/hooks/use-auth";
 import { useRef } from "react";
 import { Button } from "@gnd/ui/button";
+import { useSidebar } from "@/hooks/use-sidebar";
 
-export function SidebarNavUser({ isExpanded = false, isMobile = false }) {
+export function SidebarNavUser({}) {
+    const { isExpanded, isMobile } = useSidebar();
     const user = useAuth();
     const ref = useRef<HTMLDivElement>(null);
     return (

@@ -8,8 +8,9 @@ import { cva } from "class-variance-authority";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "./_v1/icons";
-import { MainMenuProvider, useMainNav } from "@/hooks/use-sidebar";
+
 import { Icons } from "@gnd/ui/icons";
+import { useSidebar } from "@/hooks/use-sidebar";
 type Props = {
     onSelect?: () => void;
     isExpanded?: boolean;
@@ -52,23 +53,9 @@ const sectionLabel = cva("", {
         renderMode: "default",
     },
 });
-export function MainMenuContext({ isExpanded, onSelect }: Props) {
-    const auth = useAuth();
-    return (
-        <MainMenuProvider
-            args={[
-                {
-                    isExpanded,
-                    onSelect,
-                },
-            ]}
-        >
-            <MainMenu />
-        </MainMenuProvider>
-    );
-}
+
 export function MainMenu() {
-    const { linkModules, activeLink, onSelect, isExpanded } = useMainNav();
+    const { linkModules, onSelect, activeLink, isExpanded } = useSidebar();
     const [expandedItem, setExpandedItem] = useState<string | null>(null);
     return (
         <div className="mt-6 w-full">
@@ -147,11 +134,11 @@ export function MainMenu() {
                                                                         : path,
                                                                 );
                                                             }}
-                                                            onSelect={onSelect}
                                                             item={link}
                                                             key={li}
                                                             module={module}
                                                             isActive={false}
+                                                            onSelect={onSelect}
                                                         />
                                                     </Fragment>
                                                 ))}

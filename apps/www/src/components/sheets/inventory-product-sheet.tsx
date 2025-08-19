@@ -11,7 +11,6 @@ import { InventoryForm } from "../forms/inventory-products/inventory-form";
 import { useQuery } from "@tanstack/react-query";
 import { SheetFooter } from "@gnd/ui/sheet";
 import { InventoryFormAction } from "../forms/inventory-products/inventory-form-action";
-import { useDebugConsole } from "@/hooks/use-debug-console";
 
 export function InventoryProductSheet() {
     const trpc = useTRPC();

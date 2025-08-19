@@ -5,7 +5,6 @@ import { formatDateRange } from "little-date";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Skeleton } from "@gnd/ui/skeleton";
-import { useDebugConsole } from "@/hooks/use-debug-console";
 
 const listVariant = {
     hidden: { y: 10, opacity: 0 },
@@ -24,7 +23,6 @@ const itemVariant = {
     show: { y: 0, opacity: 1 },
 };
 export function FilterList({ loading, filterList, filters, onRemove }) {
-    useDebugConsole(filterList);
     const handleOnRemove = (key: string) => {
         if (key === "start" || key === "end") {
             onRemove({ start: null, end: null });

@@ -3,7 +3,6 @@ import { useInventoryForm } from "./form-context";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { useFieldArray } from "react-hook-form";
-import { useDebugConsole } from "@/hooks/use-debug-console";
 import { parseAsString, useQueryStates } from "nuqs";
 import { labelValueOptions, selectOptions } from "@gnd/utils";
 import { useMemo, useState } from "react";
@@ -70,7 +69,6 @@ export const {
             },
         ),
     );
-    useDebugConsole("--->", { data, error });
 
     const [params, setParams] = useQueryStates(
         {

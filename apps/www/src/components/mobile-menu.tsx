@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { MainMenu, MainMenuContext } from "./main-menu";
+import { MainMenu } from "./main-menu";
 import { Sheet, SheetContent } from "@gnd/ui/sheet";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "./_v1/icons";
+import { SidebarProvider } from "@/hooks/use-sidebar";
 
 export function MobileMenu() {
     const [isOpen, setOpen] = useState(false);
@@ -30,10 +31,16 @@ export function MobileMenu() {
                 </div>
 
                 <div className="-ml-2">
-                    <MainMenuContext
-                        onSelect={() => setOpen(false)}
-                        isExpanded={true}
-                    />
+                    <SidebarProvider
+                        args={[
+                            {
+                                onSelect: () => setOpen(false),
+                                mobile: true,
+                            },
+                        ]}
+                    >
+                        <MainMenu />
+                    </SidebarProvider>
                 </div>
             </SheetContent>
         </Sheet>

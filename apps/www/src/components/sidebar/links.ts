@@ -175,7 +175,6 @@ export const validateLinks = ({
     can: ICan;
     userId;
 }) => {
-    console.log({ role, can, userId });
     const validateAccess = (al) => validateRules(al, can, userId, role);
     return linkModules.map((lm) => {
         lm.sections = lm.sections.map((s) => {

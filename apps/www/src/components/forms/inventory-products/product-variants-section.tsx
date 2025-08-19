@@ -19,7 +19,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { useFieldArray } from "react-hook-form";
-import { useDebugConsole } from "@/hooks/use-debug-console";
 import { generateSKU, selectOptions } from "@gnd/utils";
 import { ProductVariantsProvider, useProduct } from "./context";
 import { Card } from "@gnd/ui/card";

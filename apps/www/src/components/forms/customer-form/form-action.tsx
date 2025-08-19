@@ -66,25 +66,7 @@ export function FormAction({ onCancel }) {
             },
         },
     );
-    // const {
-    //     isPending: isSubmitting,
-    //     mutate,
-    //     error,
-    //     data,
-    // } = useMutation(
-    //     trpc.inventories.saveInventoryCategory.mutationOptions({
-    //         onSuccess(data) {
-    //             qc.invalidateQueries({
-    //                 queryKey: trpc.inventories.inventoryCategories.queryKey(),
-    //             });
-    //             toast({
-    //                 title: "Saved",
-    //                 variant: "success",
-    //             });
-    //         },
-    //     }),
-    // );
-    // useDebugConsole({ data, error });
+
     const onSubmit = async (data) => {
         mutate({
             ...data,

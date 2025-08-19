@@ -17,7 +17,6 @@ import { labelValueOptions, selectOptions } from "@gnd/utils";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ComboxBox } from "@/components/(clean-code)/custom/controlled/combo-box";
-import { useDebugConsole } from "@/hooks/use-debug-console";
 
 export function ProductSubCategorySection({}) {
     const context = useProduct();
@@ -157,7 +156,6 @@ function SubCategoryValues({ index }) {
             },
         ),
     );
-    useDebugConsole({ data, error });
     // const valueArray = useFieldArray({
     //     control: form.control,
     //     name: `subCategories.${index}.values`,

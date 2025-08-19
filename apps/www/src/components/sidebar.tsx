@@ -2,10 +2,11 @@
 import { cn } from "@gnd/ui/cn";
 import { useState, useRef, useEffect } from "react";
 import { Icons } from "./_v1/icons";
-import { MainMenu, MainMenuContext } from "./main-menu";
 import Link from "next/link";
 import { SidebarNavUser } from "./sidebar-nav-user";
 import { useSidebar } from "@/hooks/use-sidebar";
+import { MainMenu } from "./main-menu";
+import { SidebarModules } from "./sidebar-modules";
 
 export function Sidebar({}) {
     const ctx = useSidebar();
@@ -42,11 +43,12 @@ export function Sidebar({}) {
                 ref={mainMenuRef}
                 onMouseEnter={() => setIsExpanded(true)}
                 onMouseLeave={() => setIsExpanded(false)}
-                className="flex flex-col overflow-y-auto scrollbar-hide w-full pt-[70px] flex-1"
+                className="flex flex-col overflow-y-auto scrollbar-hide w-full pt-[70px] pb-[100px] flex-1"
             >
-                <MainMenuContext isExpanded={isExpanded} />
+                <SidebarModules />
+                <MainMenu />
             </div>
-            <SidebarNavUser isExpanded={isExpanded} />
+            <SidebarNavUser />
             {/* <TeamDropdown isExpanded={isExpanded} /> */}
         </aside>
     );
