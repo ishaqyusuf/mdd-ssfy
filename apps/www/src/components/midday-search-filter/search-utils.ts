@@ -1,5 +1,4 @@
 import { IconKeys } from "../_v1/icons";
-import { SearchParamsKeys } from "../(clean-code)/data-table/search-params";
 
 export const searchIcons: Partial<{
     [id in string]: IconKeys;
@@ -21,3 +20,10 @@ export const searchIcons: Partial<{
     "dispatch.status": "Export",
     status: "Status",
 };
+
+export function isSearchKey(k) {
+    return k == "q" || k == "search" || k?.startsWith("_q");
+}
+export function getSearchKey(filters) {
+    return Object.entries(filters || {}).find(([k, v]) => isSearchKey(k))?.[0];
+}

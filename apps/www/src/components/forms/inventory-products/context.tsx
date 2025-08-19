@@ -7,6 +7,7 @@ import { parseAsString, useQueryStates } from "nuqs";
 import { labelValueOptions, selectOptions } from "@gnd/utils";
 import { useMemo, useState } from "react";
 import { RouterOutputs } from "@api/trpc/routers/_app";
+import { useDebugConsole } from "@/hooks/use-debug-console";
 
 interface ProductContextProps {}
 export const { Provider: ProductProvider, useContext: useProduct } =
@@ -69,38 +70,39 @@ export const {
             },
         ),
     );
-
-    const [params, setParams] = useQueryStates(
-        {
-            v__q: parseAsString,
-            ...Object.fromEntries(
-                Object.keys(data?.filterParams || {}).map((k) => [
-                    k,
-                    parseAsString,
-                ]),
-            ),
-        },
-        {},
-    );
-    const filteredData = useMemo(() => {
-        if (!data?.attributeMaps) return [];
-
+    const paramsSchema = {
+        _qVariant: parseAsString,
+        ...Object.fromEntries(
+            Object.keys(data?.filterParams || {}).map((k) => [
+                k,
+                parseAsString,
+            ]),
+        ),
+    };
+    const [params, setParams] = useQueryStates(paramsSchema, {});
+    const { list: filteredData, hasSearchFilters } = useMemo(() => {
         // normalize filters from params (ignore empty ones)
         const activeFilters = Object.fromEntries(
             Object.entries(params).filter(([key, value]) => Boolean(value)),
         );
 
+        const hasSearchFilters = Object.keys(activeFilters).length > 0;
+        if (!data?.attributeMaps)
+            return {
+                list: [],
+                activeFilters,
+            };
+
         const list = data.attributeMaps.filter((item) => {
             // if no filters except q, default to active status
-            const hasSearchFilters = Object.keys(activeFilters).length > 0;
-
+            if (!hasSearchFilters && !item?.attributes?.length) return true;
             if (!hasSearchFilters && item.status !== "active") {
                 return false;
             }
 
             // text search filter
-            if (params.v__q) {
-                const search = params.v__q.toLowerCase();
+            if (params._qVariant) {
+                const search = params._qVariant.toLowerCase();
                 if (!item.title.toLowerCase().includes(search)) {
                     return false;
                 }
@@ -108,7 +110,7 @@ export const {
 
             // attribute value filters
             for (const [key, value] of Object.entries(activeFilters)) {
-                if (key === "v__q") continue; // skip search key
+                if (key === "_qVariant") continue; // skip search key
 
                 const attrMatch = item.attributes.some(
                     (attr) =>
@@ -122,12 +124,12 @@ export const {
             return true;
         });
 
-        return list;
+        return { list, hasSearchFilters };
     }, [data, params]);
     const filterList = [
         {
             label: "Search",
-            value: "v__q",
+            value: "_qVariant",
             type: "input",
         },
         ...Object.entries(data?.filterParams || {}).map(([k, v]) => ({
@@ -140,10 +142,13 @@ export const {
         data,
         inventoryId,
         filteredData,
+        hasSearchFilters,
+        unfilteredList: data?.attributeMaps || [],
         filter: {
             params,
             setParams,
             filterList,
+            paramsSchema,
         },
     };
 });

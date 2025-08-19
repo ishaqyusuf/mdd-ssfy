@@ -5,6 +5,7 @@ import { formatDateRange } from "little-date";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Skeleton } from "@gnd/ui/skeleton";
+import { isSearchKey } from "./search-utils";
 
 const listVariant = {
     hidden: { y: 10, opacity: 0 },
@@ -141,11 +142,8 @@ export function FilterList({ loading, filterList, filters, onRemove }) {
             //          .join(", ");
             //  }
 
-            case "search":
-            case "q":
-                return value;
-
             default:
+                if (isSearchKey(key)) return value;
                 //  return null;
                 const opts = filterList?.find((f) => f?.value === key)?.options;
                 if (!opts) return null;

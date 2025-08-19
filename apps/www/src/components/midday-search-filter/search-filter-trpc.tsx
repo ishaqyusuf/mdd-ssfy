@@ -22,7 +22,7 @@ import { Input } from "@gnd/ui/input";
 import { formatISO } from "date-fns";
 import { SelectTag } from "../select-tag";
 import { FilterList } from "./filter-list";
-import { searchIcons } from "./search-icons";
+import { getSearchKey, isSearchKey, searchIcons } from "./search-utils";
 import { useSearchFilterContext } from "@/hooks/use-search-filter";
 import { Icon } from "@gnd/ui/custom/icons";
 import { PageFilterData } from "@api/type";
@@ -35,8 +35,7 @@ interface Props {
     placeholder?;
     filterList?: PageFilterData[];
 }
-const searchKeys = ["q", "_q"];
-const searchKeyPrefix = ["_q"];
+
 export function SearchFilterTRPC({
     placeholder,
     defaultSearch = {},
@@ -97,21 +96,29 @@ export function SearchFilterTRPC({
             hasMounted.current = true;
             return;
         }
-        setFilters({
-            q: deb.length > 0 ? deb : null,
-        });
+
+        const searchKey = getSearchKey(filters);
+
+        if (searchKey)
+            setFilters({
+                [searchKey]: deb.length > 0 ? deb : null,
+            });
     }, [deb]);
     const handleSubmit = async () => {
         // If the user is typing a query with multiple words, we want to stream the results
+        const searchKey = getSearchKey(filters);
 
-        setFilters({ q: prompt.length > 0 ? prompt : null });
+        if (searchKey)
+            setFilters({
+                [searchKey]: prompt.length > 0 ? prompt : null,
+            });
     };
     const hasValidFilters =
         Object.entries(filters).filter(
-            ([key, value]) => value !== null && key !== "q",
+            ([key, value]) => value !== null && !isSearchKey(key),
         ).length > 0;
 
-    const __filters = (filterList || [])?.filter((a) => a.value != "q");
+    const __filters = (filterList || [])?.filter((a) => !isSearchKey(a.value));
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <div className="flex items-center space-x-4">
@@ -155,8 +162,8 @@ export function SearchFilterTRPC({
                     loading={streaming}
                     onRemove={(obj) => {
                         setFilters(obj);
-                        const clearPrompt = Object.entries(obj).find(
-                            ([k, v]) => k == "q" || k == "_q",
+                        const clearPrompt = Object.entries(obj).find(([k, v]) =>
+                            isSearchKey(k),
                         )?.[0];
                         if (clearPrompt) setPrompt("");
                     }}

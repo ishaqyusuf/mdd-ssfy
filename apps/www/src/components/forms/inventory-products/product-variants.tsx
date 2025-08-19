@@ -16,6 +16,8 @@ import { Icons } from "@gnd/ui/custom/icons";
 import { ChartSpline } from "lucide-react";
 import { VariantPricingTab } from "./variant-pricing-tab";
 import { cn } from "@gnd/ui/cn";
+import { VariantFilters } from "./variant-filters";
+import { Progress } from "@/components/(clean-code)/progress";
 
 export function ProductVariants() {
     const ctx = useProductVariants();
@@ -44,39 +46,49 @@ export function ProductVariants() {
                 <TableHead>Cost</TableHead>
                 <TableHead>Stock</TableHead>
                 <TableHead>Low Stock</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead></TableHead>
             </TableRow>
         </TableHeader>
     );
     return (
         <div ref={container} className="relative">
-            {scrolledPast && (
-                <div
-                    style={{
-                        width: `${container?.current?.clientWidth}px`,
-                    }}
-                    className="fixed top-[45px] bg-accent z-10"
-                >
-                    <Table>{VariantHeader}</Table>
-                </div>
-            )}
-            <Table ref={containerRef}>
-                {VariantHeader}
-                <TableBody>
-                    {ctx?.filteredData?.map((fd, i) => (
-                        <VariantProvider
-                            key={i}
-                            args={[
-                                {
-                                    data: fd,
-                                },
-                            ]}
+            <VariantFilters />
+            {!ctx.hasSearchFilters && ctx.unfilteredList?.length ? (
+                <NoActiveVariants />
+            ) : ctx?.hasSearchFilters && !ctx.filteredData?.length ? (
+                <EmptyState />
+            ) : (
+                <>
+                    {scrolledPast && (
+                        <div
+                            style={{
+                                width: `${container?.current?.clientWidth}px`,
+                            }}
+                            className="fixed top-[45px] bg-accent z-10"
                         >
-                            <Row />
-                        </VariantProvider>
-                    ))}
-                </TableBody>
-            </Table>
+                            <Table>{VariantHeader}</Table>
+                        </div>
+                    )}
+                    <Table ref={containerRef}>
+                        {VariantHeader}
+                        <TableBody>
+                            {ctx?.filteredData?.map((fd, i) => (
+                                <VariantProvider
+                                    key={i}
+                                    args={[
+                                        {
+                                            data: fd,
+                                        },
+                                    ]}
+                                >
+                                    <Row />
+                                </VariantProvider>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </>
+            )}
         </div>
     );
 }
@@ -94,7 +106,11 @@ function Row({}) {
             >
                 <TableCell>{data?.title}</TableCell>
                 <TableCell>
-                    <AnimatedNumber value={data?.price} currency="USD" />
+                    {data?.price ? (
+                        <AnimatedNumber value={data?.price} currency="USD" />
+                    ) : (
+                        "-"
+                    )}
                 </TableCell>
 
                 <TableCell>
@@ -110,6 +126,11 @@ function Row({}) {
                     ) : (
                         "-"
                     )}
+                </TableCell>
+                <TableCell>
+                    <Progress>
+                        <Progress.Status>{data?.status}</Progress.Status>
+                    </Progress>
                 </TableCell>
                 <TableCell></TableCell>
             </TableRow>
@@ -139,6 +160,60 @@ function Row({}) {
                 </TableRow>
             )}
         </>
+    );
+}
+
+function NoActiveVariants({}) {
+    const ctx = useProductVariants();
+    // design a no active variants empty state, with information about drafted variants and inactive variants;
+    const inactiveCount = ctx.unfilteredList?.filter(
+        (a) => !a.variantId,
+    )?.length;
+    const draftCount = ctx.unfilteredList?.filter(
+        (a) => a.variantId && a.status == "draft",
+    )?.length;
+
+    let message = "";
+    if (draftCount > 0 && inactiveCount > 0) {
+        message = `You have ${draftCount} draft variant(s) and ${inactiveCount} inactive variant(s).`;
+    } else if (draftCount > 0) {
+        message = `You have ${draftCount} draft variant(s).`;
+    } else if (inactiveCount > 0) {
+        message = `You have ${inactiveCount} inactive variant(s).`;
+    }
+
+    return (
+        <div className={cn("flex h-[30vh] items-center justify-center")}>
+            <div className="flex flex-col items-center text-center">
+                <Icons.products className="mb-4" />
+                <div className="mb-6 space-y-2">
+                    <h2 className="text-lg font-medium">No active variants</h2>
+                    <p className="text-sm text-[#606060]">
+                        There are no active variants to display.
+                    </p>
+                    {message && (
+                        <p className="text-sm text-[#606060]">{message}</p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+export function EmptyState() {
+    // if (!props.empty) return props.children;
+
+    return (
+        <div className={cn("flex h-[30vh] items-center justify-center")}>
+            <div className="flex flex-col items-center">
+                <Icons.products className="mb-4" />
+                <div className="mb-6 space-y-2 text-center">
+                    <h2 className="text-lg font-medium">{"No results"}</h2>
+                    <p className="text-sm text-[#606060]">
+                        {"You have not created any data yet"}
+                    </p>
+                </div>
+            </div>
+        </div>
     );
 }
 

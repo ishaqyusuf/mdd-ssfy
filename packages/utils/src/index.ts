@@ -258,10 +258,13 @@ export function labelValueOptions<T>(
   valueKey?: keyof T
 ) {
   if (!data) return [];
-  return data?.map((d) => ({
-    label: typeof d == "string" ? d : d?.[labelKey!],
-    value: typeof d == "string" ? d : String(d?.[valueKey!]),
-  }));
+  return data
+    ?.map((d) => ({
+      label: typeof d == "string" ? d?.replaceAll('"', "") : d?.[labelKey!],
+      value:
+        typeof d == "string" ? d?.replaceAll('"', "") : String(d?.[valueKey!]),
+    }))
+    .filter((a) => a.label && a.value);
 }
 export function selectOptions<T>(
   data: T[],

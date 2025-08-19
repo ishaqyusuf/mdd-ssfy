@@ -1,7 +1,5 @@
 "use client";
 
-// import type { AppRouter } from "@midday/api/trpc/routers/_app";
-// import { createClient } from "@midday/supabase/client";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider, isServer } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink, loggerLink } from "@trpc/client";
@@ -10,7 +8,6 @@ import { useState } from "react";
 import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
 import { AppRouter } from "@gnd/api/trpc/routers/_app";
-import { useSession } from "next-auth/react";
 import { generateRandomString } from "@/lib/utils";
 import { authUser } from "@/app/(v1)/_actions/utils";
 

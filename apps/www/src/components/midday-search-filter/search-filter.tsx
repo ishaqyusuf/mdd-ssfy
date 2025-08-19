@@ -23,7 +23,7 @@ import { Icon, Icons } from "../_v1/icons";
 import { searchParamsParser } from "../(clean-code)/data-table/search-params";
 import { SelectTag } from "../select-tag";
 import { FilterList } from "./filter-list";
-import { searchIcons } from "./search-icons";
+import { searchIcons } from "./search-utils";
 import { Calendar } from "@gnd/ui/calendar";
 import {
     Select,
