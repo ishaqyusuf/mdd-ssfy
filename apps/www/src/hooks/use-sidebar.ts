@@ -2,7 +2,7 @@ import { createContextFactory } from "@/utils/context-factory";
 import { useAuth } from "./use-auth";
 import { getLinkModules, validateLinks } from "@/components/sidebar/links";
 import { usePathname } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface Props {
     isExpanded: boolean;
@@ -37,3 +37,18 @@ export const { Provider: MainMenuProvider, useContext: useMainNav } =
         };
     });
 
+export const { Provider: SidebarProvider, useContext: useSidebar } =
+    createContextFactory(() => {
+        const [isExpanded, setIsExpanded] = useState(false);
+        const mainMenuRef = useRef<HTMLDivElement>(null);
+        useEffect(() => {
+            if (!isExpanded && mainMenuRef.current) {
+                mainMenuRef.current.scrollTop = 0;
+            }
+        }, [isExpanded]);
+        return {
+            isExpanded,
+            setIsExpanded,
+            mainMenuRef,
+        };
+    });

@@ -47,7 +47,9 @@ export function SidebarNavUser({ isExpanded = false, isMobile = false }) {
                                 {user.email}
                             </span>
                         </div>
-                        <ChevronsUpDown className="ml-auto size-4" />
+                        {!isExpanded || (
+                            <ChevronsUpDown className="ml-auto size-4" />
+                        )}
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent

@@ -1,6 +1,5 @@
 "use client";
 
-import { NavContext, useNavCtx } from "@/components/_v1/layouts/site-nav";
 import { CommandProvider } from "@/components/cmd/provider";
 import { ModalProvider } from "@/components/common/modal/provider";
 import { ZustandSessionProvider } from "@/hooks/use-session";
@@ -29,11 +28,7 @@ export function Providers({ children }: Props) {
                                     defaultTheme="light"
                                 >
                                     <CommandProvider>
-                                        <NavContext.Provider
-                                            value={useNavCtx()}
-                                        >
-                                            {children}
-                                        </NavContext.Provider>
+                                        {children}
                                     </CommandProvider>
                                 </ThemeProvider>
                             </ModalProvider>

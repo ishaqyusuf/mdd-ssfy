@@ -16,9 +16,14 @@ model InventoryCategory {
     categoryVariantAttributes          InventoryCategoryVariantAttribute[] @relation(name: "inventoryCategory")
     attributedCategoryVariantAttribute InventoryCategoryVariantAttribute[] @relation(name: "valuesInventoryCategory")
 
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
+    createdAt       DateTime?         @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?         @updatedAt
+    deletedAt       DateTime?         @db.Timestamp(0)
+    Discount        Discount?         @relation(fields: [discountId], references: [id])
+    discountId      String?
+    FeaturedProduct FeaturedProduct[]
+
+    @@index([discountId])
 }
 
 model Inventory {
@@ -45,8 +50,33 @@ model Inventory {
     logs                       InventoryLog[]
     images                     InventoryImage[]
     asSubCategoryValues        InventoryItemSubCategoryValue[]
+    reviews                    ProductReview[]
+    discount                   Discount?                       @relation(fields: [discountId], references: [id])
+    discountId                 String?
+
+    // Featured/Top Product fields
+    isFeatured        Boolean   @default(false)
+    featuredOrder     Int? // For ordering featured products
+    isTopProduct      Boolean   @default(false)
+    topProductOrder   Int? // For ordering top products
+    featuredStartDate DateTime? // When to start featuring
+    featuredEndDate   DateTime? // When to stop featuring
+
+    // Product metrics for determining "top" products
+    viewCount     Int       @default(0)
+    orderCount    Int       @default(0) // Total times ordered
+    salesAmount   Float     @default(0) // Total revenue generated
+    averageRating Float? // Cached average rating
+    ratingCount   Int       @default(0) // Total number of ratings
+    lastOrderedAt DateTime? // Last time this was ordered
+
+    // Existing relations...
+    productViews    ProductView[]
+    productMetrics  ProductMetric?
+    FeaturedProduct FeaturedProduct[]
 
     @@index([inventoryCategoryId])
+    @@index([discountId])
 }
 
 model InventoryVariant {
@@ -71,6 +101,7 @@ model InventoryVariant {
     inboundStocks    InboundShipmentItem[]
     pricing          InventoryVariantPricing?
     pricingHistories PriceHistory[]
+    records          InventoryActivity[]
 
     @@index([inventoryId])
 }
@@ -440,4 +471,198 @@ model InboundShipmentItem {
 
     @@index([inboundId])
     @@index([inventoryVariantId])
+}
+
+model CartItem {
+    id         Int                 @id @default(autoincrement())
+    activities InventoryActivity[]
+    createdAt  DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime?           @updatedAt
+    deletedAt  DateTime?           @db.Timestamp(0)
+}
+
+model WisthListItem {
+    id         Int                 @id @default(autoincrement())
+    activities InventoryActivity[]
+    createdAt  DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime?           @updatedAt
+    deletedAt  DateTime?           @db.Timestamp(0)
+}
+
+model InventoryActivity {
+    id          Int     @id @default(autoincrement())
+    uid         String? //a line item may have multiple other records, same uid will be used to keep the record
+    sn          Int?    @default(0) // index
+    title       String?
+    description String?
+    qty         Float?  @default(1)
+    unitCost    Float?
+    totalCost   Float?
+    meta        Json? // for keeping other metadata eg; swing, handle
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    activityType       InventoryActivityType
+    variant            InventoryVariant      @relation(fields: [inventoryVariantId], references: [id])
+    inventoryVariantId Int
+    wishtListItem      WisthListItem?        @relation(fields: [wisthListItemId], references: [id])
+    wisthListItemId    Int?
+    cartItem           CartItem?             @relation(fields: [cartItemId], references: [id])
+    cartItemId         Int?
+    sale               SalesOrders?          @relation(fields: [saleId], references: [id])
+    saleId             Int?
+
+    @@index([inventoryVariantId])
+    @@index([wisthListItemId])
+    @@index([cartItemId])
+    @@index([saleId])
+}
+
+enum InventoryActivityType {
+    CART
+    WISHLIST
+    QUOTE
+    SALE
+}
+
+model InventorySalesItems {
+    id Int @id @default(autoincrement())
+}
+
+model ProductReview {
+    id          Int       @id @default(autoincrement())
+    //   customerId  Int
+    //   customer    Customer  @relation(fields: [customerId], references: [id])
+    inventoryId Int
+    inventory   Inventory @relation(fields: [inventoryId], references: [id])
+
+    rating     Int // 1-5
+    title      String?
+    comment    String?
+    isVerified Boolean @default(false)
+    isApproved Boolean @default(false)
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@index([inventoryId])
+}
+
+model Discount {
+    id          String       @id @default(cuid())
+    code        String?      @unique // null for automatic discounts
+    name        String
+    description String?
+    type        DiscountType // percentage, fixed_amount, free_shipping
+    value       Float
+
+    minOrderAmount Float?
+    maxUses        Int?
+    usedCount      Int     @default(0)
+    isActive       Boolean @default(true)
+
+    validFrom DateTime
+    validTo   DateTime?
+
+    // Applicability
+    applicableToAll Boolean             @default(true)
+    categories      InventoryCategory[]
+    products        Inventory[]
+}
+
+enum DiscountType {
+    percentage
+    fixed_amount
+    free_shipping
+}
+
+model ProductView {
+    id          Int       @id @default(autoincrement())
+    inventoryId Int
+    inventory   Inventory @relation(fields: [inventoryId], references: [id])
+
+    customerId Int? // null for anonymous views
+    ipAddress  String? // for anonymous tracking
+    userAgent  String?
+    referrer   String?
+
+    createdAt DateTime @default(now())
+
+    @@index([inventoryId])
+    @@index([createdAt])
+}
+
+model ProductMetric {
+    id          Int       @id @default(autoincrement())
+    inventoryId Int       @unique
+    inventory   Inventory @relation(fields: [inventoryId], references: [id])
+
+    // Daily metrics
+    dailyViews  Int   @default(0)
+    dailyOrders Int   @default(0)
+    dailySales  Float @default(0)
+
+    // Weekly metrics
+    weeklyViews  Int   @default(0)
+    weeklyOrders Int   @default(0)
+    weeklySales  Float @default(0)
+
+    // Monthly metrics
+    monthlyViews  Int   @default(0)
+    monthlyOrders Int   @default(0)
+    monthlySales  Float @default(0)
+
+    // All-time metrics (duplicated from Inventory for performance)
+    totalViews  Int   @default(0)
+    totalOrders Int   @default(0)
+    totalSales  Float @default(0)
+
+    lastUpdated DateTime @updatedAt
+    createdAt   DateTime @default(now())
+
+    @@index([dailyViews])
+    @@index([weeklyViews])
+    @@index([monthlyViews])
+    @@index([totalViews])
+}
+
+model FeaturedProduct {
+    id          Int       @id @default(autoincrement())
+    inventoryId Int
+    inventory   Inventory @relation(fields: [inventoryId], references: [id])
+
+    position  Int // Display order
+    startDate DateTime
+    endDate   DateTime?
+    isActive  Boolean   @default(true)
+
+    // Feature context
+    section    FeaturedSection // homepage, category, seasonal, etc.
+    categoryId Int? // Optional: feature within specific category
+    category   InventoryCategory? @relation(fields: [categoryId], references: [id])
+
+    createdBy String? // Admin who featured this
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([inventoryId, section, categoryId])
+    @@index([section])
+    @@index([isActive])
+    @@index([startDate])
+    @@index([endDate])
+    @@index([position])
+    @@index([categoryId])
+}
+
+enum FeaturedSection {
+    homepage_hero
+    homepage_featured
+    homepage_trending
+    category_featured
+    seasonal_deals
+    new_arrivals
+    best_sellers
 }

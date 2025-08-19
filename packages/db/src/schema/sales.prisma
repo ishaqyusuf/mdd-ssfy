@@ -88,6 +88,7 @@ model SalesOrders {
     squarePayOrders   SquarePaymentOrders[]
     payrolls          Payroll[]
     history           SalesHistory[]
+    activities        InventoryActivity[]
 
     @@unique([orderId, type])
     @@index([createdAt, deletedAt, orderId, grandTotal, prodId, type, prodDueDate])

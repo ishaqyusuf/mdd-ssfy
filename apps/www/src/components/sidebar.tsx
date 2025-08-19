@@ -5,16 +5,11 @@ import { Icons } from "./_v1/icons";
 import { MainMenu, MainMenuContext } from "./main-menu";
 import Link from "next/link";
 import { SidebarNavUser } from "./sidebar-nav-user";
+import { useSidebar } from "@/hooks/use-sidebar";
 
 export function Sidebar({}) {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const mainMenuRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (!isExpanded && mainMenuRef.current) {
-            mainMenuRef.current.scrollTop = 0;
-        }
-    }, [isExpanded]);
+    const ctx = useSidebar();
+    const { isExpanded, setIsExpanded, mainMenuRef } = ctx;
     return (
         <aside
             className={cn(
@@ -22,8 +17,6 @@ export function Sidebar({}) {
                 "bg-background border-r border-border",
                 isExpanded ? "w-[240px]" : "w-[70px]",
             )}
-            onMouseEnter={() => setIsExpanded(true)}
-            onMouseLeave={() => setIsExpanded(false)}
         >
             <div
                 className={cn(
@@ -47,6 +40,8 @@ export function Sidebar({}) {
 
             <div
                 ref={mainMenuRef}
+                onMouseEnter={() => setIsExpanded(true)}
+                onMouseLeave={() => setIsExpanded(false)}
                 className="flex flex-col overflow-y-auto scrollbar-hide w-full pt-[70px] flex-1"
             >
                 <MainMenuContext isExpanded={isExpanded} />

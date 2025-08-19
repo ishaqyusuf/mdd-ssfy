@@ -25,15 +25,21 @@ const _module = (
     defaultLink: null,
 });
 // type sectionNames = "main" | "sales";
-type Link = {
+export type LinkItem = {
     name;
     title;
     href?;
-    links?: {
-        name;
-        link: string;
-        title;
-    }[];
+    paths?: string[];
+    level?;
+    show?: boolean;
+    globalIndex?;
+    index?;
+    access?;
+    // links?: {
+    //     name;
+    //     link: string;
+    //     title;
+    // }[];
 };
 const _section = (
     name: string,
@@ -51,13 +57,14 @@ const _section = (
 });
 // type linkNames = "HRM" | "customer-services" | "Dashboard" | "Sales";
 const _subLink = (name, href, access?: Access[]) =>
-    _link(name, null, href, access);
+    _link(name, null, href, null, access);
+
 const _link = (
     name, //: linkNames,
     // title?: string,
     icon?: IconKeys,
     href?,
-    subLinks = [],
+    subLinks: LinkItem[] = [],
     access: Access[] = [],
 ) => {
     const res = {
@@ -168,6 +175,7 @@ export const validateLinks = ({
     can: ICan;
     userId;
 }) => {
+    console.log({ role, can, userId });
     const validateAccess = (al) => validateRules(al, can, userId, role);
     return linkModules.map((lm) => {
         lm.sections = lm.sections.map((s) => {
@@ -370,9 +378,15 @@ export const linkModules = [
                 .childPaths("sales-book/create-quote", "sales-book/edit-quote")
                 .data,
             // .childPaths("sales-book/create-quote", "sales-book/edit-quote")
-            _link("Inventory", "inbound", "/inventory").access(
-                _role.is("Super Admin"),
-            ).data,
+            _link("Inventory", "inbound", "/inventory", [
+                _subLink("Inventory", "/inventory").data,
+                _subLink("Inbounds", "/inventory/inbounds").data,
+                _subLink("Stock Movements", "/inventory/stocks").data,
+                _subLink("Categories", "/inventory/categories").data,
+                _subLink("Imports", "/inventory/imports").data,
+                _subLink("Inbound Management", "/sales-book/inbound-management")
+                    .data,
+            ]).access(_role.is("Super Admin")).data,
             _link(
                 "Inbounds Managment",
                 "inbound",

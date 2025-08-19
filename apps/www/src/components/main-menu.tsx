@@ -2,13 +2,14 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { getLinkModules, validateLinks } from "./sidebar/links";
+import { getLinkModules, LinkItem, validateLinks } from "./sidebar/links";
 import { cn } from "@gnd/ui/cn";
 import { cva } from "class-variance-authority";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "./_v1/icons";
 import { MainMenuProvider, useMainNav } from "@/hooks/use-sidebar";
+import { Icons } from "@gnd/ui/icons";
 type Props = {
     onSelect?: () => void;
     isExpanded?: boolean;
@@ -52,6 +53,7 @@ const sectionLabel = cva("", {
     },
 });
 export function MainMenuContext({ isExpanded, onSelect }: Props) {
+    const auth = useAuth();
     return (
         <MainMenuProvider
             args={[
@@ -67,7 +69,7 @@ export function MainMenuContext({ isExpanded, onSelect }: Props) {
 }
 export function MainMenu() {
     const { linkModules, activeLink, onSelect, isExpanded } = useMainNav();
-
+    const [expandedItem, setExpandedItem] = useState<string | null>(null);
     return (
         <div className="mt-6 w-full">
             <nav className="w-full overflow-auto">
@@ -128,14 +130,28 @@ export function MainMenu() {
                                                     <Fragment key={li}>
                                                         {/* {link?.subLinks?.length ? } */}
                                                         <Item
+                                                            isExpanded={
+                                                                isExpanded
+                                                            }
+                                                            isItemExpanded={
+                                                                expandedItem ===
+                                                                link.href
+                                                            }
+                                                            onToggle={(
+                                                                path,
+                                                            ) => {
+                                                                setExpandedItem(
+                                                                    expandedItem ===
+                                                                        path
+                                                                        ? null
+                                                                        : path,
+                                                                );
+                                                            }}
                                                             onSelect={onSelect}
                                                             item={link}
                                                             key={li}
                                                             module={module}
                                                             isActive={false}
-                                                            isExpanded={
-                                                                isExpanded
-                                                            }
                                                         />
                                                     </Fragment>
                                                 ))}
@@ -159,11 +175,13 @@ interface ItemProps {
     item: ReturnType<
         typeof getLinkModules
     >["modules"][number]["sections"][number]["links"][number] & {
-        children?;
+        // children?;
     };
 
     isActive: boolean;
     isExpanded: boolean;
+    isItemExpanded: boolean;
+    onToggle: (path: string) => void;
     onSelect?: () => void;
 }
 
@@ -177,7 +195,7 @@ const ChildItem = ({
     onSelect,
     index,
 }: {
-    child: { path: string; name: string };
+    child: LinkItem; //{ path: string; name: string };
     isActive: boolean;
     isExpanded: boolean;
     isParentHovered: boolean;
@@ -192,7 +210,7 @@ const ChildItem = ({
     return (
         <Link
             prefetch
-            href={child.path}
+            href={child.href}
             onClick={() => onSelect?.()}
             className="group"
         >
@@ -232,16 +250,22 @@ const ChildItem = ({
     );
 };
 
-const Item = ({ item, isActive, isExpanded, onSelect }: ItemProps) => {
+const Item = ({
+    item,
+    isActive,
+    isExpanded,
+    onSelect,
+    onToggle,
+}: ItemProps) => {
     // const Icon = item.icon
     const pathname = usePathname();
-    const hasChildren = item.children && item.children.length > 0;
+    const hasChildren = item.subLinks && item.subLinks.length > 0;
     const [isHovered, setIsHovered] = useState(false);
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Check if any child is currently active
     const hasActiveChild = hasChildren
-        ? item.children!.some((child) => pathname === child.path)
+        ? item.subLinks!.some((child) => pathname === child.href)
         : false;
     const shouldShowChildren =
         isExpanded && (isHovered || hasActiveChild || isActive);
@@ -263,7 +287,11 @@ const Item = ({ item, isActive, isExpanded, onSelect }: ItemProps) => {
         }
         setIsHovered(false);
     };
-
+    const handleChevronClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggle(item.href);
+    };
     return (
         <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             <Link
@@ -291,28 +319,30 @@ const Item = ({ item, isActive, isExpanded, onSelect }: ItemProps) => {
                     </div>
 
                     {isExpanded && (
-                        <div className="absolute top-0 left-[55px] right-[8px] h-[40px] flex items-center justify-between pointer-events-none">
+                        <div className="absolute top-0 left-[55px] right-[4px] h-[40px] flex items-center pointer-events-none">
                             <span
                                 className={cn(
                                     "text-sm font-medium transition-opacity duration-200 ease-in-out text-[#666] group-hover:text-primary",
                                     "whitespace-nowrap overflow-hidden",
+                                    hasChildren ? "pr-2" : "",
                                     isActive && "text-primary",
                                 )}
                             >
                                 {item.name}
                             </span>
                             {hasChildren && (
-                                <div
+                                <button
+                                    type="button"
+                                    onClick={handleChevronClick}
                                     className={cn(
-                                        "w-4 h-4 flex items-center justify-center transition-all duration-200",
-                                        "text-[#888] group-hover:text-primary/60",
+                                        "w-8 h-8 flex items-center justify-center transition-all duration-200 ml-auto mr-3",
+                                        "text-[#888] hover:text-primary pointer-events-auto",
                                         isActive && "text-primary/60",
-                                        isHovered &&
-                                            !hasActiveChild &&
-                                            !isActive &&
-                                            "rotate-180",
+                                        shouldShowChildren && "rotate-180",
                                     )}
-                                />
+                                >
+                                    <Icons.ChevronDown size={16} />
+                                </button>
                             )}
                         </div>
                     )}
@@ -327,11 +357,11 @@ const Item = ({ item, isActive, isExpanded, onSelect }: ItemProps) => {
                         shouldShowChildren ? "max-h-96 mt-1" : "max-h-0",
                     )}
                 >
-                    {item.children!.map((child, index) => {
-                        const isChildActive = pathname === child.path;
+                    {item.subLinks!.map((child, index) => {
+                        const isChildActive = pathname === child.href;
                         return (
                             <ChildItem
-                                key={child.path}
+                                key={child.href}
                                 child={child}
                                 isActive={isChildActive}
                                 isExpanded={isExpanded}
