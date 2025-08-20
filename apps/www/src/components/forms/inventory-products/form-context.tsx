@@ -6,7 +6,7 @@ import { z } from "zod";
 
 interface FormContextProps {
     children?;
-    data?;
+    data?: InventoryForm;
 }
 export function FormContext({ children, data }: FormContextProps) {
     const defaultValues = {
@@ -26,6 +26,7 @@ export function FormContext({ children, data }: FormContextProps) {
         defaultValues,
     });
     useEffect(() => {
+        if (data) data.product.status = data.product.status || "draft";
         form.reset({
             ...(data ?? defaultValues),
         });

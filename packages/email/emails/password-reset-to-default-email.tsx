@@ -20,8 +20,8 @@ interface Props {
 }
 
 const PasswordResetPasswordToDefaultEmail = ({
-  customerName,
-  loginLink,
+  customerName = "Ishaq Yusuf",
+  loginLink = "https://example.com",
 }: Props) => {
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");

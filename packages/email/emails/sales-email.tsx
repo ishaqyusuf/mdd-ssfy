@@ -1,4 +1,5 @@
 import { cn } from "@gnd/ui/cn";
+import { formatDate } from "@gnd/utils/dayjs";
 import { getAppUrl } from "@gnd/utils/envs";
 import {
   Body,
@@ -33,7 +34,22 @@ interface Props {
 }
 
 const baseAppUrl = getAppUrl();
-export const SalesEmail = (props: Props) => {
+const SalesEmail = ({
+  customerName = "Ishaq Yusuf",
+  sales = [
+    {
+      date: new Date(),
+      orderId: "47837PC",
+      total: 100,
+      due: 50,
+      po: "ABSSDD",
+    },
+  ],
+  isQuote = false,
+  paymentLink = "https://payment.com",
+  pdfLink = "https://pdf.com",
+}: Props) => {
+  const props = { customerName, sales, isQuote, paymentLink, pdfLink };
   const text = `You've Received ${
     props.isQuote ? "a quote" : "an Invoice"
   } from GND Millwork 
@@ -162,7 +178,7 @@ export const SalesEmail = (props: Props) => {
                   <td align="left" style={{ width: "30%" }}>
                     <Text
                       className={cn(
-                        "text-[14px] m-0 p-0 mt-1 pb-1",
+                        "text-[14px] m-0 p-0 mt-1 pb-1"
                         // props.isQuote ? "text-[#00C969]" : themeClasses.text,
                       )}
                       // style={{
@@ -208,3 +224,4 @@ export const SalesEmail = (props: Props) => {
     </EmailThemeProvider>
   );
 };
+export default SalesEmail;

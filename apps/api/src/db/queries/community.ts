@@ -9,7 +9,7 @@ import {
   type CommunityBuilderMeta,
   type ICostChartMeta,
 } from "@gnd/utils/community";
-import { object, z } from "zod";
+import { z } from "zod";
 import {
   getCommunityPivotId,
   linkUnitsToCommunityByPivotId,
@@ -17,7 +17,6 @@ import {
 } from "@community/db-utils";
 import dayjs, { formatDate } from "@gnd/utils/dayjs";
 import { sum } from "@gnd/utils";
-import { composeStepFormDisplay } from "@sales/utils/sales-control";
 export async function projectList(ctx: TRPCContext) {
   const list = await ctx.db.projects.findMany({
     select: {

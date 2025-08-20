@@ -24,7 +24,7 @@ export function SidebarNavUser({}) {
     const user = useAuth();
     const ref = useRef<HTMLDivElement>(null);
     return (
-        <div className="relative h-[32px]" ref={ref}>
+        <div className="relative h-[40px] " ref={ref}>
             <div className="fixed left-[19px] bottom-4 w-[32px] h-[32px]">
                 <div className="relative w-[32px] h-[32px]"></div>
             </div>
@@ -33,7 +33,7 @@ export function SidebarNavUser({}) {
                     <Button
                         size="lg"
                         variant="ghost"
-                        className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                        className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex gap-2 px-2 w-full"
                     >
                         <Avatar className="h-8 w-8 rounded-lg">
                             <AvatarImage src={user.avatar} alt={user.name} />
@@ -41,16 +41,18 @@ export function SidebarNavUser({}) {
                                 {getInitials(user.name)}
                             </AvatarFallback>
                         </Avatar>
-                        <div className="grid flex-1 text-left text-sm leading-tight">
-                            <span className="truncate font-semibold">
-                                {user.name}
-                            </span>
-                            <span className="truncate text-xs">
-                                {user.email}
-                            </span>
-                        </div>
                         {!isExpanded || (
-                            <ChevronsUpDown className="ml-auto size-4" />
+                            <>
+                                <div className="grid flex-1 text-left text-sm leading-tight">
+                                    <span className="truncate font-semibold">
+                                        {user.name}
+                                    </span>
+                                    <span className="truncate text-xs">
+                                        {user.email}
+                                    </span>
+                                </div>
+                                <ChevronsUpDown className="ml-auto size-4" />
+                            </>
                         )}
                     </Button>
                 </DropdownMenuTrigger>

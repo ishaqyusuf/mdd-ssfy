@@ -18,6 +18,7 @@ import { VariantPricingTab } from "./variant-pricing-tab";
 import { cn } from "@gnd/ui/cn";
 import { VariantFilters } from "./variant-filters";
 import { Progress } from "@/components/(clean-code)/progress";
+import { useInventoryParams } from "@/hooks/use-inventory-params";
 
 export function ProductVariants() {
     const ctx = useProductVariants();
@@ -94,15 +95,28 @@ export function ProductVariants() {
 }
 
 function Row({}) {
-    const { setOpened, opened, data } = useVariant();
+    const { data, opened } = useVariant();
     const { mutate, data: mutateData } = useMutation({});
+    const { setParams, editVariantTab, editVariantUid } = useInventoryParams();
+
     return (
         <>
             <TableRow
                 onClick={(e) => {
-                    setOpened(!opened);
+                    // if(!opened)
+                    setParams(
+                        !opened
+                            ? {
+                                  editVariantTab: "pricing",
+                                  editVariantUid: data.uid,
+                              }
+                            : {
+                                  editVariantTab: null,
+                                  editVariantUid: null,
+                              },
+                    );
                 }}
-                className={cn(!opened || "bg-accent hover:bg-transparent")}
+                className={cn(!opened || "bg-accent hover:bg-accent")}
             >
                 <TableCell>{data?.title}</TableCell>
                 <TableCell>
@@ -135,8 +149,8 @@ function Row({}) {
                 <TableCell></TableCell>
             </TableRow>
             {!opened || (
-                <TableRow className="hover:bg-transparent border-2 border-t-0 shadow-lg">
-                    <TableCell colSpan={5} className="">
+                <TableRow className="hover:bg-transparent border-2 border-t-0s border-b-3s border-muted-foreground bg-muted">
+                    <TableCell colSpan={6} className="bg-white">
                         <Tabs defaultValue="price">
                             <TabsList>
                                 <TabsTrigger value="price">

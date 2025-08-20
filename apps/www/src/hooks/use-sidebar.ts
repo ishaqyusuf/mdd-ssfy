@@ -92,6 +92,7 @@ export const { Provider: SidebarProvider, useContext: useSidebar } =
         return {
             isExpanded,
             isMobile: mobile,
+            // setIsExpanded: (a) => {},
             setIsExpanded,
             mainMenuRef,
             linkModules,

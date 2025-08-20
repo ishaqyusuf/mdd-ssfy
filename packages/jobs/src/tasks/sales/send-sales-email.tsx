@@ -6,7 +6,7 @@ import { sum } from "@gnd/utils";
 import { resend } from "@jobs/utils/resend";
 import { nanoid } from "nanoid";
 import { render } from "@react-email/render";
-import { SalesEmail } from "@gnd/email/emails/sales-email";
+import SalesEmail from "@gnd/email/emails/sales-email";
 import { getAppUrl } from "@gnd/utils/envs";
 import QueryString from "qs";
 import { composePaymentOrderIdsParam } from "@gnd/utils/sales";
@@ -47,11 +47,11 @@ export const sendSalesEmail = schemaTask({
               slugs,
               mode: props.printType,
               preview: false,
-            },
+            }
           )}`;
           let pid = null;
           const orderIdParams = composePaymentOrderIdsParam(
-            matchingSales.map((a) => a.orderId),
+            matchingSales.map((a) => a.orderId)
           );
           if (totalDueAmount) {
             pid = (
@@ -97,7 +97,7 @@ export const sendSalesEmail = schemaTask({
                   po: s.po,
                 }))}
                 customerName={customerName!}
-              />,
+              />
             ),
           });
           if (response.error) {
@@ -108,7 +108,7 @@ export const sendSalesEmail = schemaTask({
             throw new Error("Invoice email failed to send");
           }
           logger.info("Invoice email sent");
-        }),
+        })
       );
     });
   },

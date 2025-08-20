@@ -5,6 +5,7 @@ import { cn } from "@gnd/ui/cn";
 import { TRPCReactProvider } from "@/trpc/client";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { GlobalModals } from "@/components/modals/global-modals";
+import { Header } from "@/components/header";
 
 export default function RootLayout({
   children,
@@ -18,8 +19,7 @@ export default function RootLayout({
       <body className={cn("min-h-screen bg-background font-sans antialiased")}>
         <NuqsAdapter>
           <TRPCReactProvider>
-            {/* <PreHeader /> */}
-            {/* <SiteHeader /> */}
+            <Header />
             {children}
             <GlobalModals />
           </TRPCReactProvider>

@@ -1,26 +1,20 @@
-"use client"
+"use client";
 
-import { getVariantImage } from "@/lib/images"
+import { getVariantImage } from "@/lib/images";
 
 interface Variant {
-  id: string
-  name: string
-  image: string
-  price?: number
+  id: string;
+  name: string;
+  image: string;
+  price?: number;
 }
 
-interface ProductVariantsProps {
-  variants: Variant[]
-  selectedVariant: string
-  onVariantChange: (variantId: string) => void
-}
-
-export function ProductVariants({ variants, selectedVariant, onVariantChange }: ProductVariantsProps) {
+export function ProductVariants() {
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-medium text-gray-900">Finish</h3>
       <div className="flex flex-wrap gap-3">
-        {variants.map((variant) => (
+        {/* {variants.map((variant) => (
           <button
             key={variant.id}
             onClick={() => onVariantChange(variant.id)}
@@ -38,8 +32,8 @@ export function ProductVariants({ variants, selectedVariant, onVariantChange }: 
             <span className="text-xs font-medium text-center">{variant.name}</span>
             {variant.price && <span className="text-xs text-gray-500">+${variant.price}</span>}
           </button>
-        ))}
+        ))} */}
       </div>
     </div>
-  )
+  );
 }

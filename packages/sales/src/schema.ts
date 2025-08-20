@@ -199,7 +199,7 @@ export const inventoryFormSchema = z.object({
   category: z
     .object({
       id: z.number(),
-      enablePricing: z.boolean(),
+      enablePricing: z.boolean().optional().nullable(),
     })
     .optional()
     .nullable(),

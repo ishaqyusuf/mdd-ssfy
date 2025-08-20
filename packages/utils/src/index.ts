@@ -60,6 +60,16 @@ export function sum<T>(array?: T[], key: keyof T | undefined = undefined) {
       .reduce((sum, val) => (sum || 0) + (val as number), 0) || 0
   );
 }
+export function uniqueList<T>(
+  list: T[],
+  uniqueBy: keyof T | undefined = undefined
+) {
+  if (!list) return [];
+  const kValue = (b) => (!uniqueBy || typeof b === "string" ? b : b[uniqueBy]);
+  return list.filter(
+    (a, i) => i === list.findIndex((b) => kValue(b) == kValue(a))
+  );
+}
 export function addPercentage(value: any, percentage: any) {
   return value + (value || 0) * ((percentage || 100) / 100);
 }
@@ -300,7 +310,16 @@ export function getStatusFromPercentage(percent: number) {
   return "full"; // 100%
 }
 
-export function imageUrl({ path, bucket, provider }) {
+export function imageUrl(data: { path; bucket; provider }) {
+  if (!data) return null;
+  const { path, bucket, provider } = data;
   if (provider == "cloudinary")
     return `${process.env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/${bucket}/${path}`;
+}
+export async function timeout(ms = 1000) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function rndTimeout() {
+  return await timeout(generateRandomNumber(2));
 }

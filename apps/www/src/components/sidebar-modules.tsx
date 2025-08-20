@@ -28,16 +28,16 @@ export function SidebarModules() {
     // if (modules.length < 2) return null;
 
     return (
-        <div className="relative h-[32px]" ref={ref}>
-            <div className="fixed left-[19px] bottom-4 w-[32px] h-[32px]">
-                <div className="relative w-[32px] h-[32px]"></div>
-            </div>
+        <div className="relative flex-1 h-[40px]" ref={ref}>
+            {/* <div className="fixed left-[19px] top-4 w-[32px] h-[32px]">
+                <div className="relative w-[32px] h-[32px] bg-red-500"></div>
+            </div> */}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button
                         size="lg"
                         variant="ghost"
-                        className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                        className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex gap-2 px-5 w-full"
                     >
                         <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary ">
                             <Icon
@@ -45,16 +45,18 @@ export function SidebarModules() {
                                 className="size-4 text-primary-foreground"
                             />
                         </div>
-                        <div className="grid flex-1 text-left text-sm leading-tight">
-                            <span className="truncate font-semibold">
-                                {currentModule?.title}
-                            </span>
-                            <span className="truncate text-xs">
-                                {currentModule?.subtitle}
-                            </span>
-                        </div>
                         {!isExpanded || (
-                            <ChevronsUpDown className="ml-auto size-4" />
+                            <>
+                                <div className="grid flex-1 text-left text-sm leading-tight">
+                                    <span className="truncate font-semibold">
+                                        {currentModule?.title}
+                                    </span>
+                                    <span className="truncate text-xs">
+                                        {currentModule?.subtitle}
+                                    </span>
+                                </div>
+                                <ChevronsUpDown className="ml-auto size-4" />
+                            </>
                         )}
                     </Button>
                 </DropdownMenuTrigger>

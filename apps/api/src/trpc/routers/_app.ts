@@ -18,6 +18,7 @@ import { shoppingProductsRouter } from "./shopping-products.route";
 import { google } from "./google-place.route";
 import { inventoriesRouter } from "./inventories.route";
 import { communityRouters } from "./community.route";
+import { storefrontRouter } from "./storefront.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
@@ -36,6 +37,7 @@ export const appRouter = createTRPCRouter({
   sales: salesRouter,
   salesDashboard: salesDashboardRouter,
   search: searchRouter,
+  storefront: storefrontRouter,
   shoppingProducts: shoppingProductsRouter,
   siteActions: siteActionsRoutes,
   user: userRoutes,

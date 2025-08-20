@@ -3,18 +3,21 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@gnd/ui/button";
+import { useProduct } from "@/hooks/use-product";
+import { AspectRatio } from "@gnd/ui/aspect-ratio";
+import Image from "next/image";
 
-interface ProductImageGalleryProps {
-  images: string[];
-  productName: string;
-}
+interface ProductImageGalleryProps {}
 
-export function ProductImageGallery({
-  images,
-  productName,
-}: ProductImageGalleryProps) {
+export function ProductImageGallery({}: ProductImageGalleryProps) {
+  const ctx = useProduct();
+  const images = [
+    ...ctx.product.images,
+    ...ctx.product.images,
+    ...ctx.product.images,
+  ];
   const [currentImage, setCurrentImage] = useState(0);
-
+  const productName = ctx.product.name;
   const nextImage = () => {
     setCurrentImage((prev) => (prev + 1) % images.length);
   };
@@ -27,11 +30,22 @@ export function ProductImageGallery({
     <div className="space-y-4">
       {/* Main Image */}
       <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
-        <img
-          src={images[currentImage] || "/placeholder.svg"}
+        <AspectRatio ratio={4 / 3}>
+          <Image
+            role="group"
+            aria-roledescription="slide"
+            src={images[currentImage]?.url || "/placeholder.svg"}
+            alt={`${productName} - Image ${currentImage + 1}`}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-contain"
+          />
+        </AspectRatio>
+        {/* <img
+          src={images[currentImage]?.url || "/placeholder.svg"}
           alt={`${productName} - Image ${currentImage + 1}`}
           className="w-full h-full object-cover"
-        />
+        /> */}
         {images.length > 1 && (
           <>
             <Button
@@ -65,11 +79,14 @@ export function ProductImageGallery({
                 currentImage === index ? "border-amber-600" : "border-gray-200"
               }`}
             >
-              <img
-                src={image || "/placeholder.svg"}
-                alt={`${productName} thumbnail ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
+              <AspectRatio ratio={5 / 6}>
+                <Image
+                  src={image.url}
+                  fill
+                  alt={`${productName} thumbnail ${index + 1}`}
+                  className=" object-cover"
+                />
+              </AspectRatio>
             </button>
           ))}
         </div>

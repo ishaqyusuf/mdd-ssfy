@@ -1,4 +1,5 @@
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
+import { CategoryHeader } from "@/components/category-header";
 import { ErrorFallback } from "@/components/error-fallback";
 import { DataTable } from "@/components/tables/inventory-categories/data-table";
 
@@ -19,11 +20,14 @@ export default async function Page(props: Props) {
         <FPage title="Category">
             {/* <InventoryTabSwitch path="/inventory" /> */}
             <HydrateClient>
-                <ErrorBoundary errorComponent={ErrorFallback}>
-                    <Suspense fallback={<TableSkeleton />}>
-                        <DataTable />
-                    </Suspense>
-                </ErrorBoundary>
+                <div className="flex flex-col gap-6">
+                    <CategoryHeader />
+                    <ErrorBoundary errorComponent={ErrorFallback}>
+                        <Suspense fallback={<TableSkeleton />}>
+                            <DataTable />
+                        </Suspense>
+                    </ErrorBoundary>
+                </div>
             </HydrateClient>
         </FPage>
     );

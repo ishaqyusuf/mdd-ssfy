@@ -297,6 +297,7 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
       }
       return {
         variantId: matchedVariant?.id ?? null,
+        uid: matchedVariant?.uid || generateRandomString(5),
         price: matchedVariant?.pricing?.costPrice,
         pricingId: matchedVariant?.pricing?.id,
         status: matchedVariant ? matchedVariant.status ?? "active" : "draft",
@@ -336,6 +337,17 @@ export async function saveInventory(db: Db, data: InventoryForm) {
     ? "monitored"
     : "unmonitored";
   if (inventoryId) {
+    await db.inventory.update({
+      where: {
+        id: inventoryId,
+      },
+      data: {
+        status: product.status,
+        name: product.name,
+        stockMode,
+        description: product.description,
+      },
+    });
   } else {
     const inventory = await db.inventory.create({
       data: {
@@ -571,23 +583,25 @@ export async function saveInventoryCategoryForm(
 ) {
   let id = data.id;
   if (!id) {
-    await db.inventoryCategory.create({
+    return await db.inventoryCategory.create({
       data: {
         title: data.title,
         uid: generateRandomString(5),
         enablePricing: data.enablePricing,
         description: data.description,
-        categoryVariantAttributes: {
-          createMany: {
-            data: data.categoryVariantAttributes?.map((cva) => ({
-              valuesInventoryCategoryId: cva.valuesInventoryCategoryId!,
-            })),
-          },
-        },
+        categoryVariantAttributes: data.categoryVariantAttributes?.length
+          ? {
+              createMany: {
+                data: data.categoryVariantAttributes?.map((cva) => ({
+                  valuesInventoryCategoryId: cva.valuesInventoryCategoryId!,
+                })),
+              },
+            }
+          : undefined,
       },
     });
   } else {
-    await db.inventoryCategory.update({
+    return await db.inventoryCategory.update({
       where: {
         id: data.id!,
       },
@@ -683,13 +697,14 @@ export async function resetInventorySystem(db: Db) {
 }
 
 export const updateVariantCostSchema = z.object({
-  variantId: z.number(),
-  pricingId: z.number(),
+  uid: z.string(),
+  variantId: z.number().optional().nullable(),
+  pricingId: z.number().optional().nullable(),
   cost: z.number(),
   oldCostPrice: z.number().optional().nullable(),
   inventoryId: z.number(),
   editType: z.string(),
-  reason: z.string(),
+  reason: z.string().optional().nullable(),
   authorName: z.string(),
   effectiveFrom: z.string().optional().nullable(),
   effectiveTo: z.string().optional().nullable(),
@@ -746,7 +761,7 @@ export async function updateVariantCost(db: Db, data: UpdateVariantCost) {
     await db.inventoryVariant.create({
       data: {
         inventoryId: data.inventoryId,
-        uid: generateRandomString(5),
+        uid: data.uid,
         attributes: {
           createMany: !data.attributes?.length
             ? undefined
@@ -757,6 +772,26 @@ export async function updateVariantCost(db: Db, data: UpdateVariantCost) {
                 })),
               },
         },
+        pricingHistories: {
+          create: {
+            changeReason: data.reason,
+            changedBy: data.authorName,
+            effectiveFrom: data.effectiveFrom || new Date(),
+            effectiveTo: data.effectiveTo,
+            oldCostPrice: data.oldCostPrice,
+            newCostPrice: data.cost,
+            source: data.editType,
+          },
+        },
+        pricing: {
+          create: !data.pricingId
+            ? {
+                costPrice: data.cost,
+                inventoryId: data.inventoryId,
+              }
+            : undefined,
+        },
+        status: "draft",
       },
     });
 }

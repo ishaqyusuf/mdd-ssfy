@@ -22,6 +22,11 @@ export function FormAction({ onCancel }) {
     } = useMutation(
         trpc.inventories.saveInventoryCategory.mutationOptions({
             onSuccess(data) {
+                if (!isEditing) {
+                    setParams({
+                        editCategoryId: data.id,
+                    });
+                }
                 qc.invalidateQueries({
                     queryKey: trpc.inventories.inventoryCategories.queryKey(),
                 });

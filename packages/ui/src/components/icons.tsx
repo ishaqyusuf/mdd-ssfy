@@ -1,4 +1,5 @@
 import { ArchiveIcon } from "@radix-ui/react-icons";
+import { ImageIcon } from "lucide-react";
 import { FaFacebook, FaInstagram, FaXTwitter } from "react-icons/fa6";
 import { FiGithub } from "react-icons/fi";
 import {
@@ -772,4 +773,5 @@ export const Icons = {
   ArrowOutward: MdOutlineArrowOutward,
   Straighten: MdOutlineSquareFoot,
   Files: MdOutlineInventory2,
+  placeholder: ImageIcon,
 };

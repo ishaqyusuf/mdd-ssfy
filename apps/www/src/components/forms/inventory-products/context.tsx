@@ -8,6 +8,7 @@ import { labelValueOptions, selectOptions } from "@gnd/utils";
 import { useMemo, useState } from "react";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { useDebugConsole } from "@/hooks/use-debug-console";
+import { useInventoryParams } from "@/hooks/use-inventory-params";
 
 interface ProductContextProps {}
 export const { Provider: ProductProvider, useContext: useProduct } =
@@ -159,10 +160,12 @@ interface VariantProviderProps {
 
 export const { Provider: VariantProvider, useContext: useVariant } =
     createContextFactory(({ data }: VariantProviderProps) => {
-        const [opened, setOpened] = useState(false);
+        // const [opened, setOpened] = useState(false);
+        const { setParams, editVariantTab, editVariantUid } =
+            useInventoryParams();
+        const opened = data?.uid == editVariantUid;
         return {
             opened,
-            setOpened,
             data,
         };
     });

@@ -296,10 +296,7 @@ export default function ProductPage({ params }: ProductPageProps) {
         <div className="grid lg:grid-cols-2 gap-12 mb-12">
           {/* Product Images */}
           <div>
-            <ProductImageGallery
-              images={currentProduct.images}
-              productName={currentProduct.name}
-            />
+            <ProductImageGallery />
           </div>
 
           {/* Product Info */}
@@ -347,24 +344,24 @@ export default function ProductPage({ params }: ProductPageProps) {
             </div>
 
             {/* Variants */}
-            <ProductVariants
+            {/* <ProductVariants
               variants={currentProduct.variants}
               selectedVariant={selectedVariant}
               onVariantChange={setSelectedVariant}
-            />
+            /> */}
 
             {/* Size Selection */}
-            <ProductSizeSelector
+            {/* <ProductSizeSelector
               sizes={currentProduct.sizes}
               selectedSize={selectedSize}
               onSizeChange={setSelectedSize}
-            />
+            /> */}
 
             {/* Quantity */}
-            <ProductQuantitySelector
+            {/* <ProductQuantitySelector
               quantity={quantity}
               onQuantityChange={setQuantity}
-            />
+            /> */}
 
             {/* Actions */}
             <ProductActions

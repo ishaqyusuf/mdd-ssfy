@@ -7,6 +7,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@api/*": ["../api/src/*"],
+      "@community/*": ["../../packages/community/src/*"],
       "@engine/*": ["../engine/src/*"],
       "@jobs/*": ["../../packages/jobs/src/*"],
       "@sales/*": ["../../packages/sales/src/*"]

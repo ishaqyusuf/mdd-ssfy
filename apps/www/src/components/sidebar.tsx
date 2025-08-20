@@ -38,14 +38,15 @@ export function Sidebar({}) {
                      </div> */}
                 </Link>
             </div>
-
+            <div className="pt-[75px] flex w-full">
+                <SidebarModules />
+            </div>
             <div
                 ref={mainMenuRef}
                 onMouseEnter={() => setIsExpanded(true)}
                 onMouseLeave={() => setIsExpanded(false)}
-                className="flex flex-col overflow-y-auto scrollbar-hide w-full pt-[70px] pb-[100px] flex-1"
+                className="flex flex-col overflow-y-auto scrollbar-hide w-full pb-[100px] flex-1"
             >
-                <SidebarModules />
                 <MainMenu />
             </div>
             <SidebarNavUser />

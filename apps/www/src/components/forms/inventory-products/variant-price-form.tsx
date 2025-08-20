@@ -18,6 +18,7 @@ export function VariantPriceForm({}: Props) {
     const ctx = useVariant();
     const auth = useAuth();
     const defaultValues = {
+        uid: ctx.data?.uid!,
         variantId: ctx.data?.variantId!,
         editType: "manual update",
         cost: "" as any,

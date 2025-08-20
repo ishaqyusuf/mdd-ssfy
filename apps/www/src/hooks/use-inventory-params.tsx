@@ -1,7 +1,15 @@
-import { createLoader, parseAsInteger, useQueryStates } from "nuqs";
+import {
+    createLoader,
+    parseAsInteger,
+    parseAsString,
+    parseAsStringEnum,
+    useQueryStates,
+} from "nuqs";
 
 const inventoryParamsSchema = {
     productId: parseAsInteger,
+    editVariantUid: parseAsString,
+    editVariantTab: parseAsStringEnum(["pricing", "stock", "overview"]),
 };
 
 export function useInventoryParams() {

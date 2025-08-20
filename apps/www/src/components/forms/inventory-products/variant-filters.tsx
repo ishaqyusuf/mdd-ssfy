@@ -4,7 +4,6 @@ import { SearchFilterTRPC } from "@/components/midday-search-filter/search-filte
 
 export function VariantFilters({}) {
     const ctx = useProductVariants();
-    console.log(ctx?.filter);
     if (!ctx.filter?.params) return null;
 
     return (

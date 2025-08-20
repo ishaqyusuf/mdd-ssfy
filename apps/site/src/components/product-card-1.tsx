@@ -16,30 +16,20 @@ import { Badge } from "@gnd/ui/badge";
 import { useCartStore } from "@/lib/cart-store";
 import Link from "next/link";
 import { toast } from "@gnd/ui/use-toast";
+import { RouterOutputs } from "@api/trpc/routers/_app";
+import Image from "next/image";
+import { AspectRatio } from "@gnd/ui/aspect-ratio";
+import { PlaceholderImage } from "./placeholder-image";
+import NumberFlow from "@number-flow/react";
 
 interface ProductCardProps {
-  id: number;
-  name: string;
-  price: string;
-  originalPrice?: string;
-  image: string;
-  rating: number;
-  reviews: number;
-  badge?: string;
+  data: RouterOutputs["storefront"]["search"]["data"][number];
   onAddToCart?: () => void;
 }
 
-export function ProductCard({
-  id,
-  name,
-  price,
-  originalPrice,
-  image,
-  rating,
-  reviews,
-  badge,
-  onAddToCart,
-}: ProductCardProps) {
+export function ProductCard({ data, onAddToCart }: ProductCardProps) {
+  const { id, name, price, originalPrice, image, rating, reviews, badge } =
+    data;
   const { addItem, isHydrated } = useCartStore();
   const [isAdding, setIsAdding] = useState(false);
 
@@ -57,7 +47,7 @@ export function ProductCard({
     try {
       // Parse price string to number
       const priceNumber = Number.parseFloat(
-        price.replace("$", "").replace(",", "")
+        price?.toString().replace("$", "").replace(",", "")
       );
 
       addItem({
@@ -87,15 +77,26 @@ export function ProductCard({
   };
 
   return (
-    <Link href={`/product/type/${id}`}>
+    <Link href={data.url}>
       <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
         <CardHeader className="p-0">
           <div className="relative overflow-hidden rounded-t-lg">
-            <img
-              src={image || "/placeholder.svg"}
-              alt={name}
-              className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-            />
+            <AspectRatio ratio={4 / 3}>
+              {!image ? (
+                <PlaceholderImage className="rounded-none" asChild />
+              ) : (
+                <Image
+                  src={image}
+                  alt={name}
+                  className="w-full h-64 object-contain scale-90 group-hover:scale-105 transition-transform  duration-300"
+                  // sizes="(min-width: 1024px) 20vw, (min-width: 768px) 25vw, (min-width: 640px) 33vw, (min-width: 475px) 50vw, 100vw"
+                  // fill
+                  sizes="(min-width: 1024px) 10vw"
+                  fill
+                  loading="lazy"
+                />
+              )}
+            </AspectRatio>
             {badge && (
               <Badge className="absolute top-3 left-3 bg-amber-600">
                 {badge}
@@ -118,12 +119,16 @@ export function ProductCard({
                 />
               ))}
             </div>
-            <span className="text-sm text-gray-600 ml-2">({reviews})</span>
+            {!reviews || (
+              <span className="text-sm text-gray-600 ml-2">({reviews})</span>
+            )}
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-xl font-bold text-gray-900">{price}</span>
-              {originalPrice && (
+              <span className="text-xl font-bold text-gray-900">
+                <NumberFlow value={price} prefix="USD " />
+              </span>
+              {originalPrice && originalPrice != price && (
                 <span className="text-sm text-gray-500 line-through ml-2">
                   {originalPrice}
                 </span>
