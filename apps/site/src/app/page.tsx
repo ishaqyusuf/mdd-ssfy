@@ -118,9 +118,9 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
+            {/* {featuredProducts.map((product) => (
               <ProductCard key={product.id} {...product} />
-            ))}
+            ))} */}
           </div>
         </div>
       </section>
