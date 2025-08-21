@@ -9,7 +9,7 @@ import {
 import { useProductVariants, useVariant, VariantProvider } from "./context";
 import { AnimatedNumber } from "@/components/animated-number";
 import { useEffect, useRef, useState } from "react";
-import { throttle } from "lodash";
+import { capitalize, throttle } from "lodash";
 import { useMutation } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { Icons } from "@gnd/ui/custom/icons";
@@ -21,6 +21,8 @@ import { Progress } from "@/components/(clean-code)/progress";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { Menu } from "@/components/(clean-code)/menu";
 import { Button } from "@gnd/ui/button";
+import { INVENTORY_STATUS } from "@sales/constants";
+import { getColorFromName } from "@/lib/color";
 
 export function ProductVariants() {
     const ctx = useProductVariants();
@@ -154,22 +156,23 @@ function Row({}) {
                             </Button>
                         }
                     >
-                        <Menu.Item
-                            shortCut={
-                                <div className="size-2 bg-green-500"></div>
-                            }
-                            icon="Published"
-                        >
-                            Publish
-                        </Menu.Item>
-                        <Menu.Item
-                            shortCut={
-                                <div className="size-2 bg-orange-500"></div>
-                            }
-                            icon="Draft"
-                        >
-                            Draft
-                        </Menu.Item>
+                        {INVENTORY_STATUS.map((status) => (
+                            <Menu.Item
+                                key={status}
+                                shortCut={
+                                    <div
+                                        className="size-2"
+                                        style={{
+                                            backgroundColor:
+                                                getColorFromName(status),
+                                        }}
+                                    ></div>
+                                }
+                                icon={capitalize(status) as any}
+                            >
+                                {capitalize(status)}
+                            </Menu.Item>
+                        ))}
                     </Menu>
                 </TableCell>
                 <TableCell></TableCell>

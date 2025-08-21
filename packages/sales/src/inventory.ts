@@ -929,7 +929,7 @@ export async function updateVariantCost(db: Db, data: UpdateVariantCost) {
 }
 export const updateVariantStatusSchema = z
   .object({
-    status: z.enum(["published", "draft"]),
+    status: z.enum(INVENTORY_STATUS),
   })
   .merge(
     updateVariantCostSchema.pick({
