@@ -19,10 +19,9 @@ export function InventoryFormAction({ onCancel }) {
         mutate,
         error,
     } = useMutation(
-        trpc.inventories.saveInventory.mutationOptions({
+        trpc.inventories.inventoryFormSave.mutationOptions({
             onSuccess(data) {
                 iTrpc.refreshInventories();
-
                 toast({
                     title: "Saved",
                     variant: "success",

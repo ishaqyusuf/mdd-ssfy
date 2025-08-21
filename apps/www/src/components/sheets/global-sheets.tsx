@@ -6,6 +6,7 @@ import { CustomerCreateSheet } from "./customer-create-sheet";
 import { CustomerOverviewSheet } from "./customer-overview-sheet";
 import { InboundOverviewSheet } from "./inbound-overview-sheet";
 import { InventoryCategorySheet } from "./inventory-category-sheet";
+import { InventoryInboundSheet } from "./inventory-inbound-sheet";
 import { InventoryProductSheet } from "./inventory-product-sheet";
 import RolesProfilesSheet from "./roles-profile-sheet";
 import SalesOverviewSheet from "./sales-overview-sheet";
@@ -25,6 +26,7 @@ export function GlobalSheets({}) {
             <SalesOverviewSheet /> <CustomerOverviewSheet />{" "}
             <CustomerCreateSheet />
             <InventoryProductSheet />
+            <InventoryInboundSheet />
             <InventoryCategorySheet />
         </>
     );

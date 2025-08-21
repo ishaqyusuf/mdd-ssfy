@@ -48,6 +48,7 @@ export const Icons = {
     ),
     Draft: FileEdit,
     Published: CheckCircle,
+    Archived: Archive,
     Archive: Archive,
 };
 

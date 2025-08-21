@@ -23,6 +23,7 @@ import { Menu } from "@/components/(clean-code)/menu";
 import { Button } from "@gnd/ui/button";
 import { INVENTORY_STATUS } from "@sales/constants";
 import { getColorFromName } from "@/lib/color";
+import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 
 export function ProductVariants() {
     const ctx = useProductVariants();
@@ -59,7 +60,7 @@ export function ProductVariants() {
     return (
         <div ref={container} className="relative">
             <VariantFilters />
-            {!ctx.hasSearchFilters && ctx.unfilteredList?.length ? (
+            {!ctx.hasSearchFilters && !ctx.unfilteredList?.length ? (
                 <NoActiveVariants />
             ) : ctx?.hasSearchFilters && !ctx.filteredData?.length ? (
                 <EmptyState />
@@ -101,7 +102,7 @@ export function ProductVariants() {
 function Row({}) {
     const { data, opened } = useVariant();
     const { setParams, editVariantTab, editVariantUid } = useInventoryParams();
-
+    const invTrpc = useInventoryTrpc();
     return (
         <>
             <TableRow
@@ -158,6 +159,15 @@ function Row({}) {
                     >
                         {INVENTORY_STATUS.map((status) => (
                             <Menu.Item
+                                onClick={(e) => {
+                                    invTrpc.mutateUpdateVariantStatus({
+                                        status,
+                                        attributes: data.attributes,
+                                        variantId: data.variantId,
+                                        uid: data.uid,
+                                        inventoryId: data.inventoryId,
+                                    });
+                                }}
                                 key={status}
                                 shortCut={
                                     <div
@@ -186,6 +196,10 @@ function Row({}) {
                                     <ChartSpline className="size-4 mr-2" />
                                     Pricing
                                 </TabsTrigger>
+                                <TabsTrigger value="inbound">
+                                    <Icons.inbound className="size-4 mr-2" />
+                                    Stock Inbound
+                                </TabsTrigger>
                                 <TabsTrigger value="movement">
                                     <Icons.project className="size-4 mr-2" />
                                     Stock Movement
@@ -195,6 +209,9 @@ function Row({}) {
                                     Stock Overview
                                 </TabsTrigger>
                             </TabsList>
+                            <TabsContent value="price">
+                                <VariantPricingTab />
+                            </TabsContent>
                             <TabsContent value="price">
                                 <VariantPricingTab />
                             </TabsContent>

@@ -84,7 +84,8 @@ export async function inventoryList(db: Db, query: InventoryList) {
         stockMode,
         stockMonitored: stockMode == "monitored",
         stockValue: r?.variantPricings?.[0]?.price,
-        stockStatus: generateRandomNumber(2) > 50 ? "Low Stock" : null,
+        stockStatus: null,
+        // stockStatus: generateRandomNumber(2) > 50 ? "Low Stock" : null,
         img: {
           path: r?.images?.[0]?.imageGallery?.path,
           provider: r?.images?.[0]?.imageGallery?.provider,
@@ -452,7 +453,7 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
 export async function lowStockSummary(db: Db) {}
 export async function pendingInboundSummary(db: Db) {}
 
-export async function saveInventory(db: Db, data: InventoryForm) {
+export async function inventoryFormSave(db: Db, data: InventoryForm) {
   let inventoryId = data.product.id;
   const { product } = data;
   const stockMode: StockModes = product.stockMonitor
@@ -571,9 +572,17 @@ export async function inventoryForm(db: Db, inventoryId) {
         };
       }),
   } satisfies InventoryForm;
-
   return formData;
 }
+export const inventoryInboundFormSchema = z.object({
+  example: z.string(),
+});
+export type InventoryInboundForm = z.infer<typeof inventoryInboundFormSchema>;
+export async function inventoryInboundForm(db: Db, inboundId) {}
+export async function inventoryInboundFormSave(
+  db: Db,
+  data: InventoryInboundForm
+) {}
 export async function saveVariantForm(db: Db, data: VariantForm) {
   if (!data.id) {
     const variant = await db.inventoryVariant.create({

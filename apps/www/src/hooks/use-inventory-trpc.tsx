@@ -25,6 +25,24 @@ export function useInventoryTrpc(props: Props = {}) {
             },
         }),
     );
+    const { mutate: mutateUpdateVariantStatus } = useMutation(
+        trpc.inventories.updateVariantStatus.mutationOptions({
+            onSuccess(data, variables, context) {
+                toast({
+                    title: "Updated",
+                    variant: "success",
+                });
+                ctx.refreshCategories();
+                ctx.refreshInventories();
+                ctx.refreshKeys("inventoryVariantStockForm");
+            },
+            onError(error, variables, context) {
+                toast({
+                    title: "Unable to complete",
+                });
+            },
+        }),
+    );
     const { mutate: mutateDeleteInventory } = useMutation(
         trpc.inventories.deleteInventory.mutationOptions({
             onSuccess(data, variables, context) {
@@ -80,6 +98,7 @@ export function useInventoryTrpc(props: Props = {}) {
     const ctx = {
         categoryList,
         updateCategoryVariantAttribute,
+        mutateUpdateVariantStatus,
         refreshKeysInfinite(...keys: (keyof typeof trpc.inventories)[]) {
             for (const k of keys) {
                 qc.invalidateQueries({

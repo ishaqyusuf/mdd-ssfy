@@ -3,7 +3,6 @@ import { createTRPCRouter, publicProcedure } from "../init";
 import { z } from "zod";
 import {
   getInventoryCategoryByShelfId,
-  migrateDykeStepToInventories,
   upsertInventoriesForDykeShelfProducts,
   upsertInventoriesForDykeShelfProductsSchema,
 } from "@api/db/queries/inventory.generate";
@@ -30,7 +29,7 @@ import {
   inventorySummarySchema,
   inventoryVariantStockForm,
   resetInventorySystem,
-  saveInventory,
+  inventoryFormSave,
   saveInventoryCategoryForm,
   saveVariantForm,
   updateCategoryVariantAttribute,
@@ -134,6 +133,11 @@ export const inventoriesRouter = createTRPCRouter({
       const result = await inventoryForm(props.ctx.db, props.input.id);
       return result;
     }),
+  inventoryFormSave: publicProcedure
+    .input(inventoryFormSchema)
+    .mutation(async (props) => {
+      return inventoryFormSave(props.ctx.db, props.input);
+    }),
   inventoryVariantStockForm: publicProcedure
     .input(
       z.object({
@@ -185,11 +189,7 @@ export const inventoriesRouter = createTRPCRouter({
     .mutation(async (props) => {
       return deleteInventoryCategory(props.ctx.db, props.input.id);
     }),
-  saveInventory: publicProcedure
-    .input(inventoryFormSchema)
-    .mutation(async (props) => {
-      return saveInventory(props.ctx.db, props.input);
-    }),
+
   saveVariantForm: publicProcedure
     .input(variantFormSchema)
     .mutation(async (props) => {
