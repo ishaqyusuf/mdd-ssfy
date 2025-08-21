@@ -80,20 +80,28 @@ export function useInventoryTrpc(props: Props = {}) {
     const ctx = {
         categoryList,
         updateCategoryVariantAttribute,
+        refreshKeysInfinite(...keys: (keyof typeof trpc.inventories)[]) {
+            for (const k of keys) {
+                qc.invalidateQueries({
+                    queryKey: (trpc.inventories[k] as any).infiniteQueryKey(),
+                });
+            }
+        },
         refreshKeys(...keys: (keyof typeof trpc.inventories)[]) {
             for (const k of keys) {
-                console.log({ k });
                 qc.invalidateQueries({
                     queryKey: (trpc.inventories[k] as any).queryKey(),
                 });
             }
         },
-        refreshCategories: () =>
-            // ctx.refreshKeys("inventoryCategories"),
-            qc.invalidateQueries({
-                queryKey: trpc.inventories.inventoryCategories.queryKey(),
-            }),
-        refreshInventories: () => ctx.refreshKeys("inventoryProducts"),
+        refreshCategories: () => {
+            ctx.refreshKeys("getInventoryCategories");
+            ctx.refreshKeysInfinite("inventoryCategories");
+        },
+        refreshInventories: () => {
+            ctx.refreshKeysInfinite("inventoryProducts");
+            ctx.refreshKeys("inventorySummary");
+        },
         // qc.invalidateQueries({
         // queryKey: trpc.inventories.inventoryProducts.queryKey(),
         // }),

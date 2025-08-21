@@ -38,6 +38,8 @@ import {
   updateSubCategorySchema,
   updateVariantCost,
   updateVariantCostSchema,
+  updateVariantStatus,
+  updateVariantStatusSchema,
 } from "@sales/inventory";
 import { inventoryImport } from "@sales/inventory-import";
 import { InventoryImportService } from "@sales/inventory-import-service";
@@ -159,6 +161,11 @@ export const inventoriesRouter = createTRPCRouter({
     .input(updateVariantCostSchema)
     .mutation(async (props) => {
       return updateVariantCost(props.ctx.db, props.input);
+    }),
+  updateVariantStatus: publicProcedure
+    .input(updateVariantStatusSchema)
+    .mutation(async (props) => {
+      return updateVariantStatus(props.ctx.db, props.input);
     }),
   deleteInventory: publicProcedure
     .input(

@@ -7,13 +7,15 @@ import { toast } from "@gnd/ui/use-toast";
 import { FormDebugBtn } from "@/components/form-debug-btn";
 import { useInventoryCategoryForm } from "./form-context";
 import { useInventoryCategoryParams } from "@/hooks/use-inventory-category-params";
+import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 
 export function FormAction({ onCancel }) {
     const { editCategoryId, setParams } = useInventoryCategoryParams();
     const form = useInventoryCategoryForm();
     const isEditing = editCategoryId > 0;
     const trpc = useTRPC();
-    const qc = useQueryClient();
+    // const qc = useQueryClient();
+    const iTrpc = useInventoryTrpc();
     const {
         isPending: isSubmitting,
         mutate,
@@ -27,9 +29,9 @@ export function FormAction({ onCancel }) {
                         editCategoryId: data.id,
                     });
                 }
-                qc.invalidateQueries({
-                    queryKey: trpc.inventories.inventoryCategories.queryKey(),
-                });
+                iTrpc.refreshKeysInfinite("inventoryCategories");
+                iTrpc.refreshKeys("getInventoryCategories");
+
                 toast({
                     title: "Saved",
                     variant: "success",
@@ -46,20 +48,23 @@ export function FormAction({ onCancel }) {
         <div className="flex flex-1 py-4 items-center gap-4">
             <div className="text-sm text-muted-foreground">
                 {isEditing
-                    ? "Update your product information"
-                    : "Create a new product"}
+                    ? "Update your category information"
+                    : "Create a new category"}
             </div>
             <div className="flex-1"></div>
             <div className="flex gap-3">
                 <Button
                     type="button"
                     variant="outline"
-                    onClick={onCancel}
+                    onClick={(e) => {
+                        setParams({
+                            editCategoryId: -1,
+                        });
+                    }}
                     disabled={isSubmitting}
                 >
-                    Cancel
+                    New
                 </Button>
-                <FormDebugBtn />
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <SubmitButton
                         isSubmitting={isSubmitting}

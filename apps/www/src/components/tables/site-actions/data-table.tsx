@@ -17,15 +17,13 @@ export function DataTable({}) {
     const { filter, setFilter } = useInboundFilterParams();
     const { ref, inView } = useInView();
 
-    const infiniteQueryOptions = (
-        trpc.siteActions.index as any
-    ).infiniteQueryOptions(
+    const infiniteQueryOptions = trpc.siteActions.index.infiniteQueryOptions(
         {
             ...filter,
         },
         {
             getNextPageParam: ({ meta }) => {
-                return meta?.cusor?.toString();
+                return (meta as any)?.cusor?.toString();
             },
         },
     );

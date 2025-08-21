@@ -26,7 +26,10 @@ export function FormContext({ children, data }: FormContextProps) {
         defaultValues,
     });
     useEffect(() => {
-        if (data) data.product.status = data.product.status || "draft";
+        if (data) {
+            data.product.status = data.product.status || "draft";
+            if (!data.product.description) data.product.description = "";
+        }
         form.reset({
             ...(data ?? defaultValues),
         });

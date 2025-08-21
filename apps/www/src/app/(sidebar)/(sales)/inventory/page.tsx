@@ -4,7 +4,15 @@ import { InventoryHeader } from "@/components/inventory-header";
 import { DataTable } from "@/components/tables/inventory-products/data-table";
 
 import { TableSkeleton } from "@/components/tables/skeleton";
-import { getQueryClient, HydrateClient } from "@/trpc/server";
+import { loadInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
+import {
+    batchPrefetch,
+    getQueryClient,
+    HydrateClient,
+    trpc,
+} from "@/trpc/server";
+import { RouterInputs } from "@api/trpc/routers/_app";
+import { InventorySummary } from "@sales/inventory";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { SearchParams } from "nuqs";
 import { Suspense } from "react";
@@ -13,6 +21,25 @@ type Props = {
     searchParams: Promise<SearchParams>;
 };
 export default async function Page(props: Props) {
+    const searchParams = await props.searchParams;
+    const filter = loadInventoryFilterParams(searchParams);
+    batchPrefetch([
+        trpc.inventories.inventoryProducts.infiniteQueryOptions({
+            ...filter,
+        }),
+        ...(
+            [
+                "categories",
+                "inventory_value",
+                "stock_level",
+                "total_products",
+            ] as InventorySummary["type"][]
+        ).map((type) =>
+            trpc.inventories.inventorySummary.queryOptions({
+                type,
+            }),
+        ),
+    ]);
     return (
         <FPage title="Inventory">
             {/* <InventoryTabSwitch path="/inventory" /> */}

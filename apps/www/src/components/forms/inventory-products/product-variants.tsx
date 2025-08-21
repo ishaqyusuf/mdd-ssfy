@@ -19,6 +19,8 @@ import { cn } from "@gnd/ui/cn";
 import { VariantFilters } from "./variant-filters";
 import { Progress } from "@/components/(clean-code)/progress";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
+import { Menu } from "@/components/(clean-code)/menu";
+import { Button } from "@gnd/ui/button";
 
 export function ProductVariants() {
     const ctx = useProductVariants();
@@ -96,7 +98,6 @@ export function ProductVariants() {
 
 function Row({}) {
     const { data, opened } = useVariant();
-    const { mutate, data: mutateData } = useMutation({});
     const { setParams, editVariantTab, editVariantUid } = useInventoryParams();
 
     return (
@@ -141,10 +142,35 @@ function Row({}) {
                         "-"
                     )}
                 </TableCell>
-                <TableCell>
-                    <Progress>
-                        <Progress.Status>{data?.status}</Progress.Status>
-                    </Progress>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Menu
+                        Trigger={
+                            <Button variant="outline">
+                                <Progress>
+                                    <Progress.Status>
+                                        {data?.status}
+                                    </Progress.Status>
+                                </Progress>
+                            </Button>
+                        }
+                    >
+                        <Menu.Item
+                            shortCut={
+                                <div className="size-2 bg-green-500"></div>
+                            }
+                            icon="Published"
+                        >
+                            Publish
+                        </Menu.Item>
+                        <Menu.Item
+                            shortCut={
+                                <div className="size-2 bg-orange-500"></div>
+                            }
+                            icon="Draft"
+                        >
+                            Draft
+                        </Menu.Item>
+                    </Menu>
                 </TableCell>
                 <TableCell></TableCell>
             </TableRow>

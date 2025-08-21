@@ -11,11 +11,11 @@ interface FormContextProps {
 export function FormContext({ children, data }: FormContextProps) {
     const defaultValues = {
         categoryVariantAttributes: [],
-        description: undefined,
-        enablePricing: undefined,
-        id: undefined,
-        title: undefined,
-        categoryIdSelector: undefined,
+        description: "",
+        enablePricing: false,
+        id: null,
+        title: "",
+        categoryIdSelector: null,
     };
     const form = useZodForm(inventoryCategoryFormSchema, {
         defaultValues,

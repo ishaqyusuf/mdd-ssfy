@@ -7,13 +7,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@gnd/ui/use-toast";
 import { useInventoryForm } from "./form-context";
 import { FormDebugBtn } from "@/components/form-debug-btn";
+import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 
 export function InventoryFormAction({ onCancel }) {
     const { productId, setParams } = useInventoryParams();
     const form = useInventoryForm();
     const isEditing = productId > 0;
     const trpc = useTRPC();
-    const qc = useQueryClient();
+    const iTrpc = useInventoryTrpc();
     const {
         isPending: isSubmitting,
         mutate,
@@ -21,9 +22,8 @@ export function InventoryFormAction({ onCancel }) {
     } = useMutation(
         trpc.inventories.saveInventory.mutationOptions({
             onSuccess(data) {
-                qc.invalidateQueries({
-                    queryKey: trpc.inventories.inventoryProducts.queryKey(),
-                });
+                iTrpc.refreshInventories();
+
                 toast({
                     title: "Saved",
                     variant: "success",
@@ -52,12 +52,16 @@ export function InventoryFormAction({ onCancel }) {
                 <Button
                     type="button"
                     variant="outline"
-                    onClick={onCancel}
+                    onClick={(e) => {
+                        setParams({
+                            productId: -1,
+                        });
+                    }}
                     disabled={isSubmitting}
                 >
-                    Cancel
+                    New
                 </Button>
-                <FormDebugBtn />
+
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <SubmitButton
                         isSubmitting={isSubmitting}

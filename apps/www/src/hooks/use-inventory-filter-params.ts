@@ -1,5 +1,5 @@
-import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
-import { createLoader } from "nuqs/server";
+import { useQueryStates } from "nuqs";
+import { createLoader, parseAsInteger, parseAsString } from "nuqs/server";
 import { InventoryList } from "@sales/schema";
 type FilterKeys = keyof InventoryList;
 

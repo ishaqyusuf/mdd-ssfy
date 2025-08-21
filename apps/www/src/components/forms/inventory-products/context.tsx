@@ -97,7 +97,10 @@ export const {
         const list = data.attributeMaps.filter((item) => {
             // if no filters except q, default to active status
             if (!hasSearchFilters && !item?.attributes?.length) return true;
-            if (!hasSearchFilters && item.status !== "active") {
+            if (
+                !hasSearchFilters &&
+                item.status?.toLowerCase() !== "published"
+            ) {
                 return false;
             }
 

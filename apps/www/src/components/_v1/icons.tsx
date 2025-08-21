@@ -4,6 +4,7 @@ import Link from "@/components/link";
 import { cn } from "@/lib/utils";
 import { cva, VariantProps } from "class-variance-authority";
 import { Icons as BaseIcon, Icon as LucideIcon } from "@gnd/ui/custom/icons";
+import { CheckCircle, FileEdit } from "lucide-react";
 export type Icon = LucideIcon;
 
 export const Icons = {
@@ -45,6 +46,8 @@ export const Icons = {
             />
         </svg>
     ),
+    Draft: FileEdit,
+    Published: CheckCircle,
 };
 
 export type IconKeys = keyof typeof Icons;

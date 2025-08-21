@@ -422,7 +422,7 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
         uid: matchedVariant?.uid || generateRandomString(5),
         price: matchedVariant?.pricing?.costPrice,
         pricingId: matchedVariant?.pricing?.id,
-        status: matchedVariant ? matchedVariant.status ?? "active" : "draft",
+        status: matchedVariant ? matchedVariant.status ?? "draft" : "draft",
         attributes: combo,
         title: titleParts.join(" "),
         stockCount: sum(matchedVariant?.stockMovements, "changeQty"),
@@ -924,6 +924,48 @@ export async function updateVariantCost(db: Db, data: UpdateVariantCost) {
             : undefined,
         },
         status: "draft",
+      },
+    });
+}
+export const updateVariantStatusSchema = z
+  .object({
+    status: z.enum(["published", "draft"]),
+  })
+  .merge(
+    updateVariantCostSchema.pick({
+      attributes: true,
+      variantId: true,
+      inventoryId: true,
+      uid: true,
+    })
+  );
+export type UpdateVariantStatus = z.infer<typeof updateVariantStatusSchema>;
+export async function updateVariantStatus(db: Db, data: UpdateVariantStatus) {
+  if (data.variantId)
+    await db.inventoryVariant.update({
+      where: {
+        id: data.variantId,
+      },
+      data: {
+        status: data.status,
+      },
+    });
+  else
+    await db.inventoryVariant.create({
+      data: {
+        inventoryId: data.inventoryId,
+        uid: data.uid,
+        attributes: {
+          createMany: !data.attributes?.length
+            ? undefined
+            : {
+                data: data.attributes.map((attribute) => ({
+                  inventoryCategoryVariantAttributeId: attribute.attributeId,
+                  valueId: attribute.valueId,
+                })),
+              },
+        },
+        status: data.status,
       },
     });
 }
