@@ -6,7 +6,6 @@ import { columns } from "./columns";
 import { Table, TableBody } from "@gnd/ui/table";
 import { TableHeaderComponent } from "../table-header";
 import { TableRow } from "../table-row";
-import { LoadMoreTRPC } from "../load-more";
 import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useInventoryImportFilterParams } from "@/hooks/use-inventory-import-filter-params";

@@ -18,6 +18,7 @@ import {
   variantFormSchema,
 } from "@sales/schema";
 import {
+  deleteInventory,
   deleteInventoryCategory,
   getInventoryCategories,
   getInventoryCategoryAttributes,
@@ -25,6 +26,8 @@ import {
   inventoryCategories,
   inventoryForm,
   inventoryList,
+  inventorySummary,
+  inventorySummarySchema,
   inventoryVariantStockForm,
   resetInventorySystem,
   saveInventory,
@@ -47,6 +50,12 @@ export const inventoriesRouter = createTRPCRouter({
     )
     .query(async (props) => {
       return getInventoryCategoryByShelfId(props.ctx, props.input.categoryId);
+    }),
+  inventorySummary: publicProcedure
+    .input(inventorySummarySchema)
+    .query(async (props) => {
+      const result = await inventorySummary(props.ctx.db, props.input);
+      return result;
     }),
   upsertShelfProducts: publicProcedure
     .input(upsertInventoriesForDykeShelfProductsSchema)
@@ -152,6 +161,15 @@ export const inventoriesRouter = createTRPCRouter({
       return updateVariantCost(props.ctx.db, props.input);
     }),
   deleteInventory: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+      })
+    )
+    .mutation(async (props) => {
+      return deleteInventory(props.ctx.db, props.input.id);
+    }),
+  deleteInventoryCategory: publicProcedure
     .input(
       z.object({
         id: z.number(),

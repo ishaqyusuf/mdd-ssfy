@@ -4,25 +4,25 @@ import { generateInventoryCategoryUidFromShelfCategoryId } from "./utils/invento
 
 export async function inventoryImport(db: Db, data: InventoryImport) {
   //   const { db } = ctx;
-  const shelfCategories = (
-    await db.dykeShelfCategories.findMany({
-      where: {
-        parentCategoryId: null,
-      },
-      select: {
-        id: true,
-        name: true,
-        _count: {
-          select: {
-            groupedProducts: true,
-          },
-        },
-      },
-    })
-  ).map((c) => ({
-    ...c,
-    uid: generateInventoryCategoryUidFromShelfCategoryId(c.id),
-  }));
+  // const shelfCategories = (
+  //   await db.dykeShelfCategories.findMany({
+  //     where: {
+  //       parentCategoryId: null,
+  //     },
+  //     select: {
+  //       id: true,
+  //       name: true,
+  //       _count: {
+  //         select: {
+  //           groupedProducts: true,
+  //         },
+  //       },
+  //     },
+  //   })
+  // ).map((c) => ({
+  //   ...c,
+  //   uid: generateInventoryCategoryUidFromShelfCategoryId(c.id),
+  // }));
   const categories = await db.dykeSteps.findMany({
     distinct: "title",
     select: {
@@ -46,7 +46,7 @@ export async function inventoryImport(db: Db, data: InventoryImport) {
       uid: {
         in: [
           ...categories.map((c) => c.uid!),
-          ...shelfCategories.map((sc) => sc.uid),
+          // ...shelfCategories.map((sc) => sc.uid),
         ],
       },
     },
@@ -72,14 +72,14 @@ export async function inventoryImport(db: Db, data: InventoryImport) {
   }
   const response = {
     data: [
-      ...shelfCategories.map((c) => ({
-        uid: c.uid,
-        title: c.name,
-        totalProducts: c._count?.groupedProducts,
-        ...inventoryInfo(c.uid),
-        subCategory: "shelf item",
-        importCategoryId: c.id,
-      })),
+      // ...shelfCategories.map((c) => ({
+      //   uid: c.uid,
+      //   title: c.name,
+      //   totalProducts: c._count?.groupedProducts,
+      //   ...inventoryInfo(c.uid),
+      //   subCategory: "shelf item",
+      //   importCategoryId: c.id,
+      // })),
       ...categories.map((c) => ({
         uid: c.uid,
         title: c.title,

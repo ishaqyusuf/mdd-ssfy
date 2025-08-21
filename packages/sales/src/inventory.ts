@@ -14,7 +14,12 @@ import {
   queryBuilder,
 } from "@gnd/utils/query-response";
 import { INVENTORY_STATUS, StockModes } from "./constants";
-import { generateRandomNumber, generateRandomString, sum } from "@gnd/utils";
+import {
+  formatMoney,
+  generateRandomNumber,
+  generateRandomString,
+  sum,
+} from "@gnd/utils";
 import { TABLE_NAMES } from "./inventory-import-service";
 import { z } from "zod";
 import { id } from "date-fns/locale";
@@ -216,6 +221,123 @@ export async function getVariantCostHistories(
       };
     })
   );
+}
+export const inventorySummarySchema = z.object({
+  type: z.enum([
+    "total_products",
+    "inventory_value",
+    "stock_level",
+    "categories",
+  ]),
+});
+export type InventorySummary = z.infer<typeof inventorySummarySchema>;
+export async function inventorySummary(db: Db, data: InventorySummary) {
+  switch (data.type) {
+    case "total_products":
+      const productCount = await db.inventory.count({
+        where: {
+          variantPricings: {
+            some: {
+              costPrice: { gt: 0 },
+              deletedAt: null,
+            },
+          },
+        },
+      });
+      const publishedProducts = await db.inventory.count({
+        where: {
+          variantPricings: {
+            some: {
+              costPrice: { gt: 0 },
+              deletedAt: null,
+              inventoryVariant: {
+                status: "published",
+              },
+            },
+          },
+          status: "published" as INVENTORY_STATUS,
+        },
+      });
+      return {
+        value: productCount,
+        subtitle: `${publishedProducts} published`,
+      };
+    case "inventory_value":
+    case "stock_level":
+      const inv = await db.inventoryVariant.findMany({
+        where: {
+          inventory: {
+            stockMode: "monitored" as StockModes,
+          },
+          lowStockAlert:
+            data.type == "inventory_value"
+              ? undefined
+              : {
+                  gt: 0,
+                },
+          pricing: {
+            costPrice: {
+              gt: 0,
+            },
+          },
+        },
+        select: {
+          lowStockAlert: true,
+          logs: {
+            where: {
+              deletedAt: null,
+            },
+            select: {
+              costPrice: true,
+              qty: true,
+            },
+          },
+          // stocks: {
+          //   select: {
+          //     qty: true,
+          //     price: true,
+          //     logs: {
+          //       select: {
+
+          //       }
+          //     }
+          //   },
+          // },
+          // pricing: {
+          //   select: {
+          //     costPrice: true,
+          //   },
+          // },
+        },
+      });
+      if (data.type == "inventory_value") {
+        const value = sum(
+          inv.map((a) => sum(a.logs.map((l) => l.costPrice! * l.qty)))
+        );
+        return {
+          value: formatMoney(value),
+          subtitle: "Total cost value",
+        };
+      }
+      const lowStockCount = inv.filter((v) => {
+        const totalQty = sum(v.logs.map((l) => l.qty));
+        return v.lowStockAlert && totalQty <= v.lowStockAlert;
+      }).length;
+      // const value = sum(inv.map((a) => sum(a.logs.map((l) => l.qty))));
+      return {
+        value: lowStockCount,
+        subtitle: `Products need restocking`,
+      };
+    case "categories":
+      const c = await db.inventoryCategory.count({
+        where: {},
+      });
+
+      return {
+        value: c,
+        subtitle: "Active categories",
+      };
+  }
 }
 export async function inventoryVariantStockForm(db: Db, inventoryId) {
   const inventory = await db.inventory.findUniqueOrThrow({
@@ -566,6 +688,16 @@ function whereInventoryCategories(query: InventoryCategories) {
   return composeQuery(wheres);
 }
 
+export async function deleteInventory(db: Db, id) {
+  await db.inventory.update({
+    where: {
+      id,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+}
 export async function deleteInventoryCategory(db: Db, id) {
   await db.inventoryCategory.update({
     where: {

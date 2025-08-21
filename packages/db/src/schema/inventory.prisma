@@ -101,7 +101,7 @@ model InventoryVariant {
     inboundStocks    InboundShipmentItem[]
     pricing          InventoryVariantPricing?
     pricingHistories PriceHistory[]
-    records          InventoryActivity[]
+    usageActivities  InventoryActivity[]
 
     @@index([inventoryId])
 }
@@ -269,7 +269,8 @@ model InventoryStock {
     inventoryVariantId Int
     inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
 
-    quantity   Float
+    qty        Float
+    price      Float?
     location   String?
     supplierId Int?
     supplier   Supplier? @relation(fields: [supplierId], references: [id])
@@ -277,6 +278,8 @@ model InventoryStock {
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
+
+    logs InventoryLog[]
 
     @@index([inventoryVariantId])
     @@index([supplierId])
@@ -299,20 +302,24 @@ model Supplier {
 model InventoryLog {
     id                 Int              @id @default(autoincrement())
     action             String
-    quantity           Float
+    qty                Float
+    costPrice          Float?
     notes              String?
     inventoryVariantId Int
     inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
     createdBy          String?
 
-    createdAt   DateTime?  @default(now()) @db.Timestamp(0)
-    updatedAt   DateTime?  @updatedAt
-    deletedAt   DateTime?  @db.Timestamp(0)
-    Inventory   Inventory? @relation(fields: [inventoryId], references: [id])
-    inventoryId Int?
+    createdAt        DateTime?       @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?       @updatedAt
+    deletedAt        DateTime?       @db.Timestamp(0)
+    Inventory        Inventory?      @relation(fields: [inventoryId], references: [id])
+    inventoryId      Int?
+    stock            InventoryStock? @relation(fields: [inventoryStockId], references: [id])
+    inventoryStockId Int?
 
     @@index([inventoryVariantId])
     @@index([inventoryId])
+    @@index([inventoryStockId])
 }
 
 model ImageGallery {
@@ -459,7 +466,7 @@ model InboundShipmentItem {
     inventoryVariantId Int
     inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
 
-    quantity  Float
+    qty       Float
     unitPrice Float?
 
     // NEW: one-to-one link to StockMovement for auditing

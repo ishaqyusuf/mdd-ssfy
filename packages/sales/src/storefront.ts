@@ -1,12 +1,9 @@
 import { Db, Prisma } from "@gnd/db";
-import { imageUrl, slugify, timeout, uniqueList } from "@gnd/utils";
+import { imageUrl, slugify, uniqueList } from "@gnd/utils";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 import { z } from "zod";
-import {
-  getVariantCostHistories,
-  inventoryVariantStockForm,
-} from "./inventory";
+import { inventoryVariantStockForm } from "./inventory";
 
 export const productSearchSchema = z
   .object({
@@ -110,7 +107,7 @@ export async function productOverview(db: Db, data: ProductOverview) {
   } = await productSearch(db, {
     productSlug: data.productSlug,
   });
-  const variants = await inventoryVariantStockForm(db, id);
+  const variants = await inventoryVariantStockForm(db, Number(id));
 
   return {
     data,

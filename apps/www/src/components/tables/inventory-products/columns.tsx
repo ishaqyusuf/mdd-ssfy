@@ -2,8 +2,10 @@
 
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Progress } from "@/components/(clean-code)/progress";
+import ConfirmBtn from "@/components/confirm-button";
 import { StockModeStatus } from "@/components/stock-mode-status";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
+import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 import { cn } from "@/lib/utils";
 import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
@@ -95,6 +97,10 @@ export const columns: ColumnDef<Item>[] = [
                     productId: item.id,
                 });
             };
+            const n = useInventoryTrpc();
+            const handleDeleteProduct = () => {
+                n.deleteInventory(item.id);
+            };
             return (
                 <div className="flex gap-2">
                     <Button variant="ghost" size="sm">
@@ -107,6 +113,7 @@ export const columns: ColumnDef<Item>[] = [
                     >
                         <Icons.Edit className="w-4 h-4" />
                     </Button>
+                    <ConfirmBtn trash onClick={handleDeleteProduct} />
                 </div>
             );
         },

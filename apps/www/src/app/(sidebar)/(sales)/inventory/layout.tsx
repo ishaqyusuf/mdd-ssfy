@@ -1,6 +1,6 @@
 import { InventoryTabs } from "@/components/inventory-tabs";
 import { InventoryStockAlertWidget } from "@/components/widgets/inventory-stock-alert-widget";
-import { InventorySummaryWidgets } from "@/components/widgets/inventory-summary-widgets";
+import InventorySummaryWidgets from "@/components/widgets/inventory-summary-widgets";
 
 export default async function Layout({ children }) {
     return (

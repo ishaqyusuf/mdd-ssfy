@@ -9,6 +9,23 @@ export function useInventoryTrpc(props: Props = {}) {
     const trpc = useTRPC();
     const qc = useQueryClient();
     const { mutate: mutateDeleteCategory } = useMutation(
+        trpc.inventories.deleteInventoryCategory.mutationOptions({
+            onSuccess(data, variables, context) {
+                toast({
+                    title: "Deleted",
+                    variant: "destructive",
+                });
+                ctx.refreshCategories();
+                ctx.refreshInventories();
+            },
+            onError(error, variables, context) {
+                toast({
+                    title: "Unable to complete",
+                });
+            },
+        }),
+    );
+    const { mutate: mutateDeleteInventory } = useMutation(
         trpc.inventories.deleteInventory.mutationOptions({
             onSuccess(data, variables, context) {
                 toast({
@@ -64,10 +81,12 @@ export function useInventoryTrpc(props: Props = {}) {
         categoryList,
         updateCategoryVariantAttribute,
         refreshKeys(...keys: (keyof typeof trpc.inventories)[]) {
-            for (const k of keys)
+            for (const k of keys) {
+                console.log({ k });
                 qc.invalidateQueries({
                     queryKey: (trpc.inventories[k] as any).queryKey(),
                 });
+            }
         },
         refreshCategories: () =>
             // ctx.refreshKeys("inventoryCategories"),
@@ -79,6 +98,7 @@ export function useInventoryTrpc(props: Props = {}) {
         // queryKey: trpc.inventories.inventoryProducts.queryKey(),
         // }),
         deleteCategory: (id) => mutateDeleteCategory({ id }),
+        deleteInventory: (id) => mutateDeleteInventory({ id }),
     };
     return ctx;
 }
