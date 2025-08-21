@@ -13,13 +13,13 @@ interface Props {
 }
 export default async function Page(props: Props) {
   const searchParams = await props.searchParams;
-  console.log({ searchParams });
   const params = await props.params;
 
   const filter = loadProductFilterParams(searchParams);
   batchPrefetch([
     trpc.storefront.productOverview.queryOptions({
       ...filter,
+      ...params,
     }),
   ]);
 

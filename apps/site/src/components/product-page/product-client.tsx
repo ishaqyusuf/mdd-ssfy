@@ -10,6 +10,7 @@ import { Badge } from "@gnd/ui/badge";
 import { ProductVariants } from "../product-variants";
 import { ProductSizeSelector } from "../product-size-selector";
 import { ProductQuantitySelector } from "../product-quantity-selector";
+import { ProductActions } from "../product-actions";
 
 export function ProductClient({ categorySlug, productSlug }) {
   return (
@@ -98,11 +99,11 @@ function Content() {
 
             <p className="text-gray-700 mb-6">{product.description}</p>
           </div>
-          Variants
+
           <ProductVariants />
           {/* <ProductSizeSelector/> */}
           {/* Quantity */}
-          {/* <ProductQuantitySelector/> */}
+          <ProductQuantitySelector />
           {/* Actions */}
           {/* <ProductActions
           product={productForCart}
@@ -111,6 +112,7 @@ function Content() {
           inStock={currentProduct.inStock}
           price={`$${calculateTotalPrice().toFixed(2)}`}
         /> */}
+          <ProductActions />
           {/* Features */}
           <div className="grid grid-cols-3 gap-4 pt-6 border-t">
             <div className="text-center">

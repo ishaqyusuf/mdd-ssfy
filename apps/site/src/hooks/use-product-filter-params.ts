@@ -1,8 +1,11 @@
 import { ProductOverview } from "@sales/storefront";
 import { useQueryStates } from "nuqs";
-import { createLoader, parseAsString } from "nuqs/server";
+import { createLoader, parseAsString, parseAsInteger } from "nuqs/server";
 
-export const productFilterParamsSchema = {};
+export const productFilterParamsSchema = {
+  qty: parseAsInteger,
+  variantId: parseAsInteger,
+};
 // productSlug: parseAsString,
 // categorySlug: parseAsString,
 // } satisfies Partial<Record<keyof ProductOverview, any>>;

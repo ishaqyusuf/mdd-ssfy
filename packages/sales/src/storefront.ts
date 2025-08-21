@@ -113,6 +113,8 @@ export async function productOverview(db: Db, data: ProductOverview) {
     data,
     product,
     variants,
+    inStock: false,
+    isFavorite: false,
   };
 }
 export async function searchFilters(db: Db, query: ProductSearch) {

@@ -5,32 +5,19 @@ import { Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@gnd/ui/button";
 import { useCartStore } from "@/lib/cart-store";
 import { toast } from "@gnd/ui/use-toast";
+import { useProduct } from "@/hooks/use-product";
+import NumberFlow from "@number-flow/react";
+import { sum } from "@gnd/utils";
+import { useProductFilterParams } from "@/hooks/use-product-filter-params";
 
-interface ProductActionsProps {
-  product: {
-    id: number;
-    name: string;
-    price: number;
-    image: string;
-    variant?: string;
-    size?: string;
-  };
-  isFavorite: boolean;
-  inStock: boolean;
-  price: string;
-  onAddToFavorites: () => void;
-}
+interface ProductActionsProps {}
 
-export function ProductActions({
-  product,
-  onAddToFavorites,
-  isFavorite,
-  inStock,
-  price,
-}: ProductActionsProps) {
+export function ProductActions() {
   const { addItem, isHydrated } = useCartStore();
   const [isAdding, setIsAdding] = useState(false);
-
+  const ctx = useProduct();
+  const { setFilter, filter } = useProductFilterParams();
+  const { product, inStock } = ctx;
   const handleAddToCart = async () => {
     if (!isHydrated) {
       console.log("Store not hydrated yet, waiting...");
@@ -41,14 +28,14 @@ export function ProductActions({
     console.log("Adding product to cart:", product); // Debug log
 
     try {
-      addItem({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        variant: product.variant,
-        size: product.size,
-      });
+      // addItem({
+      //   id: product.id,
+      //   name: product.name,
+      //   price: product.price,
+      //   image: product.image,
+      //   variant: product.variant,
+      //   size: product.size,
+      // });
 
       toast({
         title: "Added to Cart",
@@ -69,7 +56,12 @@ export function ProductActions({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-3xl font-bold text-gray-900">{price}</div>
+        <div className="text-3xl font-bold text-gray-900">
+          <NumberFlow
+            prefix="$ "
+            value={sum([product.price * filter?.qty || 1])}
+          />
+        </div>
         <div
           className={`text-sm font-medium ${
             inStock ? "text-green-600" : "text-red-600"
@@ -82,7 +74,7 @@ export function ProductActions({
       <div className="flex space-x-3">
         <Button
           onClick={handleAddToCart}
-          disabled={!inStock || !isHydrated || isAdding}
+          // disabled={!inStock || !isHydrated || isAdding}
           className="flex-1 bg-amber-700 hover:bg-amber-800"
         >
           <ShoppingCart className="h-4 w-4 mr-2" />
@@ -91,10 +83,12 @@ export function ProductActions({
         <Button
           variant="outline"
           size="icon"
-          onClick={onAddToFavorites}
-          className={isFavorite ? "text-red-500 border-red-500" : ""}
+          // onClick={onAddToFavorites}
+          // className={isFavorite ? "text-red-500 border-red-500" : ""}
         >
-          <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+          <Heart
+            className={`h-4 w-4 ${ctx.isFavorite ? "fill-current" : ""}`}
+          />
         </Button>
       </div>
     </div>
