@@ -4,13 +4,6 @@ import { useProduct } from "@/hooks/use-product";
 import { getVariantImage } from "@/lib/images";
 import { Button } from "@gnd/ui/button";
 
-interface Variant {
-  id: string;
-  name: string;
-  image: string;
-  price?: number;
-}
-
 export function ProductVariants() {
   // const ctx = useProduct();
   const { attributes, variant, selectAttribute } = useProduct();
@@ -35,6 +28,7 @@ export function ProductVariants() {
                   key={opt.valueId}
                   variant={isSelected ? "default" : "outline"}
                   size="sm"
+                  disabled={!opt.variant?.variantId}
                   onClick={() => selectAttribute(attr.attributeId, opt.valueId)}
                 >
                   {opt.valueLabel}

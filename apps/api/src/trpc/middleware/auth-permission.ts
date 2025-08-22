@@ -23,7 +23,7 @@ export const withAuthPermission = async <TReturn>(opts: {
   }) => Promise<TReturn>;
 }) => {
   const { ctx, next } = opts;
-
+  // opts.ctx.
   //   const userId = ctx.session?.user?.id;
 
   //   if (!userId) {

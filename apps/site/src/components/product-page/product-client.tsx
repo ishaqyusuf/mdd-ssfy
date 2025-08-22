@@ -5,12 +5,11 @@ import { Button } from "@gnd/ui/button";
 import { ArrowLeft, RotateCcw, Share2, Shield, Truck } from "lucide-react";
 import Link from "next/link";
 import { ProductImageGallery } from "@/components/product-image-gallery";
-import { ProductImageCarousel } from "../product-image-carousel";
 import { Badge } from "@gnd/ui/badge";
 import { ProductVariants } from "../product-variants";
-import { ProductSizeSelector } from "../product-size-selector";
 import { ProductQuantitySelector } from "../product-quantity-selector";
 import { ProductActions } from "../product-actions";
+import { ProductComponents } from "../product-components";
 
 export function ProductClient({ categorySlug, productSlug }) {
   return (
@@ -104,6 +103,7 @@ function Content() {
           {/* <ProductSizeSelector/> */}
           {/* Quantity */}
           <ProductQuantitySelector />
+
           {/* Actions */}
           {/* <ProductActions
           product={productForCart}

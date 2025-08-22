@@ -4,6 +4,7 @@ import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useProductFilterParams } from "./use-product-filter-params";
 import { useDebugConsole } from "./use-debug-console";
 import { useMemo } from "react";
+import { toast } from "@gnd/ui/use-toast";
 
 interface Props {
   categorySlug;
@@ -25,6 +26,45 @@ export const { Provider: ProductProvider, useContext: useProduct } =
     );
     // const {filters,setFilters} = useProductFilterParams();
     // useDebugConsole({ data, error });
+    const getMatchingVariant = (attributeId, valueId, variants) => {
+      if (!variants?.attributeMaps) return null;
+
+      const current = filter.variantId
+        ? variants.attributeMaps.find((v) => v.variantId === filter.variantId)
+        : variants.attributeMaps[0];
+
+      if (!current) return;
+
+      // swap out the chosen attribute
+      const newAttrs = current.attributes.map((a) =>
+        a.attributeId === attributeId ? { ...a, valueId } : a
+      );
+
+      // try exact match
+      let match = variants.attributeMaps.find((v) =>
+        newAttrs.every((na) =>
+          v.attributes.some(
+            (va) =>
+              va.attributeId === na.attributeId && va.valueId === na.valueId
+          )
+        )
+      );
+      // fallback: best match (most matching attributes)
+      // if (!match) {
+      //   match = data.variants.attributeMaps
+      //     .map((v) => ({
+      //       v,
+      //       score: v.attributes.filter((va) =>
+      //         newAttrs.some(
+      //           (na) =>
+      //             na.attributeId === va.attributeId && na.valueId === va.valueId
+      //         )
+      //       ).length,
+      //     }))
+      //     .sort((a, b) => b.score - a.score)[0]?.v;
+      // }
+      return match;
+    };
     const calculatedData = useMemo(() => {
       const variant =
         data?.variants?.attributeMaps?.find(
@@ -36,7 +76,11 @@ export const { Provider: ProductProvider, useContext: useProduct } =
         {
           attributeId: number;
           attributeLabel: string;
-          options: { valueId: number; valueLabel: string }[];
+          options: {
+            valueId: number;
+            valueLabel: string;
+            variant?: typeof variant;
+          }[];
         }
       > = {};
       data?.variants?.attributeMaps
@@ -60,6 +104,11 @@ export const { Provider: ProductProvider, useContext: useProduct } =
               attributes[attr.attributeId].options.push({
                 valueId: attr.valueId,
                 valueLabel: attr.valueLabel,
+                variant: getMatchingVariant(
+                  attr.attributeId,
+                  attr.valueId,
+                  data?.variants
+                ),
               });
             }
           });
@@ -69,49 +118,17 @@ export const { Provider: ProductProvider, useContext: useProduct } =
         attributes: Object.values(attributes),
       };
     }, [filter.variantId, data?.variants]);
+
     function selectAttribute(attributeId: number, valueId: number) {
-      if (!data?.variants?.attributeMaps) return;
-
-      const current = filter.variantId
-        ? data.variants.attributeMaps.find(
-            (v) => v.variantId === filter.variantId
-          )
-        : data.variants.attributeMaps[0];
-
-      if (!current) return;
-
-      // swap out the chosen attribute
-      const newAttrs = current.attributes.map((a) =>
-        a.attributeId === attributeId ? { ...a, valueId } : a
-      );
-
-      // try exact match
-      let match = data.variants.attributeMaps.find((v) =>
-        newAttrs.every((na) =>
-          v.attributes.some(
-            (va) =>
-              va.attributeId === na.attributeId && va.valueId === na.valueId
-          )
-        )
-      );
-
-      // fallback: best match (most matching attributes)
-      if (!match) {
-        match = data.variants.attributeMaps
-          .map((v) => ({
-            v,
-            score: v.attributes.filter((va) =>
-              newAttrs.some(
-                (na) =>
-                  na.attributeId === va.attributeId && na.valueId === va.valueId
-              )
-            ).length,
-          }))
-          .sort((a, b) => b.score - a.score)[0]?.v;
-      }
+      const match = getMatchingVariant(attributeId, valueId, data.variants);
 
       if (match) {
-        setFilter({ variantId: match.variantId });
+        if (match?.status == "published")
+          setFilter({ variantId: match.variantId });
+        else
+          toast({
+            title: "Not available",
+          });
       }
     }
 

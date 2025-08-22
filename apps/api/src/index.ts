@@ -18,6 +18,7 @@ if (process.env.NODE_ENV === "development")
         "Authorization",
         "Content-Type",
         "accept-language",
+        "x-guest-id",
         "x-trpc-source",
         "x-tenant-domain",
         "x-tenant-session-term-id",
@@ -26,7 +27,7 @@ if (process.env.NODE_ENV === "development")
       ],
       exposeHeaders: ["Content-Length"],
       maxAge: 86400,
-    }),
+    })
   );
 app.use(
   "/api/trpc/*",
@@ -34,7 +35,7 @@ app.use(
     router: appRouter,
     createContext: createTRPCContext,
     endpoint: "/api/trpc",
-  }),
+  })
 );
 app.get("/", (c) => {
   return c.json({ message: "Congrats! You've deployed Hono to Vercel" });

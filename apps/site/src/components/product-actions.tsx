@@ -9,6 +9,7 @@ import { useProduct } from "@/hooks/use-product";
 import NumberFlow from "@number-flow/react";
 import { sum } from "@gnd/utils";
 import { useProductFilterParams } from "@/hooks/use-product-filter-params";
+import { ProductComponents } from "./product-components";
 
 interface ProductActionsProps {}
 
@@ -25,7 +26,6 @@ export function ProductActions() {
     }
 
     setIsAdding(true);
-    console.log("Adding product to cart:", product); // Debug log
 
     try {
       // addItem({
@@ -70,7 +70,7 @@ export function ProductActions() {
           {inStock ? "In Stock" : "Out of Stock"}
         </div>
       </div>
-
+      <ProductComponents />
       <div className="flex space-x-3">
         <Button
           onClick={handleAddToCart}
