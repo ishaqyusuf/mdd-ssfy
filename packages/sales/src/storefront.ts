@@ -108,7 +108,6 @@ export async function productOverview(db: Db, data: ProductOverview) {
     productSlug: data.productSlug,
   });
   const variants = await inventoryVariantStockForm(db, Number(id));
-
   return {
     data,
     product,

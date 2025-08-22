@@ -25,15 +25,99 @@ export const { Provider: ProductProvider, useContext: useProduct } =
     );
     // const {filters,setFilters} = useProductFilterParams();
     // useDebugConsole({ data, error });
-    const variant = useMemo(() => {
-      const selected = data?.variants?.attributeMaps?.find(
-        (a) => a.variantId == filter.variantId
-      );
-      return selected || data?.variants?.attributeMaps?.[0];
+    const calculatedData = useMemo(() => {
+      const variant =
+        data?.variants?.attributeMaps?.find(
+          (a) => a.variantId == filter.variantId
+        ) || data?.variants?.attributeMaps?.[0];
+      // collect all attributes with options
+      const attributes: Record<
+        number,
+        {
+          attributeId: number;
+          attributeLabel: string;
+          options: { valueId: number; valueLabel: string }[];
+        }
+      > = {};
+      data?.variants?.attributeMaps
+        ?.filter((a) => {
+          return a.status == "published";
+        })
+        .forEach((am) => {
+          am.attributes.forEach((attr) => {
+            if (!attributes[attr.attributeId]) {
+              attributes[attr.attributeId] = {
+                attributeId: attr.attributeId,
+                attributeLabel: attr.attributeLabel,
+                options: [],
+              };
+            }
+            if (
+              !attributes[attr.attributeId].options.some(
+                (o) => o.valueId === attr.valueId
+              )
+            ) {
+              attributes[attr.attributeId].options.push({
+                valueId: attr.valueId,
+                valueLabel: attr.valueLabel,
+              });
+            }
+          });
+        });
+      return {
+        variant,
+        attributes: Object.values(attributes),
+      };
     }, [filter.variantId, data?.variants]);
+    function selectAttribute(attributeId: number, valueId: number) {
+      if (!data?.variants?.attributeMaps) return;
+
+      const current = filter.variantId
+        ? data.variants.attributeMaps.find(
+            (v) => v.variantId === filter.variantId
+          )
+        : data.variants.attributeMaps[0];
+
+      if (!current) return;
+
+      // swap out the chosen attribute
+      const newAttrs = current.attributes.map((a) =>
+        a.attributeId === attributeId ? { ...a, valueId } : a
+      );
+
+      // try exact match
+      let match = data.variants.attributeMaps.find((v) =>
+        newAttrs.every((na) =>
+          v.attributes.some(
+            (va) =>
+              va.attributeId === na.attributeId && va.valueId === na.valueId
+          )
+        )
+      );
+
+      // fallback: best match (most matching attributes)
+      if (!match) {
+        match = data.variants.attributeMaps
+          .map((v) => ({
+            v,
+            score: v.attributes.filter((va) =>
+              newAttrs.some(
+                (na) =>
+                  na.attributeId === va.attributeId && na.valueId === va.valueId
+              )
+            ).length,
+          }))
+          .sort((a, b) => b.score - a.score)[0]?.v;
+      }
+
+      if (match) {
+        setFilter({ variantId: match.variantId });
+      }
+    }
 
     return {
       ...(data || {}),
-      variant,
+      ...calculatedData,
+      selectAttribute,
     };
   });
