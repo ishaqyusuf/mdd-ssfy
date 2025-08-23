@@ -6,11 +6,16 @@ import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider, isServer } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink, loggerLink } from "@trpc/client";
 import { createTRPCContext } from "@trpc/tanstack-react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
 import { AppRouter } from "@gnd/api/trpc/routers/_app";
 import { getGuestId } from "@/actions/gues-id";
+import { useAsyncMemo } from "use-async-memo";
+import { generateRandomNumber, rndTimeout, timeout } from "@gnd/utils";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { nanoid } from "nanoid";
+import { useGuestId } from "@/hooks/use-guest-id";
 
 export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
 
@@ -37,6 +42,7 @@ export function TRPCReactProvider(
   }>
 ) {
   const queryClient = getQueryClient();
+
   const [trpcClient] = useState(() =>
     createTRPCClient<AppRouter>({
       links: [
@@ -48,12 +54,11 @@ export function TRPCReactProvider(
               : `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
           transformer: superjson as any,
           async headers() {
-            const guestId = await getGuestId();
+            // console.log({ guestId });
             return {
-              "x-guest-id": guestId,
+              // "x-guest-id": guestId,
             };
             // const auth = await authUser();
-
             // return {
             //     Authorization: `Bearer ${generateRandomString(16)}|${auth?.id}`,
             // };

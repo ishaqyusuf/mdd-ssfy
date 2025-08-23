@@ -185,6 +185,15 @@ export const inventoryFormSchema = z.object({
       // ),
     })
   ),
+  subComponents: z.array(
+    z.object({
+      parentId: z.number(),
+      defaultInventoryId: z.number().optional().nullable(),
+      inventoryCategoryId: z.number(),
+      index: z.number().default(0),
+      status: z.enum(INVENTORY_STATUS).default("published"),
+    })
+  ),
   images: z
     .array(
       z.object({
@@ -224,6 +233,9 @@ export const inventoryFormSchema = z.object({
     .optional()
     .nullable(),
 });
+export const updateSubComponentSchema =
+  inventoryFormSchema.shape.subComponents.element;
+export type UpdateSubComponent = z.infer<typeof updateSubComponentSchema>;
 export type InventoryForm = z.infer<typeof inventoryFormSchema>;
 export const getInventoryCategoriesSchema = z.object({
   // example: z.string(),

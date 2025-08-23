@@ -21,6 +21,7 @@ export function FormContext({ children, data }: FormContextProps) {
         variants: [],
         images: [],
         subCategories: [],
+        subComponents: [],
     } satisfies InventoryForm;
     const form = useZodForm(inventoryFormSchema, {
         defaultValues,

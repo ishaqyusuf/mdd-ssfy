@@ -6,6 +6,7 @@ import {
   InventoryForm,
   InventoryList,
   UpdateCategoryVariantAttribute,
+  UpdateSubComponent,
   VariantForm,
 } from "./schema";
 import {
@@ -548,6 +549,7 @@ export async function inventoryForm(db: Db, inventoryId) {
       enablePricing: inv.inventoryCategory?.enablePricing!,
     },
     images: [],
+    subComponents: [],
     subCategories: inv.inventoryItemSubCategories
       .filter(
         (a, ai) =>
@@ -782,6 +784,7 @@ export const updateSubCategorySchema = z.object({
   valueInventoryId: z.number(),
 });
 export type UpdateSubCategory = z.infer<typeof updateSubCategorySchema>;
+
 export async function updateSubCategory(db: Db, data: UpdateSubCategory) {
   const subCat = await db.inventoryItemSubCategory.findFirst({
     where: {
@@ -816,7 +819,36 @@ export async function updateSubCategory(db: Db, data: UpdateSubCategory) {
     });
   }
 }
-
+export async function updateSubComponent(db: Db, data: UpdateSubComponent) {
+  const subCat = await db.subComponents.findFirst({
+    where: {
+      parentId: data.parentId,
+      inventoryCategoryId: data.inventoryCategoryId,
+      deletedAt: {},
+    },
+    include: {},
+  });
+  if (subCat) {
+    return await db.subComponents.update({
+      where: { id: subCat.id, deletedAt: {} },
+      data: {
+        deletedAt: subCat?.deletedAt ? null : new Date(),
+        status: data.status,
+        defaultInventoryId: data.defaultInventoryId,
+        index: data.index,
+      },
+    });
+  } else {
+    return await db.subComponents.create({
+      data: {
+        defaultInventoryId: data.defaultInventoryId,
+        inventoryCategoryId: data.inventoryCategoryId,
+        parentId: data.parentId,
+        status: data.status,
+      },
+    });
+  }
+}
 export async function resetInventorySystem(db: Db) {
   const tables = TABLE_NAMES.reverse();
   // return { tables };

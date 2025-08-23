@@ -14,6 +14,7 @@ import {
   inventoryImportSchema,
   inventoryListSchema,
   updateCategoryVariantAttributeSchema,
+  updateSubComponentSchema,
   variantFormSchema,
 } from "@sales/schema";
 import {
@@ -39,6 +40,7 @@ import {
   updateVariantCostSchema,
   updateVariantStatus,
   updateVariantStatusSchema,
+  updateSubComponent,
 } from "@sales/inventory";
 import { inventoryImport } from "@sales/inventory-import";
 import { InventoryImportService } from "@sales/inventory-import-service";
@@ -160,6 +162,11 @@ export const inventoriesRouter = createTRPCRouter({
     .input(updateSubCategorySchema)
     .mutation(async (props) => {
       return updateSubCategory(props.ctx.db, props.input);
+    }),
+  updateSubComponent: publicProcedure
+    .input(updateSubComponentSchema)
+    .mutation(async (props) => {
+      return updateSubComponent(props.ctx.db, props.input);
     }),
   updateVariantCost: publicProcedure
     .input(updateVariantCostSchema)

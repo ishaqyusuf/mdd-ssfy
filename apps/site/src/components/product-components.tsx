@@ -16,8 +16,11 @@ export function ProductComponents() {
         </TabsTrigger>
       </TabsList>
       <TabsContent value="door-component">
-        <span>Build Components</span>
+        <ComponentBuilder />
       </TabsContent>
     </Tabs>
   );
+}
+function ComponentBuilder() {
+  return <div></div>;
 }

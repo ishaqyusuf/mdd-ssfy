@@ -8,7 +8,7 @@ import Button from "@/components/common/button";
 import { useProduct } from "./context";
 import { Card } from "@gnd/ui/card";
 import { Icons } from "@gnd/ui/icons";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray } from "react-hook-form";
 import { useInventoryForm } from "./form-context";
 import { Fragment } from "react";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
@@ -18,35 +18,24 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ComboxBox } from "@/components/(clean-code)/custom/controlled/combo-box";
 
-export function ProductSubCategorySection({}) {
+export function CategorySubComponentsSection({}) {
     const context = useProduct();
     const { attributes, inventoryId, variantFields } = context;
     const form = useInventoryForm();
     const subCatArray = useFieldArray({
         control: form.control,
-        name: "subCategories",
+        name: "subComponents",
         keyName: "_id",
     });
     const nav = useInventoryTrpc({
         enableCategoryList: true,
     });
-    // const subCatUpdated = (index, valueData) => {
-    //     const data = subCatArray.fields[index];
-    //     const values = [...data.values];
-    //     const valueIndex = values.findIndex((v) => v.id === valueData.id);
-    //     if (valueIndex > -1) values[valueIndex] = valueData;
-    //     else values.push(valueData);
-    //     subCatArray.update(index, {
-    //         ...data,
-    //         values,
-    //     });
-    // };
     return (
-        <AccordionItem value="subcategories">
+        <AccordionItem value="subComponents">
             <AccordionTrigger className="flex">
                 <div className="flex gap-4  flex-1 items-center">
                     <Package className="size-4" />
-                    <span>Product Sub Categories</span>
+                    <span>Door Builder Components</span>
                 </div>
             </AccordionTrigger>
             <AccordionContent className="">
@@ -55,18 +44,22 @@ export function ProductSubCategorySection({}) {
                         <div className="flex">
                             <div>
                                 <div className="w-4/5">
-                                    With sub categories, inventories are
-                                    properly refined based on search parameters.
+                                    With door builder, all inventories having{" "}
+                                    {`${form.getValues("product.name")}`} as
+                                    sub-categories will use the sub-components
+                                    data for selecting door components just like
+                                    in dyke system.
                                 </div>
                             </div>
                             <Button
                                 disabled={subCatArray.fields.some(
-                                    (a) => !a.categoryId,
+                                    (a) => !a.inventoryCategoryId,
                                 )}
                                 onClick={(e) => {
                                     subCatArray.append({
-                                        categoryId: null,
-                                        valueIds: [],
+                                        parentId: inventoryId,
+                                        defaultInventoryId: null,
+                                        inventoryCategoryId: null,
                                     });
                                 }}
                                 variant="secondary"
@@ -82,7 +75,7 @@ export function ProductSubCategorySection({}) {
                                     <div className="">
                                         <FormCombobox
                                             control={form.control}
-                                            name={`subCategories.${i}.categoryId`}
+                                            name={`subComponents.${i}.inventoryCategoryId`}
                                             label={i != 0 ? null : "Category"}
                                             transformSelectionValue={(data) =>
                                                 Number(data.id)
@@ -144,7 +137,7 @@ function SubCategoryValues({ index }) {
     const trpc = useTRPC();
     const ctx = useProduct();
     const form = useInventoryForm();
-    const categoryId = form.watch(`subCategories.${index}.categoryId`);
+    const categoryId = form.watch(`subComponents.${index}.inventoryCategoryId`);
     const { data, error } = useQuery(
         trpc.inventories.inventoryProducts.queryOptions(
             {

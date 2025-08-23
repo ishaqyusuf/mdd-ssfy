@@ -109,6 +109,7 @@ export class InventoryImportService {
       const depComponent = stepData.depsComponentsList.find(
         (a) => a.uid === uid
       );
+      if (!depComponent) continue;
       const component = stepData.stepProducts.find((a) => a.uid == uid);
       if (preData.inventories.find((i) => i.uid == uid)) {
         if (component) {
@@ -122,10 +123,10 @@ export class InventoryImportService {
           // variants
           // variant pricings.
         }
-        return;
+        continue;
       }
       const inventoryId = this.#nextId("inventory");
-      if (depComponent) {
+      if (depComponent && !component) {
         const inventoryCategoryId = this.getCategoryId(depComponent.stepUid);
         this.#addCreateData("inventory", {
           uid,
@@ -393,16 +394,17 @@ export class InventoryImportService {
       },
     });
     // this.#inventoryCategories = inventoryCategories;
+    const stepProdUids = stepData.stepProducts?.map((a) => a.uid);
     const componentUids = Array.from(
       new Set(
-        [
-          ...stepData?.depsComponentsList?.map((a) => a?.uid),
-          ...stepData.stepProducts?.map((a) => a.uid),
-        ]
+        [...stepData?.depsComponentsList?.map((a) => a?.uid), ...stepProdUids]
           .filter((s) => !!s)
           .map((a) => a!)
       )
     );
+    // .filter(
+    //   a =>
+    // );
     const inventories = await this.db.inventory.findMany({
       where: {
         uid: {
@@ -428,11 +430,13 @@ export class InventoryImportService {
         },
       },
     });
-    return {
+    const data = {
       inventories,
       componentUids,
       inventoryCategories,
     };
+    (this.#data as any).inventoryLoadedData = data;
+    return data;
   }
 
   #stepData;
@@ -452,6 +456,9 @@ export class InventoryImportService {
         stepProducts: {
           where: {
             deletedAt: null,
+            uid: {
+              not: null,
+            },
           },
           select: {
             product: {
@@ -494,6 +501,7 @@ export class InventoryImportService {
     let widthUids: string[] = [];
     let heightUids: string[] = [];
     step.priceSystem = step.priceSystem.map((ps) => {
+      if (!ps.dependenciesUid) ps.dependenciesUid = ps.stepProductUid;
       // "2-4 x 8-0" validate this format
       const str = ps.dependenciesUid!;
       if (/^\d+-\d+ x \d+-\d+$/.test(str)) {
@@ -521,6 +529,7 @@ export class InventoryImportService {
         step.priceSystem
           .map((p) => p.dependenciesUid?.split("-")?.filter(Boolean))
           ?.flat()
+          .filter((a) => a)
           .map((a) => a!)
       )
     );
@@ -604,20 +613,30 @@ export class InventoryImportService {
       .filter(Boolean)
       .map((s) => s!);
     const depsSteps = await this.db.dykeSteps.findMany({
-      where: {
-        OR: [
-          {
-            uid: {
-              in: stepsUid,
+      where:
+        !widthUids?.length && !heightUids?.length
+          ? {
+              uid: {
+                in: stepsUid,
+              },
+            }
+          : {
+              OR: [
+                {
+                  uid: {
+                    in: stepsUid,
+                  },
+                },
+                {
+                  title: {
+                    in: [
+                      !widthUids?.length || "Width",
+                      !heightUids?.length || "Height",
+                    ].filter((a) => typeof a === "string"),
+                  },
+                },
+              ],
             },
-          },
-          {
-            title: {
-              in: ["Width", "Height"],
-            },
-          },
-        ],
-      },
       distinct: "title",
       include: {
         stepProducts: {
@@ -689,8 +708,8 @@ export class InventoryImportService {
       step,
       stepsUid,
       stepProducts: components,
-      //   widthUids,
-      //   heightUids,
+      widthUids,
+      heightUids,
       priceSystemComponentUids,
       widthStepUid,
       heightStepUid,

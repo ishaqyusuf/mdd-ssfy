@@ -7,6 +7,7 @@ model InventoryCategory {
     description   String?
     enablePricing Boolean?
     primary       Boolean?
+    meta          Json?
 
     inventories                        Inventory[]
     // for shelf item
@@ -16,6 +17,8 @@ model InventoryCategory {
     categoryVariantAttributes          InventoryCategoryVariantAttribute[] @relation(name: "inventoryCategory")
     attributedCategoryVariantAttribute InventoryCategoryVariantAttribute[] @relation(name: "valuesInventoryCategory")
 
+    subComponents   SubComponents[]   @relation(name: "subComponents")
+    // asSubComponents SubComponents[]   @relation(name: "asSubComponents")
     createdAt       DateTime?         @default(now()) @db.Timestamp(0)
     updatedAt       DateTime?         @updatedAt
     deletedAt       DateTime?         @db.Timestamp(0)
@@ -24,6 +27,30 @@ model InventoryCategory {
     FeaturedProduct FeaturedProduct[]
 
     @@index([discountId])
+}
+
+model SubComponents {
+    id        Int       @id @default(autoincrement())
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+    required  Boolean?  @default(false)
+    index     Int       @default(0)
+    status    String    @default("published")
+
+    inventoryCategory   InventoryCategory? @relation(name: "subComponents", fields: [inventoryCategoryId], references: [id])
+    inventoryCategoryId Int
+    // inventoryCategory   InventoryCategory? @relation(name: "asSubComponents", fields: [inventoryCategoryId], references: [id])
+    // inventoryCategoryId Int
+    defaultInventory    Inventory?         @relation(name: "defaultInventories", fields: [defaultInventoryId], references: [id])
+    defaultInventoryId  Int?
+    parent              Inventory?         @relation(name: "parent", fields: [parentId], references: [id])
+    parentId            Int?
+    // @@index([parentId])
+
+    @@index([parentId])
+    @@index([defaultInventoryId])
+    @@index([inventoryCategoryId])
 }
 
 model Inventory {
@@ -43,6 +70,8 @@ model Inventory {
     inventoryCategory   InventoryCategory? @relation(fields: [inventoryCategoryId], references: [id])
     inventoryCategoryId Int
 
+    defaultSubComponents       SubComponents[]                 @relation(name: "defaultInventories")
+    subComponents              SubComponents[]                 @relation(name: "parent")
     inventoryItemSubCategories InventoryItemSubCategory[]
     variants                   InventoryVariant[]
     variantPricings            InventoryVariantPricing[]

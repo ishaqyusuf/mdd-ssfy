@@ -216,6 +216,12 @@ function searchQuery(query: ProductSearch) {
       id: Number(id),
     });
   }
+  if (categorySlug) {
+    const [id, ...rest] = categorySlug?.split("-")?.reverse();
+    wheres.push({
+      inventoryCategoryId: Number(id),
+    });
+  }
   // wheres.push({
   //   status: "published",
   // });

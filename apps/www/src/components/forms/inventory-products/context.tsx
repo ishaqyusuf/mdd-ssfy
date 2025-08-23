@@ -17,6 +17,7 @@ export const { Provider: ProductProvider, useContext: useProduct } =
         const trpc = useTRPC();
         const categoryId = form.watch("product.categoryId");
         const inventoryId = form.watch("product.id");
+
         const {
             data: attributeData,
             isPending,
