@@ -190,8 +190,12 @@ export const inventoryFormSchema = z.object({
       parentId: z.number(),
       defaultInventoryId: z.number().optional().nullable(),
       inventoryCategoryId: z.number(),
-      index: z.number().default(0),
-      status: z.enum(INVENTORY_STATUS).default("published"),
+      index: z.number().default(0).optional().nullable(),
+      status: z
+        .enum(INVENTORY_STATUS)
+        .default("published")
+        .optional()
+        .nullable(),
     })
   ),
   images: z

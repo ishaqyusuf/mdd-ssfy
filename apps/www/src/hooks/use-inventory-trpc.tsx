@@ -25,6 +25,16 @@ export function useInventoryTrpc(props: Props = {}) {
             },
         }),
     );
+    const mutSubComponent = useMutation(
+        trpc.inventories.updateSubComponent.mutationOptions({
+            onSuccess(data, variables, context) {},
+            onError(error, variables, context) {
+                toast({
+                    title: "Unable to complete",
+                });
+            },
+        }),
+    );
     const { mutate: mutateUpdateVariantStatus } = useMutation(
         trpc.inventories.updateVariantStatus.mutationOptions({
             onSuccess(data, variables, context) {
@@ -97,6 +107,7 @@ export function useInventoryTrpc(props: Props = {}) {
             }),
         );
     const ctx = {
+        mutSubComponent,
         categoryList,
         updateCategoryVariantAttribute,
         mutateUpdateVariantStatus,

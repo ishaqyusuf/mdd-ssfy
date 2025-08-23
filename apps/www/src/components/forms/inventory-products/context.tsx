@@ -36,6 +36,11 @@ export const { Provider: ProductProvider, useContext: useProduct } =
             name: "variants",
             keyName: "_id",
         });
+        const subComponentsArray = useFieldArray({
+            control: form.control,
+            name: "subComponents",
+            keyName: "_id",
+        });
         const stockMonitor = form.watch("product.stockMonitor");
         const [status, isPriceEnabled] = form.watch([
             "product.status",
@@ -51,6 +56,7 @@ export const { Provider: ProductProvider, useContext: useProduct } =
             inventoryId,
             isPriceEnabled,
             status,
+            subComponentsArray,
         };
     });
 interface ProductVariantContextProps {

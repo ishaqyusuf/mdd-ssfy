@@ -6,7 +6,7 @@ import { schema } from "./context";
 import { sum } from "@/lib/utils";
 // import va from "@/lib/va";
 
-type moduleNames = "HRM" | "Sales" | "Community";
+type moduleNames = "HRM" | "Sales" | "Community" | "Storefront";
 const _module = (
     name: moduleNames,
     icon: IconKeys,
@@ -377,15 +377,15 @@ export const linkModules = [
                 .childPaths("sales-book/create-quote", "sales-book/edit-quote")
                 .data,
             // .childPaths("sales-book/create-quote", "sales-book/edit-quote")
-            _link("Inventory", "inbound", "/inventory", [
-                _subLink("Inventory", "/inventory").data,
-                _subLink("Inbounds", "/inventory/inbounds").data,
-                _subLink("Stock Movements", "/inventory/stocks").data,
-                _subLink("Categories", "/inventory/categories").data,
-                _subLink("Imports", "/inventory/imports").data,
-                _subLink("Inbound Management", "/sales-book/inbound-management")
-                    .data,
-            ]).access(_role.is("Super Admin")).data,
+            // _link("Inventory", "inbound", "/inventory", [
+            //     _subLink("Inventory", "/inventory").data,
+            //     _subLink("Inbounds", "/inventory/inbounds").data,
+            //     _subLink("Stock Movements", "/inventory/stocks").data,
+            //     _subLink("Categories", "/inventory/categories").data,
+            //     _subLink("Imports", "/inventory/imports").data,
+            //     _subLink("Inbound Management", "/sales-book/inbound-management")
+            //         .data,
+            // ]).access(_role.is("Super Admin")).data,
             _link(
                 "Inbounds Managment",
                 "inbound",
@@ -422,6 +422,27 @@ export const linkModules = [
             _link("Dealers", "user", "/sales-book/dealers").access(
                 _role.is("Super Admin"),
             ).data,
+        ]),
+    ]),
+    _module("Storefront", "packingList", "GND Store Front", [
+        _section("main", null, [
+            _link("Inventory", "inbound", "/inventory", [
+                _subLink("Inventory", "/inventory").data,
+                _subLink("Inbounds", "/inventory/inbounds").data,
+                _subLink("Stock Movements", "/inventory/stocks").data,
+                _subLink("Categories", "/inventory/categories").data,
+                _subLink("Imports", "/inventory/imports").data,
+                _subLink("Inbound Management", "/sales-book/inbound-management")
+                    .data,
+            ]).access(_role.is("Super Admin")).data,
+            // _link(
+            //     "Inbounds Managment",
+            //     "inbound",
+            //     "/sales-book/inbound-management",
+            // ).access(_perm.is("viewInboundOrder")).data,
+            // _link("Dispatch", "estimates", "/sales-books/quotes").access(
+            //     _perm.is("editOrders"),
+            // ).data,
         ]),
     ]),
     _module("" as any, null, "", [profileSection]),

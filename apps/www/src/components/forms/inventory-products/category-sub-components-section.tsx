@@ -20,13 +20,10 @@ import { ComboxBox } from "@/components/(clean-code)/custom/controlled/combo-box
 
 export function CategorySubComponentsSection({}) {
     const context = useProduct();
-    const { attributes, inventoryId, variantFields } = context;
+    const { attributes, inventoryId, subComponentsArray, variantFields } =
+        context;
     const form = useInventoryForm();
-    const subCatArray = useFieldArray({
-        control: form.control,
-        name: "subComponents",
-        keyName: "_id",
-    });
+
     const nav = useInventoryTrpc({
         enableCategoryList: true,
     });
@@ -52,11 +49,11 @@ export function CategorySubComponentsSection({}) {
                                 </div>
                             </div>
                             <Button
-                                disabled={subCatArray.fields.some(
+                                disabled={subComponentsArray.fields.some(
                                     (a) => !a.inventoryCategoryId,
                                 )}
                                 onClick={(e) => {
-                                    subCatArray.append({
+                                    subComponentsArray.append({
                                         parentId: inventoryId,
                                         defaultInventoryId: null,
                                         inventoryCategoryId: null,
@@ -70,7 +67,7 @@ export function CategorySubComponentsSection({}) {
                             </Button>
                         </div>
                         <div className="grid grid-cols-3 gap-4">
-                            {subCatArray.fields.map((f, i) => (
+                            {subComponentsArray.fields.map((f, i) => (
                                 <Fragment key={i}>
                                     <div className="">
                                         <FormCombobox
@@ -80,7 +77,45 @@ export function CategorySubComponentsSection({}) {
                                             transformSelectionValue={(data) =>
                                                 Number(data.id)
                                             }
+                                            handleSelect={(
+                                                val,
+                                                selected,
+                                                cb,
+                                            ) => {
+                                                const inventoryCategoryId =
+                                                    selected.data.id;
+                                                nav.mutSubComponent.mutate(
+                                                    {
+                                                        defaultInventoryId:
+                                                            inventoryCategoryId !=
+                                                            f.inventoryCategoryId
+                                                                ? null
+                                                                : undefined,
+                                                        index: i,
+                                                        parentId: inventoryId,
+                                                        status:
+                                                            f.status ||
+                                                            "published",
+                                                        inventoryCategoryId,
+                                                    },
+                                                    {
+                                                        onSuccess(
+                                                            data,
+                                                            variables,
+                                                            context,
+                                                        ) {
+                                                            console.log(
+                                                                "UPDATED!",
+                                                            );
+                                                            cb();
+                                                        },
+                                                    },
+                                                );
+                                            }}
                                             comboProps={{
+                                                // onSelect(item) {
+                                                //     // console.log(item);
+                                                // },
                                                 items: selectOptions(
                                                     nav.categoryList,
                                                     "title",
@@ -154,13 +189,14 @@ function SubCategoryValues({ index }) {
     //     name: `subCategories.${index}.values`,
     // });
     const { mutate, mutateAsync } = useMutation(
-        trpc.inventories.updateSubCategory.mutationOptions({}),
+        trpc.inventories.updateSubComponent.mutationOptions({}),
     );
     function handleSelect(valueInventoryId, selected, callback) {
         mutateAsync({
-            categoryId,
-            valueInventoryId: Number(valueInventoryId),
-            inventoryId: ctx.inventoryId,
+            parentId: ctx.inventoryId,
+
+            // valueInventoryId: Number(valueInventoryId),
+            // inventoryId: ctx.inventoryId,
         }).then((result) => {
             console.log(result);
             callback();

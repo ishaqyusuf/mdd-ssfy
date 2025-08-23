@@ -10,6 +10,7 @@ export interface FormComboboxProps<T> {
     className?: string;
     comboProps: Partial<ComboboxProps<T>>;
     transformSelectionValue?: (data: any) => any;
+    handleSelect?: (value, selected: T, callback) => void;
 }
 
 export function FormCombobox<
@@ -24,6 +25,7 @@ export function FormCombobox<
     label,
     disabled,
     comboProps,
+    handleSelect,
     transformSelectionValue,
     // ...props
 }: Partial<ControllerProps<TFieldValues, TName>> &
@@ -54,13 +56,23 @@ export function FormCombobox<
                                             String(field?.value),
                                     ) as any
                                 }
-                                onSelect={(data) => {
-                                    field.onChange(
-                                        transformSelectionValue?.(data) ||
-                                            data.id,
-                                    );
-                                }}
                                 {...(comboProps as any)}
+                                onSelect={(data) => {
+                                    const cb = () => {
+                                        comboProps?.onSelect?.(data as any);
+                                        field.onChange(
+                                            transformSelectionValue?.(data) ||
+                                                data.id,
+                                        );
+                                    };
+                                    handleSelect
+                                        ? handleSelect(
+                                              data?.id,
+                                              data as any,
+                                              cb,
+                                          )
+                                        : cb();
+                                }}
                             />
                         )}
                     </FormControl>
