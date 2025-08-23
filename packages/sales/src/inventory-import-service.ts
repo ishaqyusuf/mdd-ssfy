@@ -106,11 +106,11 @@ export class InventoryImportService {
     const preData = this.#inventoryPreData;
     const stepData = this.getStepData();
     for (const uid of preData.componentUids) {
+      const component = stepData.stepProducts.find((a) => a.uid == uid);
       const depComponent = stepData.depsComponentsList.find(
         (a) => a.uid === uid
       );
-      if (!depComponent) continue;
-      const component = stepData.stepProducts.find((a) => a.uid == uid);
+      if (!depComponent && !component) continue;
       if (preData.inventories.find((i) => i.uid == uid)) {
         if (component) {
           this.prepareInventorySubCategories(
@@ -329,13 +329,17 @@ export class InventoryImportService {
       this.#inventoryCategories.every((ic) => ic.uid !== u)
     );
     missingTypes.map((uid) => {
-      const stepTitle = stepData.depsSteps?.find((a) => a.uid === uid)?.title;
-      this.#data.tables.inventoryCategory.createMany.push({
-        id: this.#nextId("inventoryCategory"),
-        uid,
-        title: stepTitle,
-        type: "component",
-      } as Prisma.InventoryCategoryCreateManyInput);
+      const stepTitle =
+        uid === stepData?.step?.uid
+          ? stepData?.step?.title
+          : stepData.depsSteps?.find((a) => a.uid === uid)?.title;
+      if (stepTitle)
+        this.#data.tables.inventoryCategory.createMany.push({
+          id: this.#nextId("inventoryCategory"),
+          uid,
+          title: stepTitle,
+          type: "component",
+        } as Prisma.InventoryCategoryCreateManyInput);
     });
   }
   #prepareCategoryVariants() {
@@ -459,6 +463,16 @@ export class InventoryImportService {
             uid: {
               not: null,
             },
+            OR: [
+              {
+                name: { not: null },
+              },
+              {
+                product: {
+                  title: { not: null },
+                },
+              },
+            ],
           },
           select: {
             product: {

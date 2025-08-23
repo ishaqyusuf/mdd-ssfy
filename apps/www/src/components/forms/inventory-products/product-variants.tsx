@@ -122,7 +122,7 @@ function Row({}) {
                 }}
                 className={cn(!opened || "bg-accent hover:bg-accent")}
             >
-                <TableCell>{data?.title}</TableCell>
+                <TableCell>{data?.title || "Default"}</TableCell>
                 <TableCell>
                     {data?.price ? (
                         <AnimatedNumber value={data?.price} currency="USD" />

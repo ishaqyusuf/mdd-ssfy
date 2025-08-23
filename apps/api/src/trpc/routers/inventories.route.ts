@@ -18,7 +18,7 @@ import {
   variantFormSchema,
 } from "@sales/schema";
 import {
-  deleteInventory,
+  deleteInventories,
   deleteInventoryCategory,
   getInventoryCategories,
   getInventoryCategoryAttributes,
@@ -45,6 +45,24 @@ import {
 import { inventoryImport } from "@sales/inventory-import";
 import { InventoryImportService } from "@sales/inventory-import-service";
 export const inventoriesRouter = createTRPCRouter({
+  deleteInventories: publicProcedure
+    .input(
+      z.object({
+        ids: z.array(z.number()).min(1),
+      })
+    )
+    .mutation(async (props) => {
+      return deleteInventories(props.ctx.db, props.input.ids);
+    }),
+  deleteInventoryCategory: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+      })
+    )
+    .mutation(async (props) => {
+      return deleteInventoryCategory(props.ctx.db, props.input.id);
+    }),
   getInventoryTypeByShelfId: publicProcedure
     .input(
       z.object({
@@ -177,24 +195,6 @@ export const inventoriesRouter = createTRPCRouter({
     .input(updateVariantStatusSchema)
     .mutation(async (props) => {
       return updateVariantStatus(props.ctx.db, props.input);
-    }),
-  deleteInventory: publicProcedure
-    .input(
-      z.object({
-        id: z.number(),
-      })
-    )
-    .mutation(async (props) => {
-      return deleteInventory(props.ctx.db, props.input.id);
-    }),
-  deleteInventoryCategory: publicProcedure
-    .input(
-      z.object({
-        id: z.number(),
-      })
-    )
-    .mutation(async (props) => {
-      return deleteInventoryCategory(props.ctx.db, props.input.id);
     }),
 
   saveVariantForm: publicProcedure

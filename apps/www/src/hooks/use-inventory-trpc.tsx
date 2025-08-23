@@ -43,8 +43,8 @@ export function useInventoryTrpc(props: Props = {}) {
             },
         }),
     );
-    const { mutate: mutateDeleteInventory } = useMutation(
-        trpc.inventories.deleteInventory.mutationOptions({
+    const deleteInventories = useMutation(
+        trpc.inventories.deleteInventories.mutationOptions({
             onSuccess(data, variables, context) {
                 toast({
                     title: "Deleted",
@@ -60,6 +60,7 @@ export function useInventoryTrpc(props: Props = {}) {
             },
         }),
     );
+    const { mutate: mutateDeleteInventories } = deleteInventories;
     const {
         data: categoryList,
         isPending,
@@ -99,6 +100,8 @@ export function useInventoryTrpc(props: Props = {}) {
         categoryList,
         updateCategoryVariantAttribute,
         mutateUpdateVariantStatus,
+        mutateDeleteInventories,
+        deleteInventories,
         refreshKeysInfinite(...keys: (keyof typeof trpc.inventories)[]) {
             for (const k of keys) {
                 qc.invalidateQueries({
@@ -125,7 +128,7 @@ export function useInventoryTrpc(props: Props = {}) {
         // queryKey: trpc.inventories.inventoryProducts.queryKey(),
         // }),
         deleteCategory: (id) => mutateDeleteCategory({ id }),
-        deleteInventory: (id) => mutateDeleteInventory({ id }),
+        deleteInventory: (id) => mutateDeleteInventories({ ids: [id] }),
     };
     return ctx;
 }

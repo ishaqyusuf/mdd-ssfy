@@ -699,10 +699,12 @@ function whereInventoryCategories(query: InventoryCategories) {
   return composeQuery(wheres);
 }
 
-export async function deleteInventory(db: Db, id) {
-  await db.inventory.update({
+export async function deleteInventories(db: Db, ids) {
+  await db.inventory.updateMany({
     where: {
-      id,
+      id: {
+        in: ids,
+      },
     },
     data: {
       deletedAt: new Date(),

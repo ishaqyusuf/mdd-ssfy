@@ -179,8 +179,8 @@ function SubCategoryValues({ index }) {
                 maxStack={4}
                 options={labelValueOptions(data?.data, "title", "id")}
                 control={form.control}
-                name={`subCategories.${index}.valueIds`}
-                label={index == 0 ? "Values" : undefined}
+                name={`subComponents.${index}.defaultInventoryId`}
+                label={index == 0 ? "Default Inventory" : undefined}
                 handleSelect={handleSelect}
             />
         </>

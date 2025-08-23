@@ -86,10 +86,12 @@ const actionColumn = {
             onSuccess(data) {
                 console.log(data);
                 qc.invalidateQueries({
-                    queryKey: trpc.inventories.inventoryImports.queryKey(),
+                    queryKey:
+                        trpc.inventories.inventoryImports.infiniteQueryKey(),
                 });
                 qc.invalidateQueries({
-                    queryKey: trpc.inventories.inventoryProducts.queryKey(),
+                    queryKey:
+                        trpc.inventories.inventoryProducts.infiniteQueryKey(),
                 });
                 toast({
                     title: "Import Successful",

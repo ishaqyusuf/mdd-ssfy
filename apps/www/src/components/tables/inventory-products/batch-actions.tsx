@@ -4,18 +4,20 @@ import { useMemo } from "react";
 import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
 import { PrintAction } from "@/app/(clean-code)/(sales)/_common/_components/overview-sheet.bin/footer/print.action";
 import { deleteSalesByOrderIds } from "@/app/(clean-code)/(sales)/_common/data-actions/sales-actions";
+import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 
 export function BatchActions({}) {
     const ctx = useTable();
-    const slugs = useMemo(() => {
-        return ctx.selectedRows?.map((r) => (r.original as any)?.orderId);
+    const ids = useMemo(() => {
+        return ctx.selectedRows?.map((r) => (r.original as any)?.id);
     }, [ctx.selectedRows]);
 
+    const { mutateDeleteInventories } = useInventoryTrpc();
     if (!ctx.selectedRows?.length) return null;
 
     return (
         <BatchAction>
-            <BatchBtn
+            {/* <BatchBtn
                 icon="print"
                 menu={
                     <>
@@ -40,8 +42,8 @@ export function BatchActions({}) {
                 }
             >
                 Print
-            </BatchBtn>
-            <BatchBtn
+            </BatchBtn> */}
+            {/* <BatchBtn
                 icon="Email"
                 menu={
                     <>
@@ -54,10 +56,12 @@ export function BatchActions({}) {
                 }
             >
                 Email
-            </BatchBtn>
+            </BatchBtn> */}
             <BatchDelete
                 onClick={async () => {
-                    await deleteSalesByOrderIds(slugs);
+                    mutateDeleteInventories({
+                        ids,
+                    });
                 }}
             />
         </BatchAction>
