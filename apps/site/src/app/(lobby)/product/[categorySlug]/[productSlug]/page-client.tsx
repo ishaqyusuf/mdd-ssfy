@@ -361,13 +361,7 @@ export default function ProductPage({ params }: ProductPageProps) {
             /> */}
 
             {/* Actions */}
-            <ProductActions
-              product={productForCart}
-              onAddToFavorites={toggleFavorite}
-              isFavorite={isFavorite}
-              inStock={currentProduct.inStock}
-              price={`$${calculateTotalPrice().toFixed(2)}`}
-            />
+            <ProductActions />
 
             {/* Features */}
             <div className="grid grid-cols-3 gap-4 pt-6 border-t">
