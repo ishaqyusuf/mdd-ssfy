@@ -10,6 +10,7 @@ import { ProductVariants } from "../product-variants";
 import { ProductQuantitySelector } from "../product-quantity-selector";
 import { ProductActions } from "../product-actions";
 import { ProductComponents } from "../product-components";
+import { Fragment } from "react";
 
 export function ProductClient({ categorySlug, productSlug }) {
   return (
@@ -28,9 +29,9 @@ export function ProductClient({ categorySlug, productSlug }) {
 function Content() {
   const { product } = useProduct();
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container  mx-auto px-4 py-8">
       {/* Breadcrumb */}
-      <div className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
+      <div className="flex uppercase items-center space-x-2 text-sm text-gray-600 mb-6">
         <Link href="/" className="hover:text-gray-900">
           Home
         </Link>
@@ -41,6 +42,14 @@ function Content() {
         >
           {product.category.title}
         </Link>
+        {product.subCategories.map((sc) => (
+          <Fragment key={sc.id}>
+            <span>/</span>
+            <Link href={``} className="uppercase">
+              {sc.items?.[0]?.name}
+            </Link>
+          </Fragment>
+        ))}
         <span>/</span>
         <span className="text-gray-900">{product.name}</span>
       </div>

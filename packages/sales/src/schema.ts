@@ -22,6 +22,12 @@ const qty = z.object({
   rh: z.number().nullable().optional(),
   qty: z.number().nullable().optional(),
 });
+export const getStoreAddonComponentFormSchema = z.object({
+  variantId: z.number(),
+});
+export type GetStoreAddonComponentForm = z.infer<
+  typeof getStoreAddonComponentFormSchema
+>;
 export const resetSalesControlSchema = z.object({
   meta: z.object({
     salesId: z.number(),
@@ -187,6 +193,7 @@ export const inventoryFormSchema = z.object({
   ),
   subComponents: z.array(
     z.object({
+      id: z.number().optional().nullable(),
       parentId: z.number(),
       defaultInventoryId: z.number().optional().nullable(),
       inventoryCategoryId: z.number(),

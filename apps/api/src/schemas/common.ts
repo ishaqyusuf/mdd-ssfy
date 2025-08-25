@@ -7,3 +7,11 @@ export const paginationSchema = z.object({
   cursor: z.string().nullable().optional(),
   q: z.string().nullable().optional(),
 });
+export const idSchema = z.object({
+  id: z.number(),
+});
+export type IdSchema = z.infer<typeof idSchema>;
+export const idsSchema = z.object({
+  ids: z.array(z.number()).min(1),
+});
+export type IdsSchema = z.infer<typeof idsSchema>;

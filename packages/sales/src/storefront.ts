@@ -42,6 +42,35 @@ export async function productSearch(db: Db, query: ProductSearch) {
     include: {
       inventoryCategory: {},
       variantAtrributes: {},
+      inventoryItemSubCategories: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          inventory: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          value: {
+            select: {
+              inventory: {
+                select: {
+                  id: true,
+                  name: true,
+                  inventoryCategory: {
+                    select: {
+                      title: true,
+                      id: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       images: {
         take: 1,
         select: {
@@ -75,8 +104,11 @@ export async function productSearch(db: Db, query: ProductSearch) {
         name: i.altText || product.name,
       }));
 
+      const subCategories = product.inventoryItemSubCategories.map(
+        (a) => a.value?.inventory
+      );
       return {
-        url: `/product/${categorySlug}/${slugify(`${product.name} ${product.id}`)}`,
+        url: `/product/${categorySlug}/${slugify(`${product.name} ${product.id}`)}?qty=1`,
         id: product.id,
         name: product.name,
         category: {
@@ -91,6 +123,24 @@ export async function productSearch(db: Db, query: ProductSearch) {
         reviews: null,
         badge: null,
         description: product.description,
+        subCategories: uniqueList(
+          subCategories.map((c) => ({
+            id: c?.inventoryCategory?.id,
+            label: c?.inventoryCategory?.title,
+            items: uniqueList(
+              subCategories
+                .filter(
+                  (a) => a?.inventoryCategory?.id === c?.inventoryCategory?.id
+                )
+                .map((a) => ({
+                  id: a?.id,
+                  name: a?.name,
+                })),
+              "id"
+            ),
+          })),
+          "id"
+        ),
       };
     })
   );

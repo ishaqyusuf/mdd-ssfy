@@ -509,6 +509,11 @@ export async function inventoryForm(db: Db, inventoryId) {
       id: inventoryId,
     },
     include: {
+      subComponents: {
+        where: {
+          deletedAt: null,
+        },
+      },
       inventoryItemSubCategories: {
         where: {
           deletedAt: null,
@@ -549,7 +554,13 @@ export async function inventoryForm(db: Db, inventoryId) {
       enablePricing: inv.inventoryCategory?.enablePricing!,
     },
     images: [],
-    subComponents: [],
+    subComponents: inv.subComponents.map((a) => ({
+      inventoryCategoryId: a.inventoryCategoryId,
+      defaultInventoryId: a.defaultInventoryId,
+      parentId: a.parentId!,
+      index: a.index,
+      status: a.status as any,
+    })),
     subCategories: inv.inventoryItemSubCategories
       .filter(
         (a, ai) =>
@@ -698,7 +709,16 @@ function whereInventoryCategories(query: InventoryCategories) {
   const wheres: Prisma.InventoryCategoryWhereInput[] = [];
   return composeQuery(wheres);
 }
-
+export async function deleteSubComponent(db: Db, id) {
+  await db.subComponents.update({
+    where: {
+      id,
+    },
+    data: {
+      deletedAt: null,
+    },
+  });
+}
 export async function deleteInventories(db: Db, ids) {
   await db.inventory.updateMany({
     where: {
@@ -823,11 +843,16 @@ export async function updateSubCategory(db: Db, data: UpdateSubCategory) {
 }
 export async function updateSubComponent(db: Db, data: UpdateSubComponent) {
   const subCat = await db.subComponents.findFirst({
-    where: {
-      parentId: data.parentId,
-      inventoryCategoryId: data.inventoryCategoryId,
-      deletedAt: {},
-    },
+    where: data.id
+      ? {
+          id: data.id,
+          deletedAt: {},
+        }
+      : {
+          parentId: data.parentId,
+          inventoryCategoryId: data.inventoryCategoryId,
+          deletedAt: {},
+        },
     include: {},
   });
   if (subCat) {
@@ -835,9 +860,9 @@ export async function updateSubComponent(db: Db, data: UpdateSubComponent) {
       where: { id: subCat.id, deletedAt: {} },
       data: {
         deletedAt: subCat?.deletedAt ? null : new Date(),
-        status: data.status,
+        status: data.status as any,
         defaultInventoryId: data.defaultInventoryId,
-        index: data.index,
+        index: data.index as any,
       },
     });
   } else {
@@ -846,7 +871,7 @@ export async function updateSubComponent(db: Db, data: UpdateSubComponent) {
         defaultInventoryId: data.defaultInventoryId,
         inventoryCategoryId: data.inventoryCategoryId,
         parentId: data.parentId,
-        status: data.status,
+        status: data.status as any,
       },
     });
   }

@@ -8,6 +8,7 @@ import {
 } from "@api/db/queries/inventory.generate";
 import {
   getInventoryCategoriesSchema,
+  getStoreAddonComponentFormSchema,
   inventoryCategoriesSchema,
   inventoryCategoryFormSchema,
   inventoryFormSchema,
@@ -41,9 +42,12 @@ import {
   updateVariantStatus,
   updateVariantStatusSchema,
   updateSubComponent,
+  deleteSubComponent,
 } from "@sales/inventory";
+import { getStoreAddonComponentForm } from "@sales/storefront-product";
 import { inventoryImport } from "@sales/inventory-import";
 import { InventoryImportService } from "@sales/inventory-import-service";
+import { idSchema } from "@api/schemas/common";
 export const inventoriesRouter = createTRPCRouter({
   deleteInventories: publicProcedure
     .input(
@@ -55,13 +59,23 @@ export const inventoriesRouter = createTRPCRouter({
       return deleteInventories(props.ctx.db, props.input.ids);
     }),
   deleteInventoryCategory: publicProcedure
-    .input(
-      z.object({
-        id: z.number(),
-      })
-    )
+    .input(idSchema)
     .mutation(async (props) => {
       return deleteInventoryCategory(props.ctx.db, props.input.id);
+    }),
+  deleteSubComponent: publicProcedure
+    .input(idSchema)
+    .mutation(async (props) => {
+      return deleteSubComponent(props.ctx.db, props.input.id);
+    }),
+  getStoreAddonComponentForm: publicProcedure
+    .input(getStoreAddonComponentFormSchema)
+    .query(async (props) => {
+      const result = await getStoreAddonComponentForm(
+        props.ctx.db,
+        props.input
+      );
+      return result;
     }),
   getInventoryTypeByShelfId: publicProcedure
     .input(

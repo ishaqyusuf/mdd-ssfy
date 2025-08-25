@@ -1,4 +1,4 @@
-import { Package, Save } from "lucide-react";
+import { GripVerticalIcon, Package, Save } from "lucide-react";
 import {
     AccordionContent,
     AccordionItem,
@@ -10,20 +10,39 @@ import { Card } from "@gnd/ui/card";
 import { Icons } from "@gnd/ui/icons";
 import { useFieldArray } from "react-hook-form";
 import { useInventoryForm } from "./form-context";
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 import { FormCombobox } from "@/components/common/controls/form-combobox";
 import { labelValueOptions, selectOptions } from "@gnd/utils";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ComboxBox } from "@/components/(clean-code)/custom/controlled/combo-box";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@gnd/ui/table";
+import {
+    SortableContext,
+    useSortable,
+    verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { UniqueIdentifier } from "@dnd-kit/core";
+import ConfirmBtn from "@/components/confirm-button";
+import { Progress } from "@/components/(clean-code)/progress";
 
 export function CategorySubComponentsSection({}) {
     const context = useProduct();
     const { attributes, inventoryId, subComponentsArray, variantFields } =
         context;
     const form = useInventoryForm();
-
+    const dataIds = useMemo<UniqueIdentifier[]>(
+        () => subComponentsArray?.fields?.map(({ id, _id }) => _id) || [],
+        [subComponentsArray.fields],
+    );
     const nav = useInventoryTrpc({
         enableCategoryList: true,
     });
@@ -40,12 +59,19 @@ export function CategorySubComponentsSection({}) {
                     <div className="grid gap-4">
                         <div className="flex">
                             <div>
-                                <div className="w-4/5">
-                                    With door builder, all inventories having{" "}
+                                <div className="w-5/6 text-sm text-muted-foreground">
+                                    Configure the step-by-step components
+                                    customers will see when building a complete
+                                    <span className="font-bold uppercase">{` ${form.getValues("product.name")} `}</span>
+                                    door. Drag to reorder, toggle status, and
+                                    optionally set default products for each
+                                    category.
+                                    {/*  With
+                                    door builder, all inventories having{" "}
                                     {`${form.getValues("product.name")}`} as
                                     sub-categories will use the sub-components
                                     data for selecting door components just like
-                                    in dyke system.
+                                    in dyke system. */}
                                 </div>
                             </div>
                             <Button
@@ -66,74 +92,132 @@ export function CategorySubComponentsSection({}) {
                                 Add
                             </Button>
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
-                            {subComponentsArray.fields.map((f, i) => (
-                                <Fragment key={i}>
-                                    <div className="">
-                                        <FormCombobox
-                                            control={form.control}
-                                            name={`subComponents.${i}.inventoryCategoryId`}
-                                            label={i != 0 ? null : "Category"}
-                                            transformSelectionValue={(data) =>
-                                                Number(data.id)
-                                            }
-                                            handleSelect={(
-                                                val,
-                                                selected,
-                                                cb,
-                                            ) => {
-                                                const inventoryCategoryId =
-                                                    selected.data.id;
-                                                nav.mutSubComponent.mutate(
-                                                    {
-                                                        defaultInventoryId:
-                                                            inventoryCategoryId !=
-                                                            f.inventoryCategoryId
-                                                                ? null
-                                                                : undefined,
-                                                        index: i,
-                                                        parentId: inventoryId,
-                                                        status:
-                                                            f.status ||
-                                                            "published",
-                                                        inventoryCategoryId,
-                                                    },
-                                                    {
-                                                        onSuccess(
-                                                            data,
-                                                            variables,
-                                                            context,
-                                                        ) {
-                                                            console.log(
-                                                                "UPDATED!",
-                                                            );
-                                                            cb();
-                                                        },
-                                                    },
-                                                );
-                                            }}
-                                            comboProps={{
-                                                // onSelect(item) {
-                                                //     // console.log(item);
-                                                // },
-                                                items: selectOptions(
-                                                    nav.categoryList,
-                                                    "title",
-                                                    "id",
-                                                ),
-                                                placeholder: "Select  Category",
-                                            }}
-                                        />
-                                    </div>
-                                    {/* <div className=""></div> */}
-                                    <div className="col-span-2">
-                                        <SubCategoryValues
-                                            // subCatUpdated={subCatUpdated}
-                                            index={i}
-                                        />
-                                    </div>
-                                </Fragment>
-                            ))}
+                        <div>
+                            <Table className="table-sm">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-8"></TableHead>
+                                        <TableHead>Category</TableHead>
+                                        <TableHead>Default Product</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead></TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody className="**:data-[slot=table-cell]:first:w-8">
+                                    <SortableContext
+                                        items={dataIds}
+                                        strategy={verticalListSortingStrategy}
+                                    >
+                                        {subComponentsArray.fields.map(
+                                            (f, i) => (
+                                                <Row id={f._id}>
+                                                    <TableCell>
+                                                        <FormCombobox
+                                                            control={
+                                                                form.control
+                                                            }
+                                                            name={`subComponents.${i}.inventoryCategoryId`}
+                                                            transformSelectionValue={(
+                                                                data,
+                                                            ) =>
+                                                                Number(data.id)
+                                                            }
+                                                            handleSelect={(
+                                                                val,
+                                                                selected,
+                                                                cb,
+                                                            ) => {
+                                                                const inventoryCategoryId =
+                                                                    selected
+                                                                        .data
+                                                                        .id;
+                                                                const __data = {
+                                                                    id: f.id,
+                                                                    defaultInventoryId:
+                                                                        inventoryCategoryId !=
+                                                                        f.inventoryCategoryId
+                                                                            ? null
+                                                                            : undefined,
+                                                                    index: i,
+                                                                    parentId:
+                                                                        inventoryId,
+                                                                    status:
+                                                                        f.status ||
+                                                                        "published",
+                                                                    inventoryCategoryId,
+                                                                };
+                                                                nav.mutSubComponent.mutate(
+                                                                    __data,
+                                                                    {
+                                                                        onSuccess(
+                                                                            data,
+                                                                            variables,
+                                                                            context,
+                                                                        ) {
+                                                                            subComponentsArray.update(
+                                                                                i,
+                                                                                {
+                                                                                    ...f,
+                                                                                    ...__data,
+                                                                                },
+                                                                            );
+                                                                            cb();
+                                                                        },
+                                                                    },
+                                                                );
+                                                            }}
+                                                            comboProps={{
+                                                                // onSelect(item) {
+                                                                //     // console.log(item);
+                                                                // },
+                                                                items: selectOptions(
+                                                                    nav.categoryList,
+                                                                    "title",
+                                                                    "id",
+                                                                ),
+                                                                placeholder:
+                                                                    "Select  Category",
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <SubCategoryValues
+                                                            // subCatUpdated={subCatUpdated}
+                                                            index={i}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                        >
+                                                            <Progress>
+                                                                <Progress.Status>
+                                                                    {f.status}
+                                                                </Progress.Status>
+                                                            </Progress>
+                                                        </Button>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <ConfirmBtn
+                                                            trash
+                                                            onClick={(e) => {
+                                                                if (f.id)
+                                                                    nav.deleteSubComponent(
+                                                                        f.id,
+                                                                    );
+                                                                subComponentsArray.remove(
+                                                                    i,
+                                                                );
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                </Row>
+                                            ),
+                                        )}
+                                    </SortableContext>
+                                </TableBody>
+                            </Table>
                         </div>
                     </div>
                 ) : (
@@ -165,6 +249,35 @@ export function CategorySubComponentsSection({}) {
                 )}
             </AccordionContent>
         </AccordionItem>
+    );
+}
+function Row({ children, id }) {
+    const {
+        transform,
+        transition,
+        attributes,
+        listeners,
+        setNodeRef,
+        isDragging,
+    } = useSortable({
+        id,
+    });
+    return (
+        <TableRow className="hover:bg-transparent">
+            <TableCell>
+                <Button
+                    {...attributes}
+                    {...listeners}
+                    variant="ghost"
+                    size="icon"
+                    className="size-7 text-muted-foreground hover:bg-transparent"
+                >
+                    <GripVerticalIcon className="size-3 text-muted-foreground" />
+                    <span className="sr-only">Drag to reorder</span>
+                </Button>
+            </TableCell>
+            {children}
+        </TableRow>
     );
 }
 // function
@@ -211,12 +324,12 @@ function SubCategoryValues({ index }) {
         <>
             <ComboxBox
                 className="h-9 w-full"
-                maxSelection={5}
-                maxStack={4}
+                maxSelection={1}
+                // maxStack={4}
                 options={labelValueOptions(data?.data, "title", "id")}
                 control={form.control}
                 name={`subComponents.${index}.defaultInventoryId`}
-                label={index == 0 ? "Default Inventory" : undefined}
+                // label={index == 0 ? "Default Inventory" : undefined}
                 handleSelect={handleSelect}
             />
         </>

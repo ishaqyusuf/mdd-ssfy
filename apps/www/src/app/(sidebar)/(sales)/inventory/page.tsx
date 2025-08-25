@@ -5,6 +5,7 @@ import { DataTable } from "@/components/tables/inventory-products/data-table";
 
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { loadInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
+import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import {
     batchPrefetch,
     getQueryClient,
@@ -17,6 +18,11 @@ import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { SearchParams } from "nuqs";
 import { Suspense } from "react";
 
+export async function generateMetadata(props) {
+    return constructMetadata({
+        title: "Inventories | GND",
+    });
+}
 type Props = {
     searchParams: Promise<SearchParams>;
 };

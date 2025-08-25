@@ -35,6 +35,15 @@ export function useInventoryTrpc(props: Props = {}) {
             },
         }),
     );
+    const mutateDeleteSubComponent = useMutation(
+        trpc.inventories.deleteSubComponent.mutationOptions({
+            onSuccess(data, variables, context) {
+                toast({
+                    title: "Deleted",
+                });
+            },
+        }),
+    );
     const { mutate: mutateUpdateVariantStatus } = useMutation(
         trpc.inventories.updateVariantStatus.mutationOptions({
             onSuccess(data, variables, context) {
@@ -112,6 +121,7 @@ export function useInventoryTrpc(props: Props = {}) {
         updateCategoryVariantAttribute,
         mutateUpdateVariantStatus,
         mutateDeleteInventories,
+        mutateDeleteSubComponent,
         deleteInventories,
         refreshKeysInfinite(...keys: (keyof typeof trpc.inventories)[]) {
             for (const k of keys) {
@@ -140,6 +150,7 @@ export function useInventoryTrpc(props: Props = {}) {
         // }),
         deleteCategory: (id) => mutateDeleteCategory({ id }),
         deleteInventory: (id) => mutateDeleteInventories({ ids: [id] }),
+        deleteSubComponent: (id) => mutateDeleteSubComponent.mutate({ id }),
     };
     return ctx;
 }
