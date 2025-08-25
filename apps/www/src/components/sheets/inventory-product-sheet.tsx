@@ -29,6 +29,7 @@ export function InventoryProductSheet() {
             },
             {
                 enabled: params?.productId > 0,
+                staleTime: 5000,
             },
         ),
     );

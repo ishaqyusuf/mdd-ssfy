@@ -48,6 +48,7 @@ import { getStoreAddonComponentForm } from "@sales/storefront-product";
 import { inventoryImport } from "@sales/inventory-import";
 import { InventoryImportService } from "@sales/inventory-import-service";
 import { idSchema } from "@api/schemas/common";
+import { INVENTORY_STATUS } from "@sales/constants";
 export const inventoriesRouter = createTRPCRouter({
   deleteInventories: publicProcedure
     .input(
@@ -66,8 +67,16 @@ export const inventoriesRouter = createTRPCRouter({
   deleteSubComponent: publicProcedure
     .input(idSchema)
     .mutation(async (props) => {
-      return deleteSubComponent(props.ctx.db, props.input.id);
+      await props.ctx.db.subComponents.update({
+        where: {
+          id: props.input.id,
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
     }),
+
   getStoreAddonComponentForm: publicProcedure
     .input(getStoreAddonComponentFormSchema)
     .query(async (props) => {
@@ -199,6 +208,24 @@ export const inventoriesRouter = createTRPCRouter({
     .input(updateSubComponentSchema)
     .mutation(async (props) => {
       return updateSubComponent(props.ctx.db, props.input);
+    }),
+  updateSubComponentStatus: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        status: z.enum(INVENTORY_STATUS),
+      })
+    )
+    .mutation(async (props) => {
+      // return updateSubComponentStatus(props.ctx, props.input);
+      await props.ctx.db.subComponents.update({
+        where: {
+          id: props.input.id,
+        },
+        data: {
+          status: props.input.status,
+        },
+      });
     }),
   updateVariantCost: publicProcedure
     .input(updateVariantCostSchema)

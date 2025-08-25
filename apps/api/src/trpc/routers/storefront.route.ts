@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../init";
 import {
   productSearch,
@@ -8,6 +9,13 @@ import {
 } from "@sales/storefront";
 
 export const storefrontRouter = createTRPCRouter({
+  getComponentsListing: publicProcedure
+    .input(
+      z.object({
+        categoryId: z.number(),
+      })
+    )
+    .query(async (props) => {}),
   search: publicProcedure.input(productSearchSchema).query(async (props) => {
     const result = await productSearch(props.ctx.db, props.input);
     return result;

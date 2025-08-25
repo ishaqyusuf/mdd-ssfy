@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCustomerAddress } from "@/actions/cache/get-customer-address";
-import {
-    CustomersListData,
-    getCustomersAction,
-} from "@/actions/cache/get-customers";
+
 import { getSalesCustomerData } from "@/actions/get-sales-customer-data";
 import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SettingsClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
@@ -24,6 +21,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 
 import { motion } from "framer-motion";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
 export function CustomerDataSection() {
     const zus = useFormDataStore();
     const md = zus.metaData;
@@ -270,17 +269,20 @@ function AddressDataSearch({
     const debouncedQuery = useDebounce(q, 800);
     const zus = useFormDataStore();
     const md = zus.metaData;
-    // const [open, setOpen] = useState(false);
-    const [result, setResult] = useState<CustomersListData[]>([]);
-    useEffect(() => {
-        const prom = customerId
-            ? getCustomerAddress(debouncedQuery, customerId)
-            : getCustomersAction(debouncedQuery);
+    const trpc = useTRPC();
+    const { data: searchResult } = useQuery(
+        trpc.customers.customerInfoSearch.queryOptions(
+            {
+                type: customerId ? "customer" : "address",
+                customerId,
+                q: debouncedQuery,
+            },
+            {
+                // enabled:
+            },
+        ),
+    );
 
-        prom.then((res) => {
-            setResult(res || []);
-        });
-    }, [debouncedQuery, customerId]);
     const { params, setParams } = useCreateCustomerParams();
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -370,7 +372,7 @@ function AddressDataSearch({
                                 </button>
                             </>
                         )}
-                        {result?.map((address, key) => (
+                        {searchResult?.map((address, key) => (
                             <button
                                 key={key}
                                 onClick={() => {

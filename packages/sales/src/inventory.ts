@@ -100,9 +100,31 @@ export async function inventoryList(db: Db, query: InventoryList) {
 
 function whereInventoryProducts(query: InventoryList) {
   const wheres: Prisma.InventoryWhereInput[] = [];
+  if (query.q)
+    wheres.push({
+      name: {
+        contains: query.q,
+      },
+    });
   if (query.categoryId)
     wheres.push({
       inventoryCategoryId: query.categoryId,
+    });
+  if (query.variantIds)
+    wheres.push({
+      variants: {
+        some: {
+          id: {
+            in: query.variantIds!,
+          },
+        },
+      },
+    });
+  if (query.ids)
+    wheres.push({
+      id: {
+        in: query.ids!,
+      },
     });
   return composeQuery(wheres);
 }
@@ -555,11 +577,12 @@ export async function inventoryForm(db: Db, inventoryId) {
     },
     images: [],
     subComponents: inv.subComponents.map((a) => ({
+      id: a.id,
       inventoryCategoryId: a.inventoryCategoryId,
       defaultInventoryId: a.defaultInventoryId,
       parentId: a.parentId!,
       index: a.index,
-      status: a.status as any,
+      status: a.status as INVENTORY_STATUS,
     })),
     subCategories: inv.inventoryItemSubCategories
       .filter(
@@ -587,15 +610,7 @@ export async function inventoryForm(db: Db, inventoryId) {
   } satisfies InventoryForm;
   return formData;
 }
-export const inventoryInboundFormSchema = z.object({
-  example: z.string(),
-});
-export type InventoryInboundForm = z.infer<typeof inventoryInboundFormSchema>;
-export async function inventoryInboundForm(db: Db, inboundId) {}
-export async function inventoryInboundFormSave(
-  db: Db,
-  data: InventoryInboundForm
-) {}
+
 export async function saveVariantForm(db: Db, data: VariantForm) {
   if (!data.id) {
     const variant = await db.inventoryVariant.create({

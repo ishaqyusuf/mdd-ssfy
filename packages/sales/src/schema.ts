@@ -23,7 +23,7 @@ const qty = z.object({
   qty: z.number().nullable().optional(),
 });
 export const getStoreAddonComponentFormSchema = z.object({
-  variantId: z.number(),
+  inventoryId: z.number(),
 });
 export type GetStoreAddonComponentForm = z.infer<
   typeof getStoreAddonComponentFormSchema
@@ -164,6 +164,8 @@ export type InventoryImport = z.infer<typeof inventoryImportSchema>;
 export const inventoryListSchema = z
   .object({
     categoryId: z.number().nullable().optional(),
+    ids: z.array(z.number()).optional(),
+    variantIds: z.array(z.number()).optional(),
   })
   .merge(paginationSchema);
 export type InventoryList = z.infer<typeof inventoryListSchema>;
@@ -198,11 +200,7 @@ export const inventoryFormSchema = z.object({
       defaultInventoryId: z.number().optional().nullable(),
       inventoryCategoryId: z.number(),
       index: z.number().default(0).optional().nullable(),
-      status: z
-        .enum(INVENTORY_STATUS)
-        .default("published")
-        .optional()
-        .nullable(),
+      status: z.enum(INVENTORY_STATUS).default("draft").optional().nullable(),
     })
   ),
   images: z

@@ -1,3 +1,4 @@
+"use client";
 import { createContextFactory } from "@/lib/context-factory";
 import { useTRPC } from "@/trpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
@@ -21,6 +22,32 @@ export const { Provider: ProductProvider, useContext: useProduct } =
         },
         {
           enabled: !!props.productSlug,
+        }
+      )
+    );
+    const { data: addonComponent } = useQuery(
+      trpc.inventories.getStoreAddonComponentForm.queryOptions(
+        {
+          inventoryId: data?.product?.id,
+        },
+        {
+          enabled: !!data?.product?.id,
+        }
+      )
+    );
+    const inventoryIds = [
+      ...(addonComponent?.subComponentInventory?.subComponents?.map(
+        (a) => a?.defaultInventoryId
+      ) || []),
+      ...Object.values(filter?.subComponent || {})?.map((a) => a?.inventoryId),
+    ].filter(Boolean);
+    const { data: componentsProducts } = useQuery(
+      trpc.inventories.inventoryProducts.queryOptions(
+        {
+          ids: inventoryIds,
+        },
+        {
+          enabled: !!inventoryIds?.length,
         }
       )
     );
@@ -136,5 +163,8 @@ export const { Provider: ProductProvider, useContext: useProduct } =
       ...(data || {}),
       ...calculatedData,
       selectAttribute,
+      addonComponent,
+      componentsProducts,
+      inventoryIds,
     };
   });

@@ -5,38 +5,35 @@ export async function getStoreAddonComponentForm(
   db: Db,
   data: GetStoreAddonComponentForm
 ) {
-  const variant = await db.inventoryVariant.findUniqueOrThrow({
+  const inventory = await db.inventory.findUniqueOrThrow({
     where: {
-      id: data.variantId,
+      id: data.inventoryId,
     },
     select: {
-      inventory: {
+      inventoryItemSubCategories: {
+        where: { deletedAt: null },
         select: {
-          inventoryItemSubCategories: {
+          value: {
             where: { deletedAt: null },
             select: {
-              value: {
-                where: { deletedAt: null },
+              inventory: {
                 select: {
-                  inventory: {
+                  subComponents: {
+                    where: { deletedAt: null, status: "published" },
                     select: {
-                      subComponents: {
-                        where: { deletedAt: null },
+                      id: true,
+                      defaultInventoryId: true,
+                      status: true,
+                      index: true,
+                      inventoryCategory: {
                         select: {
-                          defaultInventoryId: true,
-                          status: true,
-                          index: true,
-                          inventoryCategory: {
-                            select: {
-                              title: true,
-                              id: true,
-                            },
-                          },
-                        },
-                        orderBy: {
-                          index: "asc",
+                          title: true,
+                          id: true,
                         },
                       },
+                    },
+                    orderBy: {
+                      index: "asc",
                     },
                   },
                 },
@@ -47,10 +44,9 @@ export async function getStoreAddonComponentForm(
       },
     },
   });
-  const subComponentInventory =
-    variant.inventory.inventoryItemSubCategories.find(
-      (a) => a.value?.inventory.subComponents.length
-    )?.value?.inventory;
+  const subComponentInventory = inventory.inventoryItemSubCategories.find(
+    (a) => a.value?.inventory.subComponents.length
+  )?.value?.inventory;
   return {
     subComponentInventory,
   };
