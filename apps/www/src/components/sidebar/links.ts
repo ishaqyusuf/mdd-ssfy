@@ -353,7 +353,7 @@ export const linkModules = [
                 )
                 .level(1).data,
             _link("Accounting", "billing", "/sales-book/accounting").access(
-                _perm.is("editOrders"),
+                _perm.is("editSales"),
             ).data,
             // .childPaths("sales-book/accounting/resolution-center").data,
             _link(
