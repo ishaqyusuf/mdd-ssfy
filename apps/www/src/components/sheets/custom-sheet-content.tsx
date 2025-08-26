@@ -20,7 +20,7 @@ import { useMediaQuery } from "react-responsive";
 import { screens } from "@/lib/responsive";
 
 const sheetContentVariant = cva(
-    "flex flex-col h-screen w-full overflow-x-hidden ",
+    "flex flex-col h-screens w-full overflow-x-hidden ",
     {
         variants: {
             floating: {
@@ -114,7 +114,11 @@ export function CustomSheetContent({ children = null, className = "" }) {
     const sheet = useSheet();
     return (
         <ScrollArea
-            className={cn("-mx-4 flex-1  px-4", className, "flex flex-col")}
+            className={cn(
+                "-mx-4 flex-1 h-[90vh] px-4",
+                className,
+                "flex flex-col",
+            )}
         >
             <div
                 id={sheet.scrollContentId}

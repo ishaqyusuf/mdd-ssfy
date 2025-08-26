@@ -51,7 +51,7 @@ export default function FormSettingsModal({}) {
                             "Configure form step sequence for each item section"
                         }
                     />
-                    <ScrollArea className="-mx-6   h-[90vh] flex-col gap-4 overflow-auto  px-6">
+                    <ScrollArea className="-mx-6 h-[90vh] flex-col gap-4 overflow-auto  px-6">
                         <div className="flex flex-col gap-4 pb-16">
                             <Accordion type="single" collapsible className="">
                                 {arr.fields.map((k) => (
