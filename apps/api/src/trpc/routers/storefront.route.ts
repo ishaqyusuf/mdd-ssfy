@@ -8,9 +8,54 @@ import {
   productOverview,
 } from "@sales/storefront";
 import { composeInventorySubCategories } from "@sales/utils/inventory-utils";
-import { formatMoney, imageUrl } from "@gnd/utils";
+import { formatMoney, imageUrl, slugify } from "@gnd/utils";
+import type { INVENTORY_STATUS } from "@sales/constants";
 
 export const storefrontRouter = createTRPCRouter({
+  getPrimaryCategories: publicProcedure.query(async (props) => {
+    const primaryCategories = await props.ctx.db.inventory.findMany({
+      where: {
+        status: "published" as INVENTORY_STATUS,
+        primaryStoreFront: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        _count: {
+          select: {
+            asSubCategoryValues: {
+              where: {
+                inventory: {
+                  status: "published" as INVENTORY_STATUS,
+                },
+              },
+            },
+          },
+        },
+        images: {
+          where: {
+            // primary:true
+          },
+          take: 1,
+          select: {
+            imageGallery: true,
+          },
+        },
+      },
+    });
+    return primaryCategories.map((c) => {
+      const slug = slugify(`${c.name} ${c.id}`);
+      return {
+        title: c.name,
+        description: c.description,
+        slug,
+        img: imageUrl(c.images[0]?.imageGallery!),
+        path: `/search?subCategorySlug=${slug}`,
+        count: `${c._count.asSubCategoryValues} products`,
+      };
+    });
+  }),
   getComponentsListing: publicProcedure
     .input(
       z.object({

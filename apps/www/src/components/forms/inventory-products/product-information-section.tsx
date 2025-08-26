@@ -28,8 +28,15 @@ export function ProductInformationSection({}) {
     const { categoryList } = useInventoryTrpc({
         enableCategoryList: true,
     });
-
-    const { stockMonitor, status, isPriceEnabled, inventoryId } = useProduct();
+    const {
+        stockMonitor,
+        status,
+        primaryStoreFront,
+        isPriceEnabled,
+        categoryId,
+        inventoryId,
+    } = useProduct();
+    const category = categoryList?.find((c) => c.id === categoryId);
     return (
         <AccordionItem value="general">
             <AccordionTrigger className="">
@@ -128,6 +135,53 @@ export function ProductInformationSection({}) {
                             </FormDescription>
                         </div>
                     </div>
+                    {category?.title !== "Item Type" || (
+                        <>
+                            <Separator className="col-span-2" />
+                            <div className="">
+                                <div className="grid gap-2">
+                                    <Label>Primary Store Front Category</Label>
+                                    <FormCheckbox
+                                        switchInput
+                                        label={
+                                            <div
+                                                className={cn(
+                                                    "flex items-center gap-2",
+                                                    primaryStoreFront
+                                                        ? "text-green-500"
+                                                        : "text-muted-foreground",
+                                                )}
+                                            >
+                                                {primaryStoreFront ? (
+                                                    <>
+                                                        <Eye className="size-4" />
+                                                        <span>
+                                                            Primary Store Front
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <EyeOff className="size-4" />
+                                                        <span>
+                                                            Primary Store Front
+                                                            Disabled
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        }
+                                        control={form.control}
+                                        name="product.primaryStoreFront"
+                                    />
+                                    <FormDescription>
+                                        {primaryStoreFront
+                                            ? `This will be displayed on storefront homepage`
+                                            : `This will not be displayed on storefront homepage`}
+                                    </FormDescription>
+                                </div>
+                            </div>
+                        </>
+                    )}
                     <Separator className="col-span-2" />
                     <ProductImageGallery />
                 </div>

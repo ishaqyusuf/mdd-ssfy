@@ -54,14 +54,15 @@ model SubComponents {
 }
 
 model Inventory {
-    id          Int       @id @default(autoincrement())
-    name        String
-    img         String?
-    uid         String
-    stockMode   String?
-    status      String?
-    publishedAt DateTime?
-    description String?
+    id                Int       @id @default(autoincrement())
+    name              String
+    img               String?
+    uid               String
+    stockMode         String?
+    status            String?
+    publishedAt       DateTime?
+    description       String?
+    primaryStoreFront Boolean?  @default(false)
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt

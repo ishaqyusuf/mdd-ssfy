@@ -113,6 +113,8 @@ export function ComboboxDropdown<T extends ComboboxItem>({
         <CommandList className={cn("")}>
           <div className={cn("max-h-[225px] overflow-auto", listClassName)}>
             {__items.map((item, itemIndex) => {
+              let value = item.id;
+              if (typeof value !== "string") value = String(item.id);
               const isChecked = selectedItem?.id === item.id;
 
               return (
@@ -120,10 +122,11 @@ export function ComboboxDropdown<T extends ComboboxItem>({
                   disabled={item.disabled}
                   className={cn("cursor-pointer", className)}
                   key={itemIndex}
-                  value={item.id}
+                  value={value}
                   onSelect={(id) => {
                     const foundItem = filteredItems?.find(
-                      (item) => item.id?.toUpperCase() === id?.toUpperCase()
+                      (item) =>
+                        String(item.id)?.toUpperCase() === id?.toUpperCase()
                     );
 
                     if (!foundItem) {

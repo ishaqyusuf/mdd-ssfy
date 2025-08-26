@@ -3,7 +3,6 @@
 import type React from "react";
 
 import { useState } from "react";
-import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
@@ -79,7 +78,6 @@ export default function CustomWorkPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <section className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">

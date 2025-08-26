@@ -492,6 +492,7 @@ export async function inventoryFormSave(db: Db, data: InventoryForm) {
         name: product.name,
         stockMode,
         description: product.description,
+        primaryStoreFront: product.primaryStoreFront,
       },
     });
   } else {
@@ -503,6 +504,7 @@ export async function inventoryFormSave(db: Db, data: InventoryForm) {
         status: product.status,
         publishedAt: product.status == "published" ? new Date() : null,
         stockMode,
+        primaryStoreFront: product.primaryStoreFront || false,
         inventoryCategory: {
           connect: {
             id: product.categoryId,
@@ -569,6 +571,7 @@ export async function inventoryForm(db: Db, inventoryId) {
       stockMonitor: (inv.stockMode as StockModes) == "monitored",
       description: inv.description,
       id: inv?.id!,
+      primaryStoreFront: !!inv.primaryStoreFront,
     },
     variants: [],
     category: {

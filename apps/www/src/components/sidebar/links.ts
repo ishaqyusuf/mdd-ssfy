@@ -6,7 +6,7 @@ import { schema } from "./context";
 import { sum } from "@/lib/utils";
 // import va from "@/lib/va";
 
-type moduleNames = "HRM" | "Sales" | "Community" | "Storefront";
+type moduleNames = "HRM" | "Sales" | "Community" | "Inventory";
 const _module = (
     name: moduleNames,
     icon: IconKeys,
@@ -424,7 +424,7 @@ export const linkModules = [
             ).data,
         ]),
     ]),
-    _module("Storefront", "packingList", "GND Store Front", [
+    _module("Inventory", "packingList", "GND Inventory", [
         _section("main", null, [
             _link("Inventory", "inbound", "/inventory", [
                 _subLink("Inventory", "/inventory").data,

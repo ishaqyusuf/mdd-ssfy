@@ -233,7 +233,11 @@ function searchQuery(query: ProductSearch) {
     // limit,
   } = query;
 
-  const wheres: Prisma.InventoryWhereInput[] = [];
+  const wheres: Prisma.InventoryWhereInput[] = [
+    {
+      status: "published",
+    },
+  ];
   wheres.push({
     variantPricings: {
       some: {

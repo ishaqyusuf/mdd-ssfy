@@ -2,10 +2,9 @@
 
 import { Header } from "@/components/header";
 import { Hero } from "@/components/hero";
-import { ProductCard } from "@/components/product-card-1";
-import { CategoryCard } from "@/components/category-card-1";
 import { Footer } from "@/components/footer";
 import { images } from "@/lib/images";
+import { FeaturedCategorySection } from "@/components/featured-category-section";
 
 const categories = [
   {
@@ -38,72 +37,13 @@ const categories = [
   },
 ];
 
-const featuredProducts = [
-  {
-    id: 1,
-    name: "Craftsman Style Interior Door",
-    price: "$299.99",
-    originalPrice: "$349.99",
-    image: images.products.craftsmanDoor,
-    rating: 4.8,
-    reviews: 24,
-    badge: "Best Seller",
-  },
-  {
-    id: 2,
-    name: "Solid Oak Exterior Door",
-    price: "$899.99",
-    image: images.products.oakExteriorDoor,
-    rating: 4.9,
-    reviews: 18,
-    badge: "Premium",
-  },
-  {
-    id: 3,
-    name: "Modern Barn Door Kit",
-    price: "$449.99",
-    image: images.products.barnDoorKit,
-    rating: 4.7,
-    reviews: 31,
-    badge: "Trending",
-  },
-  {
-    id: 4,
-    name: "French Door Set",
-    price: "$1,299.99",
-    image: images.products.frenchDoors,
-    rating: 4.9,
-    reviews: 12,
-    badge: "New",
-  },
-];
-
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <Hero />
 
       {/* Categories Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-gray-900 mb-4">
-              Shop by Category
-            </h3>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Browse our comprehensive selection of doors and millwork
-              components, carefully curated for quality and craftsmanship.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories.map((category, index) => (
-              <CategoryCard key={index} {...category} />
-            ))}
-          </div>
-        </div>
-      </section>
+      <FeaturedCategorySection />
 
       {/* Featured Products */}
       <section className="py-16 bg-gray-50">

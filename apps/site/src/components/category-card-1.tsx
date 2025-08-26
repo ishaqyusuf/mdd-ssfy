@@ -1,3 +1,4 @@
+import { RouterOutputs } from "@api/trpc/routers/_app";
 import {
   Card,
   CardContent,
@@ -5,37 +6,37 @@ import {
   CardHeader,
   CardTitle,
 } from "@gnd/ui/card";
+import Image from "next/image";
 import Link from "next/link";
 
-interface CategoryCardProps {
-  name: string;
-  image: string;
-  description: string;
-  count: string;
-  href: string;
-}
+type Category = RouterOutputs["storefront"]["getPrimaryCategories"][number];
+interface CategoryCardProps extends Category {}
 
-export function CategoryCard({
-  name,
-  image,
-  description,
+export function CategoryCard1({
   count,
-  href,
+  img,
+  path,
+  slug,
+  title,
+  description,
 }: CategoryCardProps) {
   return (
-    <Link href={href}>
+    <Link href={path}>
       <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
         <CardHeader className="p-0">
           <div className="relative overflow-hidden rounded-t-lg">
-            <img
-              src={image || "/placeholder.svg"}
-              alt={name}
-              className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-            />
+            {!img || (
+              <Image
+                src={img || "/placeholder.svg"}
+                alt={title}
+                fill
+                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          <CardTitle className="text-xl mb-2">{name}</CardTitle>
+          <CardTitle className="text-xl mb-2">{title}</CardTitle>
           <CardDescription className="mb-3">{description}</CardDescription>
           <p className="text-sm font-medium text-amber-700">{count}</p>
         </CardContent>
