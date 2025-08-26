@@ -4,6 +4,7 @@ import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 import { z } from "zod";
 import { inventoryVariantStockForm } from "./inventory";
+import { composeInventorySubCategories } from "./utils/inventory-utils";
 
 export const productSearchSchema = z
   .object({
@@ -104,9 +105,6 @@ export async function productSearch(db: Db, query: ProductSearch) {
         name: i.altText || product.name,
       }));
 
-      const subCategories = product.inventoryItemSubCategories.map(
-        (a) => a.value?.inventory
-      );
       return {
         url: `/product/${categorySlug}/${slugify(`${product.name} ${product.id}`)}?qty=1`,
         id: product.id,
@@ -123,23 +121,8 @@ export async function productSearch(db: Db, query: ProductSearch) {
         reviews: null,
         badge: null,
         description: product.description,
-        subCategories: uniqueList(
-          subCategories.map((c) => ({
-            id: c?.inventoryCategory?.id,
-            label: c?.inventoryCategory?.title,
-            items: uniqueList(
-              subCategories
-                .filter(
-                  (a) => a?.inventoryCategory?.id === c?.inventoryCategory?.id
-                )
-                .map((a) => ({
-                  id: a?.id,
-                  name: a?.name,
-                })),
-              "id"
-            ),
-          })),
-          "id"
+        subCategories: composeInventorySubCategories(
+          product.inventoryItemSubCategories
         ),
       };
     })

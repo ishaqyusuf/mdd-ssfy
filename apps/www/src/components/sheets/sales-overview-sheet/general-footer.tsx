@@ -34,6 +34,7 @@ import { AuthGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";
 import { useSalesPrintParams } from "@/hooks/use-sales-print-params";
 import { InvoicePrintModes } from "@sales/types";
+import { MenuItemSalesActions } from "@/components/menu-item-sales-actions";
 
 export function GeneralFooter({}) {
     const { data } = useSaleOverview();
@@ -85,37 +86,7 @@ export function GeneralFooter({}) {
             ),
         });
     };
-    async function copyAs(as: SalesType) {
-        loader.loading("Copying...");
-        // const orderId = slug;
-        const result = await copySalesUseCase(data?.orderId, as);
-        try {
-            if (as == "order")
-                await resetSalesStatAction(result.id, data?.orderId);
-        } catch (error) {}
-        if (result.link) {
-            loader.success(`Copied as ${as}`, {
-                duration: 3000,
-                action: (
-                    <ToastAction
-                        onClick={(e) => {
-                            openLink(
-                                salesFormUrl(as, result.data?.slug),
-                                {},
-                                true,
-                            );
-                        }}
-                        altText="edit"
-                    >
-                        Edit
-                    </ToastAction>
-                ),
-            });
-            as == "order"
-                ? sq.invalidate.salesList()
-                : sq.invalidate.quoteList();
-        }
-    }
+
     return (
         <CustomSheetContentPortal>
             <SheetFooter className="sm:-m-4 sm:-mb-2 sm:border-t p-4  max-md:flex-row max-md:gap-4 max-md:justify-end max-md:fixed max-md:bottom-0 max-md:bg-accent max-md:w-full">
@@ -148,32 +119,10 @@ export function GeneralFooter({}) {
                     onOpenChanged={setMenuOpen}
                     variant="outline"
                 >
-                    <SalesEmailMenuItem
-                        salesId={data?.id}
-                        salesType={data?.type}
-                    />
-                    <MenuItemPrintAction
-                        salesId={data?.id}
+                    <MenuItemSalesActions
                         slug={data?.uuid}
-                        onOpenMenu={setMenuOpen}
-                        type={data?.type}
-                    />
-                    <MenuItemPrintAction
-                        salesId={data?.id}
-                        slug={data?.uuid}
-                        onOpenMenu={setMenuOpen}
-                        type={data?.type}
-                        pdf
-                    />
-                    <MenuItemSalesCopy
-                        slug={data?.uuid}
-                        onOpenMenu={setMenuOpen}
-                        type={data?.type}
-                        copyAs={copyAs}
-                    />
-                    <MenuItemSalesMove
-                        slug={data?.uuid}
-                        onOpenMenu={setMenuOpen}
+                        setMenuOpen={setMenuOpen}
+                        id={data?.id}
                         type={data?.type}
                     />
                     <Menu.Item

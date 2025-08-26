@@ -4,7 +4,7 @@ import { useTRPC } from "@/trpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useProductFilterParams } from "./use-product-filter-params";
 import { useDebugConsole } from "./use-debug-console";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "@gnd/ui/use-toast";
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
 }
 export const { Provider: ProductProvider, useContext: useProduct } =
   createContextFactory((props: Props) => {
+    const [showSubComponentImage, setShowSubComponentImage] = useState(false);
     const trpc = useTRPC();
     const { filter, setFilter } = useProductFilterParams();
     const { data, error } = useSuspenseQuery(
@@ -166,5 +167,7 @@ export const { Provider: ProductProvider, useContext: useProduct } =
       addonComponent,
       componentsProducts,
       inventoryIds,
+      showSubComponentImage,
+      setShowSubComponentImage,
     };
   });

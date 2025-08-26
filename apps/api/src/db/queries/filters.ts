@@ -51,7 +51,10 @@ function optionFilter<T>(
   return {
     label,
     value,
-    options,
+    options: options.map(({ label, value }) => ({
+      label,
+      value: value, //?.toString(),
+    })),
     type: "checkbox",
   } satisfies PageFilterData<T>;
 }

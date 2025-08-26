@@ -24,7 +24,6 @@ export function ProductActions() {
       console.log("Store not hydrated yet, waiting...");
       return;
     }
-
     setIsAdding(true);
 
     try {

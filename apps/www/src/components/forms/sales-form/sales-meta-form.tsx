@@ -36,6 +36,9 @@ import FormSettingsModal from "@/app/(clean-code)/(sales)/sales-book/(form)/_com
 import { _modal } from "@/components/common/modal/provider";
 import { SalesLaborLine } from "./sales-labor-line";
 import { useSticky } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/use-sticky";
+import { MenuItemSalesMove } from "@/components/menu-item-sales-move";
+import { MenuItemSalesCopy } from "@/components/menu-item-sales-copy";
+import { MenuItemSalesActions } from "@/components/menu-item-sales-actions";
 
 export function SalesMetaForm({}) {
     const zus = useFormDataStore();
@@ -56,6 +59,8 @@ export function SalesMetaForm({}) {
             return true;
         }, //!bv && pv,
     );
+
+    const [menuOpen, setMenuOpen] = useState(false);
     return (
         <div>
             <div
@@ -83,7 +88,7 @@ export function SalesMetaForm({}) {
                     ))}
                     <div className="flex-1"></div>
                     <div>
-                        <Menu>
+                        <Menu open={menuOpen} onOpenChanged={setMenuOpen}>
                             {/* <Menu.Item Icon={Icons.save}>Save</Menu.Item> */}
                             <SalesFormSave type="menu" />
                             <Menu.Item
@@ -99,10 +104,14 @@ export function SalesMetaForm({}) {
                             >
                                 Overview
                             </Menu.Item>
-                            <SalesFormPrintMenu />
-                            <SalesFormEmailMenu />
-                            <Menu.Item Icon={Icons.copy}>Copy</Menu.Item>
-                            <Menu.Item Icon={Icons.move2}>Move to</Menu.Item>
+
+                            <MenuItemSalesActions
+                                slug={zus.metaData.salesId}
+                                setMenuOpen={setMenuOpen}
+                                type={zus.metaData.type}
+                                id={zus.metaData.id}
+                            />
+
                             <Menu.Item
                                 onClick={(e) => {
                                     _modal.openSheet(<FormSettingsModal />);

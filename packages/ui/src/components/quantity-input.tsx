@@ -2,7 +2,7 @@ import { Minus, Plus } from "lucide-react";
 import * as React from "react";
 import { cn } from "../utils";
 
-type Props = {
+export type QtyInputProps = {
   value?: number;
   min?: number;
   max?: number;
@@ -20,7 +20,7 @@ export function QuantityInput({
   onBlur,
   onFocus,
   className,
-}: Props) {
+}: QtyInputProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [rawValue, setRawValue] = React.useState(String(value));
 
@@ -32,9 +32,11 @@ export function QuantityInput({
 
     // Check if input can be parsed as a valid number
     const num = Number.parseFloat(input);
+    console.log({ input });
     if (!Number.isNaN(num) && min <= num && num <= max) {
       onChange?.(num);
     }
+    if (input === "") onChange?.(null as any);
   };
 
   const handlePointerDown =
@@ -52,7 +54,7 @@ export function QuantityInput({
     <div
       className={cn(
         "group flex items-stretch transition-[box-shadow] font-mono",
-        className,
+        className
       )}
     >
       <button
