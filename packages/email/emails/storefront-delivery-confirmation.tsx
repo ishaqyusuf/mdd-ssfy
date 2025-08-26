@@ -1,33 +1,36 @@
+
 import {
   Body,
+  Button,
   Container,
-  Head,
   Heading,
-  Html,
   Preview,
+  Section,
   Text,
 } from "@react-email/components";
-
-import { formatCurrency } from "@gnd/utils/format";
+import { Footer } from "components/footer";
+import { Logo } from "components/logo";
 import {
   EmailThemeProvider,
   getEmailInlineStyles,
   getEmailThemeClasses,
 } from "components/theme";
-import { Logo } from "components/logo";
-import { Footer } from "components/footer";
 
-export default function SalesRepPaymentNotificationEmail(props: any) {
-  const {
-    ordersNo = ["ABC"],
-    amount = 100,
-    repName = "Pablo Cruz",
-    customerName = "Ishaq Yusuf",
-  } = props;
+interface Props {
+  name?: string;
+  orderId?: string;
+  storeUrl?: string;
+}
+export default function StorefrontDeliveryConfirmation({
+  name = "Ishaq Yusuf",
+  orderId = "123456",
+  storeUrl = "https://example.com",
+}: Props) {
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
-  const previewText = `Payment Received - Order{ordersNo?.length > 0 ? "s" : ""} #
-        ${ordersNo.join(", ")}`;
+
+  const previewText = `Your GND Millwork Order #${orderId} has been delivered!`;
+
   return (
     <EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
       <Body
@@ -47,18 +50,26 @@ export default function SalesRepPaymentNotificationEmail(props: any) {
             className={`text-[21px] font-normal text-center p-0 my-[30px] mx-0 ${themeClasses.heading}`}
             style={{ color: lightStyles.text.color }}
           >
-            Payment Received
+            Your Order Has Been Delivered!
           </Heading>
-          <Text>Hi {repName},</Text>
-          <Text>
-            A payment of <strong>{formatCurrency.format(amount)}</strong> has
-            been received from {customerName} for Order{" "}
-            <strong>#{ordersNo.join(", ")}</strong>.
+          <Text
+            className={`font-medium ${themeClasses.text}`}
+            style={{ color: lightStyles.text.color }}
+          >
+            Hi {name},
           </Text>
-          <Text>Please verify the transaction in your sales dashboard.</Text>
-          <Text>Best regards,</Text>
-          <Text>Sales Team</Text>
-          <br />
+          <Text
+            className={themeClasses.text}
+            style={{ color: lightStyles.text.color }}
+          >
+            Your order from GND Millwork has been delivered. We hope you enjoy
+            your products!
+          </Text>
+
+          <Section className="text-center mt-[30px] mb-[40px]">
+            <Button href={storeUrl}>Shop Again</Button>
+          </Section>
+
           <Footer />
         </Container>
       </Body>

@@ -81,6 +81,10 @@ function MouldingRow({
                     lineUid={lineUid}
                     type="number"
                     valueChanged={valueChanged}
+                    mask
+                    qtyInputProps={{
+                        min: 1,
+                    }}
                 />
             </TableCell>
             <TableCell className="">

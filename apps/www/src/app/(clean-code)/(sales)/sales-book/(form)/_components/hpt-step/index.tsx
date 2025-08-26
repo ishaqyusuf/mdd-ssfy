@@ -268,6 +268,10 @@ function DoorSizeRowContent() {
                             className="w-16 text-center"
                             type="number"
                             valueChanged={valueChanged}
+                            mask
+                            qtyInputProps={{
+                                min: 1,
+                            }}
                         />
                     </TableCell>
                 ) : (
