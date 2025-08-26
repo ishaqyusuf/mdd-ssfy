@@ -21,7 +21,27 @@ import {
 } from "@sales/exports";
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
 import { getSalesProductions } from "@sales/sales-production";
+import { z } from "zod";
+import { generateRandomString } from "@gnd/utils";
 export const salesRouter = createTRPCRouter({
+  createStep: publicProcedure
+    .input(
+      z.object({
+        title: z.string(),
+      })
+    )
+    .mutation(async (props) => {
+      const db = props.ctx.db;
+      const title = props.input.title;
+      return await db.dykeSteps.create({
+        data: {
+          uid: generateRandomString(4),
+          title,
+          meta: {},
+        },
+      });
+      // return createStep(props.ctx, props.input);
+    }),
   index: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
     const query = props.input;
 

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@/components/_v1/icons";
 import { Menu } from "@/components/(clean-code)/menu";
@@ -27,6 +27,16 @@ import { Sortable, SortableDragHandle, SortableItem } from "@gnd/ui/sortable";
 
 import { Context, useSettings, useSettingsContext } from "./ctx";
 import { GripIcon } from "lucide-react";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@gnd/ui/accordion";
+import FormInput from "@/components/common/controls/form-input";
+import { useTRPC } from "@/trpc/client";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "@gnd/ui/use-toast";
 
 export default function FormSettingsModal({}) {
     const value = useSettingsContext();
@@ -43,9 +53,11 @@ export default function FormSettingsModal({}) {
                     />
                     <ScrollArea className="-mx-6   h-[90vh] flex-col gap-4 overflow-auto  px-6">
                         <div className="flex flex-col gap-4 pb-16">
-                            {arr.fields.map((k) => (
-                                <RouteSection key={k._id} uid={k.uid} />
-                            ))}
+                            <Accordion type="single" collapsible className="">
+                                {arr.fields.map((k) => (
+                                    <RouteSection key={k._id} uid={k.uid} />
+                                ))}
+                            </Accordion>
                             <div className="flex justify-end"></div>
                         </div>
                     </ScrollArea>
@@ -95,20 +107,30 @@ function RouteSection({ uid }) {
         name: `data.setting.data.route.${uid}.routeSequence`,
         // keyName: "_id",
     });
+    const [steps, setSteps] = useState(ctx.steps);
+    const trpc = useTRPC();
+    const m = useMutation(
+        trpc.sales.createStep.mutationOptions({
+            onSuccess(data, variables, context) {
+                ctx.form.setValue("data.newStepTitle", null);
+                toast({
+                    title: "New step created",
+                });
+                setSteps((current) => {
+                    return [...current, data as any];
+                });
+            },
+        }),
+    );
+    const newStepTitle = ctx.form.watch("data.newStepTitle");
 
     return (
-        <Card className="">
-            <div className="flex flex-col items-center gap-4 sm:flex-row">
-                <CardHeader className="w-full flex-col gap-4 space-y-0 sm:flex-row">
-                    <div className="flex flex-1 flex-col gap-1.5">
-                        <CardTitle>
-                            {
-                                ctx.salesSetting?.rootComponentsByKey?.[uid]
-                                    ?.title
-                            }
-                        </CardTitle>
-                        <CardDescription>Compose Step Sequence</CardDescription>
-                    </div>
+        <AccordionItem value={uid}>
+            <AccordionTrigger>
+                {ctx.salesSetting?.rootComponentsByKey?.[uid]?.title}
+            </AccordionTrigger>
+            <AccordionContent>
+                <div className="flex justify-end">
                     <Button
                         type="button"
                         variant="outline"
@@ -119,9 +141,7 @@ function RouteSection({ uid }) {
                         <Icons.add className="size-4" />
                         <span>Step</span>
                     </Button>
-                </CardHeader>
-            </div>
-            <CardContent>
+                </div>
                 <div className="grid gap-4 pb-4">
                     <FormCheckbox
                         switchInput
@@ -182,7 +202,7 @@ function RouteSection({ uid }) {
                                         name={`data.setting.data.route.${uid}.routeSequence.${index}.uid`}
                                         titleKey="title"
                                         valueKey="uid"
-                                        options={ctx.steps}
+                                        options={steps}
                                         control={ctx.form.control}
                                     />
 
@@ -209,6 +229,23 @@ function RouteSection({ uid }) {
                     </div>
                 </Sortable>
                 <div className="mt-4 flex justify-end">
+                    <div className="flex mx-4 items-center gap-2">
+                        <FormInput
+                            name="data.newStepTitle"
+                            placeholder="New Step"
+                            control={ctx.form.control}
+                        />
+                        <Button
+                            onClick={(e) => {
+                                m.mutate({
+                                    title: newStepTitle,
+                                });
+                            }}
+                            size="sm"
+                        >
+                            Create
+                        </Button>
+                    </div>
                     <Button
                         onClick={() => {
                             arr.append({ uid: "" });
@@ -220,7 +257,7 @@ function RouteSection({ uid }) {
                         <span>Step</span>
                     </Button>
                 </div>
-            </CardContent>
-        </Card>
+            </AccordionContent>
+        </AccordionItem>
     );
 }

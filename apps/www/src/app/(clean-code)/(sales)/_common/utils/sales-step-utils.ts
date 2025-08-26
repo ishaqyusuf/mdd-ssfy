@@ -71,6 +71,7 @@ export function composeStepRouting(fdata: LoadSalesFormData) {
         sectionKeys,
         stepsByKey,
         rootComponentsByKey,
+        newStepTitle: "",
     };
 }
 const hiddenDisplaySteps = [
