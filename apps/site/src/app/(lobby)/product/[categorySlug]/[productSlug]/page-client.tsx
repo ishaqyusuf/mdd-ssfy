@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { ArrowLeft, Share2, Truck, Shield, RotateCcw } from "lucide-react";
-import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ProductImageGallery } from "@/components/product-image-gallery";
 import { ProductActions } from "@/components/product-actions";
@@ -253,7 +252,6 @@ export default function ProductPage({ params }: ProductPageProps) {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <main className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <div className="animate-pulse">Loading product...</div>
@@ -266,8 +264,6 @@ export default function ProductPage({ params }: ProductPageProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header cartItems={getTotalItems()} />
-
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <div className="flex items-center space-x-2 text-sm text-gray-600 mb-6">

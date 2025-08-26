@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
@@ -108,7 +107,6 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
   if (!mounted || !isAuthenticated || !user) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <main className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <div className="animate-pulse">Loading order details...</div>
@@ -122,7 +120,6 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
   if (!order) {
     return (
       <div className="min-h-screen bg-background">
-        <Header cartItems={getTotalItems()} />
         <main className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <Package className="h-24 w-24 mx-auto text-gray-400 mb-4" />
@@ -147,7 +144,6 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header cartItems={getTotalItems()} />
       <main className="container mx-auto px-4 py-8">
         {/* Success Message */}
         {showSuccess && (

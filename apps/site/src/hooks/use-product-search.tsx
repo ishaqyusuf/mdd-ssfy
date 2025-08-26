@@ -2,7 +2,6 @@ import { createContextFactory } from "@/lib/context-factory";
 import { useProductsFilterParams } from "./use-products-filter-params";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
-import { useDebugConsole } from "./use-debug-console";
 import { useEffect, useState } from "react";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 

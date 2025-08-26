@@ -1,9 +1,8 @@
-"use client"
+"use client";
 
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
+import { Footer } from "@/components/footer";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const termsOfUseContent = `
 # Terms of Use
@@ -91,18 +90,19 @@ THE INFORMATION AND MATERIALS IN THIS SITE ARE PROVIDED FOR YOUR REVIEW IN ACCOR
 
 Copyright © 2020 GND Millwork Corp, All Rights Reserved.
 GND Millwork is a registered trademark of GND Millwork Corp.
-`
+`;
 
 export default function TermsOfUsePage() {
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="prose max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{termsOfUseContent}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {termsOfUseContent}
+          </ReactMarkdown>
         </div>
       </main>
       <Footer />
     </div>
-  )
+  );
 }

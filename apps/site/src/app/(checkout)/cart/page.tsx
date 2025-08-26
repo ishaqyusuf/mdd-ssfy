@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { CartItem } from "@/components/cart-item";
 import { OrderSummary } from "@/components/order-summary";
@@ -24,7 +23,6 @@ export default function CartPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <main className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <div className="animate-pulse">Loading cart...</div>
@@ -43,7 +41,6 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-background">
-        <Header cartItems={0} />
         <main className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <ShoppingBag className="h-24 w-24 mx-auto text-gray-400 mb-4" />
@@ -67,7 +64,6 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header cartItems={getTotalItems()} />
       <main className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <div className="flex items-center space-x-2 text-sm text-gray-600 mb-6">

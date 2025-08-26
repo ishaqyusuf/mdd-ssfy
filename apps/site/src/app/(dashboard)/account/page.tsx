@@ -5,7 +5,6 @@ import type React from "react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
@@ -114,7 +113,6 @@ export default function AccountPage() {
   if (!mounted || !isAuthenticated || !user) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <main className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <div className="animate-pulse">Loading...</div>
@@ -147,7 +145,6 @@ export default function AccountPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header cartItems={getTotalItems()} />
       <main className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <div className="flex items-center space-x-2 text-sm text-gray-600 mb-6">

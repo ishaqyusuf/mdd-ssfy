@@ -223,6 +223,7 @@ function searchQuery(query: ProductSearch) {
     query: searchQuery,
     categoryId,
     categorySlug,
+    subCategorySlug,
     priceMin,
     priceMax,
     tags,
@@ -257,6 +258,17 @@ function searchQuery(query: ProductSearch) {
     const [id, ...rest] = categorySlug?.split("-")?.reverse();
     wheres.push({
       inventoryCategoryId: Number(id),
+    });
+  }
+  if (subCategorySlug) {
+    const [id, ...rest] = subCategorySlug?.split("-")?.reverse();
+    wheres.push({
+      // inventoryCategoryId: Number(id),
+      inventoryItemSubCategories: {
+        some: {
+          inventorySubCategoryId: Number(id),
+        },
+      },
     });
   }
   // wheres.push({
