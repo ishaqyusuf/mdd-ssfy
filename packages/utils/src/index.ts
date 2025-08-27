@@ -1,6 +1,12 @@
 import { colorsObject } from "./colors";
 import dayjs from "./dayjs";
 
+export function dbConnect(id) {
+  if (!id) return undefined as any;
+  return {
+    connect: { id },
+  };
+}
 export function stripSpecialCharacters(inputString: string) {
   // Remove special characters and spaces, keep alphanumeric, hyphens/underscores, and dots
   return inputString

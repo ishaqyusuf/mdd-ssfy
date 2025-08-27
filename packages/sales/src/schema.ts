@@ -324,8 +324,8 @@ export type UpdateCategoryVariantAttribute = z.infer<
 export const linePricingSchema = z.object({
   id: z.number().optional().nullable(),
   qty: z.number().optional().nullable(),
-  salesPrice: z.number().nullable(),
-  costPrice: z.number().nullable(),
-  unitCostPrice: z.number().nullable(),
-  unitSalesPrice: z.number().nullable(),
+  salesPrice: z.number().nullable().optional(),
+  costPrice: z.number().nullable().optional(),
+  unitCostPrice: z.number().nullable().optional(),
+  unitSalesPrice: z.number().nullable().optional(),
 });

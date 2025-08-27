@@ -8,7 +8,7 @@ import {
   productOverview,
 } from "@sales/storefront";
 import { composeInventorySubCategories } from "@sales/utils/inventory-utils";
-import { formatMoney, imageUrl, slugify } from "@gnd/utils";
+import { dbConnect, formatMoney, imageUrl, slugify } from "@gnd/utils";
 import type { INVENTORY_STATUS } from "@sales/constants";
 import { linePricingSchema } from "@sales/schema";
 
@@ -25,9 +25,9 @@ export const storefrontRouter = createTRPCRouter({
         components: z.array(
           z.object({
             pricing: linePricingSchema,
-            inventoryVariantId: z.number(),
+            inventoryVariantId: z.number().optional().nullable(),
             inventoryCategoryId: z.number(),
-            inventoryId: z.number(),
+            inventoryId: z.number().optional().nullable(),
             subComponentId: z.number(),
             qty: z.number(),
             required: z.boolean().default(false),
@@ -45,13 +45,19 @@ export const storefrontRouter = createTRPCRouter({
             guestId: input.guestId,
             userId: input.userId,
             meta: {},
-            inventoryVariantId: input.variantId,
-            inventoryId: input.inventoryId,
-            inventoryCategoryId: input.inventoryCategoryId,
+            inventoryCategory: dbConnect(input.inventoryCategoryId),
+            inventory: dbConnect(input.inventoryId),
+            variant: dbConnect(input.variantId),
+
+            // inventoryVariantId: input.variantId,
+            // inventoryId: input.inventoryId,
+            // inventoryCategoryId: input.inventoryCategoryId,
             price: {
               create: {
-                inventoryVariantId: input.variantId,
-                inventoryId: input.inventoryId,
+                // inventoryVariantId: input.variantId,
+                // inventoryId: input.inventoryId,
+                inventory: dbConnect(input.inventoryId),
+                inventoryVariant: dbConnect(input.variantId),
                 unitCostPrice: input.pricing.unitCostPrice,
                 unitSalesPrice: input.pricing.unitSalesPrice,
                 costPrice: input.pricing.costPrice,
@@ -65,16 +71,24 @@ export const storefrontRouter = createTRPCRouter({
           input.components.map(async (c) => {
             await prisma.lineItemComponents.create({
               data: {
-                inventoryVariantId: c.inventoryVariantId,
-                subComponentId: c.subComponentId,
-                inventoryId: c.inventoryId,
-                lineItemId: item.id,
+                // inventoryVariantId: c.inventoryVariantId,
+                inventoryVariant: dbConnect(c.inventoryVariantId),
+                subComponent: dbConnect(c.subComponentId),
+                inventoryCategory: dbConnect(c.inventoryCategoryId),
+                inventory: dbConnect(c.inventoryId),
+                parent: dbConnect(item.id),
+
+                // subComponentId: c.subComponentId,
+                // inventoryId: c.inventoryId,
+                // lineItemId: item.id,
                 required: c.required,
-                inventoryCategoryId: c.inventoryCategoryId,
+                // inventoryCategoryId: c.inventoryCategoryId,
                 price: {
                   create: {
-                    inventoryVariantId: c.inventoryVariantId,
-                    inventoryId: c.inventoryId,
+                    // inventoryVariantId: c.inventoryVariantId,
+                    // inventoryId: c.inventoryId,
+                    inventoryVariant: dbConnect(c.inventoryVariantId),
+                    inventory: dbConnect(c.inventoryId),
                     unitCostPrice: c.pricing.unitCostPrice,
                     unitSalesPrice: c.pricing.unitSalesPrice,
                     costPrice: c.pricing.costPrice,
@@ -108,6 +122,78 @@ export const storefrontRouter = createTRPCRouter({
       return {
         count: cartCount,
       };
+    }),
+  getCartList: publicProcedure
+    .input(
+      z.object({
+        guestId: z.string().optional().nullable(),
+      })
+    )
+    .query(async (props) => {
+      const guestId = props.input.guestId;
+      const userId = props.ctx.userId;
+      if (!guestId && !userId) return [];
+      // if () return { count: 0 };
+      const where =
+        guestId && userId
+          ? {
+              OR: [{ guestId }, { userId }],
+            }
+          : userId
+            ? { userId }
+            : { guestId };
+      const cartList = await props.ctx.db.lineItem.findMany({
+        where: {
+          lineItemType: "CART",
+          ...where,
+        },
+        select: {
+          qty: true,
+          price: true,
+          inventory: {
+            select: {
+              name: true,
+            },
+          },
+          variant: {
+            select: {
+              attributes: {
+                select: {
+                  inventoryCategoryVariantAttribute: {
+                    select: {
+                      inventoryCategory: {
+                        select: {
+                          title: true,
+                        },
+                      },
+                    },
+                  },
+                  value: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          components: {
+            select: {
+              inventoryCategory: {
+                select: {
+                  title: true,
+                },
+              },
+              inventory: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      return cartList;
     }),
   getPrimaryCategories: publicProcedure.query(async (props) => {
     const primaryCategories = await props.ctx.db.inventory.findMany({
