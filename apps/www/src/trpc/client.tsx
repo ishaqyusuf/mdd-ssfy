@@ -36,6 +36,7 @@ export function TRPCReactProvider(
     }>,
 ) {
     const queryClient = getQueryClient();
+
     const [trpcClient] = useState(() =>
         createTRPCClient<AppRouter>({
             links: [

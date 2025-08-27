@@ -4,7 +4,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { db, PrismaClient, Roles, Users } from "@gnd/db";
 import { DefaultSession, NextAuthOptions } from "next-auth";
-import { loginAction, type ICan } from "./utils.ts";
+import { loginAction, type ICan } from "./utils";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 

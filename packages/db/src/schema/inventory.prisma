@@ -17,14 +17,15 @@ model InventoryCategory {
     categoryVariantAttributes          InventoryCategoryVariantAttribute[] @relation(name: "inventoryCategory")
     attributedCategoryVariantAttribute InventoryCategoryVariantAttribute[] @relation(name: "valuesInventoryCategory")
 
-    subComponents   SubComponents[]   @relation(name: "subComponents")
+    subComponents      SubComponents[]      @relation(name: "subComponents")
     // asSubComponents SubComponents[]   @relation(name: "asSubComponents")
-    createdAt       DateTime?         @default(now()) @db.Timestamp(0)
-    updatedAt       DateTime?         @updatedAt
-    deletedAt       DateTime?         @db.Timestamp(0)
-    Discount        Discount?         @relation(fields: [discountId], references: [id])
-    discountId      String?
-    FeaturedProduct FeaturedProduct[]
+    createdAt          DateTime?            @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime?            @updatedAt
+    deletedAt          DateTime?            @db.Timestamp(0)
+    Discount           Discount?            @relation(fields: [discountId], references: [id])
+    discountId         String?
+    featuredProduct    FeaturedProduct[]
+    lineItemComponents LineItemComponents[]
 
     @@index([discountId])
 }
@@ -47,6 +48,8 @@ model SubComponents {
     parent              Inventory?         @relation(name: "parent", fields: [parentId], references: [id])
     parentId            Int?
     // @@index([parentId])
+
+    lineItemComponents LineItemComponents[]
 
     @@index([parentId])
     @@index([defaultInventoryId])
@@ -81,6 +84,7 @@ model Inventory {
     images                     InventoryImage[]
     asSubCategoryValues        InventoryItemSubCategoryValue[]
     reviews                    ProductReview[]
+    lineItemComponents         LineItemComponents[]
     discount                   Discount?                       @relation(fields: [discountId], references: [id])
     discountId                 String?
 
@@ -110,28 +114,29 @@ model Inventory {
 }
 
 model InventoryVariant {
-    id               Int                         @id @default(autoincrement())
-    img              String?
-    sku              String?
-    uid              String
-    createdAt        DateTime?                   @default(now()) @db.Timestamp(0)
-    updatedAt        DateTime?                   @updatedAt
-    deletedAt        DateTime?                   @db.Timestamp(0)
-    lowStockAlert    Int?
-    status           String?
-    publishedAt      DateTime?
-    description      String?
-    inventory        Inventory                   @relation(fields: [inventoryId], references: [id])
-    inventoryId      Int
-    attributes       InventoryVariantAttribute[]
-    stocks           InventoryStock[]
-    logs             InventoryLog[]
-    images           InventoryImage[]
-    stockMovements   StockMovement[]
-    inboundStocks    InboundShipmentItem[]
-    pricing          InventoryVariantPricing?
-    pricingHistories PriceHistory[]
-    usageActivities  InventoryActivity[]
+    id                 Int                         @id @default(autoincrement())
+    img                String?
+    sku                String?
+    uid                String
+    createdAt          DateTime?                   @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime?                   @updatedAt
+    deletedAt          DateTime?                   @db.Timestamp(0)
+    lowStockAlert      Int?
+    status             String?
+    publishedAt        DateTime?
+    description        String?
+    inventory          Inventory                   @relation(fields: [inventoryId], references: [id])
+    inventoryId        Int
+    attributes         InventoryVariantAttribute[]
+    stocks             InventoryStock[]
+    logs               InventoryLog[]
+    images             InventoryImage[]
+    stockMovements     StockMovement[]
+    inboundStocks      InboundShipmentItem[]
+    pricing            InventoryVariantPricing?
+    pricingHistories   PriceHistory[]
+    lineItems          LineItem[]
+    lineItemComponents LineItemComponents[]
 
     @@index([inventoryId])
 }
@@ -511,22 +516,23 @@ model InboundShipmentItem {
 }
 
 model CartItem {
-    id         Int                 @id @default(autoincrement())
-    activities InventoryActivity[]
-    createdAt  DateTime?           @default(now()) @db.Timestamp(0)
-    updatedAt  DateTime?           @updatedAt
-    deletedAt  DateTime?           @db.Timestamp(0)
+    id        Int        @id @default(autoincrement())
+    lineItems LineItem[]
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
 }
 
 model WisthListItem {
-    id         Int                 @id @default(autoincrement())
-    activities InventoryActivity[]
-    createdAt  DateTime?           @default(now()) @db.Timestamp(0)
-    updatedAt  DateTime?           @updatedAt
-    deletedAt  DateTime?           @db.Timestamp(0)
+    id        Int        @id @default(autoincrement())
+    lineItems LineItem[]
+    createdAt DateTime?  @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?  @updatedAt
+    deletedAt DateTime?  @db.Timestamp(0)
 }
 
-model InventoryActivity {
+model LineItem {
     id          Int     @id @default(autoincrement())
     uid         String? //a line item may have multiple other records, same uid will be used to keep the record
     sn          Int?    @default(0) // index
@@ -537,19 +543,24 @@ model InventoryActivity {
     totalCost   Float?
     meta        Json? // for keeping other metadata eg; swing, handle
 
+    guestId String?
+    userId  Int?
+
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    activityType       InventoryActivityType
-    variant            InventoryVariant      @relation(fields: [inventoryVariantId], references: [id])
+    lineItemType       LineItemType
+    variant            InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
     inventoryVariantId Int
-    wishtListItem      WisthListItem?        @relation(fields: [wisthListItemId], references: [id])
+    wishtListItem      WisthListItem?   @relation(fields: [wisthListItemId], references: [id])
     wisthListItemId    Int?
-    cartItem           CartItem?             @relation(fields: [cartItemId], references: [id])
+    cartItem           CartItem?        @relation(fields: [cartItemId], references: [id])
     cartItemId         Int?
-    sale               SalesOrders?          @relation(fields: [saleId], references: [id])
+    sale               SalesOrders?     @relation(fields: [saleId], references: [id])
     saleId             Int?
+
+    components LineItemComponents[]
 
     @@index([inventoryVariantId])
     @@index([wisthListItemId])
@@ -557,7 +568,32 @@ model InventoryActivity {
     @@index([saleId])
 }
 
-enum InventoryActivityType {
+model LineItemComponents {
+    id Int @id @default(autoincrement())
+
+    qty       Int?
+    unitCost  Int?
+    totalCost Int?
+
+    parent              LineItem           @relation(fields: [lineItemId], references: [id])
+    lineItemId          Int
+    InventoryCategory   InventoryCategory? @relation(fields: [inventoryCategoryId], references: [id])
+    inventoryCategoryId Int?
+    subComponent        SubComponents?     @relation(fields: [subComponentId], references: [id])
+    subComponentId      Int?
+    Inventory           Inventory?         @relation(fields: [inventoryId], references: [id])
+    inventoryId         Int?
+    InventoryVariant    InventoryVariant?  @relation(fields: [inventoryVariantId], references: [id])
+    inventoryVariantId  Int?
+
+    @@index([lineItemId])
+    @@index([inventoryVariantId])
+    @@index([inventoryId])
+    @@index([subComponentId])
+    @@index([inventoryCategoryId])
+}
+
+enum LineItemType {
     CART
     WISHLIST
     QUOTE

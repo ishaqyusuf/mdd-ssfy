@@ -4,8 +4,11 @@ import { nanoid } from "nanoid";
 
 export function useGuestId() {
   const [guestId, setGuestId] = useLocalStorage("guest-id", null);
-  useEffect(() => {
-    if (!guestId) setGuestId(nanoid());
-  }, [guestId]);
-  return { guestId };
+
+  return {
+    guestId,
+    reset() {
+      setGuestId(nanoid());
+    },
+  };
 }

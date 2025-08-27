@@ -9,7 +9,7 @@ export type TRPCContext = {
   //   supabase: SupabaseClient;
   db: Database;
   userId?: number;
-  guestId?: string;
+  // guestId?: string;
   //   geo: ReturnType<typeof getGeoContext>;
   //   teamId?: string;
 };
@@ -21,12 +21,12 @@ export const createTRPCContext = async (
   const auth = header["authorization"] ?? "";
   const accessToken = auth?.split(" ")[1];
   const [tok, userId] = auth?.split("|");
-  const guestId = header["x-guest-id"];
+  // const guestId = header["x-guest-id"];
 
   return {
     db,
     userId: Number(userId),
-    guestId,
+    // guestId,
   };
 };
 

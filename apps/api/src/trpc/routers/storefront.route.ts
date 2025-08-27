@@ -12,6 +12,27 @@ import { formatMoney, imageUrl, slugify } from "@gnd/utils";
 import type { INVENTORY_STATUS } from "@sales/constants";
 
 export const storefrontRouter = createTRPCRouter({
+  getCartCount: publicProcedure
+    .input(
+      z.object({
+        guestId: z.string().optional().nullable(),
+      })
+    )
+    .query(async (props) => {
+      const guestId = props.input.guestId;
+      const userId = props.ctx.userId;
+      if (!guestId && !userId) return { count: 0 };
+      const cartCount = await props.ctx.db.lineItem.count({
+        where: {
+          lineItemType: "CART",
+          guestId: userId ? undefined : guestId,
+          userId: !userId ? undefined : userId,
+        },
+      });
+      return {
+        count: cartCount,
+      };
+    }),
   getPrimaryCategories: publicProcedure.query(async (props) => {
     const primaryCategories = await props.ctx.db.inventory.findMany({
       where: {

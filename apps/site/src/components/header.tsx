@@ -34,6 +34,7 @@ import { useAuthStore } from "@/lib/auth-store";
 import { useCartStore } from "@/lib/cart-store";
 import { useAuth } from "@/hooks/use-auth";
 import { signOut } from "next-auth/react";
+import { CartHeaderIcon } from "./cart-header-icon";
 
 interface HeaderProps {
   cartItems?: number;
@@ -191,17 +192,7 @@ export function Header({ cartItems }: HeaderProps) {
               </Link>
             </div>
 
-            {/* Cart */}
-            <Link href="/cart">
-              <Button variant="outline" className="relative bg-transparent">
-                <ShoppingCart className="h-4 w-4" />
-                {totalCartItems > 0 && (
-                  <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                    {totalCartItems}
-                  </Badge>
-                )}
-              </Button>
-            </Link>
+            <CartHeaderIcon />
 
             {/* User Account Dropdown */}
             <DropdownMenu>
