@@ -15,6 +15,7 @@ import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 import { useCartStore } from "@/lib/cart-store";
 import { authClient } from "@/auth/client";
+import { signIn, useSession } from "next-auth/react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,22 +38,28 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-    await authClient.signIn.email(
-      {
-        email: formData.email,
-        password: formData.password,
-        callbackURL: "/",
-        type: "customer",
-      },
-      {
-        onError(context) {
-          console.log(context);
-        },
-        onSuccess(context) {
-          console.log(context);
-        },
-      }
-    );
+    signIn("credentials", {
+      email: formData.email,
+      password: formData.password,
+      callbackURL: "/",
+      type: "customer",
+    });
+    // await authClient.signIn.email(
+    //   {
+    //     email: formData.email,
+    //     password: formData.password,
+    //     callbackURL: "/",
+    //     type: "customer",
+    //   },
+    //   {
+    //     onError(context) {
+    //       console.log(context);
+    //     },
+    //     onSuccess(context) {
+    //       console.log(context);
+    //     },
+    //   }
+    // );
 
     // const result = await login(formData.email, formData.password);
 
