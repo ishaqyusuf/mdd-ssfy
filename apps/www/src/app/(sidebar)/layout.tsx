@@ -19,12 +19,13 @@ async function Layout({ children }) {
         <HydrateClient>
             <div className="relative">
                 <SidebarContent>
-                    <Sidebar />
+                    {children}
+                    {/* <Sidebar />
 
                     <div className="md:ml-[70px] pb-8">
                         <Header />
                         <div className="px-6">{children}</div>
-                    </div>
+                    </div> */}
                 </SidebarContent>
 
                 <Suspense>
@@ -61,5 +62,5 @@ async function SideBarLayout({ children }) {
         </OldSideBar>
     );
 }
-// export default env.NODE_ENV == "development" ? SideBarLayout : SideBarLayout;
-export default env.NODE_ENV == "development" ? Layout : SideBarLayout;
+export default Layout;
+// export default env.NODE_ENV == "development" ? Layout : SideBarLayout;

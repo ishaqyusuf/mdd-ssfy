@@ -1,8 +1,7 @@
 "use client";
 
-import { useAuth } from "@/hooks/use-auth";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { getLinkModules, LinkItem, validateLinks } from "./sidebar/links";
+import { Fragment, useRef, useState } from "react";
+import { getLinkModules, LinkItem } from "./sidebar/links";
 import { cn } from "@gnd/ui/cn";
 import { cva } from "class-variance-authority";
 import { usePathname } from "next/navigation";

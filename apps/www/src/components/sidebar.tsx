@@ -10,7 +10,8 @@ import { SidebarModules } from "./sidebar-modules";
 
 export function Sidebar({}) {
     const ctx = useSidebar();
-    const { isExpanded, setIsExpanded, mainMenuRef } = ctx;
+    const { isExpanded, setIsExpanded, mainMenuRef, linkModules } = ctx;
+    if (linkModules?.noSidebar) return null;
     return (
         <aside
             className={cn(

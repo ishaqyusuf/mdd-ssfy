@@ -25,7 +25,7 @@ export function SidebarModules() {
     const { isExpanded, isMobile, modules, currentModule } = useSidebar();
     const user = useAuth();
     const ref = useRef<HTMLDivElement>(null);
-    // if (modules.length < 2) return null;
+    if (modules.length < 2) return null;
 
     return (
         <div className="relative flex-1 h-[40px]" ref={ref}>

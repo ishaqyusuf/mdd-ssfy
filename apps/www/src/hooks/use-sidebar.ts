@@ -1,6 +1,10 @@
 import { createContextFactory } from "@/utils/context-factory";
 import { useAuth } from "./use-auth";
-import { getLinkModules, validateLinks } from "@/components/sidebar/links";
+import {
+    getLinkModules,
+    linkModules,
+    validateLinks,
+} from "@/components/sidebar/links";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -47,14 +51,8 @@ export const { Provider: SidebarProvider, useContext: useSidebar } =
                 mainMenuRef.current.scrollTop = 0;
             }
         }, [isExpanded, mobile]);
-        const user = useAuth();
-        const linkModules = getLinkModules(
-            validateLinks({
-                role: user.role?.name,
-                can: user.can,
-                userId: user?.id,
-            }),
-        );
+        const linkModules = useLinks();
+        // linkModules.moduleLinksCount
 
         const pathName = usePathname();
         const { activeLink, modules, currentModule } = useMemo(() => {
@@ -104,4 +102,17 @@ export const { Provider: SidebarProvider, useContext: useSidebar } =
             // onSelect,
         };
     });
+
+export function useLinks() {
+    const user = useAuth();
+    const linkModules = getLinkModules(
+        validateLinks({
+            role: user.role?.name,
+            can: user.can,
+            userId: user?.id,
+        }),
+    );
+
+    return linkModules;
+}
 

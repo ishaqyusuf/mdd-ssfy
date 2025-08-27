@@ -535,11 +535,15 @@ export function getLinkModules(_linkModules = linkModules) {
         __defaultLink = __rankedLinks.sort((a, b) => a.rank - b.rank)?.[0]
             ?.href;
     }
+    const totalLinks = sum(modules, "activeLinkCount");
+    const noSidebar = totalLinks < 5;
     return {
         modules,
         renderMode,
         linksNameMap,
         moduleLinksCount,
         defaultLink: __defaultLink,
+        totalLinks,
+        noSidebar,
     };
 }
