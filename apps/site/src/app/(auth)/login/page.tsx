@@ -43,6 +43,8 @@ export default function LoginPage() {
       password: formData.password,
       callbackURL: "/",
       type: "customer",
+    }).catch((e) => {
+      console.log(e);
     });
     // await authClient.signIn.email(
     //   {

@@ -31,65 +31,68 @@ declare module "next-auth/jwt" {
   }
 }
 
-export const nextAuthOptions = {
-  session: {
-    strategy: "jwt",
-    // strategy: "database",
-  },
+export const nextAuthOptions = ({ secret }) =>
+  ({
+    session: {
+      strategy: "jwt",
+      // strategy: "database",
+    },
 
-  pages: {
-    signIn: "/login",
-    error: "/login?error=login+failed",
-  },
-  jwt: {
-    secret: "super-secret",
-    maxAge: 15 * 24 * 30 * 60,
-  },
-  adapter: PrismaAdapter(new PrismaClient()),
-  secret: process.env.SECRET,
-  callbacks: {
-    jwt: async ({ token, user: cred }) => {
-      if (cred) {
-        const { role, can, user, sessionId } = cred;
-        token.user = user;
-        token.can = can;
-        token.role = role;
-        token.sessionId = sessionId;
-      }
-      if (!token.sessionId) return null;
-      return token;
+    pages: {
+      signIn: "/login",
+      error: "/login?error=login+failed",
     },
-    session({ session, user, token }) {
-      if (session.user) {
-        session.user = token.user;
-        session.role = token.role;
-        session.can = token.can;
-      }
-      return session;
+    jwt: {
+      secret: "super-secret",
+      maxAge: 15 * 24 * 30 * 60,
     },
-  },
-  providers: [
-    CredentialsProvider({
-      name: "Sign in",
-      credentials: {
-        token: {},
-        email: {
-          label: "Email",
-          type: "email",
-          placeholder: "example@example.com",
-        },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials: any) {
-        if (!credentials) {
-          return null;
+    adapter: PrismaAdapter(new PrismaClient()),
+    // secret: process.env.SECRET,
+    secret,
+    callbacks: {
+      jwt: async ({ token, user: cred }) => {
+        if (cred) {
+          const { role, can, user, sessionId } = cred;
+          token.user = user;
+          token.can = can;
+          token.role = role;
+          token.sessionId = sessionId;
         }
-        const login = await loginAction(credentials);
-        return login;
+        if (!token.sessionId) return null;
+        return token;
       },
-    }),
-  ],
-} satisfies NextAuthOptions;
+      session({ session, user, token }) {
+        if (session.user) {
+          session.user = token.user;
+          session.role = token.role;
+          session.can = token.can;
+        }
+        return session;
+      },
+    },
+    providers: [
+      CredentialsProvider({
+        name: "Sign in",
+        credentials: {
+          token: {},
+          type: {},
+          email: {
+            label: "Email",
+            type: "email",
+            placeholder: "example@example.com",
+          },
+          password: { label: "Password", type: "password" },
+        },
+        async authorize(credentials: any) {
+          if (!credentials) {
+            return null;
+          }
+          const login = await loginAction(credentials);
+          return login;
+        },
+      }),
+    ],
+  }) satisfies NextAuthOptions;
 
 export function initAuth(options: {
   baseUrl: string;

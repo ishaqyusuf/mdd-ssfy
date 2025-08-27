@@ -32,14 +32,17 @@ import { Sheet, SheetContent, SheetTrigger } from "@gnd/ui/sheet";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/auth-store";
 import { useCartStore } from "@/lib/cart-store";
+import { useAuth } from "@/hooks/use-auth";
+import { signOut } from "next-auth/react";
 
 interface HeaderProps {
   cartItems?: number;
 }
 
 export function Header({ cartItems }: HeaderProps) {
-  const { isAuthenticated, logout } = useAuthStore();
-
+  // const { logout } = useAuthStore();
+  const auth = useAuth();
+  const isAuthenticated = !!auth?.id;
   const { getTotalItems, isHydrated, setHydrated } = useCartStore();
   const [mounted, setMounted] = useState(false);
 
@@ -226,7 +229,9 @@ export function Header({ cartItems }: HeaderProps) {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onClick={logout}
+                      onClick={(e) => {
+                        signOut({});
+                      }}
                       className="cursor-pointer text-red-600"
                     >
                       Sign Out

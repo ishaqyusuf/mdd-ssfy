@@ -6,6 +6,8 @@ import { TRPCReactProvider } from "@/trpc/client";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { GlobalModals } from "@/components/modals/global-modals";
 import { Header } from "@/components/header";
+import { SessionProvider } from "next-auth/react";
+import { Providers } from "./providers";
 
 export default function RootLayout({
   children,
@@ -17,13 +19,15 @@ export default function RootLayout({
       <head />
 
       <body className={cn("min-h-screen bg-background font-sans antialiased")}>
-        <NuqsAdapter>
-          <TRPCReactProvider>
-            <Header />
-            {children}
-            <GlobalModals />
-          </TRPCReactProvider>
-        </NuqsAdapter>
+        <Providers>
+          {/* <NuqsAdapter>
+            <TRPCReactProvider> */}
+          <Header />
+          {children}
+          <GlobalModals />
+          {/* </TRPCReactProvider>
+          </NuqsAdapter> */}
+        </Providers>
       </body>
     </html>
   );
