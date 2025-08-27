@@ -9,18 +9,25 @@ import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { ShoppingBag, ArrowLeft } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { useGuestId } from "@/hooks/use-guest-id";
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, getTotalItems, getTotalPrice } =
     useCartStore();
   const [mounted, setMounted] = useState(false);
+  const trpc = useTRPC();
+  const auth = useAuth();
+  const { guestId } = useGuestId();
+  const { data, isPending } = useQuery(
+    trpc.storefront.getCartList.queryOptions({
+      guestId,
+    })
+  );
 
-  // Ensure component is mounted before accessing store
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
+  if (isPending) {
     return (
       <div className="min-h-screen bg-background">
         <main className="container mx-auto px-4 py-8">

@@ -7,7 +7,10 @@ import {
   productOverviewSchema,
   productOverview,
 } from "@sales/storefront";
-import { composeInventorySubCategories } from "@sales/utils/inventory-utils";
+import {
+  composeInventorySubCategories,
+  composeVariantAttributeDisplay,
+} from "@sales/utils/inventory-utils";
 import { dbConnect, formatMoney, imageUrl, slugify } from "@gnd/utils";
 import type { INVENTORY_STATUS } from "@sales/constants";
 import { linePricingSchema } from "@sales/schema";
@@ -148,11 +151,24 @@ export const storefrontRouter = createTRPCRouter({
           ...where,
         },
         select: {
+          id: true,
           qty: true,
           price: true,
           inventory: {
             select: {
               name: true,
+              images: {
+                take: 1,
+                select: {
+                  imageGallery: {
+                    select: {
+                      bucket: true,
+                      path: true,
+                      provider: true,
+                    },
+                  },
+                },
+              },
             },
           },
           variant: {
@@ -193,7 +209,18 @@ export const storefrontRouter = createTRPCRouter({
           },
         },
       });
-      return cartList;
+      return cartList.map((line) => {
+        return {
+          image: imageUrl(line.inventory?.images?.[0]?.imageGallery!),
+          id: line.id,
+          title: line.inventory.name,
+          // attrs: line.variant.attributes,
+          attributeDisplay: composeVariantAttributeDisplay(
+            line.variant.attributes
+          ),
+          components: line.components,
+        };
+      });
     }),
   getPrimaryCategories: publicProcedure.query(async (props) => {
     const primaryCategories = await props.ctx.db.inventory.findMany({

@@ -52,3 +52,46 @@ export function composeInventorySubCategories(
     "id"
   );
 }
+export function composeVariantAttributeDisplay(
+  attrs: Prisma.InventoryVariantAttributeGetPayload<{
+    select: {
+      inventoryCategoryVariantAttribute: {
+        select: {
+          inventoryCategory: {
+            select: {
+              title: true;
+            };
+          };
+        };
+      };
+      value: {
+        select: {
+          name: true;
+        };
+      };
+    };
+  }>[]
+) {
+  let width: any = null;
+  let height: any = null;
+  return attrs
+    .map((a) => {
+      const label =
+        a.inventoryCategoryVariantAttribute?.inventoryCategory.title;
+      const value = a.value?.name;
+      if (label?.toLocaleLowerCase() == "width") width = value;
+      if (label?.toLocaleLowerCase() == "height") height = value;
+      return {
+        label,
+        value,
+      };
+    })
+    .filter((a) => (width && height ? a.label != "height" : false))
+    .map((b) => {
+      if (b?.label?.toLowerCase() === "width" && width && height) {
+        b.label = "Size";
+        b.value = `${width} x ${height}`;
+      }
+      return b;
+    });
+}
