@@ -26,6 +26,7 @@ model InventoryCategory {
     discountId         String?
     featuredProduct    FeaturedProduct[]
     lineItemComponents LineItemComponents[]
+    lineItems          LineItem[]
 
     @@index([discountId])
 }
@@ -85,6 +86,7 @@ model Inventory {
     asSubCategoryValues        InventoryItemSubCategoryValue[]
     reviews                    ProductReview[]
     lineItemComponents         LineItemComponents[]
+    lineItems                  LineItem[]
     discount                   Discount?                       @relation(fields: [discountId], references: [id])
     discountId                 String?
 
@@ -108,6 +110,7 @@ model Inventory {
     productViews    ProductView[]
     productMetrics  ProductMetric?
     FeaturedProduct FeaturedProduct[]
+    linePricings    LinePricing[]
 
     @@index([inventoryCategoryId])
     @@index([discountId])
@@ -137,6 +140,7 @@ model InventoryVariant {
     pricingHistories   PriceHistory[]
     lineItems          LineItem[]
     lineItemComponents LineItemComponents[]
+    linePricings       LinePricing[]
 
     @@index([inventoryId])
 }
@@ -515,14 +519,14 @@ model InboundShipmentItem {
     @@index([inventoryVariantId])
 }
 
-model CartItem {
-    id        Int        @id @default(autoincrement())
-    lineItems LineItem[]
+// model CartItem {
+//     id        Int        @id @default(autoincrement())
+//     lineItems LineItem[]
 
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
-}
+//     createdAt DateTime? @default(now()) @db.Timestamp(0)
+//     updatedAt DateTime? @updatedAt
+//     deletedAt DateTime? @db.Timestamp(0)
+// }
 
 model WisthListItem {
     id        Int        @id @default(autoincrement())
@@ -555,36 +559,67 @@ model LineItem {
     inventoryVariantId Int
     wishtListItem      WisthListItem?   @relation(fields: [wisthListItemId], references: [id])
     wisthListItemId    Int?
-    cartItem           CartItem?        @relation(fields: [cartItemId], references: [id])
-    cartItemId         Int?
+    // cartItem           CartItem?        @relation(fields: [cartItemId], references: [id])
+    // cartItemId         Int?
     sale               SalesOrders?     @relation(fields: [saleId], references: [id])
     saleId             Int?
 
     components LineItemComponents[]
+    price      LinePricing?
+
+    inventory   Inventory @relation(fields: [inventoryId], references: [id])
+    inventoryId Int
+
+    InventoryCategory   InventoryCategory @relation(fields: [inventoryCategoryId], references: [id])
+    inventoryCategoryId Int
 
     @@index([inventoryVariantId])
     @@index([wisthListItemId])
-    @@index([cartItemId])
+    @@index([inventoryCategoryId])
     @@index([saleId])
+    @@index([inventoryId])
+}
+
+model LinePricing {
+    id  Int  @id @default(autoincrement())
+    qty Int?
+
+    costPrice      Int?
+    salesPrice     Int?
+    unitCostPrice  Int?
+    unitSalesPrice Int?
+
+    component   LineItemComponents? @relation(fields: [componentId], references: [id])
+    componentId Int?                @unique
+
+    lineItem   LineItem? @relation(fields: [lineItemId], references: [id])
+    lineItemId Int?      @unique
+
+    InventoryVariant   InventoryVariant? @relation(fields: [inventoryVariantId], references: [id])
+    inventoryVariantId Int?
+    Inventory          Inventory?        @relation(fields: [inventoryId], references: [id])
+    inventoryId        Int?
+
+    @@index([inventoryId])
+    @@index([inventoryVariantId])
 }
 
 model LineItemComponents {
     id Int @id @default(autoincrement())
 
-    qty       Int?
-    unitCost  Int?
-    totalCost Int?
+    required Boolean @default(false)
 
     parent              LineItem           @relation(fields: [lineItemId], references: [id])
     lineItemId          Int
     InventoryCategory   InventoryCategory? @relation(fields: [inventoryCategoryId], references: [id])
     inventoryCategoryId Int?
-    subComponent        SubComponents?     @relation(fields: [subComponentId], references: [id])
-    subComponentId      Int?
+    subComponent        SubComponents      @relation(fields: [subComponentId], references: [id])
+    subComponentId      Int
     Inventory           Inventory?         @relation(fields: [inventoryId], references: [id])
     inventoryId         Int?
     InventoryVariant    InventoryVariant?  @relation(fields: [inventoryVariantId], references: [id])
     inventoryVariantId  Int?
+    price               LinePricing?
 
     @@index([lineItemId])
     @@index([inventoryVariantId])

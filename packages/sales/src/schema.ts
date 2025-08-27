@@ -321,3 +321,11 @@ export const updateCategoryVariantAttributeSchema = z.object({
 export type UpdateCategoryVariantAttribute = z.infer<
   typeof updateCategoryVariantAttributeSchema
 >;
+export const linePricingSchema = z.object({
+  id: z.number().optional().nullable(),
+  qty: z.number().optional().nullable(),
+  salesPrice: z.number().nullable(),
+  costPrice: z.number().nullable(),
+  unitCostPrice: z.number().nullable(),
+  unitSalesPrice: z.number().nullable(),
+});

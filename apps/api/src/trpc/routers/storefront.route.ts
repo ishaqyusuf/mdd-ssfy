@@ -10,8 +10,83 @@ import {
 import { composeInventorySubCategories } from "@sales/utils/inventory-utils";
 import { formatMoney, imageUrl, slugify } from "@gnd/utils";
 import type { INVENTORY_STATUS } from "@sales/constants";
+import { linePricingSchema } from "@sales/schema";
 
 export const storefrontRouter = createTRPCRouter({
+  addToCart: publicProcedure
+    .input(
+      z.object({
+        variantId: z.number(),
+        inventoryCategoryId: z.number(),
+        inventoryId: z.number(),
+        guesId: z.string().optional().nullable(),
+        userId: z.number().optional().nullable(),
+        pricing: linePricingSchema,
+        components: z.array(
+          z.object({
+            pricing: linePricingSchema,
+            inventoryVariantId: z.number(),
+            inventoryCategoryId: z.number(),
+            inventoryId: z.number(),
+            subComponentId: z.number(),
+            required: z.boolean().default(false),
+          })
+        ),
+      })
+    )
+    .mutation(async (props) => {
+      const db = props.ctx.db;
+      const input = props.input;
+      return db.$transaction(async (prisma) => {
+        const item = await prisma.lineItem.create({
+          data: {
+            lineItemType: "CART",
+            guestId: input.guesId,
+            userId: input.userId,
+            meta: {},
+            inventoryVariantId: input.variantId,
+            inventoryId: input.inventoryId,
+            inventoryCategoryId: input.inventoryCategoryId,
+            price: {
+              create: {
+                inventoryVariantId: input.variantId,
+                inventoryId: input.inventoryId,
+                unitCostPrice: input.pricing.unitCostPrice,
+                unitSalesPrice: input.pricing.unitSalesPrice,
+                costPrice: input.pricing.costPrice,
+                salesPrice: input.pricing.salesPrice,
+                qty: input.pricing.qty,
+              },
+            },
+          },
+        });
+        await Promise.all(
+          input.components.map(async (c) => {
+            await prisma.lineItemComponents.create({
+              data: {
+                inventoryVariantId: c.inventoryVariantId,
+                subComponentId: c.subComponentId,
+                inventoryId: c.inventoryId,
+                lineItemId: item.id,
+                required: c.required,
+                inventoryCategoryId: c.inventoryCategoryId,
+                price: {
+                  create: {
+                    inventoryVariantId: c.inventoryVariantId,
+                    inventoryId: c.inventoryId,
+                    unitCostPrice: c.pricing.unitCostPrice,
+                    unitSalesPrice: c.pricing.unitSalesPrice,
+                    costPrice: c.pricing.costPrice,
+                    salesPrice: c.pricing.salesPrice,
+                    qty: c.pricing.qty,
+                  },
+                },
+              },
+            });
+          })
+        );
+      });
+    }),
   getCartCount: publicProcedure
     .input(
       z.object({
