@@ -21,6 +21,7 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@gnd/auth": "workspace:*",
     "@gnd/db": "workspace:*",
     "@gnd/events": "workspace:*",
     "@gnd/printer": "workspace:*",

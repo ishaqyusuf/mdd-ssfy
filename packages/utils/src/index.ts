@@ -8,6 +8,16 @@ export function stripSpecialCharacters(inputString: string) {
     .replace(/\s+/g, "-") // Replace spaces with hyphens
     .toLowerCase(); // Convert to lowercase for consistency
 }
+export function camel(str?: string) {
+  if (!str) return str;
+  return str.replace(
+    /^([A-Z])|\s(\w)/g,
+    function (match: any, p1: any, p2: any, offset: any) {
+      if (p2) return p2.toUpperCase();
+      return p1.toLowerCase();
+    }
+  );
+}
 
 export function shuffle(array: any) {
   for (let i = array.length - 1; i > 0; i--) {

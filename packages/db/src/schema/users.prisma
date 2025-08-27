@@ -1,20 +1,22 @@
 model Users {
-    id                          Int                              @unique @default(autoincrement())
-    slug                        String?
-    name                        String?                          @db.VarChar(255)
-    username                    String?                          @db.VarChar(255)
-    email                       String                           @db.VarChar(255)
-    phoneNo                     String?                          @db.VarChar(255)
-    phoneCode                   String?                          @db.VarChar(255)
-    country                     String?                          @db.VarChar(255)
-    emailVerifiedAt             DateTime?                        @db.Timestamp(0)
-    password                    String?                          @db.VarChar(255)
-    rememberToken               String?                          @db.VarChar(100)
-    meta                        Json?                            @db.Json
-    deletedAt                   DateTime?                        @db.Timestamp(0)
-    createdAt                   DateTime?                        @default(now()) @db.Timestamp(0)
-    updatedAt                   DateTime?                        @updatedAt
-    employeeProfileId           Int?
+    id                Int        @unique @default(autoincrement())
+    slug              String?
+    name              String?    @db.VarChar(255)
+    username          String?    @db.VarChar(255)
+    email             String     @db.VarChar(255)
+    phoneNo           String?    @db.VarChar(255)
+    phoneCode         String?    @db.VarChar(255)
+    country           String?    @db.VarChar(255)
+    emailVerifiedAt   DateTime?  @db.Timestamp(0)
+    password          String?    @db.VarChar(255)
+    rememberToken     String?    @db.VarChar(100)
+    meta              Json?      @db.Json
+    deletedAt         DateTime?  @db.Timestamp(0)
+    createdAt         DateTime?  @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime?  @updatedAt
+    employeeProfileId Int?
+    type              UserTypes?
+
     workOrders                  WorkOrders[]
     salesProductions            SalesOrders[]                    @relation(name: "producer")
     reppedProductions           SalesOrders[]                    @relation(name: "salesRep")
@@ -61,6 +63,12 @@ model Users {
 
     @@index([createdAt, deletedAt, name])
     @@index([employeeProfileId])
+}
+
+enum UserTypes {
+    CUSTOMER
+    EMPLOYEE
+    MANAGER
 }
 
 model Session {

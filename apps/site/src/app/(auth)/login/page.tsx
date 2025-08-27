@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@gnd/ui/alert";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 import { useCartStore } from "@/lib/cart-store";
+import { authClient } from "@/auth/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,14 +37,30 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+    await authClient.signIn.email(
+      {
+        email: formData.email,
+        password: formData.password,
+        callbackURL: "/",
+        type: "customer",
+      },
+      {
+        onError(context) {
+          console.log(context);
+        },
+        onSuccess(context) {
+          console.log(context);
+        },
+      }
+    );
 
-    const result = await login(formData.email, formData.password);
+    // const result = await login(formData.email, formData.password);
 
-    if (result.success) {
-      router.push("/account");
-    } else {
-      setError(result.error || "Login failed");
-    }
+    // if (result.success) {
+    //   router.push("/account");
+    // } else {
+    //   setError(result.error || "Login failed");
+    // }
 
     setIsLoading(false);
   };

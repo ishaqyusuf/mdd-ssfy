@@ -6,7 +6,8 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./src/index.ts"
+      "default": "./src/index.ts",
+      "generated": "./src/generate/prisma"
     }
   },
   "prisma": {

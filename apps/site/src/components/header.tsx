@@ -39,6 +39,7 @@ interface HeaderProps {
 
 export function Header({ cartItems }: HeaderProps) {
   const { isAuthenticated, logout } = useAuthStore();
+
   const { getTotalItems, isHydrated, setHydrated } = useCartStore();
   const [mounted, setMounted] = useState(false);
 
