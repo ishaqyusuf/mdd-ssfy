@@ -25,6 +25,7 @@ export async function getStoreAddonComponentForm(
                       defaultInventoryId: true,
                       status: true,
                       index: true,
+                      required: true,
                       inventoryCategory: {
                         select: {
                           title: true,

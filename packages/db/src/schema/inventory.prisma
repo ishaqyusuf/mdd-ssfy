@@ -620,6 +620,7 @@ model LineItemComponents {
     InventoryVariant    InventoryVariant?  @relation(fields: [inventoryVariantId], references: [id])
     inventoryVariantId  Int?
     price               LinePricing?
+    qty                 Int?
 
     @@index([lineItemId])
     @@index([inventoryVariantId])

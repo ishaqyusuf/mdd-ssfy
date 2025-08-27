@@ -5,10 +5,19 @@ import { nanoid } from "nanoid";
 export function useGuestId() {
   const [guestId, setGuestId] = useLocalStorage("guest-id", null);
 
-  return {
+  const ctx = {
     guestId,
     reset() {
-      setGuestId(nanoid());
+      const gid = nanoid();
+      setGuestId(gid);
+      return gid;
+    },
+    validGuestId() {
+      if (!guestId) {
+        return ctx.reset();
+      }
+      return guestId;
     },
   };
+  return ctx;
 }

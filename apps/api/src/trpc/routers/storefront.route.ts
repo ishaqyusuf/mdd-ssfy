@@ -19,7 +19,7 @@ export const storefrontRouter = createTRPCRouter({
         variantId: z.number(),
         inventoryCategoryId: z.number(),
         inventoryId: z.number(),
-        guesId: z.string().optional().nullable(),
+        guestId: z.string().optional().nullable(),
         userId: z.number().optional().nullable(),
         pricing: linePricingSchema,
         components: z.array(
@@ -29,6 +29,7 @@ export const storefrontRouter = createTRPCRouter({
             inventoryCategoryId: z.number(),
             inventoryId: z.number(),
             subComponentId: z.number(),
+            qty: z.number(),
             required: z.boolean().default(false),
           })
         ),
@@ -41,7 +42,7 @@ export const storefrontRouter = createTRPCRouter({
         const item = await prisma.lineItem.create({
           data: {
             lineItemType: "CART",
-            guestId: input.guesId,
+            guestId: input.guestId,
             userId: input.userId,
             meta: {},
             inventoryVariantId: input.variantId,

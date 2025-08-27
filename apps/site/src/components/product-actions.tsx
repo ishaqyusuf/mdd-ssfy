@@ -4,12 +4,16 @@ import { useState } from "react";
 import { Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@gnd/ui/button";
 import { useCartStore } from "@/lib/cart-store";
-import { toast } from "@gnd/ui/use-toast";
 import { useProduct } from "@/hooks/use-product";
 import NumberFlow from "@number-flow/react";
 import { sum } from "@gnd/utils";
 import { useProductFilterParams } from "@/hooks/use-product-filter-params";
 import { ProductComponents } from "./product-components";
+import { useTRPC } from "@/trpc/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useGuestId } from "@/hooks/use-guest-id";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "@gnd/ui/use-toast";
 
 interface ProductActionsProps {}
 
@@ -18,38 +22,65 @@ export function ProductActions() {
   const [isAdding, setIsAdding] = useState(false);
   const ctx = useProduct();
   const { setFilter, filter } = useProductFilterParams();
-  const { product, inStock } = ctx;
-  const handleAddToCart = async () => {
-    if (!isHydrated) {
-      console.log("Store not hydrated yet, waiting...");
-      return;
-    }
-    setIsAdding(true);
+  const { product, addonComponent, inStock } = ctx;
+  const trpc = useTRPC();
+  const qc = useQueryClient();
+  const addToCart = useMutation(
+    trpc.storefront.addToCart.mutationOptions({
+      onSuccess(data, variables, context) {
+        qc.invalidateQueries({
+          queryKey: trpc.storefront.getCartCount.queryKey(),
+        });
+        toast({
+          title: "Added to cart!",
+          variant: "success",
+        });
+      },
+    })
+  );
+  const { guestId, reset, validGuestId } = useGuestId();
+  const { id } = useAuth();
+  const handleAddToCart = () => {
+    let guestId = !id ? validGuestId() : null;
 
-    try {
-      // addItem({
-      //   id: product.id,
-      //   name: product.name,
-      //   price: product.price,
-      //   image: product.image,
-      //   variant: product.variant,
-      //   size: product.size,
-      // });
-
+    if (!id && !guestId) {
       toast({
-        title: "Added to Cart",
-        description: `${product.name} has been added to your cart.`,
-      });
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add item to cart. Please try again.",
+        title: "Unable to add to cart",
         variant: "destructive",
       });
-    } finally {
-      setIsAdding(false);
+      return;
     }
+
+    const vf = filter.subComponent;
+    const qty = filter.qty;
+    addToCart.mutate({
+      components:
+        addonComponent?.subComponentInventory?.subComponents?.map((c) => {
+          const inventoryCategoryId = c?.inventoryCategory?.id;
+          const selection = vf?.[inventoryCategoryId];
+          const bQty = selection?.qty || 1;
+          return {
+            inventoryCategoryId,
+            inventoryId: selection?.inventoryId,
+            inventoryVariantId: selection?.variantId,
+            required: !!c?.required,
+            subComponentId: c?.id,
+            qty: bQty,
+            pricing: {
+              qty: bQty * qty,
+              // TODO: workaround to fetch real price to avoid hacking.
+              unitSalesPrice: selection?.price,
+              salesPrice: sum([selection?.price * bQty * qty]),
+            },
+          };
+        }) || [],
+      guestId,
+      inventoryId: product.id,
+      inventoryCategoryId: product.category.id,
+      variantId: filter.variantId,
+      userId: id,
+      pricing: {},
+    });
   };
 
   return (
@@ -82,6 +113,7 @@ export function ProductActions() {
         <Button
           variant="outline"
           size="icon"
+          disabled={addToCart.isPending}
           // onClick={onAddToFavorites}
           // className={isFavorite ? "text-red-500 border-red-500" : ""}
         >

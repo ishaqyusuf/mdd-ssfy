@@ -112,6 +112,7 @@ export async function productSearch(db: Db, query: ProductSearch) {
         category: {
           title: product.inventoryCategory!.title,
           slug: categorySlug,
+          id: product.inventoryCategory!.id,
         },
         price: product?.variantPricings?.[0]?.costPrice,
         originalPrice: product?.variantPricings?.[0]?.costPrice,
