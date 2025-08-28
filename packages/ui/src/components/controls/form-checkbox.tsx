@@ -9,7 +9,7 @@ import {
   FormLabel,
 } from "../form";
 import { Switch } from "../switch";
-import { cn } from "@/utils";
+import { cn } from "../../utils";
 
 interface Props<T> {
   label?: string | any;
@@ -19,7 +19,7 @@ interface Props<T> {
   switchInput?: boolean;
   list?: boolean;
 }
-export default function FormCheckbox<
+export function FormCheckbox<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
   TOptionType = any,

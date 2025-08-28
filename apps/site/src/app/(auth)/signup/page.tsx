@@ -2,25 +2,26 @@
 
 import type React from "react";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Footer } from "@/components/footer";
 import { Button } from "@gnd/ui/button";
-import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
-import { Checkbox } from "@gnd/ui/checkbox";
-import { Eye, EyeOff, Lock, Mail, User, Phone } from "lucide-react";
-import { useAuthStore } from "@/lib/auth-store";
-import { useCartStore } from "@/lib/cart-store";
+import { Mail, User, Phone } from "lucide-react";
+
 import { useZodForm } from "@/hooks/use-zod-form";
 import { Signup, signupSchema } from "@sales/storefront-account";
 import { FormInput } from "@gnd/ui/controls/form-input";
+import { FormCheckbox } from "@gnd/ui/controls/form-checkbox";
+import { FormDebugBtn } from "@gnd/ui/controls/form-debug-btn";
 import { Form } from "@gnd/ui/form";
 import { FormSelect } from "@gnd/ui/controls/form-select";
 import { cn } from "@gnd/ui/cn";
+import { useTRPC } from "@/trpc/client";
+import { useMutation } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 export default function SignupPage() {
   const form = useZodForm(signupSchema, {
@@ -30,34 +31,27 @@ export default function SignupPage() {
       email: "",
       phoneNo: "",
       accountType: "individual",
-      password: "",
-      confirmPassword: "",
+      // password: "",
+      // confirmPassword: "",
+      agreeToTerms: false,
     },
   });
   const router = useRouter();
-  const { signup } = useAuthStore();
-  const { getTotalItems } = useCartStore();
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
-    agreeToTerms: false,
-  });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const trpc = useTRPC();
+  const { data, mutate, isPending, error } = useMutation(
+    trpc.storefront.signup.mutationOptions({
+      onSuccess(data, variables, context) {},
+    })
+  );
 
-  const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    setError("");
-  };
-
-  function onSubmit(data: Signup) {}
+  function onSubmit(data: Signup) {
+    console.log(data);
+    mutate(data);
+  }
   const isBusiness = form.watch("accountType") === "business";
+  useEffect(() => {
+    form.clearErrors();
+  }, [isBusiness]);
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8">
@@ -85,10 +79,9 @@ export default function SignupPage() {
                 <CardContent className="space-y-4">
                   {error && (
                     <Alert className="mb-4" variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
+                      <AlertDescription>{error?.message}</AlertDescription>
                     </Alert>
                   )}
-
                   <div className="grid grid-cols-2 gap-4">
                     <FormSelect
                       options={["individual", "business"]}
@@ -150,39 +143,40 @@ export default function SignupPage() {
                     /> */}
 
                   <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="agreeToTerms"
-                      checked={formData.agreeToTerms}
-                      onCheckedChange={(checked) =>
-                        handleInputChange("agreeToTerms", checked as boolean)
+                    <FormCheckbox
+                      control={form.control}
+                      name="agreeToTerms"
+                      label={
+                        <>
+                          <Label htmlFor="agreeToTerms" className="text-sm">
+                            I agree to the{" "}
+                            <Link
+                              href="/terms-of-use"
+                              className="text-amber-600 hover:text-amber-700"
+                            >
+                              Terms of Use
+                            </Link>{" "}
+                            and{" "}
+                            <Link
+                              href="/privacy-policy"
+                              className="text-amber-600 hover:text-amber-700"
+                            >
+                              Privacy Policy
+                            </Link>
+                          </Label>
+                        </>
                       }
                     />
-                    <Label htmlFor="agreeToTerms" className="text-sm">
-                      I agree to the{" "}
-                      <Link
-                        href="/terms-of-use"
-                        className="text-amber-600 hover:text-amber-700"
-                      >
-                        Terms of Use
-                      </Link>{" "}
-                      and{" "}
-                      <Link
-                        href="/privacy-policy"
-                        className="text-amber-600 hover:text-amber-700"
-                      >
-                        Privacy Policy
-                      </Link>
-                    </Label>
                   </div>
 
                   <Button
                     type="submit"
                     className="w-full bg-amber-700 hover:bg-amber-800"
-                    disabled={isLoading}
+                    disabled={isPending}
                   >
-                    {isLoading ? "Creating Account..." : "Create Account"}
+                    {isPending ? "Creating Account..." : "Create Account"}
                   </Button>
-
+                  <FormDebugBtn />
                   <div className="mt-6 text-center">
                     <p className="text-sm text-gray-600">
                       Already have an account?{" "}
