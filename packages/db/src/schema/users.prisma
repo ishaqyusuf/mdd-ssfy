@@ -60,6 +60,7 @@ model Users {
     myPayouts                   SalesPayout[]                    @relation(name: "myPayouts")
     salesPayoutsByMe            SalesPayout[]                    @relation(name: "myIssuedPayouts")
     payrollHistory              PayrollHistory[]
+    customer                    Customers?
 
     @@index([createdAt, deletedAt, name])
     @@index([employeeProfileId])

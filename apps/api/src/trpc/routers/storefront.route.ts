@@ -11,7 +11,7 @@ import {
   composeInventorySubCategories,
   composeVariantAttributeDisplay,
 } from "@sales/utils/inventory-utils";
-import { dbConnect, formatMoney, imageUrl, slugify } from "@gnd/utils";
+import { dbConnect, formatMoney, imageUrl, slugify, sum } from "@gnd/utils";
 import type { INVENTORY_STATUS } from "@sales/constants";
 import { linePricingSchema } from "@sales/schema";
 
@@ -135,7 +135,7 @@ export const storefrontRouter = createTRPCRouter({
     .query(async (props) => {
       const guestId = props.input.guestId;
       const userId = props.ctx.userId;
-      if (!guestId && !userId) return [];
+      // if (!guestId && !userId) return {} as any;
       // if () return { count: 0 };
       const where =
         guestId && userId
@@ -195,6 +195,12 @@ export const storefrontRouter = createTRPCRouter({
           },
           components: {
             select: {
+              qty: true,
+              price: {
+                select: {
+                  unitSalesPrice: true,
+                },
+              },
               inventoryCategory: {
                 select: {
                   title: true,
@@ -209,7 +215,14 @@ export const storefrontRouter = createTRPCRouter({
           },
         },
       });
-      return cartList.map((line) => {
+      const items = cartList.map((line) => {
+        const total = sum([
+          line.qty! *
+            (line.price?.unitSalesPrice! +
+              sum(
+                line.components.map((c) => c.qty! * c.price?.unitSalesPrice!)
+              )),
+        ]);
         return {
           image: imageUrl(line.inventory?.images?.[0]?.imageGallery!),
           id: line.id,
@@ -219,8 +232,19 @@ export const storefrontRouter = createTRPCRouter({
             line.variant.attributes
           ),
           components: line.components,
+          qty: line.qty,
+          total,
         };
       });
+      return {
+        items,
+        estimate: {
+          subtotal: sum(items, "total"),
+          tax: 0,
+          shipping: 0,
+          total: sum(items, "total"),
+        },
+      };
     }),
   getPrimaryCategories: publicProcedure.query(async (props) => {
     const primaryCategories = await props.ctx.db.inventory.findMany({
@@ -404,5 +428,22 @@ export const storefrontRouter = createTRPCRouter({
     .query(async (props) => {
       const result = await productOverview(props.ctx.db, props.input);
       return result;
+    }),
+  updateLineQty: publicProcedure
+    .input(
+      z.object({
+        lineId: z.number(),
+        qty: z.number(),
+      })
+    )
+    .mutation(async (props) => {
+      return props.ctx.db.lineItem.update({
+        where: {
+          id: props.input.lineId,
+        },
+        data: {
+          qty: props.input.qty,
+        },
+      });
     }),
 });

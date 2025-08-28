@@ -6,7 +6,6 @@ import { ControllerProps, FieldPath, FieldValues } from "react-hook-form";
 import { Button } from "@gnd/ui/button";
 import { FormControl, FormField, FormItem, FormLabel } from "@gnd/ui/form";
 import { Input } from "@gnd/ui/input";
-import { Label } from "@gnd/ui/label";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Textarea } from "@gnd/ui/textarea";
 import { NumericFormat, NumericFormatProps } from "react-number-format";

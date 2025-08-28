@@ -18,6 +18,7 @@
     "./colors": "./src/colors.ts",
     "./community": "./src/community.ts",
     "./constants": "./src/constants.ts",
+    "./construct-metadata": "./src/construct-metadata.ts",
     "./dayjs": "./src/dayjs.ts",
     "./envs": "./src/envs.ts",
     "./format": "./src/format.ts",

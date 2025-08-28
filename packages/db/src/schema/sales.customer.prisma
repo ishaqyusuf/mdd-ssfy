@@ -21,6 +21,8 @@ model Customers {
     // payments       SalesPayments[] @relation()
     wallet         CustomerWallet?
     auth           DealerAuth?
+    userId         Int?                  @unique
+    user           Users?                @relation(fields: [userId], references: [id])
 
     @@index([createdAt, deletedAt, name, email, phoneNo])
     @@index([customerTypeId])

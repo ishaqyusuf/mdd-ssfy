@@ -1,11 +1,11 @@
-interface OrderSummaryProps {
-  subtotal: number
-  shipping: number
-  tax: number
-  total: number
-}
+import { useCart } from "@/hooks/use-cart";
 
-export function OrderSummary({ subtotal, shipping, tax, total }: OrderSummaryProps) {
+export function OrderSummary() {
+  const cart = useCart();
+  // const estimate
+  const { estimate } = cart.data;
+  if (!estimate) return;
+  const { subtotal, shipping, tax, total } = estimate;
   return (
     <div className="bg-gray-50 p-6 rounded-lg">
       <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
@@ -30,5 +30,5 @@ export function OrderSummary({ subtotal, shipping, tax, total }: OrderSummaryPro
         </div>
       </div>
     </div>
-  )
+  );
 }
