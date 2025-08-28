@@ -86,7 +86,6 @@ export async function signup(db: Db, data: Signup) {
       email: data.email,
       phoneNo: data.phoneNo,
       emailVerifiedAt: null,
-
       customer: {
         create: {
           address: data.address,
@@ -95,7 +94,16 @@ export async function signup(db: Db, data: Signup) {
           phoneNo: data.phoneNo,
           email: data.email,
           meta: {},
-
+          addressBooks: {
+            create: {
+              isPrimary: true,
+              name: data.name || data.businessName,
+              phoneNo: data.phoneNo,
+              email: data.email,
+              address1: data.address,
+              meta: {},
+            },
+          },
           // taxProfiles
         },
       },

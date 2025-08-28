@@ -181,6 +181,7 @@ function AddressAutoCompleteInput(props: CommonProps) {
         <div>
             <ComboboxDropdown
                 placeholder="Search Address"
+                searchPlaceholder="Search Address"
                 onSelect={(item) => {
                     console.log(item);
                     setSelectedPlaceId(item?.placePrediction?.placeId);
