@@ -81,7 +81,7 @@ export default function ContactPage() {
                 <div>
                   <h3 className="font-semibold">Email</h3>
                   <p className="text-gray-700 dark:text-gray-300">
-                    info@millworkpro.com
+                    info@GND Millwork.com
                   </p>
                 </div>
               </div>

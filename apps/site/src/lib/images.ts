@@ -1,4 +1,4 @@
-// Comprehensive image library for MillworkPro
+// Comprehensive image library for GND Millwork
 export const images = {
   categories: {
     exteriorDoors: {

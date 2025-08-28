@@ -9,7 +9,7 @@ export function Footer() {
         <div className="grid md:grid-cols-4 gap-8">
           <div>
             <h4 className="text-xl font-bold mb-4 text-amber-400">
-              MillworkPro
+              GND Millwork
             </h4>
             <p className="text-gray-300 mb-4">
               Your trusted partner for premium doors, hardware, and custom

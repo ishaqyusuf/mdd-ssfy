@@ -82,7 +82,7 @@ export function Header({ cartItems }: HeaderProps) {
           <div className="flex items-center space-x-8">
             <Link href="/">
               <h1 className="text-2xl font-bold text-amber-800 cursor-pointer">
-                MillworkPro
+                GND Millwork
               </h1>
             </Link>
 

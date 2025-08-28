@@ -20,6 +20,7 @@ import { Signup, signupSchema } from "@sales/storefront-account";
 import { FormInput } from "@gnd/ui/controls/form-input";
 import { Form } from "@gnd/ui/form";
 import { FormSelect } from "@gnd/ui/controls/form-select";
+import { cn } from "@gnd/ui/cn";
 
 export default function SignupPage() {
   const form = useZodForm(signupSchema, {
@@ -55,46 +56,6 @@ export default function SignupPage() {
     setError("");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
-
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      setIsLoading(false);
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      setIsLoading(false);
-      return;
-    }
-
-    if (!formData.agreeToTerms) {
-      setError("Please agree to the terms and conditions");
-      setIsLoading(false);
-      return;
-    }
-
-    const result = await signup({
-      email: formData.email,
-      password: formData.password,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      phone: formData.phone,
-    });
-
-    if (result.success) {
-      router.push("/account");
-    } else {
-      setError(result.error || "Signup failed");
-    }
-
-    setIsLoading(false);
-  };
   function onSubmit(data: Signup) {}
   const isBusiness = form.watch("accountType") === "business";
   return (
@@ -118,66 +79,58 @@ export default function SignupPage() {
                     Create Your Account
                   </CardTitle>
                   <p className="text-gray-600">
-                    Join MillworkPro to start shopping and track your orders.
+                    Join GND Millwork to start shopping and track your orders.
                   </p>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   {error && (
                     <Alert className="mb-4" variant="destructive">
                       <AlertDescription>{error}</AlertDescription>
                     </Alert>
                   )}
 
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormSelect
-                        options={["individual", "business"]}
-                        control={form.control}
-                        name="accountType"
-                        label="Account Type"
-                        className="col-span-2"
-                      />
-                      {isBusiness ? (
-                        <>
-                          <FormInput
-                            className="col-span-2"
-                            PrefixIcon={User}
-                            label="Business Name"
-                            control={form.control}
-                            name="businessName"
-                            placeholder="Enter your business name..."
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <FormInput
-                            className="col-span-2"
-                            PrefixIcon={User}
-                            label="Name"
-                            control={form.control}
-                            name="name"
-                            placeholder="Enter your name..."
-                          />
-                        </>
-                      )}
-                    </div>
-                    <FormInput
-                      className="col-span-2"
-                      PrefixIcon={Mail}
-                      label="Email Address"
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormSelect
+                      options={["individual", "business"]}
                       control={form.control}
-                      name="email"
-                      placeholder="email@example.com"
+                      name="accountType"
+                      label="Account Type"
+                      className="col-span-2"
                     />
                     <FormInput
-                      className="col-span-2"
-                      PrefixIcon={Phone}
-                      label="Phone Number"
+                      className={cn("col-span-2", isBusiness || "hidden")}
+                      PrefixIcon={User}
+                      label="Business Name"
                       control={form.control}
-                      name="phoneNo"
-                      placeholder="(555) 123-4567"
+                      name="businessName"
+                      placeholder="Enter your business name..."
                     />
                     <FormInput
+                      className={cn("col-span-2", !isBusiness || "hidden")}
+                      PrefixIcon={User}
+                      label="Name"
+                      control={form.control}
+                      name="name"
+                      placeholder="Enter your name..."
+                    />
+                  </div>
+                  <FormInput
+                    className="col-span-2"
+                    PrefixIcon={Mail}
+                    label="Email Address"
+                    control={form.control}
+                    name="email"
+                    placeholder="email@example.com"
+                  />
+                  <FormInput
+                    className="col-span-2"
+                    PrefixIcon={Phone}
+                    label="Phone Number"
+                    control={form.control}
+                    name="phoneNo"
+                    placeholder="305-123-4567"
+                  />
+                  {/* <FormInput
                       className="col-span-2"
                       PrefixIcon={Lock}
                       label="Password"
@@ -186,101 +139,49 @@ export default function SignupPage() {
                       type="password"
                       placeholder="Create your password"
                     />
+                    <FormInput
+                      className="col-span-2"
+                      PrefixIcon={Lock}
+                      label="Confirm Password"
+                      control={form.control}
+                      name="confirmPassword"
+                      type="password"
+                      placeholder="Confirm your password"
+                    /> */}
 
-                    <div>
-                      <Label htmlFor="password">Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                          id="password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Create a password"
-                          value={formData.password}
-                          onChange={(e) =>
-                            handleInputChange("password", e.target.value)
-                          }
-                          className="pl-10 pr-10"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="agreeToTerms"
+                      checked={formData.agreeToTerms}
+                      onCheckedChange={(checked) =>
+                        handleInputChange("agreeToTerms", checked as boolean)
+                      }
+                    />
+                    <Label htmlFor="agreeToTerms" className="text-sm">
+                      I agree to the{" "}
+                      <Link
+                        href="/terms-of-use"
+                        className="text-amber-600 hover:text-amber-700"
+                      >
+                        Terms of Use
+                      </Link>{" "}
+                      and{" "}
+                      <Link
+                        href="/privacy-policy"
+                        className="text-amber-600 hover:text-amber-700"
+                      >
+                        Privacy Policy
+                      </Link>
+                    </Label>
+                  </div>
 
-                    <div>
-                      <Label htmlFor="confirmPassword">Confirm Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                          id="confirmPassword"
-                          type={showConfirmPassword ? "text" : "password"}
-                          placeholder="Confirm your password"
-                          value={formData.confirmPassword}
-                          onChange={(e) =>
-                            handleInputChange("confirmPassword", e.target.value)
-                          }
-                          className="pl-10 pr-10"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setShowConfirmPassword(!showConfirmPassword)
-                          }
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        >
-                          {showConfirmPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="agreeToTerms"
-                        checked={formData.agreeToTerms}
-                        onCheckedChange={(checked) =>
-                          handleInputChange("agreeToTerms", checked as boolean)
-                        }
-                      />
-                      <Label htmlFor="agreeToTerms" className="text-sm">
-                        I agree to the{" "}
-                        <Link
-                          href="/terms-of-use"
-                          className="text-amber-600 hover:text-amber-700"
-                        >
-                          Terms of Use
-                        </Link>{" "}
-                        and{" "}
-                        <Link
-                          href="/privacy-policy"
-                          className="text-amber-600 hover:text-amber-700"
-                        >
-                          Privacy Policy
-                        </Link>
-                      </Label>
-                    </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full bg-amber-700 hover:bg-amber-800"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Creating Account..." : "Create Account"}
-                    </Button>
-                  </form>
+                  <Button
+                    type="submit"
+                    className="w-full bg-amber-700 hover:bg-amber-800"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Creating Account..." : "Create Account"}
+                  </Button>
 
                   <div className="mt-6 text-center">
                     <p className="text-sm text-gray-600">
