@@ -23,10 +23,31 @@ const client = new Client({
         ? env.SQUARE_SANDBOX_ACCESS_TOKEN
         : env.SQUARE_ACCESS_TOKEN,
 });
+export async function fetchDevicesByLocations() {
+    const {
+        result: { locations },
+    } = await client.locationsApi.listLocations();
+    let allDevices: any[] = [];
 
+    for (const loc of locations ?? []) {
+        const { result } = await client.devicesApi.listDevices(
+            undefined,
+            undefined,
+            undefined,
+            loc.id,
+        );
+        allDevices = allDevices.concat(result.devices ?? []);
+    }
+
+    return {
+        allDevices,
+        locations,
+    };
+}
 export async function getSquareDevices() {
     try {
         const devices = await client.devicesApi.listDeviceCodes();
+        const devicesList = await client.devicesApi.listDevices();
         const _ = devices?.result?.deviceCodes
             ?.map((device) => ({
                 label: device?.name,
@@ -35,6 +56,8 @@ export async function getSquareDevices() {
                 // device,
             }))
             .sort((a, b) => a?.label?.localeCompare(b.label) as any);
+
+        // console.log([devicesList.result.devices]);
         return _.filter((a, b) => _.findIndex((c) => c.value == a.value) == b);
     } catch (error) {}
 }

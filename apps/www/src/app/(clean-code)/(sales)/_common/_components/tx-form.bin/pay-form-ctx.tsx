@@ -12,10 +12,7 @@ import {
     CreateTerminalPaymentAction,
     paymentReceivedAction,
 } from "../../data-actions/sales-payment/terminal-payment.action";
-import {
-    createTransactionUseCase,
-    getPaymentTerminalsUseCase,
-} from "../../use-case/sales-payment-use-case";
+import { createTransactionUseCase } from "../../use-case/sales-payment-use-case";
 import { txStore } from "./store";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 
@@ -43,24 +40,25 @@ export const usePayForm = () => {
         "amount",
         "terminal",
     ]);
-    useEffect(() => {
-        if (!tx.terminals?.length && pm == "terminal") {
-            getPaymentTerminalsUseCase()
-                .then((terminals) => {
-                    tx.dotUpdate("terminals", terminals.devices);
-                    form.setValue("deviceId", terminals.lastUsed?.value, {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                    });
-                })
-                .catch((e) => {
-                    toast.error(e.message);
-                    form.setError("paymentMethod", {
-                        message: e.message,
-                    });
-                });
-        }
-    }, [pm, tx.terminals]);
+    // useEffect(() => {
+    //     if (!tx.terminals?.length && pm == "terminal") {
+    //         getPaymentTerminalsUseCase()
+    //             .then((terminals) => {
+    //                 console.log({ terminals });
+    //                 tx.dotUpdate("terminals", terminals.devices);
+    //                 form.setValue("deviceId", terminals.lastUsed?.value, {
+    //                     shouldDirty: true,
+    //                     shouldValidate: true,
+    //                 });
+    //             })
+    //             .catch((e) => {
+    //                 toast.error(e.message);
+    //                 form.setError("paymentMethod", {
+    //                     message: e.message,
+    //                 });
+    //             });
+    //     }
+    // }, [pm, tx.terminals]);
 
     async function terminalPay() {
         return;

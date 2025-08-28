@@ -9,10 +9,7 @@ import { z } from "zod";
 import {
     cancelSalesPaymentCheckoutUseCase,
     checkTerminalPaymentStatusUseCase,
-    createTerminalPaymentUseCase,
-    createTransactionUseCase,
     GetPaymentTerminals,
-    getPaymentTerminalsUseCase,
     GetSalesPayment,
     getSalesPaymentUseCase,
 } from "../../../use-case/sales-payment-use-case";
@@ -103,21 +100,21 @@ const usePaymentContext = (ctx) => {
     // const [inProgress, setInProgress] = useState(false);
     const [isLoading, startTransition] = useTransition();
 
-    useEffect(() => {
-        if (paymentMethod == "terminal" && !terminals?.length) {
-            getPaymentTerminalsUseCase()
-                .then((terminal) => {
-                    form.setValue("terminal", terminal);
-                    form.setValue("deviceId", terminal?.lastUsed?.value);
-                })
-                .catch((e) => {
-                    toast.error(e.message);
-                    form.setError("paymentMethod", {
-                        message: e.message,
-                    });
-                });
-        }
-    }, [paymentMethod, terminals, form]);
+    // useEffect(() => {
+    //     if (paymentMethod == "terminal" && !terminals?.length) {
+    //         getPaymentTerminalsUseCase()
+    //             .then((terminal) => {
+    //                 form.setValue("terminal", terminal);
+    //                 form.setValue("deviceId", terminal?.lastUsed?.value);
+    //             })
+    //             .catch((e) => {
+    //                 toast.error(e.message);
+    //                 form.setError("paymentMethod", {
+    //                     message: e.message,
+    //                 });
+    //             });
+    //     }
+    // }, [paymentMethod, terminals, form]);
     async function _pay() {
         if (isTerminal()) await terminalCheckout();
         else {

@@ -14,7 +14,7 @@ import {
 import { dbConnect, formatMoney, imageUrl, slugify, sum } from "@gnd/utils";
 import type { INVENTORY_STATUS } from "@sales/constants";
 import { linePricingSchema } from "@sales/schema";
-
+import { signup, signupSchema } from "@sales/storefront-account";
 export const storefrontRouter = createTRPCRouter({
   addToCart: publicProcedure
     .input(
@@ -429,6 +429,9 @@ export const storefrontRouter = createTRPCRouter({
       const result = await productOverview(props.ctx.db, props.input);
       return result;
     }),
+  signup: publicProcedure.input(signupSchema).mutation(async (props) => {
+    return signup(props.ctx.db, props.input);
+  }),
   updateLineQty: publicProcedure
     .input(
       z.object({

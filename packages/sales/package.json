@@ -21,6 +21,7 @@
     "./sales-production": "./src/sales-production.ts",
     "./sales-transaction": "./src/sales-transaction.ts",
     "./storefront-product": "./src/storefront-product.ts",
+    "./storefront-account": "./src/storefront-account.ts",
     "./schema": "./src/schema.ts",
     "./storefront": "./src/storefront.ts",
     "./utils/where-queries": "./src/utils/where-queries.ts",

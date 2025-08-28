@@ -4,6 +4,7 @@ import { prisma } from "@/db";
 import { formatDate } from "@/lib/use-day";
 import {
     cancelSquareTerminalPayment,
+    fetchDevicesByLocations,
     getSquareDevices,
     getTerminalPaymentStatus,
 } from "@/modules/square";
@@ -56,6 +57,7 @@ export async function getSalesPaymentDta(id) {
 }
 export async function getPaymentTerminalsDta() {
     const devices = await getSquareDevices();
+
     if (!devices?.length) throw new Error("Unable to load payment devices");
     const lastPayment = await prisma.salesCheckout.findFirst({
         where: {
@@ -68,9 +70,11 @@ export async function getPaymentTerminalsDta() {
             createdAt: "desc",
         },
     });
+    const locs = await fetchDevicesByLocations();
     return {
         devices,
         lastUsed: devices.find((d) => d.value == lastPayment?.terminalId),
+        locs,
     };
 }
 export interface CreateSalesPaymentProps {
