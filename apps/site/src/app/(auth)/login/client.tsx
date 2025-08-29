@@ -14,8 +14,7 @@ import { Alert, AlertDescription } from "@gnd/ui/alert";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 import { useCartStore } from "@/lib/cart-store";
-import { authClient } from "@/auth/client";
-import { signIn, useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 
 export function Client() {
   const router = useRouter();

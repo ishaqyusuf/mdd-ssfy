@@ -104,6 +104,33 @@ export async function getCommunityTemplateFilters(ctx: TRPCContext) {
   ];
   return resp as FilterData[];
 }
+export async function getCustomerFilters(ctx: TRPCContext) {
+  type T = keyof CommunityTemplateQueryParams;
+  type FilterData = PageFilterData<keyof CommunityTemplateQueryParams>;
+
+  const builders = await buildersList(ctx);
+  const projects = await projectList(ctx);
+  const resp = [
+    searchFilter,
+    optionFilter<T>(
+      "builderId",
+      "Builder",
+      builders.map((b) => ({
+        label: b.name,
+        value: b.id,
+      }))
+    ),
+    optionFilter<T>(
+      "projectId",
+      "Projects",
+      projects.map((b) => ({
+        label: b.title,
+        value: b.id,
+      }))
+    ),
+  ];
+  return resp as FilterData[];
+}
 export async function getSalesOrderFilters(ctx: TRPCContext) {
   type T = keyof SalesQueryParamsSchema;
   type FilterData = PageFilterData<T>;

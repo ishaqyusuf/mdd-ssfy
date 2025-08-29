@@ -9,6 +9,28 @@ import type { QtyControlType } from "./type";
 import { anyDateQuery, dateEquals, fixDbTime } from "./utils/db";
 import dayjs from "@gnd/utils/dayjs";
 import { env } from "process";
+export function whereCustomer(query: DispatchQueryParamsSchema) {
+  const whereStack: Prisma.CustomersWhereInput[] = [];
+
+  if (query.q) {
+    const contains = { contains: query.q };
+    whereStack.push({
+      OR: [
+        {
+          name: contains,
+        },
+        {
+          email: contains,
+        },
+        {
+          address: contains,
+        },
+      ],
+    });
+  }
+
+  return composeQuery(whereStack);
+}
 export function whereDispatch(query: DispatchQueryParamsSchema) {
   const whereStack: Prisma.OrderDeliveryWhereInput[] = [];
 

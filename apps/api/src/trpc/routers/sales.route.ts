@@ -23,6 +23,8 @@ import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
 import { getSalesProductions } from "@sales/sales-production";
 import { z } from "zod";
 import { generateRandomString } from "@gnd/utils";
+import { getCustomers } from "@api/db/queries/customer";
+import { getCustomersSchema } from "@api/schemas/customer";
 export const salesRouter = createTRPCRouter({
   createStep: publicProcedure
     .input(
@@ -74,6 +76,11 @@ export const salesRouter = createTRPCRouter({
     .query(async (props) => {
       const result = await getSalesResolutions(props.ctx, props.input);
       return result;
+    }),
+  customersIndex: publicProcedure
+    .input(getCustomersSchema)
+    .query(async (props) => {
+      return getCustomers(props.ctx, props.input);
     }),
   inboundIndex: publicProcedure
     .input(inboundQuerySchema)

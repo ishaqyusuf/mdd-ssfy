@@ -2,7 +2,7 @@ import { colorsObject } from "./colors";
 import dayjs from "./dayjs";
 import { hash } from "bcrypt-ts";
 
-export const devMode = process.env.NODE_ENV === "production";
+export const devMode = process.env.NODE_ENV != "production";
 export function dbConnect(id) {
   if (!id) return undefined as any;
   return {

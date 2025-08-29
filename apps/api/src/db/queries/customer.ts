@@ -1,8 +1,27 @@
 import type { TRPCContext } from "@api/trpc/init";
-import type { SearchCustomersSchema } from "@api/schemas/customer";
+import type {
+  GetCustomers,
+  SearchCustomersSchema,
+} from "@api/schemas/customer";
 import { z } from "zod";
 import type { AddressBookMeta } from "@sales/types";
+import { composeQueryData } from "@gnd/utils/query-response";
+import { whereCustomer } from "@api/prisma-where";
 
+export async function getCustomers(ctx: TRPCContext, query: GetCustomers) {
+  const { db } = ctx;
+  const { response, searchMeta, where } = await composeQueryData(
+    query,
+    whereCustomer(query),
+    db.customers
+  );
+  const data = await db.customers.findMany({
+    where,
+    ...searchMeta,
+    include: {},
+  });
+  return await response(data.map((line) => line));
+}
 export async function searchCustomers(
   ctx: TRPCContext,
   query: SearchCustomersSchema
