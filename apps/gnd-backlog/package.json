@@ -56,10 +56,6 @@
     "fetch-ponyfill": "7.1.0"
   },
   "devDependencies": {
-    "@gnd/eslint-config": "workspace:*",
-    "@gnd/prettier-config": "workspace:*",
-    "@gnd/tailwind-config": "workspace:*",
-    "@gnd/tsconfig": "workspace:*",
     "@types/mdx": "^2.0.11",
     "@types/negotiator": "0.6.3",
     "@types/node": "20.12.12",
@@ -84,14 +80,8 @@
     "@next-devtools/core": "0.2.0"
   },
   "eslintConfig": {
-    "root": true,
-    "extends": [
-      "@gnd/eslint-config/base",
-      "@gnd/eslint-config/nextjs",
-      "@gnd/eslint-config/react"
-    ]
+    "root": true
   },
-  "prettier": "@gnd/prettier-config",
   "overrides": {
     "@types/react": "19.1.5",
     "@types/react-dom": "19.1.5"

@@ -134,7 +134,6 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
-    "@gnd/tsconfig": "workspace:*",
     "@tailwindcss/typography": "^0.5.10",
     "@types/dot-object": "^2.1.6",
     "@types/mdx": "^2.0.11",
