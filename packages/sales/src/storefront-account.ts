@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Db } from "./types";
 import { nanoid } from "nanoid";
+import { devMode } from "@gnd/utils";
 
 const passwordSchema = z
   .string()
@@ -78,6 +79,16 @@ export async function signup(db: Db, data: Signup) {
       ],
     },
   });
+  if (devMode && e) {
+    return await db.users.update({
+      where: {
+        id: e.id,
+      },
+      data: {
+        verificationToken: nanoid(),
+      },
+    });
+  }
   if (e?.email == data?.email)
     throw new Error("User with email already exist!");
   if (e?.phoneNo == data?.phoneNo)

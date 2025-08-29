@@ -2,7 +2,7 @@ import { env } from "process";
 import { ApiError, Client, Environment } from "square";
 import { TransactionClient } from "@gnd/db";
 import crypto from "crypto";
-
+import { nanoid } from "nanoid";
 let devMode = env.NODE_ENV != "production";
 export const squareClient = new Client({
   environment: devMode ? Environment.Sandbox : Environment.Production,
@@ -10,6 +10,9 @@ export const squareClient = new Client({
     ? env.SQUARE_SANDBOX_ACCESS_TOKEN
     : env.SQUARE_ACCESS_TOKEN,
 });
+export const SQUARE_LOCATION_ID = devMode
+  ? env.SQUARE_SANDBOX_LOCATION_ID
+  : env.SQUARE_LOCATION_ID;
 interface SquareCreateRefundProps {
   squarePaymentId: string;
   tx: TransactionClient;
@@ -57,4 +60,15 @@ export async function squareCreateRefund({
       error: err?.errors || (error as Error).message,
     };
   }
+}
+
+export async function squareCreateDeviceCode() {
+  const code = await squareClient.devicesApi.createDeviceCode({
+    idempotencyKey: nanoid(),
+    deviceCode: {
+      name: "Code ...",
+      productType: "TERMINAL_API",
+      locationId: SQUARE_LOCATION_ID,
+    },
+  });
 }

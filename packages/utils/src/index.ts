@@ -1,6 +1,7 @@
 import { colorsObject } from "./colors";
 import dayjs from "./dayjs";
 
+export const devMode = process.env.NODE_ENV === "production";
 export function dbConnect(id) {
   if (!id) return undefined as any;
   return {

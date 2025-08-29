@@ -11,6 +11,7 @@ import {
   Text,
 } from "@react-email/components";
 import { Logo } from "components/logo";
+import { StoreFrontAd } from "components/storefront-ad";
 import {
   Button,
   EmailThemeProvider,
@@ -219,6 +220,7 @@ const SalesEmail = ({
             </>
           )}
           <br />
+          <StoreFrontAd />
         </Container>
       </Body>
     </EmailThemeProvider>
