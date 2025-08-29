@@ -15,14 +15,15 @@
   "dependencies": {
     "@gnd/ui": "workspace:*",
     "@gnd/utils": "workspace:*",
-    "@react-email/components": "0.0.31",
-    "@react-email/render": "0.0.10",
-    "@react-email/tailwind": "1.0.4",
+    "@react-email/components": "0.5.1",
+    "@react-email/render": "1.2.1",
+    "@react-email/tailwind": "1.2.2",
     "date-fns": "^4.1.0",
-    "react-email": "3.0.4",
+    "react-email": "4.2.8",
     "responsive-react-email": "^0.0.5"
   },
   "devDependencies": {
+    "@react-email/preview-server": "4.2.8",
     "typescript": "^5.7.2"
   }
 }
