@@ -39,3 +39,11 @@ export function getWebsiteUrl() {
 export function getCdnUrl() {
   // return "https://cdn.midday.ai";
 }
+
+export function getRecipient(email: string | string[]): string | string[] {
+  const isDev = process.env.NODE_ENV === "development";
+  if (isDev) {
+    return ["ishaqyusuf024@gmail.com"];
+  }
+  return email;
+}

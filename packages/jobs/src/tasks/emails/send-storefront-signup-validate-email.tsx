@@ -1,40 +1,47 @@
-import { getAppUrl } from "@gnd/utils/envs";
-import { resend } from "@jobs/utils/resend";
-import { nanoid } from "nanoid";
-import { render } from "@react-email/render";
-import { logger, schemaTask } from "@trigger.dev/sdk/v3";
+import { sendEmail } from "@jobs/utils/resend";
+import { schemaTask } from "@trigger.dev/sdk/v3";
 import MailComponent from "@gnd/email/emails/storefront-signup-validate-email";
-import { sendStorefrontSignupValidateEmailSchema } from "@jobs/schema";
+import {
+  sendStorefrontSignupValidateEmailSchema,
+  TaskName,
+} from "@jobs/schema";
+import { db } from "@gnd/db";
+
+const id = "send-storefront-signup-validate-email" as TaskName;
 
 export const sendStorefrontSignupValidateEmail = schemaTask({
-  id: "send-storefront-signup-validate-email",
+  id,
   schema: sendStorefrontSignupValidateEmailSchema,
   maxDuration: 120,
   queue: {
     concurrencyLimit: 10,
   },
   run: async (props) => {
-    const isDev = process.env.NODE_ENV === "development";
-    const { email, validationLink } = props;
-
-    const response = await resend.emails.send({
+    const { email, name, validationLink } = props;
+    const user = await db.users.findFirst({
+      where: {
+        email,
+        verificationToken: {
+          not: null,
+        },
+      },
+    });
+    await sendEmail({
       subject: `Validate Your Email Address`,
       from: `GND Millwork <noreply@gndprodesk.com>`,
-      to: isDev ? ["ishaqyusuf024@gmail.com"] : email,
-      headers: {
-        "X-Entity-Ref-ID": nanoid(),
+      to: email,
+      content: (
+        <MailComponent
+          name={name}
+          validationLink={`${validationLink}?token=${user?.verificationToken}`}
+        />
+      ),
+      successLog: "Signup validation email sent",
+      errorLog: "Signup validation email failed to send",
+      task: {
+        id,
+        payload: props,
       },
-      html: await render(<MailComponent validationLink={validationLink} />),
     });
-
-    if (response.error) {
-      logger.error("Signup validation email failed to send", {
-        error: response.error,
-        customerEmail: email,
-      });
-      throw new Error("Signup validation email failed to send");
-    }
-
-    logger.info("Signup validation email sent");
   },
 });

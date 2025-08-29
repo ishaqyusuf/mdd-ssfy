@@ -1,40 +1,34 @@
-import { getAppUrl } from "@gnd/utils/envs";
-import { resend } from "@jobs/utils/resend";
-import { nanoid } from "nanoid";
-import { render } from "@react-email/render";
-import { logger, schemaTask } from "@trigger.dev/sdk/v3";
+import { sendEmail } from "@jobs/utils/resend";
+import { schemaTask } from "@trigger.dev/sdk/v3";
 import MailComponent from "@gnd/email/emails/storefront-magic-login-code";
-import { sendStorefrontMagicLoginCodeEmailSchema } from "@jobs/schema";
+import {
+  sendStorefrontMagicLoginCodeEmailSchema,
+  TaskName,
+} from "@jobs/schema";
+
+const id = "send-storefront-magic-login-code-email" as TaskName;
 
 export const sendStorefrontMagicLoginCodeEmail = schemaTask({
-  id: "send-storefront-magic-login-code-email",
+  id,
   schema: sendStorefrontMagicLoginCodeEmailSchema,
   maxDuration: 120,
   queue: {
     concurrencyLimit: 10,
   },
   run: async (props) => {
-    const isDev = process.env.NODE_ENV === "development";
     const { email, code } = props;
 
-    const response = await resend.emails.send({
+    await sendEmail({
       subject: `Your Magic Login Code`,
       from: `GND Millwork <noreply@gndprodesk.com>`,
-      to: isDev ? ["ishaqyusuf024@gmail.com"] : email,
-      headers: {
-        "X-Entity-Ref-ID": nanoid(),
+      to: email,
+      content: <MailComponent validationCode={code} />,
+      successLog: "Magic login code email sent",
+      errorLog: "Magic login code email failed to send",
+      task: {
+        id,
+        payload: props,
       },
-      html: await render(<MailComponent validationCode={code} />),
     });
-
-    if (response.error) {
-      logger.error("Magic login code email failed to send", {
-        error: response.error,
-        customerEmail: email,
-      });
-      throw new Error("Magic login code email failed to send");
-    }
-
-    logger.info("Magic login code email sent");
   },
 });

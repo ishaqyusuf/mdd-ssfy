@@ -23,7 +23,11 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useTaskTrigger } from "@trigger/hooks/use-task-trigger";
-import { SendStorefrontWelcomeEmailPayload } from "@jobs/schema";
+import {
+  SendStorefrontSignupValidateEmailPayload,
+  SendStorefrontWelcomeEmailPayload,
+} from "@jobs/schema";
+import { getBaseUrl } from "@/envs";
 export default function SignupPage() {
   const form = useZodForm(signupSchema, {
     defaultValues: {
@@ -47,7 +51,13 @@ export default function SignupPage() {
       async onSuccess(data, variables, context) {
         await trigger.triggerAsync("send-storefront-welcome-email", {
           email: data.email,
+          name: data.name,
         } as SendStorefrontWelcomeEmailPayload);
+        await trigger.triggerAsync("send-storefront-signup-validate-email", {
+          email: data.email,
+          name: data.name,
+          validationLink: `${getBaseUrl()}/verify`,
+        } as SendStorefrontSignupValidateEmailPayload);
       },
     })
   );

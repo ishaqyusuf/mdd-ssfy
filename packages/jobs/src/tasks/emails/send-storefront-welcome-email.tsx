@@ -1,47 +1,34 @@
-import { getAppUrl } from "@gnd/utils/envs";
-import { resend } from "@jobs/utils/resend";
+import { getAppUrl, getRecipient } from "@gnd/utils/envs";
+import { resend, sendEmail } from "@jobs/utils/resend";
 import { nanoid } from "nanoid";
 import { render } from "@react-email/render";
 import { logger, schemaTask } from "@trigger.dev/sdk/v3";
 import MailComponent from "@gnd/email/emails/storefront-welcome-email";
 import { db } from "@gnd/db";
-import { sendStorefrontWelcomeEmailSchema } from "@jobs/schema";
+import { sendStorefrontWelcomeEmailSchema, TaskName } from "@jobs/schema";
 
 const baseAppUrl = getAppUrl();
+const id = "send-storefront-welcome-email" as TaskName;
 export const sendStorefrontWelcomeEmail = schemaTask({
-  id: "send-storefront-welcome-email",
+  id,
   schema: sendStorefrontWelcomeEmailSchema,
   maxDuration: 120,
   queue: {
     concurrencyLimit: 10,
   },
   run: async (props) => {
-    const isDev = process.env.NODE_ENV === "development";
     const { email, name } = props;
-
-    const response = await resend.emails.send({
+    await sendEmail({
       subject: `Welcome to GND Millwork!`,
       from: `GND Millwork <noreply@gndprodesk.com>`,
-      to: isDev ? ["ishaqyusuf024@gmail.com"] : email,
-      headers: {
-        "X-Entity-Ref-ID": nanoid(),
+      to: email,
+      content: <MailComponent name={name} storeUrl={`${baseAppUrl}/shop`} />,
+      successLog: "Welcome email failed to send",
+      errorLog: "Welcome email sent",
+      task: {
+        id,
+        payload: props,
       },
-      html: await render(
-        <MailComponent
-          customerName={name}
-          shopLink={`${baseAppUrl}/shop`}
-        />
-      ),
     });
-
-    if (response.error) {
-      logger.error("Welcome email failed to send", {
-        error: response.error,
-        customerEmail: email,
-      });
-      throw new Error("Welcome email failed to send");
-    }
-
-    logger.info("Welcome email sent");
   },
 });

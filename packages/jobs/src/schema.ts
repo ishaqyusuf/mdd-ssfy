@@ -17,6 +17,19 @@ export const taskNames = [
   "send-storefront-order-confirmation-email",
   "send-storefront-magic-login-code-email",
   "send-storefront-signup-validate-email",
+  "send-gnd-sales-email",
+  "send-storefront-abandoned-cart-email",
+  "send-storefront-customer-anniversary-email",
+  "send-storefront-delivery-confirmation-email",
+  "send-storefront-hot-deals-email",
+  "send-storefront-order-cancellation-email",
+  "send-storefront-order-completed-review-email",
+  "send-storefront-order-status-update-email",
+  "send-storefront-password-reset-completed-email",
+  "send-storefront-product-review-email",
+  "send-storefront-promotional-email",
+  "send-storefront-shipping-confirmation-email",
+  "send-storefront-win-back-email",
   "update-sales-control",
   "sales-commission",
   "reset-sales-control",
@@ -117,10 +130,167 @@ export type SendStorefrontMagicLoginCodeEmailPayload = z.infer<
 
 export const sendStorefrontSignupValidateEmailSchema = z.object({
   email: z.string().email(),
+  name: z.string(),
   validationLink: z.string().url(),
 });
 export type SendStorefrontSignupValidateEmailPayload = z.infer<
   typeof sendStorefrontSignupValidateEmailSchema
+>;
+
+export const sendGndSalesEmailSchema = z.object({
+  email: z.string().email(),
+  isQuote: z.boolean().optional(),
+  customerName: z.string(),
+  paymentLink: z.string().url().optional(),
+  pdfLink: z.string().url().optional(),
+  sales: z.array(
+    z.object({
+      orderId: z.string(),
+      po: z.string().optional(),
+      date: z.string(), // Using string for date to avoid serialization issues
+      total: z.number(),
+      due: z.number(),
+    })
+  ),
+});
+export type SendGndSalesEmailPayload = z.infer<typeof sendGndSalesEmailSchema>;
+
+export const sendStorefrontAbandonedCartEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string().optional(),
+  cartUrl: z.string().url().optional(),
+  items: z
+    .array(
+      z.object({
+        name: z.string(),
+        quantity: z.number(),
+        price: z.number(),
+      })
+    )
+    .optional(),
+});
+export type SendStorefrontAbandonedCartEmailPayload = z.infer<
+  typeof sendStorefrontAbandonedCartEmailSchema
+>;
+
+export const sendStorefrontCustomerAnniversaryEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string().optional(),
+  anniversaryYear: z.number().optional(),
+  discountCode: z.string().optional(),
+  storeUrl: z.string().url().optional(),
+});
+export type SendStorefrontCustomerAnniversaryEmailPayload = z.infer<
+  typeof sendStorefrontCustomerAnniversaryEmailSchema
+>;
+
+export const sendStorefrontDeliveryConfirmationEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string().optional(),
+  orderId: z.string().optional(),
+  storeUrl: z.string().url().optional(),
+});
+export type SendStorefrontDeliveryConfirmationEmailPayload = z.infer<
+  typeof sendStorefrontDeliveryConfirmationEmailSchema
+>;
+
+export const sendStorefrontHotDealsEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string().optional(),
+  products: z
+    .array(
+      z.object({
+        name: z.string(),
+        price: z.number(),
+        imageUrl: z.string().url(),
+        productUrl: z.string().url(),
+      })
+    )
+    .optional(),
+});
+export type SendStorefrontHotDealsEmailPayload = z.infer<
+  typeof sendStorefrontHotDealsEmailSchema
+>;
+
+export const sendStorefrontOrderCancellationEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string().optional(),
+  orderId: z.string().optional(),
+});
+export type SendStorefrontOrderCancellationEmailPayload = z.infer<
+  typeof sendStorefrontOrderCancellationEmailSchema
+>;
+
+export const sendStorefrontOrderCompletedReviewEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string().optional(),
+  orderId: z.string().optional(),
+  reviewUrl: z.string().url().optional(),
+});
+export type SendStorefrontOrderCompletedReviewEmailPayload = z.infer<
+  typeof sendStorefrontOrderCompletedReviewEmailSchema
+>;
+
+export const sendStorefrontOrderStatusUpdateEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string().optional(),
+  orderId: z.string().optional(),
+  orderStatus: z.string().optional(),
+  orderUrl: z.string().url().optional(),
+});
+export type SendStorefrontOrderStatusUpdateEmailPayload = z.infer<
+  typeof sendStorefrontOrderStatusUpdateEmailSchema
+>;
+
+export const sendStorefrontPasswordResetCompletedEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string(),
+  loginUrl: z.string().url(),
+});
+export type SendStorefrontPasswordResetCompletedEmailPayload = z.infer<
+  typeof sendStorefrontPasswordResetCompletedEmailSchema
+>;
+
+export const sendStorefrontProductReviewEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string().optional(),
+  productName: z.string().optional(),
+  productReviewUrl: z.string().url().optional(),
+});
+export type SendStorefrontProductReviewEmailPayload = z.infer<
+  typeof sendStorefrontProductReviewEmailSchema
+>;
+
+export const sendStorefrontPromotionalEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string().optional(),
+  promoCode: z.string().optional(),
+  promoUrl: z.string().url().optional(),
+  promoImageUrl: z.string().url().optional(),
+});
+export type SendStorefrontPromotionalEmailPayload = z.infer<
+  typeof sendStorefrontPromotionalEmailSchema
+>;
+
+export const sendStorefrontShippingConfirmationEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string().optional(),
+  orderId: z.string().optional(),
+  trackingNumber: z.string().optional(),
+  trackingUrl: z.string().url().optional(),
+});
+export type SendStorefrontShippingConfirmationEmailPayload = z.infer<
+  typeof sendStorefrontShippingConfirmationEmailSchema
+>;
+
+export const sendStorefrontWinBackEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string().optional(),
+  discountCode: z.string().optional(),
+  storeUrl: z.string().url().optional(),
+});
+export type SendStorefrontWinBackEmailPayload = z.infer<
+  typeof sendStorefrontWinBackEmailSchema
 >;
 
 export const markSalesAsCompletedSchema = z.object({

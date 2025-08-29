@@ -1,16 +1,16 @@
 import { sendEmail } from "@jobs/utils/resend";
 import { schemaTask } from "@trigger.dev/sdk/v3";
-import MailComponent from "@gnd/email/emails/storefront-order-confirmation";
+import MailComponent from "@gnd/email/emails/storefront-customer-anniversary";
 import {
-  sendStorefrontOrderConfirmationEmailSchema,
+  sendStorefrontCustomerAnniversaryEmailSchema,
   TaskName,
 } from "@jobs/schema";
 
-const id = "send-storefront-order-confirmation-email" as TaskName;
+const id = "send-storefront-customer-anniversary-email" as TaskName;
 
-export const sendStorefrontOrderConfirmationEmail = schemaTask({
+export const sendStorefrontCustomerAnniversaryEmail = schemaTask({
   id,
-  schema: sendStorefrontOrderConfirmationEmailSchema,
+  schema: sendStorefrontCustomerAnniversaryEmailSchema,
   maxDuration: 120,
   queue: {
     concurrencyLimit: 10,
@@ -19,12 +19,12 @@ export const sendStorefrontOrderConfirmationEmail = schemaTask({
     const { email, ...rest } = props;
 
     await sendEmail({
-      subject: `Your GND Millwork Order #${props.orderId}`,
+      subject: `Happy Anniversary from GND Millwork!`,
       from: `GND Millwork <noreply@gndprodesk.com>`,
       to: email,
       content: <MailComponent {...rest} />,
-      successLog: "Order confirmation email sent",
-      errorLog: "Order confirmation email failed to send",
+      successLog: "Customer anniversary email sent",
+      errorLog: "Customer anniversary email failed to send",
       task: {
         id,
         payload: props,

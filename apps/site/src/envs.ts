@@ -1,10 +1,7 @@
 export function getBaseUrl() {
-    if (process.env.NODE_ENV === "development") {
-        return "http://localhost:3000";
-    }
-    return "https://gndprodesk.com";
-}
-export function getPdfDownloadUrl() {
-    const url = getBaseUrl();
-    return `${url}/api/pdf/download`;
+  return `${process.env.NEXT_PUBLIC_APP_URL}`;
+  //   if (process.env.NODE_ENV === "development") {
+  //     return "http://localhost:3500";
+  //   }
+  //   return "https://gndprodesk.com";
 }

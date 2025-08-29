@@ -1,23 +1,22 @@
 import { getAppUrl } from "@gnd/utils/envs";
-import { resend } from "@jobs/utils/resend";
-import { nanoid } from "nanoid";
-import { render } from "@react-email/render";
-import { logger, schemaTask } from "@trigger.dev/sdk/v3";
+import { sendEmail } from "@jobs/utils/resend";
+import { schemaTask } from "@trigger.dev/sdk/v3";
 import { sendPasswordResetCodeSchema, TaskName } from "@jobs/schema";
-import MailComponent from "@gnd/email/emails/login-link-email";
+import MailComponent from "@gnd/email/emails/storefront-password-reset-request";
 import { db } from "@gnd/db";
 import { generateRandomNumber } from "@gnd/utils";
 
 const baseAppUrl = getAppUrl();
+const id = "send-password-reset-code" as TaskName;
+
 export const sendPasswordResetCode = schemaTask({
-  id: "send-password-reset-code" as TaskName,
+  id,
   schema: sendPasswordResetCodeSchema,
   maxDuration: 120,
   queue: {
     concurrencyLimit: 10,
   },
   run: async (props) => {
-    const isDev = process.env.NODE_ENV === "development";
     const email = props.email;
     const usr = await db.users.findFirst({
       where: {
@@ -29,43 +28,28 @@ export const sendPasswordResetCode = schemaTask({
       },
     });
     if (!usr) throw new Error("Unknown user");
-    const tok = await db.passwordResets.create({
+
+    const token = String(generateRandomNumber(5));
+    await db.passwordResets.create({
       data: {
         email,
-        token: String(generateRandomNumber(5)),
+        token,
       },
     });
-    const loginLink = `https://${baseAppUrl}/login?token=${tok.id}`;
-    const reportLink = `https://${baseAppUrl}/report-link?token=${tok.id}`;
-    const response = await resend.emails.send({
-      subject: `Your GND Millwork Login Link`,
+
+    const resetLink = `${baseAppUrl}/password-reset?token=${token}`;
+
+    await sendEmail({
+      subject: `Your GND Millwork Password Reset Link`,
       from: `GND Millwork <noreply@gndprodesk.com>`,
-      to: isDev
-        ? [
-            "ishaqyusuf024@gmail.com",
-            // "pcruz321@gmail.com"
-          ]
-        : email!,
-      headers: {
-        "X-Entity-Ref-ID": nanoid(),
+      to: email,
+      content: <MailComponent name={usr?.name!} resetLink={resetLink} />,
+      successLog: "Password reset email sent",
+      errorLog: "Password reset email failed to send",
+      task: {
+        id,
+        payload: props,
       },
-      html: await render(
-        <MailComponent
-          customerName={usr?.name!}
-          revokeLink={reportLink}
-          loginLink={loginLink!}
-        />
-      ),
     });
-
-    if (response.error) {
-      logger.error("Login email failed to send", {
-        error: response.error,
-        customerEmail: email,
-      });
-      throw new Error("Login email failed to send");
-    }
-
-    logger.info("Login email sent");
   },
 });

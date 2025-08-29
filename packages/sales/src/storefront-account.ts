@@ -115,5 +115,6 @@ export async function signup(db: Db, data: Signup) {
   return {
     id: user.id,
     email: user.email,
+    name: user.name,
   };
 }
