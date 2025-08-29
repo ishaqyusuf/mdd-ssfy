@@ -28,6 +28,8 @@ import {
   SendStorefrontWelcomeEmailPayload,
 } from "@jobs/schema";
 import { getBaseUrl } from "@/envs";
+import { toast } from "@gnd/ui/use-toast";
+import { timeout } from "@gnd/utils";
 export function Client() {
   const form = useZodForm(signupSchema, {
     defaultValues: {
@@ -53,6 +55,7 @@ export function Client() {
           email: data.email,
           name: data.name,
         } as SendStorefrontWelcomeEmailPayload);
+        await timeout(2000);
         await trigger.triggerAsync("send-storefront-signup-validate-email", {
           email: data.email,
           name: data.name,
@@ -61,7 +64,17 @@ export function Client() {
       },
     })
   );
-
+  async function resendVerificationEmail() {
+    console.log("RESEND EMAILLL>>>", data);
+    await trigger.triggerAsync("send-storefront-signup-validate-email", {
+      email: data.email,
+      name: data.name,
+      validationLink: `${getBaseUrl()}/verify`,
+    } as SendStorefrontSignupValidateEmailPayload);
+    toast({
+      title: "Email resent!",
+    });
+  }
   function onSubmit(data: Signup) {
     console.log(data);
     mutate(data);
@@ -95,9 +108,10 @@ export function Client() {
               </CardHeader>
               <CardContent className="text-center space-y-4">
                 <p className="text-gray-600">
-                  Thank you for signing up, {data.name}. A verification email has
-                  been sent to <strong>{data.email}</strong>. Please check your
-                  inbox and follow the instructions to activate your account.
+                  Thank you for signing up, {data.name}. A verification email
+                  has been sent to <strong>{data.email}</strong>. Please check
+                  your inbox and follow the instructions to activate your
+                  account.
                 </p>
                 <Button
                   onClick={() => router.push("/login")}
@@ -109,9 +123,7 @@ export function Client() {
                   Didn't receive an email?{" "}
                   <button
                     className="text-amber-600 hover:text-amber-700 font-medium"
-                    onClick={() => {
-                      // Resend verification email logic here
-                    }}
+                    onClick={resendVerificationEmail}
                   >
                     Resend verification email
                   </button>

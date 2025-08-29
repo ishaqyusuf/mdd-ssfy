@@ -1,13 +1,11 @@
-import { getAppUrl, getRecipient } from "@gnd/utils/envs";
-import { resend, sendEmail } from "@jobs/utils/resend";
-import { nanoid } from "nanoid";
-import { render } from "@react-email/render";
-import { logger, schemaTask } from "@trigger.dev/sdk/v3";
+import { getAppUrl, getStoreUrl } from "@gnd/utils/envs";
+import { sendEmail } from "@jobs/utils/resend";
+
+import { schemaTask } from "@trigger.dev/sdk/v3";
 import MailComponent from "@gnd/email/emails/storefront-welcome-email";
-import { db } from "@gnd/db";
 import { sendStorefrontWelcomeEmailSchema, TaskName } from "@jobs/schema";
 
-const baseAppUrl = getAppUrl();
+const baseAppUrl = getStoreUrl();
 const id = "send-storefront-welcome-email" as TaskName;
 export const sendStorefrontWelcomeEmail = schemaTask({
   id,

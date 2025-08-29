@@ -27,7 +27,21 @@ export const storefrontRouter = createTRPCRouter({
         })
       )
       .query(async (props) => {
-        // throw new Error("Invalid token");
+        const u = await props.ctx.db.users.findFirst({
+          where: {
+            verificationToken: props.input.token,
+          },
+        });
+        if (!u) throw new Error("Invalid token");
+        await props.ctx.db.users.update({
+          where: {
+            id: u.id,
+          },
+          data: {
+            verificationToken: null,
+            emailVerifiedAt: new Date(),
+          },
+        });
         return {
           success: true,
         };

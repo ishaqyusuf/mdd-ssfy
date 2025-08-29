@@ -26,7 +26,7 @@ export default function StorefrontWelcomeEmail({
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
 
-  const previewText = `Welcome to GND Millwork`;
+  const previewText = `Welcome to GND Millwork Store`;
 
   return (
     <EmailThemeProvider preview={<Preview>{previewText}</Preview>}>
