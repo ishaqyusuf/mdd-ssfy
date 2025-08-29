@@ -16,6 +16,7 @@ model Users {
     updatedAt         DateTime?  @updatedAt
     employeeProfileId Int?
     type              UserTypes?
+    verificationToken String?    @unique
 
     workOrders                  WorkOrders[]
     salesProductions            SalesOrders[]                    @relation(name: "producer")

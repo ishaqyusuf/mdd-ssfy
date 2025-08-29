@@ -16,6 +16,21 @@ import type { INVENTORY_STATUS } from "@sales/constants";
 import { linePricingSchema } from "@sales/schema";
 import { signup, signupSchema } from "@sales/storefront-account";
 export const storefrontRouter = createTRPCRouter({
+  auth: {
+    verifyEmail: publicProcedure
+      .input(
+        z.object({
+          token: z.string(),
+        })
+      )
+      .query(async (props) => {
+        // throw new Error("Invalid token");
+        return {
+          success: true,
+        };
+      }),
+  },
+  cart: {},
   addToCart: publicProcedure
     .input(
       z.object({
