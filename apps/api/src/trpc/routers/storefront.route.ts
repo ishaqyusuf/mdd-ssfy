@@ -14,9 +14,19 @@ import {
 import { dbConnect, formatMoney, imageUrl, slugify, sum } from "@gnd/utils";
 import type { INVENTORY_STATUS } from "@sales/constants";
 import { linePricingSchema } from "@sales/schema";
-import { signup, signupSchema } from "@sales/storefront-account";
+import {
+  createPassword,
+  createPasswordSchema,
+  signup,
+  signupSchema,
+} from "@sales/storefront-account";
 export const storefrontRouter = createTRPCRouter({
   auth: {
+    createPassword: publicProcedure
+      .input(createPasswordSchema)
+      .mutation(async (props) => {
+        return createPassword(props.ctx.db, props.input);
+      }),
     signup: publicProcedure.input(signupSchema).mutation(async (props) => {
       return signup(props.ctx.db, props.input);
     }),
@@ -33,7 +43,7 @@ export const storefrontRouter = createTRPCRouter({
           },
         });
         if (!u) throw new Error("Invalid token");
-        await props.ctx.db.users.update({
+        const user = await props.ctx.db.users.update({
           where: {
             id: u.id,
           },
@@ -43,7 +53,9 @@ export const storefrontRouter = createTRPCRouter({
           },
         });
         return {
-          success: true,
+          id: user.id,
+          email: user.email,
+          name: user.name,
         };
       }),
   },

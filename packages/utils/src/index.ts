@@ -1,5 +1,6 @@
 import { colorsObject } from "./colors";
 import dayjs from "./dayjs";
+import { hash } from "bcrypt-ts";
 
 export const devMode = process.env.NODE_ENV === "production";
 export function dbConnect(id) {
@@ -7,6 +8,9 @@ export function dbConnect(id) {
   return {
     connect: { id },
   };
+}
+export async function hashPassword(pwrd) {
+  return await hash(pwrd, 10);
 }
 export function stripSpecialCharacters(inputString: string) {
   // Remove special characters and spaces, keep alphanumeric, hyphens/underscores, and dots

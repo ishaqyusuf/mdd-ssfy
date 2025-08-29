@@ -65,7 +65,6 @@ export function Client() {
     })
   );
   async function resendVerificationEmail() {
-    console.log("RESEND EMAILLL>>>", data);
     await trigger.triggerAsync("send-storefront-signup-validate-email", {
       email: data.email,
       name: data.name,
@@ -76,7 +75,6 @@ export function Client() {
     });
   }
   function onSubmit(data: Signup) {
-    console.log(data);
     mutate(data);
   }
   const isBusiness = form.watch("accountType") === "business";

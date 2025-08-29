@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Db } from "./types";
 import { nanoid } from "nanoid";
-import { devMode } from "@gnd/utils";
+import { devMode, hashPassword } from "@gnd/utils";
 
 const passwordSchema = z
   .string()
@@ -16,6 +16,31 @@ const passwordSchema = z
     message: "Password must contain at least one number",
   });
 
+export const createPasswordSchema = z
+  .object({
+    id: z.number(),
+    password: passwordSchema,
+    confirmPassword: z.string(),
+    agreeToTerms: z.boolean(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"], // This will show the error message under the confirmPassword field
+  });
+export type CreatePasswordSchema = typeof createPasswordSchema._type;
+export async function createPassword(db: Db, data: CreatePasswordSchema) {
+  const u = await db.users.update({
+    where: {
+      id: data.id,
+    },
+    data: {
+      password: await hashPassword(data.password),
+    },
+  });
+  return {
+    name: u.name,
+  };
+}
 export const signupSchema = z
   .object({
     name: z.string().optional().nullable(),

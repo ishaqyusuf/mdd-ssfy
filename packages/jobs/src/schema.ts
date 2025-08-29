@@ -21,10 +21,12 @@ export const taskNames = [
   "send-storefront-abandoned-cart-email",
   "send-storefront-customer-anniversary-email",
   "send-storefront-delivery-confirmation-email",
+  "send-storefront-email-verified-email",
   "send-storefront-hot-deals-email",
   "send-storefront-order-cancellation-email",
   "send-storefront-order-completed-review-email",
   "send-storefront-order-status-update-email",
+  "send-storefront-password-created-email",
   "send-storefront-password-reset-completed-email",
   "send-storefront-product-review-email",
   "send-storefront-promotional-email",
@@ -291,6 +293,22 @@ export const sendStorefrontWinBackEmailSchema = z.object({
 });
 export type SendStorefrontWinBackEmailPayload = z.infer<
   typeof sendStorefrontWinBackEmailSchema
+>;
+
+export const sendStorefrontEmailVerifiedEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string(),
+});
+export type SendStorefrontEmailVerifiedEmailPayload = z.infer<
+  typeof sendStorefrontEmailVerifiedEmailSchema
+>;
+
+export const sendStorefrontPasswordCreatedEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string(),
+});
+export type SendStorefrontPasswordCreatedEmailPayload = z.infer<
+  typeof sendStorefrontPasswordCreatedEmailSchema
 >;
 
 export const markSalesAsCompletedSchema = z.object({
