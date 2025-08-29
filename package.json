@@ -47,6 +47,6 @@
     "@manypkg/cli": "^0.24.0",
     "react-markdown": "^10.1.0",
     "turbo": "2.5.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.2"
   }
 }

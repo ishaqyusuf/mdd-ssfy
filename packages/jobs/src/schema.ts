@@ -13,6 +13,10 @@ export const taskNames = [
   "send-login-email",
   "send-password-reset-code",
   "send-password-reset-to-default-email",
+  "send-storefront-welcome-email",
+  "send-storefront-order-confirmation-email",
+  "send-storefront-magic-login-code-email",
+  "send-storefront-signup-validate-email",
   "update-sales-control",
   "sales-commission",
   "reset-sales-control",
@@ -70,6 +74,55 @@ export const salesPaymentNotificationEmailSchema = z.object({
   ordersNo: z.array(z.string()),
   email: z.string(),
 });
+
+export const sendStorefrontWelcomeEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string(),
+});
+export type SendStorefrontWelcomeEmailPayload = z.infer<
+  typeof sendStorefrontWelcomeEmailSchema
+>;
+
+export const sendStorefrontOrderConfirmationEmailSchema = z.object({
+  email: z.string().email(),
+  name: z.string().optional(),
+  orderId: z.string(),
+  orderDate: z.string(),
+  shippingAddress: z.object({
+    street: z.string(),
+    city: z.string(),
+    state: z.string(),
+    zip: z.string(),
+  }),
+  items: z.array(
+    z.object({
+      name: z.string(),
+      quantity: z.number(),
+      price: z.number(),
+    })
+  ),
+  total: z.number(),
+});
+export type SendStorefrontOrderConfirmationEmailPayload = z.infer<
+  typeof sendStorefrontOrderConfirmationEmailSchema
+>;
+
+export const sendStorefrontMagicLoginCodeEmailSchema = z.object({
+  email: z.string().email(),
+  code: z.string(),
+});
+export type SendStorefrontMagicLoginCodeEmailPayload = z.infer<
+  typeof sendStorefrontMagicLoginCodeEmailSchema
+>;
+
+export const sendStorefrontSignupValidateEmailSchema = z.object({
+  email: z.string().email(),
+  validationLink: z.string().url(),
+});
+export type SendStorefrontSignupValidateEmailPayload = z.infer<
+  typeof sendStorefrontSignupValidateEmailSchema
+>;
+
 export const markSalesAsCompletedSchema = z.object({
   ids: z.array(z.number()),
   authorName: z.string(),

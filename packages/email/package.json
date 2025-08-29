@@ -24,6 +24,6 @@
   },
   "devDependencies": {
     "@react-email/preview-server": "4.2.8",
-    "typescript": "^5.7.2"
+    "typescript": "^5.9.2"
   }
 }

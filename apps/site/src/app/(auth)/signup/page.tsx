@@ -23,6 +23,7 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useTaskTrigger } from "@trigger/hooks/use-task-trigger";
+import { SendStorefrontWelcomeEmailPayload } from "@jobs/schema";
 export default function SignupPage() {
   const form = useZodForm(signupSchema, {
     defaultValues: {
@@ -41,9 +42,13 @@ export default function SignupPage() {
   const trigger = useTaskTrigger({
     triggerMutation: trpc.taskTrigger.trigger,
   });
-  const { data, mutate, isPending, error } = useMutation(
-    trpc.storefront.signup.mutationOptions({
-      onSuccess(data, variables, context) {},
+  const { data, mutate, mutateAsync, isPending, error } = useMutation(
+    trpc.storefront.auth.signup.mutationOptions({
+      async onSuccess(data, variables, context) {
+        await trigger.triggerAsync("send-storefront-welcome-email", {
+          email: data.email,
+        } as SendStorefrontWelcomeEmailPayload);
+      },
     })
   );
 

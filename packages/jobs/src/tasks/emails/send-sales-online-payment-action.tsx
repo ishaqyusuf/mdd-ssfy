@@ -50,7 +50,7 @@ export const sendSalesPaymentNotificationEmail = schemaTask({
       headers: {
         "X-Entity-Ref-ID": nanoid(),
       },
-      html: render(<SalesRepPaymentNotificationEmail {...props} />),
+      html: await render(<SalesRepPaymentNotificationEmail {...props} />),
     });
 
     if (response.error) {

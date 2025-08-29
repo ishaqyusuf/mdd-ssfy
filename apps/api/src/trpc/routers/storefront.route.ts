@@ -17,6 +17,9 @@ import { linePricingSchema } from "@sales/schema";
 import { signup, signupSchema } from "@sales/storefront-account";
 export const storefrontRouter = createTRPCRouter({
   auth: {
+    signup: publicProcedure.input(signupSchema).mutation(async (props) => {
+      return signup(props.ctx.db, props.input);
+    }),
     verifyEmail: publicProcedure
       .input(
         z.object({
@@ -444,9 +447,7 @@ export const storefrontRouter = createTRPCRouter({
       const result = await productOverview(props.ctx.db, props.input);
       return result;
     }),
-  signup: publicProcedure.input(signupSchema).mutation(async (props) => {
-    return signup(props.ctx.db, props.input);
-  }),
+
   updateLineQty: publicProcedure
     .input(
       z.object({

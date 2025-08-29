@@ -32,7 +32,7 @@ export const sendPasswordResetCode = schemaTask({
     const tok = await db.passwordResets.create({
       data: {
         email,
-        token: generateRandomNumber(5),
+        token: String(generateRandomNumber(5)),
       },
     });
     const loginLink = `https://${baseAppUrl}/login?token=${tok.id}`;
@@ -49,12 +49,12 @@ export const sendPasswordResetCode = schemaTask({
       headers: {
         "X-Entity-Ref-ID": nanoid(),
       },
-      html: render(
+      html: await render(
         <MailComponent
           customerName={usr?.name!}
           revokeLink={reportLink}
           loginLink={loginLink!}
-        />,
+        />
       ),
     });
 

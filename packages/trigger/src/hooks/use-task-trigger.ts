@@ -79,7 +79,7 @@ export function useTaskTrigger(props?: Props) {
       });
     }
   }, [status]);
-  const { mutate, isPending } = useMutation(
+  const { mutate, mutateAsync, isPending } = useMutation(
     props?.triggerMutation.mutationOptions({
       onMutate(variables: any) {
         if (executingToast)
@@ -103,6 +103,11 @@ export function useTaskTrigger(props?: Props) {
   const ctx = {
     trigger: (taskName: TaskName, payload: any) =>
       (mutate as any)({
+        taskName,
+        payload,
+      }),
+    triggerAsync: async (taskName: TaskName, payload: any) =>
+      await (mutateAsync as any)({
         taskName,
         payload,
       }),

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Db } from "./types";
+import { nanoid } from "nanoid";
 
 const passwordSchema = z
   .string()
@@ -87,6 +88,7 @@ export async function signup(db: Db, data: Signup) {
       phoneNo: data.phoneNo,
       emailVerifiedAt: null,
       type: "CUSTOMER",
+      verificationToken: nanoid(),
       customer: {
         create: {
           address: data.address,
@@ -110,4 +112,8 @@ export async function signup(db: Db, data: Signup) {
       },
     },
   });
+  return {
+    id: user.id,
+    email: user.email,
+  };
 }
