@@ -102,65 +102,62 @@ export function Content() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsProcessing(true);
-
-    // Simulate payment processing
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    // Create order if user is authenticated
-    let orderId: string;
-    if (isAuthenticated && user) {
-      orderId = createOrder({
-        userId: user.id,
-        items: items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-          image: item.image,
-          variant: item.variant,
-          size: item.size,
-        })),
-        total,
-        subtotal,
-        shipping,
-        tax,
-        shippingAddress: {
-          name: `${formData.firstName} ${formData.lastName}`,
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          zipCode: formData.zipCode,
-          phone: formData.phone,
-        },
-        billingAddress: formData.sameAsShipping
-          ? {
-              name: `${formData.firstName} ${formData.lastName}`,
-              address: formData.address,
-              city: formData.city,
-              state: formData.state,
-              zipCode: formData.zipCode,
-            }
-          : {
-              name: `${formData.billingFirstName} ${formData.billingLastName}`,
-              address: formData.billingAddress,
-              city: formData.billingCity,
-              state: formData.billingState,
-              zipCode: formData.billingZipCode,
-            },
-      });
-    } else {
-      // For guest checkout, generate a simple order ID
-      orderId = `GUEST-${Math.random()
-        .toString(36)
-        .substr(2, 9)
-        .toUpperCase()}`;
-    }
-
-    // Clear cart and redirect to success page
-    clearCart();
-    router.push(`/orders/${orderId}?success=true`);
+    // e.preventDefault();
+    // setIsProcessing(true);
+    // // Simulate payment processing
+    // await new Promise((resolve) => setTimeout(resolve, 3000));
+    // // Create order if user is authenticated
+    // let orderId: string;
+    // if (isAuthenticated && user) {
+    //   orderId = createOrder({
+    //     userId: user.id,
+    //     items: items.map((item) => ({
+    //       id: item.id,
+    //       name: item.name,
+    //       quantity: item.quantity,
+    //       price: item.price,
+    //       image: item.image,
+    //       variant: item.variant,
+    //       size: item.size,
+    //     })),
+    //     total,
+    //     subtotal,
+    //     shipping,
+    //     tax,
+    //     shippingAddress: {
+    //       name: `${formData.firstName} ${formData.lastName}`,
+    //       address: formData.address,
+    //       city: formData.city,
+    //       state: formData.state,
+    //       zipCode: formData.zipCode,
+    //       phone: formData.phone,
+    //     },
+    //     billingAddress: formData.sameAsShipping
+    //       ? {
+    //           name: `${formData.firstName} ${formData.lastName}`,
+    //           address: formData.address,
+    //           city: formData.city,
+    //           state: formData.state,
+    //           zipCode: formData.zipCode,
+    //         }
+    //       : {
+    //           name: `${formData.billingFirstName} ${formData.billingLastName}`,
+    //           address: formData.billingAddress,
+    //           city: formData.billingCity,
+    //           state: formData.billingState,
+    //           zipCode: formData.billingZipCode,
+    //         },
+    //   });
+    // } else {
+    //   // For guest checkout, generate a simple order ID
+    //   orderId = `GUEST-${Math.random()
+    //     .toString(36)
+    //     .substr(2, 9)
+    //     .toUpperCase()}`;
+    // }
+    // // Clear cart and redirect to success page
+    // clearCart();
+    // router.push(`/orders/${orderId}?success=true`);
   };
 
   if (cart?.loadingCart) {

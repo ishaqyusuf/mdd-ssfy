@@ -11,6 +11,7 @@ import { ShoppingBag, ArrowLeft } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
 
 import { CartProvider, useCart } from "@/hooks/use-cart";
+import { useAuth } from "@/hooks/use-auth";
 
 export function Cart() {
   return (
@@ -20,11 +21,8 @@ export function Cart() {
   );
 }
 function Content() {
-  const { items, updateQuantity, removeItem, getTotalItems, getTotalPrice } =
-    useCartStore();
-  const [mounted, setMounted] = useState(false);
   const { list, loadingCart } = useCart();
-
+  const auth = useAuth();
   if (loadingCart) {
     return (
       <div className="min-h-screen bg-background">
@@ -38,12 +36,7 @@ function Content() {
     );
   }
 
-  const subtotal = getTotalPrice();
-  const shipping = subtotal > 500 ? 0 : 50; // Free shipping over $500
-  const tax = subtotal * 0.08; // 8% tax
-  const total = subtotal + shipping + tax;
-
-  if (items.length === 0) {
+  if (list.length === 0) {
     return (
       <div className="min-h-screen bg-background">
         <main className="container mx-auto px-4 py-8">
@@ -110,7 +103,7 @@ function Content() {
           <div className="space-y-6">
             <OrderSummary />
 
-            <Link href="/checkout">
+            <Link href={auth.id ? "/checkout" : "/signup"}>
               <Button className="w-full bg-amber-700 hover:bg-amber-800 text-lg py-3">
                 Proceed to Checkout
               </Button>

@@ -22,7 +22,7 @@ import { cn } from "@gnd/ui/cn";
 import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect } from "react";
-
+import { useTaskTrigger } from "@trigger/hooks/use-task-trigger";
 export default function SignupPage() {
   const form = useZodForm(signupSchema, {
     defaultValues: {
@@ -38,6 +38,9 @@ export default function SignupPage() {
   });
   const router = useRouter();
   const trpc = useTRPC();
+  const trigger = useTaskTrigger({
+    triggerMutation: trpc.taskTrigger.trigger,
+  });
   const { data, mutate, isPending, error } = useMutation(
     trpc.storefront.signup.mutationOptions({
       onSuccess(data, variables, context) {},
@@ -82,31 +85,31 @@ export default function SignupPage() {
                       <AlertDescription>{error?.message}</AlertDescription>
                     </Alert>
                   )}
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormSelect
-                      options={["individual", "business"]}
-                      control={form.control}
-                      name="accountType"
-                      label="Account Type"
-                      className="col-span-2"
-                    />
-                    <FormInput
-                      className={cn("col-span-2", isBusiness || "hidden")}
-                      PrefixIcon={User}
-                      label="Business Name"
-                      control={form.control}
-                      name="businessName"
-                      placeholder="Enter your business name..."
-                    />
-                    <FormInput
-                      className={cn("col-span-2", !isBusiness || "hidden")}
-                      PrefixIcon={User}
-                      label="Name"
-                      control={form.control}
-                      name="name"
-                      placeholder="Enter your name..."
-                    />
-                  </div>
+
+                  <FormSelect
+                    options={["individual", "business"]}
+                    control={form.control}
+                    name="accountType"
+                    label="Account Type"
+                    className="col-span-2"
+                  />
+                  <FormInput
+                    className={cn("col-span-2", isBusiness || "hidden")}
+                    PrefixIcon={User}
+                    label="Business Name"
+                    control={form.control}
+                    name="businessName"
+                    placeholder="Enter your business name..."
+                  />
+                  <FormInput
+                    className={cn("col-span-2", !isBusiness || "hidden")}
+                    PrefixIcon={User}
+                    label="Name"
+                    control={form.control}
+                    name="name"
+                    placeholder="Enter your name..."
+                  />
+
                   <FormInput
                     className="col-span-2"
                     PrefixIcon={Mail}

@@ -19,6 +19,7 @@ import { google } from "./google-place.route";
 import { inventoriesRouter } from "./inventories.route";
 import { communityRouters } from "./community.route";
 import { storefrontRouter } from "./storefront.route";
+import { taskTriggerRouter } from "./task-trigger.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
@@ -40,6 +41,7 @@ export const appRouter = createTRPCRouter({
   storefront: storefrontRouter,
   shoppingProducts: shoppingProductsRouter,
   siteActions: siteActionsRoutes,
+  taskTrigger: taskTriggerRouter,
   user: userRoutes,
 });
 

@@ -86,6 +86,7 @@ export async function signup(db: Db, data: Signup) {
       email: data.email,
       phoneNo: data.phoneNo,
       emailVerifiedAt: null,
+      type: "CUSTOMER",
       customer: {
         create: {
           address: data.address,

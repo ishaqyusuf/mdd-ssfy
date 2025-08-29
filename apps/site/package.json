@@ -26,6 +26,7 @@
     "@gnd/events": "workspace:*",
     "@gnd/printer": "workspace:*",
     "@gnd/sales": "workspace:*",
+    "@gnd/trigger": "workspace:*",
     "@gnd/ui": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@headlessui/react": "^1.7.17",
