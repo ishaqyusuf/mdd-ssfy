@@ -1,11 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-    Sortable,
-    SortableDragHandle,
-    SortableItem,
-} from "@/components/(clean-code)/custom/sortable";
+
 import { cn } from "@/lib/utils";
 import type { Table } from "@tanstack/react-table";
 import { Check, GripVertical, Settings2 } from "lucide-react";
@@ -20,6 +16,7 @@ import {
     CommandList,
 } from "@gnd/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
+import { Sortable, SortableDragHandle, SortableItem } from "@gnd/ui/sortable";
 
 interface DataTableViewOptionsProps<TData> {
     table: Table<TData>;

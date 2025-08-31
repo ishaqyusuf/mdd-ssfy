@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { createContextFactory } from "@/utils/context-factory";
+import createContextFactory from "@/utils/context-factory";
 import { cva, VariantProps } from "class-variance-authority";
 
 import {

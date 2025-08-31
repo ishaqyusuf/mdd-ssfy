@@ -11,7 +11,7 @@ import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatDate } from "@/lib/use-day";
 import { cn } from "@/lib/utils";
-import { createContextFactory } from "@/utils/context-factory";
+import createContextFactory from "@/utils/context-factory";
 import { CheckCircle, ClipboardList, Clock, Send } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 

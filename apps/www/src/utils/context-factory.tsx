@@ -4,7 +4,7 @@ import {
     useContext as reactUseContext,
 } from "react";
 
-export function createContextFactory<TArgs extends any[], TReturn>(
+export default function createContextFactory<TArgs extends any[], TReturn>(
     fn: (...args: TArgs) => TReturn,
     defaultValue?: TReturn,
 ) {

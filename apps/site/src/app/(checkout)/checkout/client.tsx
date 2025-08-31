@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@gnd/ui/select";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
-import { CreditCard, Lock, ArrowLeft, User } from "lucide-react";
+import { Lock, ArrowLeft, User } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { useOrdersStore } from "@/lib/orders-store";

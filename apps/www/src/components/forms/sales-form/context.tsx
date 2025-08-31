@@ -11,7 +11,7 @@ import {
 import { DykeDoorType } from "@/app/(clean-code)/(sales)/types";
 import { composeDoor } from "@/lib/sales/compose-door";
 import { generateRandomString, sum } from "@/lib/utils";
-import { createContextFactory } from "@/utils/context-factory";
+import createContextFactory from "@/utils/context-factory";
 import { useEffect, useMemo, useState } from "react";
 import { FieldPath, FieldPathValue } from "react-hook-form";
 import { useAsyncMemo } from "use-async-memo";

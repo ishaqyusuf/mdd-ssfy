@@ -1,5 +1,5 @@
 import { timeout } from "@/lib/timeout";
-import { createContextFactory } from "@/utils/context-factory";
+import createContextFactory from "@/utils/context-factory";
 import z from "zod";
 
 import { SidebarProvider, useSidebar as useBaseSidebar } from "@gnd/ui/sidebar";

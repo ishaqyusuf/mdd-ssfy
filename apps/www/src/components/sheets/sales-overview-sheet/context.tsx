@@ -9,7 +9,7 @@ import {
 import { useSalesControlAction } from "@/hooks/use-sales-control-action";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { timeout } from "@/lib/timeout";
-import { createContextFactory } from "@/utils/context-factory";
+import createContextFactory from "@/utils/context-factory";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useAsyncMemo } from "use-async-memo";

@@ -1,4 +1,4 @@
-import { createContextFactory } from "@/utils/context-factory";
+import createContextFactory from "@/utils/context-factory";
 import { useAuth } from "./use-auth";
 import {
     getLinkModules,

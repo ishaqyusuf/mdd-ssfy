@@ -1,5 +1,5 @@
 import { useTRPC } from "@/trpc/client";
-import { createContextFactory } from "@/utils/context-factory";
+import createContextFactory from "@/utils/context-factory";
 import { printSalesData } from "@/utils/sales-print-utils";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { useMutation, useQueryClient } from "@tanstack/react-query";

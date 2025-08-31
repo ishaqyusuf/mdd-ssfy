@@ -1,4 +1,4 @@
-import { createContextFactory } from "@/lib/context-factory";
+import createContextFactory from "@/lib/context-factory";
 import { useTRPC } from "@/trpc/client";
 import { useAuth } from "./use-auth";
 import { useGuestId } from "./use-guest-id";
