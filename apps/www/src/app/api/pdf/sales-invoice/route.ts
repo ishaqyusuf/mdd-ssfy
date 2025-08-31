@@ -26,7 +26,7 @@ export async function GET(req: NextRequest, res) {
         "Content-Disposition",
         `attachment; filename="${fileName}.pdf"`,
     );
-    return new Response(buffer, {
+    return new Response(buffer as any, {
         headers: responseHeaders,
     });
 }
