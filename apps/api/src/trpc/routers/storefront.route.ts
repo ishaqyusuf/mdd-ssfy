@@ -280,6 +280,20 @@ export const storefrontRouter = createTRPCRouter({
           total,
         };
       });
+      const customer = await props.ctx.db.customers.findFirst({
+        where: {
+          userId: userId || null,
+        },
+        include: {
+          addressBooks: {
+            take: 1,
+            orderBy: {
+              createdAt: "desc",
+            },
+          },
+        },
+      });
+
       return {
         items,
         estimate: {

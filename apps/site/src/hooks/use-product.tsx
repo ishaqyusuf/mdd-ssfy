@@ -1,5 +1,5 @@
 "use client";
-import { createContextFactory } from "@/lib/context-factory";
+import createContextFactory from "@/lib/context-factory";
 import { useTRPC } from "@/trpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useProductFilterParams } from "./use-product-filter-params";
