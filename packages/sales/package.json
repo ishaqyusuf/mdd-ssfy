@@ -20,6 +20,7 @@
     "./get-sale-information": "./src/sales-control/get-sale-information.ts",
     "./sales-production": "./src/sales-production.ts",
     "./sales-transaction": "./src/sales-transaction.ts",
+    "./shipping": "./src/shipping.ts",
     "./storefront-product": "./src/storefront-product.ts",
     "./storefront-account": "./src/storefront-account.ts",
     "./schema": "./src/schema.ts",

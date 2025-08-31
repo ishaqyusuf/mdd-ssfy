@@ -1,5 +1,6 @@
 "use client";
 
+import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 
@@ -9,6 +10,12 @@ const customer = {
     header: "Customer",
     accessorKey: "Customer",
     meta: {},
-    cell: ({ row: { original: item } }) => item.name || item.businessName,
+    cell: ({ row: { original: item } }) => (
+        <div>
+            <TCell.Primary className="uppercase">
+                {item.name || item.businessName}
+            </TCell.Primary>
+        </div>
+    ),
 };
 export const columns: ColumnDef<Item>[] = [customer];

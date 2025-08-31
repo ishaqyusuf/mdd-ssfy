@@ -49,6 +49,21 @@ import { inventoryImport } from "@sales/inventory-import";
 import { InventoryImportService } from "@sales/inventory-import-service";
 import { idSchema } from "@api/schemas/common";
 import { INVENTORY_STATUS } from "@sales/constants";
+import {
+  dimensionalWeightFormSchema,
+  flatRateFormSchema,
+  getShippingCalculationConfig,
+  perItemFormSchema,
+  priceBasedFormSchema,
+  saveDimensionalWeightConfig,
+  saveFlatRateConfig,
+  savePerItemConfig,
+  savePriceBasedConfig,
+  saveWeightBasedConfig,
+  saveZoneBasedConfig,
+  weightBasedFormSchema,
+  zoneBasedFormSchema,
+} from "@sales/shipping";
 export const inventoriesRouter = createTRPCRouter({
   deleteInventories: publicProcedure
     .input(
@@ -243,4 +258,39 @@ export const inventoriesRouter = createTRPCRouter({
     .mutation(async (props) => {
       return saveVariantForm(props.ctx.db, props.input);
     }),
+  shipping: {
+    getShippingConfig: publicProcedure.query(async ({ ctx }) => {
+      return getShippingCalculationConfig(ctx.db);
+    }),
+    saveFlatRate: publicProcedure
+      .input(flatRateFormSchema)
+      .mutation(async ({ ctx, input }) => {
+        return saveFlatRateConfig(ctx.db, input);
+      }),
+    saveWeightBased: publicProcedure
+      .input(weightBasedFormSchema)
+      .mutation(async ({ ctx, input }) => {
+        return saveWeightBasedConfig(ctx.db, input);
+      }),
+    savePriceBased: publicProcedure
+      .input(priceBasedFormSchema)
+      .mutation(async ({ ctx, input }) => {
+        return savePriceBasedConfig(ctx.db, input);
+      }),
+    saveZoneBased: publicProcedure
+      .input(zoneBasedFormSchema)
+      .mutation(async ({ ctx, input }) => {
+        return saveZoneBasedConfig(ctx.db, input);
+      }),
+    savePerItem: publicProcedure
+      .input(perItemFormSchema)
+      .mutation(async ({ ctx, input }) => {
+        return savePerItemConfig(ctx.db, input);
+      }),
+    saveDimensionalWeight: publicProcedure
+      .input(dimensionalWeightFormSchema)
+      .mutation(async ({ ctx, input }) => {
+        return saveDimensionalWeightConfig(ctx.db, input);
+      }),
+  },
 });

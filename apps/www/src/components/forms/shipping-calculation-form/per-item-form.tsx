@@ -1,0 +1,93 @@
+import { UseFormReturn } from "react-hook-form";
+import {
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@gnd/ui/accordion";
+import {
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@gnd/ui/form";
+import { Input } from "@gnd/ui/input";
+import { Switch } from "@gnd/ui/switch";
+import { Button } from "@gnd/ui/button";
+import { useTRPC } from "@/trpc/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ShippingCalculationFormData } from "@sales/shipping";
+import { SubmitButton } from "@/components/submit-button";
+
+interface PerItemFormProps {
+    form: UseFormReturn<ShippingCalculationFormData>;
+}
+
+export function PerItemForm({ form }: PerItemFormProps) {
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
+
+    const mutation = useMutation(
+        trpc.inventories.shipping.savePerItem.mutationOptions({
+            onSuccess: () => {
+                queryClient.invalidateQueries({
+                    queryKey:
+                        trpc.inventories.shipping.getShippingConfig.queryKey(),
+                });
+            },
+        }),
+    );
+
+    const onSubmit = (data: ShippingCalculationFormData) => {
+        mutation.mutate(data.perItem);
+    };
+
+    return (
+        <AccordionItem value="per-item">
+            <AccordionTrigger>Per-Item Shipping</AccordionTrigger>
+            <AccordionContent>
+                <div className="space-y-4">
+                    <FormField
+                        control={form.control}
+                        name="perItem.enabled"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                    <FormLabel className="text-base">
+                                        Enable Per-Item
+                                    </FormLabel>
+                                </div>
+                                <FormControl>
+                                    <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="perItem.rate"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Rate per Item</FormLabel>
+                                <FormControl>
+                                    <Input type="number" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <SubmitButton
+                        onClick={form.handleSubmit(onSubmit)}
+                        isSubmitting={mutation.isPending}
+                    >
+                        Save Per-Item Settings
+                    </SubmitButton>
+                </div>
+            </AccordionContent>
+        </AccordionItem>
+    );
+}
+
