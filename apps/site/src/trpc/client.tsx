@@ -10,6 +10,9 @@ import { useState } from "react";
 import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
 import { AppRouter } from "@gnd/api/trpc/routers/_app";
+import { useAuth } from "@/hooks/use-auth";
+import { generateRandomString } from "@gnd/utils";
+import { useGuestId } from "@/hooks/use-guest-id";
 
 export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
 
@@ -36,7 +39,8 @@ export function TRPCReactProvider(
   }>
 ) {
   const queryClient = getQueryClient();
-
+  const auth = useAuth();
+  const guest = useGuestId();
   const [trpcClient] = useState(() =>
     createTRPCClient<AppRouter>({
       links: [
@@ -49,13 +53,13 @@ export function TRPCReactProvider(
           transformer: superjson as any,
           async headers() {
             // console.log({ guestId });
-            return {
-              // "x-guest-id": guestId,
-            };
-            // const auth = await authUser();
             // return {
-            //     Authorization: `Bearer ${generateRandomString(16)}|${auth?.id}`,
             // };
+            // const auth = await authUser();
+            return {
+              "x-guest-id": guest.guestId,
+              Authorization: `Bearer ${generateRandomString(16)}|${auth?.id}`,
+            };
             // return {};
           },
         }),

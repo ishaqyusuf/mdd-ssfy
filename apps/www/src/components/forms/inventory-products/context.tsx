@@ -7,7 +7,6 @@ import { parseAsString, useQueryStates } from "nuqs";
 import { labelValueOptions, selectOptions } from "@gnd/utils";
 import { useMemo, useState } from "react";
 import { RouterOutputs } from "@api/trpc/routers/_app";
-import { useDebugConsole } from "@/hooks/use-debug-console";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 
 interface ProductContextProps {}

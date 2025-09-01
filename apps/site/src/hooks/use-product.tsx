@@ -3,7 +3,6 @@ import createContextFactory from "@/lib/context-factory";
 import { useTRPC } from "@/trpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useProductFilterParams } from "./use-product-filter-params";
-import { useDebugConsole } from "./use-debug-console";
 import { useMemo, useState } from "react";
 import { toast } from "@gnd/ui/use-toast";
 
@@ -52,8 +51,6 @@ export const { Provider: ProductProvider, useContext: useProduct } =
         }
       )
     );
-    // const {filters,setFilters} = useProductFilterParams();
-    // useDebugConsole({ data, error });
     const getMatchingVariant = (attributeId, valueId, variants) => {
       if (!variants?.attributeMaps) return null;
 

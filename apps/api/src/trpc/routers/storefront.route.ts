@@ -15,11 +15,14 @@ import { dbConnect, formatMoney, imageUrl, slugify, sum } from "@gnd/utils";
 import type { INVENTORY_STATUS } from "@sales/constants";
 import { linePricingSchema } from "@sales/schema";
 import {
+  createBilling,
+  createBillingSchema,
   createPassword,
   createPasswordSchema,
   signup,
   signupSchema,
 } from "@sales/storefront-account";
+import type { AddressBookMeta, CustomerMeta } from "@sales/types";
 export const storefrontRouter = createTRPCRouter({
   auth: {
     createPassword: publicProcedure
@@ -60,6 +63,13 @@ export const storefrontRouter = createTRPCRouter({
       }),
   },
   cart: {},
+  profile: {
+    createBilling: publicProcedure
+      .input(createBillingSchema)
+      .mutation(async (props) => {
+        return createBilling(props.ctx.db, props.input);
+      }),
+  },
   addToCart: publicProcedure
     .input(
       z.object({
@@ -280,13 +290,16 @@ export const storefrontRouter = createTRPCRouter({
           total,
         };
       });
-      const customer = await props.ctx.db.customers.findFirst({
+      let customer = await props.ctx.db.customers.findFirst({
         where: {
           userId: userId || null,
         },
         include: {
           addressBooks: {
-            take: 1,
+            // where: {
+            //   isPrimary: true,
+            // },
+            // take: 1,
             orderBy: {
               createdAt: "desc",
             },
@@ -294,7 +307,25 @@ export const storefrontRouter = createTRPCRouter({
         },
       });
 
+      if (!customer || !userId) customer = {} as any;
+      const { addressBooks, meta, ...customerData } = customer!;
+      // const customer =
+      const shipping = addressBooks?.[0];
+      const billing = addressBooks?.find((a) => a.isPrimary);
       return {
+        userId,
+        customer: {
+          ...(customerData || {}),
+          meta: (meta || {}) as CustomerMeta,
+        },
+        billing: {
+          ...(billing || {}),
+          meta: (billing!?.meta || {}) as any as AddressBookMeta,
+        },
+        shipping: {
+          ...(shipping || {}),
+          meta: (shipping!?.meta || {}) as any as AddressBookMeta,
+        },
         items,
         estimate: {
           subtotal: sum(items, "total"),

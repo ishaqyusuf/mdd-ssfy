@@ -31,7 +31,6 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "@gnd/ui/use-toast";
-import { useDebugConsole } from "@/hooks/use-debug-console";
 
 export function PayPortalTab({}) {
     const {
@@ -56,7 +55,6 @@ export function PayPortalTab({}) {
             },
         }),
     );
-    useDebugConsole({ data });
     const auth = useAuth();
     const walletPay = async () => {
         payWithWallet.mutate({

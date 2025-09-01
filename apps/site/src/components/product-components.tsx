@@ -1,4 +1,3 @@
-import { useDebugConsole } from "@/hooks/use-debug-console";
 import { useProduct } from "@/hooks/use-product";
 import { useProductFilterParams } from "@/hooks/use-product-filter-params";
 import { useTRPC } from "@/trpc/client";
@@ -147,7 +146,6 @@ function ComponentProductsSelect({ catId, selectedVariantId }) {
       list,
     };
   }, [products, prodSubCategories]);
-  useDebugConsole({ products });
   // TODO: before getting sub components, check each sub components categories, pull category variant attributes, compare to the main product page category attributes and subcomponents, if not available, add as part of sub components, if multiple variant available for a component, and it's attribute is not yet picked (other sub components), then make it not pickable until it's attribute is picked.
   const grid = product.showSubComponentImage;
   const Render = isPending ? (

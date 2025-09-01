@@ -1,7 +1,108 @@
 import { z } from "zod";
-import { Db } from "./types";
+import { AddressBookMeta, Db } from "./types";
 import { nanoid } from "nanoid";
 import { devMode, hashPassword } from "@gnd/utils";
+
+/*
+createBilling: publicProcedure
+      .input(createBillingSchema)
+      .mutation(async (props) => {
+        return createBilling(props.ctx.db, props.input);
+      }),
+*/
+export const createBillingSchema = z.object({
+  id: z.number().optional().nullable(),
+  userId: z.number(),
+  customerId: z.number().optional().nullable(),
+  name: z.string(),
+  email: z.string(),
+  country: z.string(),
+  phone: z.string(),
+  address1: z.string(),
+  address2: z.string().optional().nullable(),
+  city: z.string(),
+  state: z.string(),
+  meta: z.object({
+    zip_code: z.string(),
+    placeId: z.string(),
+    placeSearchText: z.string().optional().nullable(),
+  }),
+});
+export type createBilling = z.infer<typeof createBillingSchema>;
+
+export async function createBilling(db: Db, data: createBilling) {
+  if (data.id)
+    return await db.addressBooks.update({
+      where: { id: data.id },
+      data: {
+        name: data.name,
+        email: data.email,
+        country: data.country,
+        phoneNo: data.phone,
+        address1: data.address1,
+        address2: data.address2,
+        city: data.city,
+        state: data.state,
+        meta: {
+          ...data.meta,
+        },
+      },
+    });
+  else {
+    if (!data.customerId) {
+      return (
+        await db.customers.create({
+          data: {
+            user: {
+              connect: { id: data.userId },
+            },
+            meta: {},
+            addressBooks: {
+              create: {
+                isPrimary: true,
+                name: data.name,
+                email: data.email,
+                country: data.country,
+                phoneNo: data.phone,
+                address1: data.address1,
+                address2: data.address2,
+                city: data.city,
+                state: data.state,
+                meta: {
+                  ...data.meta,
+                },
+              },
+            },
+          },
+          include: {
+            addressBooks: {
+              take: 1,
+            },
+          },
+        })
+      )?.addressBooks?.[0];
+    } else
+      return await db.addressBooks.create({
+        data: {
+          isPrimary: true,
+          customer: {
+            connect: { id: data.customerId },
+          },
+          name: data.name,
+          email: data.email,
+          country: data.country,
+          phoneNo: data.phone,
+          address1: data.address1,
+          address2: data.address2,
+          city: data.city,
+          state: data.state,
+          meta: {
+            ...data.meta,
+          },
+        },
+      });
+  }
+}
 
 const passwordSchema = z
   .string()
