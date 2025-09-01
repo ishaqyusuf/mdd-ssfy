@@ -1,29 +1,16 @@
 "use client";
 
 import type React from "react";
-
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Footer } from "@/components/footer";
 import { OrderSummary } from "@/components/order-summary";
 import { Button } from "@gnd/ui/button";
-import { Input } from "@gnd/ui/input";
-import { Label } from "@gnd/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
-import { Checkbox } from "@gnd/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@gnd/ui/select";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
 import { Lock, ArrowLeft, User } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
 import { useAuthStore } from "@/lib/auth-store";
-import { useOrdersStore } from "@/lib/orders-store";
 import { CartProvider, useCart } from "@/hooks/use-cart";
 import { OrderItemsSummary } from "@/components/order-items-summary";
 import { useZodForm } from "@/hooks/use-zod-form";
@@ -32,11 +19,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { Form } from "@gnd/ui/form";
 import { FormInput } from "@gnd/ui/controls/form-input";
 import { SubmitButton } from "@gnd/ui/controls/submit-button";
-import AddressAutoComplete from "@/components/address-autocomplete";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { FormDebugBtn } from "@gnd/ui/controls/form-debug-btn";
-import { useDebugConsole } from "@/hooks/use-debug-console";
 import { AddressForm } from "@/components/address-form";
 import { CreateCheckout, createCheckoutSchema } from "@sales/storefront-order";
 import { FormCheckbox } from "@gnd/ui/controls/form-checkbox";

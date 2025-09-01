@@ -13,12 +13,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@gnd/ui/select";
+import { useDebugConsole } from "@/hooks/use-debug-console";
 
 export function CommunityModelCostModal() {
     const { editModelCostTemplateId, editModelCostId, setParams } =
         useCommunityModelCostParams();
     const trpc = useTRPC();
-    const { data } = useQuery(
+    const { data, error } = useQuery(
         trpc.community.communityModelCostHistory.queryOptions(
             {
                 id: editModelCostTemplateId,
@@ -28,6 +29,7 @@ export function CommunityModelCostModal() {
             },
         ),
     );
+
     return (
         <CustomModal
             open={!!editModelCostTemplateId}

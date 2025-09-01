@@ -17,6 +17,7 @@ import {
 } from "@community/db-utils";
 import dayjs, { formatDate } from "@gnd/utils/dayjs";
 import { sum } from "@gnd/utils";
+import type { Db } from "@gnd/db";
 export async function projectList(ctx: TRPCContext) {
   const list = await ctx.db.projects.findMany({
     select: {
@@ -140,7 +141,8 @@ export type CommunityModelCostHistory = z.infer<
 
 export async function communityModelCostHistory(
   ctx: TRPCContext,
-  data: CommunityModelCostForm
+  data: CommunityModelCostForm,
+  retry = false
 ) {
   const { db } = ctx;
   const model = await db.communityModels.findFirstOrThrow({
@@ -170,12 +172,19 @@ export async function communityModelCostHistory(
       },
     },
   });
-  let modelCosts = model?.pivot?.modelCosts;
+  if (!model?.pivotId && !retry) {
+    await _createMissingPivots(db);
+    await _addMissingPivotToModelCosts(db);
+    return communityModelCostHistory(ctx, data, true);
+  }
+  let modelCosts = model?.pivot?.modelCosts! || [];
+  // if (modelCosts) modelCosts = [];
   return {
-    modelCosts: modelCosts!.map((m) => ({
+    modelCosts: modelCosts.map((m) => ({
       ...m,
       meta: m.meta as any as ICostChartMeta,
     })),
+    // modelCosts: [],
     model,
     builderTasks: (model?.project?.builder?.meta as any as CommunityBuilderMeta)
       ?.tasks,
@@ -190,7 +199,8 @@ export type CommunityModelCostForm = z.infer<
 
 export async function communityModelCostForm(
   ctx: TRPCContext,
-  data: CommunityModelCostForm
+  data: CommunityModelCostForm,
+  retry = false
 ) {
   if (data.id < 0) return null;
   const { db } = ctx;
@@ -325,4 +335,81 @@ export async function deleteCommunityModelCost(
       deletedAt: new Date(),
     },
   });
+}
+export async function _createMissingPivots(prisma: Db) {
+  await Promise.all(
+    (
+      await prisma.communityModels.findMany({
+        where: {
+          pivot: {
+            is: null,
+          },
+        },
+      })
+    ).map(async (p) => {
+      const pivotM = getPivotModel(p.modelName);
+      let pivot = await prisma.communityModelPivot.findFirst({
+        where: {
+          model: pivotM,
+          projectId: p.projectId,
+        },
+      });
+      if (!pivot) {
+        pivot = await prisma.communityModelPivot.create({
+          data: {
+            model: pivotM,
+            projectId: p.projectId,
+            meta: {},
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
+      }
+      await prisma.communityModels.update({
+        where: { id: p.id },
+        data: {
+          pivotId: pivot.id,
+        },
+      });
+    })
+  );
+}
+export async function _addMissingPivotToModelCosts(prisma: Db) {
+  const p = await prisma.communityModelCost.findMany({
+    where: {
+      pivotId: null,
+      community: {
+        isNot: null,
+      },
+    },
+    include: {
+      community: {
+        select: {
+          pivotId: true,
+        },
+      },
+    },
+  });
+  const __: any = {};
+  p.map((pp) => {
+    const pid = pp.community?.pivotId;
+    if (pid) {
+      if (!__[pid?.toString()]) __[pid?.toString()] = [];
+      __[pid?.toString()].push(pp.id);
+    }
+  });
+  await Promise.all(
+    Object.entries(__).map(async ([k, v]) => {
+      await prisma.communityModelCost.updateMany({
+        where: {
+          id: {
+            in: v as any,
+          },
+        },
+        data: {
+          pivotId: Number(k),
+        },
+      });
+    })
+  );
 }

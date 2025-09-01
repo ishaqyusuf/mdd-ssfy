@@ -1,7 +1,6 @@
 import type { Db, Prisma } from "@gnd/db";
 import { getPivotModel } from "./utils";
 import { ICostChartMeta } from "./types";
-import dayjs from "@gnd/utils/dayjs";
 import { dateQuery } from "@gnd/utils";
 export async function getCommunityPivotId(id, db: Db) {
   const c = await db.communityModels.findUnique({ where: { id } });

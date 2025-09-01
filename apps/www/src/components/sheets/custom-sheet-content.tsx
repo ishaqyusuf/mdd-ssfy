@@ -15,7 +15,6 @@ import {
 
 import Portal from "../_v1/portal";
 import { ScrollArea } from "@gnd/ui/scroll-area";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useMediaQuery } from "react-responsive";
 import { screens } from "@/lib/responsive";
 

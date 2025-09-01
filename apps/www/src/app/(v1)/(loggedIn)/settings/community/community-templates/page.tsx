@@ -7,11 +7,7 @@ import { queryParams } from "@/app/(v1)/_actions/action-utils";
 
 import ModelInstallCostModal from "@/app/(v1)/(loggedIn)/settings/community/community-templates/install-cost-modal/model-install-cost-modal";
 
-import {
-    _addMissingPivotToModelCosts,
-    _bootstrapPivot,
-    _createMissingPivots,
-} from "@/app/(v1)/_actions/community/_community-pivot";
+import { _bootstrapPivot } from "@/app/(v1)/_actions/community/_community-pivot";
 import CommunityModelCostModal from "@/components/_v1/modals/community-model-cost/modal";
 import CommunityInstallCostModal from "@/components/_v1/modals/community-install-cost";
 

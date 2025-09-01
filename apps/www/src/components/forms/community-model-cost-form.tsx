@@ -32,6 +32,7 @@ import { useQueryState } from "nuqs";
 import Portal from "../_v1/portal";
 import { Menu } from "../(clean-code)/menu";
 import { deepCopy } from "@/lib/deep-copy";
+import { useDebugConsole } from "@/hooks/use-debug-console";
 
 interface Props {
     model: RouterOutputs["community"]["communityModelCostHistory"];
@@ -49,6 +50,7 @@ export function CommunityModelCostForm({ model }: Props) {
             },
         ),
     );
+
     const qc = useQueryClient();
     const save = useMutation(
         trpc.community.saveCommunityModelCostForm.mutationOptions({
@@ -70,6 +72,10 @@ export function CommunityModelCostForm({ model }: Props) {
             },
         }),
     );
+    useDebugConsole({
+        d: save.data,
+        e: save.error,
+    });
     const { mutate: deleteCommunityModel } = useMutation(
         trpc.community.deleteCommunityModelCost.mutationOptions({
             onSuccess(data, variables, context) {
@@ -102,6 +108,7 @@ export function CommunityModelCostForm({ model }: Props) {
         tax: Object.fromEntries(model?.builderTasks?.map((t) => [t.uid, ""])),
     });
     useEffect(() => {
+        console.log({ data, editModelCostId, model });
         if (!model) return;
         if (editModelCostId == -1) {
             form.reset({
