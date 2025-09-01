@@ -19,6 +19,7 @@ import {
   ItemStatConfigProps,
   QtyControlType,
   SalesStatStatus,
+  SalesType,
   TypedSalesStat,
 } from "../types";
 import { SalesQueryParamsSchema } from "../schema";
@@ -729,4 +730,30 @@ export function statToKeyValue(dataStats: SalesStat[], reset = false) {
     };
   });
   return k;
+}
+export async function generateSalesSlug(type: SalesType, db, salesRep?) {
+  let orderId = null;
+  while (!orderId) {
+    const usr = salesRep
+      ?.split(" ")
+      ?.filter(Boolean)
+      .map((a) => a[0]?.toUpperCase())
+      .join("");
+    const count = await db.count({
+      where: {
+        deletedAt: {},
+        // ...withDeleted,
+        type,
+      },
+    });
+    const oid = `${count?.toString()?.padStart(5, "0")}${usr}`;
+    if (
+      (await db.count({
+        where: { type, orderId: oid },
+      })) == 0
+    ) {
+      orderId = oid as any;
+    }
+  }
+  return orderId;
 }

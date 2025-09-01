@@ -115,7 +115,7 @@ export type SalesPaymentOptions =
   | "Check"
   | "COD"
   | "Zelle";
-export type SalesType = "order" | "quote";
+export type SalesType = "order" | "quote" | "store-order";
 export type SalesSettingsMeta = {
   route: {
     [primaryRouteUid in string]: {
