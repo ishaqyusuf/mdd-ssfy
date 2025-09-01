@@ -9,5 +9,6 @@ export function useAuth() {
     can: session?.can,
     role: session?.role,
     avatar: null,
+    session,
   };
 }

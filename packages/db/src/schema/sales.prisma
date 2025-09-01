@@ -189,6 +189,7 @@ model SalesOrderItems {
     itemDeliveries     OrderItemDelivery[]
     priceList          ComponentPrice[]
     itemControls       SalesItemControl[]
+    lineItem           LineItem?
 
     @@index([createdAt, description, swing])
     @@index([salesOrderId], name: "idx_SalesOrderItems_on_salesOrderId")

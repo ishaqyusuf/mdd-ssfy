@@ -23,6 +23,7 @@ import {
   signupSchema,
 } from "@sales/storefront-account";
 import type { AddressBookMeta, CustomerMeta } from "@sales/types";
+import { createCheckout, createCheckoutSchema } from "@sales/storefront-order";
 export const storefrontRouter = createTRPCRouter({
   auth: {
     createPassword: publicProcedure
@@ -63,6 +64,13 @@ export const storefrontRouter = createTRPCRouter({
       }),
   },
   cart: {},
+  order: {
+    createCheckout: publicProcedure
+      .input(createCheckoutSchema)
+      .mutation(async (props) => {
+        return createCheckout(props.ctx.db, props.input);
+      }),
+  },
   profile: {
     createBilling: publicProcedure
       .input(createBillingSchema)
@@ -184,11 +192,12 @@ export const storefrontRouter = createTRPCRouter({
     .input(
       z.object({
         guestId: z.string().optional().nullable(),
+        authId: z.number().optional().nullable(),
       })
     )
     .query(async (props) => {
       const guestId = props.input.guestId;
-      const userId = props.ctx.userId;
+      const userId = props.input.authId;
       // if (!guestId && !userId) return {} as any;
       // if () return { count: 0 };
       const where =

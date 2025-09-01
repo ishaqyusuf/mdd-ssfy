@@ -56,6 +56,7 @@ export function TRPCReactProvider(
             // return {
             // };
             // const auth = await authUser();
+            console.log(auth);
             return {
               "x-guest-id": guest.guestId,
               Authorization: `Bearer ${generateRandomString(16)}|${auth?.id}`,

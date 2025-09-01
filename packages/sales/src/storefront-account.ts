@@ -10,9 +10,8 @@ createBilling: publicProcedure
         return createBilling(props.ctx.db, props.input);
       }),
 */
-export const createBillingSchema = z.object({
+export const addressSchema = z.object({
   id: z.number().optional().nullable(),
-  userId: z.number(),
   customerId: z.number().optional().nullable(),
   name: z.string(),
   email: z.string(),
@@ -28,6 +27,11 @@ export const createBillingSchema = z.object({
     placeSearchText: z.string().optional().nullable(),
   }),
 });
+export const createBillingSchema = z
+  .object({
+    userId: z.number(),
+  })
+  .merge(addressSchema);
 export type createBilling = z.infer<typeof createBillingSchema>;
 
 export async function createBilling(db: Db, data: createBilling) {

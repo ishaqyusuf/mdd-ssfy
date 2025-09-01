@@ -1,3 +1,4 @@
+import { useDebugConsole } from "@/hooks/use-debug-console";
 import { useProduct } from "@/hooks/use-product";
 import { useProductFilterParams } from "@/hooks/use-product-filter-params";
 import { useTRPC } from "@/trpc/client";

@@ -570,6 +570,10 @@ model LineItem {
     sale            SalesOrders?   @relation(fields: [saleId], references: [id])
     saleId          Int?
 
+    salesItemId Int? @unique
+
+    salesItem SalesOrderItems? @relation(fields: [salesItemId], references: [id])
+
     components LineItemComponents[]
     price      LinePricing?
 

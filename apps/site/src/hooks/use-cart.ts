@@ -13,6 +13,7 @@ export const { Provider: CartProvider, useContext: useCart } =
       trpc.storefront.getCartList.queryOptions(
         {
           guestId,
+          authId: auth.id,
         },
         {
           enabled: !!guestId || !!auth?.id,
