@@ -33,37 +33,7 @@ interface Props {
     // titleClassName?: string;
     children?: React.ReactNode;
 }
-export default function TableItemOverviewSheet({
-    children,
-}: // title,
-// titleClassName,
-Props) {
-    const { table, selectedRow, refresh, checkMode } = useInfiniteDataTable();
 
-    const selectedRowKey =
-        Object.keys(table.getState().rowSelection)?.[0] || undefined;
-
-    if (!selectedRowKey || !selectedRow || checkMode) return null;
-    return (
-        <Sheet
-            // modal={false}
-            open={!!selectedRowKey}
-            onOpenChange={(e) => {
-                if (!e) refresh.init();
-                table.toggleAllRowsSelected(false);
-            }}
-        >
-            <SheetContent hideClose className="overview-sheet-content">
-                <SheetDescription className="sr-only">
-                    Selected row details
-                </SheetDescription>
-                {/* <div className="p-4"> */}
-                {children}
-                {/* </div> */}
-            </SheetContent>
-        </Sheet>
-    );
-}
 interface TableSheetHeaderProps {
     titleClassName?;
     title;

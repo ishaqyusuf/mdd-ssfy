@@ -1,6 +1,5 @@
 "use client";
 import { cn } from "@gnd/ui/cn";
-import { useState, useRef, useEffect } from "react";
 import { Icons } from "./_v1/icons";
 import Link from "next/link";
 import { SidebarNavUser } from "./sidebar-nav-user";

@@ -1,10 +1,6 @@
 import createContextFactory from "@/utils/context-factory";
 import { useAuth } from "./use-auth";
-import {
-    getLinkModules,
-    linkModules,
-    validateLinks,
-} from "@/components/sidebar/links";
+import { getLinkModules, validateLinks } from "@/components/sidebar/links";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -112,7 +108,6 @@ export function useLinks() {
             userId: user?.id,
         }),
     );
-
     return linkModules;
 }
 
