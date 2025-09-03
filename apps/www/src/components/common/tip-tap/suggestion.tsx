@@ -7,7 +7,7 @@ export default function suggestion(list) {
         items: ({ query }) => {
             return list
                 .filter((item) =>
-                    item.toLowerCase().startsWith(query.toLowerCase())
+                    item.toLowerCase().startsWith(query.toLowerCase()),
                 )
                 .slice(0, 5);
         },
@@ -21,7 +21,7 @@ export default function suggestion(list) {
                         return;
                     }
 
-                    reactRenderer = new ReactRenderer(MentionList, {
+                    reactRenderer = new ReactRenderer(MentionList as any, {
                         props,
                         editor: props.editor,
                     });
