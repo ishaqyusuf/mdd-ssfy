@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Db } from "./types";
-import { ShippingMethodType } from "@prisma/client";
+import { ShippingMethodType } from "@gnd/db";
 
 // Schemas for Form Validation
 
