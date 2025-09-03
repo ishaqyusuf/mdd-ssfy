@@ -36,6 +36,10 @@ export function CreateModelCostForm({ data }: Props) {
     const { setParams } = useCommunityModelCostParams();
     const saveTemplateMutate = useMutation(
         trpc.community.createCommunityModelCost.mutationOptions({
+            // meta: {
+            //     toastTitle: {
+            //     }
+            // },
             onSuccess(data, variables, context) {
                 qc.invalidateQueries({
                     //  queryKey: trpc..queryKey()
