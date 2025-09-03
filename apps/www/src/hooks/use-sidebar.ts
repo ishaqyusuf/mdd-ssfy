@@ -44,7 +44,7 @@ export const { Provider: SidebarProvider, useContext: useSidebar } =
         useEffect(() => {
             if (mobile) return;
             if (!isExpanded && mainMenuRef.current) {
-                mainMenuRef.current.scrollTop = 0;
+                (mainMenuRef.current as any).scrollTop = 0;
             }
         }, [isExpanded, mobile]);
         const linkModules = useLinks();

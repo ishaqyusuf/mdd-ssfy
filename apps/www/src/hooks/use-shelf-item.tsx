@@ -59,7 +59,7 @@ export function useShelfItemContext({ shelfUid }) {
         (value: string) => {
             setInputValue(value);
             if (content) {
-                content.scrollTop = 0; // Reset scroll position
+                (content as any).scrollTop = 0; // Reset scroll position
                 //  virtualizer.measure();
             }
         },
