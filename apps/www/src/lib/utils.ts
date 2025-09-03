@@ -345,7 +345,7 @@ export function catchError(err: unknown) {
 export function htmlIsEmpty(html) {
     const parser = new DOMParser();
     var doc = parser.parseFromString(html, "text/html");
-    return doc.textContent?.trim() == "";
+    return (doc.textContent as any)?.trim() == "";
 }
 
 export function getAllDotPaths<T>(obj: T, parentKey: string = ""): string[] {
