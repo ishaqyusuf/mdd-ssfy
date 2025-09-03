@@ -1,10 +1,8 @@
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
-import { useLoadingToast } from "@/hooks/use-loading-toast";
 import {
     useSalesEmailSender,
     useSalesMailer,
 } from "@/hooks/use-sales-email-sender";
-import { toast } from "sonner";
 
 import { Menu } from "./(clean-code)/menu";
 

@@ -24,7 +24,7 @@ export function MenuItemSalesActions(props: Props) {
     async function copyAs(as: SalesType) {
         loader.loading("Copying...");
         // const orderId = slug;
-        const result = await copySalesUseCase(props?.slug, as);
+        const result = await copySalesUseCase(props?.slug, as as any);
         try {
             if (as == "order")
                 await resetSalesStatAction(result.id, props.slug);
@@ -54,31 +54,35 @@ export function MenuItemSalesActions(props: Props) {
     }
     return (
         <>
-            <SalesEmailMenuItem salesId={props?.id} salesType={props?.type} />
-            <MenuItemPrintAction
+            <SalesEmailMenuItem
                 salesId={props?.id}
-                slug={props?.slug}
-                onOpenMenu={props.setMenuOpen}
-                type={props?.type}
+                salesType={props?.type as any}
             />
             <MenuItemPrintAction
                 salesId={props?.id}
                 slug={props?.slug}
                 onOpenMenu={props.setMenuOpen}
-                type={props?.type}
+                type={props?.type as any}
+            />
+            <MenuItemPrintAction
+                salesId={props?.id}
+                slug={props?.slug}
+                onOpenMenu={props.setMenuOpen}
+                type={props?.type as any}
                 pdf
             />
             <MenuItemSalesCopy
                 slug={props?.slug}
                 onOpenMenu={props.setMenuOpen}
-                type={props?.type}
+                type={props?.type as any}
                 copyAs={copyAs}
             />
             <MenuItemSalesMove
                 slug={props?.slug}
                 onOpenMenu={props.setMenuOpen}
-                type={props?.type}
+                type={props?.type as any}
             />
         </>
     );
 }
+
