@@ -2,7 +2,6 @@ import { InputHTMLAttributes, useState } from "react";
 import { useDataSkeleton } from "@/hooks/use-data-skeleton";
 import { cn } from "@/lib/utils";
 import { ControllerProps, FieldPath, FieldValues } from "react-hook-form";
-
 import { Button } from "@gnd/ui/button";
 import { FormControl, FormField, FormItem, FormLabel } from "@gnd/ui/form";
 import { Input } from "@gnd/ui/input";
@@ -74,7 +73,7 @@ export default function FormInput<
                             </FormLabel>
                         )}
                         <FormControl
-                            {...inputProps}
+                            // {...inputProps}
                             className={cn("relative", inputProps?.className)}
                         >
                             {load?.loading ? (
@@ -141,15 +140,12 @@ export default function FormInput<
                                                       onChange: field.onChange,
                                                   }
                                                 : field)}
-                                            // value={""}
                                         />
                                     ) : (
                                         <Input
                                             tabIndex={tabIndex}
                                             type={type}
                                             placeholder={placeholder}
-                                            // {...field}
-                                            // value={""}
                                             {...inputProps}
                                             className={cn(
                                                 uppercase && "uppercase",
@@ -163,8 +159,6 @@ export default function FormInput<
                                                       //   onChange: field.onChange,
                                                   }
                                                 : field)}
-                                            // onChange={field.onChange}
-                                            // defaultValue={field.value}
                                             onChange={(e) => {
                                                 if (type == "number")
                                                     e.target.value
