@@ -64,20 +64,9 @@ function BaseModal({
         }
     }
     return (
-        <>
-            {
-                <>
-                    {
-                        <>
-                            <Modal open={showModal} onOpenChange={onOpenChange}>
-                                {/* <ModalContent> {children}</ModalContent> */}
-                                {children}
-                            </Modal>
-                        </>
-                    }
-                </>
-            }
-        </>
+        <Modal open={showModal} onOpenChange={onOpenChange}>
+            {children as any}
+        </Modal>
     );
 }
 const contentVariants = cva(``, {
