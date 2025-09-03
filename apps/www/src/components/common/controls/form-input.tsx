@@ -1,1 +1,3 @@
-export { FormInput } from "@gnd/ui/controls/form-input";
+import { FormInput } from "@gnd/ui/controls/form-input";
+
+export default FormInput;
