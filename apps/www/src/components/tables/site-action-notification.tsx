@@ -100,7 +100,7 @@ function UsersCell({ action, users }: UserCellProps) {
         (value: string) => {
             setInputValue(value);
             if (content) {
-                content.scrollTop = 0; // Reset scroll position
+                (content as any).scrollTop = 0; // Reset scroll position
                 //  virtualizer.measure();
             }
         },
@@ -158,7 +158,7 @@ function UsersCell({ action, users }: UserCellProps) {
 
                 {
                     <ComboboxContent
-                        ref={(node) => setContent(node)}
+                        ref={(node) => setContent(node as any)}
                         className="relative max-h-[300px] overflow-y-auto overflow-x-hidden"
                     >
                         <ComboboxEmpty>No user found</ComboboxEmpty>

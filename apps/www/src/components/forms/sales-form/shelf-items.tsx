@@ -240,7 +240,7 @@ function ShelfItemProduct({ prodUid, isLast }) {
                     </ComboboxAnchor>
 
                     <ComboboxContent
-                        ref={(node) => setContent(node)}
+                        ref={(node) => setContent(node as any)}
                         className="relative max-h-[300px] overflow-y-auto overflow-x-hidden"
                     >
                         <ComboboxEmpty>No product found</ComboboxEmpty>
