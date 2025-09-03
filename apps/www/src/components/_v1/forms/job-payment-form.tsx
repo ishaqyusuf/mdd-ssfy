@@ -9,7 +9,6 @@ import { IJobPayment } from "@/types/hrm";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 
 import {
@@ -19,7 +18,6 @@ import {
     TableHead,
     TableRow,
 } from "@gnd/ui/table";
-import AutoComplete2 from "../auto-complete-tw";
 import Btn from "../btn";
 import Money from "../money";
 

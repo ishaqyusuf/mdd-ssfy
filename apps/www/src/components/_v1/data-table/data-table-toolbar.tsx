@@ -10,10 +10,9 @@ import type {
 
 import type { Table } from "@tanstack/react-table";
 
-import { Button, buttonVariants } from "@gnd/ui/button";
+import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 
-import { DataTableFacetedFilter } from "./data-table-faceted-filter";
 import { DataTableFacetedFilter2 } from "./data-table-faceted-filter-2";
 import { DataTableFacetedDate } from "./data-table-facetted-date";
 import { CrossIcon, TrashIcon } from "lucide-react";
@@ -77,7 +76,8 @@ export function DataTableToolbar<TData, TValue>({
                             let Column = column as any;
                             return <Column key={id} table={table} />;
                         }
-                        const _column = table.getColumn(String(column?.id));
+                        if (!table || !column) return null;
+                        const _column = table?.getColumn(String(column?.id));
                         if (!_column || _column === undefined) return null;
 
                         return (

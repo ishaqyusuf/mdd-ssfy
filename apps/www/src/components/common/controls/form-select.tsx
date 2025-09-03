@@ -95,7 +95,7 @@ export default function FormSelect<
         <FormField
             {...(props as any)}
             render={({ field }) => (
-                <FormItem className={cn(className, "mx-1")}>
+                <FormItem className={cn(className, "mx-1 flex flex-col")}>
                     {label && (
                         <FormLabel
                             className={cn(

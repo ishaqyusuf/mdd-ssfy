@@ -25,11 +25,12 @@ import { toast } from "sonner";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 
-import AutoComplete2 from "../../../../../components/_v1/auto-complete-tw";
 import ConfirmBtn from "../../../../../components/_v1/confirm-btn";
 import { DatePicker } from "../../../../../components/_v1/date-range-picker";
 import { Label } from "@gnd/ui/label";
 import { useTransition } from "@/utils/use-safe-transistion";
+import { FormCombobox } from "@/components/common/controls/form-combobox";
+import { Form } from "@gnd/ui/form";
 
 interface FormProps {
     units: IHome[];
@@ -150,28 +151,22 @@ export default function HomeModal({ home }: Props) {
                 title={home?.id ? "Edit Unit" : "Create Units"}
                 subtitle={home?.id && home?.project?.title}
             />
-            <div>
+            <Form {...form}>
                 <div className="grid gap-4 md:grid-cols-2">
                     <div className="col-span-2">
-                        <IsReady>
-                            <AutoComplete2
-                                disabled={home?.id}
-                                label="Project"
-                                form={form}
-                                formKey={"projectId"}
-                                options={projects}
-                                itemText={"title"}
-                                itemValue="id"
-                            />
-                        </IsReady>
-                        {/* <SelectInput
-                label="Project" 
-                form={form}
-                formKey={"projectId"}
-                options={projects}
-                labelKey={"title"}
-                valueKey="id"
-              /> */}
+                        <FormCombobox
+                            control={form.control}
+                            name={`projectId`}
+                            label="Select Project"
+                            transformSelectionValue={(data) => Number(data.id)}
+                            comboProps={{
+                                items: projects?.map((i) => ({
+                                    id: String(i.id),
+                                    label: i.title,
+                                    data: i,
+                                })),
+                            }}
+                        />
                     </div>
 
                     <div className="col-span-2 grid gap-4 md:grid-cols-2">
@@ -189,28 +184,28 @@ export default function HomeModal({ home }: Props) {
                                     key={i}
                                 >
                                     <div className="col-span-2">
-                                        {/* <SelectInput
-                        form={form}
-                        formKey={`units.${i}.modelName`}
-                        options={models}
-                        labelKey={"modelName"}
-                        valueKey="id"
-                      /> */}
-                                        <IsReady>
-                                            <AutoComplete2
-                                                form={form}
-                                                formKey={`units.${i}.communityTemplateId`}
-                                                options={communityTemplates?.filter(
-                                                    (m) =>
-                                                        m.projectId ==
-                                                        projectId,
-                                                )}
-                                                onSelect={(e) => {}}
-                                                uppercase
-                                                itemText={"modelName"}
-                                                itemValue="id"
-                                            />
-                                        </IsReady>
+                                        <FormCombobox
+                                            control={form.control}
+                                            name={`units.${i}.communityTemplateId`}
+                                            // label="Builder"
+
+                                            transformSelectionValue={(data) =>
+                                                Number(data.id)
+                                            }
+                                            comboProps={{
+                                                items: communityTemplates
+                                                    ?.filter(
+                                                        (m) =>
+                                                            m.projectId ==
+                                                            projectId,
+                                                    )
+                                                    ?.map((i) => ({
+                                                        id: String(i.id),
+                                                        label: i.modelName,
+                                                        data: i,
+                                                    })),
+                                            }}
+                                        />
                                     </div>
                                     <div className="col-span-1">
                                         <Input
@@ -280,7 +275,7 @@ export default function HomeModal({ home }: Props) {
                         </div>
                     </div>
                 </div>
-            </div>
+            </Form>
             <Modal.Footer submitText="Save" onSubmit={submit} />
         </Modal.Content>
     );

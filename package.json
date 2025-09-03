@@ -22,7 +22,7 @@
     "db:generate": "turbo -F @gnd/db prisma-generate",
     "db:auth-generate": "turbo -F @gnd/auth prisma-generate",
     "dev": "turbo dev --parallel  --filter !@gnd/email",
-    "dev:web": "turbo dev --parallel  --filter !@gnd/gnd-backlog",
+    "dev:web": "turbo dev --parallel  --filter !@gnd/gnd-backlog --filter !@gnd/jobs",
     "dev:backlog": "turbo dev --parallel  --filter !@gnd/email --filter !@gnd/site --filter !@gnd/www --filter !@gnd/api",
     "dev:web-prod": "turbo dev:prod --parallel  --filter !@gnd/gnd-backlog --filter !@gnd/email --filter !@gnd/site",
     "format": "biome format --write .",

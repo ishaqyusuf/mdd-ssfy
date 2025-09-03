@@ -1,6 +1,7 @@
 "use client";
 
 import { SuperAdminGuard } from "../auth-guard";
+import { Env } from "../env";
 import { CommunityModelCostModal } from "./community-model-cost-modal";
 import { CommunityTemplateModal } from "./community-template-modal";
 import { CreateCommunityModelCostModal } from "./create-community-model-cost-modal";
@@ -12,6 +13,7 @@ import { SalesEmailSenderModal } from "./sales-email-sender";
 import { SalesInvoicePreviewModal } from "./sales-invoice-preview-modal";
 import { SalesPreviewModal } from "./sales-preview-modal";
 import { SalesQuickPayModal } from "./sales-quick-pay-modal";
+import { WorkOrderFormModal } from "./work-order-form-modal";
 
 export function GlobalModals() {
     return (
@@ -29,6 +31,9 @@ export function GlobalModals() {
             <SalesInvoicePreviewModal />
             <SalesQuickPayModal />
             <CommunityModelCostModal />
+            <Env isDev>
+                <WorkOrderFormModal />
+            </Env>
         </>
     );
 }

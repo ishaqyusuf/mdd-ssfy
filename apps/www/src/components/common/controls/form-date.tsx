@@ -57,7 +57,7 @@ export default function FormDate<
                         className,
                         props.disabled && "text-muted-foreground",
                         "mx-1",
-                        "flex flex-col",
+                        "flex flex-col space-y-2",
                     )}
                 >
                     {label && (

@@ -30,9 +30,6 @@ export function useCommunityBuildersList(enabled) {
             enabled,
         }),
     );
-    useEffect(() => {
-        console.log(builders);
-    }, [builders]);
     return {
         list: builders! || [],
         options: builders?.map((data) => ({

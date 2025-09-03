@@ -45,6 +45,24 @@ export function slugify(text: string): string {
     .replace(/[\s\W-]+/g, "-") // Replace spaces and non-word chars with -
     .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
 }
+export async function slugModel(value, model, c = 0, id = null) {
+  const valueString = Array.isArray(value) ? value?.join(" ") : value;
+  let slug = slugify([valueString, c > 0 ? c : null].filter(Boolean).join(" "));
+
+  let count = await model.count({
+    where: {
+      slug,
+      id: id
+        ? {
+            not: id,
+          }
+        : undefined,
+    },
+  });
+  if (count > 0) return await slugModel(value, model, c + 1, id);
+
+  return slug;
+}
 
 export enum FileType {
   Pdf = "application/pdf",

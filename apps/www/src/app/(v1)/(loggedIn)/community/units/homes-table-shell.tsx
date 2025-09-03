@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import Link from "@/components/link";
+
 import { useRouter } from "next/navigation";
 import { deactivateProduction } from "@/app/(v1)/_actions/community/activate-production";
 import { getUnitTemplateLink } from "@/app/(v1)/_actions/community/get-unit-template";
@@ -39,14 +39,12 @@ import {
     HomeProductionStatus,
 } from "../../../../../components/_v1/columns/community-columns";
 import { HomeBatchAction } from "../../../../../components/_v1/community/home-selection-action";
-import { HomesBatchAction } from "../../../../../components/_v1/community/homes-selection-action";
+
 import { DataTable2 } from "../../../../../components/_v1/data-table/data-table-2";
 import {
     DeleteRowAction,
     Menu,
     MenuItem,
-    RowActionCell,
-    RowActionMoreMenu,
 } from "../../../../../components/_v1/data-table/data-table-row-actions";
 import { ProjectsFilter } from "../../../../../components/_v1/filters/projects-filter";
 import { Icons } from "../../../../../components/_v1/icons";

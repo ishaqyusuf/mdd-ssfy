@@ -34,6 +34,7 @@ import { TechEmployeeFilter } from "../filters/employee-filter";
 import WorkOrderTechCell, {
     WorkOrderStatusCell,
 } from "../work-order/tech-cell";
+import { useWorkOrderParams } from "@/hooks/use-work-order-params";
 
 export default function CustomerServiceTableShell<T>({
     data,
@@ -42,6 +43,7 @@ export default function CustomerServiceTableShell<T>({
 }: TableShellProps<IWorkOrder>) {
     const [isPending, startTransition] = useTransition();
 
+    const { setParams } = useWorkOrderParams();
     const [selectedRowIds, setSelectedRowIds] = useState<number[]>([]);
 
     const techEmployees = useAppSelector((s) => s.slicers.staticTechEmployees);
@@ -98,7 +100,9 @@ export default function CustomerServiceTableShell<T>({
                     <RowActionCell>
                         <EditRowAction
                             onClick={() =>
-                                openModal("customerServices", row.original)
+                                setParams({
+                                    editWorkOrderId: row.original.id,
+                                })
                             }
                         />
                         <DeleteRowAction
@@ -113,109 +117,7 @@ export default function CustomerServiceTableShell<T>({
         ],
         [data, isPending],
     );
-    const columns1 = useMemo<ColumnDef<IWorkOrder, unknown>[]>(
-        () => [
-            CheckColumn({ selectedRowIds, setSelectedRowIds, data }),
-            {
-                maxSize: 10,
-                id: "id",
-                header: ColumnHeader("Appointment"),
-                cell: ({ row }) => (
-                    <Cell>
-                        <PrimaryCellContent>
-                            <DateCellContent>
-                                {row.original.scheduleDate}
-                            </DateCellContent>
-                        </PrimaryCellContent>
-                        <SecondaryCellContent>
-                            {row.original.scheduleTime}
-                        </SecondaryCellContent>
-                    </Cell>
-                ),
-            },
-            {
-                id: "customer",
-                header: ColumnHeader("Customer"),
-                cell: ({ row }) => (
-                    <Cell>
-                        <PrimaryCellContent>
-                            {row.original.homeOwner}
-                        </PrimaryCellContent>
-                        <SecondaryCellContent>
-                            {row.original.homePhone}
-                        </SecondaryCellContent>
-                    </Cell>
-                ),
-            },
-            {
-                id: "title",
-                header: ColumnHeader("Description"),
-                cell: ({ row }) => (
-                    <Cell
-                        link={`/customer-service/slug`}
-                        slug={row.original.slug}
-                    >
-                        <PrimaryCellContent>
-                            {row.original.projectName}{" "}
-                            <Badge
-                                className="rounded-sm bg-accent p-0.5
-              px-1 leading-none  text-primary hover:bg-accent"
-                            >
-                                {row.original.lot || "-"}
-                                {"/"}
-                                {row.original.block ?? "-"}
-                            </Badge>
-                        </PrimaryCellContent>
-                        <SecondaryCellContent className="line-clamp-2">
-                            {row.original.description}
-                        </SecondaryCellContent>
-                    </Cell>
-                ),
-            },
-            {
-                id: "tech",
-                header: ColumnHeader("Tech"),
-                cell: ({ row }) => (
-                    <WorkOrderTechCell
-                        workOrder={row.original}
-                    ></WorkOrderTechCell>
-                ),
-            },
-            {
-                id: "status",
-                header: ColumnHeader("Status"),
-                cell: ({ row }) => (
-                    <Cell>
-                        <WorkOrderStatusCell workOrder={row.original} />
-                    </Cell>
-                ),
-            },
-            ..._FilterColumn("_q", "_show", "_userId"),
-            {
-                accessorKey: "actions",
-                header: ColumnHeader(""),
-                size: 15,
-                maxSize: 15,
-                enableSorting: false,
-                cell: ({ row }) => (
-                    <RowActionCell>
-                        <EditRowAction
-                            onClick={() =>
-                                openModal("customerServices", row.original)
-                            }
-                        />
-                        <DeleteRowAction
-                            row={row.original}
-                            action={async (id) => {
-                                await deleteCustomerService(row.original.slug);
-                            }}
-                        />
-                    </RowActionCell>
-                ),
-            },
-        ], //.filter(Boolean) as any,
-        [data, isPending],
-    );
+
     return (
         <DataTable2
             searchParams={searchParams}

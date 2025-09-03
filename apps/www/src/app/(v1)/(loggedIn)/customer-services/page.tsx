@@ -7,8 +7,8 @@ import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 
 import { getCustomerServices } from "@/app/(v1)/_actions/customer-services/customer-services";
 import CustomerServiceTableShell from "@/components/_v1/shells/customer-service-table-shell";
-import CustomerServiceModal from "@/components/_v1/modals/customer-service-modal";
 import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import { OpenWorkOrderFormModal } from "@/components/open-work-order-form-modal";
 
 export const metadata: Metadata = {
     title: "Customer Services",
@@ -26,14 +26,16 @@ export default async function OrdersPage(props) {
                 </Breadcrumbs>
                 <PageHeader
                     title="Customer Services"
-                    newDialog="customerServices"
+                    // newDialog="customerServices"
+                    Action={OpenWorkOrderFormModal}
                 />
                 <CustomerServiceTableShell<IProject>
                     searchParams={searchParams}
                     {...response}
                 />
-                <CustomerServiceModal />
+                {/* <CustomerServiceModal /> */}
             </div>
         </AuthGuard>
     );
 }
+

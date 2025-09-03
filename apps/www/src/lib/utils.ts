@@ -5,6 +5,7 @@ import slugify from "slugify";
 import { toast } from "sonner";
 import { formatMoney } from "./use-number";
 import JsonSearch from "@/_v2/lib/json-search";
+import { slugModel } from "@gnd/utils";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -95,23 +96,8 @@ export function transformData<T>(data: T, update = false) {
     if (meta) _data.meta = removeEmptyValues(meta);
     return _data as T;
 }
-export async function slugModel(value, model, c = 0, id = null) {
-    let slug = slugify([value, c > 0 ? c : null].filter(Boolean).join(" "));
+export { slugModel };
 
-    let count = await model.count({
-        where: {
-            slug,
-            id: id
-                ? {
-                      not: id,
-                  }
-                : undefined,
-        },
-    });
-    if (count > 0) return await slugModel(value, model, c + 1, id);
-
-    return slug;
-}
 export function sumArrayKeys<T>(
     array?: T[],
     keys: (keyof T | undefined)[] = undefined,

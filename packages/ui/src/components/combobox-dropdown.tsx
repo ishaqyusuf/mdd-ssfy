@@ -120,7 +120,13 @@ export function ComboboxDropdown<T extends ComboboxItem>({
               return (
                 <CommandItem
                   disabled={item.disabled}
-                  className={cn("cursor-pointer", className)}
+                  className={cn(
+                    item.disabled
+                      ? "text-muted-foreground cursor-not-allowed"
+                      : "cursor-pointer",
+
+                    className
+                  )}
                   key={itemIndex}
                   value={value}
                   onSelect={(id) => {
