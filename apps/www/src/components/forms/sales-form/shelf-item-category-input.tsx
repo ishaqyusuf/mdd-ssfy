@@ -136,7 +136,7 @@ export function ShelfItemCategoryInput({}) {
                 </ComboboxAnchor>
                 {!ctx.options?.length || (
                     <ComboboxContent
-                        ref={(node) => ctx?.setContent(node)}
+                        ref={(node) => ctx?.setContent(node as any)}
                         className="relative max-h-[300px] overflow-y-auto overflow-x-hidden"
                     >
                         {/* <ComboboxEmpty>
