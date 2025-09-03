@@ -30,8 +30,9 @@ declare module "@tanstack/table-core" {
         totalOwners?: number;
     }
 
-    interface ColumnMeta<TData extends RowData, TValue> {
-        className?: string;
-    }
+    // interface ColumnMeta<TData extends RowData, TValue> {
+    //     className?: string;
+    //     isHidden?: boolean;
+    // }
 }
 
