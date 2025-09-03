@@ -13,7 +13,6 @@ import {
     useShelfItemContext,
 } from "@/hooks/use-shelf-item";
 import { _useAsync } from "@/lib/use-async";
-import { ChevronDown } from "lucide-react";
 
 import {
     Combobox,
@@ -185,7 +184,7 @@ function ShelfItemProduct({ prodUid, isLast }) {
         (value: string) => {
             setInputValue(value);
             if (content) {
-                content.scrollTop = 0; // Reset scroll position
+                (content as any).scrollTop = 0; // Reset scroll position
                 //  virtualizer.measure();
             }
         },
