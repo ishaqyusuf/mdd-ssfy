@@ -16,7 +16,7 @@ export {
 } from "@prisma/client";
 export type { Roles, Users } from "@prisma/client";
 
-export { ShippingMethodType } from "@prisma/client";
+// export { ShippingMethodType } from "@prisma/client";
 
 export type AddressBooks = Prisma.AddressBooksGetPayload<undefined>;
 export type ComponentPrice = Prisma.ComponentPriceGetPayload<undefined>;
