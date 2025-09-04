@@ -4,7 +4,6 @@ import { getSideMenuMode } from "@/actions/cookies/sidemenu";
 import { Header } from "@/components/header";
 import { GlobalModals } from "@/components/modals/global-modals";
 import { GlobalSheets } from "@/components/sheets/global-sheets";
-import { Sidebar } from "@/components/sidebar";
 import { SidebarContent } from "@/components/sidebar-content";
 import { getLinkModules, validateLinks } from "@/components/sidebar/links";
 import { SideBar as OldSideBar } from "@/components/sidebar/sidebar";

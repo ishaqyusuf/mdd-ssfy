@@ -480,6 +480,110 @@ model GalleryTagName {
     deletedAt   DateTime?    @db.Timestamp(0)
 }
 
+// ---- shipping.prisma ----
+enum ShippingMethodType {
+    FLAT_RATE
+    WEIGHT_BASED
+    PRICE_BASED
+    ZONE_BASED
+    PER_ITEM
+    DIMENSIONAL_WEIGHT
+}
+
+model ShippingConfiguration {
+    id        Int                @id @default(autoincrement())
+    method    ShippingMethodType @unique
+    enabled   Boolean            @default(false)
+    createdAt DateTime           @default(now())
+    updatedAt DateTime           @updatedAt
+
+    flatRate          FlatRate?
+    weightBased       WeightBased?
+    priceBased        PriceBased?
+    zoneBased         ZoneBased?
+    perItem           PerItem?
+    dimensionalWeight DimensionalWeight?
+}
+
+model FlatRate {
+    id       Int                   @id @default(autoincrement())
+    configId Int                   @unique
+    config   ShippingConfiguration @relation(fields: [configId], references: [id], onDelete: Cascade)
+    rate     Float
+}
+
+model WeightBased {
+    id       Int                   @id @default(autoincrement())
+    configId Int                   @unique
+    config   ShippingConfiguration @relation(fields: [configId], references: [id], onDelete: Cascade)
+    baseFee  Float                 @default(0)
+    rates    WeightBasedRate[]
+}
+
+model WeightBasedRate {
+    id            Int         @id @default(autoincrement())
+    weightBasedId Int
+    weightBased   WeightBased @relation(fields: [weightBasedId], references: [id], onDelete: Cascade)
+    fromWeight    Float
+    toWeight      Float
+    ratePerUnit   Float
+
+    @@index([weightBasedId])
+}
+
+model PriceBased {
+    id       Int                   @id @default(autoincrement())
+    configId Int                   @unique
+    config   ShippingConfiguration @relation(fields: [configId], references: [id], onDelete: Cascade)
+    rates    PriceBasedRate[]
+}
+
+model PriceBasedRate {
+    id           Int        @id @default(autoincrement())
+    priceBasedId Int
+    priceBased   PriceBased @relation(fields: [priceBasedId], references: [id], onDelete: Cascade)
+    fromPrice    Float
+    toPrice      Float
+    shippingFee  Float
+
+    @@index([priceBasedId])
+}
+
+model ZoneBased {
+    id       Int                   @id @default(autoincrement())
+    configId Int                   @unique
+    config   ShippingConfiguration @relation(fields: [configId], references: [id], onDelete: Cascade)
+    zones    ShippingZone[]
+}
+
+model ShippingZone {
+    id          Int       @id @default(autoincrement())
+    zoneBasedId Int
+    zoneBased   ZoneBased @relation(fields: [zoneBasedId], references: [id], onDelete: Cascade)
+    name        String
+    countries   String? // Comma-separated list of country codes
+    states      String? // Comma-separated list of state codes
+    zipCodes    String? // Comma-separated list of zip codes/patterns
+    rate        Float
+
+    @@index([zoneBasedId])
+}
+
+model PerItem {
+    id       Int                   @id @default(autoincrement())
+    configId Int                   @unique
+    config   ShippingConfiguration @relation(fields: [configId], references: [id], onDelete: Cascade)
+    rate     Float
+}
+
+model DimensionalWeight {
+    id       Int                   @id @default(autoincrement())
+    configId Int                   @unique
+    config   ShippingConfiguration @relation(fields: [configId], references: [id], onDelete: Cascade)
+    divisor  Float
+    baseFee  Float                 @default(0)
+}
+
 // ---- sales.prisma ----
 model CommissionPayment {
     id            Int              @unique @default(autoincrement())
@@ -672,6 +776,7 @@ model SalesOrderItems {
     itemDeliveries     OrderItemDelivery[]
     priceList          ComponentPrice[]
     itemControls       SalesItemControl[]
+    lineItem           LineItem?
 
     @@index([createdAt, description, swing])
     @@index([salesOrderId], name: "idx_SalesOrderItems_on_salesOrderId")
@@ -2237,6 +2342,10 @@ model LineItem {
     // cartItemId         Int?
     sale            SalesOrders?   @relation(fields: [saleId], references: [id])
     saleId          Int?
+
+    salesItemId Int? @unique
+
+    salesItem SalesOrderItems? @relation(fields: [salesItemId], references: [id])
 
     components LineItemComponents[]
     price      LinePricing?

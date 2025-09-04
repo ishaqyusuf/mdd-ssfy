@@ -17,11 +17,13 @@ import { useSaleOverview } from "./context";
 import { cn } from "@gnd/ui/cn";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
+import { useBatchSales } from "@/hooks/use-batch-sales";
 
 export function GeneralActionBar({ type, salesNo, salesId }) {
     const mailer = useSalesMailer();
     const { data } = useSaleOverview();
     const isQuote = data?.type == "quote";
+    const batchSales = useBatchSales();
     return (
         <div className="flex gap-2">
             <AlertDialog>
@@ -122,6 +124,33 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
                             }
                         >
                             Payment Link
+                        </Menu.Item>
+                        <Menu.Item
+                            SubMenu={
+                                <>
+                                    <Menu.Item
+                                        // disabled={!produceable}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            batchSales.markAsProductionCompleted(
+                                                salesId,
+                                            );
+                                        }}
+                                    >
+                                        Production Complete
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            batchSales.markAsFulfilled(salesId);
+                                        }}
+                                    >
+                                        Fulfillment Complete
+                                    </Menu.Item>
+                                </>
+                            }
+                        >
+                            Mark as
                         </Menu.Item>
                     </>
                 )}

@@ -36,7 +36,7 @@ export function SidebarModules() {
                 <DropdownMenuTrigger asChild>
                     <Button
                         size="lg"
-                        variant="ghost"
+                        variant="link"
                         className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex gap-2 px-5 w-full"
                     >
                         <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary ">

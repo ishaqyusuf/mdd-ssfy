@@ -136,7 +136,12 @@ export function MainMenu() {
                                                             item={link}
                                                             key={li}
                                                             module={module}
-                                                            isActive={false}
+                                                            isActive={
+                                                                activeLink.module ==
+                                                                    module.name &&
+                                                                activeLink.name ===
+                                                                    link.name
+                                                            }
                                                             onSelect={onSelect}
                                                         />
                                                     </Fragment>

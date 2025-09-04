@@ -84,7 +84,7 @@ export const sendSalesEmail = schemaTask({
             headers: {
               "X-Entity-Ref-ID": nanoid(),
             },
-            html: render(
+            html: await render(
               <SalesEmail
                 isQuote
                 pdfLink={pdfLink}

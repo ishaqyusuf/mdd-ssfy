@@ -32,7 +32,7 @@ export function SidebarNavUser({}) {
                 <DropdownMenuTrigger asChild>
                     <Button
                         size="lg"
-                        variant="ghost"
+                        variant="link"
                         className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex gap-2 px-2 w-full"
                     >
                         <Avatar className="h-8 w-8 rounded-lg">
