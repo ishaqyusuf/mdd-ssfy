@@ -39,6 +39,9 @@ function NotificationItem({ uid }) {
             title: title || run.status,
             description: error?.message || description || title,
             duration: running ? Number.POSITIVE_INFINITY : 2500,
+            onAbort() {
+                console.log("ABORTED");
+            },
         };
         if (!toastId) {
             const { id } = toast(toastData);

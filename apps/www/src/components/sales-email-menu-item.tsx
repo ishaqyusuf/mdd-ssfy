@@ -44,7 +44,7 @@ export function SalesEmailMenuItem({
         const fn = () => {
             const emailData = {
                 taskName: "send-sales-email" as TaskName,
-                // taskName: "update-sales-control",
+                // taskName: "update-sales-control" as TaskName,
                 payload: {
                     emailType: withPayment
                         ? "with payment"
