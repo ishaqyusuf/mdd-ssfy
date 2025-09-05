@@ -27,6 +27,7 @@
     "@gnd/db": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@gnd/jobs": "workspace:*",
+    "@gnd/notifications": "workspace:*",
     "@gnd/sales": "workspace:*",
     "@gnd/square": "workspace:*",
     "@sindresorhus/slugify": "^2.2.1",

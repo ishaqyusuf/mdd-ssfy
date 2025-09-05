@@ -30,6 +30,7 @@ declare module "@tanstack/table-core" {
         preventDefault?: boolean;
         actionCell?: boolean;
         className?: string;
+        isHidden?: boolean;
     }
 }
 
