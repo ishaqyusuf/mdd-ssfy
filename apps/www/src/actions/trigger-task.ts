@@ -15,10 +15,18 @@ export const triggerTask = actionClient
         name: "trigger-task",
     })
     .action(async ({ parsedInput: params, ctx }) => {
-        const event = await tasks.trigger(params.taskName, {
-            ...(params?.payload || {}),
-        });
+        try {
+            const event = await tasks.trigger(params.taskName, {
+                ...(params?.payload || {}),
+            });
 
-        return event;
+            return event;
+        } catch (error) {
+            return {
+                error,
+                id: null,
+                publicAccessToken: null,
+            };
+        }
     });
 

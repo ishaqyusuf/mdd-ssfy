@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import {
@@ -8,10 +8,6 @@ import {
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@/components/_v1/icons";
 import { Menu } from "@/components/(clean-code)/menu";
-import { MenuItemSalesCopy } from "@/components/menu-item-sales-copy";
-import { MenuItemSalesMove } from "@/components/menu-item-sales-move";
-import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
-import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
@@ -26,7 +22,6 @@ import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { useSaleOverview } from "./context";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { SalesType } from "@api/type";
-import { copySalesUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
@@ -87,6 +82,8 @@ export function GeneralFooter({}) {
         });
     };
 
+    const menuRef = useRef(null);
+
     return (
         <CustomSheetContentPortal>
             <SheetFooter className="sm:-m-4 sm:-mb-2 sm:border-t p-4  max-md:flex-row max-md:gap-4 max-md:justify-end max-md:fixed max-md:bottom-0 max-md:bg-accent max-md:w-full">
@@ -115,12 +112,14 @@ export function GeneralFooter({}) {
                     Preview
                 </Button>
                 <Menu
+                    ref={menuRef}
                     open={menuOpen}
                     onOpenChanged={setMenuOpen}
                     variant="outline"
                 >
                     <MenuItemSalesActions
                         slug={data?.uuid}
+                        menuRef={menuRef}
                         setMenuOpen={setMenuOpen}
                         id={data?.id}
                         type={data?.type}

@@ -16,6 +16,7 @@ type Props = {
     id: number;
     setMenuOpen?;
     type?: SalesType;
+    menuRef?;
 };
 
 export function MenuItemSalesActions(props: Props) {
@@ -57,6 +58,7 @@ export function MenuItemSalesActions(props: Props) {
             <SalesEmailMenuItem
                 salesId={props?.id}
                 salesType={props?.type as any}
+                menuRef={props?.menuRef}
             />
             <MenuItemPrintAction
                 salesId={props?.id}

@@ -30,6 +30,7 @@ import {
 } from "@gnd/ui/dropdown-menu";
 
 import { ScrollArea } from "@gnd/ui/scroll-area";
+import createContextFactory from "@/utils/context-factory";
 
 type MenuItemProps = {
     link?;
@@ -55,6 +56,10 @@ interface RowActionMoreMenuProps {
     className?: string;
     // dir?:  ComponentPropsWithoutRef<>
 }
+const { Provider, useContext: useDropdownMenu } = createContextFactory(
+    () => {},
+);
+export { useDropdownMenu };
 function BaseMenu(
     {
         children,
@@ -75,6 +80,9 @@ function BaseMenu(
     const [_open, _onOpenChanged] = useState(open);
     useImperativeHandle(ref, () => ({
         _onOpenChanged,
+        async run(fn) {
+            await fn();
+        },
     }));
     const [hover, setHover] = useState(false);
 
@@ -122,6 +130,7 @@ function BaseMenu(
         </DropdownMenu>
     );
 }
+
 function Item({
     link,
     href,

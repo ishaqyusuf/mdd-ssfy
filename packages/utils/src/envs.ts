@@ -57,7 +57,10 @@ export function getCdnUrl() {
 export function getRecipient(email: string | string[]): string | string[] {
   const isDev = process.env.NODE_ENV === "development";
   if (isDev) {
-    return ["ishaqyusuf024@gmail.com", "pcruz321@gmail.com"];
+    return [
+      "ishaqyusuf024@gmail.com",
+      // , "pcruz321@gmail.com"
+    ];
   }
   return email;
 }

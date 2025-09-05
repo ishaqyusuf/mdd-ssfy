@@ -1,16 +1,20 @@
-import { SendSalesEmailPayload, sendSalesEmailSchema } from "@jobs/schema";
+import {
+  SendSalesEmailPayload,
+  sendSalesEmailSchema,
+  TaskName,
+} from "@jobs/schema";
 import { logger, schemaTask } from "@trigger.dev/sdk/v3";
 import { db } from "@gnd/db";
 import { processBatch } from "@jobs/utils/process-batch";
 import { sum } from "@gnd/utils";
-import { resend } from "@jobs/utils/resend";
-import { nanoid } from "nanoid";
-import { render } from "@react-email/render";
+import { sendEmail } from "@jobs/utils/resend";
 import SalesEmail from "@gnd/email/emails/sales-email";
 import { getAppUrl } from "@gnd/utils/envs";
 import QueryString from "qs";
 import { composePaymentOrderIdsParam } from "@gnd/utils/sales";
 const baseAppUrl = getAppUrl();
+
+const id = "send-sales-email" as TaskName;
 export const sendSalesEmail = schemaTask({
   id: "send-sales-email",
   schema: sendSalesEmailSchema,
@@ -70,21 +74,11 @@ export const sendSalesEmail = schemaTask({
                 ? `${baseAppUrl}/square-payment/checkout?uid=${pid}&slugs=${slugs}&tok=${emailSlug}`
                 : `${baseAppUrl}/square-payment/${emailSlug}/${orderIdParams}?uid=${pid}`;
           logger.log(`Sending email to ${email}`);
-
-          const response = await resend.emails.send({
+          await sendEmail({
             subject: `${salesRep} sent you ${isQuote ? "a quote" : "an invoice"}`,
-            from: `GND Millwork <${salesRepEmail?.split("@")[0]}@gndprodesk.com>`,
-            to: isDev
-              ? [
-                  "ishaqyusuf024@gmail.com",
-                  // "pcruz321@gmail.com"
-                ]
-              : email!,
-            replyTo: salesRepEmail,
-            headers: {
-              "X-Entity-Ref-ID": nanoid(),
-            },
-            html: await render(
+            from: `GND Millwork <${salesRepEmail?.split("@")[0]}@gndprodesk.com>` as any,
+            to: email!,
+            content: (
               <SalesEmail
                 isQuote
                 pdfLink={pdfLink}
@@ -99,15 +93,50 @@ export const sendSalesEmail = schemaTask({
                 customerName={customerName!}
               />
             ),
+            successLog: "Invoice email sent",
+            errorLog: "Invoice email failed to send",
+            task: {
+              id,
+              payload: props,
+            },
           });
-          if (response.error) {
-            logger.error("Invoice email failed to send", {
-              error: response.error,
-              invoiceIds: matchingSales.map((a) => a.id),
-            });
-            throw new Error("Invoice email failed to send");
-          }
-          logger.info("Invoice email sent");
+          // const response = await resend.emails.send({
+          //   subject: `${salesRep} sent you ${isQuote ? "a quote" : "an invoice"}`,
+          //   from: `GND Millwork <${salesRepEmail?.split("@")[0]}@gndprodesk.com>`,
+          //   to: isDev
+          //     ? [
+          //         "ishaqyusuf024@gmail.com",
+          //         // "pcruz321@gmail.com"
+          //       ]
+          //     : email!,
+          //   replyTo: salesRepEmail,
+          //   headers: {
+          //     "X-Entity-Ref-ID": nanoid(),
+          //   },
+          //   html: await render(
+          //     <SalesEmail
+          //       isQuote
+          //       pdfLink={pdfLink}
+          //       paymentLink={paymentLink!}
+          //       sales={matchingSales.map((s) => ({
+          //         due: s.due,
+          //         total: s.total,
+          //         date: s.date,
+          //         orderId: s.orderId,
+          //         po: s.po,
+          //       }))}
+          //       customerName={customerName!}
+          //     />
+          //   ),
+          // });
+          // if (response.error) {
+          //   logger.error("Invoice email failed to send", {
+          //     error: response.error,
+          //     invoiceIds: matchingSales.map((a) => a.id),
+          //   });
+          //   throw new Error("Invoice email failed to send");
+          // }
+          // logger.info("Invoice email sent");
         })
       );
     });

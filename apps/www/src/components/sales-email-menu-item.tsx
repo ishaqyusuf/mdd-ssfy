@@ -5,34 +5,67 @@ import {
 } from "@/hooks/use-sales-email-sender";
 
 import { Menu } from "./(clean-code)/menu";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { SendSalesEmailPayload } from "@jobs/schema";
 
 export function SalesEmailMenuItem({
     salesId,
     orderNo,
     salesType,
     asChild = false,
+    menuRef,
 }: {
     salesId?;
     salesType: SalesType;
     asChild?: boolean;
     orderNo?;
+    menuRef?;
 }) {
     const isQuote = salesType === "quote";
     const { params, setParams: setMailParams } = useSalesEmailSender();
     const ctx = useSalesMailer();
+    const trig = useTaskTrigger({
+        executingToast: "Sending email...",
+        errorToast: "Failed",
+        successToast: "Sent!",
+        debug: true,
+        onSucces(e) {
+            menuRef?.current?._onOpenChanged(false);
+        },
+        onError(e) {
+            menuRef?.current?._onOpenChanged(false);
+        },
+    });
     const sendInvoiceEmail = async ({
         withPayment = false,
         partPayment = false,
     } = {}) => {
-        ctx.send({
-            emailType: withPayment
-                ? "with payment"
-                : partPayment
-                  ? "with part payment"
-                  : "without payment",
-            printType: isQuote ? "quote" : "order",
-            salesIds: [salesId],
-        });
+        const fn = () =>
+            trig.trigger({
+                // taskName: "send-gnd-sales-email",
+                taskName: "update-sales-control",
+                payload: {
+                    emailType: withPayment
+                        ? "with payment"
+                        : partPayment
+                          ? "with part payment"
+                          : "without payment",
+                    printType: isQuote ? "quote" : "order",
+                    salesIds: [salesId],
+                } as SendSalesEmailPayload,
+            });
+        fn();
+        // if (menuRef) menuRef.current.run(fn);
+        // else fn();
+        // ctx.send({
+        //     emailType: withPayment
+        //         ? "with payment"
+        //         : partPayment
+        //           ? "with part payment"
+        //           : "without payment",
+        //     printType: isQuote ? "quote" : "order",
+        //     salesIds: [salesId],
+        // });
         // setMailParams({
         //     withPayment,
         //     partPayment,
@@ -59,11 +92,15 @@ export function SalesEmailMenuItem({
             {isQuote || (
                 <>
                     <Menu.Item
-                        onClick={() => sendInvoiceEmail({ withPayment: true })}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            sendInvoiceEmail({ withPayment: true });
+                        }}
                     >
                         Payment Link
                     </Menu.Item>
                     <Menu.Item
+                        disabled
                         onClick={() =>
                             sendInvoiceEmail({
                                 withPayment: true,
