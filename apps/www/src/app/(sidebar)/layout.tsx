@@ -7,12 +7,13 @@ import { GlobalSheets } from "@/components/sheets/global-sheets";
 import { SidebarContent } from "@/components/sidebar-content";
 import { getLinkModules, validateLinks } from "@/components/sidebar/links";
 import { SideBar as OldSideBar } from "@/components/sidebar/sidebar";
+import { TaskNotification } from "@/components/task-notification";
 import { HydrateClient } from "@/trpc/server";
 import { env } from "process";
 import { Suspense } from "react";
 
 // export default
-async function Layout({ children }) {
+export default async function Layout({ children }) {
     // return <>{children}</>;
     return (
         <HydrateClient>
@@ -30,6 +31,7 @@ async function Layout({ children }) {
                 <Suspense>
                     <GlobalSheets />
                     <GlobalModals />
+                    <TaskNotification />
                 </Suspense>
 
                 {/* <GlobalTimerProvider />
@@ -38,28 +40,3 @@ async function Layout({ children }) {
         </HydrateClient>
     );
 }
-async function SideBarLayout({ children }) {
-    const [user, pageTabs] = await Promise.all([
-        getLoggedInProfile(),
-        loadPageTabs(),
-    ]);
-    const validLinks = getLinkModules(
-        validateLinks({
-            role: user.role,
-            can: user.can,
-            userId: user?.userId,
-        }),
-    );
-    const menuMode = await getSideMenuMode();
-    return (
-        <OldSideBar user={user} menuMode={menuMode} validLinks={validLinks}>
-            {children}
-            <Suspense>
-                <GlobalSheets />
-                <GlobalModals />
-            </Suspense>
-        </OldSideBar>
-    );
-}
-export default Layout;
-// export default env.NODE_ENV == "development" ? Layout : SideBarLayout;

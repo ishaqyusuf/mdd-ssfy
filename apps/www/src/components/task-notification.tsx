@@ -1,7 +1,7 @@
+"use client";
 import { useTaskNotificationParams } from "@/hooks/use-task-notification-params";
 import { useToast } from "@gnd/ui/use-toast";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
-import { filter } from "lodash";
 import { useEffect, useState } from "react";
 
 type Toast = Parameters<ReturnType<typeof useToast>["update"]>[1];
@@ -12,7 +12,7 @@ export function TaskNotification() {
 }
 
 function NotificationItem({ uid }) {
-    const [runId, accessToken, title, description] = uid?.split("-");
+    const [runId, accessToken, title, description] = uid?.split(";");
 
     const { setFilters, filters } = useTaskNotificationParams();
 
@@ -27,11 +27,18 @@ function NotificationItem({ uid }) {
     const { toast, dismiss, update } = useToast();
     const [toastId, setToastId] = useState(null);
     useEffect(() => {
-        const running = run.status === "EXECUTING";
+        console.log({ run, error });
+        if (!run) return;
+        const running = run.status != "FAILED" && run.status != "COMPLETED";
         const toastData: Partial<Toast> = {
-            variant: running ? "spinner" : error ? "destructive" : "success",
+            variant: running
+                ? "spinner"
+                : error || run.status == "FAILED"
+                  ? "destructive"
+                  : "success",
             title: title || run.status,
             description: error?.message || description || title,
+            duration: running ? Number.POSITIVE_INFINITY : 2500,
         };
         if (!toastId) {
             const { id } = toast(toastData);

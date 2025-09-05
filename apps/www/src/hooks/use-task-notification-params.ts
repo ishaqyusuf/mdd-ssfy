@@ -8,6 +8,16 @@ export function useTaskNotificationParams() {
     return {
         filters,
         setFilters,
+        pushTask(runUid, accessUid, title?, description?) {
+            setFilters({
+                tasks: [
+                    ...(filters.tasks || []),
+                    [runUid, accessUid, title, description]
+                        .map((a) => (a ? a : ""))
+                        .join(";"),
+                ],
+            });
+        },
     };
 }
 

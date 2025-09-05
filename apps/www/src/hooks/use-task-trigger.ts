@@ -3,6 +3,7 @@ import { useAction } from "next-safe-action/hooks";
 import { useEffect, useState } from "react";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
 import { triggerTask } from "@/actions/trigger-task";
+import { useTaskNotificationParams } from "./use-task-notification-params";
 
 interface Props {
     successToast?: string;
@@ -29,16 +30,17 @@ export function useTaskTrigger(props?: Props) {
         enabled: !!runId && !!accessToken,
         accessToken,
     });
+    const { pushTask } = useTaskNotificationParams();
     useEffect(() => {
         if (status === "FAILED") {
             // setIsImporting(false);
             setRunId(undefined);
-            if (!props.silent)
-                toast({
-                    duration: 3500,
-                    variant: "error",
-                    title: errorToast,
-                });
+            // if (!props.silent)
+            //     toast({
+            //         duration: 3500,
+            //         variant: "error",
+            //         title: errorToast,
+            //     });
             props?.onError?.();
         }
     }, [status]);
@@ -81,27 +83,26 @@ export function useTaskTrigger(props?: Props) {
     const _action = useAction(triggerTask, {
         onExecute(args) {
             setStatus("SYNCING");
-            if (executingToast)
-                if (!props.silent)
-                    toast({
-                        duration: Number.POSITIVE_INFINITY,
-                        variant: "spinner",
-                        title: executingToast,
-                    });
+            // if (executingToast)
+            //     if (!props.silent)
+            //         toast({
+            //             duration: Number.POSITIVE_INFINITY,
+            //             variant: "spinner",
+            //             title: executingToast,
+            //         });
         },
         onSuccess({ data }) {
-            if (props?.debug) console.log({ data });
-            if (data) {
-                setRunId(data.id);
-                setAccessToken(data.publicAccessToken);
-            }
+            // if (props?.debug) console.log({ data });
+            // if (data) {
+            //     setRunId(data.id);
+            //     setAccessToken(data.publicAccessToken);
+            // }
+            pushTask(data.id, data.publicAccessToken);
         },
         onError(e) {
             if (props?.debug) console.log({ e });
             setRunId(undefined);
-
             console.log(e);
-
             if (!props.silent)
                 toast({
                     duration: 3500,
