@@ -137,9 +137,9 @@ export function MainMenu() {
                                                             key={li}
                                                             module={module}
                                                             isActive={
-                                                                activeLink.module ==
+                                                                activeLink?.module ==
                                                                     module.name &&
-                                                                activeLink.name ===
+                                                                activeLink?.name ===
                                                                     link.name
                                                             }
                                                             onSelect={onSelect}
