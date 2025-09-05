@@ -13,6 +13,7 @@ export const taskNames = [
   "send-login-email",
   "send-password-reset-code",
   "send-password-reset-to-default-email",
+  "send-sales-email",
   "send-storefront-welcome-email",
   "send-storefront-order-confirmation-email",
   "send-storefront-magic-login-code-email",

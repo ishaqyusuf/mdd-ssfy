@@ -42,8 +42,8 @@ export function SalesEmailMenuItem({
     } = {}) => {
         const fn = () =>
             trig.trigger({
-                // taskName: "send-gnd-sales-email",
-                taskName: "update-sales-control",
+                taskName: "send-sales-email",
+                // taskName: "update-sales-control",
                 payload: {
                     emailType: withPayment
                         ? "with payment"
