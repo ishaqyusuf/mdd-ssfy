@@ -377,8 +377,11 @@ export const linkModules = [
             ])
                 .access(_perm.is("editOrders"))
 
-                .childPaths("sales-book/create-order", "sales-book/edit-order")
-                .data,
+                .childPaths(
+                    "sales-book/create-order",
+                    "sales-book/edit-order",
+                    "sales-book/orders/sales-statistics",
+                ).data,
             _link("Quotes", "estimates", "/sales-book/quotes")
                 .access(_perm.is("editOrders"))
                 .childPaths("sales-book/create-quote", "sales-book/edit-quote")
