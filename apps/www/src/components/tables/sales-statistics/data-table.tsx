@@ -16,6 +16,7 @@ import { useSalesOrdersStore } from "@/store/sales-orders";
 import { Card, CardContent } from "@gnd/ui/card";
 import { EyeIcon } from "lucide-react";
 import { Badge } from "@gnd/ui/badge";
+import { ProductImage } from "@/app/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/product";
 
 export function DataTable() {
     const trpc = useTRPC();
@@ -37,11 +38,20 @@ export function DataTable() {
                 <Card className="overflow-hidden cursor-pointer transition-colors hover:bg-muted/50">
                     <CardContent className="p-4">
                         <div className="flex items-start gap-4">
-                            <img
+                            <div className="size-20">
+                                <ProductImage
+                                    item={{
+                                        product: {
+                                            img: product.img,
+                                        },
+                                    }}
+                                />
+                            </div>
+                            {/* <img
                                 src={product.image || "/placeholder.svg"}
                                 alt={product.name}
                                 className="h-16 w-16 rounded-lg object-cover"
-                            />
+                            /> */}
                             <div className="flex-1 space-y-2">
                                 <div className="flex items-start justify-between">
                                     <h3 className="font-semibold text-sm leading-tight">

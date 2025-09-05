@@ -12,7 +12,7 @@ salesStatistics: publicProcedure
       }),
 */
 export const salesStatisticsSchema = z.object({
-  q: z.string(),
+  q: z.string().optional().nullable(),
 });
 export type salesStatistics = z.infer<typeof salesStatisticsSchema>;
 
@@ -24,16 +24,20 @@ export async function salesStatistics(
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereStat(query),
-    db.salesOrders
+    db.dykeStepProducts
   );
 
   const data = await db.dykeStepProducts.findMany({
     where,
     ...searchMeta,
     // include: SalesListInclude,
+    orderBy: {
+      updatedAt: "desc",
+    },
     select: {
       img: true,
       id: true,
+      name: true,
       step: {
         select: {
           title: true,
@@ -57,7 +61,13 @@ export async function salesStatistics(
 
   return await response(
     data.map((d) => ({
-      ...d,
+      name: d.name,
+      category: d.step?.title,
+      units: d?._count.stepForms,
+      revenue: 0,
+      costPrice: 0,
+      salesPrice: 0,
+      img: d.img,
     }))
   );
 }
