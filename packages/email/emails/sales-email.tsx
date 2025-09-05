@@ -64,12 +64,15 @@ const SalesEmail = ({
         style={lightStyles.body}
       >
         <Container
+          // className={`my-[40px] mx-auto p-[20px] max-w-[600px] ${themeClasses.container}`}
           className={`my-[40px] mx-auto p-[20px] max-w-[600px] ${themeClasses.container}`}
-          style={{
-            borderStyle: "solid",
-            borderWidth: 1,
-            borderColor: lightStyles.container.borderColor,
-          }}
+          // className={`my-[40px] mx-auto p-[20px] max-w-[600px] ${themeClasses.container}`}
+          // style={{
+          //   borderStyle: "solid",
+          //   borderWidth: 1,
+          //   borderColor: lightStyles.container.borderColor,
+          // }}
+          style={lightStyles.body}
         >
           <Logo />
           <Heading

@@ -6,7 +6,8 @@ import {
 
 import { Menu } from "./(clean-code)/menu";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { SendSalesEmailPayload } from "@jobs/schema";
+import { SendSalesEmailPayload, TaskName } from "@jobs/schema";
+import { debugToast } from "@/hooks/use-debug-console";
 
 export function SalesEmailMenuItem({
     salesId,
@@ -40,9 +41,9 @@ export function SalesEmailMenuItem({
         withPayment = false,
         partPayment = false,
     } = {}) => {
-        const fn = () =>
-            trig.trigger({
-                taskName: "send-sales-email",
+        const fn = () => {
+            const emailData = {
+                taskName: "send-sales-email" as TaskName,
                 // taskName: "update-sales-control",
                 payload: {
                     emailType: withPayment
@@ -53,7 +54,10 @@ export function SalesEmailMenuItem({
                     printType: isQuote ? "quote" : "order",
                     salesIds: [salesId],
                 } as SendSalesEmailPayload,
-            });
+            };
+            // debugToast("T", emailData);
+            trig.trigger(emailData);
+        };
         fn();
         // if (menuRef) menuRef.current.run(fn);
         // else fn();
@@ -86,7 +90,12 @@ export function SalesEmailMenuItem({
 
     const emailMenuItem = (
         <>
-            <Menu.Item onClick={() => sendInvoiceEmail({ withPayment: false })}>
+            <Menu.Item
+                onClick={(e) => {
+                    e.preventDefault();
+                    sendInvoiceEmail({ withPayment: false });
+                }}
+            >
                 {emailLabel}
             </Menu.Item>
             {isQuote || (

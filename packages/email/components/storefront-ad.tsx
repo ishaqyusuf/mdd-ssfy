@@ -16,7 +16,7 @@ export function StoreFrontAd({
 }: Props) {
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
-
+  return <></>;
   return (
     <Section
       className="w-full mt-[30px] pt-[20px] border-t border-solid"

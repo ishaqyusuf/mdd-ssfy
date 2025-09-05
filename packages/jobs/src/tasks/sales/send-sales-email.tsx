@@ -73,7 +73,14 @@ export const sendSalesEmail = schemaTask({
               : isDev
                 ? `${baseAppUrl}/square-payment/checkout?uid=${pid}&slugs=${slugs}&tok=${emailSlug}`
                 : `${baseAppUrl}/square-payment/${emailSlug}/${orderIdParams}?uid=${pid}`;
-          logger.log(`Sending email to ${email}`);
+          const sales = matchingSales.map((s) => ({
+            due: s.due,
+            total: s.total,
+            date: s.date,
+            orderId: s.orderId,
+            po: s.po,
+          }));
+          logger.log(`Sending email to ${email}`, { sales });
           await sendEmail({
             subject: `${salesRep} sent you ${isQuote ? "a quote" : "an invoice"}`,
             from: `GND Millwork <${salesRepEmail?.split("@")[0]}@gndprodesk.com>` as any,
@@ -83,13 +90,7 @@ export const sendSalesEmail = schemaTask({
                 isQuote
                 pdfLink={pdfLink}
                 paymentLink={paymentLink!}
-                sales={matchingSales.map((s) => ({
-                  due: s.due,
-                  total: s.total,
-                  date: s.date,
-                  orderId: s.orderId,
-                  po: s.po,
-                }))}
+                sales={sales}
                 customerName={customerName!}
               />
             ),
