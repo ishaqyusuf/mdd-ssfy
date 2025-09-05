@@ -368,8 +368,15 @@ export const linkModules = [
             //     _perm.in("editOrders"),
             // ).data,
 
-            _link("Sales", "orders", "/sales-book/orders")
+            _link("Sales", "orders", "/sales-book/orders", [
+                _subLink(
+                    "Sales Statistics",
+                    "/sales-book/orders/sales-statistics",
+                ).access(_perm.is("editDelivery"), _perm.isNot("editOrders"))
+                    .data,
+            ])
                 .access(_perm.is("editOrders"))
+
                 .childPaths("sales-book/create-order", "sales-book/edit-order")
                 .data,
             _link("Quotes", "estimates", "/sales-book/quotes")

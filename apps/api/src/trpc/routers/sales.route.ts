@@ -25,6 +25,10 @@ import { z } from "zod";
 import { generateRandomString } from "@gnd/utils";
 import { getCustomers } from "@api/db/queries/customer";
 import { getCustomersSchema } from "@api/schemas/customer";
+import {
+  salesStatistics,
+  salesStatisticsSchema,
+} from "@api/db/queries/sales-stat";
 export const salesRouter = createTRPCRouter({
   createStep: publicProcedure
     .input(
@@ -121,5 +125,12 @@ export const salesRouter = createTRPCRouter({
     .input(printInvoiceSchema)
     .query(async (props) => {
       return getInvoicePrintData(props.ctx.db, props.input);
+    }),
+
+  // sales statistics
+  salesStatistics: publicProcedure
+    .input(salesStatisticsSchema)
+    .query(async (props) => {
+      return salesStatistics(props.ctx, props.input);
     }),
 });
