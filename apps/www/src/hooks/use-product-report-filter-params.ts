@@ -1,10 +1,5 @@
 import { useQueryStates } from "nuqs";
-import {
-    parseAsArrayOf,
-    createLoader,
-    parseAsString,
-    parseAsInteger,
-} from "nuqs/server";
+import { parseAsArrayOf, createLoader, parseAsString } from "nuqs/server";
 import { RouterInputs } from "@api/trpc/routers/_app";
 type FilterKeys = keyof Exclude<
     RouterInputs["sales"]["getProductReport"],

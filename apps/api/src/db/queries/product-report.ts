@@ -27,7 +27,6 @@ export async function getProductReport(
   { db }: TRPCContext,
   query: ProductReportSchema
 ) {
-  // const query = {};
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereStat(query),
@@ -84,6 +83,7 @@ function whereStat(query: ProductReportSchema) {
         not: null,
       },
       step: {
+        deletedAt: null,
         priceSystem: {
           some: {
             deletedAt: null,
@@ -95,6 +95,7 @@ function whereStat(query: ProductReportSchema) {
       },
       stepForms: {
         some: {
+          deletedAt: null,
           salesOrderItem: {
             salesOrder: {
               type: "order",
@@ -104,12 +105,13 @@ function whereStat(query: ProductReportSchema) {
       },
     },
   ];
-  if (query.reportCategory)
+  if (query.reportCategory) {
     where.push({
       step: {
         title: query.reportCategory,
       },
     });
+  }
   if (query.q) {
     const contains = {
       contains: query.q,

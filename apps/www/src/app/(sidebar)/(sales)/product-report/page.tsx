@@ -17,6 +17,8 @@ export async function generateMetadata(props) {
 export default async function Page(props) {
     const searchParams = await props.searchParams;
     const filter = loadProductReportFilterParams(searchParams);
+    console.log({ filter });
+
     batchPrefetch([
         (trpc.sales.getProductReport as any).infiniteQueryOptions({
             ...filter,
