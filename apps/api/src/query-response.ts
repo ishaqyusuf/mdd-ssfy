@@ -10,7 +10,7 @@ export async function queryResponse<T>(
     query?;
     model?;
     where?;
-  },
+  }
 ) {
   let meta = {} as PageDataMeta;
 
@@ -78,11 +78,12 @@ export async function composeQueryData(query, where, model) {
 }
 export function composeQuery<T>(
   queries: T[],
-  relation: "AND" | "OR" = "AND",
+  relation: "AND" | "OR" = "AND"
 ): T | undefined {
   if (!Array.isArray(queries) || queries.length === 0) {
     return undefined;
   }
+
   return queries.length > 1
     ? ({
         AND: relation == "AND" ? queries : undefined,

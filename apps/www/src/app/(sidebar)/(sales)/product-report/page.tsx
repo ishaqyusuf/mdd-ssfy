@@ -17,7 +17,6 @@ export async function generateMetadata(props) {
 export default async function Page(props) {
     const searchParams = await props.searchParams;
     const filter = loadProductReportFilterParams(searchParams);
-    console.log({ filter });
 
     batchPrefetch([
         (trpc.sales.getProductReport as any).infiniteQueryOptions({
@@ -25,7 +24,7 @@ export default async function Page(props) {
         }),
     ]);
     return (
-        <FPage can={["viewOrders"]} title="Sales Statistics">
+        <FPage can={["viewOrders"]} title="Product Reports">
             <ProductReportHeader />
             <ErrorBoundary errorComponent={ErrorFallback}>
                 <Suspense fallback={<GridSkeleton />}>

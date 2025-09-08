@@ -423,7 +423,7 @@ export async function getInventoryFilters(ctx: TRPCContext) {
 export async function productReportFilters(ctx: TRPCContext) {
   type T = keyof ProductReportSchema;
   type FilterData = PageFilterData<T>;
-  const steps = labelValueOptions(
+  const steps = (
     await ctx.db.dykeSteps.findMany({
       where: {
         stepForms: {
@@ -447,10 +447,13 @@ export async function productReportFilters(ctx: TRPCContext) {
         createdAt: "desc",
       },
       distinct: "title",
-    }),
-    "title",
-    "title"
-  );
+    })
+  ).map(({ title }) => ({
+    label: title,
+    value: title,
+  }));
+  // "title",
+  // "title"
   const resp = [
     searchFilter,
     optionFilter<T>("reportCategory", "Category", steps),

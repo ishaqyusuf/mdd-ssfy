@@ -1,7 +1,7 @@
 import { composeQuery } from "@api/query-response";
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
-import { timeLog } from "@gnd/utils";
+import { dateQuery, formatMoney, sum, timeLog } from "@gnd/utils";
 import { composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 
@@ -34,18 +34,32 @@ export async function getProductReport(
   );
   const data = await db.dykeStepProducts.findMany({
     where,
+    // where: {
+    //   step: {
+    //     title: {
+    //       contains: query.reportCategory,
+    //     },
+    //   },
+    // },
     ...searchMeta,
     // include: SalesListInclude,
-    orderBy: {
-      updatedAt: "desc",
-    },
+    // orderBy: {
+    //   updatedAt: "desc",
+    // },
     select: {
+      createdAt: true,
       img: true,
       id: true,
       name: true,
       step: {
         select: {
           title: true,
+        },
+      },
+      stepForms: {
+        where: {
+          price: { gt: 0 },
+          basePrice: { gt: 0 },
         },
       },
       _count: {
@@ -63,27 +77,75 @@ export async function getProductReport(
       },
     },
   });
-
+  timeLog(JSON.stringify(where)?.replaceAll('"', "'"));
   return await response(
     data.map((d) => ({
       name: d.name,
       category: d.step?.title,
       units: d?._count.stepForms,
       revenue: 0,
-      costPrice: 0,
-      salesPrice: 0,
+      salesPrice: formatMoney(sum(d.stepForms, "price")),
+      costPrice: formatMoney(sum(d.stepForms, "basePrice")),
       img: d.img,
+      date: d.createdAt,
     }))
   );
 }
 function whereStat(query: ProductReportSchema) {
+  // if (query.q)
+  //   return {
+  //     step: {
+  //       title: {
+  //         contains: query.q,
+  //         // mode: "insensitive",
+  //       },
+  //     },
+  //   };
+  // if (query.reportCategory)
+  //   return {
+  //     step: {
+  //       title: {
+  //         contains: query.reportCategory,
+  //         // mode: "insensitive",
+  //       },
+  //     },
+  //   };
+  // return {};
+  // return {
+  //   step: {
+  //     title: {
+  //       contains: "Moulding",
+  //     },
+  //   },
+  // };
   const where: Prisma.DykeStepProductsWhereInput[] = [
     {
       name: {
         not: null,
       },
+      // OR: [
+      //   {
+      //     door: {
+      //       ...dateQuery({
+      //         from: "01/01/2025",
+      //       }),
+      //     },
+      //   },
+      //   {
+      //     product: {
+      //       ...dateQuery({
+      //         from: "01/01/2025",
+      //       }),
+      //     },
+      //   },
+      //   {
+      //     product: null,
+      //     door: null,
+      //   },
+      // ],
       step: {
         deletedAt: null,
+        title: query.reportCategory || undefined,
         priceSystem: {
           some: {
             deletedAt: null,
@@ -96,6 +158,9 @@ function whereStat(query: ProductReportSchema) {
       stepForms: {
         some: {
           deletedAt: null,
+          price: {
+            gt: 0,
+          },
           salesOrderItem: {
             salesOrder: {
               type: "order",
@@ -105,13 +170,13 @@ function whereStat(query: ProductReportSchema) {
       },
     },
   ];
-  if (query.reportCategory) {
-    where.push({
-      step: {
-        title: query.reportCategory,
-      },
-    });
-  }
+  // if (query.reportCategory) {
+  //   where.push({
+  //     step: {
+  //       title: query.reportCategory,
+  //     },
+  //   });
+  // }
   if (query.q) {
     const contains = {
       contains: query.q,

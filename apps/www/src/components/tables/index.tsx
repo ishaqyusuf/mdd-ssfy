@@ -171,12 +171,19 @@ export const useTableData = ({ filter, route }) => {
     const { data, fetchNextPage, hasNextPage, isFetching } =
         useSuspenseInfiniteQuery(infiniteQueryOptions);
     const tableData = useMemo(() => {
-        return (
+        const list =
             data?.pages.flatMap((page) => {
                 console.log("PAGE: ", page);
                 return (page as any)?.data ?? [];
-            }) ?? []
-        );
+            }) ?? [];
+        const meta = (data?.pages?.reverse()?.[0] as any)?.meta;
+        const { cursor, count } = meta || {};
+        console.log({ meta });
+        return {
+            data: list,
+            resultCount: cursor,
+            total: count,
+        };
     }, [data]);
 
     useEffect(() => {
@@ -185,5 +192,12 @@ export const useTableData = ({ filter, route }) => {
             fetchNextPage();
         }
     }, [inView, isFetching]);
-    return { ref, data: tableData, queryData: data, hasNextPage };
+    return {
+        ref,
+        // data: tableData,
+        ...tableData,
+        queryData: data,
+        hasNextPage,
+        // from: data?.
+    };
 };
