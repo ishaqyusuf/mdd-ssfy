@@ -20,6 +20,7 @@ import type { InventoryList, SalesProductionQueryParams } from "@sales/schema";
 import { getEmployeesList } from "./hrm";
 import { labelValueOptions } from "@gnd/utils";
 import { SALES_PRODUCTION_STATUS_FILTER_OPTIONS } from "@sales/constants";
+import type { ProductReportSchema } from "./product-report";
 
 export async function getDispatchFilters(ctx: TRPCContext) {
   type T = keyof DispatchQueryParamsSchema;
@@ -76,7 +77,7 @@ const searchFilter = {
   label: "Search",
   type: "input",
   value: "q",
-};
+} as PageFilterData<"q">;
 export async function getCommunityTemplateFilters(ctx: TRPCContext) {
   type T = keyof CommunityTemplateQueryParams;
   type FilterData = PageFilterData<keyof CommunityTemplateQueryParams>;
@@ -159,7 +160,6 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
       },
     },
   });
-
   const customerNames = [
     ...new Set(
       sales
@@ -418,5 +418,33 @@ export async function getInventoryFilters(ctx: TRPCContext) {
       }))
     ),
   ];
+  return resp;
+}
+export async function productReportFilters(ctx: TRPCContext) {
+  type T = keyof ProductReportSchema;
+  type FilterData = PageFilterData<T>;
+  const steps = labelValueOptions(
+    await ctx.db.dykeSteps.findMany({
+      where: {
+        stepForms: {
+          some: {
+            deletedAt: null,
+          },
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+      },
+    }),
+    "title",
+    "id"
+  );
+  const resp = [
+    searchFilter,
+    optionFilter<T>("categoryId", "Category", steps),
+    dateRangeFilter<T>("dateRange", "Filter by date"),
+  ] satisfies FilterData[];
+
   return resp;
 }

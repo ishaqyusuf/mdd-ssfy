@@ -1,10 +1,11 @@
 import { useQueryStates } from "nuqs";
-import { createLoader, parseAsString } from "nuqs/server";
+import { createLoader, parseAsString, parseAsInteger } from "nuqs/server";
 import { RouterInputs } from "@api/trpc/routers/_app";
 type FilterKeys = keyof Exclude<RouterInputs["sales"]["salesStatistics"], void>;
 
 export const productReportFilterParams = {
     q: parseAsString,
+    categoryId: parseAsInteger,
 } satisfies Partial<Record<FilterKeys, any>>;
 
 export function useProductReportFilters() {

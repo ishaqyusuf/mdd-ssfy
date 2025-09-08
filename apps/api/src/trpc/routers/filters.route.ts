@@ -8,6 +8,7 @@ import {
   getSalesOrderFilters,
   getSalesProductionFilters,
   getSalesQuoteFilter,
+  productReportFilters,
 } from "@api/db/queries/filters";
 import { createTRPCRouter, publicProcedure } from "../init";
 
@@ -26,6 +27,9 @@ export const filterRouters = createTRPCRouter({
   }),
   inventory: publicProcedure.query(async (props) => {
     return getInventoryFilters(props.ctx);
+  }),
+  productReport: publicProcedure.query(async (props) => {
+    return productReportFilters(props.ctx);
   }),
   salesResolutions: publicProcedure.query(async (props) => {
     const res = await getResolutionFilters(props.ctx);

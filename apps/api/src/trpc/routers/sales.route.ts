@@ -27,8 +27,8 @@ import { getCustomers } from "@api/db/queries/customer";
 import { getCustomersSchema } from "@api/schemas/customer";
 import {
   salesStatistics,
-  salesStatisticsSchema,
-} from "@api/db/queries/sales-stat";
+  productReportSchema,
+} from "@api/db/queries/product-report";
 export const salesRouter = createTRPCRouter({
   createStep: publicProcedure
     .input(
@@ -129,7 +129,7 @@ export const salesRouter = createTRPCRouter({
 
   // sales statistics
   salesStatistics: publicProcedure
-    .input(salesStatisticsSchema)
+    .input(productReportSchema)
     .query(async (props) => {
       return salesStatistics(props.ctx, props.input);
     }),
