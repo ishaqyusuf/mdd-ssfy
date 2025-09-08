@@ -4,7 +4,7 @@ import Link from "@/components/link";
 import { cn } from "@/lib/utils";
 import { cva, VariantProps } from "class-variance-authority";
 import { Icons as BaseIcon, Icon as LucideIcon } from "@gnd/ui/custom/icons";
-import { Archive, CheckCircle, FileEdit } from "lucide-react";
+import { Archive, BarChart2, CheckCircle, FileEdit } from "lucide-react";
 export type Icon = LucideIcon;
 
 export const Icons = {
@@ -50,6 +50,8 @@ export const Icons = {
     Published: CheckCircle,
     Archived: Archive,
     Archive: Archive,
+    report: BarChart2,
+    chart: BarChart2,
 };
 
 export type IconKeys = keyof typeof Icons;

@@ -1,7 +1,9 @@
+import { ProductReportSearchFilter } from "./product-report-search-filter";
+
 export function SalesStatHeader({}) {
     return (
         <div className="flex justify-between">
-            {/* <OrderSearchFilter /> */}
+            <ProductReportSearchFilter />
             {/* <Button asChild size="sm">
                 <Link href="/sales-book/create-order">
                     <Icons.Add className="mr-2 size-4" />

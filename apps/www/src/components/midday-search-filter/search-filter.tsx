@@ -23,7 +23,7 @@ import { Icon, Icons } from "../_v1/icons";
 import { searchParamsParser } from "../(clean-code)/data-table/search-params";
 import { SelectTag } from "../select-tag";
 import { FilterList } from "./filter-list";
-import { searchIcons } from "./search-utils";
+import { isSearchKey, searchIcons } from "./search-utils";
 import { Calendar } from "@gnd/ui/calendar";
 import {
     Select,
@@ -42,7 +42,6 @@ interface Props {
     filterList?: PageFilterData[];
 }
 
-const isSearch = (k) => ["search", "_q", "q"].includes(k);
 export function MiddaySearchFilter({
     // filters,
     placeholder,
@@ -119,7 +118,7 @@ export function MiddaySearchFilter({
     };
     const hasValidFilters =
         Object.entries(filters).filter(
-            ([key, value]) => value !== null && !isSearch(value),
+            ([key, value]) => value !== null && !isSearchKey(value),
         ).length > 0;
     function optionSelected(qk, { label, value }) {
         setFilters({
@@ -138,7 +137,7 @@ export function MiddaySearchFilter({
                         .replace(/^./, (c) => c.toUpperCase()), // capitalize first letter
             )
             .join(" ");
-    const __filters = filterList?.filter((a) => !isSearch(a.value));
+    const __filters = filterList?.filter((a) => !isSearchKey(a.value));
     return (
         <>
             <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -184,7 +183,7 @@ export function MiddaySearchFilter({
                         onRemove={(obj) => {
                             setFilters(obj);
                             const clearPrompt = Object.entries(obj).find(
-                                ([k, v]) => isSearch(k),
+                                ([k, v]) => isSearchKey(k),
                             );
                             if (clearPrompt) setPrompt("");
                         }}

@@ -86,6 +86,8 @@ export function CustomSheetBase({
                     "p-2 px-4",
                     sheetContentVariant({
                         ...(props as any),
+                        floating,
+                        rounded,
                     }),
                 )}
             >

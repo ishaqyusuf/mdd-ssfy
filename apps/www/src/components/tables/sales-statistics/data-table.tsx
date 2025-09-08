@@ -34,8 +34,11 @@ export function DataTable() {
     const overviewQuery = useSalesOverviewQuery();
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {data?.map((product) => (
-                <Card className="overflow-hidden cursor-pointer transition-colors hover:bg-muted/50">
+            {data?.map((product, pi) => (
+                <Card
+                    key={pi}
+                    className="overflow-hidden cursor-pointer transition-colors hover:bg-muted/50"
+                >
                     <CardContent className="p-4">
                         <div className="flex items-start gap-4">
                             <div className="size-20">
