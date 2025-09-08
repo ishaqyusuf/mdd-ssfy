@@ -355,15 +355,13 @@ export const linkModules = [
             _link("Accounting", "billing", "/sales-book/accounting").access(
                 _perm.is("editSales"),
             ).data,
-            _link(
-                "Product Report",
-                "report",
-                "/sales-book/product-report",
-            ).access(_role.in("Super Admin")).data,
+            _link("Product Report", "report", "/product-report").access(
+                _role.in("Super Admin"),
+            ).data,
             // .childPaths("sales-book/accounting/resolution-center").data,
             _link(
                 "Accounting Resolution",
-                "billing",
+                "resolutionCenter",
                 "/sales-book/accounting/resolution-center",
             ).access(_perm.is("editSalesResolution")).data,
             // .childPaths("sales-book/accounting/resolution-center").data,
@@ -382,7 +380,7 @@ export const linkModules = [
                     // "sales-book/orders/sales-statistics",
                 ).data,
             _link("Quotes", "estimates", "/sales-book/quotes")
-                .access(_perm.is("editOrders"))
+                .access(_perm.is("viewEstimates"))
                 .childPaths("sales-book/create-quote", "sales-book/edit-quote")
                 .data,
             // .childPaths("sales-book/create-quote", "sales-book/edit-quote")

@@ -46,6 +46,7 @@ export function DataTable() {
                                     item={{
                                         product: {
                                             img: product.img,
+                                            title: product?.name,
                                         },
                                     }}
                                 />
