@@ -316,7 +316,6 @@ export class CostingClass {
                 );
             }),
         );
-        console.log(data?.metaData?.laborConfig);
 
         const extraCosts = sum(
             data.metaData.extraCosts
@@ -356,7 +355,6 @@ export class CostingClass {
                     `metaData.extraCosts.${labor?.index}.amount`,
                     Labor,
                 );
-                console.log({ Labor });
             }
     }
     public calculateTotalPrice() {

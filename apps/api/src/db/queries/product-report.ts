@@ -62,8 +62,22 @@ export async function getProductReport(
           basePrice: { gt: 0 },
         },
       },
+      salesDoors: {
+        select: {
+          totalQty: true,
+          jambSizePrice: true,
+        },
+        where: {
+          deletedAt: null,
+        },
+      },
       _count: {
         select: {
+          // salesDoors: {
+          //   where: {
+          //     deletedAt: null,
+          //   }
+          // },
           stepForms: {
             where: {
               salesOrderItem: {
@@ -82,9 +96,13 @@ export async function getProductReport(
     data.map((d) => ({
       name: d.name,
       category: d.step?.title,
-      units: d?._count.stepForms,
+      units: d?.salesDoors?.length
+        ? sum(d?.salesDoors || [], "totalQty")
+        : d?._count.stepForms,
       revenue: 0,
-      salesPrice: formatMoney(sum(d.stepForms, "price")),
+      salesPrice: d?.salesDoors?.length
+        ? formatMoney(sum(d.salesDoors, "jambSizePrice"))
+        : formatMoney(sum(d.stepForms, "price")),
       costPrice: formatMoney(sum(d.stepForms, "basePrice")),
       img: d.img,
       date: d.createdAt,
@@ -123,60 +141,69 @@ function whereStat(query: ProductReportSchema) {
       name: {
         not: null,
       },
-      // OR: [
-      //   {
-      //     door: {
-      //       ...dateQuery({
-      //         from: "01/01/2025",
-      //       }),
-      //     },
+      //   // OR: [
+      //   //   {
+      //   //     door: {
+      //   //       ...dateQuery({
+      //   //         from: "01/01/2025",
+      //   //       }),
+      //   //     },
+      //   //   },
+      //   //   {
+      //   //     product: {
+      //   //       ...dateQuery({
+      //   //         from: "01/01/2025",
+      //   //       }),
+      //   //     },
+      //   //   },
+      //   //   {
+      //   //     product: null,
+      //   //     door: null,
+      //   //   },
+      //   // ],
+      //   step: {
+      //     deletedAt: null,
+      //     title: "Door", //query.reportCategory || undefined,
+      //     // priceSystem: {
+      //     //   some: {
+      //     //     deletedAt: null,
+      //     //     price: {
+      //     //       gt: 0,
+      //     //     },
+      //     //   },
+      //     // },
       //   },
-      //   {
-      //     product: {
-      //       ...dateQuery({
-      //         from: "01/01/2025",
-      //       }),
-      //     },
-      //   },
-      //   {
-      //     product: null,
-      //     door: null,
-      //   },
-      // ],
-      step: {
-        deletedAt: null,
-        title: query.reportCategory || undefined,
-        priceSystem: {
-          some: {
-            deletedAt: null,
-            price: {
-              gt: 0,
+      OR: [
+        {
+          stepForms: {
+            some: {
+              deletedAt: null,
+              // price: {
+              //   gt: 0,
+              // },
+              salesOrderItem: {
+                salesOrder: {
+                  type: "order",
+                },
+              },
             },
           },
         },
-      },
-      stepForms: {
-        some: {
-          deletedAt: null,
-          price: {
-            gt: 0,
-          },
-          salesOrderItem: {
-            salesOrder: {
-              type: "order",
-            },
+        {
+          salesDoors: {
+            some: {},
           },
         },
-      },
+      ],
     },
   ];
-  // if (query.reportCategory) {
-  //   where.push({
-  //     step: {
-  //       title: query.reportCategory,
-  //     },
-  //   });
-  // }
+  if (query.reportCategory) {
+    where.push({
+      step: {
+        title: query.reportCategory,
+      },
+    });
+  }
   if (query.q) {
     const contains = {
       contains: query.q,

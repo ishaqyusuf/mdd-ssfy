@@ -30,7 +30,6 @@ export function UserNav() {
     // const { data: session } = useSession();
     const auth = useAuth();
     const links = useLinks();
-    console.log({ links });
     return (
         <DropdownMenu>
             <TooltipProvider disableHoverableContent>

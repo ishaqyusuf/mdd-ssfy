@@ -34,10 +34,7 @@ export const useSticky = (
                         bottom: containerRect.bottom,
                     },
                 );
-                console.log({
-                    top: containerRect.top,
-                    bottom: containerRect.bottom,
-                });
+
                 if (shouldBeFixed && !isFixed) {
                     const containerCenter =
                         containerRect.left + containerRect.width / 2;

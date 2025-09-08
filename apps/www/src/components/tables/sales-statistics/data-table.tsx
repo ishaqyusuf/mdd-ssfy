@@ -1,27 +1,21 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { TableProvider, useTableData } from "..";
-import { columns, mobileColumn } from "./columns";
-import { Table, TableBody } from "@gnd/ui/table";
-import { TableHeaderComponent } from "../table-header";
-import { TableRow } from "../table-row";
+import { useTableData } from "..";
+
 import { LoadMoreTRPC } from "../load-more";
 
-import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
-import { BatchActions } from "./batch-actions";
-import { useTableScroll } from "@/hooks/use-table-scroll";
-import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOrdersStore } from "@/store/sales-orders";
 import { Card, CardContent } from "@gnd/ui/card";
 import { EyeIcon } from "lucide-react";
 import { Badge } from "@gnd/ui/badge";
 import { ProductImage } from "@/app/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/product";
+import { useProductReportFilters } from "@/hooks/use-product-report-filter-params";
 
 export function DataTable() {
     const trpc = useTRPC();
     const { rowSelection, setRowSelection } = useSalesOrdersStore();
-    const { filters } = useOrderFilterParams();
+    const { filters } = useProductReportFilters();
     const { data, resultCount, total, ref, hasNextPage } = useTableData({
         filter: filters,
         route: trpc.sales.getProductReport,
@@ -44,6 +38,7 @@ export function DataTable() {
                             <div className="flex items-start gap-4">
                                 <div className="size-20">
                                     <ProductImage
+                                        aspectRatio={0.8}
                                         item={{
                                             product: {
                                                 img: product.img,
@@ -59,7 +54,7 @@ export function DataTable() {
                             /> */}
                                 <div className="flex-1 space-y-2">
                                     <div className="flex items-start justify-between">
-                                        <h3 className="font-semibold text-sm leading-tight">
+                                        <h3 className="font-semibold text-sm uppercase leading-tight">
                                             {product.name}
                                         </h3>
                                         <Badge

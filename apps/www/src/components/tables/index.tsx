@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import createContextFactory from "@/utils/context-factory";
 import {
     getCoreRowModel,
@@ -158,9 +158,12 @@ export const useTableData = ({ filter, route }) => {
     // const trpc = useTRPC();
     const { ref, inView } = useInView();
 
+    const deferredSearch = useDeferredValue(filter.q);
+
     const infiniteQueryOptions = route.infiniteQueryOptions(
         {
             ...filter,
+            q: deferredSearch,
         },
         {
             getNextPageParam: ({ meta }) => {
