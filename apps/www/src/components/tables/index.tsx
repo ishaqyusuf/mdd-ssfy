@@ -171,8 +171,14 @@ export const useTableData = ({ filter, route }) => {
     const { data, fetchNextPage, hasNextPage, isFetching } =
         useSuspenseInfiniteQuery(infiniteQueryOptions);
     const tableData = useMemo(() => {
-        return data?.pages.flatMap((page) => (page as any)?.data ?? []) ?? [];
+        return (
+            data?.pages.flatMap((page) => {
+                console.log("PAGE: ", page);
+                return (page as any)?.data ?? [];
+            }) ?? []
+        );
     }, [data]);
+
     useEffect(() => {
         if (isFetching) return;
         if (inView) {

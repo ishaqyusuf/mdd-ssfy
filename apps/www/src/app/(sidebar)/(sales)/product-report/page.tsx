@@ -4,7 +4,7 @@ import { ErrorFallback } from "@/components/error-fallback";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { DataTable } from "@/components/tables/sales-statistics/data-table";
-import { SalesStatHeader } from "@/components/sales-stat-header";
+import { ProductReportHeader } from "@/components/product-report-header";
 import { batchPrefetch, trpc } from "@/trpc/server";
 import { loadProductReportFilterParams } from "@/hooks/use-product-report-filter-params";
 import { GridSkeleton } from "@/components/grid-skeleton";
@@ -18,13 +18,13 @@ export default async function Page(props) {
     const searchParams = await props.searchParams;
     const filter = loadProductReportFilterParams(searchParams);
     batchPrefetch([
-        (trpc.sales.salesStatistics as any).infiniteQueryOptions({
+        (trpc.sales.getProductReport as any).infiniteQueryOptions({
             ...filter,
         }),
     ]);
     return (
         <FPage can={["viewOrders"]} title="Sales Statistics">
-            <SalesStatHeader />
+            <ProductReportHeader />
             <ErrorBoundary errorComponent={ErrorFallback}>
                 <Suspense fallback={<GridSkeleton />}>
                     <DataTable />

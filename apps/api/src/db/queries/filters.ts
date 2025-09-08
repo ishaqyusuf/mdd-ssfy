@@ -429,6 +429,13 @@ export async function productReportFilters(ctx: TRPCContext) {
         stepForms: {
           some: {
             deletedAt: null,
+            salesOrderItem: {
+              deletedAt: null,
+              salesOrder: {
+                deletedAt: null,
+                type: "order",
+              },
+            },
           },
         },
       },
@@ -436,13 +443,17 @@ export async function productReportFilters(ctx: TRPCContext) {
         id: true,
         title: true,
       },
+      orderBy: {
+        createdAt: "desc",
+      },
+      distinct: "title",
     }),
     "title",
-    "id"
+    "title"
   );
   const resp = [
     searchFilter,
-    optionFilter<T>("categoryId", "Category", steps),
+    optionFilter<T>("reportCategory", "Category", steps),
     dateRangeFilter<T>("dateRange", "Filter by date"),
   ] satisfies FilterData[];
 

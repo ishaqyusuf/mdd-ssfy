@@ -24,7 +24,7 @@ export function DataTable() {
     const { filters } = useOrderFilterParams();
     const { data, ref, hasNextPage } = useTableData({
         filter: filters,
-        route: trpc.sales.salesStatistics,
+        route: trpc.sales.getProductReport,
     });
 
     const tableScroll = useTableScroll({

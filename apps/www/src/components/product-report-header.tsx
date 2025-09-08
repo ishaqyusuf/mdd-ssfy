@@ -1,6 +1,6 @@
 import { ProductReportSearchFilter } from "./product-report-search-filter";
 
-export function SalesStatHeader({}) {
+export function ProductReportHeader({}) {
     return (
         <div className="flex justify-between">
             <ProductReportSearchFilter />

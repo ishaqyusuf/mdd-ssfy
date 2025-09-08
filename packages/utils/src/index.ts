@@ -362,3 +362,9 @@ export async function timeout(ms = 1000) {
 export async function rndTimeout() {
   return await timeout(generateRandomNumber(2));
 }
+export function timeLog(...data) {
+  console.log("");
+  console.log(`${new Date().toISOString()}`);
+  console.log(data);
+  console.log("---");
+}

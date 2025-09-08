@@ -1,8 +1,10 @@
 import { composeQuery } from "@api/query-response";
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
+import { timeLog } from "@gnd/utils";
 import { composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
+
 import { z } from "zod";
 
 /*
@@ -16,12 +18,12 @@ export const productReportSchema = z
   .object({
     q: z.string().optional().nullable(),
     dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
-    categoryId: z.number().optional().nullable(),
+    reportCategory: z.string().optional().nullable(),
   })
   .merge(paginationSchema);
 export type ProductReportSchema = z.infer<typeof productReportSchema>;
 
-export async function salesStatistics(
+export async function getProductReport(
   { db }: TRPCContext,
   query: ProductReportSchema
 ) {
@@ -31,7 +33,6 @@ export async function salesStatistics(
     whereStat(query),
     db.dykeStepProducts
   );
-
   const data = await db.dykeStepProducts.findMany({
     where,
     ...searchMeta,
@@ -103,6 +104,12 @@ function whereStat(query: ProductReportSchema) {
       },
     },
   ];
+  if (query.reportCategory)
+    where.push({
+      step: {
+        title: query.reportCategory,
+      },
+    });
   if (query.q) {
     const contains = {
       contains: query.q,

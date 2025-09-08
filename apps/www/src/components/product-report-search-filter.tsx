@@ -23,11 +23,10 @@ function Content({}) {
     const { data: trpcFilterData } = useQuery({
         ...trpc.filters.productReport.queryOptions(),
     });
-
     return (
         <>
             <SearchFilterTRPC
-                placeholder={"Search Order Information"}
+                placeholder={"Search Product..."}
                 filterList={trpcFilterData}
             />
         </>

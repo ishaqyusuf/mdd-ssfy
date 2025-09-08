@@ -26,7 +26,7 @@ import { generateRandomString } from "@gnd/utils";
 import { getCustomers } from "@api/db/queries/customer";
 import { getCustomersSchema } from "@api/schemas/customer";
 import {
-  salesStatistics,
+  getProductReport,
   productReportSchema,
 } from "@api/db/queries/product-report";
 export const salesRouter = createTRPCRouter({
@@ -128,9 +128,9 @@ export const salesRouter = createTRPCRouter({
     }),
 
   // sales statistics
-  salesStatistics: publicProcedure
+  getProductReport: publicProcedure
     .input(productReportSchema)
     .query(async (props) => {
-      return salesStatistics(props.ctx, props.input);
+      return getProductReport(props.ctx, props.input);
     }),
 });

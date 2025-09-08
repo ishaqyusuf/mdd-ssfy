@@ -72,9 +72,12 @@ export async function composeQueryData(query, where, model) {
     where,
   });
   function response<T>(data: T[]) {
+    // if(process.env÷)
     return {
       meta: md.meta,
       data,
+      filter: process.env.NODE_ENV == "production" ? undefined : where,
+      query: process.env.NODE_ENV == "production" ? undefined : query,
     };
   }
   const searchMeta = queryMeta(query);
