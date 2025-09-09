@@ -91,7 +91,6 @@ export async function getProductReport(
       },
     },
   });
-  timeLog(JSON.stringify(where)?.replaceAll('"', "'"));
   return await response(
     data.map((d) => ({
       name: d.name,
@@ -192,6 +191,13 @@ function whereStat(query: ProductReportSchema) {
         {
           salesDoors: {
             some: {},
+          },
+        },
+        {
+          housePackageTools: {
+            some: {
+              molding: {},
+            },
           },
         },
       ],

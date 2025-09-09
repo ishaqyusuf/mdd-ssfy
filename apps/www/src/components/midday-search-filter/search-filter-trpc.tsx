@@ -80,7 +80,6 @@ export function SearchFilterTRPC({
 
     const handleSearch = (evt: React.ChangeEvent<HTMLInputElement>) => {
         const value = evt.target.value;
-
         if (value) {
             setPrompt(value);
         } else {
@@ -88,7 +87,6 @@ export function SearchFilterTRPC({
             setPrompt("");
         }
     };
-
     // const deb = useDebounce(prompt, 1500);
     // const hasMounted = useRef(false);
     // useEffect(() => {
@@ -96,7 +94,6 @@ export function SearchFilterTRPC({
     //         hasMounted.current = true;
     //         return;
     //     }
-
     //     const searchKey = getSearchKey(filters);
 
     //     if (searchKey)
