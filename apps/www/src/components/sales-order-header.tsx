@@ -57,7 +57,7 @@ export function OrderHeader({}) {
                     customer: d.displayName,
                     phone: d.customerPhone,
                     address: d.address,
-                    viewOrder: `${env.NEXT_PUBLIC_APP_URL}/sales-book/orders?sales-overview-id=${d.orderId}`,
+                    // viewOrder: `${env.NEXT_PUBLIC_APP_URL}/sales-book/orders?sales-overview-id=${d.orderId}`,
                 })),
                 {
                     cellStyles: true,
@@ -73,7 +73,7 @@ export function OrderHeader({}) {
                 { width: 20 },
                 { width: 20 },
                 { width: 20 },
-                { width: 20 },
+                // { width: 20 },
             ];
             utils.book_append_sheet(workbook, worksheet, worksheetname);
             // Save the workbook as an Excel file
