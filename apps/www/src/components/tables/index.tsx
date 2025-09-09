@@ -176,7 +176,6 @@ export const useTableData = ({ filter, route }) => {
     const tableData = useMemo(() => {
         const list =
             data?.pages.flatMap((page) => {
-                console.log("PAGE: ", page);
                 return (page as any)?.data ?? [];
             }) ?? [];
         const meta = (data?.pages?.reverse()?.[0] as any)?.meta;
