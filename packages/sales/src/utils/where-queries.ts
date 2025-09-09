@@ -385,6 +385,17 @@ export function whereSales(query: SalesQueryParamsSchema) {
         },
         assignments: {
           some: {
+            itemControl: {
+              qtyControls: {
+                some: {
+                  type: "prodCompleted" as QtyControlType,
+                  deletedAt: null,
+                  percentage: {
+                    not: 100,
+                  },
+                },
+              },
+            },
             assignedToId: assignedToId || undefined,
             deletedAt: null,
             dueDate: {
