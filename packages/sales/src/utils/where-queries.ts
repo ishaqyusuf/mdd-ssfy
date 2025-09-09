@@ -372,6 +372,17 @@ export function whereSales(query: SalesQueryParamsSchema) {
       break;
     case "past due":
       where.push({
+        stat: {
+          some: {
+            total: {
+              gt: 0,
+            },
+            type: "dispatchCompleted" as QtyControlType,
+            percentage: {
+              not: 100,
+            },
+          },
+        },
         assignments: {
           some: {
             assignedToId: assignedToId || undefined,

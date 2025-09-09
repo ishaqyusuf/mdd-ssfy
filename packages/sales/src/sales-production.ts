@@ -36,6 +36,7 @@ export async function getSalesProductions(
           })
         ).data
       : [];
+  // console.log({ dueToday, queryCount, query });
   const pastDue =
     !query.cursor && !queryCount
       ? (
