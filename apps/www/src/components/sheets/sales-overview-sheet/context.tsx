@@ -25,7 +25,7 @@ const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
             ctx.salesQuery.trpc.sales.getSaleOverview.queryOptions(
                 {
                     orderNo: ctx.params["sales-overview-id"],
-                    salesType: ctx.params["sales-type"],
+                    salesType: ctx.params["sales-type"] as any,
                 },
                 {
                     enabled: !!ctx.params["sales-overview-id"],
