@@ -184,6 +184,7 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
 
   const resp = [
     searchFilter,
+    dateRangeFilter<T>("dateRange", "Order date"),
     optionFilter<T>(
       "customer.name",
       "Customer",

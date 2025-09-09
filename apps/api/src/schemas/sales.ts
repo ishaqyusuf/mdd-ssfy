@@ -41,6 +41,7 @@ export const salesQueryParamsSchema = z
   .object({
     salesNo: z.string().optional().nullable(),
     salesNos: z.array(z.string()).optional().nullable(),
+    dateRange: z.array(z.string()).optional().nullable(),
     salesIds: z.array(z.number()).optional().nullable(),
     salesType: z.enum(salesType).optional().nullable(),
     "customer.name": z.string().optional().nullable(),
