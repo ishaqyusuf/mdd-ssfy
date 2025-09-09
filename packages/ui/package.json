@@ -24,6 +24,7 @@
   "exports": {
     "./confirm-button": "./src/components/custom/confirm-button.tsx",
     "./custom/icons": "./src/components/custom/icons.tsx",
+    "./custom/page-title": "./src/components/custom/page-title.tsx",
     "./controls/form-checkbox": "./src/components/controls/form-checkbox.tsx",
     "./controls/form-combobox": "./src/components/controls/form-combobox.tsx",
     "./controls/form-date": "./src/components/controls/form-date.tsx",

@@ -31,6 +31,7 @@ export function OrderHeader({}) {
             {
                 ...(filters as any),
                 salesIds: selectedIds.length ? selectedIds : undefined,
+                size: 999,
             },
             {
                 enabled: false,
@@ -52,7 +53,8 @@ export function OrderHeader({}) {
             let worksheetname = "";
             const workbook = utils.book_new();
             const worksheet = utils?.json_to_sheet(
-                data.map((d) => ({
+                data.map((d, di) => ({
+                    Sn: `${di + 1}.`,
                     Date: formatDate(d.createdAt),
                     "Order #": {
                         t: "s",
@@ -76,6 +78,7 @@ export function OrderHeader({}) {
             );
             // auto column widths
             worksheet["!cols"] = [
+                { wch: 8 }, // Date
                 { wch: 12 }, // Date
                 { wch: 15 }, // Order #
                 { wch: 15 }, // PO
