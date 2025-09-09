@@ -13,7 +13,6 @@ import { SalesQueryParamsSchema } from "../schema";
 
 export function whereSales(query: SalesQueryParamsSchema) {
   const where: Prisma.SalesOrdersWhereInput[] = [];
-  console.log(query);
 
   Object.entries(query).map(([k, v]) => {
     if (v === null) return;
