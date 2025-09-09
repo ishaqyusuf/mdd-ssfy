@@ -63,6 +63,7 @@ export function OrderHeader({}) {
                             Target: `${env.NEXT_PUBLIC_APP_URL}/sales-book/orders?sales-overview-id=${d.orderId}&sales-type=order&mode=sales&salesTab=general`,
                         },
                     },
+                    "Sales Rep": d.salesRep,
                     "P.O": d.poNo,
                     invoice: formatMoney(d.invoice?.total),
                     paid: formatMoney(d.invoice?.paid),
@@ -80,6 +81,7 @@ export function OrderHeader({}) {
             worksheet["!cols"] = [
                 { wch: 8 }, // Date
                 { wch: 12 }, // Date
+                { wch: 15 }, // Order #
                 { wch: 15 }, // Order #
                 { wch: 15 }, // PO
                 { wch: 12 }, // Invoice
