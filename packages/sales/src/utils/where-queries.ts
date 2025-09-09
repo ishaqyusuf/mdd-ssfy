@@ -1,16 +1,29 @@
 import { composeQuery } from "@gnd/utils/query-response";
 import { Prisma, QtyControlType } from "../types";
 import { SalesDispatchStatus } from "./constants";
-import { anyDateQuery, dateEquals, fixDbTime } from "@gnd/utils";
+import {
+  anyDateQuery,
+  dateEquals,
+  dateQuery,
+  dateRangeQuery,
+  fixDbTime,
+} from "@gnd/utils";
 import dayjs from "@gnd/utils/dayjs";
 import { SalesQueryParamsSchema } from "../schema";
 
 export function whereSales(query: SalesQueryParamsSchema) {
   const where: Prisma.SalesOrdersWhereInput[] = [];
+  console.log(query);
 
   Object.entries(query).map(([k, v]) => {
     if (v === null) return;
     switch (k as keyof SalesQueryParamsSchema) {
+      case "dateRange":
+        console.log(query.dateRange);
+        where.push({
+          createdAt: dateRangeQuery(query.dateRange),
+        });
+        break;
       case "salesType":
         where.push({
           type: query.salesType,

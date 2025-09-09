@@ -19,6 +19,7 @@ export const searchIcons: Partial<{
     "salesRep.id": "user",
     "dispatch.status": "Export",
     status: "Status",
+    dateRange: "calendar",
 };
 
 export function isSearchKey(k) {

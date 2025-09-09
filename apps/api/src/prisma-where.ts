@@ -4,7 +4,7 @@ import { composeQuery } from "./query-response";
 import type { DispatchQueryParamsSchema } from "./schemas/sales";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import type { EmployeesQueryParams } from "./schemas/hrm";
-import { addSpacesToCamelCase } from "@gnd/utils";
+import { addSpacesToCamelCase, dateRangeQuery } from "@gnd/utils";
 import type { QtyControlType } from "./type";
 import { anyDateQuery, dateEquals, fixDbTime } from "./utils/db";
 import dayjs from "@gnd/utils/dayjs";
@@ -98,6 +98,12 @@ export function whereSales(query: SalesQueryParamsSchema) {
   Object.entries(query).map(([k, v]) => {
     if (v === null) return;
     switch (k as keyof SalesQueryParamsSchema) {
+      case "dateRange":
+        console.log(query.dateRange);
+        where.push({
+          createdAt: dateRangeQuery(query.dateRange),
+        });
+        break;
       case "invoice":
         switch (query.invoice) {
           case "pending":

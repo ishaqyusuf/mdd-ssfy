@@ -239,6 +239,17 @@ export async function lastId(model: any, _default = 0, where?: any) {
     })
   )?.id || _default) as number;
 }
+export function dateRangeQuery(dateRange) {
+  if (!dateRange || !dateRange?.length) return undefined;
+  const [from, to] = dateRange.map((a) => {
+    if (a == "-") return null;
+    return a;
+  });
+  return dateQuery({
+    from,
+    to,
+  })?.createdAt;
+}
 export function dateQuery({
   date,
   from,
