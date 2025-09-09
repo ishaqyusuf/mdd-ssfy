@@ -181,7 +181,6 @@ export const useTableData = ({ filter, route }) => {
             }) ?? [];
         const meta = (data?.pages?.reverse()?.[0] as any)?.meta;
         const { cursor, count } = meta || {};
-        console.log({ meta });
         return {
             data: list,
             resultCount: cursor,

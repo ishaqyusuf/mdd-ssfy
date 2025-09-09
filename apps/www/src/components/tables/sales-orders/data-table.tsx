@@ -22,7 +22,6 @@ export function DataTable() {
         filter: filters,
         route: trpc.sales.index,
     });
-
     const tableScroll = useTableScroll({
         useColumnWidths: true,
         startFromColumn: 2,

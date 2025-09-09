@@ -25,7 +25,7 @@ export function PrintMenuAction({ pdf, data }: Props) {
     function print(params?: SalesPrintProps) {
         printSalesData({
             slugs: ctx.overview?.orderId,
-            mode: type,
+            mode: type as any,
             preview: false,
             ...(params || {}),
         });
