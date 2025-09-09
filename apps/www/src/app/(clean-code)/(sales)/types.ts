@@ -12,12 +12,14 @@ import {
 import { FieldPath } from "react-hook-form";
 import { DykeForm as OldDykeForm } from "@/app/(v2)/(loggedIn)/sales-v2/type";
 
-import type { HousePackageToolMeta, SalesType } from "@sales/types";
+import type { HousePackageToolMeta } from "@sales/types";
 import { GetStepComponent } from "./_common/data-access/step-components.dta";
 import { GetSalesBookForm } from "./_common/use-case/sales-book-form-use-case";
 import { SalesPaymentMethods } from "@sales/constants";
 
-export { HousePackageToolMeta, SalesType };
+export { HousePackageToolMeta };
+
+export type SalesType = "order" | "quote";
 export type SalesPriority = "Low" | "High" | "Medium" | "Non";
 export type PaymentMethods = SalesPaymentMethods;
 export type SquarePaymentMethods = "terminal" | "link";

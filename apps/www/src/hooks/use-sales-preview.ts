@@ -27,7 +27,7 @@ export function useSalesPreview() {
             setParams({
                 salesPreviewSlug: id,
                 salesPreviewType,
-                previewMode: salesPreviewType,
+                previewMode: salesPreviewType as any,
             });
         },
     };
