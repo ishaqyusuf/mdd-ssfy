@@ -13,16 +13,24 @@ import { formatDate } from "@gnd/utils/dayjs";
 import { formatMoney } from "@gnd/utils";
 import { env } from "@/env.mjs";
 import { useSalesOrdersStore } from "@/store/sales-orders";
+import { useMemo } from "react";
 
 export function OrderHeader({}) {
     const { hasFilters, filters } = useOrderFilterParams();
     // const ctx = useExportCookie();
     const { rowSelection } = useSalesOrdersStore();
+    const selectedIds = useMemo(() => {
+        return Object.entries(rowSelection)
+            .filter(([a, b]) => b)
+            .map(([a, b]) => +a);
+    }, [rowSelection]);
     const api = useTRPC();
+
     const { refetch, isPending } = useQuery(
         api.sales.index.queryOptions(
             {
                 ...(filters as any),
+                salesIds: selectedIds.length ? selectedIds : undefined,
             },
             {
                 enabled: false,
@@ -30,7 +38,7 @@ export function OrderHeader({}) {
         ),
     );
     async function exportData() {
-        console.log({ rowSelection });
+        console.log({ selectedIds });
         try {
             toast({
                 title: "Preparing export.",
@@ -150,7 +158,7 @@ export function OrderHeader({}) {
             <OrderSearchFilter />
             <div className="flex-1"></div>
 
-            {!hasFilters || (
+            {(!hasFilters && !selectedIds.length) || (
                 <Button
                     // disabled={isPending}
                     onClick={exportData}
