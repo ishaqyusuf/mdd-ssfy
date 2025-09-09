@@ -33,6 +33,17 @@ export async function getProductReport(
     whereStat(query),
     db.dykeStepProducts
   );
+  const [from, to] = (query.dateRange || []).map((a) => {
+    if (a == "-") return null;
+    return a;
+  });
+  const dateFilter =
+    from || to
+      ? dateQuery({
+          from,
+          to,
+        })
+      : {};
   const data = await db.dykeStepProducts.findMany({
     where,
     // where: {
@@ -66,6 +77,7 @@ export async function getProductReport(
       housePackageTools: {
         where: {
           moldingId: { not: null },
+          ...dateFilter,
         },
         select: {
           // molding: {
@@ -74,6 +86,7 @@ export async function getProductReport(
           //     price: true,
           //   },
           // },
+
           meta: true,
           salesOrderItem: {
             select: {
@@ -89,6 +102,7 @@ export async function getProductReport(
         },
         where: {
           deletedAt: null,
+          ...dateFilter,
         },
       },
       _count: {
@@ -100,6 +114,7 @@ export async function getProductReport(
           // },
           stepForms: {
             where: {
+              ...dateFilter,
               salesOrderItem: {
                 salesOrder: {
                   type: "order",
