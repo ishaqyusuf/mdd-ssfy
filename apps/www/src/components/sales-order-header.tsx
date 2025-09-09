@@ -12,10 +12,12 @@ import { utils, writeFile } from "xlsx";
 import { formatDate } from "@gnd/utils/dayjs";
 import { formatMoney } from "@gnd/utils";
 import { env } from "@/env.mjs";
+import { useSalesOrdersStore } from "@/store/sales-orders";
 
 export function OrderHeader({}) {
     const { hasFilters, filters } = useOrderFilterParams();
     // const ctx = useExportCookie();
+    const { rowSelection } = useSalesOrdersStore();
     const api = useTRPC();
     const { refetch, isPending } = useQuery(
         api.sales.index.queryOptions(
@@ -28,6 +30,7 @@ export function OrderHeader({}) {
         ),
     );
     async function exportData() {
+        console.log({ rowSelection });
         try {
             toast({
                 title: "Preparing export.",
@@ -63,20 +66,77 @@ export function OrderHeader({}) {
                     cellStyles: true,
                 },
             );
+            // auto column widths
             worksheet["!cols"] = [
-                { width: 20 },
-                { width: 20 },
-                { width: 20 },
-                { width: 20 },
-                { width: 20 },
-                { width: 20 },
-                { width: 20 },
-                { width: 20 },
-                { width: 20 },
-                // { width: 20 },
+                { wch: 12 }, // Date
+                { wch: 15 }, // Order #
+                { wch: 15 }, // PO
+                { wch: 12 }, // Invoice
+                { wch: 12 }, // Paid
+                { wch: 12 }, // Pending
+                { wch: 25 }, // Customer
+                { wch: 15 }, // Phone
+                { wch: 30 }, // Address
+                // { wch: 15 }, // ViewOrder
             ];
-            utils.book_append_sheet(workbook, worksheet, worksheetname);
+            // style header row
+            // const range = utils.decode_range(worksheet["!ref"]!);
+            // for (let C = range.s.c; C <= range.e.c; ++C) {
+            //     const cell = worksheet[utils.encode_cell({ r: 0, c: C })];
+            //     if (cell) {
+            //         cell.s = {
+            //             font: { bold: true, color: { rgb: "FFFFFF" } },
+            //             fill: { fgColor: { rgb: "4472C4" } }, // blue header background
+            //             alignment: { horizontal: "center", vertical: "center" },
+            //         };
+            //     }
+            // }
+            // freeze header row
+            worksheet["!freeze"] = { xSplit: 0, ySplit: 1 };
+            // add borders + formatting
+            // for (let R = range.s.r; R <= range.e.r; ++R) {
+            //     for (let C = range.s.c; C <= range.e.c; ++C) {
+            //         const cell = worksheet[utils.encode_cell({ r: R, c: C })];
+            //         if (cell) {
+            //             cell.s = {
+            //                 ...cell.s,
+            //                 border: {
+            //                     top: {
+            //                         style: "thin",
+            //                         color: { rgb: "999999" },
+            //                     },
+            //                     bottom: {
+            //                         style: "thin",
+            //                         color: { rgb: "999999" },
+            //                     },
+            //                     left: {
+            //                         style: "thin",
+            //                         color: { rgb: "999999" },
+            //                     },
+            //                     right: {
+            //                         style: "thin",
+            //                         color: { rgb: "999999" },
+            //                     },
+            //                 },
+            //                 alignment: { vertical: "center" },
+            //             };
+            //         }
+            //     }
+            // }
+            // 🔹 Optional styling (needs xlsx-style or SheetJS Pro)
+            // const range = utils.decode_range(worksheet["!ref"]!);
+            // for (let C = range.s.c; C <= range.e.c; ++C) {
+            //     const cell = worksheet[utils.encode_cell({ r: 0, c: C })];
+            //     if (cell) {
+            //         cell.s = {
+            //             font: { bold: true, color: { rgb: "FFFFFF" } },
+            //             fill: { fgColor: { rgb: "4472C4" } },
+            //             alignment: { horizontal: "center", vertical: "center" },
+            //         };
+            //     }
+            // }
             // Save the workbook as an Excel file
+            utils.book_append_sheet(workbook, worksheet, worksheetname);
             writeFile(workbook, `${title}.xlsx`);
         } catch (error) {
             toast({
