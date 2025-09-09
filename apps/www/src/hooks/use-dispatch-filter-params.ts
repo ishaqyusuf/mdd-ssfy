@@ -18,4 +18,6 @@ export function useDispatchFilterParams() {
         hasFilters: Object.values(filters).some((value) => value !== null),
     };
 }
-export const loadInboundFilterParams = createLoader(dispatchFilterParamsSchema);
+export const loadDispatchFilterParams = createLoader(
+    dispatchFilterParamsSchema,
+);

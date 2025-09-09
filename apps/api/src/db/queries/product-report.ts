@@ -4,6 +4,7 @@ import type { Prisma } from "@gnd/db";
 import { dateQuery, formatMoney, sum, timeLog } from "@gnd/utils";
 import { composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
+import type { HousePackageToolMeta } from "@sales/types";
 
 import { z } from "zod";
 
@@ -62,6 +63,25 @@ export async function getProductReport(
           basePrice: { gt: 0 },
         },
       },
+      housePackageTools: {
+        where: {
+          moldingId: { not: null },
+        },
+        select: {
+          // molding: {
+          //   select: {
+          //     qty: true,
+          //     price: true,
+          //   },
+          // },
+          meta: true,
+          salesOrderItem: {
+            select: {
+              qty: true,
+            },
+          },
+        },
+      },
       salesDoors: {
         select: {
           totalQty: true,
@@ -92,20 +112,47 @@ export async function getProductReport(
     },
   });
   return await response(
-    data.map((d) => ({
-      name: d.name,
-      category: d.step?.title,
-      units: d?.salesDoors?.length
+    data.map((d) => {
+      const isMolding =
+        // ?.filter((a) => a?.molding)
+        d?.housePackageTools?.length;
+      const hpts = d.housePackageTools.map((a) => ({
+        ...a,
+        meta: a.meta as HousePackageToolMeta,
+      }));
+      const units = d?.salesDoors?.length
         ? sum(d?.salesDoors || [], "totalQty")
-        : d?._count.stepForms,
-      revenue: 0,
-      salesPrice: d?.salesDoors?.length
+        : isMolding
+          ? sum(hpts.map((a) => a?.salesOrderItem?.qty))
+          : d?._count.stepForms;
+      const salesPrice = d?.salesDoors?.length
         ? formatMoney(sum(d.salesDoors, "jambSizePrice"))
-        : formatMoney(sum(d.stepForms, "price")),
-      costPrice: formatMoney(sum(d.stepForms, "basePrice")),
-      img: d.img,
-      date: d.createdAt,
-    }))
+        : isMolding
+          ? formatMoney(
+              sum(hpts.map((a) => a.meta?.priceTags?.moulding?.salesPrice)) *
+                units
+            )
+          : formatMoney(sum(d.stepForms, "price"));
+      const costPrice = d?.salesDoors?.length
+        ? formatMoney(sum(d.salesDoors, "jambSizePrice"))
+        : isMolding
+          ? formatMoney(
+              sum(hpts.map((a) => a.meta?.priceTags?.moulding?.basePrice)) *
+                units
+            )
+          : formatMoney(sum(d.stepForms, "basePrice"));
+
+      return {
+        name: d.name,
+        category: d.step?.title,
+        units,
+        revenue: 0,
+        salesPrice,
+        costPrice,
+        img: d.img,
+        date: d.createdAt,
+      };
+    })
   );
 }
 function whereStat(query: ProductReportSchema) {
@@ -208,6 +255,36 @@ function whereStat(query: ProductReportSchema) {
       step: {
         title: query.reportCategory,
       },
+    });
+  }
+  if (query.dateRange) {
+    const [from, to] = query.dateRange.map((a) => {
+      if (a == "-") return null;
+      return a;
+    });
+    where.push({
+      OR: [
+        {
+          stepForms: {
+            some: {
+              ...dateQuery({
+                from,
+                to,
+              }),
+            },
+          },
+        },
+        {
+          housePackageTools: {
+            some: {
+              ...dateQuery({
+                from,
+                to,
+              }),
+            },
+          },
+        },
+      ],
     });
   }
   if (query.q) {

@@ -6,6 +6,7 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { isSearchKey } from "./search-utils";
+import { PageFilterData } from "@api/type";
 
 const listVariant = {
     hidden: { y: 10, opacity: 0 },
@@ -23,7 +24,13 @@ const itemVariant = {
     hidden: { y: 10, opacity: 0 },
     show: { y: 0, opacity: 1 },
 };
-export function FilterList({ loading, filterList, filters, onRemove }) {
+interface Props {
+    loading?: boolean;
+    filterList: PageFilterData[];
+    filters;
+    onRemove?;
+}
+export function FilterList({ loading, filterList, filters, onRemove }: Props) {
     const handleOnRemove = (key: string) => {
         if (key === "start" || key === "end") {
             onRemove({ start: null, end: null });
@@ -172,10 +179,13 @@ export function FilterList({ loading, filterList, filters, onRemove }) {
                     </motion.li>
                 </div>
             )}
+            {/* {!loading && filterList.map(f => )} */}
+
             {!loading &&
                 Object.entries(filters)
                     .filter(([key, value]) => value !== null && key !== "end")
                     .map(([key, value]) => {
+                        const f = filterList.find((f) => f.value === key);
                         return (
                             <motion.li key={key} variants={itemVariant}>
                                 <Button
@@ -184,10 +194,28 @@ export function FilterList({ loading, filterList, filters, onRemove }) {
                                 >
                                     <Icons.Clear className="w-0 scale-0 transition-all group-hover:w-4 group-hover:scale-100" />
                                     <span>
-                                        {renderFilter({
-                                            key,
-                                            value,
-                                        })}
+                                        {f?.type == "date-range" ? (
+                                            <div className="inline-flex gap-1">
+                                                {(value as any)
+                                                    // ?.split(",")
+                                                    .map((a, ai) => (
+                                                        <span
+                                                            key={ai}
+                                                            className=""
+                                                        >
+                                                            {a}
+                                                            {ai == 0
+                                                                ? " - "
+                                                                : ""}
+                                                        </span>
+                                                    ))}
+                                            </div>
+                                        ) : (
+                                            renderFilter({
+                                                key,
+                                                value,
+                                            })
+                                        )}
                                     </span>
                                 </Button>
                             </motion.li>

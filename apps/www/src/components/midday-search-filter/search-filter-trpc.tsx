@@ -116,6 +116,11 @@ export function SearchFilterTRPC({
         ).length > 0;
 
     const __filters = (filterList || [])?.filter((a) => !isSearchKey(a.value));
+    const dateValue = (filter, index) => {
+        const f = filters?.[filter.value];
+        if (Array.isArray(f) && f?.length > index) return new Date(f[index]);
+        return undefined;
+    };
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <div className="flex items-center space-x-4">
@@ -198,24 +203,8 @@ export function SearchFilterTRPC({
                                             mode="range"
                                             initialFocus
                                             selected={{
-                                                from: filters?.[f.value]?.split(
-                                                    ",",
-                                                )?.[0]
-                                                    ? new Date(
-                                                          filters?.[
-                                                              f.value
-                                                          ]?.split(",")?.[0],
-                                                      )
-                                                    : undefined,
-                                                to: filters?.[f.value]?.split(
-                                                    ",",
-                                                )?.[1]
-                                                    ? new Date(
-                                                          filters?.[
-                                                              f.value
-                                                          ]?.split(",")?.[1],
-                                                      )
-                                                    : undefined,
+                                                from: dateValue(f, 0),
+                                                to: dateValue(f, 1),
                                             }}
                                             onSelect={(range) => {
                                                 let value = [
@@ -235,9 +224,9 @@ export function SearchFilterTRPC({
                                                           })
                                                         : "-",
                                                 ];
-
+                                                console.log([value, f]);
                                                 setFilters({
-                                                    [f.value]: value.join(","),
+                                                    [f.value]: value, //.join(","),
                                                 });
                                             }}
                                         />

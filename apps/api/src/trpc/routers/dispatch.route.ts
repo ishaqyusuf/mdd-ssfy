@@ -30,7 +30,7 @@ export const dispatchRouters = createTRPCRouter({
   assignedDispatch: publicProcedure
     .input(dispatchQueryParamsSchema)
     .query(async (props) => {
-      props.input.driversId = [props.ctx?.userId];
+      props.input.driversId = [props.ctx?.userId!];
       return getDispatches(props.ctx, props.input);
     }),
   deletePackingItem: publicProcedure

@@ -12,11 +12,12 @@ import {
 import { FieldPath } from "react-hook-form";
 import { DykeForm as OldDykeForm } from "@/app/(v2)/(loggedIn)/sales-v2/type";
 
+import type { HousePackageToolMeta, SalesType } from "@sales/types";
 import { GetStepComponent } from "./_common/data-access/step-components.dta";
 import { GetSalesBookForm } from "./_common/use-case/sales-book-form-use-case";
 import { SalesPaymentMethods } from "@sales/constants";
 
-export type SalesType = "order" | "quote";
+export { HousePackageToolMeta, SalesType };
 export type SalesPriority = "Low" | "High" | "Medium" | "Non";
 export type PaymentMethods = SalesPaymentMethods;
 export type SquarePaymentMethods = "terminal" | "link";
@@ -249,21 +250,21 @@ export interface DykeSalesDoorMeta {
         production?: boolean;
     };
 }
-export interface HousePackageToolMeta {
-    priceTags?: {
-        moulding?: {
-            salesPrice?: number | undefined;
-            price?: number | undefined;
-            basePrice?: number | undefined;
-            addon?: number | undefined;
-            overridePrice?: number | undefined;
-            unitLabor?: number;
-            laborQty?: number;
-        };
-        components?: number | undefined;
-        doorSizePriceTag?: { [size in string]: number };
-    };
-}
+// export type HousePackageToolMeta {
+//     priceTags?: {
+//         moulding?: {
+//             salesPrice?: number | undefined;
+//             price?: number | undefined;
+//             basePrice?: number | undefined;
+//             addon?: number | undefined;
+//             overridePrice?: number | undefined;
+//             unitLabor?: number;
+//             laborQty?: number;
+//         };
+//         components?: number | undefined;
+//         doorSizePriceTag?: { [size in string]: number };
+//     };
+// }
 export interface StepComponentMeta {
     stepSequence?: { id?: number }[];
     deleted?: { [uid in string]: boolean };

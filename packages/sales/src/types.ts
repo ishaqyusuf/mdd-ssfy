@@ -272,3 +272,19 @@ export type TypedSalesStat = Omit<SalesStat, "status" | "type" | "id"> & {
   id?: number;
   status?: SalesStatStatus;
 };
+
+export interface HousePackageToolMeta {
+  priceTags?: {
+    moulding?: {
+      salesPrice?: number | undefined;
+      price?: number | undefined;
+      basePrice?: number | undefined;
+      addon?: number | undefined;
+      overridePrice?: number | undefined;
+      unitLabor?: number;
+      laborQty?: number;
+    };
+    components?: number | undefined;
+    doorSizePriceTag?: { [size in string]: number };
+  };
+}
