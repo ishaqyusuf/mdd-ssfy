@@ -7,7 +7,7 @@
 //   QtyControlType,
 //   SalesStatStatus,
 // } from "@api/type";
-import type { Prisma, SalesStat } from "@gnd/db";
+import type { Db, Prisma, SalesStat } from "@gnd/db";
 import { sumArrayKeys } from "@gnd/utils";
 import dayjs from "@gnd/utils/dayjs";
 import { padStart } from "lodash";
@@ -731,7 +731,18 @@ export function statToKeyValue(dataStats: SalesStat[], reset = false) {
   });
   return k;
 }
-export async function generateSalesSlug(type: SalesType, db, salesRep?) {
+export async function generateHistorySlug(db: Db, slug) {
+  const count = await db.salesOrders.count({
+    where: {
+      deletedAt: {},
+      orderId: {
+        startsWith: `${slug}-hx`,
+      },
+    },
+  });
+  return `${slug}-hx${(count + 1)?.toString()?.padStart(2, "0")}`;
+}
+export async function generateSalesSlug(type: SalesType, db, salesRep) {
   let orderId = null;
   while (!orderId) {
     const usr = salesRep

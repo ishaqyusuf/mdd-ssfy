@@ -16,13 +16,15 @@ import {
     saveSalesSettingData,
 } from "../../../../../actions/sales-settings";
 import { getPricingListDta } from "../data-access/sales-pricing-dta";
-import { copySalesDta } from "../data-access/save-sales/copy-sales-dta";
+
 import { saveSalesFormDta } from "../data-access/save-sales/index.dta";
 import { SaveQuery } from "../data-access/save-sales/save-sales-class";
 import { composeSalesPricing } from "../utils/sales-pricing-utils";
 import { composeStepRouting } from "../utils/sales-step-utils";
 import { getSalesLaborCost } from "@/actions/sales-labor-cost";
-
+import { copySales } from "@sales/copy-sales";
+import { authUser } from "@/app/(v1)/_actions/utils";
+import { prisma } from "@/db";
 export type GetSalesBookForm = AsyncFnType<typeof getSalesBookFormUseCase>;
 export async function getSalesBookFormUseCase(data: GetSalesBookFormDataProps) {
     const result = await getTransformedSalesBookFormDataDta(data);
@@ -74,9 +76,14 @@ export async function moveOrderUseCase(orderId, to) {
     return resp;
 }
 export async function copySalesUseCase(orderId, as: SalesType) {
-    const resp2 = await copySalesDta(orderId, as);
+    const resp2 = await copySales({
+        db: prisma,
+        as,
+        salesUid: orderId,
+        author: await authUser(),
+    });
+
     const link = resp2?.isDyke ? `/sales-book/edit-${as}/${resp2.slug}` : ``;
-    // createnote
     return {
         error: resp2?.error,
         link,

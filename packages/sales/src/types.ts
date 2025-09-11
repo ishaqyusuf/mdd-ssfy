@@ -115,7 +115,12 @@ export type SalesPaymentOptions =
   | "Check"
   | "COD"
   | "Zelle";
-export type SalesType = "order" | "quote" | "store-order";
+export type SalesType =
+  | "order"
+  | "quote"
+  | "store-order"
+  | "order-history"
+  | "quote-history";
 export type SalesSettingsMeta = {
   route: {
     [primaryRouteUid in string]: {
