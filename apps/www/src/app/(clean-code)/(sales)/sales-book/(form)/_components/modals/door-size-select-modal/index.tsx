@@ -48,6 +48,7 @@ import { DoorSizeSelectContext, useCtx, useInitContext } from "./ctx";
 import { AuthGuard } from "@/components/auth-guard";
 import { _role } from "@/components/sidebar/links";
 import { doorSwings } from "@/utils/constants";
+import { QuantityInput } from "@gnd/ui/quantity-input";
 
 interface Props {
     cls: ComponentHelperClass;
@@ -188,6 +189,9 @@ function Row({ variant }) {
             {config.noHandle ? (
                 <TableCell className="w-28">
                     <FormInput
+                        qtyInputProps={{
+                            min: 0,
+                        }}
                         type="number"
                         control={ctx.form.control}
                         size="sm"
@@ -199,6 +203,9 @@ function Row({ variant }) {
                     <TableCell className="w-28">
                         <FormInput
                             type="number"
+                            qtyInputProps={{
+                                min: 0,
+                            }}
                             control={ctx.form.control}
                             size="sm"
                             name={`selections.${variant.path}.qty.lh`}
@@ -206,6 +213,9 @@ function Row({ variant }) {
                     </TableCell>
                     <TableCell className="w-28">
                         <FormInput
+                            qtyInputProps={{
+                                min: 0,
+                            }}
                             type="number"
                             control={ctx.form.control}
                             size="sm"

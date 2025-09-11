@@ -97,7 +97,6 @@ export function LineSwitch({
     valueChanged,
 }: LineInputProps) {
     const value = cls.dotGetGroupItemFormValue(lineUid, name);
-
     return (
         <>
             <Switch
