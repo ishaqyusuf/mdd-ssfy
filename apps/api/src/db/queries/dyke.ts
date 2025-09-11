@@ -19,6 +19,7 @@ export async function getDykeStep(ctx: TRPCContext, stepId) {
   };
 }
 export async function getStepProducts(ctx: TRPCContext, dykeStepId) {
+  // await ctx.db.squarePaymentOrders.
   const products = await ctx.db.dykeStepProducts.findMany({
     where: {
       dykeStepId,
@@ -48,7 +49,7 @@ export async function getStepPricings(ctx: TRPCContext, dykeStepId) {
 }
 export async function getProductsByUids(
   ctx: TRPCContext,
-  productUids: string[],
+  productUids: string[]
 ) {
   if (!productUids.length) return [];
   const products = await ctx.db.dykeStepProducts.findMany({

@@ -1,4 +1,3 @@
-import { useRouter } from "next/navigation";
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import { __revalidatePath } from "@/app/(v1)/_actions/_revalidate";
 import { Menu } from "@/components/(clean-code)/menu";

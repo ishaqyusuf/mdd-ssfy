@@ -1,7 +1,7 @@
 import { colorsObject } from "./colors";
 import dayjs from "./dayjs";
 import { hash } from "bcrypt-ts";
-
+import util from "util";
 export const devMode = process.env.NODE_ENV != "production";
 export function dbConnect(id) {
   if (!id) return undefined as any;
@@ -376,6 +376,20 @@ export async function rndTimeout() {
 export function timeLog(...data) {
   console.log("");
   console.log(`${new Date().toISOString()}`);
-  console.log(data);
+  console.log(util.inspect(data, { colors: true, depth: null }));
+  // console.log(data);
   console.log("---");
+}
+export function consoleLog(title = "Log", ...data) {
+  const now = new Date().toISOString();
+  const divider = "═".repeat(40);
+
+  console.log("");
+  console.log(`\x1b[36m${divider}\x1b[0m`); // cyan divider
+  console.log(`\x1b[33m📅 Time:\x1b[0m ${now}`);
+  console.log(`\x1b[35m📌 Section:\x1b[0m ${title}`);
+  console.log(`\x1b[36m${"-".repeat(40)}\x1b[0m`);
+  console.log(util.inspect(data, { colors: true, depth: null }));
+  console.log(`\x1b[36m${divider}\x1b[0m`);
+  console.log("");
 }

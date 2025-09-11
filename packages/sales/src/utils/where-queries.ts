@@ -66,11 +66,11 @@ export function whereSales(query: SalesQueryParamsSchema) {
     where.push({
       deletedAt: anyDateQuery(),
     });
-  const q = query.q;
-  if (q) {
-    const searchQ = searchSales(q);
-    if (searchQ) where.push(searchQ);
-  }
+  // const q = query.q;
+  // if (q) {
+  //   const searchQ = searchSales(q);
+  //   if (searchQ) where.push(searchQ);
+  // }
   if (query["dealer.id"])
     where.push({
       customer: {
@@ -570,13 +570,26 @@ function searchSales(params): Prisma.SalesOrdersWhereInput | null {
             {
               salesDoors: {
                 some: {
-                  dimension: parsedQ.size
-                    ? {
-                        contains: parsedQ.size,
-                      }
-                    : undefined,
+                  OR: [
+                    {
+                      stepProduct: {
+                        name: {
+                          contains: parsedQ.otherparams,
+                        },
+                      },
+                    },
+                    {
+                      dimension: parsedQ.size
+                        ? {
+                            contains: parsedQ.size,
+                          }
+                        : undefined,
+                    },
+                  ],
                 },
               },
+            },
+            {
               housePackageTool: {
                 OR: [
                   {

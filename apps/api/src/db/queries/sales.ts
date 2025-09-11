@@ -27,8 +27,15 @@ import {
   itemItemControlUid,
   mouldingItemControlUid,
 } from "@api/utils/sales-control";
-import { formatCurrency, formatMoney, sum } from "@gnd/utils";
+import {
+  consoleLog,
+  formatCurrency,
+  formatMoney,
+  sum,
+  timeLog,
+} from "@gnd/utils";
 import { calculateSalesDueAmount } from "@sales/sales-transaction";
+
 export async function getSales(
   ctx: TRPCContext,
   query: SalesQueryParamsSchema
@@ -42,6 +49,7 @@ export async function getSales(
     db.salesOrders
   );
 
+  consoleLog("...", whereSales(query));
   const data = await db.salesOrders.findMany({
     where,
     ...searchMeta,

@@ -76,7 +76,7 @@ export async function moveOrderUseCase(orderId, to) {
 export async function copySalesUseCase(orderId, as: SalesType) {
     const resp2 = await copySalesDta(orderId, as);
     const link = resp2?.isDyke ? `/sales-book/edit-${as}/${resp2.slug}` : ``;
-
+    // createnote
     return {
         error: resp2?.error,
         link,

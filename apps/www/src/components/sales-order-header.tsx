@@ -39,7 +39,6 @@ export function OrderHeader({}) {
         ),
     );
     async function exportData() {
-        console.log({ selectedIds });
         try {
             toast({
                 title: "Preparing export.",
