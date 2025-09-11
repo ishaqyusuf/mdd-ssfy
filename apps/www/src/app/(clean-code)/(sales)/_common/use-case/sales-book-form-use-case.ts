@@ -25,6 +25,7 @@ import { getSalesLaborCost } from "@/actions/sales-labor-cost";
 import { copySales } from "@sales/copy-sales";
 import { authUser } from "@/app/(v1)/_actions/utils";
 import { prisma } from "@/db";
+import { createNoteAction } from "@/modules/notes/actions/create-note-action";
 export type GetSalesBookForm = AsyncFnType<typeof getSalesBookFormUseCase>;
 export async function getSalesBookFormUseCase(data: GetSalesBookFormDataProps) {
     const result = await getTransformedSalesBookFormDataDta(data);
@@ -82,8 +83,19 @@ export async function copySalesUseCase(orderId, as: SalesType) {
         salesUid: orderId,
         author: await authUser(),
     });
-
+    await createNoteAction({
+        note: `Copied from ${orderId}`,
+        headline: "Copy Action",
+        type: "general",
+        tags: [
+            {
+                tagName: "salesId",
+                tagValue: String(resp2?.id),
+            },
+        ],
+    });
     const link = resp2?.isDyke ? `/sales-book/edit-${as}/${resp2.slug}` : ``;
+
     return {
         error: resp2?.error,
         link,

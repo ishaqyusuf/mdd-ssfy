@@ -3,6 +3,7 @@ import {
   createSalesDispatchItemsSchema,
   createSalesDispatchSchema,
 } from "@gnd/utils/sales";
+import { salesType } from "@gnd/utils/constants";
 // import { salesQueryParamsSchema } from "@api/schemas/sales";
 
 export const taskNames = [
@@ -38,6 +39,11 @@ export const taskNames = [
   "reset-sales-control",
 ] as const;
 export type TaskName = (typeof taskNames)[number];
+
+const author = z.object({
+  id: z.number(),
+  name: z.string(),
+});
 export const createSalesDispatchSchemaTask = z.object({
   delivery: createSalesDispatchSchema,
   itemData: createSalesDispatchItemsSchema,
@@ -46,9 +52,9 @@ export type CreateSalesDispatchSchemaTask = z.infer<
   typeof createSalesDispatchSchemaTask
 >;
 export const createSalesHistorySchemaTask = z.object({
-  authorName: z.string(),
-  salesId: z.number(),
-  salesIncludeData: z.any(),
+  author: author,
+  salesNo: z.string(),
+  salesType: z.enum(salesType),
 });
 export type CreateSalesHistorySchemaTask = z.infer<
   typeof createSalesHistorySchemaTask

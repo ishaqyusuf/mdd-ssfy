@@ -29,7 +29,7 @@ export async function copySales(props: Props) {
     slug?;
     isDyke?: boolean;
   } = {};
-  const isHx = props.as?.endsWith("history");
+  const isHx = props.as?.endsWith("-hx");
   const salesRep = isHx ? sale?.salesRep! : props.author!;
   const newSales = await db
     .$transaction((async (tx: typeof db) => {

@@ -119,8 +119,8 @@ export type SalesType =
   | "order"
   | "quote"
   | "store-order"
-  | "order-history"
-  | "quote-history";
+  | "order-hx"
+  | "quote-hx";
 export type SalesSettingsMeta = {
   route: {
     [primaryRouteUid in string]: {

@@ -998,6 +998,21 @@ model DykeCategories {
     products  DykeProducts[]
 }
 
+model DykeProductsMetric {
+    id Int @unique @default(autoincrement())
+
+    productId      Int              @unique
+    product        DykeStepProducts @relation(fields: [productId], references: [id])
+    selectionCount Float?
+    qty            Float?
+    salesPrice     Float?
+    costPrice      Float?
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+}
+
 model DykeStepProducts {
     id                Int                 @unique @default(autoincrement())
     uid               String?             @unique
@@ -1022,6 +1037,7 @@ model DykeStepProducts {
     step              DykeSteps           @relation(fields: [dykeStepId], references: [id])
     stepForms         DykeStepForm[]
     sorts             ProductSortIndex[]
+    metric            DykeProductsMetric?
 
     @@index([doorId])
     @@index([dykeStepId])
