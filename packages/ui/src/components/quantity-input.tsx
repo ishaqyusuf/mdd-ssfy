@@ -59,7 +59,12 @@ export function QuantityInput({
     >
       <button
         aria-label="Decrease"
-        className="flex items-center pr-[.325em]"
+        // className="flex items-center pr-[.325em]"
+        className={cn(
+          "flex items-center rounded-full justify-center text-white border bg-muted-foreground spl-[.325em] size-6",
+          value <= max ||
+            "hover:border-muted-foreground hover:bg-muted hover:text-secondary-foreground"
+        )}
         disabled={value <= min}
         onPointerDown={handlePointerDown(-1)}
         type="button"
@@ -75,7 +80,7 @@ export function QuantityInput({
       <div className="relative grid items-center justify-items-center text-center">
         <input
           ref={inputRef}
-          className="flex w-8 text-center transition-colors file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 p-0 border-0 h-6 text-xs !bg-transparent border-b border-transparent focus:border-border [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+          className="flex w-8 text-center transition-colors file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 p-0 border-0 h-6 text-xs !bg-transparent border-b border-transparents focus:border-border [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
           style={{ fontKerning: "none" }}
           type="number"
           min={min}
@@ -91,7 +96,11 @@ export function QuantityInput({
       </div>
       <button
         aria-label="Increase"
-        className="flex items-center pl-[.325em]"
+        className={cn(
+          "flex items-center rounded-full justify-center text-white border bg-muted-foreground spl-[.325em] size-6",
+          value >= max ||
+            "hover:border-muted-foreground hover:bg-muted hover:text-secondary-foreground"
+        )}
         disabled={value >= max}
         onPointerDown={handlePointerDown(1)}
         type="button"

@@ -236,7 +236,12 @@ function DoorSizeRowContent() {
 
     return (
         <>
-            <TableRow className={cn(!sizeForm?.selected && "hidden")}>
+            <TableRow
+                className={cn(
+                    !sizeForm?.selected && "hidden",
+                    "hover:bg-transparent",
+                )}
+            >
                 <TableCell className="font-mono">{sn}.</TableCell>
                 <TableCell className="font-mono text-sm font-semibold">
                     {size.size}
