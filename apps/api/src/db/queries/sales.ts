@@ -49,7 +49,6 @@ export async function getSales(
     db.salesOrders
   );
 
-  consoleLog("...", whereSales(query));
   const data = await db.salesOrders.findMany({
     where,
     ...searchMeta,

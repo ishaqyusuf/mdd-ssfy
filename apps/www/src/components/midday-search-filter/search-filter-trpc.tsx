@@ -27,19 +27,27 @@ import { useSearchFilterContext } from "@/hooks/use-search-filter";
 import { Icon } from "@gnd/ui/custom/icons";
 import { PageFilterData } from "@api/type";
 import { Calendar } from "@gnd/ui/calendar";
-
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from "@gnd/ui/hover-card";
+import { Button } from "@gnd/ui/button";
+import { HelpCircle, SearchX } from "lucide-react";
 interface Props {
     // filters;
     // setFilters;
     defaultSearch?;
     placeholder?;
     filterList?: PageFilterData[];
+    SearchTips?;
 }
 
 export function SearchFilterTRPC({
     placeholder,
     defaultSearch = {},
     filterList,
+    SearchTips,
 }: Props) {
     const [prompt, setPrompt] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
@@ -143,6 +151,7 @@ export function SearchFilterTRPC({
                         autoCorrect="off"
                         spellCheck="false"
                     />
+                    {!SearchTips || <SearchTip>{SearchTips}</SearchTip>}
                     <DropdownMenuTrigger
                         // className={cn(__filters.length || "hidden")}
                         asChild
@@ -271,5 +280,28 @@ export function SearchFilterTRPC({
                 ))}
             </DropdownMenuContent>
         </DropdownMenu>
+    );
+}
+
+function SearchTip({ children }) {
+    return (
+        <HoverCard>
+            <HoverCardTrigger asChild>
+                <button
+                    type="button"
+                    className="absolute opacity-50 transition-opacity duration-300 hover:opacity-100 right-10 top-[10px] z-10"
+                >
+                    <HelpCircle className="size-4" />
+                </button>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-80">
+                <div className="flex justify-between gap-4">
+                    <div className="space-y-1">
+                        <h4 className="text-sm font-semibold">Search tips</h4>
+                        <div className="text-sm">{children}</div>
+                    </div>
+                </div>
+            </HoverCardContent>
+        </HoverCard>
     );
 }

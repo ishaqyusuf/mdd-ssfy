@@ -270,7 +270,7 @@ function DoorSizeRowContent() {
                             valueChanged={valueChanged}
                             mask
                             qtyInputProps={{
-                                min: 1,
+                                min: 0,
                             }}
                         />
                     </TableCell>
@@ -285,7 +285,7 @@ function DoorSizeRowContent() {
                                 valueChanged={valueChanged}
                                 mask
                                 qtyInputProps={{
-                                    min: 1,
+                                    min: 0,
                                 }}
                             />
                         </TableCell>

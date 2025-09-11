@@ -218,6 +218,5 @@ export async function copySalesDta(orderId, as) {
                 error: error.message,
             };
         });
-
     return response;
 }
