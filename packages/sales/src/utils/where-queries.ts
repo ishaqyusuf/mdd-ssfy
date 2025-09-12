@@ -7,6 +7,7 @@ import {
   dateQuery,
   dateRangeQuery,
   fixDbTime,
+  transformFilterDateToQuery,
 } from "@gnd/utils";
 import dayjs from "@gnd/utils/dayjs";
 import { SalesQueryParamsSchema } from "../schema";
@@ -20,7 +21,7 @@ export function whereSales(query: SalesQueryParamsSchema) {
       case "dateRange":
         console.log(query.dateRange);
         where.push({
-          createdAt: dateRangeQuery(query.dateRange),
+          createdAt: transformFilterDateToQuery(query.dateRange!),
         });
         break;
       case "salesType":

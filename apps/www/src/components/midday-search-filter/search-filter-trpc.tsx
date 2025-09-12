@@ -33,7 +33,11 @@ import {
     HoverCardTrigger,
 } from "@gnd/ui/hover-card";
 import { Button } from "@gnd/ui/button";
-import { HelpCircle, SearchX } from "lucide-react";
+import { CheckCheck, CheckCircle, HelpCircle, SearchX } from "lucide-react";
+import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
+import { DaysFilters, daysFilters } from "@gnd/utils/constants";
+import { SuperAdminGuard } from "../auth-guard";
+import { transformFilterDateToQuery } from "@gnd/utils";
 interface Props {
     // filters;
     // setFilters;
@@ -124,11 +128,7 @@ export function SearchFilterTRPC({
         ).length > 0;
 
     const __filters = (filterList || [])?.filter((a) => !isSearchKey(a.value));
-    const dateValue = (filter, index) => {
-        const f = filters?.[filter.value];
-        if (Array.isArray(f) && f?.length > index) return new Date(f[index]);
-        return undefined;
-    };
+
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <div className="flex items-center space-x-4">
@@ -208,37 +208,7 @@ export function SearchFilterTRPC({
                                     className="p-0"
                                 >
                                     {f.type == "date-range" ? (
-                                        <Calendar
-                                            mode="range"
-                                            initialFocus
-                                            selected={{
-                                                from: dateValue(f, 0),
-                                                to: dateValue(f, 1),
-                                            }}
-                                            onSelect={(range) => {
-                                                let value = [
-                                                    range?.from
-                                                        ? formatISO(
-                                                              range.from,
-                                                              {
-                                                                  representation:
-                                                                      "date",
-                                                              },
-                                                          )
-                                                        : "-",
-                                                    range?.to
-                                                        ? formatISO(range.to, {
-                                                              representation:
-                                                                  "date",
-                                                          })
-                                                        : "-",
-                                                ];
-                                                console.log([value, f]);
-                                                setFilters({
-                                                    [f.value]: value, //.join(","),
-                                                });
-                                            }}
-                                        />
+                                        <CalendarFilter filter={f} />
                                     ) : f.options?.length > 20 ? (
                                         <>
                                             <SelectTag
@@ -282,7 +252,106 @@ export function SearchFilterTRPC({
         </DropdownMenu>
     );
 }
+interface CalendarFilterProps {
+    filter: PageFilterData;
+}
+function CalendarFilter({ filter }: CalendarFilterProps) {
+    const {
+        isFocused,
+        isOpen,
+        setIsOpen,
+        shouldFetch,
+        filters,
+        setFilters,
+        optionSelected,
+    } = useSearchFilterContext();
+    const isCurrentFilter = (_) => {
+        const f = filters?.[filter.value];
+        if (Array.isArray(f)) return _ === f?.[0];
 
+        return false;
+    };
+    const dateValue = (filter, index) => {
+        const f = filters?.[filter.value];
+        if (Array.isArray(f) && f?.length > index) {
+            const dates = transformFilterDateToQuery(f);
+            const dv = dates[index];
+            if (index > 0)
+                switch (f?.[0] as DaysFilters) {
+                    case "today":
+                    case "tomorrow":
+                    case "yesterday":
+                        return undefined;
+                        break;
+                }
+            return dv ? new Date(dv) : undefined;
+        }
+        return undefined;
+    };
+    return (
+        <div className="flex">
+            <SuperAdminGuard>
+                <Table className="">
+                    <TableBody>
+                        {daysFilters.map((df) => (
+                            <TableRow
+                                onClick={(e) => {
+                                    setFilters({
+                                        [filter.value]: [df],
+                                    });
+                                }}
+                                key={df}
+                            >
+                                <TableCell
+                                    className={cn(
+                                        "capitalize flex gap-4 pr-12 cursor-pointer items-center",
+                                        isCurrentFilter(df) && "font-semibold",
+                                    )}
+                                >
+                                    <CheckCircle
+                                        className={cn(
+                                            "size-3",
+                                            !isCurrentFilter(df)
+                                                ? "opacity-20"
+                                                : "",
+                                        )}
+                                    />
+                                    {df}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </SuperAdminGuard>
+            <Calendar
+                mode="range"
+                initialFocus
+                selected={{
+                    from: dateValue(filter, 0),
+                    to: dateValue(filter, 1),
+                }}
+                onSelect={(range) => {
+                    let value = [
+                        range?.from
+                            ? formatISO(range.from, {
+                                  representation: "date",
+                              })
+                            : "-",
+                        range?.to
+                            ? formatISO(range.to, {
+                                  representation: "date",
+                              })
+                            : "-",
+                    ];
+                    console.log([value, filter]);
+                    setFilters({
+                        [filter.value]: value, //.join(","),
+                    });
+                }}
+            />
+        </div>
+    );
+}
 function SearchTip({ children }) {
     return (
         <HoverCard>

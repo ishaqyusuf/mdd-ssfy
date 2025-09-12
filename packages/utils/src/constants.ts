@@ -238,3 +238,19 @@ export const SALES_DISPATCH_FILTER_OPTIONS = [
   "late",
   "backorder",
 ] as const;
+
+export const daysFilters = [
+  "yesterday",
+  "today",
+  // "tomorrow",
+  "this week",
+  "last week",
+  // 'next week',
+  "this month",
+  "last month",
+  "last 2 month",
+  "last 6 month",
+  // "this year",
+  // "last year",
+] as const;
+export type DaysFilters = (typeof daysFilters)[number];
