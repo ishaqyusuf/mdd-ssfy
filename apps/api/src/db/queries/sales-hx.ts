@@ -15,7 +15,7 @@ export async function getSalesHx(ctx: TRPCContext, data: GetSalesHx) {
         {
           tags: {
             some: {
-              tagName: "salesId" as NoteTagNames,
+              tagName: "salesNo" as NoteTagNames,
               tagValue: {
                 startsWith: `${data.salesNo}-hx`,
                 // contains: "05349PC-hx01",
