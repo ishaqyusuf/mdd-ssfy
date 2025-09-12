@@ -10,7 +10,6 @@ import {
 } from "@gnd/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
-import { Footer } from "./footer";
 import { useSalesOverview } from "./hook";
 import { salesOverviewStore, SalesTabs, salesTabs } from "./store";
 import { ProductionNoteTab } from "./tabs/prod-note-tab";
@@ -160,11 +159,6 @@ function PrimaryTab({}) {
                     <TransactionHistoryTab />
                 </TabContent>
             </Modal.ScrollArea>
-            {store.showFooter && (
-                <Modal.Footer>
-                    <Footer />
-                </Modal.Footer>
-            )}
         </>
     );
 }

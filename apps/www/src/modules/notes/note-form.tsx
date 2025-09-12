@@ -6,10 +6,8 @@ import FormSelect from "@/components/common/controls/form-select";
 import { useEnterSubmit } from "@/hooks/use-enter-submit";
 import { useForm, useFormContext } from "react-hook-form";
 import { toast } from "sonner";
-
 import { Button } from "@gnd/ui/button";
 import { Form } from "@gnd/ui/form";
-
 import { createNoteAction } from "./actions/create-note-action";
 import { getNoteSuggestionsAction } from "./actions/get-note-suggestions";
 import { useNote } from "./context";
