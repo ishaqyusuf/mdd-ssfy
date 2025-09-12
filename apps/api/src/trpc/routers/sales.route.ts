@@ -29,6 +29,7 @@ import {
   getProductReport,
   productReportSchema,
 } from "@api/db/queries/product-report";
+import { getSalesHx, getSalesHxSchema } from "@api/db/queries/sales-hx";
 export const salesRouter = createTRPCRouter({
   createStep: publicProcedure
     .input(
@@ -65,6 +66,9 @@ export const salesRouter = createTRPCRouter({
       input.workerId = props.ctx.userId;
       return getSalesProductions(props.ctx.db, input);
     }),
+  getSalesHx: publicProcedure.input(getSalesHxSchema).query(async (props) => {
+    return getSalesHx(props.ctx, props.input);
+  }),
   getSaleOverview: publicProcedure
     .input(salesQueryParamsSchema)
     .query(async (props) => {

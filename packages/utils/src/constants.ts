@@ -21,6 +21,7 @@ export const noteTagNames = [
   "type",
   "attachment",
   "signature",
+  "activity",
 ] as const;
 export type NoteTagNames = (typeof noteTagNames)[number];
 export const noteTypes = [
@@ -30,6 +31,7 @@ export const noteTypes = [
   "production",
   "dispatch",
   "inbound",
+  "activity",
 ] as const;
 export type NoteTagTypes = (typeof noteTypes)[number];
 export const noteStatus = ["public", "private"] as const;

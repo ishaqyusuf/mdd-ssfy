@@ -39,13 +39,14 @@ import { useSticky } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/u
 import { MenuItemSalesMove } from "@/components/menu-item-sales-move";
 import { MenuItemSalesCopy } from "@/components/menu-item-sales-copy";
 import { MenuItemSalesActions } from "@/components/menu-item-sales-actions";
+import { SalesHistory } from "@/components/sales-hx";
 
 export function SalesMetaForm({}) {
     const zus = useFormDataStore();
     const md = zus.metaData;
     const tabs = [
         "summary",
-        "take off",
+        "history",
         // "transactions",
         // "customer info",
         // , "customer"
@@ -125,8 +126,8 @@ export function SalesMetaForm({}) {
                 </div>
                 {tab == "summary" ? (
                     <SummaryTab />
-                ) : tab == "take off" ? (
-                    <TakeOffForm salesId={md?.id} />
+                ) : tab == "history" ? (
+                    <SalesHistory salesId={md?.salesId} />
                 ) : (
                     <></>
                 )}
