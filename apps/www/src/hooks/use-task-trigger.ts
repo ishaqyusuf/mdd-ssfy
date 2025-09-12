@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
 import { triggerTask } from "@/actions/trigger-task";
 import { useTaskNotificationParams } from "./use-task-notification-params";
+import { useAuth } from "./use-auth";
+import { TaskName } from "@jobs/schema";
 
 interface Props {
     successToast?: string;
@@ -30,6 +32,7 @@ export function useTaskTrigger(props?: Props) {
         enabled: !!runId && !!accessToken,
         accessToken,
     });
+    const auth = useAuth();
     const { pushTask } = useTaskNotificationParams();
     useEffect(() => {
         if (status === "FAILED") {
@@ -114,6 +117,18 @@ export function useTaskTrigger(props?: Props) {
     });
     const ctx = {
         trigger: _action.execute,
+        triggerWithAuth(taskName: TaskName, payload) {
+            return _action.execute({
+                taskName,
+                payload: {
+                    ...payload,
+                    author: {
+                        id: auth.id,
+                        name: auth.name,
+                    },
+                },
+            });
+        },
         runId,
         accessToken,
         status,

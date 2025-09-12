@@ -36,8 +36,6 @@ import FormSettingsModal from "@/app/(clean-code)/(sales)/sales-book/(form)/_com
 import { _modal } from "@/components/common/modal/provider";
 import { SalesLaborLine } from "./sales-labor-line";
 import { useSticky } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/use-sticky";
-import { MenuItemSalesMove } from "@/components/menu-item-sales-move";
-import { MenuItemSalesCopy } from "@/components/menu-item-sales-copy";
 import { MenuItemSalesActions } from "@/components/menu-item-sales-actions";
 import { SalesHistory } from "@/components/sales-hx";
 

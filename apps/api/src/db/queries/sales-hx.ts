@@ -1,8 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
-import {
-  transformActivityTags,
-  type ActivityType,
-} from "@api/utils/log-activity";
+import { transformActivityTags, type ActivityType } from "@notifications/utils";
 import type { NoteTagNames } from "@gnd/utils/constants";
 import { z } from "zod";
 
@@ -12,16 +9,6 @@ export const getSalesHxSchema = z.object({
 export type GetSalesHx = z.infer<typeof getSalesHxSchema>;
 
 export async function getSalesHx(ctx: TRPCContext, data: GetSalesHx) {
-  //   const list = await ctx.db.salesOrders.findMany({
-  //     where: {
-  //       orderId: {
-  //         startsWith: `${data.salesNo}-hx`,
-  //       },
-  //     },
-  //     select: {
-  //       createdAt: true,
-  //     },
-  //   });
   const activities = await ctx.db.notePad.findMany({
     where: {
       tags: {

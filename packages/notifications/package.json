@@ -5,6 +5,7 @@
   "main": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./note": "./src/note.ts",
     "./types/*": "./src/types/*.ts"
   },
   "scripts": {

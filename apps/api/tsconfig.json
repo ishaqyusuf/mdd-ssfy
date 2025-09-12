@@ -24,6 +24,7 @@
       "@api/*": ["src/*"],
       "@community/*": ["../../packages/community/src/*"],
       "@jobs/*": ["../../packages/jobs/src/*"],
+      "@notifications/*": ["../../packages/notifications/src/*"],
       "@sales/*": ["../../packages/sales/src/*"],
       "@square/*": ["../../packages/square/src/*"]
     },

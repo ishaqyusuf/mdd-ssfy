@@ -7,6 +7,7 @@
     "paths": {
       "@jobs/*": ["src/*"],
       "@sales/*": ["../sales/src/*"],
+      "@notifications/*": ["../notifications/src/*"],
       "@api/*": ["../apps/api/src/*"]
     },
     "jsx": "react-jsx"

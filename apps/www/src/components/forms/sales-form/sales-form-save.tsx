@@ -15,6 +15,8 @@ import Button from "@/components/common/button";
 import { toast } from "sonner";
 import { parseAsBoolean, useQueryStates } from "nuqs";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { CreateSalesHistorySchemaTask } from "@jobs/schema";
 
 interface Props {
     type: "button" | "menu";
@@ -27,6 +29,9 @@ export function SalesFormSave({ type = "button", and }: Props) {
     const zus = useFormDataStore();
     const router = useRouter();
     const sq = useSalesQueryClient();
+    const tsk = useTaskTrigger({
+        silent: true,
+    });
     async function save(action: "new" | "close" | "default" = "default") {
         const { kvFormItem, kvStepForm, metaData, sequence } = zus;
         const restoreMode = params.restoreMode;
@@ -46,6 +51,10 @@ export function SalesFormSave({ type = "button", and }: Props) {
             },
         );
         const s = resp?.data?.sales;
+        tsk.triggerWithAuth("create-sales-history", {
+            salesNo: resp.salesNo,
+            salesType: resp.salesType,
+        } as CreateSalesHistorySchemaTask);
         if (resp?.salesType == "order")
             await resetSalesStatAction(resp.salesId, resp?.salesNo);
         if (s?.updateId) triggerEvent("salesUpdated", s?.id);
