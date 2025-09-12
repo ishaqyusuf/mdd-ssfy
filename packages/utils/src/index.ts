@@ -455,6 +455,18 @@ export function transformFilterDateToQuery(dateParts: string[]) {
       lte: today.subtract(1, "month").endOf("month").toISOString(),
     };
   }
+  if (lower === "last 2 month") {
+    return {
+      gte: today.subtract(2, "month").startOf("month").toISOString(),
+      lte: today.subtract(1, "month").endOf("month").toISOString(),
+    };
+  }
+  if (lower === "last 6 month") {
+    return {
+      gte: today.subtract(6, "month").startOf("month").toISOString(),
+      lte: today.subtract(1, "month").endOf("month").toISOString(),
+    };
+  }
 
   if (lower === "this year") {
     return {

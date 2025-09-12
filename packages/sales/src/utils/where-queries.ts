@@ -19,7 +19,6 @@ export function whereSales(query: SalesQueryParamsSchema) {
     if (v === null) return;
     switch (k as keyof SalesQueryParamsSchema) {
       case "dateRange":
-        console.log(query.dateRange);
         where.push({
           createdAt: transformFilterDateToQuery(query.dateRange!),
         });
@@ -144,6 +143,17 @@ export function whereSales(query: SalesQueryParamsSchema) {
       //       id: Number(query.id),
       //     });
       //   break;
+      case "invoice":
+        switch (query.invoice) {
+          case "pending":
+            where.push({
+              amountDue: {
+                gt: 0,
+              },
+            });
+            break;
+        }
+        break;
       case "orderNo":
       case "salesNo":
         if (val?.includes(","))

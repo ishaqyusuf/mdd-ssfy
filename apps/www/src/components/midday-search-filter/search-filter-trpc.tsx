@@ -279,7 +279,7 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
             if (index > 0)
                 switch (f?.[0] as DaysFilters) {
                     case "today":
-                    case "tomorrow":
+                    // case "tomorrow":
                     case "yesterday":
                         return undefined;
                         break;

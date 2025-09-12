@@ -248,8 +248,8 @@ export const daysFilters = [
   // 'next week',
   "this month",
   "last month",
-  "last 2 month",
-  "last 6 month",
+  "last 2 months",
+  "last 6 months",
   // "this year",
   // "last year",
 ] as const;
