@@ -4,6 +4,9 @@ import { useInfiniteQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { EmptyState } from "./empty-state";
 import { useDebugToast } from "@/hooks/use-debug-console";
+import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
+import { formatDate } from "@gnd/utils/dayjs";
+import { Label } from "@gnd/ui/label";
 
 export function SalesHistory({ salesId }) {
     return (
@@ -41,7 +44,24 @@ function Content({ salesId }) {
 
     return (
         <div className="">
-            <span>a</span>
+            {hx.map((line) => (
+                <div className="" key={line.id}>
+                    <Card>
+                        <CardContent>
+                            <Label className="uppercase">
+                                {formatDate(
+                                    line.createdAt,
+                                    "MMM, DD, YYYY, HH:mma",
+                                )}
+                            </Label>
+                            <div className="text-sm">
+                                <span className="size-3 rounded-full bg-gray-500"></span>
+                                <span>{line?.senderContact?.name}</span>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            ))}
         </div>
     );
 }
