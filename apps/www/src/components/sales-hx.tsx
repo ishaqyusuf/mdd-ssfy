@@ -28,7 +28,7 @@ function Content({ salesId }) {
             },
         ),
     );
-    useDebugToast("Hx", hx);
+    useDebugToast("Hx", hx, { salesId });
     if (!hx?.length || !salesId)
         return (
             <EmptyState

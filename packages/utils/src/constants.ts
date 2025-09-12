@@ -14,6 +14,7 @@ export const noteTagNames = [
   "deliveryId",
   "dispatchRecipient",
   "salesId",
+  "salesNo",
   "salesItemId",
   "salesAssignment",
   "inboundStatus",

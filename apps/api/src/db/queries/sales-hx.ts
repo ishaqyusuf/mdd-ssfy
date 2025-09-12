@@ -11,16 +11,22 @@ export type GetSalesHx = z.infer<typeof getSalesHxSchema>;
 export async function getSalesHx(ctx: TRPCContext, data: GetSalesHx) {
   const activities = await ctx.db.notePad.findMany({
     where: {
-      tags: {
-        some: {
-          AND: [
-            {
-              tagName: "salesId" as NoteTagNames,
+      AND: [
+        {
+          tags: {
+            some: {
+              tagName: "salesNo" as NoteTagNames,
               tagValue: {
-                contains: `${data.salesNo}-hx`,
+                startsWith: `${data.salesNo}-hx`,
+                // contains: "05349PC-hx01",
+                // contains: `${data.salesNo}-hx`,
               },
             },
-            {
+          },
+        },
+        {
+          tags: {
+            some: {
               tagName: `activity` as NoteTagNames,
               tagValue: {
                 in: [
@@ -29,9 +35,9 @@ export async function getSalesHx(ctx: TRPCContext, data: GetSalesHx) {
                 ] as ActivityType[],
               },
             },
-          ],
+          },
         },
-      },
+      ],
     },
     select: {
       id: true,

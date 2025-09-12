@@ -26,6 +26,7 @@ export const createSalesHistory = schemaTask({
       db,
       note: ``,
       tags: [
+        noteTagFilter("salesNo", result.slug),
         noteTagFilter(
           "activity",
           props.salesType == "order"
