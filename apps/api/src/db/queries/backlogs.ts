@@ -1,8 +1,3 @@
-import type { Database } from "@gnd/db";
+import type { TRPCContext } from "@api/trpc/init";
 
-export async function getBacklogs(db: Database, query) {
-  const abc = await db.salesOrders.findFirst();
-  return {
-    abc,
-  };
-}
+export async function getBacklogs(db: TRPCContext, query) {}

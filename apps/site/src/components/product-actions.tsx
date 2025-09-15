@@ -30,6 +30,7 @@ export function ProductActions() {
       onError(error, variables, context) {
         console.log({ error, variables });
       },
+
       onSuccess(data, variables, context) {
         qc.invalidateQueries({
           queryKey: trpc.storefront.getCartCount.queryKey(),

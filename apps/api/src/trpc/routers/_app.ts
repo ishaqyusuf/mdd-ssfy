@@ -1,6 +1,6 @@
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 
-import { backlogRouters } from "./backlogs";
+import { backlogRouters } from "./backlogs.routes";
 import { createTRPCRouter } from "../init";
 import { salesRouter } from "./sales.route";
 import { notesRouter } from "./notes.route";
