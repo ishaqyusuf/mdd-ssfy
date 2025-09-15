@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./note": "./src/note.ts",
+    "./*": "./src/*.ts",
     "./types/*": "./src/types/*.ts"
   },
   "scripts": {
