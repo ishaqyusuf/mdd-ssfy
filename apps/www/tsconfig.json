@@ -8,6 +8,7 @@
             "@/*": ["./src/*"],
             "@api/*": ["../api/src/*"],
             "@community/*": ["../../packages/community/src/*"],
+            "@notifications/*": ["../../packages/notifications/src/*"],
             "@engine/*": ["../engine/src/*"],
             "@jobs/*": ["../../packages/jobs/src/*"],
             "@sales/*": ["../../packages/sales/src/*"],
