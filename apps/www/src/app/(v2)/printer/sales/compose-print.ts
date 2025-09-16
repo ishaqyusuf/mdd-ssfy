@@ -21,6 +21,7 @@ import salesFormUtils from "../../(loggedIn)/sales/edit/sales-form-utils";
 import { PrintTextProps } from "../components/print-text";
 import { SalesPrintProps } from "./page";
 import { Note } from "@gnd/utils/note";
+import { consoleLog } from "@gnd/utils";
 
 type PrintData = {
     order: ViewSaleType;
@@ -279,7 +280,9 @@ function getDoorsTable(
         doors: data.order.items
             .filter(
                 (item) =>
-                    item.housePackageTool || item?.meta?.doorType == "Services",
+                    item.housePackageTool ||
+                    item?.meta?.doorType == "Services" ||
+                    item?.meta?.doorType === "Mouldings",
             )
             .filter(
                 (item) =>
@@ -287,7 +290,7 @@ function getDoorsTable(
             )
             .map((item) => {
                 const doorType = item.meta.doorType;
-
+                consoleLog("item", item.meta);
                 const is = isComponentType(doorType);
                 const noHandle = item.configs
                     ? item.configs.noHandle

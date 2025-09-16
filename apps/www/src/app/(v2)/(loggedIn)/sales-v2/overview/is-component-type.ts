@@ -9,7 +9,7 @@ export function isComponentType(type: DykeDoorType) {
         shelf: type == "Shelf Items",
         exterior: type == "Exterior",
         interior: type == "Interior",
-        moulding: type == "Moulding",
+        moulding: type == "Moulding" || type == ("Mouldings" as any),
         hasSwing: false,
         multiHandles: false,
     };

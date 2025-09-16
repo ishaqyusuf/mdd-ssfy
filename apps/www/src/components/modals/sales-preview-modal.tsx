@@ -40,18 +40,7 @@ export function SalesPreviewModal({}) {
     const ctx = useSalesPreview();
     const inboundCtx = useInboundStatusModal();
     const { params } = ctx;
-    // const [data, setData] = useState(null as any);
-    // useEffect(() => {
-    //     if (params.salesPreviewSlug) {
-    //         getSalesPrintData(params.salesPreviewSlug, {
-    //             mode: params.salesPreviewType,
-    //             preview: true,
-    //         }).then((result) => {
 
-    //             setData(result as any);
-    //         });
-    //     }
-    // }, [params.salesPreviewSlug]);
     return (
         <Dialog
             onOpenChange={(e) => {
