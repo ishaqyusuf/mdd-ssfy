@@ -93,7 +93,9 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
                 </AlertDialogContent>
             </AlertDialog> */}
             <Button
-                onClick={(e) => {}}
+                onClick={(e) => {
+                    preview();
+                }}
                 size="sm"
                 variant="default"
                 className="flex items-center space-x-2 hover:bg-secondary flex-1"

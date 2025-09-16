@@ -23,8 +23,6 @@ function SideBarLayout1({ children }) {
             {children}
             {/* </ContentLayout> */}
 
-            <SalesPreviewModal />
-
             <TransactionOverviewModal />
         </NewSideBarLayout>
     );
