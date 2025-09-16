@@ -1,6 +1,6 @@
 "use client";
 import { timeout } from "@gnd/utils";
-import createContextFactory from "@gnd/utils/context-factory";
+import createContextFactory from "../utils/context-factory";
 import { isArrayParser } from "@gnd/utils";
 
 import { parseAsArrayOf, parseAsString, useQueryStates } from "nuqs";

@@ -1,18 +1,14 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { TableProvider, useTableData } from "..";
 import { columns, mobileColumn } from "./columns";
 import { Table, TableBody } from "@gnd/ui/table";
-import { TableHeaderComponent } from "../table-header";
-import { TableRow } from "../table-row";
-
+import { TableHeaderComponent } from "@gnd/ui/data-table/table-header";
+import { TableRow } from "@gnd/ui/data-table/table-row";
 import { useBacklogFilterParams } from "@/hooks/use-backlog-filter-params";
-// import { BatchActions } from "./batch-actions";
-// import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useBacklogParams } from "@/hooks/use-backlog-params";
-// import { useBacklogStore } from "@/store/backlogs";
-import { LoadMoreTRPC } from "../load-more";
+import { LoadMoreTRPC } from "@gnd/ui/data-table/load-more";
+import { TableProvider, useTableData } from "@gnd/ui/custom/data-table/index";
 
 export function DataTable() {
   const trpc = useTRPC();
@@ -32,9 +28,9 @@ export function DataTable() {
       args={[
         {
           columns,
-          mobileColumn: mobileColumn,
+          // mobileColumn: mobileColumn,
           data,
-          checkbox: true,
+          // checkbox: true,
           // tableScroll,
           // rowSelection,
           // setRowSelection,

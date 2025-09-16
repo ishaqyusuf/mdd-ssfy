@@ -16,6 +16,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./colors": "./src/colors.ts",
+    "./types": "./src/types.ts",
     "./responsive": "./src/responsive.ts",
     "./context-factory": "./src/context-factory.ts",
     "./community": "./src/community.ts",
