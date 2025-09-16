@@ -25,6 +25,7 @@
         "@gnd/community": "workspace:*",
         "@gnd/db": "workspace:*",
         "@gnd/events": "workspace:*",
+        "@gnd/notifications": "workspace:*",
         "@gnd/printer": "workspace:*",
         "@gnd/ui": "workspace:*",
         "@gnd/utils": "workspace:*",
