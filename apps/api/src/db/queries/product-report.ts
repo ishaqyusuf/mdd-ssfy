@@ -1,7 +1,14 @@
 import { composeQuery } from "@api/query-response";
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
-import { dateQuery, formatMoney, sum, timeLog } from "@gnd/utils";
+import {
+  consoleLog,
+  dateQuery,
+  formatMoney,
+  sum,
+  timeLog,
+  transformFilterDateToQuery,
+} from "@gnd/utils";
 import { composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 import type { HousePackageToolMeta } from "@sales/types";
@@ -33,17 +40,16 @@ export async function getProductReport(
     whereStat(query),
     db.dykeStepProducts
   );
-  const [from, to] = (query.dateRange || []).map((a) => {
-    if (a == "-") return null;
-    return a;
-  });
-  const dateFilter =
-    from || to
-      ? dateQuery({
-          from,
-          to,
-        })
-      : {};
+
+  const dateFilter = {
+    createdAt: transformFilterDateToQuery(query.dateRange as any),
+  };
+  // from || to
+  //   ? dateQuery({
+  //       from,
+  //       to,
+  //     })
+  //   : {};
   const data = await db.dykeStepProducts.findMany({
     where,
     // where: {
@@ -273,29 +279,22 @@ function whereStat(query: ProductReportSchema) {
     });
   }
   if (query.dateRange) {
-    const [from, to] = query.dateRange.map((a) => {
-      if (a == "-") return null;
-      return a;
-    });
+    const dateFilter = {
+      createdAt: transformFilterDateToQuery(query.dateRange as any),
+    };
     where.push({
       OR: [
         {
           stepForms: {
             some: {
-              ...dateQuery({
-                from,
-                to,
-              }),
+              ...dateFilter,
             },
           },
         },
         {
           housePackageTools: {
             some: {
-              ...dateQuery({
-                from,
-                to,
-              }),
+              ...dateFilter,
             },
           },
         },

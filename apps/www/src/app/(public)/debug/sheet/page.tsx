@@ -36,7 +36,7 @@ export default function Page({}) {
                     <SheetHeader>
                         <SheetTitle>Testbed</SheetTitle>
                         <SheetDescription>
-                            Lorem ipsum dolor sit amet
+                            Lorem ipsum dolor sit amet..
                         </SheetDescription>
                     </SheetHeader>
                     <ScrollArea className="flex-1 overflow-auto">

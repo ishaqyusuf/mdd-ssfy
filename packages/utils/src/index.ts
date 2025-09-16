@@ -395,6 +395,7 @@ export function consoleLog(title = "Log", ...data) {
 }
 
 export function transformFilterDateToQuery(dateParts: string[]) {
+  if (!dateParts) return undefined;
   const [fromStr, toStr] = dateParts;
   const today = dayjs();
   const lower = fromStr!.toLowerCase().trim();
