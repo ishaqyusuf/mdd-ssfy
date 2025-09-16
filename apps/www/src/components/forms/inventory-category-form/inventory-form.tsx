@@ -14,6 +14,7 @@ import { Button } from "@gnd/ui/button";
 import { X } from "lucide-react";
 
 export function InventoryCategoryForm({}) {
+    //
     const form = useInventoryCategoryForm();
     const { editCategoryId: categoryId } = useInventoryCategoryParams();
     const { categoryList } = useInventoryTrpc({
