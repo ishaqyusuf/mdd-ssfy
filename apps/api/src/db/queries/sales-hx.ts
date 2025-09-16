@@ -1,5 +1,8 @@
 import type { TRPCContext } from "@api/trpc/init";
-import { transformActivityTags, type ActivityType } from "@notifications/utils";
+import {
+  transformActivityTags,
+  type ActivityType,
+} from "@gnd/notifications/utils";
 import type { NoteTagNames } from "@gnd/utils/constants";
 import { z } from "zod";
 
