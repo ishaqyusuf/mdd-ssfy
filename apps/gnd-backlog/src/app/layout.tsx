@@ -4,7 +4,7 @@ import localFont from "next/font/local";
 import "@/styles/globals.css";
 
 import { cn } from "@gnd/ui/cn";
-import { GlobalModals } from "./components/modals/global-modals";
+import { GlobalModals } from "../components/modals/global-modals";
 import { TRPCReactProvider } from "@/trpc/client";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 const fontSans = FontSans({
@@ -30,7 +30,7 @@ export default function RootLayout({
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
           fontSans.variable,
-          fontHeading.variable,
+          fontHeading.variable
         )}
       >
         <NuqsAdapter>

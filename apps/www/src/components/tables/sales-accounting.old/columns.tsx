@@ -1,5 +1,5 @@
 import { GetSalesCustomerTx } from "@/actions/get-customer-tx-action";
-import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
+import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Progress } from "@/components/(clean-code)/progress";
 import { formatMoney } from "@/lib/use-number";

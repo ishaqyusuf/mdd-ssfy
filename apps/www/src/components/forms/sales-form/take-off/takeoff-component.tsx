@@ -10,7 +10,7 @@ import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { Label } from "@gnd/ui/label";
 import { cn } from "@gnd/ui/cn";
-import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
+import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { useState } from "react";
 import { Switch } from "@gnd/ui/switch";
 import { ComponentImg } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/component-img";

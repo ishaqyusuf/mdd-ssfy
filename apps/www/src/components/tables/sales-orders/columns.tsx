@@ -1,10 +1,9 @@
 "use client";
 
-import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
+import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Menu } from "@/components/(clean-code)/menu";
 import { Progress } from "@/components/(clean-code)/progress";
-import { SalesPayWidget } from "@/components/widgets/sales-pay-widget";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -15,19 +14,7 @@ import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableRow,
-} from "@gnd/ui/table";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@gnd/ui/tooltip";
+
 import { StickyNote } from "lucide-react";
 import { InvoiceColumn } from "./column.invoice";
 

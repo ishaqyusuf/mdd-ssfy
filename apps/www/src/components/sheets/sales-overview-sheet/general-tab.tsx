@@ -1,7 +1,7 @@
 import React from "react";
 import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";
-import TextWithTooltip from "@/components/(clean-code)/custom/text-with-tooltip";
+import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";

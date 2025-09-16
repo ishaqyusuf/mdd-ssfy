@@ -1,8 +1,11 @@
 // import { getBacklogs } from "../../db/queries/backlogs";
-import { getBacklogs } from "@api/db/queries/backlogs";
+import { getBacklogs, getBacklogsSchema } from "@api/db/queries/backlogs";
 import { createTRPCRouter, publicProcedure } from "../init";
 
 export const backlogRouters = createTRPCRouter({
+  getBacklogs: publicProcedure.input(getBacklogsSchema).query(async (props) => {
+    return getBacklogs(props.ctx, props.input);
+  }),
   all: publicProcedure
     //   .input(getAllSubjectsSchema)
     //

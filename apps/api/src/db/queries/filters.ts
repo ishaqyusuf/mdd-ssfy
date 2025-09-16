@@ -21,6 +21,7 @@ import { getEmployeesList } from "./hrm";
 import { labelValueOptions } from "@gnd/utils";
 import { SALES_PRODUCTION_STATUS_FILTER_OPTIONS } from "@sales/constants";
 import type { ProductReportSchema } from "./product-report";
+import type { GetBacklogsSchema } from "./backlogs";
 
 export async function getDispatchFilters(ctx: TRPCContext) {
   type T = keyof DispatchQueryParamsSchema;
@@ -459,6 +460,29 @@ export async function productReportFilters(ctx: TRPCContext) {
     searchFilter,
     optionFilter<T>("reportCategory", "Category", steps),
     dateRangeFilter<T>("dateRange", "Filter by date"),
+  ] satisfies FilterData[];
+
+  return resp;
+}
+
+export async function backlogFilters(ctx: TRPCContext) {
+  type T = keyof GetBacklogsSchema;
+  type FilterData = PageFilterData<T>;
+  // const steps = labelValueOptions(
+  //   await ctx.db.Backlogs.findMany({
+  //     where: {},
+  //     select: {
+  //       id: true,
+  //       title: true,
+  //     },
+  //   }),
+  //   "title",
+  //   "id"
+  // );
+  const resp = [
+    searchFilter,
+    // optionFilter<T>("categoryId", "Category", steps),
+    // dateRangeFilter<T>("dateRange", "Filter by date"),
   ] satisfies FilterData[];
 
   return resp;
