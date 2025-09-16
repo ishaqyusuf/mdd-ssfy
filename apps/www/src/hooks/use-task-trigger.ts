@@ -103,9 +103,7 @@ export function useTaskTrigger(props?: Props) {
             if (!props.silent) pushTask(data.id, data.publicAccessToken);
         },
         onError(e) {
-            if (props?.debug) console.log({ e });
             setRunId(undefined);
-            console.log(e);
             if (!props.silent)
                 toast({
                     duration: 3500,
