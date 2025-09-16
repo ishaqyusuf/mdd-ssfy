@@ -1,20 +1,8 @@
 import { Menu } from "@/components/(clean-code)/menu";
 import { useSalesMailer } from "@/hooks/use-sales-email-sender";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@gnd/ui/alert-dialog";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useSaleOverview } from "./context";
-import { cn } from "@gnd/ui/cn";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
 import { useBatchSales } from "@/hooks/use-batch-sales";

@@ -4,8 +4,6 @@ import { SalesDispatchStatus } from "./constants";
 import {
   anyDateQuery,
   dateEquals,
-  dateQuery,
-  dateRangeQuery,
   fixDbTime,
   transformFilterDateToQuery,
 } from "@gnd/utils";

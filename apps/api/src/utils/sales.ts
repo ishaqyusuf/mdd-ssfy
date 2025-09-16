@@ -60,6 +60,7 @@ export function transformSalesFilterQuery(query: SalesQueryParamsSchema) {
       .every(([a]) => keys.includes(a as any))
   ) {
     query["dispatch.status"] = "pending";
+    // query["dispatch.status"] = "pending";
   } else {
   }
   // query["dispatch.status"] = "completed";
