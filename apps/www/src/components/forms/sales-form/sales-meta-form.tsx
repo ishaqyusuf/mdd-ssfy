@@ -167,16 +167,38 @@ function SummaryTab({}) {
                     />
                 </LineContainer>
                 <Input label="P.O No" name="metaData.po" value={md.po} />
-
-                <LineContainer label="Net Term">
-                    <Select
-                        name="metaData.paymentTerm"
-                        value={md.paymentTerm}
-                        options={salesData.paymentTerms}
-                        valueKey={"value"}
-                        titleKey={"text"}
-                    />
-                </LineContainer>
+                {md.type === "order" ? (
+                    <>
+                        <LineContainer label="Net Term">
+                            <Select
+                                name="metaData.paymentTerm"
+                                value={md.paymentTerm}
+                                options={salesData.paymentTerms}
+                                valueKey={"value"}
+                                titleKey={"text"}
+                            />
+                        </LineContainer>
+                        {md.paymentTerm != "None" || (
+                            <Input
+                                label="Due Date"
+                                name="metaData.paymentDueDate"
+                                value={md.paymentDueDate}
+                                type="date"
+                            />
+                        )}
+                    </>
+                ) : (
+                    <>
+                        <LineContainer label="Good Until">
+                            <Input
+                                label="Good Until"
+                                name="metaData.goodUntil"
+                                value={md.goodUntil}
+                                type="date"
+                            />
+                        </LineContainer>
+                    </>
+                )}
                 <div className="py-5"></div>
                 <LineContainer label="Delivery Mode">
                     <Select

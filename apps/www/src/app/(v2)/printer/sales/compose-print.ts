@@ -45,6 +45,7 @@ export function composePrint(
         isPacking: query.mode == "packing list",
         isOrder: query.mode == "order",
     };
+    // data.order.paymentDueDate
     let paymentDate = null;
     if (data.order.amountDue <= 1) {
         //
@@ -569,7 +570,6 @@ function getDoorsTable(
     if (dt.doors.length) return dt;
     return null;
 }
-
 function lineItems(data: PrintData, { isProd, isPacking }) {
     const lineItems = data.order.items
         .filter((item) => !item.housePackageTool || !item.shelfItems)
@@ -855,11 +855,12 @@ function heading({ mode, isOrder, order, isEstimate, isPacking }) {
         if (order?.amountDue > 0) {
             let { goodUntil, paymentTerm, createdAt } = order;
             if (paymentTerm)
-                goodUntil = salesFormUtils._calculatePaymentTerm(
-                    paymentTerm,
-                    createdAt,
-                );
-
+                if (paymentTerm != "None")
+                    goodUntil = salesFormUtils._calculatePaymentTerm(
+                        paymentTerm,
+                        createdAt,
+                    );
+                else goodUntil = order.paymentDueDate;
             h.lines.push(
                 styled("Due Date", goodUntil ? formatDate(goodUntil) : "-"),
             );

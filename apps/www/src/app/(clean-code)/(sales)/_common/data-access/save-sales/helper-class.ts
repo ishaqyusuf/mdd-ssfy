@@ -78,10 +78,13 @@ export class SaveSalesHelper {
         } satisfies Prisma.SalesOrdersUpdateInput;
 
         if (md.type == "order") {
-            updateData.paymentDueDate = calculatePaymentDueDate(
-                md.paymentTerm,
-                md.createdAt,
-            );
+            if (md.paymentTerm == "None")
+                updateData.paymentDueDate = md.paymentDueDate;
+            else
+                updateData.paymentDueDate = calculatePaymentDueDate(
+                    md.paymentTerm,
+                    md.createdAt,
+                );
         }
         if (md.id) {
             return {
