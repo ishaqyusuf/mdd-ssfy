@@ -100,7 +100,7 @@ export function useTaskTrigger(props?: Props) {
             //     setRunId(data.id);
             //     setAccessToken(data.publicAccessToken);
             // }
-            pushTask(data.id, data.publicAccessToken);
+            if (!props.silent) pushTask(data.id, data.publicAccessToken);
         },
         onError(e) {
             if (props?.debug) console.log({ e });
