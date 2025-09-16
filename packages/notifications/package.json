@@ -17,7 +17,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gnd/email": "workspace:*",
     "@gnd/db": "workspace:*",
     "@gnd/utils": "workspace:*"
   },
