@@ -143,6 +143,7 @@ export function whereCustomerTx(query: SearchParamsType) {
 function whereSearch(query) {
     const inputQ = { contains: query || undefined } as any;
     return {
+        //
         salesPayments: {
             some: {
                 order: {
