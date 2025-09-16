@@ -21,7 +21,6 @@ import salesFormUtils from "../../(loggedIn)/sales/edit/sales-form-utils";
 import { PrintTextProps } from "../components/print-text";
 import { SalesPrintProps } from "./page";
 import { Note } from "@gnd/utils/note";
-import { consoleLog } from "@gnd/utils";
 
 type PrintData = {
     order: ViewSaleType;
@@ -290,7 +289,7 @@ function getDoorsTable(
             )
             .map((item) => {
                 const doorType = item.meta.doorType;
-                consoleLog("item", item.meta);
+
                 const is = isComponentType(doorType);
                 const noHandle = item.configs
                     ? item.configs.noHandle
@@ -472,7 +471,8 @@ function getDoorsTable(
                                     m.housePackageTool?.molding?.title ||
                                     m?.housePackageTool?.stepProduct?.name ||
                                     m?.housePackageTool?.stepProduct?.product
-                                        ?.title
+                                        ?.title ||
+                                    m?.description
                                 );
                             case "unitPrice":
                                 return formatCurrency.format(
