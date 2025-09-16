@@ -59,7 +59,8 @@ export function transformSalesFilterQuery(query: SalesQueryParamsSchema) {
       .filter(([a, b]) => !!b)
       .every(([a]) => keys.includes(a as any))
   ) {
-    query["dispatch.status"] = "pending";
+    // query["dispatch.status"] = "pending";
+    query.defaultSearch = true;
     // query["dispatch.status"] = "pending";
   } else {
   }

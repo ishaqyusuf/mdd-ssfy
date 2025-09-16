@@ -46,6 +46,7 @@ export const salesQueryParamsSchema = z
     salesType: z.enum(salesType).optional().nullable(),
     "customer.name": z.string().optional().nullable(),
     phone: z.string().optional().nullable(),
+    defaultSearch: z.boolean().optional().nullable(),
     po: z.string().optional().nullable(),
     "sales.rep": z.string().optional().nullable(),
     orderNo: z.string().optional().nullable(),

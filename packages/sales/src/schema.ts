@@ -135,6 +135,7 @@ export const salesQueryParamsSchema = z
       .enum(SALES_DISPATCH_FILTER_OPTIONS)
       .optional()
       .nullable(),
+    defaultSearch: z.boolean().optional().nullable(),
     "production.assignedToId": z.number().optional().nullable(),
     "production.dueDate": z.array(z.any()).optional().nullable(),
     "production.status": z.enum(PRODUCTION_STATUS).optional().nullable(),

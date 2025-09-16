@@ -444,74 +444,87 @@ export function whereSales(query: SalesQueryParamsSchema) {
     case "part assigned":
       break;
   }
-  switch (query["dispatch.status"]) {
-    case "pending":
-      where.push({
-        AND: [
+  const dispatchPendingQuery = {
+    AND: [
+      {
+        OR: [
           {
-            OR: [
-              {
-                stat: {
-                  some: {
-                    total: {
-                      gt: 0,
-                    },
-                    type: "dispatchCompleted" as QtyControlType,
-                    percentage: {
-                      lt: 100,
-                    },
-                  },
+            stat: {
+              some: {
+                total: {
+                  gt: 0,
+                },
+                type: "dispatchCompleted" as QtyControlType,
+                percentage: {
+                  lt: 100,
                 },
               },
-              {
-                stat: {
-                  none: {
-                    type: "dispatchCompleted" as QtyControlType,
-                  },
-                },
-              },
-            ],
+            },
           },
           {
-            OR: [
-              {
-                deliveries: {
-                  none: {
-                    deletedAt: null,
-                    // OR: [
-                    //   {
-                    //     items: {},
-                    //   },
-                    //   {
-                    items: {
-                      none: {
-                        deletedAt: null,
-                      },
-                    },
-                    status: {
-                      not: "completed" as SalesDispatchStatus,
-                    },
-                    //   },
-                    // ],
-                  },
-                },
+            stat: {
+              none: {
+                type: "dispatchCompleted" as QtyControlType,
               },
-              {
-                deliveries: {
-                  some: {
-                    deletedAt: null,
-                    status: {
-                      not: "completed" as SalesDispatchStatus,
-                    },
-                    //   },
-                    // ],
-                  },
-                },
-              },
-            ],
+            },
           },
         ],
-      });
+      },
+      {
+        OR: [
+          {
+            deliveries: {
+              none: {
+                deletedAt: null,
+                // OR: [
+                //   {
+                //     items: {},
+                //   },
+                //   {
+                items: {
+                  none: {
+                    deletedAt: null,
+                  },
+                },
+                status: {
+                  not: "completed" as SalesDispatchStatus,
+                },
+                //   },
+                // ],
+              },
+            },
+          },
+          {
+            deliveries: {
+              some: {
+                deletedAt: null,
+                status: {
+                  not: "completed" as SalesDispatchStatus,
+                },
+                //   },
+                // ],
+              },
+            },
+          },
+        ],
+      },
+    ],
+  };
+  if (query.defaultSearch) {
+    where.push({
+      OR: [
+        dispatchPendingQuery,
+        {
+          amountDue: {
+            gt: 0,
+          },
+        },
+      ],
+    });
+  }
+  switch (query["dispatch.status"]) {
+    case "pending":
+      where.push(dispatchPendingQuery);
       break;
     case "completed":
       where.push({
