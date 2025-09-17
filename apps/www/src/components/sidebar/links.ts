@@ -339,11 +339,9 @@ export const linkModules = [
     ]),
     _module("Sales", "orders", "GND Sales", [
         _section(null, null, [
-            _link(
-                "Sales Dashboard",
-                "dashboard",
-                "/sales-dashboard/legacy",
-            ).access(_role.is("Super Admin")).data,
+            _link("Sales Dashboard", "dashboard", "/sales-dashboard").access(
+                _role.is("Super Admin"),
+            ).data,
         ]),
         _section(null, null, [
             _link("My Dashboard", "dashboard", "/sales-rep")

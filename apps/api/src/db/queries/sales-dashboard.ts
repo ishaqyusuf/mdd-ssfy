@@ -1,13 +1,15 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { Prisma } from "@prisma/client";
+import type { SalesType } from "@sales/types";
 import { eachDayOfInterval, format, parseISO, subDays } from "date-fns";
+import { getSales } from "./sales";
 
 type Filter = {
   from?: string;
   to?: string;
 };
 
-const getWhereClause = (filter: Filter, type?: "invoice" | "quote") => {
+const getWhereClause = (filter: Filter, type?: SalesType) => {
   const where: Prisma.SalesOrdersWhereInput = {};
   if (type) {
     where.type = type;
@@ -22,20 +24,24 @@ const getWhereClause = (filter: Filter, type?: "invoice" | "quote") => {
 };
 
 export async function getKpis(ctx: TRPCContext, filter: Filter) {
-  const salesWhere = getWhereClause(filter, "invoice");
+  const salesWhere = getWhereClause(filter, "order");
   const quotesWhere = getWhereClause(filter, "quote");
 
-  const [totalRevenue, newSales, newQuotes, activeProductionOrders] =
+  const [totalRevenue, totalDue, newSales, newQuotes, activeProductionOrders] =
     await Promise.all([
       ctx.db.salesOrders.aggregate({
         _sum: { grandTotal: true },
+        where: salesWhere,
+      }),
+      ctx.db.salesOrders.aggregate({
+        _sum: { amountDue: true },
         where: salesWhere,
       }),
       ctx.db.salesOrders.count({ where: salesWhere }),
       ctx.db.salesOrders.count({ where: quotesWhere }),
       ctx.db.salesOrders.count({
         where: {
-          type: "invoice",
+          type: "order",
           prodStatus: {
             in: ["pending", "in_progress", "started"],
           },
@@ -45,6 +51,7 @@ export async function getKpis(ctx: TRPCContext, filter: Filter) {
 
   return {
     totalRevenue: totalRevenue._sum.grandTotal ?? 0,
+    totalDue: totalDue._sum.amountDue ?? 0,
     newSales: newSales ?? 0,
     newQuotes: newQuotes ?? 0,
     activeProductionOrders: activeProductionOrders ?? 0,
@@ -52,7 +59,7 @@ export async function getKpis(ctx: TRPCContext, filter: Filter) {
 }
 
 export async function getRevenueOverTime(ctx: TRPCContext, filter: Filter) {
-  const where = getWhereClause(filter, "invoice");
+  const where = getWhereClause(filter, "order");
   const sales = await ctx.db.salesOrders.findMany({
     where,
     select: {
@@ -75,7 +82,7 @@ export async function getRevenueOverTime(ctx: TRPCContext, filter: Filter) {
       acc[date] = (acc[date] || 0) + (sale.grandTotal ?? 0);
       return acc;
     },
-    {} as Record<string, number>,
+    {} as Record<string, number>
   );
 
   return interval.map((day) => ({
@@ -85,33 +92,38 @@ export async function getRevenueOverTime(ctx: TRPCContext, filter: Filter) {
 }
 
 export async function getRecentSales(ctx: TRPCContext) {
-  const sales = await ctx.db.salesOrders.findMany({
-    where: { type: "invoice" },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-    select: {
-      id: true,
-      orderId: true,
-      grandTotal: true,
-      customer: {
-        select: {
-          name: true,
-        },
-      },
-    },
+  const recent = await getSales(ctx, {
+    salesType: "order",
+    size: 5,
   });
+  return recent?.data;
+  // const sales = await ctx.db.salesOrders.findMany({
+  //   where: { type: "order" },
+  //   orderBy: { createdAt: "desc" },
+  //   take: 5,
+  //   select: {
+  //     id: true,
+  //     orderId: true,
+  //     grandTotal: true,
+  //     customer: {
+  //       select: {
+  //         name: true,
+  //       },
+  //     },
+  //   },
+  // });
 
-  return sales.map((s) => ({
-    id: s.id,
-    orderId: s.orderId,
-    customerName: s.customer?.name ?? "N/A",
-    amount: s.grandTotal ?? 0,
-  }));
+  // return sales.map((s) => ({
+  //   id: s.id,
+  //   orderId: s.orderId,
+  //   customerName: s.customer?.name ?? "N/A",
+  //   amount: s.grandTotal ?? 0,
+  // }));
 }
 
-export async function getTopProducts(ctx: TRPCContext) {
-  const thirtyDaysAgo = subDays(new Date(), 30);
-
+export async function getTopProducts(ctx: TRPCContext, filter: Filter) {
+  // const thirtyDaysAgo = subDays(new Date(), 30);
+  const salesWhere = getWhereClause(filter, "order");
   const products = await ctx.db.salesOrderItems.groupBy({
     by: ["description"],
     _sum: {
@@ -119,10 +131,11 @@ export async function getTopProducts(ctx: TRPCContext) {
     },
     where: {
       salesOrder: {
-        createdAt: {
-          gte: thirtyDaysAgo,
-        },
-        type: "invoice",
+        ...salesWhere,
+        // createdAt: {
+        //   gte: thirtyDaysAgo,
+        // },
+        // type: "order",
       },
       description: {
         not: null,
@@ -135,26 +148,77 @@ export async function getTopProducts(ctx: TRPCContext) {
     },
     take: 5,
   });
-
-  return products.map((p) => ({
-    name: p.description!,
-    count: p._sum.qty ?? 0,
-  }));
+  const doors = await ctx.db.dykeSalesDoors.groupBy({
+    by: ["stepProductId"],
+    _sum: {
+      totalQty: true,
+    },
+    where: {
+      salesOrderItem: {
+        salesOrder: {
+          ...salesWhere,
+        },
+      },
+      //   createdAt: {
+      //     gte: thirtyDaysAgo,
+      //   },
+      //   type: "order",
+      // },
+      // description: {
+      //   not: null,
+      // },
+    },
+    orderBy: {
+      _sum: {
+        totalQty: "desc",
+      },
+    },
+    take: 5,
+  });
+  const steps = await ctx.db.dykeStepProducts.findMany({
+    where: {
+      id: {
+        in: doors.map((a) => a.stepProductId!),
+      },
+    },
+    select: {
+      name: true,
+      id: true,
+      door: {
+        select: {
+          title: true,
+        },
+      },
+    },
+  });
+  return doors.map((d) => {
+    const step = steps.find((s) => s.id == d.stepProductId);
+    const name = step?.name || step?.door?.title;
+    return {
+      name,
+      count: d._sum.totalQty ?? 0,
+    };
+  });
+  // return products.map((p) => ({
+  //   name: p.description!,
+  //   count: p._sum.qty ?? 0,
+  // }));
 }
 
-export async function getSalesRepLeaderboard(ctx: TRPCContext) {
-  const thirtyDaysAgo = subDays(new Date(), 30);
-
+export async function getSalesRepLeaderboard(ctx: TRPCContext, filter: Filter) {
+  // const thirtyDaysAgo = subDays(new Date(), 30);
+  const salesWhere = getWhereClause(filter, "order");
   const reps = await ctx.db.salesOrders.groupBy({
     by: ["salesRepId"],
     _sum: {
       grandTotal: true,
     },
     where: {
-      createdAt: {
-        gte: thirtyDaysAgo,
-      },
-      type: "invoice",
+      // createdAt: {
+      //   gte: thirtyDaysAgo,
+      // },
+      // type: "order",
+      ...salesWhere,
       salesRepId: {
         not: null,
       },
@@ -183,7 +247,7 @@ export async function getSalesRepLeaderboard(ctx: TRPCContext) {
       acc[user.id] = user.name ?? "Unknown";
       return acc;
     },
-    {} as Record<number, string>,
+    {} as Record<number, string>
   );
 
   return reps.map((rep) => ({

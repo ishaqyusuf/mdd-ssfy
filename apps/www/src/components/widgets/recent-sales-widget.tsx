@@ -9,14 +9,35 @@ import {
     CardTitle,
 } from "@gnd/ui/card";
 import { useQuery } from "@tanstack/react-query";
+import { InvoiceRow } from "./sales/sales-row";
+import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
+import { WidgetListSkeleton } from "./widget-skeleton";
+import { Skeleton } from "@gnd/ui/skeleton";
 
 export function RecentSalesWidget() {
+    const { params } = useSalesDashboardParams();
     const trpc = useTRPC();
     const { data, isLoading } = useQuery(
         trpc.salesDashboard.getRecentSales.queryOptions(),
     );
-    if (isLoading) return <div>Loading...</div>;
-
+    if (isLoading)
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        <Skeleton className="h-[32px] w-[56px]" />
+                    </CardTitle>
+                    <CardDescription>
+                        <Skeleton className="h-[16px] w-[56px]" />
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <ul className="bullet-none divide-y cursor-pointer overflow-auto scrollbar-hide aspect-square pb-32 mt-4">
+                        <WidgetListSkeleton />
+                    </ul>
+                </CardContent>
+            </Card>
+        );
     return (
         <Card>
             <CardHeader>
@@ -26,7 +47,14 @@ export function RecentSalesWidget() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
-                {data?.map((sale) => (
+                <ul className="bullet-none divide-y cursor-pointer overflow-auto scrollbar-hide aspect-square pb-32 mt-4">
+                    {data?.map((invoice) => {
+                        return (
+                            <InvoiceRow key={invoice.id} invoice={invoice} />
+                        );
+                    })}
+                </ul>
+                {/* {data?.map((sale) => (
                     <div className="flex items-center" key={sale.id}>
                         <Avatar className="h-9 w-9">
                             <AvatarFallback>
@@ -45,7 +73,7 @@ export function RecentSalesWidget() {
                             +${sale.amount.toLocaleString()}
                         </div>
                     </div>
-                ))}
+                ))} */}
             </CardContent>
         </Card>
     );

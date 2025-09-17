@@ -22,15 +22,21 @@ export const salesDashboardRouter = createTRPCRouter({
       return getRevenueOverTime(ctx, input);
     }),
 
-  getRecentSales: publicProcedure.query(async ({ ctx }) => {
-    return getRecentSales(ctx);
-  }),
+  getRecentSales: publicProcedure
+    // .input(salesDashboardFilterSchema)
+    .query(async ({ ctx, input }) => {
+      return getRecentSales(ctx);
+    }),
 
-  getTopProducts: publicProcedure.query(async ({ ctx }) => {
-    return getTopProducts(ctx);
-  }),
+  getTopProducts: publicProcedure
+    .input(salesDashboardFilterSchema)
+    .query(async ({ ctx, input }) => {
+      return getTopProducts(ctx, input);
+    }),
 
-  getSalesRepLeaderboard: publicProcedure.query(async ({ ctx }) => {
-    return getSalesRepLeaderboard(ctx);
-  }),
+  getSalesRepLeaderboard: publicProcedure
+    .input(salesDashboardFilterSchema)
+    .query(async ({ ctx, input }) => {
+      return getSalesRepLeaderboard(ctx, input);
+    }),
 });

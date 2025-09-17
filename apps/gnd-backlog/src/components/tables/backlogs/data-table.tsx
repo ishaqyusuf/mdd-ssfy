@@ -1,7 +1,7 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { columns, mobileColumn } from "./columns";
+import { columns, ItemCard, mobileColumn } from "./columns";
 import { Table, TableBody } from "@gnd/ui/table";
 import { TableHeaderComponent } from "@gnd/ui/data-table/table-header";
 import { TableRow } from "@gnd/ui/data-table/table-row";
@@ -46,7 +46,10 @@ export function DataTable() {
       ]}
     >
       <div className="flex flex-col gap-4 w-full">
-        <div
+        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {data?.map((data) => <ItemCard key={data.id} item={data} />)}
+        </div>
+        {/* <div
           // ref={tableScroll.containerRef}
           className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
         >
@@ -56,7 +59,7 @@ export function DataTable() {
               <TableRow />
             </TableBody>
           </Table>
-        </div>
+        </div> */}
         {hasNextPage && <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />}
         {/* <BatchActions /> */}
       </div>

@@ -7,7 +7,7 @@ import { Icons } from "@gnd/ui/icons";
 import { ColumnDef } from "@tanstack/react-table";
 import { cn } from "@gnd/ui/cn";
 import { useBacklogParams } from "@/hooks/use-backlog-params";
-
+import { Card, CardContent } from "@gnd/ui/card";
 export type Item = RouterOutputs["backlogs"]["getBacklogs"]["data"][number];
 interface ItemProps {
   item: Item;
@@ -67,8 +67,12 @@ export const mobileColumn: ColumnDef<Item>[] = [
     },
   },
 ];
-function ItemCard({ item }: ItemProps) {
+export function ItemCard({ item }: ItemProps) {
   // design a mobile version of the columns here
   const { setParams } = useBacklogParams();
-  return <></>;
+  return (
+    <Card>
+      <CardContent></CardContent>
+    </Card>
+  );
 }

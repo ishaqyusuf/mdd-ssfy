@@ -1,4 +1,5 @@
 "use client";
+import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
 import { useTRPC } from "@/trpc/client";
 import {
     Card,
@@ -8,14 +9,37 @@ import {
     CardTitle,
 } from "@gnd/ui/card";
 import { useQuery } from "@tanstack/react-query";
+import { WidgetListSkeleton } from "./widget-skeleton";
+import { Skeleton } from "@gnd/ui/skeleton";
 
 export function TopProductsWidget() {
     const trpc = useTRPC();
+    const { params } = useSalesDashboardParams();
     const { data, isLoading } = useQuery(
-        trpc.salesDashboard.getTopProducts.queryOptions(),
+        trpc.salesDashboard.getTopProducts.queryOptions({
+            from: params.from,
+            to: params.to,
+        }),
     );
 
-    if (isLoading) return <div>Loading...</div>;
+    if (isLoading)
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        <Skeleton className="h-[32px] w-[56px]" />
+                    </CardTitle>
+                    <CardDescription>
+                        <Skeleton className="h-[16px] w-[56px]" />
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <ul className="bullet-none divide-y cursor-pointer overflow-auto scrollbar-hide aspect-square pb-32 mt-4">
+                        <WidgetListSkeleton />
+                    </ul>
+                </CardContent>
+            </Card>
+        );
 
     return (
         <Card>
@@ -26,17 +50,25 @@ export function TopProductsWidget() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <ul className="space-y-4">
-                    {data?.map((product) => (
-                        <li key={product.name} className="flex justify-between">
-                            <span className="text-sm font-medium">
-                                {product.name}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                                {product.count} units
-                            </span>
-                        </li>
-                    ))}
+                <ul className="bullet-none divide-y cursor-pointer overflow-auto scrollbar-hide aspect-square pb-32 mt-4">
+                    {data?.map((product) => {
+                        return (
+                            <li
+                                key={product.name}
+                                className="h-[57px] items-center flex w-full"
+                            >
+                                <div className="w-3/5">
+                                    <span className="text-sm font-medium uppercase">
+                                        {product.name}
+                                    </span>
+                                </div>
+                                <div className="flex-1"></div>
+                                <span className="text-sm text-muted-foreground text-end">
+                                    {product.count} units
+                                </span>
+                            </li>
+                        );
+                    })}
                 </ul>
             </CardContent>
         </Card>
