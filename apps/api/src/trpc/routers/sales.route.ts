@@ -30,6 +30,10 @@ import {
   productReportSchema,
 } from "@api/db/queries/product-report";
 import { getSalesHx, getSalesHxSchema } from "@api/db/queries/sales-hx";
+import {
+  accountingIndex,
+  accountingIndexSchema,
+} from "@api/db/queries/accounting";
 export const salesRouter = createTRPCRouter({
   createStep: publicProcedure
     .input(
@@ -136,5 +140,12 @@ export const salesRouter = createTRPCRouter({
     .input(productReportSchema)
     .query(async (props) => {
       return getProductReport(props.ctx, props.input);
+    }),
+
+  accountingIndex: publicProcedure
+    .input(accountingIndexSchema)
+    .query(async (props) => {
+      const result = await accountingIndex(props.ctx, props.input);
+      return result;
     }),
 });

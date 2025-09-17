@@ -16,7 +16,6 @@ export function KpiWidgets() {
             to: params.to,
         }),
     );
-    useDebugToast("kpi", data);
     if (isLoading) {
         return (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
