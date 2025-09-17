@@ -3,6 +3,7 @@ import {
     addMonths,
     addYears,
     endOfDay,
+    endOfMonth,
     formatISO,
     startOfDay,
     startOfMonth,
@@ -41,8 +42,8 @@ export const chartPeriodOptions = [
         label: "Last month",
         value: "last_month",
         range: {
-            from: startOfDay(addDays(new Date(new Date().setDate(1)), -1)),
-            to: startOfDay(new Date(new Date().setDate(1))),
+            from: startOfMonth(subMonths(new Date(), 1)),
+            to: endOfMonth(subMonths(new Date(), 1)),
         },
     },
     {
