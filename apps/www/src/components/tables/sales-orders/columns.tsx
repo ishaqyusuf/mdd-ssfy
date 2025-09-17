@@ -17,9 +17,10 @@ import { Icons } from "@gnd/ui/icons";
 
 import { StickyNote } from "lucide-react";
 import { InvoiceColumn } from "./column.invoice";
-
+import { cells } from "@gnd/ui/custom/data-table/cells";
 export type Item = RouterOutputs["sales"]["index"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
+    cells.selectColumn,
     {
         header: "Date",
         accessorKey: "salesDate",

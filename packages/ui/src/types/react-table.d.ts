@@ -5,5 +5,10 @@ declare module "@tanstack/table-core" {
     actionCell?: boolean;
     className?: string;
   }
-  export { getCoreRowModel, getFilteredRowModel, RowSelectionState };
+  export {
+    getCoreRowModel,
+    getFilteredRowModel,
+    RowSelectionState,
+    type VisibilityState,
+  };
 }

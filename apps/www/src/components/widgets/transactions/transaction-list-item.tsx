@@ -7,9 +7,9 @@ import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { cn } from "@gnd/ui/cn";
 
 type Props = {
-    transaction: NonNullable<
-        RouterOutputs["sales"]["accountingIndex"]["data"]
-    >[number];
+    transaction:
+        | NonNullable<RouterOutputs["sales"]["accountingIndex"]["data"]>[number]
+        | any;
     disabled?: boolean;
 };
 

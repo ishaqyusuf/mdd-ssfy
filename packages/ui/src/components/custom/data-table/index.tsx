@@ -1,5 +1,5 @@
 "use client";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import createContextFactory from "@/utils/context-factory";
 import {
   getCoreRowModel,
@@ -16,6 +16,10 @@ import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import { useMediaQuery } from "react-responsive";
 import { PageDataMeta } from "@gnd/utils/query-response";
 import { screens } from "@gnd/utils/responsive";
+import { useTableScroll } from "../../../hooks/use-table-scroll";
+import { TableRow } from "./table-row";
+import { TableHeader } from "./table-header";
+import { Table as BaseTable, TableBody as Body } from "../../table";
 export type DataTableProps = {
   data: any[];
   loadMore?: (query) => Promise<any>;
@@ -43,7 +47,7 @@ type TableProps = (WithTable | WithoutTable) & {
   mobileColumn?;
   checkbox?: boolean;
   addons?;
-  // tableScroll?: ReturnType<typeof useTableScroll>;
+  tableScroll?: ReturnType<typeof useTableScroll>;
   tableMeta?: {
     deleteAction?: (id) => any;
     rowClick?: (id: string, rowData?) => any;
@@ -70,7 +74,7 @@ export const { useContext: useTable, Provider: TableProvider } =
     checkbox,
     defaultRowSelection = {},
     addons,
-    // tableScroll,
+    tableScroll,
     rowSelection: storeRowSelection,
     setRowSelection: storeSetRowSelection,
   }: TableProps) {
@@ -152,7 +156,7 @@ export const { useContext: useTable, Provider: TableProvider } =
       selectedRow,
       totalRowsFetched,
       addons,
-      // tableScroll,
+      tableScroll,
     };
   });
 
@@ -204,3 +208,10 @@ export const useTableData = ({ filter, route }) => {
     // from: data?.
   };
 };
+
+export const Table = Object.assign(BaseTable, {
+  Provider: TableProvider,
+  Row: TableRow,
+  Header: TableHeader,
+  Body,
+});

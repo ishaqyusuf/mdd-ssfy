@@ -1,9 +1,13 @@
-import { useTable } from "..";
-import { BatchAction, BatchBtn, BatchDelete } from "../batch-action";
+import {
+    BatchAction,
+    BatchBtn,
+    BatchDelete,
+} from "@gnd/ui/custom/data-table/batch-action";
 import { useMemo } from "react";
 import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
 import { PrintAction } from "@/app/(clean-code)/(sales)/_common/_components/overview-sheet.bin/footer/print.action";
 import { deleteSalesByOrderIds } from "@/app/(clean-code)/(sales)/_common/data-actions/sales-actions";
+import { useTable } from "@gnd/ui/custom/data-table/index";
 
 export function BatchActions({}) {
     const ctx = useTable();

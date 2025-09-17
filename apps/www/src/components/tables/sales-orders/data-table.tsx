@@ -1,16 +1,12 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { TableProvider, useTableData } from "..";
+import { Table, useTableData } from "@gnd/ui/custom/data-table/index";
 import { columns, mobileColumn } from "./columns";
-import { Table, TableBody } from "@gnd/ui/table";
-import { TableHeaderComponent } from "../table-header";
-import { TableRow } from "../table-row";
 import { LoadMoreTRPC } from "../load-more";
-
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { BatchActions } from "./batch-actions";
-import { useTableScroll } from "@/hooks/use-table-scroll";
+import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOrdersStore } from "@/store/sales-orders";
 
@@ -28,7 +24,7 @@ export function DataTable() {
     });
     const overviewQuery = useSalesOverviewQuery();
     return (
-        <TableProvider
+        <Table.Provider
             args={[
                 {
                     columns,
@@ -52,10 +48,10 @@ export function DataTable() {
                     className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
                 >
                     <Table>
-                        <TableHeaderComponent />
-                        <TableBody>
-                            <TableRow />
-                        </TableBody>
+                        <Table.Header />
+                        <Table.Body>
+                            <Table.Row />
+                        </Table.Body>
                     </Table>
                 </div>
                 {hasNextPage && (
@@ -63,7 +59,7 @@ export function DataTable() {
                 )}
                 <BatchActions />
             </div>
-        </TableProvider>
+        </Table.Provider>
     );
 }
 
