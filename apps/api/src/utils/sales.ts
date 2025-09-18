@@ -53,7 +53,11 @@ export function qtyControlsByType(controls: Prisma.QtyControlGetPayload<{}>[]) {
 }
 
 export function transformSalesFilterQuery(query: SalesQueryParamsSchema) {
-  const keys: (keyof SalesQueryParamsSchema)[] = ["cursor", "salesType"];
+  const keys: (keyof SalesQueryParamsSchema)[] = [
+    "cursor",
+    "salesType",
+    "size",
+  ];
   if (
     Object.entries(query)
       .filter(([a, b]) => !!b)

@@ -488,7 +488,6 @@ export function transformFilterDateToQuery(dateParts: string[]) {
   if (dateParts.length === 1 && fromStr) {
     return { gte: dayjs(fromStr).toISOString() };
   }
-
   if (fromStr && toStr) {
     return {
       gte: dayjs(fromStr).toISOString(),
