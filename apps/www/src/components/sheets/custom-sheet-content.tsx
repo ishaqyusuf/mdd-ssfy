@@ -19,11 +19,12 @@ import { useMediaQuery } from "react-responsive";
 import { screens } from "@/lib/responsive";
 
 const sheetContentVariant = cva(
-    "flex flex-col h-screens w-full overflow-x-hidden ",
+    "p-2 px-4 flex flex-col h-screens w-full overflow-x-hidden ",
     {
         variants: {
             floating: {
-                true: "md:h-[96vh] md:mx-4 md:mt-[2vh]",
+                // true: "md:h-[96vh] md:mx-4 md:mt-[2vh]",
+                true: "",
             },
             rounded: {
                 true: "md:rounded-xl",
@@ -83,7 +84,6 @@ export function CustomSheetBase({
                 id={sheet.nodeId}
                 {...props}
                 className={cn(
-                    "p-2 px-4",
                     sheetContentVariant({
                         ...(props as any),
                         floating,
@@ -100,12 +100,12 @@ export function CustomSheetContentPortal({ children }) {
     // [`customSheetContent`,sheetId]
     const sheet = useSheet();
 
-    const isDesktop = useMediaQuery(screens.xl);
+    const isDesktop = useMediaQuery(screens.lg);
     const nodeId = !isDesktop ? sheet.scrollContentId : sheet.nodeId;
 
     return (
         <>
-            <Portal nodeId={nodeId} noDelay>
+            <Portal nodeId={sheet.nodeId} noDelay>
                 {children}
             </Portal>
         </>
@@ -116,7 +116,7 @@ export function CustomSheetContent({ children = null, className = "" }) {
     return (
         <ScrollArea
             className={cn(
-                "-mx-4 flex-1 h-[90vh] px-4",
+                "-mx-4 flex-1 sh-[90vh] px-4",
                 className,
                 "flex flex-col",
             )}
