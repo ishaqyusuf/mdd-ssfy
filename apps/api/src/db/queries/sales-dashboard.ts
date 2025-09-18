@@ -85,10 +85,13 @@ export async function getRevenueOverTime(ctx: TRPCContext, filter: Filter) {
     {} as Record<string, number>
   );
 
-  return interval.map((day) => ({
+  const ret = interval.map((day) => ({
     date: format(day, "MMM d"),
     revenue: dailyRevenue[format(day, "yyyy-MM-dd")] || 0,
   }));
+  return ret.filter((d, i) =>
+    ret.filter((a, ai) => ai <= i).some((b) => b.revenue)
+  );
 }
 
 export async function getRecentSales(ctx: TRPCContext) {
