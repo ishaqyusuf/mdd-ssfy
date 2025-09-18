@@ -275,7 +275,8 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
         const f = filters?.[filter.value];
         if (Array.isArray(f) && f?.length > index) {
             const dates = transformFilterDateToQuery(f);
-            const dv = dates[index];
+            const dv = index == 0 ? dates?.gte : dates?.lte; ///dates[index];
+            // const dv = dates?.[index];
             if (index > 0)
                 switch (f?.[0] as DaysFilters) {
                     case "today":

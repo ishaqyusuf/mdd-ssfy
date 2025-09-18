@@ -396,10 +396,10 @@ export function consoleLog(title = "Log", ...data) {
 
 export function transformFilterDateToQuery(dateParts: string[]) {
   if (!dateParts) return undefined;
-  const [fromStr, toStr] = dateParts;
+  let [fromStr, toStr] = dateParts;
   const today = dayjs();
   const lower = fromStr!.toLowerCase().trim();
-
+  if (toStr == "-") toStr = null as any;
   if (lower === "today") {
     return {
       gte: today.startOf("day").toISOString(),
@@ -496,7 +496,7 @@ export function transformFilterDateToQuery(dateParts: string[]) {
     };
   }
 
-  if (fromStr && toStr === "null") {
+  if (fromStr && (toStr === "null" || toStr == "-" || !toStr)) {
     return {
       gte: dayjs(fromStr).toISOString(),
     };
