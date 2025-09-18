@@ -99,6 +99,15 @@ export function sum<T>(array?: T[], key: keyof T | undefined = undefined) {
       .reduce((sum, val) => (sum || 0) + (val as number), 0) || 0
   );
 }
+export function sortList<T>(
+  list: T[],
+  sortBy: keyof T | undefined = undefined
+) {
+  if (!list) return [];
+  return list.sort((a, b) =>
+    String(a![sortBy!]).localeCompare(String(b![sortBy!]))
+  );
+}
 export function uniqueList<T>(
   list: T[],
   uniqueBy: keyof T | undefined = undefined

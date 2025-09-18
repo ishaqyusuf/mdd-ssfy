@@ -134,7 +134,6 @@ export function ComboboxDropdown<T extends ComboboxItem>({
                       (item) =>
                         String(item.id)?.toUpperCase() === id?.toUpperCase()
                     );
-
                     if (!foundItem) {
                       return;
                     }

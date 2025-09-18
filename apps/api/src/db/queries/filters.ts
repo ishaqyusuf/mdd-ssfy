@@ -18,7 +18,7 @@ import { buildersList, projectList } from "./community";
 import type { GetSalesResolutions } from "./sales-resolution";
 import type { InventoryList, SalesProductionQueryParams } from "@sales/schema";
 import { getEmployeesList } from "./hrm";
-import { labelValueOptions } from "@gnd/utils";
+import { labelValueOptions, sortList, uniqueList } from "@gnd/utils";
 import { SALES_PRODUCTION_STATUS_FILTER_OPTIONS } from "@sales/constants";
 import type { ProductReportSchema } from "./product-report";
 import type { GetBacklogsSchema } from "./backlogs";
@@ -189,7 +189,20 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
     optionFilter<T>(
       "customer.name",
       "Customer",
-      customerNames.map((name) => ({ label: name, value: name }))
+      uniqueList(
+        sortList(
+          customerNames
+            .map((a) => a?.trim())
+            .map((label) => ({
+              label,
+              value: label,
+              // label: name?.replace(",", ""),
+              // value: name?.replace(",", ""),
+            })),
+          "value"
+        ),
+        "value"
+      )
     ),
     optionFilter<T>(
       "phone",

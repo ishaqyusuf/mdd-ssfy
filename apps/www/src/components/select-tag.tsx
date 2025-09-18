@@ -19,6 +19,7 @@ export function SelectTag({
             searchPlaceholder="Search tags"
             items={data}
             onSelect={(item) => {
+                console.log({ item, data });
                 onChange(item);
             }}
         />

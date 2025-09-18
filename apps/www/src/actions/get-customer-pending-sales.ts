@@ -2,7 +2,6 @@
 
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { prisma } from "@/db";
-import { formatDate } from "@/lib/use-day";
 import { whereSales } from "@/utils/db/where.sales";
 
 export async function getCustomerPendingSales(accountNo) {

@@ -7,6 +7,8 @@ import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { OrderHeader } from "@/components/sales-order-header";
 import { SalesQuoteHeader } from "@/components/sales-quote-header";
 import { DataTable } from "@/components/tables/sales-quotes/data-table";
+import { loadOrderFilterParams } from "@/hooks/use-sales-filter-params";
+import { batchPrefetch, trpc } from "@/trpc/server";
 
 export async function generateMetadata(props) {
     return constructMetadata({
@@ -14,7 +16,14 @@ export async function generateMetadata(props) {
     });
 }
 
-export default async function Page() {
+export default async function Page(props) {
+    const searchParams = await props.searchParams;
+    const filter = loadOrderFilterParams(searchParams);
+    batchPrefetch([
+        trpc.sales.index.infiniteQueryOptions({
+            ...(filter as any),
+        }),
+    ]);
     return (
         <FPage can={["viewEstimates"]} title="Quotes">
             <div className="flex flex-col gap-6">
