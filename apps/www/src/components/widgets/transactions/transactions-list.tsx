@@ -6,32 +6,34 @@ import type { TransactionType } from "./data";
 import { TransactionsItemList } from "./transactions-item-list";
 
 type Props = {
-  type: TransactionType;
-  disabled: boolean;
+    type: TransactionType;
+    disabled: boolean;
 };
 
 export function TransactionsList({ type, disabled }: Props) {
-  const trpc = useTRPC();
+    const trpc = useTRPC();
 
-  const { data: transactions } = useSuspenseQuery(
-    trpc.transactions.get.queryOptions({
-      pageSize: 15,
-      type: type === "all" ? undefined : type,
-    }),
-  );
+    return <></>;
+    // const { data: transactions } = useSuspenseQuery(
+    //   trpc.transactions.get.queryOptions({
+    //     pageSize: 15,
+    //     type: type === "all" ? undefined : type,
+    //   }),
+    // );
 
-  if (!transactions?.data?.length) {
-    return (
-      <div className="flex items-center justify-center aspect-square">
-        <p className="text-sm text-[#606060] -mt-12">No transactions found</p>
-      </div>
-    );
-  }
+    // if (!transactions?.data?.length) {
+    //   return (
+    //     <div className="flex items-center justify-center aspect-square">
+    //       <p className="text-sm text-[#606060] -mt-12">No transactions found</p>
+    //     </div>
+    //   );
+    // }
 
-  return (
-    <TransactionsItemList
-      transactions={transactions?.data}
-      disabled={disabled}
-    />
-  );
+    // return (
+    //   <TransactionsItemList
+    //     transactions={transactions?.data}
+    //     disabled={disabled}
+    //   />
+    // );
 }
+
