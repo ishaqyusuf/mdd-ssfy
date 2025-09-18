@@ -33,7 +33,7 @@ export default function MouldingLineItem({ itemStepUid }: Props) {
                         <TableRow className="uppercase">
                             <TableHead className="w-10">Sn.</TableHead>
                             <TableHead className="w-full">Moulding</TableHead>
-                            <TableHead className="w-20">Qty</TableHead>
+                            <TableHead className="w-28">Qty</TableHead>
                             <TableHead className="w-28">Estimate</TableHead>
                             <TableHead className="w-28">Addon/Qty</TableHead>
                             <TableHead className="w-28">Line Total</TableHead>

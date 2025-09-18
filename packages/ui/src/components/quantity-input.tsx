@@ -32,7 +32,7 @@ export function QuantityInput({
 
     // Check if input can be parsed as a valid number
     const num = Number.parseFloat(input);
-    console.log({ input });
+
     if (!Number.isNaN(num) && min <= num && num <= max) {
       onChange?.(num);
     }
