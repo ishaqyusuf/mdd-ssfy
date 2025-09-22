@@ -44,6 +44,7 @@ export class StepHelperClass extends SettingsClass {
     public isDoor() {
         return this.getStepForm().title == "Door";
     }
+
     public isLineItem() {
         return this.getStepForm().title == "Line Item";
     }
@@ -108,6 +109,13 @@ export class StepHelperClass extends SettingsClass {
         Object.entries(data).map(([k, v]) => {
             this.zus.dotUpdate(`kvStepForm.${this.itemStepUid}.${k}` as any, v);
         });
+    }
+    public getSupplierInfo() {
+        const s = Object.entries(this.zus.kvStepForm).find(
+            ([itemStepUid, stepData]) =>
+                itemStepUid?.startsWith(`${this.itemUid}-`) &&
+                stepData?.title == "Supplier",
+        );
     }
     public findStepForm(stepUid) {
         return this.zus.kvStepForm[`${this.itemUid}-${this.stepUid}`];
@@ -254,8 +262,6 @@ export class StepHelperClass extends SettingsClass {
                         stepData.components || [];
                 }
             });
-        console.log(data);
-
         return data;
     }
     public async refreshStepComponentsData(reload = false) {

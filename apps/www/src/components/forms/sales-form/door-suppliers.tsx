@@ -1,25 +1,32 @@
 import { useTRPC } from "@/trpc/client";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { DoorSupplierForm } from "./door-supplier-form";
 import { Table } from "@gnd/ui/custom/data-table/index";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
-export function DoorSuppliers({}) {
+import { Label } from "@gnd/ui/label";
+import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+export function DoorSuppliers({ itemStepUid }) {
     return (
         <Suspense fallback={<LoadingSkeleton />}>
-            <Content />
+            <Content itemStepUid={itemStepUid} />
         </Suspense>
     );
 }
-export function Content({}) {
+export function Content({ itemStepUid }) {
     const trpc = useTRPC();
     const { data } = useSuspenseQuery(trpc.sales.getSuppliers.queryOptions({}));
     const [supplierFormData, setSupplierFormData] = useState<any>(null);
     const qc = useQueryClient();
-
+    // const ctx = useStepContext(itemStepUid);
+    // ctx.tabComponents.
+    const zus = useFormDataStore();
+    const cls = useMemo(() => {
+        const [itemUid, stepUid] = itemStepUid?.split("-");
+    }, [itemStepUid]);
     if (!data?.uid && !supplierFormData)
         return (
             <EmptyState
@@ -36,19 +43,12 @@ export function Content({}) {
     return (
         <div className="min-h-[40vh]">
             <div className="p-4 space-y-4">
-                {/* { <div className="flex justify-end">
-                    <Button
-                        size="sm"
-                        onClick={(e) => {
-                            setSupplierFormData({});
-                        }}
-                    >
-                        <Icons.Add className="size-4" />
-                        <span>Add</span>
-                    </Button>
-                </div> } */}
                 {!supplierFormData ? (
-                    <div className="flex justify-end">
+                    <div className="flex items-center">
+                        <div className="">
+                            <Label>Click to select a supplier</Label>
+                        </div>
+                        <div className="flex-1"></div>
                         <Button
                             size="sm"
                             onClick={(e) => {

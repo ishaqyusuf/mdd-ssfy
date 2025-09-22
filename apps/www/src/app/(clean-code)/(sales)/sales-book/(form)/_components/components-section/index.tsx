@@ -81,7 +81,7 @@ export function ComponentsSection({ itemStepUid }: Props) {
                         <Tabs.Item index={1} key={1}>
                             <span>Suppliers</span>
                             <Tabs.Content>
-                                <DoorSuppliers />
+                                <DoorSuppliers itemStepUid={itemStepUid} />
                             </Tabs.Content>
                         </Tabs.Item>,
                     ]}

@@ -18,7 +18,7 @@ import {
 import {
     ItemAssignment,
     ItemAssignmentSubmission,
-    LineItem,
+    // LineItem,
 } from "../item-view/sales-items-overview";
 import { AssignForm } from "./assigne-form";
 import SubmitProductionForm from "./submit-form";
@@ -37,7 +37,7 @@ export function ItemProdView({}) {
                 <ScrollArea className="o-scrollable-content-area ">
                     <div className="p-4 sm:p-8">
                         <div className={cn("")}>
-                            <LineItem item={item} />
+                            {/* <LineItem item={item} /> */}
                         </div>
 
                         <AssignForm />
