@@ -32,7 +32,10 @@ export function DoorSupplierForm({
     const { isPending, mutate, data } = useMutation(
         trpc.sales.saveSupplier.mutationOptions({
             onSuccess(data, variables, context) {
-                onCreate?.(data);
+                setTimeout(() => {
+                    console.log({ data });
+                    onCreate?.(data);
+                }, 2000);
             },
             onError(error, variables, context) {
                 onError?.(error);
