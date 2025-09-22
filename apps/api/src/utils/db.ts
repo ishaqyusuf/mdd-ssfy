@@ -18,3 +18,9 @@ export function dateEquals(date) {
   //     lte: fixDbTime(dayjs(date), 23, 59, 59).toISOString(),
   // };
 }
+export function txContext(ctx, tx) {
+  return {
+    ...ctx,
+    db: tx,
+  };
+}

@@ -6,7 +6,6 @@ import { prisma } from "@/db";
 import { AsyncFnType } from "@/types";
 import { PermissionScope } from "@/types/auth";
 
-export type GetUsersList = AsyncFnType<typeof getUsersListAction>;
 export async function getUsersListAction(props: SearchParamsType) {
     const where = whereUsers(props);
     const users = await prisma.users.findMany({

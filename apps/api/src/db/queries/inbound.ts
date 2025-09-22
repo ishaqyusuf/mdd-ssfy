@@ -8,7 +8,7 @@ import { getSales } from "./sales";
 
 export async function getInboundStatuses(
   ctx: TRPCContext,
-  salesIds?: number[],
+  salesIds?: number[]
 ) {
   const notes = await ctx.db.notePad.findMany({
     where: {
@@ -57,10 +57,10 @@ export async function getInboundStatuses(
   const statuses = notes
     .map((n) => {
       const s = n.tags.find(
-        (a) => (a.tagName as NoteTagNames) === "inboundStatus",
+        (a) => (a.tagName as NoteTagNames) === "inboundStatus"
       );
       const orderId = Number(
-        n.tags.find((a) => (a.tagName as NoteTagNames) === "salesId")?.tagValue,
+        n.tags.find((a) => (a.tagName as NoteTagNames) === "salesId")?.tagValue
       );
       return {
         orderId,
@@ -69,7 +69,7 @@ export async function getInboundStatuses(
     })
     .filter((s) => s.orderId);
   return statuses.filter(
-    (a, i) => i == statuses?.findIndex((s) => s.orderId == a.orderId),
+    (a, i) => i == statuses?.findIndex((s) => s.orderId == a.orderId)
   );
 }
 
@@ -80,11 +80,9 @@ export async function getInbounds(ctx: TRPCContext, query: InboundQuerySchema) {
     q: query?.q,
     cursor: query?.cursor,
   };
-
   let statusList: any = null;
   if (status != "total" && status) {
     statusList = await getInboundStatuses(ctx);
-
     const matchingSales = statusList.filter((a) => a.status === status);
     const salesIds = matchingSales.map((a) => a.orderId);
     salesQuery.salesIds = salesIds;
@@ -102,7 +100,7 @@ export async function getInbounds(ctx: TRPCContext, query: InboundQuerySchema) {
   if (!statusList)
     statusList = await getInboundStatuses(
       ctx,
-      sales.data.map((a) => a.id),
+      sales.data.map((a) => a.id)
     );
 
   return {
@@ -116,7 +114,7 @@ export async function getInbounds(ctx: TRPCContext, query: InboundQuerySchema) {
 }
 export async function getInboundSummary(
   ctx: TRPCContext,
-  query: InboundQuerySchema,
+  query: InboundQuerySchema
 ) {
   const data = await getInboundStatuses(ctx);
   switch (query.status) {

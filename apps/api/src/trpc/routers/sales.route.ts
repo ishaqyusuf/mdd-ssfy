@@ -34,6 +34,12 @@ import {
   accountingIndex,
   accountingIndexSchema,
 } from "@api/db/queries/accounting";
+import {
+  getSuppliers,
+  getSuppliersSchema,
+  saveSupplier,
+  saveSupplierSchema,
+} from "@api/db/queries/sales-form";
 export const salesRouter = createTRPCRouter({
   createStep: publicProcedure
     .input(
@@ -146,5 +152,15 @@ export const salesRouter = createTRPCRouter({
     .query(async (props) => {
       const result = await accountingIndex(props.ctx, props.input);
       return result;
+    }),
+  getSuppliers: publicProcedure
+    .input(getSuppliersSchema)
+    .query(async (props) => {
+      return getSuppliers(props.ctx, props.input);
+    }),
+  saveSupplier: publicProcedure
+    .input(saveSupplierSchema)
+    .mutation(async (props) => {
+      return saveSupplier(props.ctx, props.input);
     }),
 });

@@ -19,7 +19,14 @@ import { screens } from "@gnd/utils/responsive";
 import { useTableScroll } from "../../../hooks/use-table-scroll";
 import { TableRow } from "./table-row";
 import { TableHeader } from "./table-header";
-import { Table as BaseTable, TableBody as Body } from "../../table";
+import {
+  Table as BaseTable,
+  TableBody as _Body,
+  TableRow as _Row,
+  TableCell as _Cell,
+  TableHeader as _Header,
+  TableHead as _Head,
+} from "../../table";
 export type DataTableProps = {
   data: any[];
   loadMore?: (query) => Promise<any>;
@@ -213,5 +220,9 @@ export const Table = Object.assign(BaseTable, {
   Provider: TableProvider,
   Row: TableRow,
   Header: TableHeader,
-  Body,
+  _Body,
+  _Row,
+  _Head,
+  _Header,
+  _Cell,
 });

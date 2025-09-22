@@ -1,0 +1,77 @@
+import { useTRPC } from "@/trpc/client";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { Suspense, useState } from "react";
+import { Skeletons } from "@gnd/ui/custom/skeletons";
+import { EmptyState } from "@gnd/ui/custom/empty-state";
+import { DoorSupplierForm } from "./door-supplier-form";
+import { Table } from "@gnd/ui/custom/data-table/index";
+export function DoorSuppliers({}) {
+    return (
+        <Suspense fallback={<LoadingSkeleton />}>
+            <Content />
+        </Suspense>
+    );
+}
+export function Content({}) {
+    const trpc = useTRPC();
+    const { data } = useSuspenseQuery(trpc.sales.getSuppliers.queryOptions({}));
+    const [supplierFormData, setSupplierFormData] = useState<any>(null);
+    const qc = useQueryClient();
+
+    if (!data?.uid && !supplierFormData)
+        return (
+            <EmptyState
+                className="py-10"
+                label="supplier"
+                onCreate={(e) => {
+                    setSupplierFormData({});
+                    qc.invalidateQueries({
+                        queryKey: trpc.sales.getSuppliers.queryKey({}),
+                    });
+                }}
+            />
+        );
+    return (
+        <div className="min-h-[40vh]">
+            {!supplierFormData || (
+                <div className="p-4">
+                    <DoorSupplierForm
+                        onCreate={(e) => {
+                            setSupplierFormData({});
+                        }}
+                        defaultValues={supplierFormData}
+                    />
+                </div>
+            )}
+            {/* {!data?.stepProducts?.length || ( */}
+            <div className="p-4">
+                <Table className="table-sm">
+                    <Table._Header>
+                        <Table._Row>
+                            <Table._Head>Supplier</Table._Head>
+                        </Table._Row>
+                    </Table._Header>
+                    <Table._Body>
+                        {data?.stepProducts?.map((p) => (
+                            <Table._Row key={p.id}>
+                                <Table._Cell className="uppercase">
+                                    {p.name}
+                                </Table._Cell>
+                            </Table._Row>
+                        ))}
+                    </Table._Body>
+                </Table>
+            </div>
+            {/* )} */}
+        </div>
+    );
+}
+
+function LoadingSkeleton() {
+    return (
+        <div className="flex m-10 flex-col">
+            <Skeletons.Dashboard />
+        </div>
+    );
+}
+

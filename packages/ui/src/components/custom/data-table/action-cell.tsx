@@ -1,5 +1,3 @@
-import { cn } from "@gnd/ui/cn";
-
 import { useTable } from ".";
 // import ConfirmBtn from "../confirm-button";
 

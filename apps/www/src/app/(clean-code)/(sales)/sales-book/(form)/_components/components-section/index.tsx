@@ -55,11 +55,49 @@ import { UseStepContext, useStepContext } from "./ctx";
 import { CustomComponentAction } from "./custom-component.action";
 import SearchBar from "./search-bar";
 import { Env } from "@/components/env";
+import { Tabs } from "@gnd/ui/custom/tabs";
+import { DoorSuppliers } from "@/components/forms/sales-form/door-suppliers";
 
 interface Props {
     itemStepUid;
 }
 export function ComponentsSection({ itemStepUid }: Props) {
+    const ctx = useStepContext(itemStepUid);
+    const isDoor = ctx.cls.isDoor();
+    const [tab, setTab] = useState("doors");
+    if (!isDoor) return <Content itemStepUid={itemStepUid} />;
+    return (
+        <div className="py-4">
+            <Tabs value={tab} onValueChange={setTab}>
+                <Tabs.Items
+                    className="px-4"
+                    TabItems={[
+                        <Tabs.Item index={0} key={0}>
+                            <span>Doors</span>
+                            <Tabs.Content>
+                                <Content itemStepUid={itemStepUid} />
+                            </Tabs.Content>
+                        </Tabs.Item>,
+                        <Tabs.Item index={1} key={1}>
+                            <span>Suppliers</span>
+                            <Tabs.Content>
+                                <DoorSuppliers />
+                            </Tabs.Content>
+                        </Tabs.Item>,
+                    ]}
+                ></Tabs.Items>
+                {/* <TabsList>
+                    <TabsTrigger value="doors">Doors</TabsTrigger>
+                    <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
+                </TabsList>
+                <TabsContent value="doors">
+                    <Content itemStepUid={itemStepUid} />
+                </TabsContent> */}
+            </Tabs>
+        </div>
+    );
+}
+function Content({ itemStepUid }) {
     const ctx = useStepContext(itemStepUid);
     const { items, sticky, cls, props } = ctx;
     const sortMode = useSortControl();
@@ -89,40 +127,52 @@ export function ComponentsSection({ itemStepUid }: Props) {
         }) as any);
     };
     return (
-        <ScrollArea
-            ref={sticky.containerRef}
-            className="smax-h-[80vh] sm:max-h-[200vh] relative h-full p-4 pb-20"
-        >
-            <Sortable
-                orientation="mixed"
-                collisionDetection={closestCorners}
-                value={items}
-                onValueChange={onSorted}
-                overlay={<div className="size-full rounded-md bg-primary/10" />}
+        <div className="grid gap-4">
+            <ScrollArea
+                ref={sticky.containerRef}
+                className="smax-h-[80vh] sm:max-h-[200vh] relative h-full p-4 pb-20"
             >
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-                    {!items.length &&
-                        Array(10)
-                            .fill(null)
-                            .map((_, i) => (
-                                <div
-                                    className="flex min-h-[25vh] flex-col rounded-lg border xl:min-h-[35vh]"
-                                    key={i}
-                                >
-                                    <Skeleton className="flex-1" />
-                                    <Skeleton className="h-10" />
-                                </div>
-                            ))}
-                    {items?.map((component, index) => (
-                        <SortableItem
-                            key={component.id}
-                            value={component.id}
-                            asTrigger
-                            className={cn(savingSort && "grayscale")}
-                            asChild
-                        >
-                            {sortMode && !savingSort ? (
-                                <div className="  flex flex-col">
+                <Sortable
+                    orientation="mixed"
+                    collisionDetection={closestCorners}
+                    value={items}
+                    onValueChange={onSorted}
+                    overlay={
+                        <div className="size-full rounded-md bg-primary/10" />
+                    }
+                >
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+                        {!items.length &&
+                            Array(10)
+                                .fill(null)
+                                .map((_, i) => (
+                                    <div
+                                        className="flex min-h-[25vh] flex-col rounded-lg border xl:min-h-[35vh]"
+                                        key={i}
+                                    >
+                                        <Skeleton className="flex-1" />
+                                        <Skeleton className="h-10" />
+                                    </div>
+                                ))}
+                        {items?.map((component, index) => (
+                            <SortableItem
+                                key={component.id}
+                                value={component.id}
+                                asTrigger
+                                className={cn(savingSort && "grayscale")}
+                                asChild
+                            >
+                                {sortMode && !savingSort ? (
+                                    <div className="  flex flex-col">
+                                        <Component
+                                            sortMode={sortMode}
+                                            ctx={ctx}
+                                            itemIndex={index}
+                                            key={component.uid}
+                                            component={component}
+                                        />
+                                    </div>
+                                ) : (
                                     <Component
                                         sortMode={sortMode}
                                         ctx={ctx}
@@ -130,25 +180,17 @@ export function ComponentsSection({ itemStepUid }: Props) {
                                         key={component.uid}
                                         component={component}
                                     />
-                                </div>
-                            ) : (
-                                <Component
-                                    sortMode={sortMode}
-                                    ctx={ctx}
-                                    itemIndex={index}
-                                    key={component.uid}
-                                    component={component}
-                                />
-                            )}
-                            {/* </div> */}
-                        </SortableItem>
-                    ))}
-                    {/* <CustomComponent ctx={ctx} /> */}
-                    <CustomComponentForm itemStepUid={itemStepUid} />
-                </div>
-            </Sortable>
-            <FloatingAction ctx={ctx} />
-        </ScrollArea>
+                                )}
+                                {/* </div> */}
+                            </SortableItem>
+                        ))}
+                        {/* <CustomComponent ctx={ctx} /> */}
+                        <CustomComponentForm itemStepUid={itemStepUid} />
+                    </div>
+                </Sortable>
+                <FloatingAction ctx={ctx} />
+            </ScrollArea>
+        </div>
     );
 }
 

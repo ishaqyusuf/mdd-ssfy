@@ -177,6 +177,23 @@ export interface DykeSalesDoorMeta {
     production?: boolean;
   };
 }
+export interface DykeStepMeta {
+  priceDepencies?: { [itemId: string]: boolean };
+  stateDeps?: { [itemId: string]: boolean };
+  custom?: boolean;
+  allowCustom?: boolean;
+  allowAdd?: boolean;
+  enableSearch?: boolean;
+  doorSizeConfig: {
+    [uid in string]: {
+      title: string;
+      sizes: { [height in string]: boolean };
+      productRules: {
+        [uid in string]: boolean;
+      };
+    };
+  };
+}
 export interface ItemStatConfigProps {
   isDyke?: boolean;
   qty?: Qty;

@@ -49,9 +49,9 @@ export function DataTable() {
                 >
                     <Table>
                         <Table.Header />
-                        <Table.Body>
+                        <Table._Body>
                             <Table.Row />
-                        </Table.Body>
+                        </Table._Body>
                     </Table>
                 </div>
                 {hasNextPage && (

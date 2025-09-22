@@ -5,7 +5,6 @@ import { addUserToSiteActionNotification } from "@/actions/add-user-to-site-acti
 import { getActionNotifications } from "@/actions/cache/get-action-notifications";
 import { removeUserFromSiteActionNotification } from "@/actions/remove-user-from-site-action-notification";
 import { toggleSiteActionNotification } from "@/actions/toggle-site-action-notification";
-import { getUsersListAction } from "@/data-actions/users/get-users";
 import { AsyncFnType } from "@/types";
 import { Events } from "@/utils/constants";
 import { ChevronDown } from "lucide-react";
@@ -34,7 +33,7 @@ import { Checkbox } from "@gnd/ui/checkbox";
 
 interface UseData {
     data: AsyncFnType<typeof getActionNotifications>;
-    users: AsyncFnType<typeof getUsersListAction>;
+    users: any;
 }
 export function SiteActionNotificationTable({ dataPromise, userPromise }) {
     const data = use<UseData["data"]>(dataPromise);
