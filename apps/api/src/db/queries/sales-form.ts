@@ -4,13 +4,6 @@ import { generateRandomString } from "@gnd/utils";
 import type { DykeStepMeta } from "@sales/types";
 import { z } from "zod";
 
-/*
-getSuppliers: publicProcedure
-      .input(getSuppliersSchema)
-      .query(async (props) => {
-        return getSuppliers(props.ctx, props.input);
-      }),
-*/
 export const getSuppliersSchema = z.object({});
 export type GetSuppliersSchema = z.infer<typeof getSuppliersSchema>;
 export async function getSuppliers(
@@ -20,7 +13,7 @@ export async function getSuppliers(
   const { db } = ctx;
   const step = await db.dykeSteps.findFirst({
     where: {
-      title: "Suppliers",
+      title: "Supplier",
     },
     select: {
       id: true,
@@ -36,20 +29,11 @@ export async function getSuppliers(
   });
   return step;
 }
-
-/*
-saveSupplier: publicProcedure
-      .input(saveSupplierSchema)
-      .mutation(async (props) => {
-        return saveSupplier(props.ctx, props.input);
-      }),
-*/
 export const saveSupplierSchema = z.object({
   name: z.string(),
   id: z.number().optional().nullable(),
 });
 export type SaveSupplierSchema = z.infer<typeof saveSupplierSchema>;
-
 export async function saveSupplier(ctx: TRPCContext, data: SaveSupplierSchema) {
   const { db } = ctx;
   return db.$transaction(async (tx) => {
@@ -66,7 +50,7 @@ export async function saveSupplier(ctx: TRPCContext, data: SaveSupplierSchema) {
         })
       ).id;
     if (data.id)
-      await tx.dykeStepProducts.update({
+      return await tx.dykeStepProducts.update({
         where: {
           id: data.id,
         },
@@ -76,7 +60,7 @@ export async function saveSupplier(ctx: TRPCContext, data: SaveSupplierSchema) {
         },
       });
     else
-      await tx.dykeStepProducts.create({
+      return await tx.dykeStepProducts.create({
         data: {
           name: data.name,
           uid: generateRandomString(5),

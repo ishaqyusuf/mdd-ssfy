@@ -33,7 +33,6 @@ export function DoorSupplierForm({
         trpc.sales.saveSupplier.mutationOptions({
             onSuccess(data, variables, context) {
                 setTimeout(() => {
-                    console.log({ data });
                     onCreate?.(data);
                 }, 2000);
             },

@@ -5,6 +5,8 @@ import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { DoorSupplierForm } from "./door-supplier-form";
 import { Table } from "@gnd/ui/custom/data-table/index";
+import { Button } from "@gnd/ui/button";
+import { Icons } from "@gnd/ui/icons";
 export function DoorSuppliers({}) {
     return (
         <Suspense fallback={<LoadingSkeleton />}>
@@ -33,18 +35,40 @@ export function Content({}) {
         );
     return (
         <div className="min-h-[40vh]">
-            {!supplierFormData || (
-                <div className="p-4">
-                    <DoorSupplierForm
-                        onCreate={(e) => {
+            <div className="p-4 space-y-4">
+                {/* { <div className="flex justify-end">
+                    <Button
+                        size="sm"
+                        onClick={(e) => {
                             setSupplierFormData({});
                         }}
-                        defaultValues={supplierFormData}
-                    />
-                </div>
-            )}
-            {/* {!data?.stepProducts?.length || ( */}
-            <div className="p-4">
+                    >
+                        <Icons.Add className="size-4" />
+                        <span>Add</span>
+                    </Button>
+                </div> } */}
+                {!supplierFormData ? (
+                    <div className="flex justify-end">
+                        <Button
+                            size="sm"
+                            onClick={(e) => {
+                                setSupplierFormData({});
+                            }}
+                        >
+                            <Icons.Add className="size-4" />
+                            <span>Add</span>
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="p-4">
+                        <DoorSupplierForm
+                            onCreate={(e) => {
+                                setSupplierFormData({});
+                            }}
+                            defaultValues={supplierFormData}
+                        />
+                    </div>
+                )}
                 <Table className="table-sm">
                     <Table._Header>
                         <Table._Row>
@@ -66,7 +90,6 @@ export function Content({}) {
         </div>
     );
 }
-
 function LoadingSkeleton() {
     return (
         <div className="flex m-10 flex-col">

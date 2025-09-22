@@ -34,7 +34,7 @@ export function makeQueryClient() {
             },
             onSuccess: async (data, variables, _context, mutation) => {
                 const title =
-                    mutation?.meta?.toastTitle?.loading || "Success ...";
+                    mutation?.meta?.toastTitle?.success || "Success ...";
                 toast({
                     title,
                     variant: "success",
