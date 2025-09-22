@@ -6,7 +6,7 @@ import { Menu } from "@/components/(clean-code)/menu";
 import { AnimatedNumber } from "@/components/animated-number";
 import { WageInput } from "@/components/forms/sales-form/hpt/wage-input";
 import { cn } from "@/lib/utils";
-import { Repeat } from "lucide-react";
+import { Notebook, Repeat } from "lucide-react";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -206,7 +206,7 @@ function DoorSizeTable({ door }: DoorSizeTable) {
                     </TableFooter>
                 </Table>
             </div>
-            <div className="hidden lg:block">
+            <div className="hidden xl:block">
                 <Door door={door} />
             </div>
         </div>
@@ -332,7 +332,7 @@ function DoorSizeRowContent() {
                             setShowNote(!showNote);
                         }}
                     >
-                        {showNote ? "Close Notes" : "Open Notes"}
+                        <Notebook className="size-4" />
                     </Button>
                     <ConfirmBtn
                         disabled={ctx.hpt.selectCount == 1}

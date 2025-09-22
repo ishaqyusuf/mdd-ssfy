@@ -25,7 +25,7 @@
     "dev:web": "turbo dev --parallel  --filter !@gnd/gnd-backlog --filter !@gnd/api",
     "dev:backlog": "turbo dev --parallel  --filter !@gnd/email --filter !@gnd/site --filter !@gnd/www  --filter !@gnd/jobs",
     "--dev:web": "turbo dev --parallel  --filter !@gnd/gnd-backlog --filter !@gnd/jobs",
-    "dev:web-prod": "turbo dev:prod --parallel  --filter !@gnd/gnd-backlog --filter !@gnd/email --filter !@gnd/site",
+    "dev:web-prod": "turbo dev:prod --parallel  --filter !@gnd/gnd-backlog --filter !@gnd/email --filter !@gnd/site --filter !@gnd/jobs",
     "format": "biome format --write .",
     "lint": "turbo lint && manypkg check",
     "---format": "turbo format --continue -- --cache --cache-location='node_modules/.cache/.prettiercache' --ignore-path='../../.gitignore'",

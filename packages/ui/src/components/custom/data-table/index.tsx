@@ -201,11 +201,11 @@ export const useTableData = ({ filter, route }) => {
   }, [data]);
 
   useEffect(() => {
-    if (isFetching) return;
     if (inView) {
+      console.log("FETCHING", { inView });
       fetchNextPage();
     }
-  }, [inView, isFetching]);
+  }, [inView]);
   return {
     ref,
     // data: tableData,
