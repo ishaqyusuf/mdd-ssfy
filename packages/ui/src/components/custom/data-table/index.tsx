@@ -202,7 +202,6 @@ export const useTableData = ({ filter, route }) => {
 
   useEffect(() => {
     if (inView) {
-      console.log("FETCHING", { inView });
       fetchNextPage();
     }
   }, [inView]);
