@@ -1,4 +1,3 @@
-import { useSalesOverview } from "../overview-provider";
 import { Menu } from "@/components/(clean-code)/menu";
 import { openLink } from "@/lib/open-link";
 import { SalesPrintProps } from "@/app/(v2)/printer/sales/page";
@@ -10,8 +9,7 @@ interface Props {
     data?;
 }
 export function PrintAction({ data, pdf }: Props) {
-    let ctx = useSalesOverview();
-    if (data) ctx = data as any;
+    let ctx = data as any;
     const slugs = data?.slugs;
     const dispatchList = ctx.item.dispatchList || [];
     const type = ctx.item.type;
@@ -40,7 +38,7 @@ export function PrintAction({ data, pdf }: Props) {
                     error(data) {
                         return "Something went wrong";
                     },
-                }
+                },
             );
         }
     }

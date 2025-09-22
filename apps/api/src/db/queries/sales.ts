@@ -41,7 +41,7 @@ export async function getSales(
   query: SalesQueryParamsSchema
 ) {
   if (!query.salesType) query.salesType = "order";
-
+  console.log("QUERIES:", { query });
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,

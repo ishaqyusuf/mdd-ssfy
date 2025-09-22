@@ -22,7 +22,7 @@ import {
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
 import { getSalesProductions } from "@sales/sales-production";
 import { z } from "zod";
-import { consoleLog, generateRandomString, timeLog } from "@gnd/utils";
+import { generateRandomString, timeLog } from "@gnd/utils";
 import { getCustomers } from "@api/db/queries/customer";
 import { getCustomersSchema } from "@api/schemas/customer";
 import {
