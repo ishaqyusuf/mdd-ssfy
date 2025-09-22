@@ -22,6 +22,7 @@ import { ItemProgressBar } from "./item-progress-bar";
 import { ProductionItemDetail } from "./production-item-detail";
 import { ProductionItemMenu } from "./production-item-menu";
 import { ProductionTabFooter } from "./production-tab-footer";
+import { useAfterTaskTrigger } from "@/hooks/use-task-trigger";
 
 export function ProductionTab({}) {
     return (
@@ -37,6 +38,10 @@ function Content() {
     const { data, ctx } = useProduction();
     const items = data?.items?.filter((a) => a?.itemConfig?.production);
     const itemCount = items?.length || 0;
+    const queryCtx = useSalesOverviewQuery();
+    useAfterTaskTrigger(() => {
+        queryCtx.salesQuery.assignmentUpdated();
+    });
     return (
         <DataSkeletonProvider value={{ loading: !data?.orderId } as any}>
             <div className="mt-0 space-y-6">

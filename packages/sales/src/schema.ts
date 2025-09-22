@@ -76,6 +76,23 @@ export const updateSalesControlSchema = z.object({
     })
     .nullable()
     .optional(),
+  createAssignments: z
+    .object({
+      retries: z.number().optional().nullable().default(0),
+      dueDate: z.date().optional().nullable(),
+      assignedToId: z.number().nullable().optional(),
+      selections: z
+        .array(
+          z.object({
+            uid: z.string(),
+            qty: qty.optional().nullable(),
+          })
+        )
+        .optional()
+        .nullable(),
+    })
+    .optional()
+    .nullable(),
   submitAll: z
     .object({
       assignedToId: z.number().nullable().optional(),

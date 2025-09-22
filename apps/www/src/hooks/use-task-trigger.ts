@@ -1,6 +1,6 @@
 import { toast } from "@gnd/ui/use-toast";
 import { useAction } from "next-safe-action/hooks";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
 import { triggerTask } from "@/actions/trigger-task";
 import { useTaskNotificationParams } from "./use-task-notification-params";
@@ -133,4 +133,20 @@ export function useTaskTrigger(props?: Props) {
         isLoading: status == "SYNCING",
     };
     return ctx;
+}
+
+export function useAfterTaskTrigger(func: () => void) {
+    const [runningId, setRunningId] = useState<null | string>(null);
+    const {
+        filters: { tasks },
+    } = useTaskNotificationParams();
+
+    const prevTasks = useRef(tasks);
+
+    useEffect(() => {
+        if (prevTasks.current && tasks === null) {
+            func(); // <-- only runs when there *was* tasks and now it's null
+        }
+        prevTasks.current = tasks;
+    }, [tasks, func]);
 }

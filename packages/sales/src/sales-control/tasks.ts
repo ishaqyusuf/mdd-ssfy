@@ -7,14 +7,13 @@ import {
   submitAssignmentsAction,
   packDispatchItemsAction,
   resetSalesAction,
+  createSalesAssignmentAction,
+  CreateSalesAssignmentProps,
 } from "./actions";
 import { getSaleInformation } from "./get-sale-information";
-import {
-  composeNote,
-  noteTag,
-  saveNote,
-  SaveNoteSchema,
-} from "@gnd/utils/note";
+import { noteTag, saveNote, SaveNoteSchema } from "@gnd/utils/note";
+import { pickQtyFrom, recomposeQty } from "../utils/sales-control";
+import { consoleLog } from "@gnd/utils";
 export async function submitAllTask(db: Db, data: UpdateSalesControl) {
   const submitArgs = data.submitAll;
   const info = await getSaleInformation(db, {
@@ -26,6 +25,70 @@ export async function submitAllTask(db: Db, data: UpdateSalesControl) {
         authorId: data.meta.authorId,
         data: info,
         ...submitArgs,
+      });
+    },
+    {
+      maxWait: 30 * 1000,
+    }
+  );
+}
+export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
+  const payload = data.createAssignments;
+  const info = await getSaleInformation(db, {
+    salesId: data.meta.salesId,
+  });
+
+  const createAssignments: CreateSalesAssignmentProps["items"] = [];
+  for (const item of info.items) {
+    const s = payload?.selections?.find((s) => s.uid === item.controlUid);
+    if (s) {
+      const { pendingPick, picked, remainder } = pickQtyFrom(
+        recomposeQty(s.qty as any),
+        recomposeQty(item.analytics.assignment.pending)
+      );
+      consoleLog("Job Error", {
+        pendingPick,
+        picked,
+        remainder,
+        item,
+      });
+      if (picked) {
+        // picked.lh
+        createAssignments.push({
+          itemInfo: item,
+          qty: picked,
+        });
+      }
+    }
+  }
+  if (createAssignments.length != payload?.selections?.length) {
+    if (!payload?.retries) {
+      consoleLog("RETRYING>>>>>");
+      await resetSalesAction(db, data.meta.salesId);
+      return createAssignmentsTask(db, {
+        ...data,
+        createAssignments: {
+          ...payload,
+          retries: 1,
+        },
+      });
+    }
+  }
+  if (!createAssignments.length) {
+    consoleLog("Job Error", {
+      payload,
+    });
+    throw new Error("Unable to complete, nothing to submit!");
+  }
+  await db.$transaction(
+    async (tx) => {
+      await createSalesAssignmentAction(tx as any, {
+        items: createAssignments,
+        salesId: data.meta.salesId,
+        assignedToId: payload?.assignedToId!,
+        authorId: data.meta.authorId,
+        dueDate: payload?.dueDate,
+        updateStats: true,
       });
     },
     {

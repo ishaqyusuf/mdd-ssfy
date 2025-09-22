@@ -2,7 +2,7 @@ import { createSalesDispatchSchemaTask, TaskName } from "@jobs/schema";
 import { schemaTask } from "@trigger.dev/sdk/v3";
 const BATCH_SIZE = 500;
 
-export const example = schemaTask({
+export const createSalesDispatch = schemaTask({
   id: "create-sales-dispatch" as TaskName,
   schema: createSalesDispatchSchemaTask,
   maxDuration: 120,

@@ -20,6 +20,7 @@ import { Form } from "@gnd/ui/form";
 import { Label } from "@gnd/ui/label";
 
 import { useProductionItem } from "./production-tab";
+import { debugToast } from "@/hooks/use-debug-console";
 
 export function ProductionAssignmentForm({ closeForm }) {
     const ctx = useProductionItem();
@@ -67,7 +68,9 @@ export function ProductionAssignmentForm({ closeForm }) {
             closeForm();
         },
         onError(e) {
-            toast.error("Unable to complete");
+            toast.error("Unable to complete!");
+            debugToast("Error", e);
+            console.log(e);
         },
     });
 

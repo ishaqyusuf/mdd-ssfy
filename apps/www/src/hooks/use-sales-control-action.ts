@@ -191,7 +191,6 @@ export function useSalesControlAction({ onFinish }) {
 
             loader.display({
                 title: "Creating Assignment",
-                // description: `Created`,
             });
             setTimeout(() => {
                 form.setValue("nextTriggerUID", generateRandomString());

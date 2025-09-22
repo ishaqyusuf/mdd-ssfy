@@ -18,6 +18,9 @@ import {
 } from "@gnd/ui/dropdown-menu";
 
 import { useProduction } from "./context";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { UpdateSalesControl } from "@sales/schema";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Props {
     itemIds?: string[];
@@ -88,6 +91,13 @@ export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
             actions: null,
         },
     });
+    const tsk = useTaskTrigger({
+        // silent: true,
+        onSucces() {
+            console.log("DONE!");
+            form.setValue("nextTriggerUID", generateRandomString());
+        },
+    });
     const queryCtx = useSalesOverviewQuery();
     const [currentActionId, actions, nextTriggerUID] = form.watch([
         "currentActionId",
@@ -119,7 +129,24 @@ export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
             ...itemData.meta,
         });
     }, [nextTriggerUID]);
+    const auth = useAuth();
     async function assignTo(assignedToId = null) {
+        tsk.triggerWithAuth("update-sales-control", {
+            meta: {
+                authorId: auth.id,
+                salesId: prod.data.orderId,
+                authorName: auth.name,
+            },
+            createAssignments: {
+                assignedToId,
+                dueDate,
+                selections: items?.map((i) => ({
+                    uid: i.uid,
+                    qty: i.meta.qty,
+                })),
+            },
+        } as UpdateSalesControl);
+        return;
         const data = {};
         items?.map((item) => {
             data[item.uid] = {
