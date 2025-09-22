@@ -4,7 +4,6 @@ import { create } from "zustand";
 import { LoadSalesOverviewAction } from "../../../data-actions/sales-overview.action";
 import { GetSalesItemOverviewAction } from "../../../data-actions/sales-items-action";
 import { DispatchOverviewAction } from "../../../data-actions/dispatch-actions/dispatch-overview-action";
-import { GetUsersList } from "@/data-actions/users/get-users";
 import { DeliveryOption } from "@/types/sales";
 import { SelectionType } from "../tabs/sales-shipping-form/ctx";
 
@@ -27,7 +26,7 @@ const data = {
     itemViewId: null as any,
     itemView: null as GetSalesItemOverviewAction["items"][number],
     payment: null,
-    dispatchUsers: null as GetUsersList,
+    dispatchUsers: null as any,
     shipping: null as DispatchOverviewAction,
     shippingForm: {
         dispatchMode: "" as DeliveryOption,

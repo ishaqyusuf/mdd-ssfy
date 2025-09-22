@@ -13,7 +13,6 @@ import {
     GetSalesPayment,
     getSalesPaymentUseCase,
 } from "../../../use-case/sales-payment-use-case";
-import { useSalesOverview } from "../overview-provider";
 
 export const usePayment = (ctx) => {
     return usePaymentContext(ctx);

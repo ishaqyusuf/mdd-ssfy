@@ -111,11 +111,11 @@ export class StepHelperClass extends SettingsClass {
         });
     }
     public getSupplierInfo() {
-        const s = Object.entries(this.zus.kvStepForm).find(
-            ([itemStepUid, stepData]) =>
-                itemStepUid?.startsWith(`${this.itemUid}-`) &&
-                stepData?.title == "Supplier",
-        );
+        // const s = Object.entries(this.zus.kvStepForm).find(
+        //     ([itemStepUid, stepData]) =>
+        //         itemStepUid?.startsWith(`${this.itemUid}-`) &&
+        //         stepData?.title == "Supplier",
+        // );
     }
     public findStepForm(stepUid) {
         return this.zus.kvStepForm[`${this.itemUid}-${this.stepUid}`];

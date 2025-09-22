@@ -9,7 +9,6 @@ import {
     getSalesItemOverviewUseCase,
     GetSalesOverview,
 } from "../../use-case/sales-item-use-case";
-import { getSalesListByIdUseCase } from "../../use-case/sales-list-use-case";
 import { usePayment } from "./payments/payment-hooks";
 
 interface Props {}
