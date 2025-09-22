@@ -1,12 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { createSalesAssignmentAction } from "@/actions/create-sales-assignment";
+import { useMemo, useState } from "react";
 import { createAssignmentSchema } from "@/actions/schema";
 import { Menu } from "@/components/(clean-code)/menu";
-import { useLoadingToast } from "@/hooks/use-loading-toast";
-import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+
 import { generateRandomString, sum } from "@/lib/utils";
 import { TimerOff, UserPlus } from "lucide-react";
-import { useAction } from "next-safe-action/hooks";
 import { useForm } from "react-hook-form";
 import z from "zod";
 
@@ -55,24 +52,6 @@ export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
             items: _items,
         };
     }, [prod.data, itemIds]);
-    const loader = useLoadingToast();
-    const createAssignment = useAction(createSalesAssignmentAction, {
-        onSuccess(args) {
-            form.setValue(
-                `actions.${args.input?.itemUid}.assignmentId`,
-                args.data?.assignmentId,
-            );
-            form.setValue(`actions.${args.input?.itemUid}.status`, "success");
-            loader.display({
-                title: "Creating Assignment",
-                // description: `Created`,
-            });
-            setTimeout(() => {
-                form.setValue("nextTriggerUID", generateRandomString());
-            }, 150);
-        },
-        onError(e) {},
-    });
 
     const form = useForm<{
         actionIds: string[];
@@ -94,41 +73,10 @@ export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
     const tsk = useTaskTrigger({
         // silent: true,
         onSucces() {
-            console.log("DONE!");
             form.setValue("nextTriggerUID", generateRandomString());
         },
     });
-    const queryCtx = useSalesOverviewQuery();
-    const [currentActionId, actions, nextTriggerUID] = form.watch([
-        "currentActionId",
-        "actions",
-        "nextTriggerUID",
-    ]);
-    useEffect(() => {
-        if (!nextTriggerUID) {
-            if (actions) {
-                loader.success("Assignments completed.");
-                queryCtx.salesQuery.assignmentUpdated();
-                setOpened(false);
-            }
-            return;
-        }
-        // const [uid, itemData] = Object.entries(actions).find(
-        //     ([uid, dataItem]) => !itemData.assignmentId,
-        const entry = Object.entries(actions).find(
-            ([uid, data]) => !data.assignmentId,
-        );
-        if (!entry) {
-            form.setValue("nextTriggerUID", null);
-            return;
-        }
 
-        const [uid, itemData] = entry;
-        // );
-        createAssignment.execute({
-            ...itemData.meta,
-        });
-    }, [nextTriggerUID]);
     const auth = useAuth();
     async function assignTo(assignedToId = null) {
         tsk.triggerWithAuth("update-sales-control", {
@@ -146,28 +94,6 @@ export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
                 })),
             },
         } as UpdateSalesControl);
-        return;
-        const data = {};
-        items?.map((item) => {
-            data[item.uid] = {
-                meta: {
-                    ...item.meta,
-                    // qty: item.uid,
-                    dueDate,
-                    assignedToId,
-                    // itemUID: item.uid,
-                } as z.infer<typeof createAssignmentSchema>,
-                uid: item.uid,
-            };
-        });
-        form.setValue("actions", data);
-        loader.display({
-            description: "Creating Assignment...",
-            duration: Number.POSITIVE_INFINITY,
-        });
-        setTimeout(() => {
-            form.setValue("nextTriggerUID", generateRandomString());
-        }, 200);
     }
     return (
         <Menu.Item
@@ -207,11 +133,11 @@ export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
                                         />
                                         <div className="">
                                             <Button
-                                                disabled={
-                                                    !!currentActionId ||
-                                                    createAssignment.isExecuting ||
-                                                    !!actions
-                                                }
+                                                // disabled={
+                                                //     !!currentActionId ||
+                                                //     createAssignment.isExecuting ||
+                                                //     !!actions
+                                                // }
                                                 onClick={() =>
                                                     assignTo(user.id)
                                                 }
