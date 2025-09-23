@@ -23,7 +23,6 @@ export function composeDoor(cls: ComponentHelperClass, door?: Door) {
     } = {};
     const sizePrice = priceModel.sizeList.map((sl) => {
         const path = `${componentUid}-${sl.size}`;
-        // console.log({ path });
         const swapPath = door?.sizeList?.find((s) =>
             s.path?.endsWith(`-${sl.size}`),
         )?.path;
@@ -42,8 +41,8 @@ export function composeDoor(cls: ComponentHelperClass, door?: Door) {
             },
         };
         return {
-            path,
             ...sl,
+            path,
             salesPrice,
             basePrice,
             sizeIn: sl.size

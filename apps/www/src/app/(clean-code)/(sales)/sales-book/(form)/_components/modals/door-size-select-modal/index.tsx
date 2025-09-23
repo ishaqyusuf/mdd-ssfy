@@ -48,7 +48,7 @@ import { AuthGuard } from "@/components/auth-guard";
 import { _role } from "@/components/sidebar/links";
 import { doorSwings } from "@/utils/constants";
 import { QuantityInput } from "@gnd/ui/quantity-input";
-import { DoorSizeSelectProvider, useCtx } from "./ctx";
+import { DoorSizeSelectProvider, useCtx } from "./use-door-size-select";
 
 interface Props {
     cls: ComponentHelperClass;
@@ -77,90 +77,84 @@ function Content() {
     const config = ctx.routeConfig;
     const { door } = ctx;
     return (
-        <>
-            <Modal.Content
-                size={config.hasSwing || !config.noHandle ? "lg" : "md"}
-            >
-                <Modal.Header
-                    title={ctx.cls?.getComponent?.title || "Component Price"}
-                    subtitle={"Select door!!"}
-                />
-                <Form {...ctx.form}>
-                    <ScrollArea
-                        // tabIndex={-1}
-                        className="-mx-4 max-h-[50vh] px-4"
-                    >
-                        {JSON.stringify({ spl: ctx.sizePriceList })}
-                        {/* <span></span> */}
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Size</TableHead>
-                                    <TableHead>Price</TableHead>
-                                    {config.hasSwing && (
-                                        <TableHead>Swing</TableHead>
-                                    )}
-                                    {config.noHandle ? (
-                                        <TableHead>Qty</TableHead>
-                                    ) : (
-                                        <>
-                                            <TableHead>LH</TableHead>
-                                            <TableHead>RH</TableHead>
-                                        </>
-                                    )}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {ctx.sizePriceList?.map((variant, index) => (
-                                    <Row key={index} variant={variant} />
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                </Form>
-                {door ? (
-                    <Modal.Footer
-                        className={""}
-                        submitText="Swap Door"
+        <Modal.Content size={config.hasSwing || !config.noHandle ? "lg" : "md"}>
+            <Modal.Header
+                title={ctx.cls?.getComponent?.title || "Component Price"}
+                subtitle={"Select door!!"}
+            />
+            <Form {...ctx.form}>
+                <ScrollArea
+                    // tabIndex={-1}
+                    className="-mx-4 max-h-[50vh] px-4"
+                >
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Size</TableHead>
+                                <TableHead>Price</TableHead>
+                                {config.hasSwing && (
+                                    <TableHead>Swing</TableHead>
+                                )}
+                                {config.noHandle ? (
+                                    <TableHead>Qty</TableHead>
+                                ) : (
+                                    <>
+                                        <TableHead>LH</TableHead>
+                                        <TableHead>RH</TableHead>
+                                    </>
+                                )}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {ctx.sizePriceList?.map((variant, index) => (
+                                <Row key={index} variant={variant} />
+                            ))}
+                        </TableBody>
+                    </Table>
+                </ScrollArea>
+            </Form>
+            {door ? (
+                <Modal.Footer
+                    className={""}
+                    submitText="Swap Door"
+                    size="sm"
+                    onSubmit={ctx.swapDoor}
+                >
+                    <Button
+                        onClick={() => {
+                            _modal.close();
+                        }}
+                        variant="destructive"
                         size="sm"
-                        onSubmit={ctx.swapDoor}
                     >
-                        <Button
-                            onClick={() => {
-                                _modal.close();
-                            }}
-                            variant="destructive"
-                            size="sm"
-                        >
-                            Cancel Swap
-                        </Button>
-                    </Modal.Footer>
-                ) : (
-                    <Modal.Footer
-                        className={""}
-                        submitText="Pick More"
+                        Cancel Swap
+                    </Button>
+                </Modal.Footer>
+            ) : (
+                <Modal.Footer
+                    className={""}
+                    submitText="Pick More"
+                    size="sm"
+                    onSubmit={ctx.pickMore}
+                >
+                    <Button
+                        onClick={ctx.removeSelection}
+                        variant="destructive"
                         size="sm"
-                        onSubmit={ctx.pickMore}
                     >
-                        <Button
-                            onClick={ctx.removeSelection}
-                            variant="destructive"
-                            size="sm"
-                        >
-                            Remove Selection
-                        </Button>
-                        <div className="flex-1"></div>
-                        <Button
-                            onClick={ctx.nextStep}
-                            variant="secondary"
-                            size="sm"
-                        >
-                            Next Step
-                        </Button>
-                    </Modal.Footer>
-                )}
-            </Modal.Content>
-        </>
+                        Remove Selection
+                    </Button>
+                    <div className="flex-1"></div>
+                    <Button
+                        onClick={ctx.nextStep}
+                        variant="secondary"
+                        size="sm"
+                    >
+                        Next Step
+                    </Button>
+                </Modal.Footer>
+            )}
+        </Modal.Content>
     );
 }
 function Row({ variant }) {
@@ -315,7 +309,7 @@ function PriceControl({ salesPrice, basePrice, variant, priceUpdated }) {
                 {
                     id: data.id,
                     price,
-                    dependenciesUid: variant.size,
+                    dependenciesUid: ctx.cls.supplierSizeDep(variant.size),
                     dykeStepId: ctx.priceModel?.formData.dykeStepId,
                     stepProductUid: ctx.priceModel?.formData.stepProductUid,
                 },

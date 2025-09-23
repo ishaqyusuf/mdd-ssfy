@@ -57,6 +57,7 @@ import SearchBar from "./search-bar";
 import { Env } from "@/components/env";
 import { Tabs } from "@gnd/ui/custom/tabs";
 import { DoorSuppliers } from "@/components/forms/sales-form/door-suppliers";
+import { DoorSupplierBadge } from "@/components/forms/sales-form/door-supplier-badge";
 
 interface Props {
     itemStepUid;
@@ -89,14 +90,7 @@ export function ComponentsSection({ itemStepUid }: Props) {
                             </Tabs.Content>
                         </Tabs.Item>,
                         <div className="flex flex-1 justify-end" key={2}>
-                            {!supplier?.supplierUid || (
-                                <div className="text-sm flex items-center gap-2">
-                                    <span className="text-muted-foreground">
-                                        Supplier:
-                                    </span>
-                                    <Label>{supplier?.supplierName}</Label>
-                                </div>
-                            )}
+                            <DoorSupplierBadge itemStepUid={itemStepUid} />
                         </div>,
                     ]}
                 ></Tabs.Items>

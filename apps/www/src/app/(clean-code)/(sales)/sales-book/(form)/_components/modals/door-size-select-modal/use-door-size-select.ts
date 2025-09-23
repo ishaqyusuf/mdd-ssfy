@@ -22,7 +22,6 @@ export const { useContext: useCtx, Provider: DoorSizeSelectProvider } =
         const swapPaths = door?.sizeList?.map((s) => s.path);
         const memoied = composeDoor(cls, door);
         const { selections, sizePriceList, priceModel, routeConfig } = memoied;
-        console.log({ memoied });
         const form = useForm({
             defaultValues: {
                 selections,

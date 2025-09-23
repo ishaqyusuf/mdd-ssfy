@@ -525,18 +525,15 @@ export class StepHelperClass extends SettingsClass {
             stepProductUid: componentUid,
             dykeStepId: this.getStepForm().stepId,
         };
-        const supplierUid =
-            this.getDoorStepForm2()?.form?.formStepMeta?.supplierUid;
-        const supplierSizeDep = (size) => {
-            if (!supplierUid) return size;
-            return [size, supplierUid].join(" & ");
-        };
+
         const stepProdPricings = this.getComponentPricings(componentUid);
         sizeList.map((sl) => {
             // sl.size eg; 2-0 x 7-0.
             // new 2-0 x 7-0 & supplierUID
+            const supllierSizeDep = this.supplierSizeDep(sl.size);
+
             formData.priceVariants[sl.size] = stepProdPricings?.[
-                supplierSizeDep(sl.size)
+                supllierSizeDep
                 // sl.size
             ] || {
                 id: null,
@@ -554,6 +551,12 @@ export class StepHelperClass extends SettingsClass {
             ),
         };
     }
+    public supplierSizeDep = (size) => {
+        const supplierUid =
+            this.getDoorStepForm2()?.form?.formStepMeta?.supplierUid;
+        if (!supplierUid) return size;
+        return [size, supplierUid].join(" & ");
+    };
     public getCurrentComponentPricingModel(componentUid) {
         const pm = this.getComponentPriceModel(componentUid);
         const variant = pm.priceVariants.find((s) => s.current);
