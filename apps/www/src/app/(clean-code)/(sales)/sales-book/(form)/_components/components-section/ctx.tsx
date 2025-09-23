@@ -30,7 +30,7 @@ export function useStepContext(stepUid) {
         setSelectionState((pre) => {
             const uids = {};
             filteredComponents.map((s) => (uids[s.uid] = true));
-
+            //
             return {
                 uids,
                 count: filteredComponents.length,
