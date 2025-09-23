@@ -35,7 +35,7 @@ export function Content({ itemStepUid }) {
     // ctx.tabComponents.
 
     const stepClass = new StepHelperClass(itemStepUid);
-    const door = stepClass.getDoorStepForm();
+    const door = stepClass.getDoorStepForm2();
     const { mutate: deleteSupplier, isPending: isDeletingSupplier } =
         useMutation(
             trpc.sales.deleteSupplier.mutationOptions({

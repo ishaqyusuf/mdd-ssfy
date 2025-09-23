@@ -64,7 +64,7 @@ interface Props {
 export function ComponentsSection({ itemStepUid }: Props) {
     const ctx = useStepContext(itemStepUid);
     const isDoor = ctx.cls.isDoor();
-    const door = ctx.cls?.getDoorStepForm();
+    const door = ctx.cls?.getDoorStepForm2();
     const supplier = door?.form?.formStepMeta;
     const [tab, setTab] = useState("doors");
     if (!isDoor) return <Content itemStepUid={itemStepUid} />;

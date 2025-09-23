@@ -44,9 +44,9 @@ export class StepHelperClass extends SettingsClass {
     public isDoor() {
         return this.getStepForm().title == "Door";
     }
-    public getDoorStepForm() {
+    public getDoorStepForm2() {
         const doorStepForm = Object.entries(this.zus.kvStepForm).find(
-            ([k, v]) => k.startsWith(this.itemUid) && v.title === "Door",
+            ([k, v]) => k.startsWith(`${this.itemUid}-`) && v.title === "Door",
         );
         return {
             itemStepUid: doorStepForm?.[0],
@@ -61,7 +61,7 @@ export class StepHelperClass extends SettingsClass {
         },
     ) {
         if (!doorItemStepUid)
-            doorItemStepUid = this.getDoorStepForm()?.itemStepUid;
+            doorItemStepUid = this.getDoorStepForm2()?.itemStepUid;
         console.log({ doorItemStepUid });
         if (doorItemStepUid) {
             this.zus.dotUpdate(
@@ -526,7 +526,7 @@ export class StepHelperClass extends SettingsClass {
             dykeStepId: this.getStepForm().stepId,
         };
         const supplierUid =
-            this.getDoorStepForm()?.form?.formStepMeta?.supplierUid;
+            this.getDoorStepForm2()?.form?.formStepMeta?.supplierUid;
         const sizeDep = (size) => {
             if (!supplierUid) return size;
             return [size, supplierUid].join(" & ");
