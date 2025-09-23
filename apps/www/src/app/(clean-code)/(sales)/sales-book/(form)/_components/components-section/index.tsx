@@ -64,6 +64,8 @@ interface Props {
 export function ComponentsSection({ itemStepUid }: Props) {
     const ctx = useStepContext(itemStepUid);
     const isDoor = ctx.cls.isDoor();
+    const door = ctx.cls?.getDoorStepForm();
+    const supplier = door?.form?.formStepMeta;
     const [tab, setTab] = useState("doors");
     if (!isDoor) return <Content itemStepUid={itemStepUid} />;
     return (
@@ -86,6 +88,16 @@ export function ComponentsSection({ itemStepUid }: Props) {
                                 </div>
                             </Tabs.Content>
                         </Tabs.Item>,
+                        <div className="flex flex-1 justify-end" key={2}>
+                            {!supplier?.supplierUid || (
+                                <div className="text-sm flex items-center gap-2">
+                                    <span className="text-muted-foreground">
+                                        Supplier:
+                                    </span>
+                                    <Label>{supplier?.supplierName}</Label>
+                                </div>
+                            )}
+                        </div>,
                     ]}
                 ></Tabs.Items>
                 {/* <TabsList>
