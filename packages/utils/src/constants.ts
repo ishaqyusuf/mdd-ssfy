@@ -191,6 +191,7 @@ export const PERMISSION_NAMES = [
   "salesCustomers",
   "salesLaborCost",
   "salesResolution",
+  "salesManager",
   "tech",
 ] as const;
 export type PascalResource = (typeof PERMISSION_NAMES_PASCAL)[number];
