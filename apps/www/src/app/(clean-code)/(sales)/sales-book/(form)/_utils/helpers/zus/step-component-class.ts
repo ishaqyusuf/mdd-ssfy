@@ -62,7 +62,7 @@ export class StepHelperClass extends SettingsClass {
     ) {
         if (!doorItemStepUid)
             doorItemStepUid = this.getDoorStepForm2()?.itemStepUid;
-        console.log({ doorItemStepUid });
+
         if (doorItemStepUid) {
             this.zus.dotUpdate(
                 `kvStepForm.${doorItemStepUid}.formStepMeta.supplierUid`,
@@ -527,23 +527,24 @@ export class StepHelperClass extends SettingsClass {
         };
         const supplierUid =
             this.getDoorStepForm2()?.form?.formStepMeta?.supplierUid;
-        const sizeDep = (size) => {
+        const supplierSizeDep = (size) => {
             if (!supplierUid) return size;
             return [size, supplierUid].join(" & ");
         };
         const stepProdPricings = this.getComponentPricings(componentUid);
         sizeList.map((sl) => {
-            console.log(sl);
             // sl.size eg; 2-0 x 7-0.
             // new 2-0 x 7-0 & supplierUID
             formData.priceVariants[sl.size] = stepProdPricings?.[
-                sizeDep(sl.size)
+                supplierSizeDep(sl.size)
+                // sl.size
             ] || {
                 id: null,
                 price: "",
             };
         });
         let filt = sizeList?.filter((s) => s.height == height);
+
         return {
             formData,
             sizeList,

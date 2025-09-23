@@ -22,8 +22,7 @@ import {
 } from "@gnd/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
-import { LineInput, LineSwitch } from "../line-input";
-import { Door } from "./door";
+import { Door } from "./hpt-door";
 
 import {
     HptContext,
@@ -34,11 +33,15 @@ import {
 } from "@/components/forms/sales-form/context";
 import { PriceEstimateCell } from "@/components/forms/sales-form/hpt/price-estimate-cell";
 import { HptNote } from "@/components/forms/sales-form/hpt/hpt-note";
+import {
+    LineInput,
+    LineSwitch,
+} from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
 
 interface Props {
     itemStepUid;
 }
-export default function HousePackageTool({ itemStepUid }: Props) {
+export function HptSection({ itemStepUid }: Props) {
     return (
         <HptContextProvider args={[itemStepUid]}>
             <Content />

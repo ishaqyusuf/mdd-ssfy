@@ -16,9 +16,9 @@ import { Label } from "@gnd/ui/label";
 import { useFormDataStore } from "../_common/_stores/form-data-store";
 import { StepHelperClass } from "../_utils/helpers/zus/step-component-class";
 import { ComponentsSection } from "./components-section";
-import HousePackageTool from "./hpt-step";
 import MouldingLineItem from "./moulding-step";
 import ServiceLineItem from "./service-step";
+import { HptSection } from "@/components/forms/sales-form/hpt/hpt-section";
 
 interface Props {
     stepUid?;
@@ -41,7 +41,7 @@ export function StepSection({ stepUid, isFirst, isLast }: Props) {
             Render: ComponentsSection as any,
             itemStepUid: stepUid,
         };
-        if (ret.isHtp) ret.Render = HousePackageTool;
+        if (ret.isHtp) ret.Render = HptSection;
         else if (ret.isShelfItems) ret.Render = ShelfItems;
         else if (ret.isMouldingLineItem) ret.Render = MouldingLineItem;
         else if (ret.isServiceLineItem) ret.Render = ServiceLineItem;

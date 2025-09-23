@@ -1,7 +1,6 @@
+import { ComponentImg } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/component-img";
+import { openDoorSwapModal } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-swap-modal";
 import Button from "@/components/common/button";
-import { ComponentImg } from "../component-img";
-
-import { openDoorSwapModal } from "../modals/door-swap-modal";
 import { HptContext, useHpt } from "@/components/forms/sales-form/context";
 
 interface DoorProps {

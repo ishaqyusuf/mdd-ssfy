@@ -36,7 +36,6 @@ export function LineInput({
 
     const [isFocused, setIsFocused] = useState(false);
     const onValueChange = (v) => {
-        console.log({ v });
         let value = allowZero ? (v == undefined ? null : v) : v || null;
         cls.dotUpdateGroupItemFormPath(lineUid, name, value);
         valueChanged?.(value);

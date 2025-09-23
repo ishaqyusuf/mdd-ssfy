@@ -23,6 +23,7 @@ export function composeDoor(cls: ComponentHelperClass, door?: Door) {
     } = {};
     const sizePrice = priceModel.sizeList.map((sl) => {
         const path = `${componentUid}-${sl.size}`;
+        // console.log({ path });
         const swapPath = door?.sizeList?.find((s) =>
             s.path?.endsWith(`-${sl.size}`),
         )?.path;
@@ -51,8 +52,15 @@ export function composeDoor(cls: ComponentHelperClass, door?: Door) {
                 .join(" x "),
         };
     });
-    const sList = sizeList
+    const sizePriceList = sizeList
         .map((s) => sizePrice.find((p) => p.size === s.size))
         .filter(Boolean);
-    return { selections, sList, sizePrice, priceModel, routeConfig };
+    return {
+        selections,
+        sizePriceList,
+        sList: sizePriceList,
+        sizePrice,
+        priceModel,
+        routeConfig,
+    };
 }
