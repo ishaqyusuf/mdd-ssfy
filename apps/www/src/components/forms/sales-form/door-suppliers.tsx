@@ -56,14 +56,36 @@ export function Content({ itemStepUid }) {
                 }}
             />
         );
-
+    const meta = door?.form?.formStepMeta;
     return (
         <div className="min-h-[40vh]">
             <div className="p-4 space-y-4">
                 {!supplierFormData ? (
                     <div className="flex items-center">
                         <div className="">
-                            <Label>Click to select a supplier</Label>
+                            {meta?.supplierUid ? (
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <Label>
+                                        {meta?.supplierName}{" "}
+                                        {
+                                            " Supplier Selected. Door pricing will now show selected supplier pricings."
+                                        }
+                                    </Label>
+                                    <Button
+                                        onClick={(e) => {
+                                            stepClass.setDoorSupplier(
+                                                door.itemStepUid,
+                                            );
+                                        }}
+                                        variant="link"
+                                        size="sm"
+                                    >
+                                        Reset to default
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Label>Click to select a supplier</Label>
+                            )}
                         </div>
                         <div className="flex-1"></div>
                         <Button
@@ -107,8 +129,7 @@ export function Content({ itemStepUid }) {
                                     <Icons.Check
                                         className={cn(
                                             "size-4",
-                                            door?.form?.formStepMeta
-                                                ?.supplierUid === p?.uid
+                                            meta?.supplierUid === p?.uid
                                                 ? ""
                                                 : "text-transparent",
                                         )}
@@ -140,10 +161,7 @@ export function Content({ itemStepUid }) {
                                     </Button>
                                     <Button
                                         onClick={(e) => {
-                                            if (
-                                                door?.form?.formStepMeta
-                                                    ?.supplierUid === p?.uid
-                                            ) {
+                                            if (meta?.supplierUid === p?.uid) {
                                                 stepClass.setDoorSupplier(
                                                     door.itemStepUid,
                                                 );

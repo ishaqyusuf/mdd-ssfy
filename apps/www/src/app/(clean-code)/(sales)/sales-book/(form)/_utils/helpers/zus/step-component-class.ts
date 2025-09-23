@@ -62,14 +62,15 @@ export class StepHelperClass extends SettingsClass {
     ) {
         if (!doorItemStepUid)
             doorItemStepUid = this.getDoorStepForm()?.itemStepUid;
+        console.log({ doorItemStepUid });
         if (doorItemStepUid) {
             this.zus.dotUpdate(
                 `kvStepForm.${doorItemStepUid}.formStepMeta.supplierUid`,
-                supplier?.uid,
+                supplier?.uid || null,
             );
             this.zus.dotUpdate(
                 `kvStepForm.${doorItemStepUid}.formStepMeta.supplierName`,
-                supplier?.name,
+                supplier?.name || null,
             );
         }
     }

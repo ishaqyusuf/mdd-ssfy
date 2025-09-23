@@ -61,40 +61,30 @@ export async function saveSupplier(ctx: TRPCContext, data: SaveSupplierSchema) {
           name: data.name,
         },
       });
-      await tx.$executeRaw`
-  UPDATE DykeStepForm
-  SET meta = JSON_SET(meta, '$.supplierName', ${dp.name})
-  WHERE JSON_EXTRACT(meta, '$.supplierUid') = ${dp.uid};
-`;
-      return dp;
-      // await tx.dykeStepForm.updateMany({
-      //   where: {
-      //     meta: {
-      //       path: "$.supplierUid",
-      //       // equals: params.po,
-      //       // string_contains: val,
-      //       equals: dp.uid!,
-      //     },
-      //   },
-      //   data: {
-      //     meta: {
-      //       supplierName: dp.name,
-      //     },
-      //   },
-      // });
-    } else
-      return await tx.dykeStepProducts.create({
-        data: {
-          name: data.name,
-          uid: generateRandomString(5),
-          meta: {},
-          step: {
-            connect: {
-              id: stepId,
-            },
+      await tx.$executeRaw`UPDATE DykeStepForm
+          SET meta = JSON_SET(meta, '$.supplierName', ${dp.name})
+          WHERE JSON_EXTRACT(meta, '$.supplierUid') = ${dp.uid};`;
+      return {
+        uid: dp.uid,
+        name: dp.name,
+      };
+    }
+    const dp = await tx.dykeStepProducts.create({
+      data: {
+        name: data.name,
+        uid: generateRandomString(5),
+        meta: {},
+        step: {
+          connect: {
+            id: stepId,
           },
         },
-      });
+      },
+    });
+    return {
+      uid: dp.uid,
+      name: dp.name,
+    };
   });
 }
 
