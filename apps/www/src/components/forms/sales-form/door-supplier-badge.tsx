@@ -34,14 +34,16 @@ export function Content({ itemStepUid }) {
             <Menu
                 Icon={Factory}
                 label={
-                    <span>Supplier: {supplier?.supplierName || "Default"}</span>
+                    <span>
+                        Supplier: {supplier?.supplierName || "GND MILLWORK"}
+                    </span>
                 }
             >
                 <Menu.Item
                     onClick={(e) => select()}
                     Icon={!supplier?.supplierUid ? CheckSquare : Square}
                 >
-                    Default
+                    GND MILLWORK
                 </Menu.Item>
                 {data?.stepProducts?.map((s) => (
                     <Menu.Item
