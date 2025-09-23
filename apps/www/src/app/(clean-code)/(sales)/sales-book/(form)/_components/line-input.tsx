@@ -14,7 +14,7 @@ import { useState } from "react";
 interface LineInputProps {
     lineUid;
     name: FieldPath<ZusGroupItemFormPath>;
-    cls: GroupFormClass;
+    cls?: GroupFormClass | any;
     valueChanged?;
     numberProps?: NumericFormatProps;
     qtyInputProps?: QtyInputProps;

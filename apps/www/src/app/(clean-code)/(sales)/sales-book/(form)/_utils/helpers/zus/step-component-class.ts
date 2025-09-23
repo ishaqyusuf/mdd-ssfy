@@ -525,11 +525,20 @@ export class StepHelperClass extends SettingsClass {
             stepProductUid: componentUid,
             dykeStepId: this.getStepForm().stepId,
         };
-
+        const supplierUid =
+            this.getDoorStepForm()?.form?.formStepMeta?.supplierUid;
+        const sizeDep = (size) => {
+            if (!supplierUid) return size;
+            return [size, supplierUid].join(" & ");
+        };
         const stepProdPricings = this.getComponentPricings(componentUid);
-
         sizeList.map((sl) => {
-            formData.priceVariants[sl.size] = stepProdPricings?.[sl.size] || {
+            console.log(sl);
+            // sl.size eg; 2-0 x 7-0.
+            // new 2-0 x 7-0 & supplierUID
+            formData.priceVariants[sl.size] = stepProdPricings?.[
+                sizeDep(sl.size)
+            ] || {
                 id: null,
                 price: "",
             };
