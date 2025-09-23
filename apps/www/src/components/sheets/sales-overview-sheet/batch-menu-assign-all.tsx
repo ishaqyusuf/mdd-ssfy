@@ -18,6 +18,7 @@ import { useProduction } from "./context";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { UpdateSalesControl } from "@sales/schema";
 import { useAuth } from "@/hooks/use-auth";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 interface Props {
     itemIds?: string[];
@@ -26,6 +27,7 @@ interface Props {
 export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
     const [dueDate, setDueDate] = useState(null);
     const prod = useProduction();
+    const queryCtx = useSalesOverviewQuery();
     const { pendingQty, items } = useMemo(() => {
         const _items = prod.data?.items
             ?.filter((item) =>
@@ -53,27 +55,10 @@ export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
         };
     }, [prod.data, itemIds]);
 
-    const form = useForm<{
-        actionIds: string[];
-        currentActionId: string;
-        nextTriggerUID?: string;
-        actions: {
-            [itemUid in string]: {
-                assignmentId: number;
-                status?: string;
-                uid: string;
-                meta?: any;
-            };
-        };
-    }>({
-        defaultValues: {
-            actions: null,
-        },
-    });
     const tsk = useTaskTrigger({
         // silent: true,
         onSucces() {
-            form.setValue("nextTriggerUID", generateRandomString());
+            queryCtx.salesQuery.assignmentSubmissionUpdated();
         },
     });
 
@@ -133,11 +118,6 @@ export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
                                         />
                                         <div className="">
                                             <Button
-                                                // disabled={
-                                                //     !!currentActionId ||
-                                                //     createAssignment.isExecuting ||
-                                                //     !!actions
-                                                // }
                                                 onClick={() =>
                                                     assignTo(user.id)
                                                 }

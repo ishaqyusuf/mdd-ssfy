@@ -263,7 +263,7 @@ export async function submitAssignmentsAction(
   const submitAll = !props.selections?.length && !props.itemUids?.length;
   for (const item of props.data.items) {
     // if (item.itemConfig?.production) continue;
-    const pendingProds = item.analytics?.production.pending!;
+    const pendingProds = item.analytics?.assignment.pending!;
     if (
       hasQty(pendingProds) &&
       (submitAll || props.itemUids?.includes(item?.controlUid))

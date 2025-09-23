@@ -25,6 +25,10 @@ import {
 import { Label } from "@gnd/ui/label";
 
 import { useProduction } from "./context";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { UpdateSalesControl } from "@sales/schema";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Props {
     itemIds?: string[];
@@ -42,18 +46,9 @@ export function BatchMenuSubmit({ itemIds, setOpened }: Props) {
                 )
                 ?.map((item) => {
                     return {
-                        itemId: item.itemId,
-                        salesId: item.salesId,
                         uid: item.controlUid,
                         createAssignmentMeta: {
                             qty: item.analytics.assignment.pending,
-                            pending: item.analytics.assignment.pending,
-                            itemUid: item.controlUid,
-                            itemsTotal: item.qty.qty,
-                            shelfItemId: item.shelfId,
-                            salesId: item.salesId,
-                            salesDoorId: item.doorId,
-                            salesItemId: item.itemId,
                         } as z.infer<typeof createAssignmentSchema>,
                         submitAssignments: item.analytics.pendingSubmissions,
                     };
@@ -79,7 +74,7 @@ export function BatchMenuSubmit({ itemIds, setOpened }: Props) {
                 total: sum([pendingAssignments, pendingSubmissions]),
             };
         }, [prod.data, itemIds]);
-    const loader = useLoadingToast();
+
     const { form, ...actionControl } = useSalesControlAction({
         onFinish() {
             setOpened(false);
@@ -88,63 +83,26 @@ export function BatchMenuSubmit({ itemIds, setOpened }: Props) {
     type SubmitProps = {
         assignedToId?;
     };
-    const session = useSession({
-        required: true,
-        onUnauthenticated() {
-            redirect("/login");
+    const queryCtx = useSalesOverviewQuery();
+    const tsk = useTaskTrigger({
+        // silent: true,
+        onSucces() {
+            queryCtx.salesQuery.assignmentSubmissionUpdated();
         },
     });
+    const auth = useAuth();
     async function submit({ assignedToId }: SubmitProps) {
-        if (assignedToId) {
-            loader.error("Currently disabled", {
-                description: "A bug was detected",
-            });
-            return;
-        }
-        const data = actionControl.emptyActions();
-        items?.map((item) => {
-            const tok = generateRandomString(5);
-            if (item.createAssignmentMeta?.qty?.qty)
-                data.assignmentActions[item.uid] = {
-                    meta: {
-                        ...item.createAssignmentMeta,
-                        dueDate,
-                        assignedToId,
-                    } as z.infer<typeof createAssignmentSchema>,
-                    uid: item.uid,
-                    assignmentId: null as any,
-                    submitTok: tok,
-                };
-            if (!data.submissionMeta[item.uid]) {
-                data.submissionMeta[item.uid] = {
-                    itemUid: item.uid,
-                    itemId: item.itemId,
-                    salesId: item.salesId,
-                    submittedById: session?.data?.user?.id,
-                };
-            }
-            item.submitAssignments.map((submitData) => {
-                data.submissionActions[
-                    `${submitData.assignmentId}_${item.uid}`
-                ] = {
-                    status: null,
-                    meta: {
-                        qty: submitData.qty,
-                        pending: submitData.qty,
-                        assignmentId: submitData.assignmentId,
-                    } as SubmitSchema,
-                };
-            });
-        });
-        form.setValue("actions", data as any);
-        loader.display({
-            title: "Submitting Assignments...",
-            duration: Number.POSITIVE_INFINITY,
-        });
-
-        setTimeout(() => {
-            form.setValue("nextTriggerUID", generateRandomString());
-        }, 200);
+        tsk.triggerWithAuth("update-sales-control", {
+            meta: {
+                authorId: auth.id,
+                salesId: prod.data.orderId,
+                authorName: auth.name,
+            },
+            submitAll: {
+                assignedToId,
+                itemUids: items.map((a) => a.uid),
+            },
+        } as UpdateSalesControl);
     }
     return (
         <Menu.Item

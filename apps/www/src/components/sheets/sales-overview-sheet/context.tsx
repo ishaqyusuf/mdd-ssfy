@@ -103,7 +103,7 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
             return await getCachedProductionUsers();
         }, []);
         const trpc = useTRPC();
-        const { data } = useQuery(
+        const { data, refetch } = useQuery(
             trpc.sales.productionOverview.queryOptions(
                 {
                     salesNo: ctx.params["sales-overview-id"],
@@ -114,13 +114,6 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
                 },
             ),
         );
-        useEffect(() => {
-            console.log(data);
-        }, [data]);
-        // useEffect(() => {
-        //     if (!ctx.refreshTok) return;
-        //     refetch();
-        // }, [ctx.refreshTok]);
         const [selections, setSelections] = useState({});
 
         return {
@@ -129,5 +122,6 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
             data,
             ctx,
             users,
+            refetch,
         };
     });
