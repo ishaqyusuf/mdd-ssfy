@@ -83,7 +83,7 @@ export default function SalesAccountingTable({
                         Status
                     </BatchBtn>
                 </DataTable.BatchAction>
-                <DataTable.Header top="sm" className="bg-white">
+                <DataTable.TableHeader top="sm" className="bg-white">
                     <div className="mb-2 flex items-end justify-between gap-2 sm:sticky">
                         {/* <Button
                             onClick={() => {
@@ -111,7 +111,7 @@ export default function SalesAccountingTable({
                         </div>
                         <DataTableInfinityToolbar />
                     </div>
-                </DataTable.Header>
+                </DataTable.TableHeader>
                 <DataTable.Table />
                 <DataTable.LoadMore />
             </DataTable.Infinity>

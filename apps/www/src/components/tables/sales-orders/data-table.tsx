@@ -48,10 +48,10 @@ export function DataTable() {
                     className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
                 >
                     <Table>
-                        <Table.Header />
-                        <Table._Body>
-                            <Table.Row />
-                        </Table._Body>
+                        <Table.TableHeader />
+                        <Table.Body>
+                            <Table.TableRow />
+                        </Table.Body>
                     </Table>
                 </div>
                 {hasNextPage && (

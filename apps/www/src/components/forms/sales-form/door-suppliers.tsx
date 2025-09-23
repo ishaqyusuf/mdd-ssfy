@@ -1,5 +1,9 @@
 import { useTRPC } from "@/trpc/client";
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {
+    useMutation,
+    useQueryClient,
+    useSuspenseQuery,
+} from "@tanstack/react-query";
 import { Suspense, useMemo, useState } from "react";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
@@ -9,6 +13,10 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Label } from "@gnd/ui/label";
 import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { saveSupplierSchema } from "@api/db/queries/sales-form";
+import { StepHelperClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
+import { cn } from "@gnd/ui/cn";
+import { ConfirmBtn } from "@gnd/ui/confirm-button";
 export function DoorSuppliers({ itemStepUid }) {
     return (
         <Suspense fallback={<LoadingSkeleton />}>
@@ -19,14 +27,25 @@ export function DoorSuppliers({ itemStepUid }) {
 export function Content({ itemStepUid }) {
     const trpc = useTRPC();
     const { data } = useSuspenseQuery(trpc.sales.getSuppliers.queryOptions({}));
-    const [supplierFormData, setSupplierFormData] = useState<any>(null);
+    const [supplierFormData, setSupplierFormData] =
+        useState<typeof saveSupplierSchema._type>(null);
+
     const qc = useQueryClient();
     // const ctx = useStepContext(itemStepUid);
     // ctx.tabComponents.
-    const zus = useFormDataStore();
-    const cls = useMemo(() => {
-        const [itemUid, stepUid] = itemStepUid?.split("-");
-    }, [itemStepUid]);
+
+    const stepClass = new StepHelperClass(itemStepUid);
+    const door = stepClass.getDoorStepForm();
+    const { mutate: deleteSupplier, isPending: isDeletingSupplier } =
+        useMutation(
+            trpc.sales.deleteSupplier.mutationOptions({
+                onSuccess(data, variables, context) {
+                    qc.invalidateQueries({
+                        queryKey: trpc.sales.getSuppliers.queryKey({}),
+                    });
+                },
+            }),
+        );
     if (!data?.uid && !supplierFormData)
         return (
             <EmptyState
@@ -34,12 +53,10 @@ export function Content({ itemStepUid }) {
                 label="supplier"
                 onCreate={(e) => {
                     setSupplierFormData({});
-                    qc.invalidateQueries({
-                        queryKey: trpc.sales.getSuppliers.queryKey({}),
-                    });
                 }}
             />
         );
+
     return (
         <div className="min-h-[40vh]">
             <div className="p-4 space-y-4">
@@ -63,27 +80,87 @@ export function Content({ itemStepUid }) {
                     <div className="p-4">
                         <DoorSupplierForm
                             onCreate={(e) => {
-                                setSupplierFormData({});
+                                setSupplierFormData(null);
+                                qc.invalidateQueries({
+                                    queryKey: trpc.sales.getSuppliers.queryKey(
+                                        {},
+                                    ),
+                                });
                             }}
+                            onCancel={(e) => setSupplierFormData(null)}
                             defaultValues={supplierFormData}
                         />
                     </div>
                 )}
                 <Table className="table-sm">
-                    <Table._Header>
-                        <Table._Row>
-                            <Table._Head>Supplier</Table._Head>
-                        </Table._Row>
-                    </Table._Header>
-                    <Table._Body>
+                    <Table.Header>
+                        <Table.Row>
+                            <Table.Head className="w-6"></Table.Head>
+                            <Table.Head>Supplier</Table.Head>
+                            <Table.Head></Table.Head>
+                        </Table.Row>
+                    </Table.Header>
+                    <Table.Body className="">
                         {data?.stepProducts?.map((p) => (
-                            <Table._Row key={p.id}>
-                                <Table._Cell className="uppercase">
+                            <Table.Row key={p.id}>
+                                <Table.Cell className="">
+                                    <Icons.Check
+                                        className={cn(
+                                            "size-4",
+                                            door?.form?.formStepMeta
+                                                ?.supplierUid === p?.uid
+                                                ? ""
+                                                : "text-transparent",
+                                        )}
+                                    />
+                                </Table.Cell>
+                                <Table.Cell
+                                    className="uppercase cursor-pointer"
+                                    onClick={(e) => {
+                                        stepClass.setDoorSupplier(
+                                            door.itemStepUid,
+                                            { uid: p.uid, name: p.name },
+                                        );
+                                    }}
+                                >
                                     {p.name}
-                                </Table._Cell>
-                            </Table._Row>
+                                </Table.Cell>
+                                <Table.Cell className="flex justify-end gap-2 items-center">
+                                    <Button
+                                        onClick={(e) => {
+                                            setSupplierFormData({
+                                                id: p.id,
+                                                name: p.name,
+                                            });
+                                        }}
+                                        variant="outline"
+                                        size="xs"
+                                    >
+                                        <Icons.Edit className="size-4" />
+                                    </Button>
+                                    <Button
+                                        onClick={(e) => {
+                                            if (
+                                                door?.form?.formStepMeta
+                                                    ?.supplierUid === p?.uid
+                                            ) {
+                                                stepClass.setDoorSupplier(
+                                                    door.itemStepUid,
+                                                );
+                                            }
+                                            deleteSupplier({
+                                                id: p.id,
+                                            });
+                                        }}
+                                        variant="destructive"
+                                        size="xs"
+                                    >
+                                        <Icons.Delete className="size-4" />
+                                    </Button>
+                                </Table.Cell>
+                            </Table.Row>
                         ))}
-                    </Table._Body>
+                    </Table.Body>
                 </Table>
             </div>
             {/* )} */}

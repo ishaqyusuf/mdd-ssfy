@@ -152,6 +152,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                 componentId: fs.component?.id,
                 sectionOverride: fs.component?.meta?.sectionOverride,
                 flatRate: fs?.item?.meta?.flatRate,
+                formStepMeta: fs?.item?.meta,
             });
             if (stp.title == "Item Type") {
                 itemType = stp.value as any;

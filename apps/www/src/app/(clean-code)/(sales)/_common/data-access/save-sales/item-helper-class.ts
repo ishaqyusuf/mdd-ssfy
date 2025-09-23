@@ -209,6 +209,7 @@ export class ItemHelperClass {
     }
     public composeStepUpdateData(step) {
         const meta = {
+            ...(step?.formStepMeta || {}),
             flatRate: step.flatRate,
         } satisfies DykeFormStepMeta;
         return {

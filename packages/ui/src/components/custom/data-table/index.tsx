@@ -217,11 +217,11 @@ export const useTableData = ({ filter, route }) => {
 
 export const Table = Object.assign(BaseTable, {
   Provider: TableProvider,
-  Row: TableRow,
-  Header: TableHeader,
-  _Body,
-  _Row,
-  _Head,
-  _Header,
-  _Cell,
+  TableRow,
+  TableHeader,
+  Body: _Body,
+  Row: _Row,
+  Head: _Head,
+  Header: _Header,
+  Cell: _Cell,
 });

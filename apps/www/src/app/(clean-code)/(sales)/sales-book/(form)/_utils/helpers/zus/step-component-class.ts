@@ -44,7 +44,35 @@ export class StepHelperClass extends SettingsClass {
     public isDoor() {
         return this.getStepForm().title == "Door";
     }
-
+    public getDoorStepForm() {
+        const doorStepForm = Object.entries(this.zus.kvStepForm).find(
+            ([k, v]) => k.startsWith(this.itemUid) && v.title === "Door",
+        );
+        return {
+            itemStepUid: doorStepForm?.[0],
+            form: doorStepForm?.[1],
+        };
+    }
+    public setDoorSupplier(
+        doorItemStepUid?,
+        supplier?: {
+            uid: string;
+            name: string;
+        },
+    ) {
+        if (!doorItemStepUid)
+            doorItemStepUid = this.getDoorStepForm()?.itemStepUid;
+        if (doorItemStepUid) {
+            this.zus.dotUpdate(
+                `kvStepForm.${doorItemStepUid}.formStepMeta.supplierUid`,
+                supplier?.uid,
+            );
+            this.zus.dotUpdate(
+                `kvStepForm.${doorItemStepUid}.formStepMeta.supplierName`,
+                supplier?.name,
+            );
+        }
+    }
     public isLineItem() {
         return this.getStepForm().title == "Line Item";
     }

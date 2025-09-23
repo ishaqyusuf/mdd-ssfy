@@ -171,7 +171,6 @@ function TabItem(props: TabItemProps) {
   );
 }
 interface TabContentProps {
-  className?: string;
   children?;
 }
 function TabContent(props: TabContentProps) {

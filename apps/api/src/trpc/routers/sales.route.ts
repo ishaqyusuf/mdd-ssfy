@@ -35,6 +35,8 @@ import {
   accountingIndexSchema,
 } from "@api/db/queries/accounting";
 import {
+  deleteSupplier,
+  deleteSupplierSchema,
   getSuppliers,
   getSuppliersSchema,
   saveSupplier,
@@ -162,5 +164,10 @@ export const salesRouter = createTRPCRouter({
     .input(saveSupplierSchema)
     .mutation(async (props) => {
       return saveSupplier(props.ctx, props.input);
+    }),
+  deleteSupplier: publicProcedure
+    .input(deleteSupplierSchema)
+    .mutation(async (props) => {
+      return deleteSupplier(props.ctx, props.input);
     }),
 });

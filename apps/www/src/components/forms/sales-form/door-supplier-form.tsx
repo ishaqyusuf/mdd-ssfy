@@ -55,7 +55,7 @@ export function DoorSupplierForm({
     return (
         <Form {...form}>
             <form
-                className="flex gap-4 items-end"
+                className="flex gap-2 items-end"
                 onSubmit={form.handleSubmit(onSubmit)}
             >
                 <FormInput
@@ -64,11 +64,19 @@ export function DoorSupplierForm({
                     name="name"
                     className="flex-1"
                 />
-                <Button onClick={onCancel} type="button" variant="destructive">
+                <Button
+                    size="sm"
+                    onClick={onCancel}
+                    type="button"
+                    variant="destructive"
+                >
                     Cancel
                 </Button>
-                <SubmitButton isSubmitting={isPending}>Save</SubmitButton>
+                <SubmitButton size="sm" isSubmitting={isPending}>
+                    Save
+                </SubmitButton>
             </form>
         </Form>
     );
 }
+

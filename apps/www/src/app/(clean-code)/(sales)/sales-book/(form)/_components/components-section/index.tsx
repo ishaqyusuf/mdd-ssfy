@@ -81,7 +81,9 @@ export function ComponentsSection({ itemStepUid }: Props) {
                         <Tabs.Item index={1} key={1}>
                             <span>Suppliers</span>
                             <Tabs.Content>
-                                <DoorSuppliers itemStepUid={itemStepUid} />
+                                <div className="min-h-screen">
+                                    <DoorSuppliers itemStepUid={itemStepUid} />
+                                </div>
                             </Tabs.Content>
                         </Tabs.Item>,
                     ]}

@@ -19,6 +19,9 @@ export async function getSuppliers(
       id: true,
       uid: true,
       stepProducts: {
+        where: {
+          deletedAt: null,
+        },
         select: {
           id: true,
           name: true,
@@ -49,17 +52,37 @@ export async function saveSupplier(ctx: TRPCContext, data: SaveSupplierSchema) {
           },
         })
       ).id;
-    if (data.id)
-      return await tx.dykeStepProducts.update({
+    if (data.id) {
+      const dp = await tx.dykeStepProducts.update({
         where: {
           id: data.id,
         },
         data: {
-          // uid: generateRandomString(5),
           name: data.name,
         },
       });
-    else
+      await tx.$executeRaw`
+  UPDATE DykeStepForm
+  SET meta = JSON_SET(meta, '$.supplierName', ${dp.name})
+  WHERE JSON_EXTRACT(meta, '$.supplierUid') = ${dp.uid};
+`;
+      return dp;
+      // await tx.dykeStepForm.updateMany({
+      //   where: {
+      //     meta: {
+      //       path: "$.supplierUid",
+      //       // equals: params.po,
+      //       // string_contains: val,
+      //       equals: dp.uid!,
+      //     },
+      //   },
+      //   data: {
+      //     meta: {
+      //       supplierName: dp.name,
+      //     },
+      //   },
+      // });
+    } else
       return await tx.dykeStepProducts.create({
         data: {
           name: data.name,
@@ -72,5 +95,23 @@ export async function saveSupplier(ctx: TRPCContext, data: SaveSupplierSchema) {
           },
         },
       });
+  });
+}
+
+export const deleteSupplierSchema = z.object({
+  id: z.number(),
+});
+export type DeleteSupplierSchema = z.infer<typeof deleteSupplierSchema>;
+
+export async function deleteSupplier(
+  ctx: TRPCContext,
+  data: DeleteSupplierSchema
+) {
+  const { db } = ctx;
+  await db.dykeStepProducts.update({
+    where: { id: data.id },
+    data: {
+      deletedAt: new Date(),
+    },
   });
 }
