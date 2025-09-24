@@ -135,35 +135,46 @@ export async function getProductReport(
       const isMolding =
         // ?.filter((a) => a?.molding)
         !!d?.housePackageTools?.length;
-      const hpts = d.housePackageTools.map((a) => ({
-        ...a,
-        meta: a.meta as HousePackageToolMeta,
-      }));
-      const units = d?.salesDoors?.length
+      const doorsCount = d?.salesDoors?.length;
+      const hpts = d.housePackageTools
+        .map((a) => ({
+          ...a,
+          meta: a.meta as HousePackageToolMeta,
+        }))
+        .map((a) => {
+          const m = a.meta?.priceTags?.moulding;
+          const overridePrice = m?.overridePrice || (m as any)?.overridPrice;
+          const qty = a?.salesOrderItem?.qty;
+          const salesPrice = overridePrice || m?.salesPrice || m?.price;
+          return {
+            qty,
+            salesPrice,
+            m: !salesPrice ? m : undefined,
+            costPrice: overridePrice || m?.basePrice || salesPrice,
+          };
+        });
+
+      const units = doorsCount
         ? sum(d?.salesDoors || [], "totalQty")
         : isMolding
-          ? sum(hpts.map((a) => a?.salesOrderItem?.qty))
+          ? sum(hpts.map((a) => a?.qty))
           : d?._count.stepForms;
-      const salesPrice = d?.salesDoors?.length
+      const salesPrice = doorsCount
         ? formatMoney(sum(d.salesDoors, "jambSizePrice"))
         : isMolding
-          ? formatMoney(
-              sum(hpts.map((a) => a.meta?.priceTags?.moulding?.salesPrice)) *
-                units
-            )
+          ? formatMoney(sum(hpts.map((a) => a.salesPrice)) * units)
           : formatMoney(sum(d.stepForms, "price"));
-      const costPrice = d?.salesDoors?.length
+      const costPrice = doorsCount
         ? formatMoney(sum(d.salesDoors, "jambSizePrice"))
         : isMolding
-          ? formatMoney(
-              sum(hpts.map((a) => a.meta?.priceTags?.moulding?.basePrice)) *
-                units
-            )
+          ? formatMoney(sum(hpts.map((a) => a?.costPrice)) * units)
           : formatMoney(sum(d.stepForms, "basePrice"));
 
       consoleLog("Search Result:", {
         isMolding,
         productCode,
+        doorsCount,
+        hpts,
       });
       return {
         name: d.name || d.product?.title,

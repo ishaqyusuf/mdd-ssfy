@@ -30,7 +30,7 @@ export function useMultiComponentItem(componentTitle) {
         sumQty: `${multiComponentComponentTitleKey}.doorQty`,
         sumUnitPrice: `${multiComponentComponentTitleKey}.unitPrice`,
         sumTotal: `${multiComponentComponentTitleKey}.doorTotalPrice`,
-        overridePrice: `${multiComponentComponentTitleKey}.priceTags.moulding.overridPrice`,
+        overridePrice: `${multiComponentComponentTitleKey}.priceTags.moulding.overridePrice`,
     };
 
     const [

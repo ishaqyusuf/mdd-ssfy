@@ -288,6 +288,8 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                     //     md: data,
                     // });
                     setType("MOULDING");
+                    const m: any = data.priceTags?.moulding;
+                    const overridePrice = m?.overridePrice || m?.overridPrice;
                     addFormItem(formId, {
                         hptId: copy ? null : data.hptId,
                         mouldingProductId: data.stepProduct?.dykeProductId,
@@ -300,9 +302,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                             total: data.qty,
                         },
                         pricing: {
-                            customPrice: customPrice(
-                                data.priceTags?.moulding?.overridePrice,
-                            ),
+                            customPrice: customPrice(overridePrice),
                             itemPrice: {
                                 basePrice: data.priceTags?.moulding?.basePrice,
                                 salesPrice:
