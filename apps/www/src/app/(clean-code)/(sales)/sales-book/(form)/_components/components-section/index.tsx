@@ -56,11 +56,10 @@ import { openStepPricingModal } from "../modals/step-pricing-modal";
 import { UseStepContext, useStepContext } from "./ctx";
 import { CustomComponentAction } from "./custom-component.action";
 import SearchBar from "./search-bar";
-import { Env } from "@/components/env";
 import { Tabs } from "@gnd/ui/custom/tabs";
 import { DoorSuppliers } from "@/components/forms/sales-form/door-suppliers";
 import { DoorSupplierBadge } from "@/components/forms/sales-form/door-supplier-badge";
-import { MdAnalytics } from "react-icons/md";
+import { SuperAdminGuard } from "@/components/auth-guard";
 
 interface Props {
     itemStepUid;
@@ -73,39 +72,52 @@ export function ComponentsSection({ itemStepUid }: Props) {
     const [tab, setTab] = useState("doors");
     if (!isDoor) return <Content itemStepUid={itemStepUid} />;
     return (
-        <div className="py-4">
-            <Tabs value={tab} onValueChange={setTab}>
-                <Tabs.Items
-                    className="px-4"
-                    TabItems={[
-                        <Tabs.Item index={0} key={0}>
-                            <span>Doors</span>
-                            <Tabs.Content>
-                                <Content itemStepUid={itemStepUid} />
-                            </Tabs.Content>
-                        </Tabs.Item>,
-                        <Tabs.Item index={1} key={1}>
-                            <span>Suppliers</span>
-                            <Tabs.Content>
-                                <div className="min-h-screen">
-                                    <DoorSuppliers itemStepUid={itemStepUid} />
-                                </div>
-                            </Tabs.Content>
-                        </Tabs.Item>,
-                        <div className="flex flex-1 justify-end" key={2}>
-                            <DoorSupplierBadge itemStepUid={itemStepUid} />
-                        </div>,
-                    ]}
-                ></Tabs.Items>
-                {/* <TabsList>
+        <SuperAdminGuard
+            Fallback={
+                <div className="grid gap-4">
+                    <div className="flex flex-1 justify-end">
+                        <DoorSupplierBadge itemStepUid={itemStepUid} />
+                    </div>
+                    <Content itemStepUid={itemStepUid} />
+                </div>
+            }
+        >
+            <div className="py-4">
+                <Tabs value={tab} onValueChange={setTab}>
+                    <Tabs.Items
+                        className="px-4"
+                        TabItems={[
+                            <Tabs.Item index={0} key={0}>
+                                <span>Doors</span>
+                                <Tabs.Content>
+                                    <Content itemStepUid={itemStepUid} />
+                                </Tabs.Content>
+                            </Tabs.Item>,
+                            <Tabs.Item index={1} key={1}>
+                                <span>Suppliers</span>
+                                <Tabs.Content>
+                                    <div className="min-h-screen">
+                                        <DoorSuppliers
+                                            itemStepUid={itemStepUid}
+                                        />
+                                    </div>
+                                </Tabs.Content>
+                            </Tabs.Item>,
+                            <div className="flex flex-1 justify-end" key={2}>
+                                <DoorSupplierBadge itemStepUid={itemStepUid} />
+                            </div>,
+                        ]}
+                    ></Tabs.Items>
+                    {/* <TabsList>
                     <TabsTrigger value="doors">Doors</TabsTrigger>
                     <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
                 </TabsList>
                 <TabsContent value="doors">
                     <Content itemStepUid={itemStepUid} />
                 </TabsContent> */}
-            </Tabs>
-        </div>
+                </Tabs>
+            </div>
+        </SuperAdminGuard>
     );
 }
 function Content({ itemStepUid }) {
@@ -478,12 +490,14 @@ export function Component({
                                 ${component.salesPrice}
                             </Badge>
                         )}
-                        {!component?.statistics || (
-                            <span className="flex gap-1">
-                                <LineChart className="size-4" />
-                                {component?.statistics}
-                            </span>
-                        )}
+                        <SuperAdminGuard>
+                            {!component?.statistics || (
+                                <span className="flex gap-1">
+                                    <LineChart className="size-4" />
+                                    {component?.statistics}
+                                </span>
+                            )}
+                        </SuperAdminGuard>
                     </div>
                 </div>
             </button>
