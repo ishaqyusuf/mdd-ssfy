@@ -13,7 +13,7 @@ export function Login02({ className = "" }) {
                     <div className="fixed inset-0">
                         <AspectRatio ratio={1.7}>
                             <Image
-                                src="/gnd-backdrop.jpeg"
+                                src="/gnd-backdrop.png"
                                 alt="Image"
                                 width={740}
                                 height={420}
@@ -39,7 +39,7 @@ export function Login02({ className = "" }) {
                             <div className="relative hidden bg-muted md:block">
                                 <AspectRatio ratio={0.9}>
                                     <Image
-                                        src="/gnd-backdrop.jpeg"
+                                        src="/gnd-backdrop.png"
                                         alt="Image"
                                         fill
                                         className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
