@@ -18,11 +18,13 @@ import { cn } from "@/lib/utils";
 import { closestCorners } from "@dnd-kit/core";
 import {
     BoxSelect,
+    ChartBar,
     CheckCircle,
     ExternalLink,
     Filter,
     Folder,
     Info,
+    LineChart,
     LucideVariable,
     Variable,
     VariableIcon,
@@ -58,6 +60,7 @@ import { Env } from "@/components/env";
 import { Tabs } from "@gnd/ui/custom/tabs";
 import { DoorSuppliers } from "@/components/forms/sales-form/door-suppliers";
 import { DoorSupplierBadge } from "@/components/forms/sales-form/door-supplier-badge";
+import { MdAnalytics } from "react-icons/md";
 
 interface Props {
     itemStepUid;
@@ -465,24 +468,26 @@ export function Component({
                             src={component.img}
                         />
                     </div>
-                    <div className="inline-flex justify-between border-t p-2 font-mono text-sm">
-                        <Label className=" uppercase">{component.title}</Label>
+                    <div className="inline-flex border-t p-2 font-mono text-sm gap-2">
+                        <Label className="text-start uppercase">
+                            {component.title}
+                        </Label>
+                        <div className="flex-1"></div>
                         {component.salesPrice && (
                             <Badge className="h-5 px-1" variant="destructive">
                                 ${component.salesPrice}
                             </Badge>
                         )}
+                        {!component?.statistics || (
+                            <span className="flex gap-1">
+                                <LineChart className="size-4" />
+                                {component?.statistics}
+                            </span>
+                        )}
                     </div>
                 </div>
             </button>
 
-            <Env isDev>
-                {component.uid ? (
-                    <div className="s-rotate-90 -translate-y-1/2s top-1/2s absolute left-4 top-4 transform font-mono text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                        {component.uid}
-                    </div>
-                ) : null}
-            </Env>
             {component.productCode ? (
                 <div className="s-rotate-90 -translate-y-1/2s top-1/2s absolute left-4 top-4 transform font-mono text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                     {component.productCode} {component.uid}
