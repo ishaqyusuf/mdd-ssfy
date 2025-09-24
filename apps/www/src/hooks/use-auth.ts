@@ -1,3 +1,4 @@
+import { Roles } from "@gnd/utils/constants";
 import { useSession } from "next-auth/react";
 
 export function useAuth() {
@@ -8,6 +9,7 @@ export function useAuth() {
         name: session?.user?.name,
         can: session?.can,
         role: session?.role,
+        roleTitle: session?.role?.name as Roles,
         avatar: null,
     };
 }

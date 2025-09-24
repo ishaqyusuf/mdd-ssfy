@@ -50,7 +50,13 @@ export const salesDispatchStatus = [
 ] as const;
 export type SalesDispatchStatus = (typeof salesDispatchStatus)[number];
 
-export const ROLES = ["Production"] as const;
+export const ROLES = [
+  "Production",
+  "Production",
+  "Admin",
+  "1099 Contractor",
+  "Super Admin",
+] as const;
 export type Roles = (typeof ROLES)[number];
 export const PERMISSIONS = [
   "viewProject",

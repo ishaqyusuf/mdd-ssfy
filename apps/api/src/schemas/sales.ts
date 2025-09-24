@@ -63,6 +63,7 @@ export const salesQueryParamsSchema = z
       .nullable(),
     invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
     production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),
+    showing: z.enum(["all sales"]).optional().nullable(),
   })
   .merge(paginationSchema);
 export type SalesQueryParamsSchema = z.infer<typeof salesQueryParamsSchema>;
