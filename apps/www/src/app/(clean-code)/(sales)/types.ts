@@ -13,9 +13,10 @@ import { FieldPath } from "react-hook-form";
 import { DykeForm as OldDykeForm } from "@/app/(v2)/(loggedIn)/sales-v2/type";
 
 import type { HousePackageToolMeta } from "@sales/types";
-import { GetStepComponent } from "./_common/data-access/step-components.dta";
+
 import { GetSalesBookForm } from "./_common/use-case/sales-book-form-use-case";
 import { SalesPaymentMethods } from "@sales/constants";
+import { StepComponentData } from "@api/db/queries/sales-form";
 
 export { HousePackageToolMeta };
 
@@ -608,7 +609,7 @@ export interface SalesFormZusData extends SalesFormFields {
     //     [stepItemUid in string]: GetStepComponent[];
     // };
     kvStepComponentList: {
-        [stepUid in string]: GetStepComponent[];
+        [stepUid in string]: StepComponentData[];
     };
     oldFormState?: SalesFormFields;
 }

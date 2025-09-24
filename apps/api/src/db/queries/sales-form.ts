@@ -1,8 +1,9 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { txContext } from "@api/utils/db";
-import { generateRandomString } from "@gnd/utils";
+import { generateRandomString, sum, type RenturnTypeAsync } from "@gnd/utils";
 import { composeQuery } from "@gnd/utils/query-response";
 import type { DykeStepMeta, Prisma, StepComponentMeta } from "@sales/types";
+import { addDays } from "date-fns";
 import { z } from "zod";
 
 export const getSuppliersSchema = z.object({});
@@ -121,6 +122,14 @@ export async function getStepComponents(
   ctx: TRPCContext,
   query: GetStepComponentsSchema
 ) {
+  const whereCount = {
+    where: {
+      deletedAt: null,
+      createdAt: {
+        gte: addDays(new Date(), -30).toISOString(),
+      },
+    },
+  };
   const where = whereStepComponents(query);
   const { db } = ctx;
   const stepProducts = await db.dykeStepProducts.findMany({
@@ -129,13 +138,25 @@ export async function getStepComponents(
       door: query.stepTitle != null,
       product: true,
       sorts: true,
+      _count: {
+        select: {
+          housePackageTools: whereCount,
+          salesDoors: whereCount,
+          stepForms: whereCount,
+        },
+      },
     },
   });
   const result = stepProducts.map(dtoStepComponent);
   const filtered = result.filter(
     (r, i) => result.findIndex((s) => s.title == r.title) == i
   );
-  return filtered;
+  return result.sort((a, b) => {
+    if (b.statistics !== a.statistics) {
+      return b.statistics - a.statistics; // higher statistics first
+    }
+    return a.title!.localeCompare(b.title!); // then by title
+  });
   // return stepProducts.map((s) => ({
   //   ...s,
   //   meta: s.meta as any as StepComponentMeta,
@@ -184,15 +205,31 @@ function whereStepComponents(query: GetStepComponentsSchema) {
     });
   return composeQuery(wheres);
 }
-export function dtoStepComponent(data) {
-  let { door, product, sortIndex, sorts, ...component } =
-    data as Prisma.DykeStepProductsGetPayload<{
-      include: {
-        door: true;
-        product: true;
-        sorts: true;
+export type StepComponentData = RenturnTypeAsync<typeof dtoStepComponent>;
+export function dtoStepComponent(
+  data: Prisma.DykeStepProductsGetPayload<{
+    include: {
+      door: true;
+      product: true;
+      sorts: true;
+      _count: {
+        select: {
+          housePackageTools: true;
+          salesDoors: true;
+          stepForms: true;
+        };
       };
-    }>;
+    };
+  }>
+) {
+  let {
+    door,
+    product,
+    sortIndex,
+    sorts,
+    _count: { housePackageTools, salesDoors, stepForms },
+    ...component
+  } = data;
   let meta: StepComponentMeta = component.meta as any;
   return {
     uid: component.uid,
@@ -222,5 +259,6 @@ export function dtoStepComponent(data) {
       sortUid: null,
     },
     isDeleted: !!component.deletedAt,
+    statistics: sum([housePackageTools, salesDoors, stepForms]),
   };
 }

@@ -241,7 +241,7 @@ export class StepHelperClass extends SettingsClass {
             this.getStepComponents?.map((c) => {
                 if (uids.includes(c.uid)) {
                     const s = dotSet(c);
-                    s.set(key, value);
+                    s.set(key as any, value);
                 }
 
                 return c;
@@ -366,7 +366,6 @@ export class StepHelperClass extends SettingsClass {
                 if (!component._metaData) component._metaData = {} as any;
                 const vis = this.isComponentVisible(component);
                 component._metaData.visible = !!vis;
-
                 component.basePrice = this.getComponentPrice(component.uid);
                 component.salesPrice = component._metaData.custom
                     ? component.basePrice
@@ -374,23 +373,22 @@ export class StepHelperClass extends SettingsClass {
                 // component.salesPrice = component._metaData.custom
                 //     ? component.basePrice
                 //     : this.calculateSales(component.basePrice);
-                const sort = component._metaData.sorts?.find((s) =>
-                    vis?.includes(s.uid),
-                );
-                let sortIndex = sort?.sortIndex;
-                // component._metaData.sortId = this.getCurrentStepSequence();
-                component._metaData.sortIndex = sortIndex;
-                component._metaData.sortUid = sort?.uid || vis?.[0];
-
+                // const sort = component._metaData.sorts?.find((s) =>
+                //     vis?.includes(s.uid),
+                // );
+                // let sortIndex = sort?.sortIndex;
+                // // component._metaData.sortId = this.getCurrentStepSequence();
+                // component._metaData.sortIndex = sortIndex;
+                // component._metaData.sortUid = sort?.uid || vis?.[0];
                 return component;
             });
-        if (
-            filteredComponents?.filter((a) => a._metaData.sortIndex)?.length > 0
-        ) {
-            filteredComponents = filteredComponents.sort(
-                (a, b) => a._metaData.sortIndex - b._metaData.sortIndex,
-            );
-        }
+        // if (
+        //     filteredComponents?.filter((a) => a._metaData.sortIndex)?.length > 0
+        // ) {
+        //     filteredComponents = filteredComponents.sort(
+        //         (a, b) => a._metaData.sortIndex - b._metaData.sortIndex,
+        //     );
+        // }
         // this.zus.dotUpdate(
         //     `kvFilteredStepComponentList.${this.itemStepUid}`,
         //     filteredComponents,
