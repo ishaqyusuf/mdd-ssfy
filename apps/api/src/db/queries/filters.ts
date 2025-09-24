@@ -388,11 +388,11 @@ export async function getSalesQuoteFilter(ctx: TRPCContext) {
       "P.O",
       pos.map((po) => ({ label: po, value: po }))
     ),
-    optionFilter<T>(
-      "sales.rep",
-      "Sales Rep",
-      salesReps.map((rep) => ({ label: rep, value: rep }))
-    ),
+    // optionFilter<T>(
+    //   "sales.rep",
+    //   "Sales Rep",
+    //   salesReps.map((rep) => ({ label: rep, value: rep }))
+    // ),
     optionFilter<T>(
       "salesNo",
       "Quote #",
