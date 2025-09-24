@@ -1,0 +1,56 @@
+import { Button } from "@gnd/ui/button";
+import { Card, CardContent } from "@gnd/ui/card";
+import { cn } from "@gnd/ui/cn";
+import { LoginForm } from "./login-form";
+import Image from "next/image";
+import { AspectRatio } from "@gnd/ui/aspect-ratio";
+
+export function Login03({ className = "" }) {
+    return (
+        <div
+            className={cn(
+                "flex flex-col gap-6 sm:h-screen sm:overflow-hidden",
+                className,
+            )}
+        >
+            <Card className="overflow-hidden z-10">
+                <CardContent className="grid p-0 md:grid-cols-2">
+                    <div className="flex justify-center">
+                        <div className="sm:w-2/3 md:mt-28">
+                            <div className="p-6 md:p-8">
+                                <div className="flex flex-col gap-6">
+                                    <div className="flex flex-col items-center text-center">
+                                        <h1 className="text-2xl font-bold">
+                                            Welcome back
+                                        </h1>
+                                        <p className="text-balance text-muted-foreground">
+                                            Login to your GND account
+                                        </p>
+                                    </div>
+                                    <LoginForm />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="relative hidden bg-muted md:block">
+                        <AspectRatio ratio={0.9}>
+                            <Image
+                                src="/gnd-backdrop.jpeg"
+                                alt="Image"
+                                fill
+                                className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+                            />
+                        </AspectRatio>
+                    </div>
+                </CardContent>
+            </Card>
+            {/* <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-primary">
+                By clicking continue, you agree to our{" "}
+                <a href="#">Terms of Service</a> and{" "}
+                <a href="#">Privacy Policy</a>.
+            </div> */}
+        </div>
+    );
+}
+
