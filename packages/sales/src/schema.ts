@@ -146,6 +146,7 @@ export const salesQueryParamsSchema = z
     "customer.name": z.string().optional().nullable(),
     phone: z.string().optional().nullable(),
     po: z.string().optional().nullable(),
+    salesRepId: z.number().optional().nullable(),
     "sales.rep": z.string().optional().nullable(),
     orderNo: z.string().optional().nullable(),
     "dispatch.status": z

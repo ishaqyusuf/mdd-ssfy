@@ -142,6 +142,11 @@ export function whereSales(query: SalesQueryParamsSchema) {
       //       id: Number(query.id),
       //     });
       //   break;
+      case "salesRepId":
+        where.push({
+          salesRepId: val,
+        });
+        break;
       case "invoice":
         switch (query.invoice) {
           case "pending":

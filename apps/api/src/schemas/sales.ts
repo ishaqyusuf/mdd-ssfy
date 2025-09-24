@@ -48,6 +48,7 @@ export const salesQueryParamsSchema = z
     phone: z.string().optional().nullable(),
     defaultSearch: z.boolean().optional().nullable(),
     po: z.string().optional().nullable(),
+    salesRepId: z.number().optional().nullable(),
     "sales.rep": z.string().optional().nullable(),
     orderNo: z.string().optional().nullable(),
     "dispatch.status": z
