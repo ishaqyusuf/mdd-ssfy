@@ -211,6 +211,7 @@ export const useTableData = ({ filter, route }) => {
     ...tableData,
     queryData: data,
     hasNextPage,
+    isFetching,
     // from: data?.
   };
 };

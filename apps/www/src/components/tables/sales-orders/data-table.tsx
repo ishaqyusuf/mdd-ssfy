@@ -9,12 +9,16 @@ import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOrdersStore } from "@/store/sales-orders";
-
+import { NoResults } from "@gnd/ui/custom/no-results";
+import { EmptyState } from "@gnd/ui/custom/empty-state";
+import { Button } from "@gnd/ui/button";
+import Link from "next/link";
+import { Icons } from "@gnd/ui/custom/icons";
 export function DataTable({}) {
     const trpc = useTRPC();
     const { rowSelection, setRowSelection } = useSalesOrdersStore();
-    const { filters } = useOrderFilterParams();
-    const { data, ref, hasNextPage } = useTableData({
+    const { filters, hasFilters, setFilters } = useOrderFilterParams();
+    const { data, ref, hasNextPage, isFetching } = useTableData({
         filter: {
             ...filters,
         },
@@ -25,6 +29,24 @@ export function DataTable({}) {
         startFromColumn: 2,
     });
     const overviewQuery = useSalesOverviewQuery();
+    if (hasFilters && !data?.length) {
+        return <NoResults setFilter={setFilters} />;
+    }
+
+    if (!data?.length && !isFetching) {
+        return (
+            <EmptyState
+                CreateButton={
+                    <Button asChild size="sm">
+                        <Link href="/sales-book/create-order">
+                            <Icons.add className="mr-2 size-4" />
+                            <span>New</span>
+                        </Link>
+                    </Button>
+                }
+            />
+        );
+    }
     return (
         <Table.Provider
             args={[

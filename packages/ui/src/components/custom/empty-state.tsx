@@ -3,6 +3,7 @@ import { Button } from "../button";
 
 interface Props {
   onCreate?;
+  CreateButton?;
   label?: string;
   className?: string;
 }
@@ -19,11 +20,13 @@ export function EmptyState(props: Props) {
           </p>
         </div>
 
-        {!props.onCreate || (
-          <Button variant="outline" onClick={props.onCreate}>
-            Create
-          </Button>
-        )}
+        {props?.CreateButton
+          ? props.CreateButton
+          : !props.onCreate || (
+              <Button variant="outline" onClick={props.onCreate}>
+                Create
+              </Button>
+            )}
       </div>
     </div>
   );
