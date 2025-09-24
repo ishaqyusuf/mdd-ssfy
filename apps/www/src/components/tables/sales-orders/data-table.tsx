@@ -9,13 +9,11 @@ import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOrdersStore } from "@/store/sales-orders";
-import { useAuth } from "@/hooks/use-auth";
 
 export function DataTable({}) {
     const trpc = useTRPC();
     const { rowSelection, setRowSelection } = useSalesOrdersStore();
     const { filters } = useOrderFilterParams();
-    const auth = useAuth();
     const { data, ref, hasNextPage } = useTableData({
         filter: {
             ...filters,

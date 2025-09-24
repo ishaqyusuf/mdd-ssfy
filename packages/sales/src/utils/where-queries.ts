@@ -236,11 +236,7 @@ export function whereSales(query: SalesQueryParamsSchema) {
           ],
         });
         break;
-      // case "salesRep.id":
-      //   where.push({
-      //     salesRepId: val,
-      //   });
-      //   break;
+
       case "sales.rep":
         where.push({
           salesRep: {

@@ -1,6 +1,7 @@
 import { parseAsBoolean, useQueryStates } from "nuqs";
 import { createLoader, parseAsArrayOf, parseAsString } from "nuqs/server";
 import { RouterInputs } from "@api/trpc/routers/_app";
+import { useAuth } from "./use-auth";
 type FilterKeys = keyof Exclude<RouterInputs["sales"]["index"], void>;
 
 export const salesFilterParamsSchema = {
@@ -23,8 +24,21 @@ export const salesFilterParamsSchema = {
 
 export function useOrderFilterParams() {
     const [filters, setFilters] = useQueryStates(salesFilterParamsSchema);
+    const auth = useAuth();
+    function validateFilter(k: FilterKeys) {
+        switch (k) {
+            case "showing":
+                return auth.roleTitle === "Super Admin";
+            default:
+                return true;
+        }
+    }
     return {
-        filters,
+        filters: Object.fromEntries(
+            Object.entries(filters).filter(([a, b]) =>
+                validateFilter(a as any),
+            ),
+        ),
         setFilters,
         hasFilters: Object.values(filters).some((value) => value !== null),
     };

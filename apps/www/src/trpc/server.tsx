@@ -12,6 +12,8 @@ import { cache } from "react";
 import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
 import { AppRouter } from "@gnd/api/trpc/routers/_app";
+import { authUser } from "@/app/(v1)/_actions/utils";
+import { generateRandomString } from "@gnd/utils";
 // import { AppRouter } from "./routers/_app";
 
 // IMPORTANT: Create a stable getter for the query client that
@@ -30,11 +32,10 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
                         : `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
                 transformer: superjson as any,
                 async headers() {
+                    const auth = await authUser();
+
                     return {
-                        // Authorization: `Bearer ${session?.access_token}`,
-                        // "x-user-timezone": await getTimezone(),
-                        // "x-user-locale": await getLocale(),
-                        // "x-user-country": await getCountryCode(),
+                        Authorization: `Bearer ${generateRandomString(16)}|${auth?.id}`,
                     };
                 },
             }),
