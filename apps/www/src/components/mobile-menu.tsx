@@ -6,6 +6,7 @@ import { Sheet, SheetContent } from "@gnd/ui/sheet";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "./_v1/icons";
 import { SidebarProvider } from "@/hooks/use-sidebar";
+import { SidebarModules } from "./sidebar-modules";
 
 export function MobileMenu() {
     const [isOpen, setOpen] = useState(false);
@@ -39,6 +40,7 @@ export function MobileMenu() {
                             },
                         ]}
                     >
+                        <SidebarModules />
                         <MainMenu />
                     </SidebarProvider>
                 </div>
