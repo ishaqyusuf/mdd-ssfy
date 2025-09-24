@@ -253,7 +253,7 @@ export async function getSalesOrderFilters(
         value: status,
       }))
     ),
-  ];
+  ].filter(Boolean);
   return resp as FilterData[];
 }
 export async function getResolutionFilters(ctx: TRPCContext) {
