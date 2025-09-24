@@ -98,6 +98,7 @@ import {
   SortDesc,
   Activity,
   Monitor,
+  FolderTree,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -220,6 +221,7 @@ export const Icons = {
   edit: ClipboardEdit,
   ...PaymentMethodIcon,
   monitor: Monitor,
+  category: FolderTree,
 };
 
 export type IconKeys = keyof typeof Icons;

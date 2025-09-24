@@ -21,6 +21,7 @@ export const searchIcons: Partial<{
   status: "Status",
   dateRange: "calendar",
   showing: "monitor",
+  category: "category",
 };
 
 export function isSearchKey(k) {

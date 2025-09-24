@@ -10,6 +10,7 @@ import {
     BarChart3,
     CheckCircle,
     FileEdit,
+    FolderTree,
     Monitor,
     Scale,
 } from "lucide-react";
@@ -63,6 +64,7 @@ export const Icons = {
     resolutionCenter: Scale,
     salesDashboard: BarChart3,
     monitor: Monitor,
+    category: FolderTree,
 };
 
 export type IconKeys = keyof typeof Icons;
