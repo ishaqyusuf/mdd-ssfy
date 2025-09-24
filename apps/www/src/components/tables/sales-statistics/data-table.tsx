@@ -11,6 +11,7 @@ import { EyeIcon } from "lucide-react";
 import { Badge } from "@gnd/ui/badge";
 import { ProductImage } from "@/app/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/product";
 import { useProductReportFilters } from "@/hooks/use-product-report-filter-params";
+import { FormatAmount } from "@gnd/ui/custom/format-amount";
 
 export function DataTable() {
     const trpc = useTRPC();
@@ -78,8 +79,9 @@ export function DataTable() {
                                                 Revenue
                                             </p>
                                             <p className="font-semibold">
-                                                $
-                                                {product.revenue.toLocaleString()}
+                                                <FormatAmount
+                                                    amount={product.revenue}
+                                                />
                                             </p>
                                         </div>
                                         <div>
@@ -87,7 +89,10 @@ export function DataTable() {
                                                 Cost Price
                                             </p>
                                             <p className="font-semibold">
-                                                ${product.costPrice}
+                                                <FormatAmount
+                                                    amount={product.costPrice}
+                                                    maximumFractionDigits={0}
+                                                />
                                             </p>
                                         </div>
                                         <div>
@@ -95,7 +100,10 @@ export function DataTable() {
                                                 Sales Price
                                             </p>
                                             <p className="font-semibold">
-                                                ${product.salesPrice}
+                                                <FormatAmount
+                                                    amount={product.salesPrice}
+                                                    maximumFractionDigits={0}
+                                                />
                                             </p>
                                         </div>
                                     </div>

@@ -174,7 +174,8 @@ export async function getProductReport(
         isMolding,
         productCode,
         doorsCount,
-        hpts,
+        // hpts,
+        units: hpts.filter((a) => String(a.qty).includes(".")),
       });
       return {
         name: d.name || d.product?.title,
