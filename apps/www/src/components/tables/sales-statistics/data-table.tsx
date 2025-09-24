@@ -81,6 +81,7 @@ export function DataTable() {
                                             <p className="font-semibold">
                                                 <FormatAmount
                                                     amount={product.revenue}
+                                                    maximumFractionDigits={0}
                                                 />
                                             </p>
                                         </div>

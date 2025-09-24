@@ -170,18 +170,18 @@ export async function getProductReport(
           ? formatMoney(sum(hpts.map((a) => a?.costPrice)) * units)
           : formatMoney(sum(d.stepForms, "basePrice"));
 
-      consoleLog("Search Result:", {
-        isMolding,
-        productCode,
-        doorsCount,
-        // hpts,
-        units: hpts.filter((a) => String(a.qty).includes(".")),
-      });
+      // consoleLog("Search Result:", {
+      //   isMolding,
+      //   productCode,
+      //   doorsCount,
+      //   // hpts,
+      //   units: hpts.filter((a) => String(a.qty).includes(".")),
+      // });
       return {
         name: d.name || d.product?.title,
         category: d.step?.title,
         units,
-        revenue: 0,
+        revenue: sum([salesPrice, -1 * costPrice]),
         salesPrice,
         costPrice,
         img: d.img || d.product?.img,
@@ -193,72 +193,72 @@ export async function getProductReport(
 }
 function whereStat(query: ProductReportSchema) {
   const where: Prisma.DykeStepProductsWhereInput[] = [
-    // {
-    //   name: {
-    //     not: null,
-    //   },
-    //   //   // OR: [
-    //   //   //   {
-    //   //   //     door: {
-    //   //   //       ...dateQuery({
-    //   //   //         from: "01/01/2025",
-    //   //   //       }),
-    //   //   //     },
-    //   //   //   },
-    //   //   //   {
-    //   //   //     product: {
-    //   //   //       ...dateQuery({
-    //   //   //         from: "01/01/2025",
-    //   //   //       }),
-    //   //   //     },
-    //   //   //   },
-    //   //   //   {
-    //   //   //     product: null,
-    //   //   //     door: null,
-    //   //   //   },
-    //   //   // ],
-    //   //   step: {
-    //   //     deletedAt: null,
-    //   //     title: "Door", //query.reportCategory || undefined,
-    //   //     // priceSystem: {
-    //   //     //   some: {
-    //   //     //     deletedAt: null,
-    //   //     //     price: {
-    //   //     //       gt: 0,
-    //   //     //     },
-    //   //     //   },
-    //   //     // },
-    //   //   },
-    //   // OR: [
-    //   //   {
-    //   //     stepForms: {
-    //   //       some: {
-    //   //         deletedAt: null,
-    //   //         // price: {
-    //   //         //   gt: 0,
-    //   //         // },
-    //   //         salesOrderItem: {
-    //   //           salesOrder: {
-    //   //             type: "order",
-    //   //           },
-    //   //         },
-    //   //       },
-    //   //     },
-    //   //   },
-    //   //   {
-    //   //     salesDoors: {
-    //   //       some: {},
-    //   //     },
-    //   //   },
-    //   //   {
-    //   //     housePackageTools: {
-    //   //       some: {
-    //   //         molding: {},
-    //   //       },
-    //   //     },
-    //   //   },
-    //   // ],
-    // },
+    {
+      OR: [
+        {
+          name: {
+            not: null,
+          },
+        },
+        {
+          product: {
+            title: { not: null },
+          },
+        },
+      ],
+    },
+    {
+      // OR: [
+      //   {
+      //     door: {
+      //       ...dateQuery({
+      //         from: "01/01/2025",
+      //       }),
+      //     },
+      //   },
+      //   {
+      //     product: {
+      //       ...dateQuery({
+      //         from: "01/01/2025",
+      //       }),
+      //     },
+      //   },
+      //   {
+      //     product: null,
+      //     door: null,
+      //   },
+      // ],
+
+      OR: [
+        {
+          stepForms: {
+            some: {
+              deletedAt: null,
+              // price: {
+              //   gt: 0,
+              // },
+              salesOrderItem: {
+                salesOrder: {
+                  type: "order",
+                },
+              },
+            },
+          },
+        },
+        {
+          salesDoors: {
+            some: {},
+          },
+        },
+        {
+          housePackageTools: {
+            some: {
+              molding: {},
+            },
+          },
+        },
+      ],
+    },
   ];
   if (query.reportCategory) {
     where.push({
