@@ -330,7 +330,6 @@ export class StepHelperClass extends SettingsClass {
                 `kvStepComponentList.${this.stepUid}`,
                 components,
             );
-
         return this.filterStepComponents(components);
     }
 

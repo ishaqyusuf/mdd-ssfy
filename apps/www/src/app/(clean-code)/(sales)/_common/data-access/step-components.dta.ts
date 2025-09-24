@@ -14,21 +14,7 @@ export interface LoadStepComponentsProps {
     title?;
     isCustom?: boolean;
 }
-export async function loadStepComponentsDta(props: LoadStepComponentsProps) {
-    const prods = await getComponentsDta(props);
-    const resp = prods
-        // .filter((p) => p.product || p.door)
-        .map(dtoStepComponent);
-    const filtered = resp.filter(
-        (r, i) => resp.findIndex((s) => s.title == r.title) == i,
-    );
-    return filtered;
-    // if (resp.filter((s) => s.sortIndex >= 0).length)
-    //     return resp.sort((a, b) => a.sortIndex - b.sortIndex);
 
-    return resp;
-}
-export async function getSaleRootComponentConfigDta(ids) {}
 export async function getComponentsDta(props: LoadStepComponentsProps) {
     const wheres: Prisma.DykeStepProductsWhereInput[] = [];
 

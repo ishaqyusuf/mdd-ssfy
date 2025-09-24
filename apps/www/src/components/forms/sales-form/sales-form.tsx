@@ -32,7 +32,7 @@ export function SalesFormClient({ data }) {
 
     return (
         <div className="min-h-screen w-full bg-white dark:bg-primary-foreground  xl:gap-4">
-            <div className="lg:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+            <div className="xl:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between">
                 <h1 className="text-xl font-semibold text-gray-900">
                     Invoice Builder
                 </h1>
@@ -47,7 +47,7 @@ export function SalesFormClient({ data }) {
                 </Button>
             </div>
             <div className="flex">
-                <div className="flex-1 lg:mr-96">
+                <div className="flex-1 xl:mr-96">
                     {takeOff ? (
                         <TakeOff />
                     ) : (
@@ -68,11 +68,11 @@ export function SalesFormClient({ data }) {
                         </Button>
                     </div>
                 </div>
-                <div className="hidden lg:block">
+                <div className="hidden xl:block">
                     <SalesFormSidebar />
                 </div>
                 {sidebarOpen && (
-                    <div className="lg:hidden fixed inset-0 z-50 flex">
+                    <div className="xl:hidden fixed inset-0 z-50 flex">
                         <div
                             className="flex-1 bg-black bg-opacity-50"
                             onClick={() => setSidebarOpen(false)}

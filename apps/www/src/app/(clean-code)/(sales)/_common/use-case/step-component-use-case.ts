@@ -26,10 +26,10 @@ import {
 import {
     createStepComponentDta,
     getComponentsDta,
-    loadStepComponentsDta,
     updateStepComponentDta,
 } from "../data-access/step-components.dta";
 import { updateComponentPricingUseCase } from "./sales-book-pricing-use-case";
+import { getStepComponents } from "@api/db/queries/sales-form";
 
 export async function getMouldingSpeciesUseCase() {
     return await getDykeStepProductTitles("Specie");
@@ -56,7 +56,7 @@ export async function sortStepComponentsUseCase(components) {
     );
 }
 export async function getStepComponentsUseCase(stepTitle, stepId) {
-    return await loadStepComponentsDta({ stepTitle, stepId });
+    return await getStepComponents({ db: prisma }, { stepId, stepTitle });
 }
 interface GetNextStepProps {
     nextStepId;

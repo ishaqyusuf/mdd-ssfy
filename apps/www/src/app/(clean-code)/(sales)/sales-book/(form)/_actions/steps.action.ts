@@ -1,10 +1,11 @@
 "use server";
 
+import { prisma } from "@/db";
 import {
-    loadStepComponentsDta,
-    LoadStepComponentsProps,
-} from "../../../_common/data-access/step-components.dta";
+    getStepComponents as __getStepComponents,
+    GetStepComponentsSchema,
+} from "@api/db/queries/sales-form";
 
-export async function getStepComponents(props: LoadStepComponentsProps) {
-    return await loadStepComponentsDta(props);
+export async function getStepComponents(props: GetStepComponentsSchema) {
+    return await __getStepComponents({ db: prisma }, props);
 }

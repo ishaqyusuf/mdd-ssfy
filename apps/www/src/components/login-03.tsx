@@ -9,14 +9,14 @@ export function Login03({ className = "" }) {
     return (
         <div
             className={cn(
-                "flex flex-col gap-6 sm:h-screen sm:overflow-hidden",
+                "flex flex-col gap-6 h-screen max-lg:justify-end max-md:pb-28 max-lg:mb-16 overflow-hidden",
                 className,
             )}
         >
-            <Card className="overflow-hidden z-10">
-                <CardContent className="grid p-0 md:grid-cols-2">
-                    <div className="flex justify-center">
-                        <div className="sm:w-2/3 md:mt-28">
+            <Card className="overflow-hidden  z-10">
+                <CardContent className="grid lg:h-screen p-0 lg:grid-cols-2 ">
+                    <div className="flex max-lg:items-end z-10 justify-center">
+                        <div className="w-4/5 md:w-2/3   max-lg:bg-background">
                             <div className="p-6 md:p-8">
                                 <div className="flex flex-col gap-6">
                                     <div className="flex flex-col items-center text-center">
@@ -32,16 +32,31 @@ export function Login03({ className = "" }) {
                             </div>
                         </div>
                     </div>
-
-                    <div className="relative hidden bg-muted md:block">
-                        <AspectRatio ratio={0.9}>
+                    <div className="fixed inset-0 lg:hidden">
+                        <Image
+                            src="/gnd-backdrop.png"
+                            alt="Image"
+                            fill
+                            className="object-cover h-full w-full dark:brightness-[0.2] dark:grayscale"
+                            priority
+                        />
+                    </div>
+                    <div className="relative hidden  bg-muted lg:block">
+                        {/* <AspectRatio ratio={0.9}>
                             <Image
                                 src="/gnd-backdrop.png"
                                 alt="Image"
                                 fill
                                 className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
                             />
-                        </AspectRatio>
+                        </AspectRatio> */}
+                        <Image
+                            src="/gnd-backdrop.png"
+                            alt="Image"
+                            fill
+                            className="object-cover h-full w-full dark:brightness-[0.2] dark:grayscale"
+                            priority
+                        />
                     </div>
                 </CardContent>
             </Card>

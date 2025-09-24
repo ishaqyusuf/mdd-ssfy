@@ -1,7 +1,8 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { txContext } from "@api/utils/db";
 import { generateRandomString } from "@gnd/utils";
-import type { DykeStepMeta } from "@sales/types";
+import { composeQuery } from "@gnd/utils/query-response";
+import type { DykeStepMeta, Prisma, StepComponentMeta } from "@sales/types";
 import { z } from "zod";
 
 export const getSuppliersSchema = z.object({});
@@ -104,4 +105,122 @@ export async function deleteSupplier(
       deletedAt: new Date(),
     },
   });
+}
+
+export const getStepComponentsSchema = z.object({
+  stepTitle: z.string().optional().nullable(),
+  title: z.string().optional().nullable(),
+  stepId: z.number().optional(),
+  id: z.number().optional().nullable(),
+  ids: z.array(z.number()).optional().nullable(),
+  isCustom: z.boolean().optional().nullable(),
+});
+export type GetStepComponentsSchema = z.infer<typeof getStepComponentsSchema>;
+
+export async function getStepComponents(
+  ctx: TRPCContext,
+  query: GetStepComponentsSchema
+) {
+  const where = whereStepComponents(query);
+  const { db } = ctx;
+  const stepProducts = await db.dykeStepProducts.findMany({
+    where,
+    include: {
+      door: query.stepTitle != null,
+      product: true,
+      sorts: true,
+    },
+  });
+  const result = stepProducts.map(dtoStepComponent);
+  const filtered = result.filter(
+    (r, i) => result.findIndex((s) => s.title == r.title) == i
+  );
+  return filtered;
+  // return stepProducts.map((s) => ({
+  //   ...s,
+  //   meta: s.meta as any as StepComponentMeta,
+  // }));
+}
+function whereStepComponents(query: GetStepComponentsSchema) {
+  const wheres: Prisma.DykeStepProductsWhereInput[] = [];
+
+  if (query.stepTitle == "Door")
+    wheres.push({
+      OR: [
+        { door: { isNot: null }, deletedAt: {} },
+        { dykeStepId: query.stepId },
+      ],
+    });
+  else if (query.stepTitle == "Moulding") {
+    wheres.push({
+      OR: [
+        {
+          product: {
+            category: {
+              title: query.stepTitle,
+            },
+          },
+        },
+        { dykeStepId: query.stepId },
+      ],
+    });
+  } else {
+    if (query.stepId)
+      wheres.push({
+        dykeStepId: query.stepId,
+      });
+  }
+  if (query.isCustom) wheres.push({ custom: true });
+  if (query.title)
+    wheres.push({
+      name: query.title,
+    });
+  if (query.id) wheres.push({ id: query.id });
+  if (query.ids)
+    wheres.push({
+      id: {
+        in: query.ids,
+      },
+    });
+  return composeQuery(wheres);
+}
+export function dtoStepComponent(data) {
+  let { door, product, sortIndex, sorts, ...component } =
+    data as Prisma.DykeStepProductsGetPayload<{
+      include: {
+        door: true;
+        product: true;
+        sorts: true;
+      };
+    }>;
+  let meta: StepComponentMeta = component.meta as any;
+  return {
+    uid: component.uid,
+    sortIndex,
+    id: component.id,
+    title: component.name || door?.title || product?.title,
+    img: component.img || product?.img || door?.img,
+    productId: product?.id || door?.id,
+    variations: meta?.variations || [],
+    sectionOverride: meta?.sectionOverride,
+    salesPrice: null,
+    basePrice: null,
+    stepId: component.dykeStepId,
+    productCode: component.productCode,
+    redirectUid: component.redirectUid,
+    _metaData: {
+      sorts: (sorts || [])?.map(({ sortIndex, stepComponentId, uid }) => ({
+        sortIndex,
+        stepComponentId,
+        uid,
+      })),
+      custom: component.custom,
+      visible: false,
+      priceId: null,
+      sortId: null,
+      sortIndex: null,
+      sortUid: null,
+    },
+    isDeleted: !!component.deletedAt,
+  };
 }

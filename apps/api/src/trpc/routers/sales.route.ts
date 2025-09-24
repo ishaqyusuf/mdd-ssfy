@@ -37,6 +37,8 @@ import {
 import {
   deleteSupplier,
   deleteSupplierSchema,
+  getStepComponents,
+  getStepComponentsSchema,
   getSuppliers,
   getSuppliersSchema,
   saveSupplier,
@@ -95,6 +97,11 @@ export const salesRouter = createTRPCRouter({
     .query(async (props) => {
       const result = await getSalesResolutions(props.ctx, props.input);
       return result;
+    }),
+  getStepComponents: publicProcedure
+    .input(getStepComponentsSchema)
+    .query(async (props) => {
+      return getStepComponents(props.ctx, props.input);
     }),
   customersIndex: publicProcedure
     .input(getCustomersSchema)
