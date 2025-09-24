@@ -86,6 +86,7 @@ export async function composeQueryData(query, where, model) {
     response,
     searchMeta,
     where,
+    meta: md.meta,
     queryProps: {
       where,
       ...searchMeta,

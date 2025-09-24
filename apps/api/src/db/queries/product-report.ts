@@ -35,21 +35,16 @@ export async function getProductReport(
   { db }: TRPCContext,
   query: ProductReportSchema
 ) {
-  const { response, searchMeta, where } = await composeQueryData(
+  const { response, searchMeta, meta, where } = await composeQueryData(
     query,
     whereStat(query),
     db.dykeStepProducts
   );
-
   const dateFilter = {
     createdAt: transformFilterDateToQuery(query.dateRange as any),
   };
-  // from || to
-  //   ? dateQuery({
-  //       from,
-  //       to,
-  //     })
-  //   : {};
+  consoleLog("WHERE", { where, meta });
+
   const data = await db.dykeStepProducts.findMany({
     where,
     // where: {
@@ -69,11 +64,13 @@ export async function getProductReport(
       img: true,
       id: true,
       name: true,
+
       step: {
         select: {
           title: true,
         },
       },
+      product: { select: { title: true, productCode: true, img: true } },
       stepForms: {
         where: {
           price: { gt: 0 },
@@ -134,9 +131,10 @@ export async function getProductReport(
   });
   return await response(
     data.map((d) => {
+      const productCode = d.product?.productCode;
       const isMolding =
         // ?.filter((a) => a?.molding)
-        d?.housePackageTools?.length;
+        !!d?.housePackageTools?.length;
       const hpts = d.housePackageTools.map((a) => ({
         ...a,
         meta: a.meta as HousePackageToolMeta,
@@ -163,113 +161,92 @@ export async function getProductReport(
             )
           : formatMoney(sum(d.stepForms, "basePrice"));
 
+      consoleLog("Search Result:", {
+        isMolding,
+        productCode,
+      });
       return {
-        name: d.name,
+        name: d.name || d.product?.title,
         category: d.step?.title,
         units,
         revenue: 0,
         salesPrice,
         costPrice,
-        img: d.img,
+        img: d.img || d.product?.img,
         date: d.createdAt,
+        productCode,
       };
     })
   );
 }
 function whereStat(query: ProductReportSchema) {
-  // if (query.q)
-  //   return {
-  //     step: {
-  //       title: {
-  //         contains: query.q,
-  //         // mode: "insensitive",
-  //       },
-  //     },
-  //   };
-  // if (query.reportCategory)
-  //   return {
-  //     step: {
-  //       title: {
-  //         contains: query.reportCategory,
-  //         // mode: "insensitive",
-  //       },
-  //     },
-  //   };
-  // return {};
-  // return {
-  //   step: {
-  //     title: {
-  //       contains: "Moulding",
-  //     },
-  //   },
-  // };
   const where: Prisma.DykeStepProductsWhereInput[] = [
-    {
-      name: {
-        not: null,
-      },
-      //   // OR: [
-      //   //   {
-      //   //     door: {
-      //   //       ...dateQuery({
-      //   //         from: "01/01/2025",
-      //   //       }),
-      //   //     },
-      //   //   },
-      //   //   {
-      //   //     product: {
-      //   //       ...dateQuery({
-      //   //         from: "01/01/2025",
-      //   //       }),
-      //   //     },
-      //   //   },
-      //   //   {
-      //   //     product: null,
-      //   //     door: null,
-      //   //   },
-      //   // ],
-      //   step: {
-      //     deletedAt: null,
-      //     title: "Door", //query.reportCategory || undefined,
-      //     // priceSystem: {
-      //     //   some: {
-      //     //     deletedAt: null,
-      //     //     price: {
-      //     //       gt: 0,
-      //     //     },
-      //     //   },
-      //     // },
-      //   },
-      OR: [
-        {
-          stepForms: {
-            some: {
-              deletedAt: null,
-              // price: {
-              //   gt: 0,
-              // },
-              salesOrderItem: {
-                salesOrder: {
-                  type: "order",
-                },
-              },
-            },
-          },
-        },
-        {
-          salesDoors: {
-            some: {},
-          },
-        },
-        {
-          housePackageTools: {
-            some: {
-              molding: {},
-            },
-          },
-        },
-      ],
-    },
+    // {
+    //   name: {
+    //     not: null,
+    //   },
+    //   //   // OR: [
+    //   //   //   {
+    //   //   //     door: {
+    //   //   //       ...dateQuery({
+    //   //   //         from: "01/01/2025",
+    //   //   //       }),
+    //   //   //     },
+    //   //   //   },
+    //   //   //   {
+    //   //   //     product: {
+    //   //   //       ...dateQuery({
+    //   //   //         from: "01/01/2025",
+    //   //   //       }),
+    //   //   //     },
+    //   //   //   },
+    //   //   //   {
+    //   //   //     product: null,
+    //   //   //     door: null,
+    //   //   //   },
+    //   //   // ],
+    //   //   step: {
+    //   //     deletedAt: null,
+    //   //     title: "Door", //query.reportCategory || undefined,
+    //   //     // priceSystem: {
+    //   //     //   some: {
+    //   //     //     deletedAt: null,
+    //   //     //     price: {
+    //   //     //       gt: 0,
+    //   //     //     },
+    //   //     //   },
+    //   //     // },
+    //   //   },
+    //   // OR: [
+    //   //   {
+    //   //     stepForms: {
+    //   //       some: {
+    //   //         deletedAt: null,
+    //   //         // price: {
+    //   //         //   gt: 0,
+    //   //         // },
+    //   //         salesOrderItem: {
+    //   //           salesOrder: {
+    //   //             type: "order",
+    //   //           },
+    //   //         },
+    //   //       },
+    //   //     },
+    //   //   },
+    //   //   {
+    //   //     salesDoors: {
+    //   //       some: {},
+    //   //     },
+    //   //   },
+    //   //   {
+    //   //     housePackageTools: {
+    //   //       some: {
+    //   //         molding: {},
+    //   //       },
+    //   //     },
+    //   //   },
+    //   // ],
+    // },
   ];
   if (query.reportCategory) {
     where.push({
@@ -309,6 +286,11 @@ function whereStat(query: ProductReportSchema) {
     where.push({
       OR: [
         { name: contains },
+        {
+          product: {
+            title: contains,
+          },
+        },
         {
           step: {
             title: contains,
