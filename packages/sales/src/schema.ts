@@ -148,6 +148,7 @@ export const salesQueryParamsSchema = z
     po: z.string().optional().nullable(),
     salesRepId: z.number().optional().nullable(),
     "sales.rep": z.string().optional().nullable(),
+    showing: z.enum(["all sales"]).optional().nullable(),
     orderNo: z.string().optional().nullable(),
     "dispatch.status": z
       .enum(SALES_DISPATCH_FILTER_OPTIONS)

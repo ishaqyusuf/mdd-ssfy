@@ -3,7 +3,6 @@ import { Prisma, QtyControlType } from "../types";
 import { SalesDispatchStatus } from "./constants";
 import {
   anyDateQuery,
-  consoleLog,
   dateEquals,
   fixDbTime,
   transformFilterDateToQuery,
@@ -17,6 +16,11 @@ export function whereSales(query: SalesQueryParamsSchema) {
   Object.entries(query).map(([k, v]) => {
     if (v === null) return;
     switch (k as keyof SalesQueryParamsSchema) {
+      case "salesRepId":
+        where.push({
+          salesRepId: v as any,
+        });
+        break;
       case "dateRange":
         where.push({
           createdAt: transformFilterDateToQuery(query.dateRange!),
@@ -142,11 +146,7 @@ export function whereSales(query: SalesQueryParamsSchema) {
       //       id: Number(query.id),
       //     });
       //   break;
-      case "salesRepId":
-        where.push({
-          salesRepId: val,
-        });
-        break;
+
       case "invoice":
         switch (query.invoice) {
           case "pending":

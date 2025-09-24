@@ -35,7 +35,7 @@ export async function getSales(
   query: SalesQueryParamsSchema
 ) {
   if (!query.salesType) query.salesType = "order";
-  query.salesRepId = ctx.userId!;
+  if (query.showing != "all sales") query.salesRepId = ctx.userId!;
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,
@@ -68,7 +68,8 @@ export async function getQuotes(
 ) {
   query.salesType = "quote";
 
-  query.salesRepId = ctx.userId!;
+  if (query.showing != "all sales") query.salesRepId = ctx.userId!;
+
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,

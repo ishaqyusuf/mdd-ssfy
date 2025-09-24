@@ -48,7 +48,6 @@ export function TRPCReactProvider(
                     transformer: superjson as any,
                     async headers() {
                         const auth = await authUser();
-
                         return {
                             Authorization: `Bearer ${generateRandomString(16)}|${auth?.id}`,
                         };
