@@ -20,6 +20,7 @@ export const searchIcons: Partial<{
   "dispatch.status": "Export",
   status: "Status",
   dateRange: "calendar",
+  showing: "monitor",
 };
 
 export function isSearchKey(k) {

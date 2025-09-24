@@ -188,6 +188,13 @@ export async function getSalesOrderFilters(
 
   const resp = [
     searchFilter,
+    isSalesManager
+      ? optionFilter<T>(
+          "showing",
+          "Show",
+          ["all sales", "my sales"].map((rep) => ({ label: rep, value: rep }))
+        )
+      : null,
     dateRangeFilter<T>("dateRange", "Order date"),
     optionFilter<T>(
       "customer.name",
@@ -378,6 +385,13 @@ export async function getSalesQuoteFilter(ctx: TRPCContext, isSalesManager?) {
 
   const resp = [
     searchFilter,
+    isSalesManager
+      ? optionFilter<T>(
+          "showing",
+          "Show",
+          ["all sales", "my sales"].map((rep) => ({ label: rep, value: rep }))
+        )
+      : null,
     optionFilter<T>(
       "customer.name",
       "Customer",
