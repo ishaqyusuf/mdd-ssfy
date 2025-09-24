@@ -4,6 +4,8 @@ import { cn } from "@gnd/ui/cn";
 import { LoginForm } from "./login-form";
 import Image from "next/image";
 import { AspectRatio } from "@gnd/ui/aspect-ratio";
+import { Env } from "./env";
+import QuickLogin from "./quick-login";
 
 export function Login03({ className = "" }) {
     return (
@@ -28,6 +30,9 @@ export function Login03({ className = "" }) {
                                         </p>
                                     </div>
                                     <LoginForm />
+                                    <Env isDev>
+                                        <QuickLogin />
+                                    </Env>
                                 </div>
                             </div>
                         </div>
