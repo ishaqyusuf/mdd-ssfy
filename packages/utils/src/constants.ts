@@ -161,6 +161,7 @@ export const PERMISSION_NAMES_PASCAL = [
   "DecoShutterInstall",
   "SalesResolution",
   "SalesLaborCost",
+  "SalesManager",
 ] as const;
 
 export const PERMISSION_NAMES = [

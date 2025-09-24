@@ -4,6 +4,7 @@ import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 import { salesFilterParamsSchema } from "@/hooks/use-sales-filter-params";
+import { useAuth } from "@/hooks/use-auth";
 
 export function OrderSearchFilter() {
     return (
@@ -20,8 +21,11 @@ export function OrderSearchFilter() {
 }
 function Content({}) {
     const trpc = useTRPC();
+    const auth = useAuth();
     const { data: trpcFilterData } = useQuery({
-        ...trpc.filters.salesOrders.queryOptions(),
+        ...trpc.filters.salesOrders.queryOptions({
+            salesManager: auth?.can?.viewSalesManager,
+        }),
     });
 
     return (

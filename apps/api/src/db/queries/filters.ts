@@ -133,7 +133,10 @@ export async function getCustomerFilters(ctx: TRPCContext) {
   ];
   return resp as FilterData[];
 }
-export async function getSalesOrderFilters(ctx: TRPCContext) {
+export async function getSalesOrderFilters(
+  ctx: TRPCContext,
+  isSalesManager?: boolean
+) {
   type T = keyof SalesQueryParamsSchema;
   type FilterData = PageFilterData<T>;
 
@@ -214,11 +217,13 @@ export async function getSalesOrderFilters(ctx: TRPCContext) {
       "P.O",
       pos.map((po) => ({ label: po, value: po }))
     ),
-    // optionFilter<T>(
-    //   "sales.rep",
-    //   "Sales Rep",
-    //   salesReps.map((rep) => ({ label: rep, value: rep }))
-    // ),
+    isSalesManager
+      ? optionFilter<T>(
+          "sales.rep",
+          "Sales Rep",
+          salesReps.map((rep) => ({ label: rep, value: rep }))
+        )
+      : null,
     optionFilter<T>(
       "salesNo",
       "Order #",
@@ -318,7 +323,7 @@ export async function getSalesProductionFilters(ctx: TRPCContext) {
 
   return resp;
 }
-export async function getSalesQuoteFilter(ctx: TRPCContext) {
+export async function getSalesQuoteFilter(ctx: TRPCContext, isSalesManager?) {
   type T = keyof SalesQueryParamsSchema;
   type FilterData = PageFilterData<T>;
 
@@ -388,17 +393,19 @@ export async function getSalesQuoteFilter(ctx: TRPCContext) {
       "P.O",
       pos.map((po) => ({ label: po, value: po }))
     ),
-    // optionFilter<T>(
-    //   "sales.rep",
-    //   "Sales Rep",
-    //   salesReps.map((rep) => ({ label: rep, value: rep }))
-    // ),
+    isSalesManager
+      ? optionFilter<T>(
+          "sales.rep",
+          "Sales Rep",
+          salesReps.map((rep) => ({ label: rep, value: rep }))
+        )
+      : null,
     optionFilter<T>(
       "salesNo",
       "Quote #",
       orderNos.map((no) => ({ label: no, value: no }))
     ),
-  ];
+  ].filter(Boolean);
   return resp as FilterData[];
 }
 export async function getInventoryFilters(ctx: TRPCContext) {

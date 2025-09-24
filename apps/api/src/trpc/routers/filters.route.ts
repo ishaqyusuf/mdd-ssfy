@@ -12,6 +12,7 @@ import {
   productReportFilters,
 } from "@api/db/queries/filters";
 import { createTRPCRouter, publicProcedure } from "../init";
+import { z } from "zod";
 
 export const filterRouters = createTRPCRouter({
   communityTemplateFilters: publicProcedure.query(async (props) =>
@@ -42,10 +43,22 @@ export const filterRouters = createTRPCRouter({
   salesProductions: publicProcedure.query(async (props) =>
     getSalesProductionFilters(props.ctx)
   ),
-  salesOrders: publicProcedure.query(async (props) =>
-    getSalesOrderFilters(props.ctx)
-  ),
-  salesQuotes: publicProcedure.query(async (props) =>
-    getSalesQuoteFilter(props.ctx)
-  ),
+  salesOrders: publicProcedure
+    .input(
+      z.object({
+        salesManager: z.boolean().optional().nullable(),
+      })
+    )
+    .query(async (props) =>
+      getSalesOrderFilters(props.ctx, !!props.input.salesManager)
+    ),
+  salesQuotes: publicProcedure
+    .input(
+      z.object({
+        salesManager: z.boolean().optional().nullable(),
+      })
+    )
+    .query(async (props) =>
+      getSalesQuoteFilter(props.ctx, props.input.salesManager)
+    ),
 });
