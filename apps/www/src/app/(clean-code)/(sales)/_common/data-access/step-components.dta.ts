@@ -1,7 +1,5 @@
-import { AsyncFnType } from "@/app/(clean-code)/type";
 import { prisma, Prisma } from "@/db";
 import { generateRandomString } from "@/lib/utils";
-import { dtoStepComponent } from "@/utils/dto-step-component";
 
 import { StepComponentForm, StepComponentMeta } from "../../types";
 import { revalidatePath } from "next/cache";
@@ -75,7 +73,6 @@ export async function getComponentsDta(props: LoadStepComponentsProps) {
     }));
 }
 
-export type GetStepComponent = ReturnType<typeof dtoStepComponent>;
 export async function updateStepComponentDta(id, data) {
     return await prisma.dykeStepProducts.update({
         where: { id },

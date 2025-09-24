@@ -2,7 +2,6 @@
 
 import { LabelValue } from "@/app/(clean-code)/type";
 import { Prisma, prisma } from "@/db";
-import { dtoStepComponent } from "@/utils/dto-step-component";
 
 import { SalesFormZusData, StepComponentForm } from "../../types";
 import {
@@ -121,7 +120,14 @@ export async function saveComponentRedirectUidUseCase(id, redirectUid) {
 }
 export async function createComponentUseCase(data: StepComponentForm) {
     const c = await createStepComponentDta(data);
-    const resp = dtoStepComponent(c);
+    const resp = (
+        await getStepComponents(
+            { db: prisma },
+            {
+                id: c.id,
+            },
+        )
+    )[0];
     return resp;
 }
 export async function updateCustomComponentUseCase(data: {
@@ -135,13 +141,15 @@ export async function updateCustomComponentUseCase(data: {
         },
     ]);
     const c = (
-        await getComponentsDta({
-            isCustom: true,
-            id: data.id,
-        })
+        await getStepComponents(
+            { db: prisma },
+            {
+                isCustom: true,
+                id: data.id,
+            },
+        )
     )[0];
-    const resp = dtoStepComponent(c);
-    return resp;
+    return c;
 }
 export async function createCustomComponentUseCase(data: {
     title: string;
@@ -160,7 +168,15 @@ export async function createCustomComponentUseCase(data: {
                 price: data.price,
             },
         ]);
-    return dtoStepComponent(component);
+    const resp = (
+        await getStepComponents(
+            { db: prisma },
+            {
+                id: component.id,
+            },
+        )
+    )[0];
+    return resp;
 }
 interface BrowseComponentImgProps {
     q: string;

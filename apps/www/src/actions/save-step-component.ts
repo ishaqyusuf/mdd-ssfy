@@ -2,11 +2,11 @@
 
 import { prisma } from "@/db";
 import { generateRandomString } from "@/lib/utils";
-import { dtoStepComponent } from "@/utils/dto-step-component";
 
 import { actionClient } from "./safe-action";
 import { stepComponentSchema } from "./schema";
 import { revalidatePath } from "next/cache";
+import { getStepComponents } from "@api/db/queries/sales-form";
 
 export const saveStepComponent = actionClient
     .schema(stepComponentSchema)
@@ -49,5 +49,12 @@ export const saveStepComponent = actionClient
                   },
               });
         revalidatePath(`step-components-${stepId}`);
-        return dtoStepComponent(component);
+        return (
+            await getStepComponents(
+                { db: prisma },
+                {
+                    id: component.id,
+                },
+            )
+        )?.[0];
     });
