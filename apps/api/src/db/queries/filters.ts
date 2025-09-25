@@ -188,13 +188,13 @@ export async function getSalesOrderFilters(
 
   const resp = [
     searchFilter,
-    isSalesManager
-      ? optionFilter<T>(
-          "showing",
-          "Show",
-          ["all sales", "my sales"].map((rep) => ({ label: rep, value: rep }))
-        )
-      : null,
+    // isSalesManager
+    //   ? optionFilter<T>(
+    //       "showing",
+    //       "Show",
+    //       ["all sales", "my sales"].map((rep) => ({ label: rep, value: rep }))
+    //     )
+    //   : null,
     dateRangeFilter<T>("dateRange", "Order date"),
     optionFilter<T>(
       "customer.name",
