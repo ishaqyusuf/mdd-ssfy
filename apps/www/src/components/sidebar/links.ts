@@ -352,7 +352,7 @@ export const linkModules = [
             _link("My Dashboard", "dashboard", "/sales-rep")
                 .access(
                     _perm.is("editOrders"),
-                    _role.in("Admin", "Super Admin"),
+                    // _role.in("Admin", "Super Admin"),
                 )
                 .level(1).data,
             _link("Accounting", "billing", "/sales-book/accounting").access(

@@ -6,10 +6,11 @@ import { usePathname } from "next/navigation";
 import { ResetInventories } from "./reset-inventories";
 import { Tabs } from "@gnd/ui/custom/tabs";
 export function CommunityTabs() {
-    function CustomTab({ value, children }) {
+    function CustomTab({ value = "", children }) {
+        const link = `/community${value}`;
         return (
-            <Link href={value}>
-                <Tabs.Item value={value}>{children}</Tabs.Item>
+            <Link href={link}>
+                <Tabs.Item value={link}>{children}</Tabs.Item>
             </Link>
         );
     }
@@ -19,18 +20,12 @@ export function CommunityTabs() {
         <div className="flex gap-4 items-center">
             <Tabs value={path}>
                 <Tabs.Items className="px-4">
-                    <CustomTab value="/inventory">Inventory</CustomTab>,
-                    <CustomTab value="/inventory/variants">
-                        All Variants
-                    </CustomTab>
-                    <CustomTab value="/inventory/inbounds">Inbounds</CustomTab>
-                    <CustomTab value="/inventory/stocks">
-                        Stock Movements
-                    </CustomTab>
-                    <CustomTab value="/inventory/categories">
-                        Categories
-                    </CustomTab>
-                    <CustomTab value="/inventory/imports">Imports</CustomTab>,
+                    <CustomTab>Projects</CustomTab>,
+                    <CustomTab value="/units">Units</CustomTab>
+                    <CustomTab value="/productions">Productions</CustomTab>
+                    <CustomTab value="/invoices">Invoices</CustomTab>
+                    <CustomTab value="/templates">Templates</CustomTab>
+                    <CustomTab value="/builders">Builders</CustomTab>,
                 </Tabs.Items>
                 {/* <TabsList>
                                 <TabsTrigger value="doors">Doors</TabsTrigger>
