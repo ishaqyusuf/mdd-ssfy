@@ -57,6 +57,7 @@ export function transformSalesFilterQuery(query: SalesQueryParamsSchema) {
     "cursor",
     "salesType",
     "size",
+    "showing",
   ];
   if (
     Object.entries(query)

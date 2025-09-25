@@ -35,7 +35,9 @@ export async function getSales(
   query: SalesQueryParamsSchema
 ) {
   if (!query.salesType) query.salesType = "order";
-  if (query.showing != "all sales") query.salesRepId = ctx.userId!;
+  if (!query.defaultSearch) {
+    if (query.showing != "all sales") query.salesRepId = ctx.userId!;
+  }
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,
