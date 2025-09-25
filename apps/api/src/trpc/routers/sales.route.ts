@@ -127,7 +127,7 @@ export const salesRouter = createTRPCRouter({
       return await getSaleInformation(props.ctx.db, props.input);
     }),
   quotes: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
-    return getQuotes(props.ctx, props.input);
+    return getQuotes(props.ctx, transformSalesFilterQuery(props.input));
   }),
   salesPayWithWallet: publicProcedure
     .input(salesPayWithWalletSchema)
