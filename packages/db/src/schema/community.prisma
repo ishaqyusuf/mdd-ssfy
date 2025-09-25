@@ -1,4 +1,3 @@
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model Projects {
     id              Int               @unique @default(autoincrement())
     archived        Boolean?
@@ -108,7 +107,6 @@ model HomeTasks {
     @@index([assignedToId])
 }
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model HomeTemplates {
     id        Int          @unique @default(autoincrement())
     builderId Int?
@@ -250,4 +248,35 @@ model CommunityTemplateHistory {
 
     @@index([userId])
     @@index([communityModelsId])
+}
+
+model CommunityTemplateBlocks {
+    id    Int    @unique @default(autoincrement())
+    title String //Exterior Door, Interior Trim, Lock & Hardware, Deco Shutters
+    slug  String
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+}
+
+model CommunityTemplateSections {
+    id    Int     @unique @default(autoincrement())
+    title String? //Exterior Door, Garage Door, Interior Door, Double Door, Bifold Door, null = block title.
+    slug  String
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+}
+
+model CommunityTemplateInput {
+    id          Int     @unique @default(autoincrement())
+    title       String?
+    description String?
+    slug        String  @unique
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
 }

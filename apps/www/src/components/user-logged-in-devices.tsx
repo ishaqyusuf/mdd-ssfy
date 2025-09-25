@@ -17,6 +17,10 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
+import {
+    DataSkeletonProvider,
+    useCreateDataSkeletonCtx,
+} from "@/hooks/use-data-skeleton";
 
 const mockDevices = [
     {
@@ -36,79 +40,87 @@ const mockDevices = [
 ];
 
 export function UserLoggedInDevices() {
-    const loader = useLoadingToast();
+    // const loader = useLoadingToast();
 
     const logOutDevice = async (id: string) => {
-        loader.loading("Logging out....");
+        // loader.loading("Logging out....");
         await timeout(500);
         // TODO: Implement actual logout logic
-        loader.success("Logged out!.");
+        // loader.success("Logged out!.");
     };
 
     return (
-        <div className="rounded-md border">
-            {!mockDevices.length ? (
-                <EmptyDeviceList />
-            ) : (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Device</TableHead>
-                            <TableHead>Location</TableHead>
-                            <TableHead>IP Address</TableHead>
-                            <TableHead>Last Login</TableHead>
-                            <TableHead className="text-right"></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {skeletonListData(mockDevices, 2, {})?.map(
-                            (device, index) => (
-                                <Fragment key={index}>
-                                    <TableRow>
-                                        <TableCell className="font-medium">
-                                            <DataSkeleton pok="textSm">
-                                                {device.device}
-                                            </DataSkeleton>
-                                        </TableCell>
-                                        <TableCell>
-                                            <DataSkeleton pok="textSm">
-                                                {device.location}
-                                            </DataSkeleton>
-                                        </TableCell>
-                                        <TableCell>
-                                            <DataSkeleton pok="textSm">
-                                                {device.ipAddress}
-                                            </DataSkeleton>
-                                        </TableCell>
-                                        <TableCell>
-                                            <DataSkeleton pok="date">
-                                                {formatDate(device.lastLogin)}
-                                            </DataSkeleton>
-                                        </TableCell>
-                                        <TableCell className="w-8 text-right">
-                                            <DataSkeleton pok="date">
-                                                <Menu>
-                                                    <Menu.Item
-                                                        icon="logout"
-                                                        onClick={async () =>
-                                                            await logOutDevice(
-                                                                device.id,
-                                                            )
-                                                        }
-                                                    >
-                                                        Log out
-                                                    </Menu.Item>
-                                                </Menu>
-                                            </DataSkeleton>
-                                        </TableCell>
-                                    </TableRow>
-                                </Fragment>
-                            ),
-                        )}
-                    </TableBody>
-                </Table>
-            )}
-        </div>
+        <DataSkeletonProvider
+            value={useCreateDataSkeletonCtx({
+                defaultState: false,
+            })}
+        >
+            <div className="rounded-md border">
+                {!mockDevices.length ? (
+                    <EmptyDeviceList />
+                ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Device</TableHead>
+                                <TableHead>Location</TableHead>
+                                <TableHead>IP Address</TableHead>
+                                <TableHead>Last Login</TableHead>
+                                <TableHead className="text-right"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {skeletonListData(mockDevices, 2, {})?.map(
+                                (device, index) => (
+                                    <Fragment key={index}>
+                                        <TableRow>
+                                            <TableCell className="font-medium">
+                                                <DataSkeleton pok="textSm">
+                                                    {device.device}
+                                                </DataSkeleton>
+                                            </TableCell>
+                                            <TableCell>
+                                                <DataSkeleton pok="textSm">
+                                                    {device.location}
+                                                </DataSkeleton>
+                                            </TableCell>
+                                            <TableCell>
+                                                <DataSkeleton pok="textSm">
+                                                    {device.ipAddress}
+                                                </DataSkeleton>
+                                            </TableCell>
+                                            <TableCell>
+                                                <DataSkeleton pok="date">
+                                                    {formatDate(
+                                                        device.lastLogin,
+                                                    )}
+                                                </DataSkeleton>
+                                            </TableCell>
+                                            <TableCell className="w-8 text-right">
+                                                <DataSkeleton pok="date">
+                                                    <Menu>
+                                                        <Menu.Item
+                                                            icon="logout"
+                                                            onClick={async () =>
+                                                                await logOutDevice(
+                                                                    device.id,
+                                                                )
+                                                            }
+                                                        >
+                                                            Log out
+                                                        </Menu.Item>
+                                                    </Menu>
+                                                </DataSkeleton>
+                                            </TableCell>
+                                        </TableRow>
+                                    </Fragment>
+                                ),
+                            )}
+                        </TableBody>
+                    </Table>
+                )}
+            </div>
+        </DataSkeletonProvider>
     );
 }
 

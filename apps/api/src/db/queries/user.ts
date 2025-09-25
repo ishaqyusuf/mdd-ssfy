@@ -1,6 +1,4 @@
 import type {
-  EmployeeFormSchema,
-  EmployeesQueryParams,
   LoginByTokenSchema,
   UpdateUserProfileSchema,
 } from "@api/schemas/hrm";
@@ -58,4 +56,33 @@ export async function getLoginByToken(
   return {
     email: user?.email,
   };
+}
+export async function getLoggedInDevices(ctx: TRPCContext) {
+  const { db } = ctx;
+
+  return db.session.findMany({
+    where: {
+      userId: ctx.userId,
+      expires: {
+        gt: new Date(),
+      },
+    },
+    select: {
+      id: true,
+      sessionToken: true,
+      expires: true,
+    },
+  });
+}
+
+/*
+auth: publicProcedure
+      .input(authSchema)
+      .mutation(async (props) => {
+        return auth(props.ctx, props.input);
+      }),
+*/
+
+export async function auth(ctx: TRPCContext) {
+  const { db } = ctx;
 }
