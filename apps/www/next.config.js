@@ -47,6 +47,11 @@ const nextConfig = {
             // },
         ],
     },
+    experimental: {
+        serverActions: {
+            bodySizeLimit: "3mb",
+        },
+    },
     // experimental: {
     serverExternalPackages: ["puppeteer-core"],
     // },
