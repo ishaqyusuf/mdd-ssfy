@@ -59,6 +59,7 @@ export function transformSalesFilterQuery(query: SalesQueryParamsSchema) {
     "size",
     "showing",
   ];
+
   query.defaultSearch = Object.entries(query)
     .filter(([a, b]) => !!b)
     .every(([a]) => keys.includes(a as any));
