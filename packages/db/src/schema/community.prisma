@@ -250,33 +250,33 @@ model CommunityTemplateHistory {
     @@index([communityModelsId])
 }
 
-model CommunityTemplateBlocks {
-    id    Int    @unique @default(autoincrement())
-    title String //Exterior Door, Interior Trim, Lock & Hardware, Deco Shutters
-    slug  String
+// model CommunityTemplateBlocks {
+//     id    Int    @unique @default(autoincrement())
+//     title String //Exterior Door, Interior Trim, Lock & Hardware, Deco Shutters
+//     slug  String
 
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
-}
+//     createdAt DateTime? @default(now()) @db.Timestamp(0)
+//     updatedAt DateTime? @updatedAt
+//     deletedAt DateTime? @db.Timestamp(0)
+// }
 
-model CommunityTemplateSections {
-    id    Int     @unique @default(autoincrement())
-    title String? //Exterior Door, Garage Door, Interior Door, Double Door, Bifold Door, null = block title.
-    slug  String
+// model CommunityTemplateSections {
+//     id    Int     @unique @default(autoincrement())
+//     title String? //Exterior Door, Garage Door, Interior Door, Double Door, Bifold Door, null = block title.
+//     slug  String
 
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
-}
+//     createdAt DateTime? @default(now()) @db.Timestamp(0)
+//     updatedAt DateTime? @updatedAt
+//     deletedAt DateTime? @db.Timestamp(0)
+// }
 
-model CommunityTemplateInput {
-    id          Int     @unique @default(autoincrement())
-    title       String?
-    description String?
-    slug        String  @unique
+// model CommunityTemplateInput {
+//     id          Int     @unique @default(autoincrement())
+//     title       String?
+//     description String?
+//     slug        String  @unique
 
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
-}
+//     createdAt DateTime? @default(now()) @db.Timestamp(0)
+//     updatedAt DateTime? @updatedAt
+//     deletedAt DateTime? @db.Timestamp(0)
+// }
