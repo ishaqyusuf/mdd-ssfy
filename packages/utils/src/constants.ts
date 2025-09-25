@@ -205,6 +205,10 @@ export const PERMISSION_NAMES = [
 export type PascalResource = (typeof PERMISSION_NAMES_PASCAL)[number];
 type Action = "edit" | "view";
 export type PermissionScope = `${Action}${PascalResource}`;
+
+export type ICan = { [permission in PermissionScope]: boolean };
+export const allPermissions = () =>
+  PERMISSION_NAMES_PASCAL.map((a) => [`edit${a}`, `view${a}`]).flat();
 export const PRODUCTION_ASSIGNMENT_FILTER_OPTIONS = [
   "not assigned",
   "part assigned",

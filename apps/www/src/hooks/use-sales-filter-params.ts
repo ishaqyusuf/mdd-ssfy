@@ -25,20 +25,20 @@ export const salesFilterParamsSchema = {
 export function useOrderFilterParams() {
     const [filters, setFilters] = useQueryStates(salesFilterParamsSchema);
     const auth = useAuth();
-    function validateFilter(k: FilterKeys) {
-        switch (k) {
-            case "showing":
-                return auth.roleTitle === "Super Admin";
-            default:
-                return true;
-        }
-    }
+    // function validateFilter(k: FilterKeys) {
+    //     switch (k) {
+    //         case "showing":
+    //             return auth.roleTitle === "Super Admin";
+    //         default:
+    //             return true;
+    //     }
+    // }
+
     return {
-        filters: Object.fromEntries(
-            Object.entries(filters).filter(([a, b]) =>
-                validateFilter(a as any),
-            ),
-        ),
+        filters: {
+            ...filters,
+            showing: auth?.can?.viewSalesManager ? "all sales" : null,
+        },
         setFilters,
         hasFilters: Object.values(filters).some((value) => value !== null),
     };

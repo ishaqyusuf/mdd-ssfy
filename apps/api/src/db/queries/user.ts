@@ -3,6 +3,8 @@ import type {
   UpdateUserProfileSchema,
 } from "@api/schemas/hrm";
 import type { TRPCContext } from "@api/trpc/init";
+import { camel } from "@gnd/utils";
+import { allPermissions, type ICan } from "@gnd/utils/constants";
 
 export async function getAuthUser(ctx: TRPCContext) {
   const user = await ctx.db.users.findFirstOrThrow({
@@ -14,9 +16,26 @@ export async function getAuthUser(ctx: TRPCContext) {
       email: true,
       name: true,
       phoneNo: true,
+      roles: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          role: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      },
     },
   });
-  return user;
+  const { roles, ...userData } = user;
+  const role = roles?.[0]?.role;
+  return {
+    ...userData,
+    role,
+  };
 }
 export async function updateUserProfileAction(
   ctx: TRPCContext,
@@ -85,4 +104,44 @@ auth: publicProcedure
 
 export async function auth(ctx: TRPCContext) {
   const { db } = ctx;
+  const user = await getAuthUser(ctx);
+  const can = await userPermissions(ctx, user!?.role!?.id);
+  return {
+    ...user,
+    can,
+  };
+}
+async function userPermissions(ctx: TRPCContext, roleId) {
+  // const _role = user?.roles[0]?.role;
+  // const permissionIds =
+  //   _role?.RoleHasPermissions?.map((i) => i.permissionId) || [];
+  // const { RoleHasPermissions = [], ...role } = _role || ({} as any);
+
+  const role = await ctx.db.roles.findFirstOrThrow({
+    where: {
+      id: roleId,
+    },
+    select: {
+      name: true,
+      RoleHasPermissions: {
+        select: {
+          permission: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  const permissions = role.RoleHasPermissions.map((a) => a.permission).flat();
+
+  let can: ICan = {} as any;
+  if (role.name?.toLocaleLowerCase() == "super admin") {
+    can = Object.fromEntries(allPermissions()?.map((p) => [p as any, true]));
+  } else
+    permissions.map((p) => {
+      can[camel(p.name) as any] = true;
+    });
+  return can;
 }

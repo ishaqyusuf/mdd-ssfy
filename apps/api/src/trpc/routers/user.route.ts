@@ -9,7 +9,7 @@ export const userRoutes = createTRPCRouter({
     .query(async (props) => {
       return getLoginByToken(props.ctx, props.input);
     }),
-  auth: publicProcedure.mutation(async (props) => {
+  auth: publicProcedure.query(async (props) => {
     return auth(props.ctx);
   }),
 });
