@@ -11,6 +11,7 @@ import {
     CheckCircle,
     FileEdit,
     FolderTree,
+    LogOut,
     Monitor,
     Scale,
 } from "lucide-react";
@@ -65,6 +66,7 @@ export const Icons = {
     salesDashboard: BarChart3,
     monitor: Monitor,
     category: FolderTree,
+    logout: LogOut,
 };
 
 export type IconKeys = keyof typeof Icons;

@@ -21,12 +21,9 @@ export function HomeProductionStatus({ home }: Props) {
     return (
         <div className="w-16">
             {/* {home.} */}
-            <Badge
-                variant={"secondary"}
-                className={`h-5 px-1 whitespace-nowrap  text-xs text-slate-100 ${status.badgeColor}`}
-            >
-                {status.productionStatus}
-            </Badge>
+            <Progress>
+                <Progress.Status>{status.productionStatus}</Progress.Status>
+            </Progress>
             <p>{status.prodDate}</p>
         </div>
     );

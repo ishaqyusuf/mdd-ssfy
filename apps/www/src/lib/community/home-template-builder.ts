@@ -54,28 +54,13 @@ const project_header = [
 const entry = [
     // gridField("Title", "entry_name"),
     //   gridField("No", "entry_no"),
-    gridField("Material", "material", "combobox", 2, 10, [
-        // option("metal"),
-        // option("wood"),
-        // option("fiber"),
-        "Metal",
-        "Wood",
-        "Fiber",
-    ]),
-    gridField("Layer", "layer", "combobox", 2, 4, [
-        // option("single"),
-        "Single",
-        "Double",
-        // option("double"),
-    ]),
-    gridField("Bore", "bore", "combobox", 2, 4, [
-        // option("bore_1", "One"),
-        // option("bore_2", "Two"),
-        "One",
-        "Two",
-    ]),
-    { ...gridField("6/8", "six_eight", "input", 2, 4), caps: true },
-    gridField("8/0", "eight_zero", "input", 2, 4),
+    gridField("Material", "material", "combobox", 2, 10, []),
+    gridField("Layer", "layer", "combobox", 2, 4),
+    gridField("Bore", "bore", "combobox", 2, 4),
+    gridField("Height", "height", "combobox", 2, 4),
+    // { ...gridField("6/8", "six_eight", "input", 2, 4), caps: true },
+    // gridField("8/0", "eight_zero", "input", 2, 4),
+
     gridField("Handle", "orientation", "combobox", 2, 4, [
         // option("", ""),
         // option("lh", "LH"),
@@ -402,7 +387,7 @@ function buildTask(task, type) {
     return task;
 }
 export const taskSections = {
-    entry: "Exterior Frame",
+    entry: "Exterior Door",
     // project: "Project Detail",
     garage_door: "Interior Trim",
     lock_hardware: "Lock & Hardware",

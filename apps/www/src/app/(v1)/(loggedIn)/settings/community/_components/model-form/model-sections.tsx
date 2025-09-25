@@ -24,7 +24,7 @@ export function ExteriorFrame<T>({ form }: ModelFormProps) {
                 [f("sideDoor", "2,10")],
             ]}
             node="entry"
-            section="Exterior Frame"
+            section="Exterior Door"
         />
     );
 }

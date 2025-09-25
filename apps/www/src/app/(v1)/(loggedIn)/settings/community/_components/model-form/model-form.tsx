@@ -116,7 +116,7 @@ export function UnitTemplateTabs({ form }) {
     return (
         <Tabs defaultValue="interior" className="space-y-4 ">
             <TabsList>
-                <TabsTrigger value="exterior">Exterior Frame</TabsTrigger>
+                <TabsTrigger value="exterior">Exterior Door</TabsTrigger>
                 <TabsTrigger value="interior">Interior Trim</TabsTrigger>
                 <TabsTrigger value="lock">Lock & Hardware</TabsTrigger>
                 <TabsTrigger value="deco">Deco Shutters</TabsTrigger>
