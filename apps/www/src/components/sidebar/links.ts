@@ -258,6 +258,11 @@ export const linkModules = [
                 .level(7).data,
         ]),
         _section("main", null, [
+            _link("Dashboard", "dashbord2", "/")
+                .access(_role.is("Super Admin"))
+                .level(7).data,
+        ]),
+        _section("main", null, [
             _link("Projects", "project", "/community/projects").access(
                 _perm.in("viewProject"),
             ).data,

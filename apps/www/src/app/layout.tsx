@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 // import { ReactQueryProvider } from "@/providers/react-query";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-import { Provider as Analytics } from "@gnd/events/client";
+// import { Provider as Analytics } from "@gnd/events/client";
 import { Toaster as MiddayToast, Toaster } from "@gnd/ui/toaster";
 
 import { Providers } from "./providers";
@@ -49,7 +49,7 @@ export default async function RootLayout({
                     >
                         <Upgrader />
                     </div>
-                    <Analytics />
+                    {/* <Analytics /> */}
                     <TailwindIndicator />
                     {prodDB && !__isProd && (
                         <div className="fixed left-0 right-0 top-0 z-[999] flex justify-center  bg-red-500 text-sm text-white">
