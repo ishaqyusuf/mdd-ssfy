@@ -27,7 +27,7 @@ import {
   itemItemControlUid,
   mouldingItemControlUid,
 } from "@api/utils/sales-control";
-import { formatCurrency } from "@gnd/utils";
+import { consoleLog, formatCurrency } from "@gnd/utils";
 import { calculateSalesDueAmount } from "@sales/sales-transaction";
 
 export async function getSales(
@@ -38,6 +38,7 @@ export async function getSales(
   if (query.defaultSearch) {
     if (query.showing != "all sales") query.salesRepId = ctx.userId!;
   }
+  consoleLog("QUERY", query);
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,

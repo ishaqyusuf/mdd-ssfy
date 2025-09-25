@@ -86,10 +86,7 @@ export const salesRouter = createTRPCRouter({
   getSaleOverview: publicProcedure
     .input(salesQueryParamsSchema)
     .query(async (props) => {
-      const result = await getSales(
-        props.ctx,
-        transformSalesFilterQuery(props.input)
-      );
+      const result = await getSales(props.ctx, props.input);
       const [sale] = result.data;
       return sale;
     }),
