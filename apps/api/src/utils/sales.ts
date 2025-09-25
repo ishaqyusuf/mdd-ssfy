@@ -59,17 +59,9 @@ export function transformSalesFilterQuery(query: SalesQueryParamsSchema) {
     "size",
     "showing",
   ];
-  if (
-    Object.entries(query)
-      .filter(([a, b]) => !!b)
-      .every(([a]) => keys.includes(a as any))
-  ) {
-    // query["dispatch.status"] = "pending";
-    query.defaultSearch = true;
-    // query["dispatch.status"] = "pending";
-  } else {
-  }
-  // query["dispatch.status"] = "completed";
+  query.defaultSearch = Object.entries(query)
+    .filter(([a, b]) => !!b)
+    .every(([a]) => keys.includes(a as any));
   return query;
 }
 export function salesLinks(data: Item) {
