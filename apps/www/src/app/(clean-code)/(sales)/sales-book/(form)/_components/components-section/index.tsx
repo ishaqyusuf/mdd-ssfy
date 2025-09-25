@@ -18,7 +18,6 @@ import { cn } from "@/lib/utils";
 import { closestCorners } from "@dnd-kit/core";
 import {
     BoxSelect,
-    ChartBar,
     CheckCircle,
     ExternalLink,
     Filter,
@@ -44,7 +43,7 @@ import {
 } from "../../_common/_stores/form-data-store";
 import { ComponentHelperClass } from "../../_utils/helpers/zus/step-component-class";
 import { zusDeleteComponents } from "../../_utils/helpers/zus/zus-step-helper";
-import { ComponentImg } from "../component-img";
+import { ComponentImg } from "../../../../../../../components/forms/sales-form/component-img";
 import { openComponentModal } from "../modals/component-form";
 import { openEditComponentPrice } from "../modals/component-price-modal";
 import { openSectionSettingOverride } from "../modals/component-section-setting-override";

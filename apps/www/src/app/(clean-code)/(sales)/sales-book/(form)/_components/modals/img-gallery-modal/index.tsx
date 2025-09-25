@@ -7,7 +7,7 @@ import { useDebounceInput } from "@/hooks/use-debounce";
 import { Input } from "@gnd/ui/input";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 
-import { ComponentImg } from "../../component-img";
+import { ComponentImg } from "../../../../../../../../components/forms/sales-form/component-img";
 
 interface Props {
     onSelect?(img: string);

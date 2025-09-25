@@ -1,4 +1,4 @@
-import { ComponentImg } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/component-img";
+import { ComponentImg } from "@/components/forms/sales-form/component-img";
 import { useTakeoffItem } from "./context";
 import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";

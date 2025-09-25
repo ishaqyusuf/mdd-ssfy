@@ -14,7 +14,7 @@ import { Form } from "@gnd/ui/form";
 import { Label } from "@gnd/ui/label";
 
 import { StepHelperClass } from "../../../_utils/helpers/zus/step-component-class";
-import { ComponentImg } from "../../component-img";
+import { ComponentImg } from "../../../../../../../../components/forms/sales-form/component-img";
 import { openImgModal } from "../img-gallery-modal";
 
 interface Props {

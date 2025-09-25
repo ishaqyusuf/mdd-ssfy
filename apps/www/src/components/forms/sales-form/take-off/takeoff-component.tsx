@@ -13,7 +13,7 @@ import { cn } from "@gnd/ui/cn";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { useState } from "react";
 import { Switch } from "@gnd/ui/switch";
-import { ComponentImg } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/component-img";
+import { ComponentImg } from "@/components/forms/sales-form/component-img";
 import NumberFlow from "@number-flow/react";
 import { updateComponentsPrice } from "@/lib/sales/update-components-price";
 import { ZusComponent } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";

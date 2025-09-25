@@ -1,4 +1,4 @@
-import { ComponentImg } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/component-img";
+import { ComponentImg } from "@/components/forms/sales-form/component-img";
 import { openDoorSwapModal } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-swap-modal";
 import Button from "@/components/common/button";
 import { HptContext, useHpt } from "@/components/forms/sales-form/context";

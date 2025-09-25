@@ -2,7 +2,7 @@ import { getTakeOffStepForms } from "@/actions/get-takeoff-step-forms";
 import { useTakeoff, useTakeoffItem } from "./context";
 import { ComponentHelperClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import { Menu } from "@/components/(clean-code)/menu";
-import { ComponentImg } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/component-img";
+import { ComponentImg } from "@/components/forms/sales-form/component-img";
 import { Home } from "lucide-react";
 
 export function SectionSelector() {
