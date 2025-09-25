@@ -16,7 +16,7 @@ import {
   synchronizeModelCost,
 } from "@community/db-utils";
 import dayjs, { formatDate } from "@gnd/utils/dayjs";
-import { sum } from "@gnd/utils";
+import { formatMoney, sum } from "@gnd/utils";
 import type { Db } from "@gnd/db";
 export async function projectList(ctx: TRPCContext) {
   const list = await ctx.db.projects.findMany({
@@ -412,4 +412,32 @@ export async function _addMissingPivotToModelCosts(prisma: Db) {
       });
     })
   );
+}
+export const communitySummarySchema = z.object({
+  type: z.enum(["projects", "units"]),
+});
+export type CommunitySummary = z.infer<typeof communitySummarySchema>;
+export async function communitySummary(
+  db: Db,
+  data: CommunitySummary
+): Promise<{ value: any; subtitle?: string }> {
+  switch (data.type) {
+    case "projects":
+      const productCount = await db.projects.count({
+        where: {},
+      });
+
+      return {
+        value: productCount,
+        // subtitle: `${publishedProducts} pending`,
+      };
+    case "units":
+      const inv = await db.homes.count({
+        where: {},
+      });
+      return {
+        value: inv,
+        // subtitle: `Total community units`,
+      };
+  }
 }

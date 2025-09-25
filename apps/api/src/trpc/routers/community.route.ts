@@ -5,6 +5,8 @@ import {
   communityModelCostFormSchema,
   communityModelCostHistory,
   communityModelCostHistorySchema,
+  communitySummary,
+  communitySummarySchema,
   createCommnunityModelCost,
   deleteCommunityModelCost,
   deleteCommunityModelCostSchema,
@@ -39,6 +41,12 @@ export const communityRouters = createTRPCRouter({
     .input(communityModelCostFormSchema)
     .query(async (props) => {
       const result = await communityModelCostForm(props.ctx, props.input);
+      return result;
+    }),
+  communitySummary: publicProcedure
+    .input(communitySummarySchema)
+    .query(async (props) => {
+      const result = await communitySummary(props.ctx.db, props.input);
       return result;
     }),
   createCommunityModelCost: publicProcedure

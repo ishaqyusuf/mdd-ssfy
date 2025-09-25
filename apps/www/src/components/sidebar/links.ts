@@ -258,7 +258,7 @@ export const linkModules = [
                 .level(7).data,
         ]),
         _section("main", null, [
-            _link("Dashboard", "dashbord2", "/")
+            _link("Dashboard", "dashbord2", "/community")
                 .access(_role.is("Super Admin"))
                 .level(7).data,
         ]),
