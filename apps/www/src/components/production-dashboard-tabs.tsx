@@ -7,11 +7,13 @@ import { Tabs } from "@gnd/ui/custom/tabs";
 import { Badge } from "@gnd/ui/badge";
 import { SalesProductionSearchFilter } from "./sales-production-search-filter";
 export function ProductionDashboardTabs() {
-    function CustomTab({ value = "", children }) {
+    function CustomTab({ value = "", children, disabled = false }) {
         const link = `/production${value}`;
         return (
-            <Link href={link}>
-                <Tabs.Item value={link}>{children}</Tabs.Item>
+            <Link href={disabled ? {} : link}>
+                <Tabs.Item disabled={disabled} value={link}>
+                    {children}
+                </Tabs.Item>
             </Link>
         );
     }
@@ -27,7 +29,9 @@ export function ProductionDashboardTabs() {
                             10/40 due
                         </Badge> */}
                     </CustomTab>
-                    <CustomTab value="/commissions">Commissions</CustomTab>
+                    <CustomTab disabled value="/commissions">
+                        Commissions
+                    </CustomTab>
 
                     <Tabs.TabsHeader>
                         {path?.endsWith("dashboard") ? (
