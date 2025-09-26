@@ -15,7 +15,7 @@ export function ProductionAlertWidget() {
     const auth = useAuth();
     const { data, isLoading } = useQuery(
         trpc.sales.productions.queryOptions({
-            show: "past-due",
+            show: "due-today",
             // show: "due-today",
             workerId: auth.id,
         }),
