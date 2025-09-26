@@ -11,60 +11,45 @@ const { Provider: TabItemProvider, useContext: useTabItem } =
     };
   });
 const { Provider: TabProvider, useContext: useTab } = createContextFactory(
-  function (props: { value?; onValueChange? }) {
-    const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-    // const [activeIndex, setActiveIndex] = useState(0);
+  function (props: { value?; onValueChange?; name? }) {
     const [hoverStyle, setHoverStyle] = useState({});
-    const [totalTabs, setTotalTabs] = useState(0);
     const [activeElement, setActiveElement] = useState(null);
-    // function getNextTab() {
-    //   setTotalTabs((prev) => prev + 1);
-    //   return totalTabs + 1;
-    // }
-    function getNextTab() {
-      let newIndex: number;
-      setTotalTabs((prev) => {
-        newIndex = prev + 1;
-        return newIndex;
-      });
-      return newIndex!;
-    }
     const [activeStyle, setActiveStyle] = useState({
       left: "0px",
       width: "0px",
     });
     const [isDarkMode, setIsDarkMode] = useState(false);
-    // const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
     useEffect(() => {
-      if (hoveredIndex !== null) {
-        const hoveredElement = activeElement; // tabRefs.current[hoveredIndex];
-        if (hoveredElement) {
-          const { offsetLeft, offsetWidth } = hoveredElement;
-          setHoverStyle({
-            left: `${offsetLeft}px`,
-            width: `${offsetWidth}px`,
-          });
-        }
-      }
-    }, [hoveredIndex, activeElement]);
-
-    useEffect(() => {
-      const _activeElement = activeElement; // tabRefs.current[activeIndex];
+      const _activeElement = getActiveElement(); // tabRefs.current[activeIndex];
       if (_activeElement) {
         const { offsetLeft, offsetWidth } = _activeElement;
         setActiveStyle({
           left: `${offsetLeft}px`,
           width: `${offsetWidth}px`,
         });
+        setHoverStyle({
+          left: `${offsetLeft}px`,
+          width: `${offsetWidth}px`,
+        });
       }
     }, [activeElement]);
+    const getActiveElement = () => {
+      if (activeElement) return activeElement;
 
+      return document.querySelector(
+        `[data-tab-name="${props.name}"] [data-tab-active="true"]`
+      );
+    };
     useEffect(() => {
       requestAnimationFrame(() => {
-        const overviewElement = activeElement; // tabRefs.current[0];
+        const overviewElement = getActiveElement(); // tabRefs.current[0];
         if (overviewElement) {
           const { offsetLeft, offsetWidth } = overviewElement;
           setActiveStyle({
+            left: `${offsetLeft}px`,
+            width: `${offsetWidth}px`,
+          });
+          setHoverStyle({
             left: `${offsetLeft}px`,
             width: `${offsetWidth}px`,
           });
@@ -72,33 +57,24 @@ const { Provider: TabProvider, useContext: useTab } = createContextFactory(
       });
     }, []);
 
-    const toggleDarkMode = () => {
-      setIsDarkMode(!isDarkMode);
-      document.documentElement.classList.toggle("dark");
-    };
     return {
       isDarkMode,
-      // tabRefs: {} as any,
-      // activeIndex,
       hoverStyle,
-      // hoveredIndex,
       activeStyle,
-      // setHoveredIndex,
-      // setActiveIndex,
-      getNextTab,
       activeElement,
       setActiveElement,
       ...props,
     };
   }
 );
-function TabBase({ children, value = null, onValueChange = null }) {
+function TabBase({ children, value = null, name, onValueChange = null }) {
   return (
     <TabProvider
       args={[
         {
           value,
           onValueChange,
+          name,
         },
       ]}
     >
@@ -107,16 +83,16 @@ function TabBase({ children, value = null, onValueChange = null }) {
   );
 }
 function Content({ children }) {
-  const { isDarkMode, hoverStyle, activeElement, activeStyle } = useTab();
+  const { isDarkMode, hoverStyle, name, activeElement, activeStyle } = useTab();
   return (
-    <div className={`flex flex-col`}>
+    <div data-tab-name={name} className={`flex flex-col`}>
       <div className="relative w-full ">
         {/* Hover Highlight */}
         <div
           className="absolute h-[30px] transition-all duration-300 ease-out bg-[#0e0f1114] dark:bg-[#ffffff1a] rounded-[6px] flex items-center"
           style={{
             ...hoverStyle,
-            opacity: !!activeElement ? 1 : 0,
+            // opacity: !!activeElement ? 1 : 0,
           }}
         />
         {/* Active Indicator */}
@@ -156,17 +132,23 @@ interface TabItemProps {
   children?;
   index?;
   value?;
+  disabled?: boolean;
 }
 function TabItem(props: TabItemProps) {
   const tabCtx = useTab();
   const { activeElement } = tabCtx;
   const { setActiveElement } = tabCtx;
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLButtonElement>(null);
 
   return (
-    <div
+    <button
       ref={ref}
+      disabled={props.disabled}
       data-role="tabItem"
+      data-tab-active={
+        ref === activeElement ||
+        (!activeElement && props.value === tabCtx.value)
+      }
       onMouseEnter={() => setActiveElement(ref.current)}
       onMouseLeave={() => setActiveElement(null)}
       // ref={(el) => (tabRefs.current[props.index] = el as any)}
@@ -186,7 +168,7 @@ function TabItem(props: TabItemProps) {
       <div className="text-sm font-[var(--www-mattmannucci-me-geist-regular-font-family)] leading-5 whitespace-nowrap flex items-center justify-center h-full">
         {props.children}
       </div>
-    </div>
+    </button>
   );
 }
 interface TabContentProps {

@@ -19,13 +19,13 @@ export function ProductionDashboardTabs() {
 
     return (
         <div className="flex flex-col">
-            <Tabs value={path}>
+            <Tabs name="production-tab" value={path}>
                 <Tabs.Items className="px-4 ">
                     <CustomTab value="/dashboard">
                         <span>Productions</span>
-                        <Badge className="mx-1" variant="destructive">
+                        {/* <Badge className="mx-1" variant="destructive">
                             10/40 due
-                        </Badge>
+                        </Badge> */}
                     </CustomTab>
                     <CustomTab value="/commissions">Commissions</CustomTab>
 
