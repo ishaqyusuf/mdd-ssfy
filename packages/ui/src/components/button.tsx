@@ -31,26 +31,43 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  },
+  }
 );
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  hoverVariant?: VariantProps<typeof buttonVariants>["variant"];
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  (
+    { className, variant, hoverVariant, size, asChild = false, ...props },
+    ref
+  ) => {
     const Comp = asChild ? Slot : "button";
+
+    const [hover, setHover] = React.useState(false);
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(
+          buttonVariants({
+            variant:
+              hover && hoverVariant && !props.disabled ? hoverVariant : variant,
+            size,
+            className,
+          })
+        )}
         ref={ref}
+        onMouseEnter={(e) => {
+          setHover(true);
+        }}
+        onMouseLeave={(e) => setHover(false)}
         {...props}
       />
     );
-  },
+  }
 );
 Button.displayName = "Button";
 

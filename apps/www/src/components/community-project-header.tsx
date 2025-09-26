@@ -4,9 +4,10 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { CommunitySearchFilter } from "./community-search-filter";
+import { useCommunityProjectParams } from "@/hooks/use-community-project-params";
 
-export function CommunityHeader({}) {
-    const { setParams } = useInventoryParams();
+export function CommunityProjectHeader({}) {
+    const { setParams } = useCommunityProjectParams();
     return (
         <div className="flex justify-between">
             <CommunitySearchFilter />
@@ -14,7 +15,7 @@ export function CommunityHeader({}) {
             <Button
                 onClick={(e) => {
                     setParams({
-                        productId: -1,
+                        openCommunityProjectId: -1,
                     });
                 }}
             >

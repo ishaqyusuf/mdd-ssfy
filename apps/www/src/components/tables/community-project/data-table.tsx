@@ -1,38 +1,33 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { Table, useTableData } from "@gnd/ui/custom/data-table/index";
+import { Table, useTableData } from "@gnd/ui/data-table";
 import { columns, mobileColumn } from "./columns";
-import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
-import { BatchActions } from "./batch-actions";
-import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
-import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { useSalesOrdersStore } from "@/store/sales-orders";
+import { TableHeader } from "@gnd/ui/data-table/table-header";
+import { useCommunityProjectFilterParams } from "@/hooks/use-community-project-filter-params";
+import { useCommunityProjectParams } from "@/hooks/use-community-project-params";
 import { NoResults } from "@gnd/ui/custom/no-results";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
+import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/custom/icons";
-export function DataTable({}) {
+export function DataTable() {
     const trpc = useTRPC();
-    const { rowSelection, setRowSelection } = useSalesOrdersStore();
-    const { filters, hasFilters, setFilters } = useOrderFilterParams();
-    const {
-        data,
-        ref: loadMoreRef,
-        hasNextPage,
-        isFetching,
-    } = useTableData({
+    // const { rowSelection, setRowSelection } = useCommunityProjectStore();
+    const { filters, hasFilters, setFilters } =
+        useCommunityProjectFilterParams();
+    const { data, ref, isFetching, hasNextPage } = useTableData({
         filter: {
             ...filters,
         },
-        route: trpc.sales.index,
+        route: trpc.community.getCommunityProjects,
     });
     const tableScroll = useTableScroll({
         useColumnWidths: true,
         startFromColumn: 2,
     });
-    const overviewQuery = useSalesOverviewQuery();
+    const { setParams } = useCommunityProjectParams();
     if (hasFilters && !data?.length) {
         return <NoResults setFilter={setFilters} />;
     }
@@ -56,19 +51,20 @@ export function DataTable({}) {
             args={[
                 {
                     columns,
-                    mobileColumn: mobileColumn,
+                    mobileColumn,
                     data,
-                    checkbox: true,
-                    tableScroll,
-                    rowSelection,
                     props: {
+                        loadMoreRef: ref,
                         hasNextPage,
-                        loadMoreRef,
                     },
-                    setRowSelection,
+                    tableScroll,
+                    // rowSelection,
+                    // setRowSelection,
                     tableMeta: {
                         rowClick(id, rowData) {
-                            overviewQuery.open2(rowData.uuid, "sales");
+                            setParams({
+                                openCommunityProjectId: rowData.id,
+                            });
                         },
                     },
                 },
@@ -87,7 +83,7 @@ export function DataTable({}) {
                     </Table>
                 </div>
                 <Table.LoadMore />
-                <BatchActions />
+                {/* <BatchActions /> */}
             </div>
         </Table.Provider>
     );

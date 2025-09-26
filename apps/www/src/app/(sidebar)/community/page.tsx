@@ -1,6 +1,7 @@
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
-import { CommunityHeader } from "@/components/community-header";
+import { CommunityProjectHeader } from "@/components/community-project-header";
 import { ErrorFallback } from "@/components/error-fallback";
+import { DataTable } from "@/components/tables/community-project/data-table";
 
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { loadInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
@@ -37,10 +38,10 @@ export default async function Page(props: Props) {
             {/* <InventoryTabSwitch path="/inventory" /> */}
             <HydrateClient>
                 <div className="flex flex-col gap-6">
-                    <CommunityHeader />
+                    <CommunityProjectHeader />
                     <ErrorBoundary errorComponent={ErrorFallback}>
                         <Suspense fallback={<TableSkeleton />}>
-                            {/* <DataTable */}
+                            <DataTable />
                         </Suspense>
                     </ErrorBoundary>
                 </div>
