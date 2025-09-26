@@ -40,7 +40,7 @@ export async function getSales(
   }
   if (query.showing != "all sales" && !query.q?.trim())
     query.salesRepId = ctx.userId!;
-  if (query.showing != "all sales" || !query?.q) query.salesRepId = ctx.userId!;
+
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,
