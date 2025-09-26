@@ -88,7 +88,7 @@ export const salesRouter = createTRPCRouter({
     .query(async (props) => {
       const result = await getSales(props.ctx, props.input);
       const [sale] = result.data;
-      return sale;
+      return sale || null;
     }),
   getSalesResolutions: publicProcedure
     .input(getSalesResolutionsSchema)

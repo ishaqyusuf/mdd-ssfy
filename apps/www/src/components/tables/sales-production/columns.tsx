@@ -42,6 +42,17 @@ const customerColumn: Column = {
         <TCell.Primary>{item.customer}</TCell.Primary>
     ),
 };
+const salesColumn: Column = {
+    header: "Sales",
+    accessorKey: "Sales",
+    meta: {},
+    cell: ({ row: { original: item } }) => (
+        <>
+            <TCell.Primary>{item.customer}</TCell.Primary>
+            <TCell.Secondary>{item.orderId}</TCell.Secondary>
+        </>
+    ),
+};
 const salesRepColumn: Column = {
     header: "Sales Rep",
     accessorKey: "Sales Rep",
@@ -49,6 +60,19 @@ const salesRepColumn: Column = {
     cell: ({ row: { original: item } }) => (
         <TCell.Primary className="whitespace-nowrap uppercase">
             <TextWithTooltip className="max-w-[85px]" text={item.salesRep} />
+        </TCell.Primary>
+    ),
+};
+const salesRepColumn2: Column = {
+    header: "Sales Rep",
+    accessorKey: "Sales Rep",
+    meta: {},
+    cell: ({ row: { original: item } }) => (
+        <TCell.Primary className="whitespace-nowrap uppercase">
+            <TextWithTooltip
+                className="max-w-[80px] sm:max-w-[150px]"
+                text={item.salesRep}
+            />
         </TCell.Primary>
     ),
 };
@@ -68,10 +92,30 @@ const statusColumn: Column = {
         const production = item.status?.production;
         return (
             <Progress>
-                <Progress.Status>
+                <Progress.Status badge>
                     {production?.scoreStatus || production?.status}
                 </Progress.Status>
             </Progress>
+        );
+    },
+};
+const progressColumn: Column = {
+    header: "Progress",
+    accessorKey: "statusColumn",
+    meta: {},
+    cell: ({ row: { original: item } }) => {
+        const production = item.status?.production;
+        return (
+            <div className="">
+                <Progress>
+                    <Progress.ProgressBar
+                        className="w-16"
+                        showPercent
+                        score={production.score}
+                        total={production.total}
+                    />
+                </Progress>
+            </div>
         );
     },
 };
@@ -86,23 +130,24 @@ export const columns: Column[] = [
 
 export const workerColumns: ColumnDef<Item>[] = [
     dueDateColumn,
-    assignedToColumn,
-    customerColumn,
-    orderColumn,
-    salesRepColumn,
+    // assignedToColumn,
+    salesColumn,
+    // orderColumn,
+    salesRepColumn2,
     statusColumn,
+    progressColumn,
 ];
 function Date({ item }: ItemProps) {
     return (
         <>
-            <TCell.Primary className="font-mono">
+            <TCell.Primary className="">
                 {item.alert.date ? (
                     <TCell.Date>{item.alert.date}</TCell.Date>
                 ) : (
                     <>N/A</>
                 )}
             </TCell.Primary>
-            <TCell.Secondary className="flex gap-4 font-mono">
+            <TCell.Secondary className="flex gap-4 font-semibold">
                 {item.completed ? (
                     <></>
                 ) : (

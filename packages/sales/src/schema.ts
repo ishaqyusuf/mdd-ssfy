@@ -281,6 +281,7 @@ export const salesProductionQueryParamsSchema = z
     workerId: z.number().optional().nullable(),
     production: z.custom<SalesProductionStatusFilter>().optional().nullable(),
     salesNo: z.string().optional().nullable(),
+    show: z.enum(["due-today", "past-due"]).optional().nullable(),
   })
   .merge(paginationSchema);
 export type SalesProductionQueryParams = z.infer<

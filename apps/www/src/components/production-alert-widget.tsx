@@ -1,7 +1,10 @@
 "use client";
+import { useAuth } from "@/hooks/use-auth";
 import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
 import {
     Card,
     CardContent,
@@ -9,32 +12,28 @@ import {
     CardHeader,
     CardTitle,
 } from "@gnd/ui/card";
+import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 
 export function ProductionAlertWidget() {
     const { params } = useSalesDashboardParams();
     const trpc = useTRPC();
+    const auth = useAuth();
     const { data, isLoading } = useQuery(
-        trpc.salesDashboard.getKpis.queryOptions({
-            from: params.from,
-            to: params.to,
+        trpc.sales.productions.queryOptions({
+            show: "past-due",
+            // show: "due-today",
+            workerId: auth.id,
         }),
     );
-    const lowStockVariants = [...Array(5)].map((a, id) => ({
-        id,
-        name: `0445${id}PC`,
-        stock: 5,
-    }));
+    const dues = data?.data || [];
+    const empty = !data?.data?.length;
+    const overviewQuery = useSalesOverviewQuery();
     if (isLoading) {
         return (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {/* Add Skeleton Loaders here */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Loading...</CardTitle>
-                    </CardHeader>
-                </Card>
+            <div className="">
+                <Skeletons.Stats />
             </div>
         );
     }
@@ -44,30 +43,35 @@ export function ProductionAlertWidget() {
             <CardHeader>
                 <CardTitle className="text-orange-800 flex items-center gap-2">
                     <AlertTriangle className="w-5 h-5" />
-                    Due Today
+                    Productions Due Today
                 </CardTitle>
-                <CardDescription className="text-orange-700">
-                    The following are due for production today:
-                </CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="space-y-2 flex gap-4 items-center">
-                    {lowStockVariants.slice(0, 3).map((variant) => (
+                {!empty || <span>No productions due today</span>}
+
+                <div className="flex-wrap flex gap-4 items-center">
+                    {dues.slice(0, 10).map((variant) => (
                         <div key={variant.id} className="flex">
-                            <Badge
+                            <Button
+                                onClick={(e) => {
+                                    overviewQuery.open2(
+                                        variant.uuid,
+                                        "production-tasks",
+                                    );
+                                }}
                                 variant="outline"
                                 className="text-orange-700 border-orange-300 text-base font-medium"
                             >
                                 <span className="font-medium">
-                                    {variant.name}
+                                    {variant.orderId}
                                 </span>
                                 {/* View */}
-                            </Badge>
+                            </Button>
                         </div>
                     ))}
-                    {lowStockVariants.length > 3 && (
+                    {dues.length > 10 && (
                         <p className="text-sm text-orange-600 font-bold">
-                            +{lowStockVariants.length - 3} more items
+                            +{dues.length - 10} more items
                         </p>
                     )}
                 </div>

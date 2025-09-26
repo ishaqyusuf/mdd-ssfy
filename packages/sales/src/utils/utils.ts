@@ -83,6 +83,8 @@ export function statStatus(stat: Prisma.SalesStatGetPayload<{}>): {
   color;
   status: SalesStatStatus;
   scoreStatus: string;
+  score;
+  total;
 } {
   const { percentage, score, total } = stat || {};
   let scoreStatus = "";
@@ -93,29 +95,39 @@ export function statStatus(stat: Prisma.SalesStatGetPayload<{}>): {
       color: "warmGray",
       status: "pending",
       scoreStatus,
+      score,
+      total,
     };
   if (percentage == 0 && total == 0)
     return {
       color: "amber",
       status: "N/A" as any,
       scoreStatus: "N/A",
+      score,
+      total,
     };
   if (percentage! > 0 && percentage! < 100)
     return {
       color: "rose",
       status: "in progress",
       scoreStatus,
+      score,
+      total,
     };
   if (percentage === 100)
     return {
       status: "completed",
       color: "green",
       scoreStatus,
+      score,
+      total,
     };
   return {
     color: "stone",
     status: "unknown",
     scoreStatus,
+    score,
+    total,
   };
 }
 

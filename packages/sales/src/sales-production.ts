@@ -25,37 +25,34 @@ export async function getSalesProductions(
   );
   const queryCount = q?.length;
   const assignedToId = query.workerId || query.assignedToId;
+  const getDueToday = async () =>
+    await getProductionListAction(db, {
+      salesType: "order",
+      "production.assignedToId": assignedToId,
+      "production.status": "due today",
+      size: 99,
+    });
+  const getPastDue = async () =>
+    await getProductionListAction(db, {
+      salesType: "order",
+      "production.assignedToId": assignedToId,
+      "production.status": "past due",
+      size: 99,
+    });
+  switch (query.show) {
+    case "due-today":
+      return await getDueToday();
+      break;
+    case "past-due":
+      return await getPastDue();
+      break;
+  }
+
   const dueToday =
-    !query.cursor && !queryCount
-      ? (
-          await getProductionListAction(db, {
-            salesType: "order",
-            "production.assignedToId": assignedToId,
-            "production.status": "due today",
-            size: 99,
-          })
-        ).data
-      : [];
-  // console.log({ dueToday, queryCount, query });
-  const pastDue =
-    !query.cursor && !queryCount
-      ? (
-          await getProductionListAction(db, {
-            salesType: "order",
-            "production.assignedToId": assignedToId,
-            "production.status": "past due",
-            size: 99,
-          })
-        ).data
-      : [];
-  const customs = [...dueToday, ...pastDue]
-    // .map(transformProductionList)
-    // .sort(
-    //     (a, b) =>
-    //         (new Date(b.alert.date) as any) -
-    //         (new Date(a.alert.date) as any),
-    // )
-    .filter((a) => !a.completed);
+    !query.cursor && !queryCount ? (await getDueToday())?.data : [];
+
+  const pastDue = !query.cursor && !queryCount ? (await getPastDue()).data : [];
+  const customs = [...dueToday, ...pastDue].filter((a) => !a.completed);
   const excludesIds = customs.map((a) => a.id);
   if (!queryCount)
     return {

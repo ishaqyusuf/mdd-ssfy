@@ -18,12 +18,22 @@ interface StatusProps {
     noDot?: boolean;
     children;
     color?: Colors;
+    badge?;
 }
-function Status({ children, noDot }: StatusProps) {
+function Status(props: StatusProps) {
+    const { children, noDot, badge } = props;
     const _color = getColorFromName(children);
     return (
-        <div className="inline-flex items-center gap-2 font-semibold">
-            {noDot || (
+        <div
+            className={cn(
+                "inline-flex items-center gap-2 font-semibold",
+                !badge || "rounded-lg p-0.5 px-2",
+            )}
+            style={{
+                backgroundColor: badge ? _color : null,
+            }}
+        >
+            {noDot || badge || (
                 <div
                     style={{
                         backgroundColor: _color,
@@ -33,7 +43,7 @@ function Status({ children, noDot }: StatusProps) {
             )}
             <div
                 style={{
-                    color: _color,
+                    color: badge ? `white` : _color,
                 }}
                 className={cn("text-xs uppercase")}
             >
@@ -63,9 +73,11 @@ function ProgressBar({
         <div className={cn(className, "space-y-2")}>
             {(!showPercent && !label) || (
                 <div className="flex text-muted-foreground font-medium justify-between">
-                    <span className="text-sm">
-                        {label ? `${score} of ${total} ${label}` : ""}
-                    </span>
+                    {!label || (
+                        <span className="text-sm">
+                            {label ? `${score} of ${total} ${label}` : ""}
+                        </span>
+                    )}
                     <span className="text-sm font-medium">
                         {showPercent ? `${value}%` : null}
                     </span>
