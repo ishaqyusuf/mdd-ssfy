@@ -33,7 +33,7 @@ export default async function Page(props: Props) {
         ),
     ]);
     return (
-        <FPage title="Community Dashboard">
+        <FPage title="Community">
             {/* <InventoryTabSwitch path="/inventory" /> */}
             <HydrateClient>
                 <div className="flex flex-col gap-6">

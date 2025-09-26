@@ -331,7 +331,11 @@ export default function ProductionWorkerDashboard() {
                 <Tabs defaultValue="assigned-jobs" className="space-y-4">
                     <TabsList>
                         <TabsTrigger value="assigned-jobs">
-                            Assigned Jobs
+                            Due Today
+                        </TabsTrigger>
+                        <TabsTrigger value="past-due">Past Due</TabsTrigger>
+                        <TabsTrigger value="assignment">
+                            All Assignments
                         </TabsTrigger>
                         <TabsTrigger value="commission">Commission</TabsTrigger>
                     </TabsList>

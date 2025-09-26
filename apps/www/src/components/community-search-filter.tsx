@@ -27,7 +27,7 @@ function Content({}) {
     return (
         <>
             <SearchFilterTRPC
-                placeholder={"Search Inventories"}
+                placeholder={"Search Projects"}
                 filterList={trpcFilterData}
             />
         </>

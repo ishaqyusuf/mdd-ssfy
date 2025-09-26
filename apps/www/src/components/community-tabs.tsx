@@ -20,20 +20,13 @@ export function CommunityTabs() {
         <div className="flex gap-4 items-center">
             <Tabs value={path}>
                 <Tabs.Items className="px-4">
-                    <CustomTab>Projects</CustomTab>,
+                    <CustomTab>Projects</CustomTab>
                     <CustomTab value="/units">Units</CustomTab>
                     <CustomTab value="/productions">Productions</CustomTab>
                     <CustomTab value="/invoices">Invoices</CustomTab>
                     <CustomTab value="/templates">Templates</CustomTab>
-                    <CustomTab value="/builders">Builders</CustomTab>,
+                    <CustomTab value="/builders">Builders</CustomTab>
                 </Tabs.Items>
-                {/* <TabsList>
-                                <TabsTrigger value="doors">Doors</TabsTrigger>
-                                <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="doors">
-                                <Content itemStepUid={itemStepUid} />
-                            </TabsContent> */}
             </Tabs>
 
             {/* <div className="flex-1"></div> */}
