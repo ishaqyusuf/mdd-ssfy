@@ -1,6 +1,7 @@
 import {
   backlogFilters,
   communityProjectFilters,
+  communityTemplateFilters,
   getCommunityTemplateFilters,
   getCustomerFilters,
   getDispatchFilters,
@@ -18,6 +19,9 @@ import { z } from "zod";
 export const filterRouters = createTRPCRouter({
   communityProject: publicProcedure.query(async (props) => {
     return communityProjectFilters(props.ctx);
+  }),
+  communityTemplate: publicProcedure.query(async (props) => {
+    return communityTemplateFilters(props.ctx);
   }),
   communityTemplateFilters: publicProcedure.query(async (props) =>
     getCommunityTemplateFilters(props.ctx)

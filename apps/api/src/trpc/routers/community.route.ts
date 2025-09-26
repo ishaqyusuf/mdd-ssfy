@@ -28,6 +28,10 @@ import {
   saveWorkOrderForm,
   workOrderFormSchema,
 } from "@api/db/queries/work-order";
+import {
+  getCommunityTemplates,
+  getCommunityTemplatesSchema,
+} from "@api/db/queries/community-template";
 
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
@@ -66,6 +70,7 @@ export const communityRouters = createTRPCRouter({
     .query(async (props) => {
       return getCommunityProjects(props.ctx, props.input);
     }),
+
   getCommunityTemplateForm: publicProcedure
     .input(
       z.object({
@@ -74,6 +79,11 @@ export const communityRouters = createTRPCRouter({
     )
     .query(async (props) => {
       return getCommunityTemplateForm(props.ctx, props.input?.templateId);
+    }),
+  getCommunityTemplates: publicProcedure
+    .input(getCommunityTemplatesSchema)
+    .query(async (props) => {
+      return getCommunityTemplates(props.ctx, props.input);
     }),
   projectsList: publicProcedure.query(async (q) => {
     return projectList(q.ctx);

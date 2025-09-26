@@ -129,7 +129,6 @@ export default function CommunityTemplateTableShell<T>({
                 ),
             },
             ..._FilterColumn("_q", "_builderId", "_projectId"),
-
             {
                 accessorKey: "actions",
                 header: ColumnHeader(""),

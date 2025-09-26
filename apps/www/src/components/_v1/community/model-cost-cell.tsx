@@ -8,10 +8,7 @@ import {
     SecondaryCellContent,
 } from "../columns/base-columns";
 import Money from "../money";
-import { openModal } from "@/lib/modal";
 import { Badge } from "@gnd/ui/badge";
-import { groupArray } from "@/lib/utils";
-import dayjs from "dayjs";
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 
 interface Props {
@@ -55,30 +52,6 @@ export default function ModelCostCell({ costs, modal, row }: Props) {
                     )}
                 </>
             }
-        </Cell>
-    );
-}
-export function CommunityModelCostCell({ row }: { row: ICommunityTemplate }) {
-    const cost = row.meta?.modelCost;
-    let money = cost?.grandTotal;
-    return (
-        <Cell
-            className="cursor-pointer rtl"
-            onClick={() => {
-                openModal("modelCost", row);
-            }}
-        >
-            {!cost ? (
-                <Badge className="bg-slate-200 text-slate-700 hover:bg-slate-200">
-                    Set Cost
-                </Badge>
-            ) : (
-                <>
-                    <PrimaryCellContent>
-                        <Money value={money} />
-                    </PrimaryCellContent>
-                </>
-            )}
         </Cell>
     );
 }

@@ -1,6 +1,6 @@
 import type { Db, Prisma } from "@gnd/db";
 import { getPivotModel } from "./utils";
-import { ICostChartMeta } from "./types";
+import { CostChartMeta } from "./types";
 import { dateQuery } from "@gnd/utils";
 export async function getCommunityPivotId(id, db: Db) {
   const c = await db.communityModels.findUnique({ where: { id } });
@@ -63,7 +63,7 @@ export async function synchronizeModelCost(id, pivotId, db: Db) {
       community: true,
     },
   });
-  const meta = c.meta as any as ICostChartMeta;
+  const meta = c.meta as any as CostChartMeta;
   await Promise.all(
     Object.entries(meta.sumCosts)?.map(async ([k, v]) => {
       const { startDate: from, endDate: to } = c;

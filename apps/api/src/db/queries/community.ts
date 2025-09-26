@@ -20,7 +20,8 @@ import { formatMoney, sum } from "@gnd/utils";
 import type { Db, Prisma } from "@gnd/db";
 import { paginationSchema } from "@gnd/utils/schema";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
-import type { ProjectMeta } from "@api/types/community";
+import type { ProjectMeta } from "@community/types";
+
 export async function projectList(ctx: TRPCContext) {
   const list = await ctx.db.projects.findMany({
     select: {
