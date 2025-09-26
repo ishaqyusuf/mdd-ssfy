@@ -7,7 +7,6 @@ import CommissionPayments from "@/components/sales-rep-commission-payment";
 import PendingCommissions from "@/components/sales-rep-pending-comissions";
 import CustomerProfile from "@/components/sales-rep-profile";
 import RecentQuotes from "@/components/sales-rep-recent-quotes";
-import RecentSales from "@/components/sales-rep-recent-sales";
 import SalesChart from "@/components/sales-rep-sales-chart";
 import {
     SalesRepActiveCustomers,
@@ -20,11 +19,12 @@ import { SalesRepRecentSales } from "@/components/widgets/sales-rep-recent-sales
 import { Plus } from "lucide-react";
 
 import { Badge } from "@gnd/ui/badge";
-import { Button } from "@gnd/ui/button";
+import { buttonVariants } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { searchParamsCache } from "./search-params";
+import { cn } from "@gnd/ui/cn";
 
 export const metadata: Metadata = {
     title: `My Dashboard | GND`,
@@ -58,15 +58,17 @@ export default async function SalesRepProfile(props: {
                             Manage your sales activities and track performance
                         </p>
                     </div>
-                    <Button asChild>
-                        <Link
-                            className="flex items-center gap-2"
-                            href="/sales-book/create-order"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Create Sale
-                        </Link>
-                    </Button>
+
+                    <Link
+                        className={cn(
+                            buttonVariants({ variant: "default" }),
+                            "flex items-center gap-2",
+                        )}
+                        href="/sales-book/create-order"
+                    >
+                        <Plus className="h-4 w-4" />
+                        Create Sale
+                    </Link>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
