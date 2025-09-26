@@ -18,7 +18,7 @@ export function CommunityTabs() {
 
     return (
         <div className="flex gap-4 items-center">
-            <Tabs value={path}>
+            <Tabs name="community" value={path}>
                 <Tabs.Items className="px-4">
                     <CustomTab>Projects</CustomTab>
                     <CustomTab value="/units">Units</CustomTab>

@@ -40,7 +40,7 @@ export default async function Page(props: Props) {
                     <CommunityHeader />
                     <ErrorBoundary errorComponent={ErrorFallback}>
                         <Suspense fallback={<TableSkeleton />}>
-                            {/* <DataTable /> */}
+                           <DataTable
                         </Suspense>
                     </ErrorBoundary>
                 </div>

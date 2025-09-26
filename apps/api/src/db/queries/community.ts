@@ -17,7 +17,9 @@ import {
 } from "@community/db-utils";
 import dayjs, { formatDate } from "@gnd/utils/dayjs";
 import { formatMoney, sum } from "@gnd/utils";
-import type { Db } from "@gnd/db";
+import type { Db, Prisma } from "@gnd/db";
+import { paginationSchema } from "@gnd/utils/schema";
+import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 export async function projectList(ctx: TRPCContext) {
   const list = await ctx.db.projects.findMany({
     select: {
@@ -440,4 +442,76 @@ export async function communitySummary(
         // subtitle: `Total community units`,
       };
   }
+}
+export const getCommunityProjectsSchema = z
+  .object({
+    builderId: z.number().optional().nullable(),
+  })
+  .merge(paginationSchema);
+export type GetCommunityProjectsSchema = z.infer<
+  typeof getCommunityProjectsSchema
+>;
+export async function getCommunityProjects(
+  ctx: TRPCContext,
+  query: GetCommunityProjectsSchema
+) {
+  const { db } = ctx;
+  // const query = {};
+  const { response, searchMeta, where } = await composeQueryData(
+    query,
+    whereCommunityProjects(query),
+    db.projects
+  );
+
+  const data = await db.projects.findMany({
+    where,
+    ...searchMeta,
+    select: {
+      id: true,
+      _count: {
+        select: {
+          homes: {
+            where: {
+              deletedAt: null,
+            },
+          },
+        },
+      },
+      builder: {
+        select: {
+          name: true,
+          id: true,
+        },
+      },
+    },
+  });
+
+  return await response(
+    data.map((d) => ({
+      ...d,
+    }))
+  );
+}
+function whereCommunityProjects(query: GetCommunityProjectsSchema) {
+  const where: Prisma.ProjectsWhereInput[] = [];
+  for (const [k, v] of Object.entries(query)) {
+    if (!v) continue;
+    switch (k as keyof GetCommunityProjectsSchema) {
+      case "q":
+        where.push({
+          title: {
+            contains: v as any,
+          },
+        });
+        break;
+      case "builderId":
+        where.push({
+          builderId: {
+            equals: Number(v),
+          },
+        });
+        break;
+    }
+  }
+  return composeQuery(where);
 }

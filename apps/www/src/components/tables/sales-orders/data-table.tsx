@@ -18,7 +18,12 @@ export function DataTable({}) {
     const trpc = useTRPC();
     const { rowSelection, setRowSelection } = useSalesOrdersStore();
     const { filters, hasFilters, setFilters } = useOrderFilterParams();
-    const { data, ref, hasNextPage, isFetching } = useTableData({
+    const {
+        data,
+        ref: loadMoreRef,
+        hasNextPage,
+        isFetching,
+    } = useTableData({
         filter: {
             ...filters,
         },
@@ -57,6 +62,10 @@ export function DataTable({}) {
                     checkbox: true,
                     tableScroll,
                     rowSelection,
+                    props: {
+                        hasNextPage,
+                        loadMoreRef,
+                    },
                     setRowSelection,
                     tableMeta: {
                         rowClick(id, rowData) {
@@ -78,9 +87,7 @@ export function DataTable({}) {
                         </Table.Body>
                     </Table>
                 </div>
-                {hasNextPage && (
-                    <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />
-                )}
+                <Table.LoadMore />
                 <BatchActions />
             </div>
         </Table.Provider>

@@ -82,7 +82,7 @@ export function ComponentsSection({ itemStepUid }: Props) {
             }
         >
             <div className="py-4">
-                <Tabs value={tab} onValueChange={setTab}>
+                <Tabs name="doors" value={tab} onValueChange={setTab}>
                     <Tabs.Items
                         className="px-4"
                         TabItems={[

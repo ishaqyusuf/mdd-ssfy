@@ -14,7 +14,11 @@ import {
   salesDispatchStatus,
   type Roles,
 } from "@gnd/utils/constants";
-import { buildersList, projectList } from "./community";
+import {
+  buildersList,
+  projectList,
+  type GetCommunityProjectsSchema,
+} from "./community";
 import type { GetSalesResolutions } from "./sales-resolution";
 import type { InventoryList, SalesProductionQueryParams } from "@sales/schema";
 import { getEmployeesList } from "./hrm";
@@ -105,6 +109,28 @@ export async function getCommunityTemplateFilters(ctx: TRPCContext) {
     ),
   ];
   return resp as FilterData[];
+}
+export async function communityProjectFilters(ctx: TRPCContext) {
+  type T = keyof GetCommunityProjectsSchema;
+  type FilterData = PageFilterData<T>;
+  // const steps = labelValueOptions(
+  //   await ctx.db.Projects.findMany({
+  //     where: {},
+  //     select: {
+  //       id: true,
+  //       title: true,
+  //     },
+  //   }),
+  //   "title",
+  //   "id"
+  // );
+  const resp = [
+    searchFilter,
+    // optionFilter<T>("categoryId", "Category", steps),
+    // dateRangeFilter<T>("dateRange", "Filter by date"),
+  ] satisfies FilterData[];
+
+  return resp;
 }
 export async function getCustomerFilters(ctx: TRPCContext) {
   type T = keyof CommunityTemplateQueryParams;
