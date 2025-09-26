@@ -13,7 +13,8 @@ import { ProductImage } from "@/app/(v2)/(loggedIn)/sales-v2/form/components/ste
 import { useProductReportFilters } from "@/hooks/use-product-report-filter-params";
 import { FormatAmount } from "@gnd/ui/custom/format-amount";
 
-export function DataTable() {
+interface Props {}
+export function DataTable(props: Props) {
     const trpc = useTRPC();
     const { rowSelection, setRowSelection } = useSalesOrdersStore();
     const { filters } = useProductReportFilters();
@@ -21,11 +22,6 @@ export function DataTable() {
         filter: filters,
         route: trpc.sales.getProductReport,
     });
-    // const tableScroll = useTableScroll({
-    //     useColumnWidths: true,
-    //     startFromColumn: 2,
-    // });
-    // const overviewQuery = useSalesOverviewQuery();
     return (
         <div>
             <div className="">{`1-${resultCount || total} of ${total}`}</div>

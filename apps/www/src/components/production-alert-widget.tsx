@@ -10,15 +10,9 @@ import {
     CardTitle,
 } from "@gnd/ui/card";
 import { useQuery } from "@tanstack/react-query";
-import {
-    DollarSign,
-    CreditCard,
-    List,
-    Activity,
-    AlertTriangle,
-} from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
-export function InventoryStockAlertWidget() {
+export function ProductionAlertWidget() {
     const { params } = useSalesDashboardParams();
     const trpc = useTRPC();
     const { data, isLoading } = useQuery(
@@ -29,8 +23,8 @@ export function InventoryStockAlertWidget() {
     );
     const lowStockVariants = [...Array(5)].map((a, id) => ({
         id,
-        name: "",
-        stock: "",
+        name: `0445${id}PC`,
+        stock: 5,
     }));
     if (isLoading) {
         return (
@@ -50,30 +44,29 @@ export function InventoryStockAlertWidget() {
             <CardHeader>
                 <CardTitle className="text-orange-800 flex items-center gap-2">
                     <AlertTriangle className="w-5 h-5" />
-                    Low Stock Alert
+                    Due Today
                 </CardTitle>
                 <CardDescription className="text-orange-700">
-                    The following items are running low on stock:
+                    The following are due for production today:
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="space-y-2">
+                <div className="space-y-2 flex gap-4 items-center">
                     {lowStockVariants.slice(0, 3).map((variant) => (
-                        <div
-                            key={variant.id}
-                            className="flex justify-between items-center"
-                        >
-                            <span className="font-medium">{variant.name}</span>
+                        <div key={variant.id} className="flex">
                             <Badge
                                 variant="outline"
-                                className="text-orange-700 border-orange-300"
+                                className="text-orange-700 border-orange-300 text-base font-medium"
                             >
-                                {variant.stock} left
+                                <span className="font-medium">
+                                    {variant.name}
+                                </span>
+                                {/* View */}
                             </Badge>
                         </div>
                     ))}
                     {lowStockVariants.length > 3 && (
-                        <p className="text-sm text-orange-600">
+                        <p className="text-sm text-orange-600 font-bold">
                             +{lowStockVariants.length - 3} more items
                         </p>
                     )}

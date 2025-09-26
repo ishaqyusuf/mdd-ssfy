@@ -59,6 +59,7 @@ import {
     TableRow,
 } from "@gnd/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
+import { ProductionAlertWidget } from "./production-alert-widget";
 
 // Sample data for assigned jobs
 const assignedJobs = [
@@ -180,7 +181,6 @@ export default function ProductionWorkerDashboard() {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays;
     };
-
     return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40">
             <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
@@ -327,13 +327,15 @@ export default function ProductionWorkerDashboard() {
                         </CardContent>
                     </Card>
                 </div>
-
+                <ProductionAlertWidget />
                 <Tabs defaultValue="assigned-jobs" className="space-y-4">
                     <TabsList>
                         <TabsTrigger value="assigned-jobs">
-                            Due Today
+                            Due Today <Badge variant="destructive">9</Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="past-due">Past Due</TabsTrigger>
+                        <TabsTrigger value="past-due">
+                            Past Due<Badge variant="destructive">9</Badge>
+                        </TabsTrigger>
                         <TabsTrigger value="assignment">
                             All Assignments
                         </TabsTrigger>

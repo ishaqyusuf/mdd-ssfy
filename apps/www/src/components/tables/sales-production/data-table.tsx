@@ -1,26 +1,28 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { TableProvider, useTableData } from "..";
 import { columns, workerColumns } from "./columns";
-import { Table, TableBody } from "@gnd/ui/table";
-import { TableHeaderComponent } from "../table-header";
-import { TableRow } from "../table-row";
-import { LoadMoreTRPC } from "../load-more";
-
-import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
+import { Table, useTableData } from "@gnd/ui/data-table";
 import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOrdersStore } from "@/store/sales-orders";
 import { useSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
+import { NoResults } from "@gnd/ui/custom/no-results";
+import { EmptyState } from "@gnd/ui/custom/empty-state";
 
-export function DataTable({ workerMode = false }) {
+interface Props {
+    workerMode?: boolean;
+}
+export function DataTable(props: Props) {
+    const { workerMode } = props;
     const trpc = useTRPC();
     const { rowSelection, setRowSelection } = useSalesOrdersStore();
     const { filters } = useSalesProductionFilterParams();
     const { data, ref, hasNextPage } = useTableData({
-        filter: filters,
+        filter: {
+            ...filters,
+        },
         route: workerMode ? trpc.sales.productionTasks : trpc.sales.productions,
     });
     const tableScroll = useTableScroll({
@@ -28,17 +30,37 @@ export function DataTable({ workerMode = false }) {
         startFromColumn: 2,
     });
     const overviewQuery = useSalesOverviewQuery();
+    //  if (hasFilters && !data?.length) {
+    //         return <NoResults setFilter={setFilters} />;
+    //     }
+
+    //     if (!data?.length && !isFetching) {
+    //         return (
+    //             <EmptyState
+    //                 CreateButton={
+    //                     <Button asChild size="sm">
+    //                         <Link href="/sales-book/create-order">
+    //                             <Icons.add className="mr-2 size-4" />
+    //                             <span>New</span>
+    //                         </Link>
+    //                     </Button>
+    //                 }
+    //             />
+    //         );
+    //     }
     return (
-        <TableProvider
+        <Table.Provider
             args={[
                 {
                     columns: workerMode ? workerColumns : columns,
-                    // mobileColumn: mobileColumn,
                     data,
-                    // checkbox: true,
                     tableScroll,
                     rowSelection,
                     setRowSelection,
+                    props: {
+                        loadMoreRef: ref,
+                        hasNextPage,
+                    },
                     tableMeta: {
                         rowClick(id, rowData) {
                             overviewQuery.open2(
@@ -56,18 +78,16 @@ export function DataTable({ workerMode = false }) {
                     className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
                 >
                     <Table>
-                        <TableHeaderComponent />
-                        <TableBody>
-                            <TableRow />
-                        </TableBody>
+                        <Table.TableHeader />
+                        <Table.Body>
+                            <Table.TableRow />
+                        </Table.Body>
                     </Table>
                 </div>
-                {hasNextPage && (
-                    <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />
-                )}
+                {hasNextPage && <Table.LoadMore />}
                 <BatchActions />
             </div>
-        </TableProvider>
+        </Table.Provider>
     );
 }
 

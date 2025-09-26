@@ -246,9 +246,9 @@ export const linkModules = [
     ]),
     _module(null, null, null, [
         _section("", null, [
-            // _link("Dashboard", "dashboard", "/production/dashboard").access(
-            //     _role.is("Production"),
-            // ).data,
+            _link("Dashboard", "dashboard", "/production/dashboard").access(
+                _role.is("Production"),
+            ).data,
         ]),
     ]),
     _module("Community", "communityInvoice", "GND Community", [

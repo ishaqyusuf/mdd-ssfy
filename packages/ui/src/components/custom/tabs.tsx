@@ -109,8 +109,8 @@ function TabBase({ children, value = null, onValueChange = null }) {
 function Content({ children }) {
   const { isDarkMode, hoverStyle, activeElement, activeStyle } = useTab();
   return (
-    <div className={`flex flex-col ${isDarkMode ? "dark bg-[#0e0f11]" : ""}`}>
-      <div className="relative">
+    <div className={`flex flex-col`}>
+      <div className="relative w-full ">
         {/* Hover Highlight */}
         <div
           className="absolute h-[30px] transition-all duration-300 ease-out bg-[#0e0f1114] dark:bg-[#ffffff1a] rounded-[6px] flex items-center"
@@ -140,12 +140,13 @@ function TabList(props: TabListProps) {
   return (
     <div
       className={cn(
-        "relative flex space-x-[6px] items-center",
+        "relative flex w-full space-x-[6px] items-center",
         props.className
       )}
     >
       {/* {props.children} */}
       {props.children || props.TabItems}
+      <div className="flex-1"></div>
       <div id="tabHeaderAction"></div>
     </div>
   );
@@ -200,7 +201,7 @@ function TabContent(props: TabContentProps) {
     </Portal>
   );
 }
-function TabsHeader({ children }) {
+function TabsHeader({ children, className = "" }) {
   return (
     <Portal noDelay nodeId={"tabHeaderAction"}>
       {children}

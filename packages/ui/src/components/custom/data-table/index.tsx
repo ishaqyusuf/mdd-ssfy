@@ -27,6 +27,7 @@ import {
   TableHeader as _Header,
   TableHead as _Head,
 } from "../../table";
+import { LoadMoreTRPC } from "./load-more";
 export type DataTableProps = {
   data: any[];
   loadMore?: (query) => Promise<any>;
@@ -54,6 +55,10 @@ type TableProps = (WithTable | WithoutTable) & {
   mobileColumn?;
   checkbox?: boolean;
   addons?;
+  props?: {
+    hasNextPage;
+    loadMoreRef;
+  };
   tableScroll?: ReturnType<typeof useTableScroll>;
   tableMeta?: {
     deleteAction?: (id) => any;
@@ -84,6 +89,7 @@ export const { useContext: useTable, Provider: TableProvider } =
     tableScroll,
     rowSelection: storeRowSelection,
     setRowSelection: storeSetRowSelection,
+    props,
   }: TableProps) {
     const [data, setData] = useState(initialData);
     // const [from, setFrom] = useState(pageSize);
@@ -164,6 +170,7 @@ export const { useContext: useTable, Provider: TableProvider } =
       totalRowsFetched,
       addons,
       tableScroll,
+      props,
     };
   });
 
@@ -225,4 +232,5 @@ export const Table = Object.assign(BaseTable, {
   Head: _Head,
   Header: _Header,
   Cell: _Cell,
+  LoadMore: LoadMoreTRPC,
 });

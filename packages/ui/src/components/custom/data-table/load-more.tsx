@@ -21,7 +21,8 @@ export function LoadMoreTRPC({
   hasNextPage?: boolean;
   ref?: ForwardedRef<HTMLDivElement>;
 }) {
-  // if (!hasNextPage) return null;
+  const { props } = useTable();
+  if (!props?.hasNextPage || !props?.loadMoreRef) return null;
 
   return (
     <div className="flex items-center justify-center mt-6" ref={ref}>

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Env } from "@/components/env";
-import { DataTable } from "@/components/examples/block-featured-outline-table";
+import { DataTable as BlockFeaturedOutlineTable } from "@/components/examples/block-featured-outline-table";
 import ProductionWorkerDashboard from "@/components/production-worker-dashboard";
-import { env } from "@/env.mjs";
-import { cn } from "@/lib/utils";
-import { AuthGuard } from "@/components/auth-guard";
 import { _role } from "@/components/sidebar/links";
+import { batchPrefetch } from "@/trpc/server";
+import { DataTable } from "@/components/tables/sales-production/data-table";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 
 export const metadata: Metadata = {
     title: "Production Worker Dashboard",
@@ -13,26 +13,16 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-    const isProd = env.NEXT_PUBLIC_NODE_ENV === "production";
+    batchPrefetch([
+        // trp
+    ]);
     return (
         <div className="relative">
-            {/* <div
-                className={cn(
-                    "",
-                    isProd &&
-                        "inset-0 absolute bg-black/60 z-[999] flex items-center justify-center",
-                )}
-            >
-                <div className="bg-white fixed top-1/2 text-black px-6 py-4 rounded-xl shadow-xl text-xl font-semibold animate-pulse">
-                    Coming Soon
-                </div>
-            </div> */}
-
-            <AuthGuard rules={[_role.is("Super Admin")]}>
-                <ProductionWorkerDashboard />
-            </AuthGuard>
+            <PageTitle>Production</PageTitle>
+            <DataTable workerMode />
             <Env isDev>
-                <DataTable />
+                <ProductionWorkerDashboard />
+                <BlockFeaturedOutlineTable />
             </Env>
         </div>
     );

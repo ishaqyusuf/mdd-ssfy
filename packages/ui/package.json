@@ -27,6 +27,7 @@
     "./custom/page-title": "./src/components/custom/page-title.tsx",
     "./custom/*": "./src/components/custom/*.tsx",
     "./data-table/*": "./src/components/custom/data-table/*.tsx",
+    "./data-table": "./src/components/custom/data-table/index.tsx",
     "./search-filter/*": "./src/components/custom/search-filter/*.tsx",
     "./search-filter": "./src/components/custom/search-filter/index.tsx",
     "./hooks/*": "./src/hooks/*.ts",
