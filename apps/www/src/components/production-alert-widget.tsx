@@ -3,15 +3,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useTRPC } from "@/trpc/client";
-import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@gnd/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
