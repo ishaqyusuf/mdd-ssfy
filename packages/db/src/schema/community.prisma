@@ -250,6 +250,36 @@ model CommunityTemplateHistory {
     @@index([communityModelsId])
 }
 
+model CommunityTemplateBlockConfig {
+    id           Int                            @unique @default(autoincrement())
+    uid          String
+    index        Float                          @default(0)
+    inputConfigs CommunityTemplateInputConfig[]
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@unique([uid])
+}
+
+model CommunityTemplateInputConfig {
+    id         Int    @unique @default(autoincrement())
+    uid        String //=inventory uid
+    index      Float  @default(0)
+    columnSize Float?
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    blockConfig                    CommunityTemplateBlockConfig @relation(fields: [communityTemplateBlockConfigId], references: [id])
+    communityTemplateBlockConfigId Int
+
+    @@unique([uid, communityTemplateBlockConfigId])
+    @@index([communityTemplateBlockConfigId])
+}
+
 // model CommunityTemplateBlocks {
 //     id    Int    @unique @default(autoincrement())
 //     title String //Exterior Door, Interior Trim, Lock & Hardware, Deco Shutters
