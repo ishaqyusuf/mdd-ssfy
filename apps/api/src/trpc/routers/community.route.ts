@@ -32,7 +32,10 @@ import {
   getCommunityTemplates,
   getCommunityTemplatesSchema,
 } from "@api/db/queries/community-template";
-
+import {
+  getCommunitySchema,
+  getCommunitySchemaSchema,
+} from "@community/community-template-schemas";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -84,6 +87,11 @@ export const communityRouters = createTRPCRouter({
     .input(getCommunityTemplatesSchema)
     .query(async (props) => {
       return getCommunityTemplates(props.ctx, props.input);
+    }),
+  getCommunitySchema: publicProcedure
+    .input(getCommunitySchemaSchema)
+    .query(async (props) => {
+      return getCommunitySchema(props.ctx.db, props.input);
     }),
   projectsList: publicProcedure.query(async (q) => {
     return projectList(q.ctx);

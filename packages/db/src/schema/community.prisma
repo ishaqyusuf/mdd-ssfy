@@ -254,6 +254,7 @@ model CommunityTemplateBlockConfig {
     id           Int                            @unique @default(autoincrement())
     uid          String
     index        Float                          @default(0)
+    status       String                         @default("draft")
     inputConfigs CommunityTemplateInputConfig[]
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)

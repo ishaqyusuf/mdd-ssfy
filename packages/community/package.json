@@ -14,10 +14,12 @@
     "./constants": "./src/constants.ts",
     "./schema": "./src/schema.ts",
     "./utils": "./src/utils.ts",
-    "./types": "./src/types.ts"
+    "./types": "./src/types.ts",
+    "./*": "./src/*"
   },
   "dependencies": {
     "@gnd/ui": "workspace:*",
+    "@gnd/sales": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@react-pdf/renderer": "^4.3.0",
     "date-fns": "^4.1.0",
