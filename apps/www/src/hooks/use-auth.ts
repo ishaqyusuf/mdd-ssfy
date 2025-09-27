@@ -15,7 +15,7 @@ export function useAuth() {
             gcTime: 20 * 60 * 1000, // 20 minutes
         }),
     );
-    useDebugToast("AUTH", data);
+    // useDebugToast("AUTH", data);
     const can = data?.can;
     return {
         id: session?.user?.id,

@@ -9,3 +9,8 @@ export type PageFilterData<TValue = string> = {
     value: string;
   }[];
 };
+
+export type CamelCaseType<T extends string> =
+  T extends `${infer First}-${infer Rest}`
+    ? `${Lowercase<First>}${Capitalize<CamelCaseType<Rest>>}`
+    : Lowercase<T>;

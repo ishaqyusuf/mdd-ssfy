@@ -16,6 +16,7 @@ import { Toaster as MiddayToast, Toaster } from "@gnd/ui/toaster";
 
 import { Providers } from "./providers";
 import { Suspense } from "react";
+import { StaticTrpc } from "@/components/static-trpc";
 
 export async function generateMetadata({}) {
     return constructMetadata({
@@ -36,9 +37,11 @@ export default async function RootLayout({
                 <div className="print:hidden">
                     <Toaster />
                     <MiddayToast />
-
                     <Suspense>
-                        <Providers>{children}</Providers>
+                        <Providers>
+                            <StaticTrpc />
+                            {children}
+                        </Providers>
                     </Suspense>
                     <div
                         className={cn(

@@ -1,18 +1,21 @@
 "use client";
 import Button from "@/components/common/button";
-import { useTRPC } from "@/trpc/client";
+import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { Icons } from "@gnd/ui/icons";
-import { useQuery } from "@tanstack/react-query";
 
 export function NewBlockAction() {
-    const trpc = useTRPC();
-    const { data: blockInventories } = useQuery(
-        trpc.inventories.inventoryProducts.queryOptions({}),
-    );
+    const { setParams } = useInventoryParams();
     return (
-        <Button>
+        <Button
+            onClick={(e) => {
+                setParams({
+                    productId: -1,
+                    mode: "community-section",
+                });
+            }}
+        >
             <Icons.Add className="size-4" />
-            <span>Add Section</span>
+            <span>Add Block</span>
         </Button>
     );
 }

@@ -6,7 +6,7 @@ import { triggerTask } from "@/actions/trigger-task";
 import { useTaskNotificationParams } from "./use-task-notification-params";
 import { useAuth } from "./use-auth";
 import { TaskName } from "@jobs/schema";
-
+import { useAfterState } from "@gnd/ui/hooks/use-after-state";
 interface Props {
     successToast?: string;
     errorToast?: string;
@@ -141,12 +141,5 @@ export function useAfterTaskTrigger(func: () => void) {
         filters: { tasks },
     } = useTaskNotificationParams();
 
-    const prevTasks = useRef(tasks);
-
-    useEffect(() => {
-        if (prevTasks.current && tasks === null) {
-            func(); // <-- only runs when there *was* tasks and now it's null
-        }
-        prevTasks.current = tasks;
-    }, [tasks, func]);
+    useAfterState(tasks, func);
 }

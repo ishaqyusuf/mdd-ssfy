@@ -28,7 +28,6 @@ export function FormContext({ children, data }: FormContextProps) {
     });
     useEffect(() => {
         if (data) {
-            console.log({ data });
             data.product.status = data.product.status || "draft";
             if (!data.product.description) data.product.description = "";
         }

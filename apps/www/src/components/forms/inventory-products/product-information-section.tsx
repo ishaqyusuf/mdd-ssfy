@@ -21,6 +21,8 @@ import { selectOptions } from "@gnd/utils";
 import { useProduct } from "./context";
 import { Badge } from "@gnd/ui/badge";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
+import { useEffect } from "react";
+import { useInventoryParams } from "@/hooks/use-inventory-params";
 
 export function ProductInformationSection({}) {
     const form = useInventoryForm();
@@ -28,6 +30,15 @@ export function ProductInformationSection({}) {
     const { categoryList } = useInventoryTrpc({
         enableCategoryList: true,
     });
+    const { _mode, mode } = useInventoryParams();
+    useEffect(() => {
+        if (_mode.communitySection && categoryList?.length) {
+            const catId = categoryList.find(
+                (c) => c.title == "Community Sections",
+            )?.id;
+            if (catId) form.setValue("product.categoryId", catId);
+        }
+    }, [mode, categoryList]);
     const {
         stockMonitor,
         status,
