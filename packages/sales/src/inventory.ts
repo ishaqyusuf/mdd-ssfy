@@ -476,25 +476,28 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
 export async function lowStockSummary(db: Db) {}
 export async function pendingInboundSummary(db: Db) {}
 
-export async function inventoryFormSave(db: Db, data: InventoryForm) {
+export async function saveInventory(db: Db, data: InventoryForm) {
   let inventoryId = data.product.id;
+  let inventoryUid;
   const { product } = data;
   const stockMode: StockModes = product.stockMonitor
     ? "monitored"
     : "unmonitored";
   if (inventoryId) {
-    await db.inventory.update({
-      where: {
-        id: inventoryId,
-      },
-      data: {
-        status: product.status,
-        name: product.name,
-        stockMode,
-        description: product.description,
-        primaryStoreFront: product.primaryStoreFront,
-      },
-    });
+    inventoryUid = (
+      await db.inventory.update({
+        where: {
+          id: inventoryId,
+        },
+        data: {
+          status: product.status,
+          name: product.name,
+          stockMode,
+          description: product.description,
+          primaryStoreFront: product.primaryStoreFront,
+        },
+      })
+    )?.uid;
   } else {
     const inventory = await db.inventory.create({
       data: {
@@ -523,6 +526,7 @@ export async function inventoryFormSave(db: Db, data: InventoryForm) {
             },
       },
     });
+    inventoryUid = inventory.uid;
     inventoryId = inventory.id;
     consoleLog("Inventory", data, inventory);
     if (data.mode === "community-section") {
@@ -531,7 +535,7 @@ export async function inventoryFormSave(db: Db, data: InventoryForm) {
       });
     }
   }
-  return { inventoryId };
+  return { inventoryId, uid: inventoryUid };
 }
 export async function inventoryForm(db: Db, inventoryId) {
   const inv = await db.inventory.findUniqueOrThrow({

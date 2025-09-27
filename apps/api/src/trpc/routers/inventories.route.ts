@@ -31,7 +31,7 @@ import {
   inventorySummarySchema,
   inventoryVariantStockForm,
   resetInventorySystem,
-  inventoryFormSave,
+  saveInventory,
   saveInventoryCategoryForm,
   saveVariantForm,
   updateCategoryVariantAttribute,
@@ -49,6 +49,10 @@ import { inventoryImport } from "@sales/inventory-import";
 import { InventoryImportService } from "@sales/inventory-import-service";
 import { idSchema } from "@api/schemas/common";
 import { INVENTORY_STATUS } from "@sales/constants";
+import {
+  createCommunityInput,
+  createCommunityInputSchema,
+} from "@community/community-template-schemas";
 // import {
 //   dimensionalWeightFormSchema,
 //   flatRateFormSchema,
@@ -65,6 +69,11 @@ import { INVENTORY_STATUS } from "@sales/constants";
 //   zoneBasedFormSchema,
 // } from "@sales/shipping";
 export const inventoriesRouter = createTRPCRouter({
+  createCommunityInput: publicProcedure
+    .input(createCommunityInputSchema)
+    .mutation(async (props) => {
+      return createCommunityInput(props.ctx.db, props.input);
+    }),
   deleteInventories: publicProcedure
     .input(
       z.object({
@@ -191,10 +200,10 @@ export const inventoriesRouter = createTRPCRouter({
       const result = await inventoryForm(props.ctx.db, props.input.id);
       return result;
     }),
-  inventoryFormSave: publicProcedure
+  saveInventory: publicProcedure
     .input(inventoryFormSchema)
     .mutation(async (props) => {
-      return inventoryFormSave(props.ctx.db, props.input);
+      return saveInventory(props.ctx.db, props.input);
     }),
   inventoryVariantStockForm: publicProcedure
     .input(

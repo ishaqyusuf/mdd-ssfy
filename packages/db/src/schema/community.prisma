@@ -277,7 +277,6 @@ model CommunityTemplateInputConfig {
     blockConfig                    CommunityTemplateBlockConfig @relation(fields: [communityTemplateBlockConfigId], references: [id])
     communityTemplateBlockConfigId Int
 
-    @@unique([uid, communityTemplateBlockConfigId])
     @@index([communityTemplateBlockConfigId])
 }
 

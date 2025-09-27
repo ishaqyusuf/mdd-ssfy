@@ -1,7 +1,54 @@
 import { Db } from "@gnd/db";
 import { sortList } from "@gnd/utils";
-import { getInventoryCategories, inventoryCategories } from "@sales/inventory";
+import {
+  getInventoryCategories,
+  inventoryCategories,
+  saveInventory,
+} from "@sales/inventory";
 import { z } from "zod";
+
+/*
+createCommunityInput: publicProcedure
+      .input(createCommunityInputSchema)
+      .mutation(async (props) => {
+        return createCommunityInput(props.ctx, props.input);
+      }),
+*/
+export const createCommunityInputSchema = z.object({
+  title: z.string().optional().nullable(),
+  uid: z.string().optional().nullable(),
+  categoryId: z.number(),
+  blockId: z.number(),
+});
+export type CreateCommunityInputSchema = z.infer<
+  typeof createCommunityInputSchema
+>;
+
+export async function createCommunityInput(
+  db: Db,
+  data: CreateCommunityInputSchema
+) {
+  if (data.title) {
+    const inventory = await saveInventory(db, {
+      product: {
+        categoryId: data.categoryId,
+        name: data.title,
+        status: "draft",
+        primaryStoreFront: false,
+        stockMonitor: false,
+      },
+      subCategories: [],
+      subComponents: [],
+    });
+    data.uid = inventory.uid;
+  }
+  await db.communityTemplateInputConfig.create({
+    data: {
+      uid: data.uid!,
+      communityTemplateBlockConfigId: data.blockId,
+    },
+  });
+}
 /*
 getCommunitySchema: publicProcedure
       .input(getCommunitySchemaSchema)
@@ -18,6 +65,7 @@ export async function getCommunitySchema(
   query: GetCommunitySchemaSchema
 ) {
   const category = await getSchemaInventoryCategory(db);
+  const communityCategory = await getSchemaInventoryCategory(db);
   const blocks = await db.communityTemplateBlockConfig.findMany({
     where: {},
     select: {
@@ -42,6 +90,7 @@ export async function getCommunitySchema(
       "index"
     ),
     category,
+    communityCategory,
   };
 }
 export const getCommunityBlockSchemaSchema = z.object({
@@ -102,6 +151,7 @@ export async function getBlockInputs(db: Db, query: GetBlockInputsSchema) {
   const inputs = await db.communityTemplateInputConfig.findMany({
     where: {
       // communityTemplateBlockConfigId: query.blockId,
+      deletedAt: {},
     },
     select: {
       index: true,
@@ -134,6 +184,18 @@ export async function getSchemaSections(db: Db) {}
 export async function getSchemaInventoryCategory(db: Db) {
   const response = await inventoryCategories(db, {
     q: "Community Sections",
+  });
+  return response?.data?.[0];
+}
+export async function getCommunityitemInventoryCategory(db: Db) {
+  const response = await inventoryCategories(db, {
+    q: "Community Item",
+  });
+  return response?.data?.[0];
+}
+export async function getCommunityInventoryCategory(db: Db) {
+  const response = await inventoryCategories(db, {
+    q: "Community",
   });
   return response?.data?.[0];
 }

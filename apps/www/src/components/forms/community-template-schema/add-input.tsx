@@ -3,10 +3,30 @@ import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { Menu } from "@gnd/ui/custom/menu";
 import Portal from "@gnd/ui/custom/portal";
 import { Icons } from "@gnd/ui/icons";
-import { useSchemaBlockContext } from "./context";
+import { useSchemaBlockContext, useTemplateBlocksContext } from "./context";
+import { useMutation } from "@tanstack/react-query";
+import { _trpc } from "@/components/static-trpc";
 
+interface CreateProps {
+    uid?: string;
+    title?: string;
+}
 export function AddInput({ nodeId }) {
     const blk = useSchemaBlockContext();
+    const temp = useTemplateBlocksContext();
+    const { mutate } = useMutation(
+        _trpc.inventories.createCommunityInput.mutationOptions({
+            onSuccess(data, variables, context) {},
+        }),
+    );
+    const create = (props: CreateProps) => {
+        mutate({
+            blockId: blk.blockId,
+            categoryId: temp.communityCategory?.id,
+            title: props.title,
+            uid: props.uid,
+        });
+    };
     return (
         <Portal nodeId={nodeId}>
             <Menu

@@ -76,6 +76,7 @@ export const createSchemaBlockContext = (props: SchemaBlockProps) => {
     return {
         form,
         blockInputs,
+        ...props,
     };
 };
 export const useSchemaBlockContext = () => {
