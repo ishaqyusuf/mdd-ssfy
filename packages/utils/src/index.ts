@@ -101,12 +101,30 @@ export function sum<T>(array?: T[], key: keyof T | undefined = undefined) {
 }
 export function sortList<T>(
   list: T[],
-  sortBy: keyof T | undefined = undefined
+  sortBy: keyof T | undefined = undefined,
+  dir: "asc" | "desc" = "asc"
 ) {
   if (!list) return [];
-  return list.sort((a, b) =>
-    String(a![sortBy!]).localeCompare(String(b![sortBy!]))
+  return list.sort((a, b) => {
+    const va = a![sortBy!];
+    const vb = b![sortBy!];
+    if (dir == "desc") return String(vb).localeCompare(String(va));
+    return String(va).localeCompare(String(vb));
+  });
+}
+export function reorderList({ newFields, oldFields, swap, fieldId = "_id" }) {
+  const firstDiffIndex = oldFields.findIndex(
+    (field, index) => field[fieldId] !== newFields[index]?.[fieldId]
   );
+
+  if (firstDiffIndex !== -1) {
+    const newIndex = newFields.findIndex(
+      (field) => field[fieldId] === oldFields[firstDiffIndex]?.[fieldId]
+    );
+    if (newIndex !== -1) {
+      swap(firstDiffIndex, newIndex);
+    }
+  }
 }
 export function uniqueList<T>(
   list: T[],

@@ -12,6 +12,7 @@
     "paths": {
       // "@/*": ["./src/*"],
       // "@api/*": ["../../apps/api/src/*"]
+      "@community/*": ["../community/src/*"]
     }
   }
   // "compilerOptions": {

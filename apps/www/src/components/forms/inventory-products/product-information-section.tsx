@@ -16,7 +16,6 @@ import { cn } from "@gnd/ui/cn";
 import { Separator } from "@gnd/ui/separator";
 import { ProductImageGallery } from "@/components/product-image-gallery";
 import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
 import { selectOptions } from "@gnd/utils";
 import { useProduct } from "./context";
 import { Badge } from "@gnd/ui/badge";

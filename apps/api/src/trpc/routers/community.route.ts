@@ -33,8 +33,14 @@ import {
   getCommunityTemplatesSchema,
 } from "@api/db/queries/community-template";
 import {
+  getBlockInputs,
+  getBlockInputsSchema,
+  getCommunityBlockSchema,
+  getCommunityBlockSchemaSchema,
   getCommunitySchema,
   getCommunitySchemaSchema,
+  updateTemplateBlocksIndices,
+  updateTemplateBlocksIndicesSchema,
 } from "@community/community-template-schemas";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
@@ -67,6 +73,16 @@ export const communityRouters = createTRPCRouter({
     .input(deleteCommunityModelCostSchema)
     .mutation(async (props) => {
       return deleteCommunityModelCost(props.ctx, props.input);
+    }),
+  getCommunityBlockSchema: publicProcedure
+    .input(getCommunityBlockSchemaSchema)
+    .query(async (props) => {
+      return getCommunityBlockSchema(props.ctx.db, props.input);
+    }),
+  getBlockInputs: publicProcedure
+    .input(getBlockInputsSchema)
+    .query(async (props) => {
+      return getBlockInputs(props.ctx.db, props.input);
     }),
   getCommunityProjects: publicProcedure
     .input(getCommunityProjectsSchema)
@@ -106,6 +122,11 @@ export const communityRouters = createTRPCRouter({
     .input(communityTemplateFormSchema)
     .mutation(async (props) => {
       return saveCommunityTemplateForm(props.ctx, props.input);
+    }),
+  updateTemplateBlocksIndices: publicProcedure
+    .input(updateTemplateBlocksIndicesSchema)
+    .mutation(async (props) => {
+      return updateTemplateBlocksIndices(props.ctx.db, props.input);
     }),
   workOrder: {
     form: publicProcedure.input(z.number()).query(async (props) => {

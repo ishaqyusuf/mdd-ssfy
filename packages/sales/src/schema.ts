@@ -193,6 +193,7 @@ export type InventoryList = z.infer<typeof inventoryListSchema>;
 export const inventoryCategoriesSchema = z.object({}).merge(paginationSchema);
 export type InventoryCategories = z.infer<typeof inventoryCategoriesSchema>;
 export const inventoryFormSchema = z.object({
+  mode: z.string().optional().nullable(),
   product: z.object({
     description: z.string().optional().nullable(),
     name: z.string(),
@@ -322,6 +323,7 @@ export const inventoryCategoryFormSchema = z.object({
   id: z.number().optional().nullable(),
   title: z.string(),
   description: z.string().optional().nullable(),
+  type: z.string().optional().nullable(),
   enablePricing: z.boolean().optional().nullable().default(false),
   categoryIdSelector: z.number().optional().nullable(),
   categoryVariantAttributes: z.array(

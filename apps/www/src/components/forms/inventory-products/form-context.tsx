@@ -1,3 +1,4 @@
+import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { InventoryForm, inventoryFormSchema } from "@sales/schema";
 import { useEffect } from "react";
@@ -26,6 +27,7 @@ export function FormContext({ children, data }: FormContextProps) {
     const form = useZodForm(inventoryFormSchema, {
         defaultValues,
     });
+    const { mode } = useInventoryParams();
     useEffect(() => {
         if (data) {
             data.product.status = data.product.status || "draft";
@@ -33,8 +35,9 @@ export function FormContext({ children, data }: FormContextProps) {
         }
         form.reset({
             ...(data ?? defaultValues),
+            mode,
         });
-    }, [data]);
+    }, [data, mode]);
 
     return <FormProvider {...form}>{children}</FormProvider>;
 }

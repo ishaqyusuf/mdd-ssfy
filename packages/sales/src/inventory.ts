@@ -16,6 +16,7 @@ import {
 } from "@gnd/utils/query-response";
 import { INVENTORY_STATUS, StockModes } from "./constants";
 import {
+  consoleLog,
   formatMoney,
   generateRandomNumber,
   generateRandomString,
@@ -24,6 +25,7 @@ import {
 import { TABLE_NAMES } from "./inventory-import-service";
 import { z } from "zod";
 import { formatDate } from "@gnd/utils/dayjs";
+import { createTemplateSchemaBlock } from "@community/community-template-schemas";
 export async function inventoryList(db: Db, query: InventoryList) {
   // await db.imageGallery.updateMany({
   //   data: {
@@ -522,6 +524,12 @@ export async function inventoryFormSave(db: Db, data: InventoryForm) {
       },
     });
     inventoryId = inventory.id;
+    consoleLog("Inventory", data, inventory);
+    if (data.mode === "community-section") {
+      await createTemplateSchemaBlock(db, {
+        inventoryUid: inventory.uid,
+      });
+    }
   }
   return { inventoryId };
 }
@@ -770,6 +778,7 @@ export async function saveInventoryCategoryForm(
         uid: generateRandomString(5),
         enablePricing: data.enablePricing,
         description: data.description,
+        type: data.type,
         categoryVariantAttributes: data.categoryVariantAttributes?.length
           ? {
               createMany: {

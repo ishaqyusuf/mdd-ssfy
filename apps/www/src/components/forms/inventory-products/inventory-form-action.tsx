@@ -9,7 +9,7 @@ import { useInventoryForm } from "./form-context";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 
 export function InventoryFormAction({ onCancel }) {
-    const { productId, setParams } = useInventoryParams();
+    const { productId, mode, setParams } = useInventoryParams();
     const form = useInventoryForm();
     const isEditing = productId > 0;
     const trpc = useTRPC();
@@ -26,6 +26,10 @@ export function InventoryFormAction({ onCancel }) {
                     title: "Saved",
                     variant: "success",
                 });
+                if (mode) {
+                    setParams(null);
+                    return;
+                }
                 if (productId != data.inventoryId)
                     setParams({
                         productId: data.inventoryId,
@@ -36,6 +40,7 @@ export function InventoryFormAction({ onCancel }) {
     const onSubmit = async (data) => {
         mutate({
             ...data,
+            mode,
         });
     };
     return (
