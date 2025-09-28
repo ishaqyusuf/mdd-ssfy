@@ -12,3 +12,9 @@ export function StaticTrpc() {
     return null; // nothing to render
 }
 
+type InvalidateKeys = "mutationKey" | "queryKey" | "infiniteQueryKey";
+export const _invalidate = (route, key: InvalidateKeys = "queryKey") =>
+    _qc.invalidateQueries({
+        queryKey: route[key](),
+    });
+

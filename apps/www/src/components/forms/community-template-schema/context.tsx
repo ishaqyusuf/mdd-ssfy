@@ -8,7 +8,7 @@ import {
 import { RenturnTypeAsync } from "@gnd/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createContext, useContext, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 
 type TemplateBlocksContext = ReturnType<typeof createTemplateBlocksContext>;
 export const TemplateBlocksContext =
@@ -73,10 +73,18 @@ export const createSchemaBlockContext = (props: SchemaBlockProps) => {
     useEffect(() => {
         if (blockInputs) form.reset(blockInputs as any);
     }, [blockInputs]);
+    const { fields, swap } = useFieldArray({
+        control: form.control,
+        name: "inputConfigs",
+        keyName: "_id",
+    });
     return {
         form,
         blockInputs,
         ...props,
+        fields,
+        swap,
+        isReorderable: true,
     };
 };
 export const useSchemaBlockContext = () => {

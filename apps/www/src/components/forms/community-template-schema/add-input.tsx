@@ -5,7 +5,7 @@ import Portal from "@gnd/ui/custom/portal";
 import { Icons } from "@gnd/ui/icons";
 import { useSchemaBlockContext, useTemplateBlocksContext } from "./context";
 import { useMutation } from "@tanstack/react-query";
-import { _trpc } from "@/components/static-trpc";
+import { _invalidate, _qc, _trpc } from "@/components/static-trpc";
 
 interface CreateProps {
     uid?: string;
@@ -16,7 +16,13 @@ export function AddInput({ nodeId }) {
     const temp = useTemplateBlocksContext();
     const { mutate } = useMutation(
         _trpc.inventories.createCommunityInput.mutationOptions({
-            onSuccess(data, variables, context) {},
+            onSuccess(data, variables, context) {
+                _qc.invalidateQueries({
+                    queryKey: _trpc.community.getCommunityBlockSchema.queryKey({
+                        id: blk.blockId,
+                    }),
+                });
+            },
         }),
     );
     const create = (props: CreateProps) => {
@@ -41,8 +47,15 @@ export function AddInput({ nodeId }) {
                     placeholder="Add community input"
                     items={[]}
                     headless
-                    onSelect={(e) => {}}
-                    onCreate={(e) => {}}
+                    onSelect={(e) => {
+                        console.log(e);
+                    }}
+                    onCreate={(e) => {
+                        create({
+                            title: e,
+                        });
+                    }}
+                    searchPlaceholder="Find or create..."
                     renderOnCreate={(value) => {
                         return (
                             <div className="flex items-center space-x-2">

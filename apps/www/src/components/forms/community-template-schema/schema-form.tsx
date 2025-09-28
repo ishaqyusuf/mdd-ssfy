@@ -5,10 +5,9 @@ import {
     useTemplateBlocksContext,
 } from "./context";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
-import { useAfterState } from "@gnd/ui/hooks/use-after-state";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
-import { Reorder, useDragControls } from "framer-motion";
+import { Reorder } from "framer-motion";
 import { reorderList } from "@gnd/utils";
 import { useFieldArray } from "react-hook-form";
 import { Button } from "@gnd/ui/button";
@@ -44,14 +43,15 @@ function Content() {
             swap,
         });
         mutate({
-            blocks: newFields.map((f, i) => ({
+            recordName: "communityTemplateBlockConfig",
+            records: newFields.map((f, i) => ({
                 id: f.id,
                 index: i,
             })),
         });
     };
     const { mutate } = useMutation(
-        _trpc.community.updateTemplateBlocksIndices.mutationOptions({
+        _trpc.community.updateRecordsIndicesIndices.mutationOptions({
             meta: null,
         }),
     );

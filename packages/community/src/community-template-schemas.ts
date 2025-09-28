@@ -28,25 +28,27 @@ export async function createCommunityInput(
   db: Db,
   data: CreateCommunityInputSchema
 ) {
-  if (data.title) {
-    const inventory = await saveInventory(db, {
-      product: {
-        categoryId: data.categoryId,
-        name: data.title,
-        status: "draft",
-        primaryStoreFront: false,
-        stockMonitor: false,
+  return db.$transaction(async (tx) => {
+    if (data.title) {
+      const inventory = await saveInventory(db, {
+        product: {
+          categoryId: data.categoryId,
+          name: data.title,
+          status: "draft",
+          primaryStoreFront: false,
+          stockMonitor: false,
+        },
+        subCategories: [],
+        subComponents: [],
+      });
+      data.uid = inventory.uid;
+    }
+    await db.communityTemplateInputConfig.create({
+      data: {
+        uid: data.uid!,
+        communityTemplateBlockConfigId: data.blockId,
       },
-      subCategories: [],
-      subComponents: [],
     });
-    data.uid = inventory.uid;
-  }
-  await db.communityTemplateInputConfig.create({
-    data: {
-      uid: data.uid!,
-      communityTemplateBlockConfigId: data.blockId,
-    },
   });
 }
 /*
@@ -116,6 +118,7 @@ export async function getCommunityBlockSchema(
           deletedAt: null,
         },
         select: {
+          id: true,
           uid: true,
           columnSize: true,
           index: true,
@@ -128,6 +131,11 @@ export async function getCommunityBlockSchema(
       uid: {
         in: [block.uid, ...block.inputConfigs.map((a) => a.uid)],
       },
+    },
+    select: {
+      uid: true,
+      name: true,
+      id: true,
     },
   });
   return {
@@ -231,25 +239,29 @@ export async function createTemplateSchemaBlock(
   });
 }
 
-export const updateTemplateBlocksIndicesSchema = z.object({
-  blocks: z.array(
+export const updateRecordsIndicesSchema = z.object({
+  records: z.array(
     z.object({
-      id: z.number(),
+      id: z.any(),
       index: z.number(),
     })
   ),
+  recordName: z.enum([
+    "communityTemplateBlockConfig",
+    "communityTemplateInputConfig",
+  ]),
 });
-export type UpdateTemplateBlocksIndicesSchema = z.infer<
-  typeof updateTemplateBlocksIndicesSchema
+export type UpdateRecordsIndicesSchema = z.infer<
+  typeof updateRecordsIndicesSchema
 >;
 
-export async function updateTemplateBlocksIndices(
+export async function updateRecordsIndices(
   db: Db,
-  query: UpdateTemplateBlocksIndicesSchema
+  query: UpdateRecordsIndicesSchema
 ) {
   await Promise.all(
-    query.blocks.map(async (b) => {
-      await db.communityTemplateBlockConfig.update({
+    query.records.map(async (b) => {
+      await (db[query.recordName] as any).update({
         where: { id: b.id },
         data: {
           index: b.index,
