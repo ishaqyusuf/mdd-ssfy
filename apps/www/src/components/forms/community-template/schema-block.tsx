@@ -19,11 +19,12 @@ import { Icons } from "@gnd/ui/icons";
 import { useForm } from "react-hook-form";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Popover } from "@gnd/ui/composite";
-import { Button } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import { Card } from "@gnd/ui/composite";
 import { TemplateInputConfig } from "./template-input-config";
 import { ModelInput } from "./model-input";
 import { AddInput } from "./add-input";
+import { useCommunityInventoryParams } from "@/hooks/use-community-inventory-params";
 
 interface Props {
     blockId: number;
@@ -145,7 +146,12 @@ function SchemaBlockInput(props: SchemaBlockInputProps) {
     const [formOpen, onFormOpenChange] = useState(false);
     const ctx = useTemplateBlocksContext();
     const { templateEditMode, printMode, modelEditMode } = ctx;
-    const openAnalytics = () => {};
+    const { setParams } = useCommunityInventoryParams();
+    const openAnalytics = () => {
+        setParams({
+            openCommunityInventoryId: data?.id,
+        });
+    };
     return (
         <Sortable.Item
             value={data.id}
@@ -176,7 +182,13 @@ function SchemaBlockInput(props: SchemaBlockInputProps) {
                     {/* <div className="flex-1"></div> */}
                     <Label
                         onClick={openAnalytics}
-                        className="whitespace-nowrap"
+                        className={cn(
+                            buttonVariants({
+                                size: "xs",
+                                variant: "link",
+                            }),
+                            "whitespace-nowrap",
+                        )}
                     >
                         {data.title || data.inv.name}
                     </Label>

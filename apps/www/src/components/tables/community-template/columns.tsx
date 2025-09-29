@@ -12,6 +12,7 @@ import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 import { Badge } from "@gnd/ui/badge";
 import Money from "@/components/_v1/money";
+import Link from "next/link";
 
 export type Item =
     RouterOutputs["community"]["getCommunityTemplates"]["data"][number];
@@ -32,10 +33,13 @@ const model: Column = {
     accessorKey: "model",
     meta: {
         className: "w-[50px]",
+        preventDefault: true,
     },
     cell: ({ row: { original: item } }) => (
         <>
-            <TCell.Primary>{item.modelName}</TCell.Primary>
+            <Link href={`/community/model-template/${item?.slug}`}>
+                <TCell.Primary>{item.modelName}</TCell.Primary>
+            </Link>
         </>
     ),
 };

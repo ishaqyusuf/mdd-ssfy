@@ -2,6 +2,7 @@
 import { AuthGuard } from "../auth-guard";
 import { SearchModal } from "../search/search-modal";
 import { _perm } from "../sidebar/links";
+import { CommunityInventoryOverviewSheet } from "./community-inventory-overview";
 import { CustomerCreateSheet } from "./customer-create-sheet";
 import { CustomerOverviewSheet } from "./customer-overview-sheet";
 import { InboundOverviewSheet } from "./inbound-overview-sheet";
@@ -28,6 +29,7 @@ export function GlobalSheets({}) {
             <InventoryProductSheet />
             <InventoryInboundSheet />
             <InventoryCategorySheet />
+            <CommunityInventoryOverviewSheet />
         </>
     );
 }

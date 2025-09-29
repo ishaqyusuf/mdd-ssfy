@@ -28,7 +28,7 @@ export default async function Page(props: Props) {
     ]);
     return (
         <div className="flex flex-col gap-6">
-            <PageTitle>CommunityTemplate</PageTitle>
+            <PageTitle>Community Template</PageTitle>
             <CommunityTemplateHeader />
             <ErrorBoundary errorComponent={ErrorFallback}>
                 <Suspense fallback={<TableSkeleton />}>

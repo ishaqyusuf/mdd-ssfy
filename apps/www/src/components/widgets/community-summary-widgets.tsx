@@ -17,10 +17,10 @@ export default async function CommunitySummaryWidgets() {
                 <CommunityHomesSummary />
             </Suspense>
             <Suspense fallback={<SummaryCardSkeleton />}>
-                <InventoryStockLevel />
+                <CommunityHomesSummary />
             </Suspense>
             <Suspense fallback={<SummaryCardSkeleton />}>
-                <InventoryCategories />
+                <CommunityHomesSummary />
             </Suspense>
         </div>
     );
