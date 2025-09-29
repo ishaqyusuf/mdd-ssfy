@@ -63,7 +63,7 @@ function Content() {
         <div className="pb-36">
             <PageTitle>{ctx?.modelSlug || "Template Schema"}</PageTitle>
 
-            {/* <Sortable.Root
+            <Sortable.Root
                 orientation="vertical"
                 collisionDetection={closestCorners}
                 value={fields}
@@ -71,15 +71,11 @@ function Content() {
                 onValueChange={_reorderList}
             >
                 <Sortable.Content className="grid gap-4">
-                    {fields.map((block) => (
-                        <SchemaBlock
-                            key={block._id}
-                            blockId={block?.id}
-                            block={block}
-                        />
+                    {fields.map((field) => (
+                        <SchemaBlock key={field._id} block={field} />
                     ))}
                 </Sortable.Content>
-            </Sortable.Root> */}
+            </Sortable.Root>
         </div>
     );
 }

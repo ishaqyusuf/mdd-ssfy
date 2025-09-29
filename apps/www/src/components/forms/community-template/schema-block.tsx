@@ -27,7 +27,6 @@ import { AddInput } from "./add-input";
 import { useCommunityInventoryParams } from "@/hooks/use-community-inventory-params";
 
 interface Props {
-    blockId: number;
     block?;
     children?;
     savingSort?;
@@ -37,7 +36,7 @@ export function SchemaBlock(props: Props) {
         <Suspense fallback={<Skeletons.Dashboard />}>
             <SchemaBlockProvider
                 value={createSchemaBlockContext({
-                    blockId: props.blockId,
+                    blockId: props.block.id,
                 })}
             >
                 <FormCard {...props} />

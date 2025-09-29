@@ -108,7 +108,13 @@ export async function PdfTemplate(props: Props) {
             flexDirection: "column",
             justifyContent: "flex-end",
           }}
-        ></View>
+        >
+          {[...Array(100)].map((a, ai) => (
+            <Text key={ai} style={{ fontSize: 9, fontWeight: 500 }}>
+              Hello
+            </Text>
+          ))}
+        </View>
         <View style={{ flexDirection: "row", marginTop: 20 }}>
           <View style={{ flex: 1, marginRight: 10 }}>
             {qrCode && <QRCode data={qrCode} />}

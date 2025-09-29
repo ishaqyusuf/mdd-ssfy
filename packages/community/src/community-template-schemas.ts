@@ -1,8 +1,9 @@
-import { Db } from "@gnd/db";
+// import { Db } from "@gnd/db";
 import { sortList } from "@gnd/utils";
 import { inventoryCategories, saveInventory } from "@sales/inventory";
 import { z } from "zod";
 
+type Db = any;
 export const createCommunityTemplateBlockSchema = z.object({
   title: z.string(),
   categoryId: z.number(),
