@@ -63,7 +63,7 @@ function Content() {
         <div className="pb-36">
             <PageTitle>{ctx?.modelSlug || "Template Schema"}</PageTitle>
 
-            <Sortable.Root
+            {/* <Sortable.Root
                 orientation="vertical"
                 collisionDetection={closestCorners}
                 value={fields}
@@ -79,7 +79,7 @@ function Content() {
                         />
                     ))}
                 </Sortable.Content>
-            </Sortable.Root>
+            </Sortable.Root> */}
         </div>
     );
 }
