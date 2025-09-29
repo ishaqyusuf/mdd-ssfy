@@ -1,0 +1,122 @@
+import { Document, Font, Image, Page, Text, View } from "@react-pdf/renderer";
+import QRCodeUtil from "qrcode";
+import { QRCode } from "./components/qr-code";
+
+Font.register({
+  family: "Inter",
+  fonts: [
+    {
+      src: "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfMZhrib2Bg-4.ttf",
+      fontWeight: 400,
+    },
+    {
+      src: "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuI6fMZhrib2Bg-4.ttf",
+      fontWeight: 500,
+    },
+    {
+      src: "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYMZhrib2Bg-4.ttf",
+      fontWeight: 600,
+    },
+    {
+      src: "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuFuYMZhrib2Bg-4.ttf",
+      fontWeight: 700,
+    },
+    // Italic fonts
+    {
+      src: "https://fonts.gstatic.com/s/inter/v19/UcCM3FwrK3iLTcvneQg7Ca725JhhKnNqk4j1ebLhAm8SrXTc2dthjQ.ttf",
+      fontWeight: 400,
+      fontStyle: "italic",
+    },
+    {
+      src: "https://fonts.gstatic.com/s/inter/v19/UcCM3FwrK3iLTcvneQg7Ca725JhhKnNqk4j1ebLhAm8SrXTc69thjQ.ttf",
+      fontWeight: 500,
+      fontStyle: "italic",
+    },
+    {
+      src: "https://fonts.gstatic.com/s/inter/v19/UcCM3FwrK3iLTcvneQg7Ca725JhhKnNqk4j1ebLhAm8SrXTcB9xhjQ.ttf",
+      fontWeight: 600,
+      fontStyle: "italic",
+    },
+    {
+      src: "https://fonts.gstatic.com/s/inter/v19/UcCM3FwrK3iLTcvneQg7Ca725JhhKnNqk4j1ebLhAm8SrXTcPtxhjQ.ttf",
+      fontWeight: 700,
+      fontStyle: "italic",
+    },
+  ],
+});
+interface Props {
+  template: {
+    logoUrl?: string;
+    size: "LETTER" | "A4";
+  };
+}
+export async function PdfTemplate(props: Props) {
+  const { template } = props;
+  let qrCode: any = null;
+
+  //   if (template.includeQr) {
+  qrCode = await QRCodeUtil.toDataURL(`https://app.midday.ai/i/abc`, {
+    margin: 0,
+    width: 40 * 3,
+  });
+  //   }
+
+  return (
+    <Document>
+      <Page
+        wrap
+        size={template.size.toUpperCase() as "LETTER" | "A4"}
+        style={{
+          padding: 20,
+          backgroundColor: "#fff",
+          color: "#000",
+          fontFamily: "Inter",
+          fontWeight: 400,
+        }}
+      >
+        <View
+          style={{
+            marginBottom: 20,
+            flexDirection: "row",
+            justifyContent: "space-between",
+          }}
+        >
+          {template?.logoUrl && (
+            <div style={{ maxWidth: "300px" }}>
+              <Image
+                src={template.logoUrl}
+                style={{
+                  height: 75,
+                  objectFit: "contain",
+                }}
+              />
+            </div>
+          )}
+        </View>
+
+        <View style={{ flexDirection: "row", marginTop: 20 }}>
+          <View style={{ flex: 1, marginRight: 10 }}>
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{ fontSize: 9, fontWeight: 500 }}>Hello</Text>
+            </View>
+          </View>
+        </View>
+
+        <View
+          style={{
+            flex: 1,
+            flexDirection: "column",
+            justifyContent: "flex-end",
+          }}
+        ></View>
+        <View style={{ flexDirection: "row", marginTop: 20 }}>
+          <View style={{ flex: 1, marginRight: 10 }}>
+            {qrCode && <QRCode data={qrCode} />}
+          </View>
+
+          <View style={{ flex: 1, marginLeft: 10 }}></View>
+        </View>
+      </Page>
+    </Document>
+  );
+}
