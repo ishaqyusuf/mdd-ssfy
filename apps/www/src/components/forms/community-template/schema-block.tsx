@@ -97,18 +97,18 @@ function FormContent({}) {
     const _reorderList = (newFields: typeof fields) => {
         console.log(newFields);
         return;
-        reorderList({
-            newFields,
-            oldFields: fields,
-            swap,
-        });
-        mutate({
-            recordName: "communityTemplateInputConfig",
-            records: newFields.map((f, i) => ({
-                id: f.id,
-                index: i,
-            })),
-        });
+        // reorderList({
+        //     newFields,
+        //     oldFields: fields,
+        //     swap,
+        // });
+        // mutate({
+        //     recordName: "communityTemplateInputConfig",
+        //     records: newFields.map((f, i) => ({
+        //         id: f.id,
+        //         index: i,
+        //     })),
+        // });
     };
 
     return (
