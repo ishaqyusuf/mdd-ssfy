@@ -1,6 +1,7 @@
 "use client";
 import {
     createTemplateBlocksContext,
+    CreateTemplateBlocksContextProps,
     TemplateBlocksProvider,
     useTemplateBlocksContext,
 } from "./context";
@@ -20,11 +21,14 @@ import * as Sortable from "@gnd/ui/sortable-2";
 import { closestCorners } from "@dnd-kit/core";
 import { cn } from "@gnd/ui/cn";
 
-export function SchemaForm({ children }) {
+interface Props extends CreateTemplateBlocksContextProps {
+    children?;
+}
+export function CommunityTemplateForm({ children, ...props }: Props) {
     return (
-        <TemplateBlocksProvider value={createTemplateBlocksContext()}>
-            <Content />
+        <TemplateBlocksProvider value={createTemplateBlocksContext(props)}>
             {children}
+            <Content />
         </TemplateBlocksProvider>
     );
 }

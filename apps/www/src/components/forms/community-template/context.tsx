@@ -14,7 +14,12 @@ type TemplateBlocksContext = ReturnType<typeof createTemplateBlocksContext>;
 export const TemplateBlocksContext =
     createContext<TemplateBlocksContext>(undefined);
 export const TemplateBlocksProvider = TemplateBlocksContext.Provider;
-export const createTemplateBlocksContext = () => {
+export interface CreateTemplateBlocksContextProps {
+    modelSlug?: string;
+}
+export const createTemplateBlocksContext = (
+    props: CreateTemplateBlocksContextProps,
+) => {
     const trpc = useTRPC();
     const { data, isPending } = useSuspenseQuery(
         trpc.community.getCommunitySchema.queryOptions({}),
@@ -37,6 +42,7 @@ export const createTemplateBlocksContext = () => {
         form,
         isReorderable: true,
         blockInputs: blockInputData?.inputs,
+        ...props,
     };
 };
 export const useTemplateBlocksContext = () => {

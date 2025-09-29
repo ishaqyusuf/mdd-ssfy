@@ -9,34 +9,28 @@ import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 import { CommunityTemplateForm } from "@/components/forms/community-template/community-template-form";
 import Portal from "@gnd/ui/custom/portal";
+import { ModelTemplateHeader } from "@/components/model-template-header";
 
 export async function generateMetadata(props) {
     return constructMetadata({
-        title: "Template Schema | GND",
+        title: "Model Template | GND",
     });
 }
 type Props = {
     searchParams: Promise<SearchParams>;
-    params: Promise<SearchParams>;
 };
 export default async function Page(props: Props) {
-    const params = await props.params;
+    const searchParams = await props.searchParams;
 
     batchPrefetch([]);
     return (
         <HydrateClient>
             <div className="flex flex-col p-4 gap-6">
                 <PageTitle>Template Schema</PageTitle>
-                <div className="flex">
-                    <div className="flex-1"></div>
-                    <div id="blockAction" />
-                </div>
                 <ErrorBoundary errorComponent={ErrorFallback}>
                     <Suspense fallback={<Skeletons.Dashboard />}>
-                        <CommunityTemplateForm modelSlug={params.slug as any}>
-                            <Portal nodeId="blockAction">
-                                <NewBlockAction />
-                            </Portal>
+                        <CommunityTemplateForm>
+                            <NewBlockAction />
                         </CommunityTemplateForm>
                     </Suspense>
                 </ErrorBoundary>
