@@ -16,7 +16,7 @@ import { HomeTemplateDesign, IHomeTemplate } from "@/types/community";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 
-import { Button } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import {
@@ -34,6 +34,8 @@ import {
     LockHardwareForm,
 } from "./model-sections";
 import TemplateHistoryModal from "./version-history-modal";
+import Link from "next/link";
+import { cn } from "@gnd/ui/cn";
 
 interface Props {
     data: GetCommunityTemplate;
@@ -104,6 +106,12 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                         <Btn size="sm" isLoading={isSaving} onClick={save}>
                             Save
                         </Btn>
+                        <Link
+                            className={cn(buttonVariants({}))}
+                            href={`/community/model-template/${data?.slug}`}
+                        >
+                            New Template
+                        </Link>
                     </>
                 )}
             />

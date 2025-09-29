@@ -16,6 +16,7 @@ export const TemplateBlocksContext =
 export const TemplateBlocksProvider = TemplateBlocksContext.Provider;
 export interface CreateTemplateBlocksContextProps {
     modelSlug?: string;
+    print?: boolean;
 }
 export const createTemplateBlocksContext = (
     props: CreateTemplateBlocksContextProps,
@@ -40,7 +41,9 @@ export const createTemplateBlocksContext = (
     return {
         ...(data || {}),
         form,
-        isReorderable: true,
+        templateEditMode: !props.modelSlug,
+        modelEditMode: !!props.modelSlug,
+        printMode: !!props.modelSlug && props.print,
         blockInputs: blockInputData?.inputs,
         ...props,
     };
@@ -90,7 +93,6 @@ export const createSchemaBlockContext = (props: SchemaBlockProps) => {
         ...props,
         fields,
         swap,
-        isReorderable: true,
     };
 };
 export const useSchemaBlockContext = () => {

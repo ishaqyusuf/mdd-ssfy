@@ -4,6 +4,7 @@ import {
     createSchemaBlockContext,
     SchemaBlockProvider,
     useSchemaBlockContext,
+    useTemplateBlocksContext,
 } from "./context";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { reorderList } from "@gnd/utils";
@@ -19,13 +20,16 @@ import { useForm } from "react-hook-form";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Popover } from "@gnd/ui/composite";
 import { Button } from "@gnd/ui/button";
-import { Form } from "@gnd/ui/form";
-import { inputSizes } from "@community/utils";
-import { SubmitButton } from "@/components/submit-button";
+import { Card } from "@gnd/ui/composite";
+import { TemplateInputConfig } from "./template-input-config";
+import { ModelInput } from "./model-input";
+import { AddInput } from "./add-input";
 
 interface Props {
     blockId: number;
+    block?;
     children?;
+    savingSort?;
 }
 export function SchemaBlock(props: Props) {
     return (
@@ -35,16 +39,52 @@ export function SchemaBlock(props: Props) {
                     blockId: props.blockId,
                 })}
             >
-                <FormContent />
+                <FormCard {...props} />
+
                 {props.children}
             </SchemaBlockProvider>
         </Suspense>
     );
 }
+function FormCard(props: Props) {
+    const { block, savingSort } = props;
+    const ctx = useTemplateBlocksContext();
+    const { templateEditMode } = ctx;
 
+    return (
+        <Sortable.Item
+            value={block.id}
+            key={block._id}
+            asChild
+            className={cn(savingSort && "grayscale", "group")}
+        >
+            <Card.Root>
+                <Card.Header>
+                    <Card.Title className="flex gap-4 items-center">
+                        {!templateEditMode || (
+                            <Sortable.ItemHandle>
+                                <Icons.DragIndicator className="size-5 text-[#878787]" />
+                            </Sortable.ItemHandle>
+                        )}
+                        {block?.title}
+                        <div className="flex-1"></div>
+                        <AddInput />
+                    </Card.Title>
+                </Card.Header>
+                <Card.Content>
+                    <FormContent />
+                </Card.Content>
+            </Card.Root>
+        </Sortable.Item>
+    );
+}
 function FormContent({}) {
     const blk = useSchemaBlockContext();
-    const { fields, swap, isReorderable } = blk;
+
+    const ctx = useTemplateBlocksContext();
+    const { templateEditMode } = ctx;
+
+    const { fields, swap } = blk;
     const { mutate, isPending: savingSort } = useMutation(
         _trpc.community.updateRecordsIndicesIndices.mutationOptions({
             meta: null,
@@ -67,6 +107,7 @@ function FormContent({}) {
             })),
         });
     };
+    if (!templateEditMode && !fields?.length) return null;
     return (
         <Sortable.Root
             orientation="mixed"
@@ -90,17 +131,18 @@ function FormContent({}) {
     );
 }
 
-interface SchemaBlockInputProps {
+export interface SchemaBlockInputProps {
     input: RouterOutputs["community"]["getCommunityBlockSchema"]["inputConfigs"][number];
     savingSort?: boolean;
     onInputUpdated?;
 }
 function SchemaBlockInput(props: SchemaBlockInputProps) {
     const blk = useSchemaBlockContext();
-    // const { input } = props;
-    const { fields, swap, isReorderable } = blk;
+    const { fields, swap } = blk;
     const [data, setData] = useState(props.input);
     const [formOpen, onFormOpenChange] = useState(false);
+    const ctx = useTemplateBlocksContext();
+    const { templateEditMode, printMode, modelEditMode } = ctx;
     return (
         <Sortable.Item
             value={data.id}
@@ -113,7 +155,7 @@ function SchemaBlockInput(props: SchemaBlockInputProps) {
         >
             <div className="grid items-center grid-cols-6 gap-4">
                 <div className="col-span-1 flex justify-end items-center">
-                    {!isReorderable || (
+                    {!templateEditMode || (
                         <Sortable.ItemHandle>
                             <Icons.DragIndicator className="size-5 text-[#878787]" />
                         </Sortable.ItemHandle>
@@ -134,96 +176,38 @@ function SchemaBlockInput(props: SchemaBlockInputProps) {
                     </Label>
                 </div>
                 <div className="flex col-span-5 gap-2">
-                    <Skeleton className="w-full" />
-                    <Popover.Root
-                        open={formOpen}
-                        onOpenChange={onFormOpenChange}
-                    >
-                        <Popover.Trigger asChild>
-                            <Button size="sm" variant="secondary">
-                                <Icons.Edit className="size-4" />
-                            </Button>
-                        </Popover.Trigger>
-                        <Popover.Content className="w-80">
-                            <InputEditor
-                                onInputUpdated={(e) => {
-                                    setData(e);
-                                }}
-                                input={data}
-                            />
-                        </Popover.Content>
-                    </Popover.Root>
+                    {(modelEditMode && printMode) || (
+                        <>
+                            <ModelInput />
+                        </>
+                    )}
+                    {(modelEditMode && printMode) || <></>}
+                    {!templateEditMode || (
+                        <>
+                            <Skeleton className="w-full h-8" />
+                            <Popover.Root
+                                open={formOpen}
+                                onOpenChange={onFormOpenChange}
+                            >
+                                <Popover.Trigger asChild>
+                                    <Button size="sm" variant="secondary">
+                                        <Icons.Edit className="size-4" />
+                                    </Button>
+                                </Popover.Trigger>
+                                <Popover.Content className="w-80">
+                                    <TemplateInputConfig
+                                        onInputUpdated={(e) => {
+                                            setData(e);
+                                        }}
+                                        input={data}
+                                    />
+                                </Popover.Content>
+                            </Popover.Root>
+                        </>
+                    )}
                 </div>
             </div>
         </Sortable.Item>
-    );
-}
-
-function InputEditor(props: SchemaBlockInputProps) {
-    const { input } = props;
-    const form = useForm({
-        defaultValues: {
-            ...input,
-        },
-    });
-    const w = form.watch();
-    const onSubmit = () => {
-        mutate({
-            id: w.id,
-            columnSize: w.columnSize,
-        });
-    };
-    const { isPending, mutate } = useMutation(
-        _trpc.community.updateCommunityBlockInput.mutationOptions({
-            onSuccess(data, variables, context) {
-                props.onInputUpdated(form.getValues());
-            },
-        }),
-    );
-    return (
-        <div className="grid gap-4">
-            <div className="space-y-2">
-                <h4 className="leading-none font-medium">Input Config</h4>
-                <p className="text-muted-foreground text-sm">
-                    update how you interface with {`${input.title}`}
-                </p>
-            </div>
-            <Form {...form}>
-                <form
-                    className="grid gap-2"
-                    onSubmit={form.handleSubmit(onSubmit)}
-                >
-                    <div className="grid grid-cols-3 items-center gap-4">
-                        <Label htmlFor="width">Width</Label>
-                        <div className="col-span-2 border">
-                            {[...Array(4)].map((a, i) => (
-                                <Button
-                                    type="button"
-                                    key={i}
-                                    onClick={(e) => {
-                                        form.setValue("columnSize", i + 1);
-                                    }}
-                                    variant={
-                                        w?.columnSize >= i + 1
-                                            ? "secondary"
-                                            : "ghost"
-                                    }
-                                    size="sm"
-                                    className=""
-                                >
-                                    <span>{inputSizes[i]}</span>
-                                </Button>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="flex justify-end">
-                        <SubmitButton isSubmitting={isPending}>
-                            Save
-                        </SubmitButton>
-                    </div>
-                </form>
-            </Form>
-        </div>
     );
 }
 

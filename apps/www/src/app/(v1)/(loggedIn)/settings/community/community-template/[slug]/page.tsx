@@ -42,7 +42,6 @@ export default async function CommunityModelTemplatePage(props) {
                     title={
                         <div className="">
                             <span>Edit Community Model</span>
-                            <Link href="/">New Editor</Link>
                         </div>
                     }
                     data={response as any}

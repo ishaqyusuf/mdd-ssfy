@@ -18,18 +18,18 @@ export async function generateMetadata(props) {
 }
 type Props = {
     searchParams: Promise<SearchParams>;
+    params: Promise<SearchParams>;
 };
 export default async function Page(props: Props) {
-    const searchParams = await props.searchParams;
+    const params = await props.params;
 
     batchPrefetch([]);
     return (
         <HydrateClient>
             <div className="flex flex-col p-4 gap-6">
-                <PageTitle>Template Schema</PageTitle>
                 <ErrorBoundary errorComponent={ErrorFallback}>
                     <Suspense fallback={<Skeletons.Dashboard />}>
-                        <CommunityTemplateForm>
+                        <CommunityTemplateForm modelSlug={params.slug as any}>
                             <NewBlockAction />
                         </CommunityTemplateForm>
                     </Suspense>

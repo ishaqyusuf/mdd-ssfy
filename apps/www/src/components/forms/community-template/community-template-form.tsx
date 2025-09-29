@@ -8,10 +8,8 @@ import {
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
-import { Reorder } from "framer-motion";
 import { reorderList } from "@gnd/utils";
 import { useFieldArray } from "react-hook-form";
-import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useMutation } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
@@ -20,6 +18,7 @@ import { AddInput } from "./add-input";
 import * as Sortable from "@gnd/ui/sortable-2";
 import { closestCorners } from "@dnd-kit/core";
 import { cn } from "@gnd/ui/cn";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 
 interface Props extends CreateTemplateBlocksContextProps {
     children?;
@@ -38,7 +37,7 @@ function Content() {
     // useAfterState(inv.productId, () => {
     //     console.log("FINISHED");
     // });
-    const { isReorderable } = ctx;
+    const { templateEditMode } = ctx;
     const { fields, swap } = useFieldArray({
         control: ctx.form.control,
         name: "blocks",
@@ -66,61 +65,31 @@ function Content() {
     if (!ctx.blocks?.length) return <EmptyState />;
     return (
         <div className="pb-36">
+            {ctx.modelSlug}
             {/* <Reorder.Group
                 axis="y"
                 values={fields}
                 onReorder={_reorderList}
                 className="!m-0"
             > */}
+            <PageTitle>{ctx?.modelSlug || "Template Schema"}</PageTitle>
+
             <Sortable.Root
                 orientation="vertical"
                 collisionDetection={closestCorners}
                 value={fields}
                 getItemValue={(item) => item._id}
                 onValueChange={_reorderList}
+
                 // overlay={<div className="size-full rounded-md bg-primary/10" />}
             >
                 <Sortable.Content className="grid">
                     {fields.map((block) => (
-                        <Sortable.Item
-                            // value={block}
-                            // className="group"
-                            // key={block._id}
-                            value={block.id}
+                        <SchemaBlock
                             key={block._id}
-                            asChild
-                            className={cn(savingSort && "grayscale", "group")}
-                        >
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex gap-4 items-center">
-                                        <Sortable.ItemHandle>
-                                            <Icons.DragIndicator className="size-5 text-[#878787]" />
-                                        </Sortable.ItemHandle>
-                                        {/* {!isReorderable || (
-                                        <Button
-                                            type="button"
-                                            className="sopacity-0 group-hover:opacity-100 transition-opacity hover:bg-transparent cursor-grab"
-                                            // onPointerDown={(e) =>
-                                            //     controls.start(e)
-                                            // }
-                                            variant="ghost"
-                                        >
-                                            <Icons.DragIndicator className="size-5 text-[#878787]" />
-                                        </Button>
-                                    )} */}
-                                        {block?.title}
-                                        <div className="flex-1"></div>
-                                        <div id={`block${block.id}`} />
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <SchemaBlock blockId={block.id}>
-                                        <AddInput nodeId={`block${block.id}`} />
-                                    </SchemaBlock>
-                                </CardContent>
-                            </Card>
-                        </Sortable.Item>
+                            blockId={block.id}
+                            block={block}
+                        />
                     ))}
                 </Sortable.Content>
             </Sortable.Root>

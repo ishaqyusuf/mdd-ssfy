@@ -1,7 +1,6 @@
 import { Button } from "@gnd/ui/button";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { Menu } from "@gnd/ui/custom/menu";
-import Portal from "@gnd/ui/custom/portal";
 import { Icons } from "@gnd/ui/icons";
 import { useSchemaBlockContext, useTemplateBlocksContext } from "./context";
 import { useMutation } from "@tanstack/react-query";
@@ -13,7 +12,7 @@ interface CreateProps {
     uid?: string;
     title?: string;
 }
-export function AddInput({ nodeId }) {
+export function AddInput() {
     const blk = useSchemaBlockContext();
     const temp = useTemplateBlocksContext();
     const { blockInputs } = temp;
@@ -47,40 +46,38 @@ export function AddInput({ nodeId }) {
         "uid",
     );
     return (
-        <Portal nodeId={nodeId}>
-            <Menu
-                noSize
-                Trigger={
-                    <Button variant="secondary" size="sm">
-                        <Icons.Add className="" />
-                    </Button>
-                }
-            >
-                <ComboboxDropdown
-                    placeholder="Add community input"
-                    items={labelIdOptions(reusables, "title", "uid") as any}
-                    headless
-                    onSelect={(e) => {
-                        create({
-                            uid: e.id,
-                        });
-                    }}
-                    onCreate={(e) => {
-                        create({
-                            title: e,
-                        });
-                    }}
-                    searchPlaceholder="Find or create..."
-                    renderOnCreate={(value) => {
-                        return (
-                            <div className="flex items-center space-x-2">
-                                <span>{`Create "${value}"`}</span>
-                            </div>
-                        );
-                    }}
-                />
-            </Menu>
-        </Portal>
+        <Menu
+            noSize
+            Trigger={
+                <Button variant="secondary" size="sm">
+                    <Icons.Add className="" />
+                </Button>
+            }
+        >
+            <ComboboxDropdown
+                placeholder="Add community input"
+                items={labelIdOptions(reusables, "title", "uid") as any}
+                headless
+                onSelect={(e) => {
+                    create({
+                        uid: e.id,
+                    });
+                }}
+                onCreate={(e) => {
+                    create({
+                        title: e,
+                    });
+                }}
+                searchPlaceholder="Find or create..."
+                renderOnCreate={(value) => {
+                    return (
+                        <div className="flex items-center space-x-2">
+                            <span>{`Create "${value}"`}</span>
+                        </div>
+                    );
+                }}
+            />
+        </Menu>
     );
 }
 

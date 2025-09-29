@@ -33,7 +33,7 @@ export default async function Page(props: Props) {
                 </div>
                 <ErrorBoundary errorComponent={ErrorFallback}>
                     <Suspense fallback={<Skeletons.Dashboard />}>
-                        <CommunityTemplateForm modelSlug={params.slug as any}>
+                        <CommunityTemplateForm>
                             <Portal nodeId="blockAction">
                                 <NewBlockAction />
                             </Portal>

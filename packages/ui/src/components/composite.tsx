@@ -178,3 +178,25 @@ export {
   Sheet,
   Tabs,
 };
+import {
+  Card as CardRoot,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "./card";
+
+const Card = Object.assign(
+  {},
+  {
+    Root: CardRoot,
+    Header: CardHeader,
+    Footer: CardFooter,
+    Title: CardTitle,
+    Description: CardDescription,
+    Content: CardContent,
+  }
+);
+
+export { Card };
