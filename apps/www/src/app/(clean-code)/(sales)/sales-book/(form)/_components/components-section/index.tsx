@@ -71,6 +71,14 @@ export function ComponentsSection({ itemStepUid }: Props) {
     const [tab, setTab] = useState("doors");
     if (!isDoor) return <Content itemStepUid={itemStepUid} />;
     return (
+        <div className="grid gap-4">
+            <div className="flex flex-1 justify-end">
+                <DoorSupplierBadge itemStepUid={itemStepUid} />
+            </div>
+            <Content itemStepUid={itemStepUid} />
+        </div>
+    );
+    return (
         <SuperAdminGuard
             Fallback={
                 <div className="grid gap-4">
@@ -83,30 +91,25 @@ export function ComponentsSection({ itemStepUid }: Props) {
         >
             <div className="py-4">
                 <Tabs name="doors" value={tab} onValueChange={setTab}>
-                    <Tabs.Items
-                        className="px-4"
-                        TabItems={[
-                            <Tabs.Item index={0} key={0}>
-                                <span>Doors</span>
-                                <Tabs.Content>
-                                    <Content itemStepUid={itemStepUid} />
-                                </Tabs.Content>
-                            </Tabs.Item>,
-                            <Tabs.Item index={1} key={1}>
-                                <span>Suppliers</span>
-                                <Tabs.Content>
-                                    <div className="min-h-screen">
-                                        <DoorSuppliers
-                                            itemStepUid={itemStepUid}
-                                        />
-                                    </div>
-                                </Tabs.Content>
-                            </Tabs.Item>,
-                            <div className="flex flex-1 justify-end" key={2}>
-                                <DoorSupplierBadge itemStepUid={itemStepUid} />
-                            </div>,
-                        ]}
-                    ></Tabs.Items>
+                    <Tabs.Items className="px-4">
+                        <Tabs.Item value="doors">
+                            <span>Doors</span>
+                            <Tabs.Content>
+                                <Content itemStepUid={itemStepUid} />
+                            </Tabs.Content>
+                        </Tabs.Item>
+                        <Tabs.Item value="suppliers">
+                            <span>Suppliers</span>
+                            <Tabs.Content>
+                                <div className="min-h-screen">
+                                    <DoorSuppliers itemStepUid={itemStepUid} />
+                                </div>
+                            </Tabs.Content>
+                        </Tabs.Item>
+                        <div className="flex flex-1 justify-end">
+                            <DoorSupplierBadge itemStepUid={itemStepUid} />
+                        </div>
+                    </Tabs.Items>
                     {/* <TabsList>
                     <TabsTrigger value="doors">Doors</TabsTrigger>
                     <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
