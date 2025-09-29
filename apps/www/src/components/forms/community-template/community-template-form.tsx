@@ -7,17 +7,13 @@ import {
 } from "./context";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
-import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { reorderList } from "@gnd/utils";
 import { useFieldArray } from "react-hook-form";
-import { Icons } from "@gnd/ui/icons";
 import { useMutation } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
 import { SchemaBlock } from "./schema-block";
-import { AddInput } from "./add-input";
 import * as Sortable from "@gnd/ui/sortable-2";
 import { closestCorners } from "@dnd-kit/core";
-import { cn } from "@gnd/ui/cn";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 
 interface Props extends CreateTemplateBlocksContextProps {
@@ -65,13 +61,6 @@ function Content() {
     if (!ctx.blocks?.length) return <EmptyState />;
     return (
         <div className="pb-36">
-            {ctx.modelSlug}
-            {/* <Reorder.Group
-                axis="y"
-                values={fields}
-                onReorder={_reorderList}
-                className="!m-0"
-            > */}
             <PageTitle>{ctx?.modelSlug || "Template Schema"}</PageTitle>
 
             <Sortable.Root
@@ -80,10 +69,8 @@ function Content() {
                 value={fields}
                 getItemValue={(item) => item._id}
                 onValueChange={_reorderList}
-
-                // overlay={<div className="size-full rounded-md bg-primary/10" />}
             >
-                <Sortable.Content className="grid">
+                <Sortable.Content className="grid gap-4">
                     {fields.map((block) => (
                         <SchemaBlock
                             key={block._id}
@@ -93,7 +80,6 @@ function Content() {
                     ))}
                 </Sortable.Content>
             </Sortable.Root>
-            {/* </Reorder.Group> */}
         </div>
     );
 }

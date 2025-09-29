@@ -3,7 +3,7 @@ import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 export function ModelInput() {
     return (
         <ComboboxDropdown
-            placeholder="Search or Create..."
+            placeholder=""
             items={[]}
             onSelect={(e) => {}}
             onCreate={(e) => {}}
@@ -18,3 +18,4 @@ export function ModelInput() {
         />
     );
 }
+

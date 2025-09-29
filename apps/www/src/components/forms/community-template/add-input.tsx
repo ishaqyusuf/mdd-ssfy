@@ -16,6 +16,8 @@ export function AddInput() {
     const blk = useSchemaBlockContext();
     const temp = useTemplateBlocksContext();
     const { blockInputs } = temp;
+    const { modelEditMode, printMode, templateEditMode } = temp;
+
     const { mutate } = useMutation(
         _trpc.inventories.createCommunityInput.mutationOptions({
             onSuccess(data, variables, context) {
@@ -45,6 +47,7 @@ export function AddInput() {
         })),
         "uid",
     );
+    if (!templateEditMode) return null;
     return (
         <Menu
             noSize

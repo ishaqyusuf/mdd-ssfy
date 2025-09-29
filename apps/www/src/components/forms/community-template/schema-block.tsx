@@ -49,8 +49,10 @@ export function SchemaBlock(props: Props) {
 function FormCard(props: Props) {
     const { block, savingSort } = props;
     const ctx = useTemplateBlocksContext();
+    const blk = useSchemaBlockContext();
+    const { fields, swap } = blk;
     const { templateEditMode } = ctx;
-
+    if (!templateEditMode && !fields?.length) return null;
     return (
         <Sortable.Item
             value={block.id}
@@ -107,7 +109,7 @@ function FormContent({}) {
             })),
         });
     };
-    if (!templateEditMode && !fields?.length) return null;
+
     return (
         <Sortable.Root
             orientation="mixed"
