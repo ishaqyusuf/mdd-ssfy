@@ -26,7 +26,6 @@ export default async function Page(props: Props) {
     return (
         <HydrateClient>
             <div className="flex flex-col p-4 gap-6">
-                <PageTitle>Template Schema</PageTitle>
                 <div className="flex">
                     <div className="flex-1"></div>
                     <div id="blockAction" />

@@ -1,6 +1,10 @@
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
+import { useTemplateBlocksContext } from "./context";
 
 export function ModelInput() {
+    const ctx = useTemplateBlocksContext();
+    const { modelEditMode, printMode, templateEditMode } = ctx;
+    if (templateEditMode) return null;
     return (
         <ComboboxDropdown
             placeholder=""

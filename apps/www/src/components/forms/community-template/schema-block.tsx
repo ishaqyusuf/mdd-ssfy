@@ -145,6 +145,7 @@ function SchemaBlockInput(props: SchemaBlockInputProps) {
     const [formOpen, onFormOpenChange] = useState(false);
     const ctx = useTemplateBlocksContext();
     const { templateEditMode, printMode, modelEditMode } = ctx;
+    const openAnalytics = () => {};
     return (
         <Sortable.Item
             value={data.id}
@@ -173,7 +174,10 @@ function SchemaBlockInput(props: SchemaBlockInputProps) {
                         // </Button>
                     )}
                     {/* <div className="flex-1"></div> */}
-                    <Label className="whitespace-nowrap">
+                    <Label
+                        onClick={openAnalytics}
+                        className="whitespace-nowrap"
+                    >
                         {data.title || data.inv.name}
                     </Label>
                 </div>
