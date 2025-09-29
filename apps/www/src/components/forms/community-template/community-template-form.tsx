@@ -62,24 +62,6 @@ function Content() {
     return (
         <div className="pb-36">
             <PageTitle>{ctx?.modelSlug || "Template Schema"}</PageTitle>
-
-            <Sortable.Root
-                orientation="vertical"
-                collisionDetection={closestCorners}
-                value={fields}
-                getItemValue={(item) => item._id}
-                onValueChange={_reorderList}
-            >
-                <Sortable.Content className="grid gap-4">
-                    {fields.map((block) => (
-                        <SchemaBlock
-                            key={block._id}
-                            blockId={block?.id}
-                            block={block}
-                        />
-                    ))}
-                </Sortable.Content>
-            </Sortable.Root>
         </div>
     );
 }
