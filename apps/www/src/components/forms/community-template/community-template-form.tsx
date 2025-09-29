@@ -47,7 +47,7 @@ function Content() {
         });
         mutate({
             recordName: "communityTemplateBlockConfig",
-            records: newFields.map((f, i) => ({
+            records: (newFields as any).map((f, i) => ({
                 id: f.id,
                 index: i,
             })),
