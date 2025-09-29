@@ -176,7 +176,7 @@ interface TabContentProps {
 }
 function TabContent(props: TabContentProps) {
   const tabItem = useTabItem();
-  if (!tabItem.active) return null;
+  if (!tabItem?.active) return null;
   return (
     <Portal noDelay nodeId={"tabContents"}>
       {props.children}
