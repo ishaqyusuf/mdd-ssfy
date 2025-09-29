@@ -265,15 +265,16 @@ model CommunityTemplateBlockConfig {
 }
 
 model CommunityTemplateInputConfig {
-    id         Int     @unique @default(autoincrement())
+    id         Int       @unique @default(autoincrement())
     uid        String //=inventory uid
-    index      Float   @default(0)
+    valueUid   String?
+    index      Float     @default(0)
     columnSize Float?
     title      String?
-
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
+    meta       Json?
+    createdAt  DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime? @updatedAt
+    deletedAt  DateTime? @db.Timestamp(0)
 
     blockConfig                    CommunityTemplateBlockConfig @relation(fields: [communityTemplateBlockConfigId], references: [id])
     communityTemplateBlockConfigId Int

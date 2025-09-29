@@ -61,7 +61,9 @@ export function AddInput({ nodeId }) {
                     items={labelIdOptions(reusables, "uid", "title")}
                     headless
                     onSelect={(e) => {
-                        console.log(e);
+                        create({
+                            uid: e.id,
+                        });
                     }}
                     onCreate={(e) => {
                         create({

@@ -1,5 +1,5 @@
 import { Skeletons } from "@gnd/ui/custom/skeletons";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import {
     createSchemaBlockContext,
     SchemaBlockProvider,
@@ -50,7 +50,7 @@ function FormContent({}) {
             meta: null,
         }),
     );
-    if (!blk.fields?.length) return <EmptyState onCreate={(e) => {}} />;
+    if (!blk.fields?.length) return <EmptyState />;
     const _reorderList = (newFields: typeof fields) => {
         console.log(newFields);
         return;

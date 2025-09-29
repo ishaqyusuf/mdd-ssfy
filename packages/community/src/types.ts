@@ -1,3 +1,5 @@
+export interface TemplateInputMeta {}
+
 export type ProjectMeta = {
   supervisor: {
     name;

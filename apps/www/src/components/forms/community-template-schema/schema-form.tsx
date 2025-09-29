@@ -59,9 +59,9 @@ function Content() {
             meta: null,
         }),
     );
-    if (!ctx.blocks?.length) return <EmptyState onCreate={(e) => {}} />;
+    if (!ctx.blocks?.length) return <EmptyState />;
     return (
-        <div className="">
+        <div className="pb-36">
             {/* <Reorder.Group
                 axis="y"
                 values={fields}
