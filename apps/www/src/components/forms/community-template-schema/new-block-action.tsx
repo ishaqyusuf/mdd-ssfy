@@ -1,7 +1,6 @@
 "use client";
 import Button from "@/components/common/button";
 import { SubmitButton } from "@/components/submit-button";
-import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { createCommunityTemplateBlockSchema } from "@community/community-template-schemas";
 import { Popover } from "@gnd/ui/composite";

@@ -7,7 +7,7 @@ import { useSchemaBlockContext, useTemplateBlocksContext } from "./context";
 import { useMutation } from "@tanstack/react-query";
 import { _invalidate, _qc, _trpc } from "@/components/static-trpc";
 import { uniqueList } from "@gnd/utils";
-import { labelIdOptions, labelValue } from "@/lib/utils";
+import { labelIdOptions } from "@/lib/utils";
 
 interface CreateProps {
     uid?: string;
