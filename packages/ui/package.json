@@ -39,6 +39,7 @@
     "./controls/form-select": "./src/components/controls/form-select.tsx",
     "./controls/form-switch": "./src/components/controls/form-switch.tsx",
     "./controls/submit-button": "./src/components/controls/submit-button.tsx",
+    "./*": "./src/components/*.tsx",
     "./animated-size-container": "./src/components/animated-size-container.tsx",
     "./accordion": "./src/components/accordion.tsx",
     "./alert-dialog": "./src/components/alert-dialog.tsx",

@@ -5,6 +5,7 @@ import {
   inventoryCategories,
   saveInventory,
 } from "@sales/inventory";
+import { id } from "date-fns/locale";
 import { z } from "zod";
 
 /*
@@ -113,11 +114,13 @@ export async function getCommunityBlockSchema(
       uid: true,
       id: true,
       index: true,
+
       inputConfigs: {
         where: {
           deletedAt: null,
         },
         select: {
+          title: true,
           id: true,
           uid: true,
           columnSize: true,
@@ -150,6 +153,7 @@ export async function getCommunityBlockSchema(
     ),
   };
 }
+
 export const getBlockInputsSchema = z.object({
   // blockId: z.number(),
 });

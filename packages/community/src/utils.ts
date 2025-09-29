@@ -9,3 +9,4 @@ export function getPivotModel(model) {
     .join(" ");
   return pivotM;
 }
+export const inputSizes = ["xs", "sm", "md", "lg"];
