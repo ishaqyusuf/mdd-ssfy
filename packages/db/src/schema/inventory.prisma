@@ -17,8 +17,12 @@ model InventoryCategory {
     categoryVariantAttributes          InventoryCategoryVariantAttribute[] @relation(name: "inventoryCategory")
     attributedCategoryVariantAttribute InventoryCategoryVariantAttribute[] @relation(name: "valuesInventoryCategory")
 
-    subComponents      SubComponents[]      @relation(name: "subComponents")
+    subComponents SubComponents[] @relation(name: "subComponents")
     // asSubComponents SubComponents[]   @relation(name: "asSubComponents")
+
+    //for community inputs
+    communityTemplateModelInputs CommunityTemplateModelInput[]
+
     createdAt          DateTime?            @default(now()) @db.Timestamp(0)
     updatedAt          DateTime?            @updatedAt
     deletedAt          DateTime?            @db.Timestamp(0)
@@ -111,6 +115,9 @@ model Inventory {
     productMetrics  ProductMetric?
     FeaturedProduct FeaturedProduct[]
     linePricings    LinePricing[]
+
+    //for community inputs
+    communityTemplateModelInputs CommunityTemplateModelInput[]
 
     @@index([inventoryCategoryId])
     @@index([discountId])

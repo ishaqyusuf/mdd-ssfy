@@ -7,7 +7,7 @@ import {
 } from "./context";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { reorderList } from "@gnd/utils";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
 import { Label } from "@gnd/ui/label";
 import { Skeleton } from "@gnd/ui/skeleton";
@@ -195,7 +195,7 @@ function InputEditor(props: SchemaBlockInputProps) {
                 >
                     <div className="grid grid-cols-3 items-center gap-4">
                         <Label htmlFor="width">Width</Label>
-                        <div className="col-span-2">
+                        <div className="col-span-2 border">
                             {[...Array(4)].map((a, i) => (
                                 <Button
                                     type="button"

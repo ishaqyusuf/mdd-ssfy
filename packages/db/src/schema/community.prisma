@@ -224,15 +224,41 @@ model CommunityModels {
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    slug    String                     @unique @db.VarChar(255)
-    project Projects                   @relation(fields: [projectId], references: [id])
+    slug    String                        @unique @db.VarChar(255)
+    project Projects                      @relation(fields: [projectId], references: [id])
     homes   Homes[]
     history CommunityTemplateHistory[]
     costs   CommunityModelCost[]
-    pivot   CommunityModelPivot?       @relation(fields: [pivotId], references: [id])
+    pivot   CommunityModelPivot?          @relation(fields: [pivotId], references: [id])
+    inputs  CommunityTemplateModelInput[]
 
     @@index([pivotId])
     @@index([projectId])
+}
+
+model CommunityTemplateModelInput {
+    id        Int       @unique @default(autoincrement())
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+    value     Float?    @default(1)
+
+    communityModel   CommunityModels @relation(fields: [communityModelId], references: [id])
+    communityModelId Int
+
+    category            InventoryCategory? @relation(fields: [inventoryCategoryId], references: [id])
+    inventoryCategoryId Int?
+
+    inputConfig   CommunityTemplateInputConfig @relation(fields: [inputConfigId], references: [id])
+    inputConfigId Int
+
+    inventory   Inventory? @relation(fields: [inventoryId], references: [id])
+    inventoryId Int?
+
+    @@index([communityModelId])
+    @@index([inventoryCategoryId])
+    @@index([inventoryId])
+    @@index([inputConfigId])
 }
 
 model CommunityTemplateHistory {
@@ -266,8 +292,8 @@ model CommunityTemplateBlockConfig {
 
 model CommunityTemplateInputConfig {
     id         Int       @unique @default(autoincrement())
-    uid        String //=inventory uid
-    valueUid   String?
+    uid        String //categoryUid
+    valueUid   String? //valueCategoryUid
     index      Float     @default(0)
     columnSize Float?
     title      String?
@@ -278,6 +304,8 @@ model CommunityTemplateInputConfig {
 
     blockConfig                    CommunityTemplateBlockConfig @relation(fields: [communityTemplateBlockConfigId], references: [id])
     communityTemplateBlockConfigId Int
+
+    modelInputs CommunityTemplateModelInput[]
 
     @@index([communityTemplateBlockConfigId])
 }
