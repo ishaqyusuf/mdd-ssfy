@@ -58,7 +58,7 @@ export function AddInput({ nodeId }) {
             >
                 <ComboboxDropdown
                     placeholder="Add community input"
-                    items={labelIdOptions(reusables, "title", "uid")}
+                    items={labelIdOptions(reusables, "title", "uid") as any}
                     headless
                     onSelect={(e) => {
                         create({
