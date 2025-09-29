@@ -8,6 +8,7 @@ import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 import { SchemaForm } from "@/components/forms/community-template-schema/schema-form";
+import Portal from "@gnd/ui/custom/portal";
 
 export async function generateMetadata(props) {
     return constructMetadata({
@@ -27,11 +28,15 @@ export default async function Page(props: Props) {
                 <PageTitle>Template Schema</PageTitle>
                 <div className="flex">
                     <div className="flex-1"></div>
-                    <NewBlockAction />
+                    <div id="blockAction" />
                 </div>
                 <ErrorBoundary errorComponent={ErrorFallback}>
                     <Suspense fallback={<Skeletons.Dashboard />}>
-                        <SchemaForm />
+                        <SchemaForm>
+                            <Portal nodeId="blockAction">
+                                <NewBlockAction />
+                            </Portal>
+                        </SchemaForm>
                     </Suspense>
                 </ErrorBoundary>
             </div>

@@ -50,7 +50,17 @@ export function textValue<T extends object>(
 ) {
     return { text, value: value || text, ...extras };
 }
-
+export function labelIdOptions<T>(list: T[], id?: keyof T, label?: keyof T) {
+    if (!list?.length) return [];
+    return list.map((l) => {
+        if (typeof l == "string") return { label: l, id: l, data: l };
+        return {
+            label: l[label],
+            id: String(l[id]),
+            data: l,
+        };
+    });
+}
 export function keyValue(key, value) {
     return { key, value };
 }

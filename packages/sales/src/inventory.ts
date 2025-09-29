@@ -25,7 +25,7 @@ import {
 import { TABLE_NAMES } from "./inventory-import-service";
 import { z } from "zod";
 import { formatDate } from "@gnd/utils/dayjs";
-import { createTemplateSchemaBlock } from "@community/community-template-schemas";
+
 export async function inventoryList(db: Db, query: InventoryList) {
   // await db.imageGallery.updateMany({
   //   data: {
@@ -528,14 +528,8 @@ export async function saveInventory(db: Db, data: InventoryForm) {
     });
     inventoryUid = inventory.uid;
     inventoryId = inventory.id;
-    consoleLog("Inventory", data, inventory);
-    if (data.mode === "community-section") {
-      await createTemplateSchemaBlock(db, {
-        inventoryUid: inventory.uid,
-      });
-    }
   }
-  return { inventoryId, uid: inventoryUid };
+  return { id: inventoryId, uid: inventoryUid };
 }
 export async function inventoryForm(db: Db, inventoryId) {
   const inv = await db.inventory.findUniqueOrThrow({

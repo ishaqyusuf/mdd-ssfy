@@ -21,6 +21,7 @@ import { Popover } from "@gnd/ui/composite";
 import { Button } from "@gnd/ui/button";
 import { Form } from "@gnd/ui/form";
 import { inputSizes } from "@community/utils";
+import { SubmitButton } from "@/components/submit-button";
 
 interface Props {
     blockId: number;
@@ -51,6 +52,8 @@ function FormContent({}) {
     );
     if (!blk.fields?.length) return <EmptyState onCreate={(e) => {}} />;
     const _reorderList = (newFields: typeof fields) => {
+        console.log(newFields);
+        return;
         reorderList({
             newFields,
             oldFields: fields,
@@ -90,25 +93,26 @@ function FormContent({}) {
 interface SchemaBlockInputProps {
     input: RouterOutputs["community"]["getCommunityBlockSchema"]["inputConfigs"][number];
     savingSort?: boolean;
+    onInputUpdated?;
 }
 function SchemaBlockInput(props: SchemaBlockInputProps) {
     const blk = useSchemaBlockContext();
-    const { input } = props;
+    // const { input } = props;
     const { fields, swap, isReorderable } = blk;
-    const [data, setData] = useState(input);
+    const [data, setData] = useState(props.input);
+    const [formOpen, onFormOpenChange] = useState(false);
     return (
         <Sortable.Item
-            value={input.id}
-            key={(input as any)._id}
+            value={data.id}
             asChild
             className={cn(
                 props.savingSort && "grayscale",
                 "group",
-                `col-span-${input.columnSize || 4}`,
+                `col-span-${data.columnSize || 4}`,
             )}
         >
             <div className="grid items-center grid-cols-6 gap-4">
-                <div className="col-span-1 flex justify-end items-center gap-2">
+                <div className="col-span-1 flex justify-end items-center">
                     {!isReorderable || (
                         <Sortable.ItemHandle>
                             <Icons.DragIndicator className="size-5 text-[#878787]" />
@@ -126,19 +130,27 @@ function SchemaBlockInput(props: SchemaBlockInputProps) {
                     )}
                     {/* <div className="flex-1"></div> */}
                     <Label className="whitespace-nowrap">
-                        {data.title || input.inv.name}
+                        {data.title || data.inv.name}
                     </Label>
                 </div>
                 <div className="flex col-span-5 gap-2">
                     <Skeleton className="w-full" />
-                    <Popover.Root>
+                    <Popover.Root
+                        open={formOpen}
+                        onOpenChange={onFormOpenChange}
+                    >
                         <Popover.Trigger asChild>
                             <Button size="sm" variant="secondary">
                                 <Icons.Edit className="size-4" />
                             </Button>
                         </Popover.Trigger>
                         <Popover.Content className="w-80">
-                            <InputEditor input={data} />
+                            <InputEditor
+                                onInputUpdated={(e) => {
+                                    setData(e);
+                                }}
+                                input={data}
+                            />
                         </Popover.Content>
                     </Popover.Root>
                 </div>
@@ -155,7 +167,19 @@ function InputEditor(props: SchemaBlockInputProps) {
         },
     });
     const w = form.watch();
-    const onSubmit = () => {};
+    const onSubmit = () => {
+        mutate({
+            id: w.id,
+            columnSize: w.columnSize,
+        });
+    };
+    const { isPending, mutate } = useMutation(
+        _trpc.community.updateCommunityBlockInput.mutationOptions({
+            onSuccess(data, variables, context) {
+                props.onInputUpdated(form.getValues());
+            },
+        }),
+    );
     return (
         <div className="grid gap-4">
             <div className="space-y-2">
@@ -174,6 +198,8 @@ function InputEditor(props: SchemaBlockInputProps) {
                         <div className="col-span-2">
                             {[...Array(4)].map((a, i) => (
                                 <Button
+                                    type="button"
+                                    key={i}
                                     onClick={(e) => {
                                         form.setValue("columnSize", i + 1);
                                     }}
@@ -189,6 +215,11 @@ function InputEditor(props: SchemaBlockInputProps) {
                                 </Button>
                             ))}
                         </div>
+                    </div>
+                    <div className="flex justify-end">
+                        <SubmitButton isSubmitting={isPending}>
+                            Save
+                        </SubmitButton>
                     </div>
                 </form>
             </Form>

@@ -1,13 +1,44 @@
 import { Db } from "@gnd/db";
 import { sortList } from "@gnd/utils";
-import {
-  getInventoryCategories,
-  inventoryCategories,
-  saveInventory,
-} from "@sales/inventory";
-import { id } from "date-fns/locale";
+import { inventoryCategories, saveInventory } from "@sales/inventory";
 import { z } from "zod";
 
+export const createCommunityTemplateBlockSchema = z.object({
+  title: z.string(),
+  categoryId: z.number(),
+  index: z.number().optional().nullable(),
+});
+export type CreateCommunityTemplateBlockSchema = z.infer<
+  typeof createCommunityTemplateBlockSchema
+>;
+
+export async function createCommunityTemplateBlock(
+  db: Db,
+  data: CreateCommunityTemplateBlockSchema
+) {
+  const inventory = await saveInventory(db, {
+    product: {
+      categoryId: data.categoryId,
+      name: data.title,
+      status: "draft",
+      primaryStoreFront: false,
+      stockMonitor: false,
+    },
+    subCategories: [],
+    subComponents: [],
+  });
+  if (!data.index) data.index = await db.communityTemplateBlockConfig.count({});
+  await db.communityTemplateBlockConfig.create({
+    // where: {
+    //   uid: inventory.uid,
+    // },
+    data: {
+      status: "published",
+      index: data.index,
+      uid: inventory.uid,
+    },
+  });
+}
 /*
 createCommunityInput: publicProcedure
       .input(createCommunityInputSchema)
@@ -52,6 +83,7 @@ export async function createCommunityInput(
     });
   });
 }
+
 /*
 getCommunitySchema: publicProcedure
       .input(getCommunitySchemaSchema)
@@ -222,26 +254,6 @@ export const createTemplateSchemaBlockSchema = z.object({
   inventoryUid: z.string(),
   index: z.number().nullable().optional(),
 });
-export type CreateTemplateSchemaBlockSchema = z.infer<
-  typeof createTemplateSchemaBlockSchema
->;
-export async function createTemplateSchemaBlock(
-  db: Db,
-  data: CreateTemplateSchemaBlockSchema
-) {
-  if (!data.index) data.index = await db.communityTemplateBlockConfig.count({});
-  await db.communityTemplateBlockConfig.upsert({
-    where: {
-      uid: data.inventoryUid,
-    },
-    create: {
-      status: "published",
-      index: data.index,
-      uid: data.inventoryUid,
-    },
-    update: {},
-  });
-}
 
 export const updateRecordsIndicesSchema = z.object({
   records: z.array(
@@ -273,4 +285,26 @@ export async function updateRecordsIndices(
       });
     })
   );
+}
+
+export const updateCommunityBlockInputSchema = z.object({
+  id: z.number(),
+  columnSize: z.number().optional().nullable().default(4),
+});
+export type UpdateCommunityBlockInputSchema = z.infer<
+  typeof updateCommunityBlockInputSchema
+>;
+
+export async function updateCommunityBlockInput(
+  db: Db,
+  query: UpdateCommunityBlockInputSchema
+) {
+  await db.communityTemplateInputConfig.update({
+    where: {
+      id: query.id,
+    },
+    data: {
+      columnSize: query.columnSize,
+    },
+  });
 }

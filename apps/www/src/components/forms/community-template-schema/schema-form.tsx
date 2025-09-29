@@ -20,10 +20,11 @@ import * as Sortable from "@gnd/ui/sortable-2";
 import { closestCorners } from "@dnd-kit/core";
 import { cn } from "@gnd/ui/cn";
 
-export function SchemaForm() {
+export function SchemaForm({ children }) {
     return (
         <TemplateBlocksProvider value={createTemplateBlocksContext()}>
             <Content />
+            {children}
         </TemplateBlocksProvider>
     );
 }

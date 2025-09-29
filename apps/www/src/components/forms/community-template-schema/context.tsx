@@ -19,7 +19,7 @@ export const createTemplateBlocksContext = () => {
     const { data, isPending } = useSuspenseQuery(
         trpc.community.getCommunitySchema.queryOptions({}),
     );
-    const { data: blockInputs } = useSuspenseQuery(
+    const { data: blockInputData } = useSuspenseQuery(
         trpc.community.getBlockInputs.queryOptions({}),
     );
     // const form = useZodForm(getCommunitySchemaSchema, {
@@ -36,7 +36,7 @@ export const createTemplateBlocksContext = () => {
         ...(data || {}),
         form,
         isReorderable: true,
-        blockInputs,
+        blockInputs: blockInputData?.inputs,
     };
 };
 export const useTemplateBlocksContext = () => {

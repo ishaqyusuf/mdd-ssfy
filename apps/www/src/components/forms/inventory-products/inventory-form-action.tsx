@@ -30,9 +30,9 @@ export function InventoryFormAction({ onCancel }) {
                     setParams(null);
                     return;
                 }
-                if (productId != data.inventoryId)
+                if (productId != data.id)
                     setParams({
-                        productId: data.inventoryId,
+                        productId: data.id,
                     });
             },
         }),
