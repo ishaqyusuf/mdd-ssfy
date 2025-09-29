@@ -7,6 +7,7 @@ import { transformCommunityTemplate } from "@/lib/community/community-template";
 import { Metadata } from "next";
 import ModelForm from "../../_components/model-form/model-form";
 import { getCommunityTemplate } from "../../_components/home-template";
+import Link from "next/link";
 
 export const metadata: Metadata = {
     title: "Edit Community Template",
@@ -38,7 +39,12 @@ export default async function CommunityModelTemplatePage(props) {
                 </Breadcrumbs>
 
                 <ModelForm
-                    title="Edit Community Model"
+                    title={
+                        <div className="">
+                            <span>Edit Community Model</span>
+                            <Link href="/">New Editor</Link>
+                        </div>
+                    }
                     data={response as any}
                 />
             </DataPageShell>
