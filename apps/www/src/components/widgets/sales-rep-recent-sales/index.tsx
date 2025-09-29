@@ -6,6 +6,7 @@ import { RecentSalesSkeleton, RecentSalesWidget } from "./recent-sales-widget";
 import { SalesRepSalesWidgetHeader } from "./sales-rep-sales-header";
 
 export function SalesRepRecentSales() {
+    return null;
     return (
         <Card className="">
             <SalesRepSalesWidgetHeader />
