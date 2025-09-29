@@ -5,7 +5,7 @@ import { Icons } from "@gnd/ui/icons";
 import { useSchemaBlockContext, useTemplateBlocksContext } from "./context";
 import { useMutation } from "@tanstack/react-query";
 import { _invalidate, _qc, _trpc } from "@/components/static-trpc";
-import { uniqueList } from "@gnd/utils";
+import { selectOptions, uniqueList } from "@gnd/utils";
 import { labelIdOptions } from "@/lib/utils";
 
 interface CreateProps {
@@ -59,7 +59,7 @@ export function AddInput() {
         >
             <ComboboxDropdown
                 placeholder="Add community input"
-                items={labelIdOptions(reusables, "title", "uid") as any}
+                items={selectOptions(reusables, "title", "uid") as any}
                 headless
                 onSelect={(e) => {
                     create({
