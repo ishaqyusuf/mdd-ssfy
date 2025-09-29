@@ -74,7 +74,7 @@ function Content() {
                     {fields.map((block) => (
                         <SchemaBlock
                             key={block._id}
-                            blockId={block.id}
+                            blockId={block?.id}
                             block={block}
                         />
                     ))}
