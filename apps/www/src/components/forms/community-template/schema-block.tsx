@@ -1,5 +1,5 @@
 import { Skeletons } from "@gnd/ui/custom/skeletons";
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 import {
     createSchemaBlockContext,
     SchemaBlockProvider,
@@ -10,8 +10,6 @@ import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { reorderList } from "@gnd/utils";
 import { useMutation } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
-import { Label } from "@gnd/ui/label";
-import { Skeleton } from "@gnd/ui/skeleton";
 import * as Sortable from "@gnd/ui/sortable-2";
 import { closestCorners } from "@dnd-kit/core";
 import { cn } from "@gnd/ui/cn";
@@ -95,7 +93,7 @@ function FormContent({}) {
     );
     if (!blk.fields?.length) return <EmptyState />;
     const _reorderList = (newFields) => {
-        // console.log(newFields);
+        console.log(newFields);
         // return;
         reorderList({
             newFields,
@@ -113,7 +111,7 @@ function FormContent({}) {
 
     return (
         <Sortable.Root
-            orientation="mixed"
+            orientation="vertical"
             collisionDetection={closestCorners}
             value={fields}
             getItemValue={(item) => item._id}
@@ -122,7 +120,7 @@ function FormContent({}) {
         >
             <Sortable.Content
                 className={cn(
-                    "grid gap-4 grid-cols-4",
+                    "grid gap-4 grid-cols-4s",
                     templateEditMode ? "gap-6" : "gap-4",
                 )}
             >
@@ -134,7 +132,11 @@ function FormContent({}) {
                     />
                 ))}
             </Sortable.Content>
-            <Sortable.Overlay />
+            <Sortable.Overlay>
+                <div className="pointer-events-none absolute inset-0">
+                    <div className="h-full w-full bg-[repeating-linear-gradient(-60deg,#DBDBDB,#DBDBDB_1px,transparent_1px,transparent_5px)] dark:bg-[repeating-linear-gradient(-60deg,#2C2C2C,#2C2C2C_1px,transparent_1px,transparent_5px)]" />
+                </div>
+            </Sortable.Overlay>
         </Sortable.Root>
     );
 }

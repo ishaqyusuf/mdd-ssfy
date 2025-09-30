@@ -75,6 +75,11 @@ function Content() {
                         <SchemaBlock key={field._id} block={field} />
                     ))}
                 </Sortable.Content>
+                <Sortable.Overlay>
+                    <div className="pointer-events-none absolute inset-0">
+                        <div className="h-full w-full bg-[repeating-linear-gradient(-60deg,#DBDBDB,#DBDBDB_1px,transparent_1px,transparent_5px)] dark:bg-[repeating-linear-gradient(-60deg,#2C2C2C,#2C2C2C_1px,transparent_1px,transparent_5px)]" />
+                    </div>
+                </Sortable.Overlay>
             </Sortable.Root>
         </div>
     );
