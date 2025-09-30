@@ -146,18 +146,22 @@ function TabItem(props: TabItemProps) {
       disabled={props.disabled}
       data-role="tabItem"
       data-tab-active={
-        ref === activeElement ||
-        (!activeElement && props.value === tabCtx.value)
+        ref === activeElement
+        // ||
+        // (!activeElement && props.value === tabCtx.value)
       }
       onMouseEnter={() => setActiveElement(ref.current)}
       onMouseLeave={() => setActiveElement(null)}
       // ref={(el) => (tabRefs.current[props.index] = el as any)}
-      className={`px-3 py-2 cursor-pointer transition-colors duration-300 h-[30px] ${
-        ref === activeElement ||
-        (!activeElement && props.value === tabCtx.value)
-          ? "text-[#0e0e10] dark:text-white"
-          : "text-[#0e0f1199] dark:text-[#ffffff99]"
-      }`}
+      className={cn(
+        `px-3 py-2 cursor-pointer transition-colors duration-300 h-[30px] ${
+          ref === activeElement
+            ? // ||
+              // (!activeElement && props.value === tabCtx.value)
+              "text-[#0e0e10] dark:text-white"
+            : "text-[#0e0f1199] dark:text-[#ffffff99]"
+        } ${props.value === tabCtx.value && "bg-primary rounded-lg text-secondary"}`
+      )}
       // onMouseEnter={() => setHoveredIndex(props.index)}
       // onMouseLeave={() => setHoveredIndex(null)}
       onClick={() => {
