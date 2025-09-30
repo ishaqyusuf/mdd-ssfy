@@ -179,7 +179,6 @@ function Row({ variant }) {
                 <Label className="whitespace-nowrap text-muted-foreground">
                     {variant.size}
                 </Label>
-                <div>{variant.path}</div>
             </TableCell>
             <TableCell>
                 <AuthGuard
