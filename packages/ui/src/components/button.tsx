@@ -48,7 +48,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const Comp = asChild ? Slot : "button";
 
-    const [hover, setHover] = React.useState(false);
+    const [hover, setHover] = [null, null]; //React.useState(false);
     return (
       <Comp
         className={cn(
@@ -60,10 +60,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           })
         )}
         ref={ref}
-        onMouseEnter={(e) => {
-          setHover(true);
-        }}
-        onMouseLeave={(e) => setHover(false)}
+        // onMouseEnter={(e) => {
+        //   setHover?.(true);
+        // }}
+        // onMouseLeave={(e) => setHover?.(false)}
         {...props}
       />
     );
