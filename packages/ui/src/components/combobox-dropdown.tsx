@@ -76,7 +76,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   const [inputValue, setInputValue] = React.useState("");
   const filteredItems =
     items?.filter((item) =>
-      item.label.toLowerCase().includes(inputValue.toLowerCase())
+      item.label?.toLowerCase().includes(inputValue.toLowerCase())
     ) || [];
   const [cursor, setCusor] = React.useState(0);
   React.useEffect(() => {

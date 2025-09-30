@@ -40,7 +40,7 @@ export function BlockInput(props: SchemaBlockInputProps) {
                 `col-span-${data.columnSize || 4}`,
             )}
         >
-            <div className="grid items-center grid-cols-6 gap-4">
+            <div className={cn("grid items-center grid-cols-6 gap-4")}>
                 <div className="col-span-1 flex justify-end items-center">
                     {!templateEditMode || (
                         <Sortable.ItemHandle>
@@ -65,7 +65,7 @@ export function BlockInput(props: SchemaBlockInputProps) {
                                 size: "xs",
                                 variant: "link",
                             }),
-                            "whitespace-nowrap",
+                            templateEditMode ?? "whitespace-nowrap",
                         )}
                     >
                         {data.title || data.inv.name}

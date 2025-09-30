@@ -7,9 +7,17 @@ import { Label } from "@gnd/ui/label";
 import { Button } from "@gnd/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { inputSizes } from "@community/utils";
+import { FormCombobox } from "@/components/common/controls/form-combobox";
+import { useSchemaBlockContext } from "./context";
+import { selectOptions } from "@gnd/utils";
+import { labelIdOptions } from "@/lib/utils";
 
 export function TemplateInputConfig(props: SchemaBlockInputProps) {
     const { input } = props;
+    const block = useSchemaBlockContext();
+    const valueOptions = block.blockInput?.inputConfigs?.filter(
+        (a) => a.uid !== input?.uid,
+    );
     const form = useForm({
         defaultValues: {
             ...input,
@@ -20,6 +28,7 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
         mutate({
             id: w.id,
             columnSize: w.columnSize,
+            valueUid: w.valueUid,
         });
     };
     const { isPending, mutate } = useMutation(
@@ -63,6 +72,22 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
                                     <span>{inputSizes[i]}</span>
                                 </Button>
                             ))}
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-3 items-center gap-4">
+                        <Label htmlFor="width">Value</Label>
+                        <div className="col-span-2">
+                            <FormCombobox
+                                control={form.control}
+                                name="valueUid"
+                                comboProps={{
+                                    items: labelIdOptions(
+                                        valueOptions,
+                                        "inv.name",
+                                        "uid",
+                                    ),
+                                }}
+                            />
                         </div>
                     </div>
                     <div className="flex justify-end">

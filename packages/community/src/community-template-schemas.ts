@@ -153,6 +153,7 @@ export async function getCommunityBlockSchema(
           deletedAt: null,
         },
         select: {
+          valueUid: true,
           title: true,
           id: true,
           uid: true,
@@ -183,7 +184,10 @@ export async function getCommunityBlockSchema(
         inv: blocksInventories?.find((c) => c.uid === i.uid),
       })),
       "index"
-    ),
+    ).filter((a) => ({
+      ...a,
+      title: a.title || a.inv?.name,
+    })),
   };
 }
 
@@ -202,6 +206,8 @@ export async function getBlockInputs(db: Db, query: GetBlockInputsSchema) {
       index: true,
       columnSize: true,
       uid: true,
+      title: true,
+      valueUid: true,
     },
   });
   const inventories = await db.inventory.findMany({
@@ -218,10 +224,15 @@ export async function getBlockInputs(db: Db, query: GetBlockInputsSchema) {
     },
   });
   return {
-    inputs: inputs.map((i) => ({
-      ...i,
-      inv: inventories.find((iv) => iv.uid == i.uid),
-    })),
+    inputs: inputs
+      .map((i) => ({
+        ...i,
+        inv: inventories.find((iv) => iv.uid == i.uid),
+      }))
+      .filter((a) => ({
+        ...a,
+        title: a.title || a.inv?.name,
+      })),
   };
 }
 
@@ -291,6 +302,7 @@ export async function updateRecordsIndices(
 export const updateCommunityBlockInputSchema = z.object({
   id: z.number(),
   columnSize: z.number().optional().nullable().default(4),
+  valueUid: z.string().optional().nullable(),
 });
 export type UpdateCommunityBlockInputSchema = z.infer<
   typeof updateCommunityBlockInputSchema
@@ -306,6 +318,7 @@ export async function updateCommunityBlockInput(
     },
     data: {
       columnSize: query.columnSize,
+      valueUid: query.valueUid,
     },
   });
 }

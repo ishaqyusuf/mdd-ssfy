@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { formatMoney } from "./use-number";
 import JsonSearch from "@/_v2/lib/json-search";
 import { slugModel } from "@gnd/utils";
+import { FieldPath } from "react-hook-form";
+import { dotObject } from "@/app/(clean-code)/_common/utils/utils";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -50,17 +52,19 @@ export function textValue<T extends object>(
 ) {
     return { text, value: value || text, ...extras };
 }
-export function labelIdOptions<T, L extends keyof T, I extends keyof T>(
+export function labelIdOptions<T, L extends FieldPath<T>, I extends keyof T>(
     list: T[],
-    label,
-    id,
+    label: L,
+    id: I,
 ) {
     if (!list?.length) return [];
+
     return list.map((l) => {
         // if (typeof l == "string") return { label: l, id: String(l), data: l };
+        const getValue = (path) => dotObject.pick(path, l);
         return {
-            label: l[label],
-            id: String(l[id]),
+            label: getValue(label),
+            id: String(getValue(id)),
             data: l,
         };
     });

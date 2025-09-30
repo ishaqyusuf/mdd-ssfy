@@ -65,7 +65,7 @@ interface SchemaBlockProps {
     blockId: number;
 }
 export const createSchemaBlockContext = (props: SchemaBlockProps) => {
-    const { data: blockInputs } = useSuspenseQuery(
+    const { data: blockInput } = useSuspenseQuery(
         _trpc.community.getCommunityBlockSchema.queryOptions(
             {
                 id: props.blockId,
@@ -80,8 +80,8 @@ export const createSchemaBlockContext = (props: SchemaBlockProps) => {
         defaultValues: {},
     });
     useEffect(() => {
-        if (blockInputs) form.reset(blockInputs as any);
-    }, [blockInputs]);
+        if (blockInput) form.reset(blockInput as any);
+    }, [blockInput]);
     const { fields, swap } = useFieldArray({
         control: form.control,
         name: "inputConfigs",
@@ -89,7 +89,7 @@ export const createSchemaBlockContext = (props: SchemaBlockProps) => {
     });
     return {
         form,
-        blockInputs,
+        blockInput,
         ...props,
         fields,
         swap,
