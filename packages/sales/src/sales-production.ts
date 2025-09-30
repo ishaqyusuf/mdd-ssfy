@@ -63,6 +63,7 @@ export async function getSalesProductions(
     };
   return await getProductionListAction(db, {
     ...query,
+    salesType: "order",
     //   "production.status": "part assigned",
   });
   //   const others = prodList.filter((p) => !excludesIds?.includes(p.id));
