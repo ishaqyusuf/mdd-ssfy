@@ -54,7 +54,7 @@ function FormCard(props: Props) {
     if (!templateEditMode && !fields?.length) return null;
     return (
         <Sortable.Item
-            value={block.id}
+            value={block._id}
             key={block._id}
             asChild
             className={cn(savingSort && "grayscale", "group")}
