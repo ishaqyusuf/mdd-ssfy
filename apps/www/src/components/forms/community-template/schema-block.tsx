@@ -119,7 +119,12 @@ function FormContent({}) {
             onValueChange={_reorderList}
             // overlay={<div className="size-full rounded-md bg-primary/10" />}
         >
-            <Sortable.Content className="grid gap-4 grid-cols-4">
+            <Sortable.Content
+                className={cn(
+                    "grid gap-4 grid-cols-4",
+                    templateEditMode ? "gap-6" : "gap-4",
+                )}
+            >
                 {fields.map((input) => (
                     <SchemaBlockInput
                         key={input._id}
