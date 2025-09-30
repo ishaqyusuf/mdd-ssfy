@@ -99,20 +99,21 @@ export function SearchFilterTRPC({
             setPrompt("");
         }
     };
-    // const deb = useDebounce(prompt, 1500);
-    // const hasMounted = useRef(false);
-    // useEffect(() => {
-    //     if (!hasMounted.current) {
-    //         hasMounted.current = true;
-    //         return;
-    //     }
-    //     const searchKey = getSearchKey(filters);
+    const deb = useDebounce(prompt, 200);
+    const hasMounted = useRef(false);
+    useEffect(() => {
+        if (!hasMounted.current) {
+            hasMounted.current = true;
+            return;
+        }
+        const searchKey = getSearchKey(filters);
 
-    //     if (searchKey)
-    //         setFilters({
-    //             [searchKey]: deb.length > 0 ? deb : null,
-    //         });
-    // }, [deb]);
+        if (searchKey)
+            setFilters({
+                [searchKey]: deb.length > 0 ? deb : null,
+            });
+    }, [deb]);
+
     const handleSubmit = async () => {
         // If the user is typing a query with multiple words, we want to stream the results
         const searchKey = getSearchKey(filters);
