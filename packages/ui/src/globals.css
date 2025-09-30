@@ -3,65 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0, 0%, 100%;
-    --foreground: 0, 0%, 7%;
-    --card: 45 18% 96%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 45 18% 96%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 40, 11%, 89%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 40, 11%, 89%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 40, 10%, 94%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --muted-foreground: 0, 0%, 38%;
-    --border: 45, 5%, 85%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-   --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 0, 0%, 7%;
-    --foreground: 0 0% 98%;
-    --card: 0, 0%, 7%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0, 0%, 7%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 0, 0%, 11%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0, 0%, 11%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 0, 0%, 11%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 359, 100%, 61%;
-    --destructive-foreground: 0, 0%, 100%;
-    --muted-foreground: 0, 0%, 38%;
-    --border: 0, 0%, 17%;
-    --input: 0, 0%, 11%;
-    --ring: 240 4.9% 83.9%;
-    --chart-1: 279 99% 50%;
-    --chart-2: 99 99% 50%;
-    --chart-3: 99 99% 50%;
-    --chart-4: 99 99% 53%;
-    --chart-5: 279 102% 50%;
-  }
-}
-
-@layer base {
   * {
     @apply border-border;
   }
@@ -70,63 +11,6 @@
     @apply bg-background text-foreground;
   }
 }
-/* THEME V1 */
-/* @layer base {
-  :root {
-    --background: 279 69% 98%;
-    --foreground: 279 63% 0%;
-    --muted: 99 33% 86%;
-    --muted-foreground: 99 1% 25%;
-    --popover: 279 69% 97%;
-    --popover-foreground: 0 0% 0%;
-    --card: 279 69% 97%;
-    --card-foreground: 0 0% 0%;
-    --border: 279 15% 93%;
-    --input: 279 15% 93%;
-    --primary: 279 99% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 99 99% 50%;
-    --secondary-foreground: 99 99% 10%;
-    --accent: 99 99% 50%;
-    --accent-foreground: 99 99% 10%;
-    --destructive: 0 87% 37%;
-    --destructive-foreground: 0 87% 97%;
-    --ring: 279 99% 50%;
-    --chart-1: 279 99% 50%;
-    --chart-2: 99 99% 50%;
-    --chart-3: 99 99% 50%;
-    --chart-4: 99 99% 53%;
-    --chart-5: 279 102% 50%;
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 279 40% 2%;
-    --foreground: 279 16% 98%;
-    --muted: 99 33% 14%;
-    --muted-foreground: 99 1% 75%;
-    --popover: 279 40% 3%;
-    --popover-foreground: 279 16% 99%;
-    --card: 279 40% 3%;
-    --card-foreground: 279 16% 99%;
-    --border: 279 15% 13%;
-    --input: 279 15% 13%;
-    --primary: 279 99% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 99 99% 50%;
-    --secondary-foreground: 99 99% 10%;
-    --accent: 99 99% 50%;
-    --accent-foreground: 99 99% 10%;
-    --destructive: 0 87% 58%;
-    --destructive-foreground: 0 0% 100%;
-    --ring: 279 99% 50%;
-    --chart-1: 279 99% 50%;
-    --chart-2: 99 99% 50%;
-    --chart-3: 99 99% 50%;
-    --chart-4: 99 99% 53%;
-    --chart-5: 279 102% 50%;
-  }
-} */
 
 /* THEME V2 */
 /* @layer base {
