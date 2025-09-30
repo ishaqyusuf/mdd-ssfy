@@ -25,6 +25,7 @@ import { TemplateInputConfig } from "./template-input-config";
 import { ModelInput } from "./model-input";
 import { AddInput } from "./add-input";
 import { useCommunityInventoryParams } from "@/hooks/use-community-inventory-params";
+import { BlockInput } from "./block-input";
 
 interface Props {
     block?;
@@ -126,7 +127,7 @@ function FormContent({}) {
                 )}
             >
                 {fields.map((input) => (
-                    <SchemaBlockInput
+                    <BlockInput
                         key={input._id}
                         input={input}
                         savingSort={savingSort}
@@ -142,94 +143,5 @@ export interface SchemaBlockInputProps {
     input: RouterOutputs["community"]["getCommunityBlockSchema"]["inputConfigs"][number];
     savingSort?: boolean;
     onInputUpdated?;
-}
-function SchemaBlockInput(props: SchemaBlockInputProps) {
-    const blk = useSchemaBlockContext();
-    const { fields, swap } = blk;
-    const [data, setData] = useState(props.input);
-    const [formOpen, onFormOpenChange] = useState(false);
-    const ctx = useTemplateBlocksContext();
-    const { templateEditMode, printMode, modelEditMode } = ctx;
-    const { setParams } = useCommunityInventoryParams();
-    const openAnalytics = () => {
-        setParams({
-            openCommunityInventoryId: data?.id,
-        });
-    };
-    return (
-        <Sortable.Item
-            value={data.id}
-            asChild
-            className={cn(
-                props.savingSort && "grayscale",
-                "group",
-                `col-span-${data.columnSize || 4}`,
-            )}
-        >
-            <div className="grid items-center grid-cols-6 gap-4">
-                <div className="col-span-1 flex justify-end items-center">
-                    {!templateEditMode || (
-                        <Sortable.ItemHandle>
-                            <Icons.DragIndicator className="size-5 text-[#878787]" />
-                        </Sortable.ItemHandle>
-                        // <Button
-                        //     type="button"
-                        //     className="sopacity-0 group-hover:opacity-100 transition-opacity hover:bg-transparent cursor-grab"
-                        //     // onPointerDown={(e) =>
-                        //     //     controls.start(e)
-                        //     // }
-                        //     variant="ghost"
-                        // >
-                        //     <Icons.DragIndicator className="size-5 text-[#878787]" />
-                        // </Button>
-                    )}
-                    {/* <div className="flex-1"></div> */}
-                    <Label
-                        onClick={openAnalytics}
-                        className={cn(
-                            buttonVariants({
-                                size: "xs",
-                                variant: "link",
-                            }),
-                            "whitespace-nowrap",
-                        )}
-                    >
-                        {data.title || data.inv.name}
-                    </Label>
-                </div>
-                <div className="flex col-span-5 gap-2">
-                    {(modelEditMode && printMode) || (
-                        <>
-                            <ModelInput />
-                        </>
-                    )}
-                    {(modelEditMode && printMode) || <></>}
-                    {!templateEditMode || (
-                        <>
-                            <Skeleton className="w-full h-8" />
-                            <Popover.Root
-                                open={formOpen}
-                                onOpenChange={onFormOpenChange}
-                            >
-                                <Popover.Trigger asChild>
-                                    <Button size="sm" variant="secondary">
-                                        <Icons.Edit className="size-4" />
-                                    </Button>
-                                </Popover.Trigger>
-                                <Popover.Content className="w-80">
-                                    <TemplateInputConfig
-                                        onInputUpdated={(e) => {
-                                            setData(e);
-                                        }}
-                                        input={data}
-                                    />
-                                </Popover.Content>
-                            </Popover.Root>
-                        </>
-                    )}
-                </div>
-            </div>
-        </Sortable.Item>
-    );
 }
 
