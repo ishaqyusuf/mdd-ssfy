@@ -64,22 +64,18 @@ function Content() {
             <PageTitle>{ctx?.modelSlug || "Template Schema"}</PageTitle>
 
             <Sortable.Root
-                orientation="vertical"
+                orientation="mixed"
                 collisionDetection={closestCorners}
                 value={fields}
                 getItemValue={(item) => item._id}
                 onValueChange={_reorderList}
             >
-                <Sortable.Content className="grid gap-4">
+                <Sortable.Content className="grid sgrid-cols-3 gap-4">
                     {fields.map((field) => (
                         <SchemaBlock key={field._id} block={field} />
                     ))}
                 </Sortable.Content>
-                <Sortable.Overlay>
-                    <div className="pointer-events-none absolute inset-0">
-                        <div className="h-full w-full bg-[repeating-linear-gradient(-60deg,#DBDBDB,#DBDBDB_1px,transparent_1px,transparent_5px)] dark:bg-[repeating-linear-gradient(-60deg,#2C2C2C,#2C2C2C_1px,transparent_1px,transparent_5px)]" />
-                    </div>
-                </Sortable.Overlay>
+                <Sortable.Overlay />
             </Sortable.Root>
         </div>
     );

@@ -555,7 +555,11 @@ function SortableOverlay(props: SortableOverlayProps) {
         {context.activeId
           ? typeof children === "function"
             ? children({ value: context.activeId })
-            : children
+            : children || (
+                <div className="pointer-events-none absolute inset-0">
+                  <div className="h-full w-full bg-[repeating-linear-gradient(-60deg,#DBDBDB,#DBDBDB_1px,transparent_1px,transparent_5px)] dark:bg-[repeating-linear-gradient(-60deg,#2C2C2C,#2C2C2C_1px,transparent_1px,transparent_5px)]" />
+                </div>
+              )
           : null}
       </SortableOverlayContext.Provider>
     </DragOverlay>,

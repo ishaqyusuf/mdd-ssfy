@@ -19,10 +19,9 @@ import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Popover } from "@gnd/ui/composite";
 import { Button, buttonVariants } from "@gnd/ui/button";
 import { Card } from "@gnd/ui/composite";
-import { TemplateInputConfig } from "./template-input-config";
-import { ModelInput } from "./model-input";
+
 import { AddInput } from "./add-input";
-import { useCommunityInventoryParams } from "@/hooks/use-community-inventory-params";
+
 import { BlockInput } from "./block-input";
 
 interface Props {
@@ -93,8 +92,6 @@ function FormContent({}) {
     );
     if (!blk.fields?.length) return <EmptyState />;
     const _reorderList = (newFields) => {
-        console.log(newFields);
-        // return;
         reorderList({
             newFields,
             oldFields: fields,
@@ -108,10 +105,10 @@ function FormContent({}) {
             })),
         });
     };
-
+    // return <ExampleSortable />;
     return (
         <Sortable.Root
-            orientation="vertical"
+            orientation="mixed"
             collisionDetection={closestCorners}
             value={fields}
             getItemValue={(item) => item._id}
@@ -120,7 +117,7 @@ function FormContent({}) {
         >
             <Sortable.Content
                 className={cn(
-                    "grid gap-4 grid-cols-4s",
+                    "grid gap-4 grid-cols-4",
                     templateEditMode ? "gap-6" : "gap-4",
                 )}
             >
@@ -132,11 +129,7 @@ function FormContent({}) {
                     />
                 ))}
             </Sortable.Content>
-            <Sortable.Overlay>
-                <div className="pointer-events-none absolute inset-0">
-                    <div className="h-full w-full bg-[repeating-linear-gradient(-60deg,#DBDBDB,#DBDBDB_1px,transparent_1px,transparent_5px)] dark:bg-[repeating-linear-gradient(-60deg,#2C2C2C,#2C2C2C_1px,transparent_1px,transparent_5px)]" />
-                </div>
-            </Sortable.Overlay>
+            <Sortable.Overlay />
         </Sortable.Root>
     );
 }
