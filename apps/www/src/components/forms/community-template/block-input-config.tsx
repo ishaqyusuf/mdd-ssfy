@@ -9,7 +9,7 @@ export function BlockInputConfig({ onInputUpdated, data }) {
     return (
         <Popover.Root open={formOpen} onOpenChange={onFormOpenChange}>
             <Popover.Trigger asChild>
-                <Button size="sm" variant="secondary">
+                <Button size="xs" variant="secondary">
                     <Icons.Edit className="size-4" />
                 </Button>
             </Popover.Trigger>
@@ -22,3 +22,4 @@ export function BlockInputConfig({ onInputUpdated, data }) {
         </Popover.Root>
     );
 }
+

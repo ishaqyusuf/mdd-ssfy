@@ -42,20 +42,15 @@ export function BlockInput(props: SchemaBlockInputProps) {
             {/* <Content {...props} /> */}
             <div
                 className={cn(
-                    "flex",
+                    "flex relative gap-4",
                     `col-span-${data.columnSize || 4}`,
                     props.savingSort && "grayscale",
                     "group",
                 )}
             >
-                <div className={cn("col-span-1s")}>
+                <div className={cn("flex w-[100px] justify-end")}>
                     {/* <div className="flex-1"></div> */}
 
-                    {!templateEditMode || (
-                        <Sortable.ItemHandle>
-                            <Icons.DragIndicator className="size-5 text-[#878787]" />
-                        </Sortable.ItemHandle>
-                    )}
                     <Label
                         onClick={openAnalytics}
                         className={cn(
@@ -64,7 +59,7 @@ export function BlockInput(props: SchemaBlockInputProps) {
                                 variant: "link",
                             }),
                             templateEditMode ?? "whitespace-nowrap",
-                            "w-[100px] z-20 relative",
+                            "z-20 relative",
                         )}
                     >
                         {data.title || data.inv.name}
@@ -79,9 +74,14 @@ export function BlockInput(props: SchemaBlockInputProps) {
                     {(modelEditMode && printMode) || <></>}
                     {!templateEditMode || (
                         <>
-                            <div className="pointer-events-none absolute inset-0">
-                                <div className="h-full w-full bg-[repeating-linear-gradient(-60deg,#DBDBDB,#DBDBDB_1px,transparent_1px,transparent_5px)] dark:bg-[repeating-linear-gradient(-60deg,#2C2C2C,#2C2C2C_1px,transparent_1px,transparent_5px)]" />
-                            </div>
+                            {!templateEditMode || (
+                                <Sortable.ItemHandle className="absolute z-10 inset-0 -left-3 top-1">
+                                    {/* <Icons.DragIndicator className="size-5 text-[#878787]" /> */}
+                                    <div className="pointer-events-none absolute inset-0">
+                                        <div className="h-full w-full bg-[repeating-linear-gradient(-60deg,#DBDBDB,#DBDBDB_1px,transparent_1px,transparent_5px)] dark:bg-[repeating-linear-gradient(-60deg,#2C2C2C,#2C2C2C_1px,transparent_1px,transparent_5px)]" />
+                                    </div>
+                                </Sortable.ItemHandle>
+                            )}
 
                             <div className="z-10 absolute right-0">
                                 <BlockInputConfig

@@ -9,7 +9,6 @@ import { SubmitButton } from "@/components/submit-button";
 import { inputSizes } from "@community/utils";
 import { FormCombobox } from "@/components/common/controls/form-combobox";
 import { useSchemaBlockContext } from "./context";
-import { selectOptions } from "@gnd/utils";
 import { labelIdOptions } from "@/lib/utils";
 
 export function TemplateInputConfig(props: SchemaBlockInputProps) {

@@ -14,10 +14,7 @@ import * as Sortable from "@gnd/ui/sortable-2";
 import { closestCorners } from "@dnd-kit/core";
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
-import { useForm } from "react-hook-form";
 import { RouterOutputs } from "@api/trpc/routers/_app";
-import { Popover } from "@gnd/ui/composite";
-import { Button, buttonVariants } from "@gnd/ui/button";
 import { Card } from "@gnd/ui/composite";
 
 import { AddInput } from "./add-input";
