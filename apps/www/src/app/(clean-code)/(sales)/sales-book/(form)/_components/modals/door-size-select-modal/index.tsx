@@ -49,6 +49,7 @@ import { _role } from "@/components/sidebar/links";
 import { doorSwings } from "@/utils/constants";
 import { QuantityInput } from "@gnd/ui/quantity-input";
 import { DoorSizeSelectProvider, useCtx } from "./use-door-size-select";
+import { DoorSupplierBadge } from "@/components/forms/sales-form/door-supplier-badge";
 
 interface Props {
     cls: ComponentHelperClass;
@@ -82,6 +83,12 @@ function Content() {
                 title={ctx.cls?.getComponent?.title || "Component Price"}
                 subtitle={"Select door!!"}
             />
+            <div className="flex gap-4">
+                <div className="flex-1" />
+                <div>
+                    <DoorSupplierBadge itemStepUid={ctx.cls.itemStepUid} />
+                </div>
+            </div>
             <Form {...ctx.form}>
                 <ScrollArea
                     // tabIndex={-1}

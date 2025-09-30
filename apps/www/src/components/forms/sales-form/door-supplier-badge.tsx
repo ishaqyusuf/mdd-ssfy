@@ -6,7 +6,14 @@ import { Icons } from "@gnd/ui/icons";
 import { Label } from "@gnd/ui/label";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { CheckCheckIcon, CheckSquare, Factory, Square } from "lucide-react";
+import {
+    BadgeDollarSign,
+    CheckCheckIcon,
+    CheckSquare,
+    Factory,
+    Square,
+    Star,
+} from "lucide-react";
 import { Suspense } from "react";
 
 export function DoorSupplierBadge({ itemStepUid }) {
@@ -39,6 +46,7 @@ export function Content({ itemStepUid }) {
                     </span>
                 }
             >
+                <Menu.Item Icon={Star}>Best Price</Menu.Item>
                 <Menu.Item
                     onClick={(e) => select()}
                     Icon={!supplier?.supplierUid ? CheckSquare : Square}
