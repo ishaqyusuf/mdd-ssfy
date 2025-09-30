@@ -7,6 +7,7 @@ import {
 } from "@community/community-template-schemas";
 import { RenturnTypeAsync } from "@gnd/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { cva } from "class-variance-authority";
 import { createContext, useContext, useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 
@@ -104,4 +105,21 @@ export const useSchemaBlockContext = () => {
     }
     return context;
 };
+
+export const blockLayoutVariant = cva("", {
+    variants: {
+        container: {
+            sm: "",
+            xs: "",
+            md: "",
+            lg: "",
+        },
+        component: {
+            sm: "",
+            xs: "",
+            md: "",
+            lg: "",
+        },
+    },
+});
 

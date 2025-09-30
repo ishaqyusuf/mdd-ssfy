@@ -360,7 +360,7 @@ interface SortableItemContextValue {
 const SortableItemContext =
   React.createContext<SortableItemContextValue | null>(null);
 
-function useSortableItemContext(consumerName: string) {
+export function useSortableItemContext(consumerName: string) {
   const context = React.useContext(SortableItemContext);
   if (!context) {
     throw new Error(`\`${consumerName}\` must be used within \`${ITEM_NAME}\``);
