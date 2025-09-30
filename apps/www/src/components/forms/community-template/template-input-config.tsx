@@ -10,6 +10,7 @@ import { inputSizes } from "@community/utils";
 import { FormCombobox } from "@/components/common/controls/form-combobox";
 import { useSchemaBlockContext } from "./context";
 import { labelIdOptions } from "@/lib/utils";
+import { FormInput } from "@gnd/ui/controls/form-input";
 
 export function TemplateInputConfig(props: SchemaBlockInputProps) {
     const { input } = props;
@@ -20,6 +21,7 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
     const form = useForm({
         defaultValues: {
             ...input,
+            title: input.title || "",
         },
     });
     const w = form.watch();
@@ -86,6 +88,15 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
                                         "uid",
                                     ),
                                 }}
+                            />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-3 items-center gap-4">
+                        <Label htmlFor="width">Input name</Label>
+                        <div className="col-span-2">
+                            <FormInput
+                                name="title"
+                                placeholder={`change default title`}
                             />
                         </div>
                     </div>

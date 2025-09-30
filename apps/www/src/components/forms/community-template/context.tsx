@@ -1,6 +1,7 @@
 import { _trpc } from "@/components/static-trpc";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTRPC } from "@/trpc/client";
+import { RouterOutputs } from "@api/trpc/routers/_app";
 import {
     getCommunityBlockSchema,
     getCommunitySchema,
@@ -8,7 +9,7 @@ import {
 import { RenturnTypeAsync } from "@gnd/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { cva } from "class-variance-authority";
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 
 type TemplateBlocksContext = ReturnType<typeof createTemplateBlocksContext>;
@@ -106,20 +107,28 @@ export const useSchemaBlockContext = () => {
     return context;
 };
 
-export const blockLayoutVariant = cva("", {
-    variants: {
-        container: {
-            sm: "",
-            xs: "",
-            md: "",
-            lg: "",
-        },
-        component: {
-            sm: "",
-            xs: "",
-            md: "",
-            lg: "",
-        },
-    },
-});
+type BlockInputContext = ReturnType<typeof createBlockInputContext>;
+export const BlockInputContext = createContext<BlockInputContext>(undefined);
+export const BlockInputProvider = BlockInputContext.Provider;
+interface BlockInputProps {
+    input: RouterOutputs["community"]["getCommunityBlockSchema"]["inputConfigs"][number];
+    savingSort?: boolean;
+    onInputUpdated?;
+}
+export const createBlockInputContext = (props: BlockInputProps) => {
+    return {
+        ...props,
+        // data,
+        // setData,
+    };
+};
+export const useBlockInputContext = () => {
+    const context = useContext(BlockInputContext);
+    if (context === undefined) {
+        throw new Error(
+            "useBlockInputContext must be used within a BlockInputProvider",
+        );
+    }
+    return context;
+};
 

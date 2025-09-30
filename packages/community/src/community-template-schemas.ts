@@ -1,7 +1,17 @@
 import { Db } from "@gnd/db";
 import { sortList } from "@gnd/utils";
-import { inventoryCategories, saveInventory } from "@sales/inventory";
+import {
+  inventoryCategories,
+  inventoryList,
+  saveInventory,
+  updateSubComponent,
+} from "@sales/inventory";
 import { z } from "zod";
+import {
+  COMMUNITY_BLOCKS_INVENTORY_CATEGORY_TITLE,
+  COMMUNITY_LISTINGS_INVENTORY_CATEGORY_TITLE,
+  COMMUNITY_SECTIONS_INVENTORY_CATEGORY_TITLE,
+} from "./constants";
 
 // type Db = any;
 export const createCommunityTemplateBlockSchema = z.object({
@@ -100,8 +110,8 @@ export async function getCommunitySchema(
   db: Db,
   query: GetCommunitySchemaSchema
 ) {
-  const category = await getSchemaInventoryCategory(db);
-  const communityCategory = await getSchemaInventoryCategory(db);
+  const category = await getCommunitySectionsInventoryCategory(db);
+  const communityCategory = await getCommunityBlocksInventoryCategory(db);
   const blocks = await db.communityTemplateBlockConfig.findMany({
     where: {},
     select: {
@@ -236,22 +246,21 @@ export async function getBlockInputs(db: Db, query: GetBlockInputsSchema) {
   };
 }
 
-export async function getSchemaSections(db: Db) {}
-export async function getSchemaInventoryCategory(db: Db) {
+export async function getCommunitySectionsInventoryCategory(db: Db) {
   const response = await inventoryCategories(db, {
-    q: "Community Sections",
+    q: COMMUNITY_SECTIONS_INVENTORY_CATEGORY_TITLE,
   });
   return response?.data?.[0];
 }
-export async function getCommunityitemInventoryCategory(db: Db) {
+export async function getCommunityListingsInventoryCategory(db: Db) {
   const response = await inventoryCategories(db, {
-    q: "Community Item",
+    q: COMMUNITY_LISTINGS_INVENTORY_CATEGORY_TITLE,
   });
   return response?.data?.[0];
 }
-export async function getCommunityInventoryCategory(db: Db) {
+export async function getCommunityBlocksInventoryCategory(db: Db) {
   const response = await inventoryCategories(db, {
-    q: "Community",
+    q: COMMUNITY_BLOCKS_INVENTORY_CATEGORY_TITLE,
   });
   return response?.data?.[0];
 }
@@ -303,6 +312,7 @@ export const updateCommunityBlockInputSchema = z.object({
   id: z.number(),
   columnSize: z.number().optional().nullable().default(4),
   valueUid: z.string().optional().nullable(),
+  title: z.string().optional().nullable(),
 });
 export type UpdateCommunityBlockInputSchema = z.infer<
   typeof updateCommunityBlockInputSchema
@@ -319,6 +329,65 @@ export async function updateCommunityBlockInput(
     data: {
       columnSize: query.columnSize,
       valueUid: query.valueUid,
+      title: query.title,
     },
   });
+}
+
+export const getTemplateInputListingsSchema = z.object({
+  // uid: z.string(),
+  inputInventoryId: z.number(),
+});
+export type GetTemplateInputListingsSchema = z.infer<
+  typeof getTemplateInputListingsSchema
+>;
+
+export async function getTemplateInputListings(
+  db: Db,
+  query: GetTemplateInputListingsSchema
+) {
+  const results = await inventoryList(db, {
+    // categoryId: query.inputInventoryId,
+    size: 99,
+  });
+  return results?.data?.map((r) => ({
+    uid: r.uid,
+    title: r.title,
+  }));
+}
+
+/*
+createTemplateInputLisiting: publicProcedure
+      .input(createTemplateInputLisitingSchema)
+      .mutation(async (props) => {
+        return createTemplateInputLisiting(props.ctx, props.input);
+      }),
+*/
+export const createTemplateInputLisitingSchema = z.object({
+  uid: z.string(),
+  // communityComponentCategoryId: z.number(),
+  title: z.string(),
+});
+export type CreateTemplateInputLisitingSchema = z.infer<
+  typeof createTemplateInputLisitingSchema
+>;
+
+export async function createTemplateInputLisiting(
+  db: Db,
+  data: CreateTemplateInputLisitingSchema
+) {
+  const category = await getCommunityListingsInventoryCategory(db);
+  const inventory = await saveInventory(db, {
+    product: {
+      categoryId: category?.id!,
+      name: data.title,
+      status: "draft",
+      primaryStoreFront: false,
+      stockMonitor: false,
+    },
+    subCategories: [],
+    subComponents: [],
+  });
+
+  return inventory;
 }

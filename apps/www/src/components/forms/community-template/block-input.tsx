@@ -1,31 +1,29 @@
 import { RouterOutputs } from "@api/trpc/routers/_app";
-import { useSchemaBlockContext, useTemplateBlocksContext } from "./context";
+import {
+    useBlockInputContext,
+    useSchemaBlockContext,
+    useTemplateBlocksContext,
+} from "./context";
 import { useState } from "react";
 import { useCommunityInventoryParams } from "@/hooks/use-community-inventory-params";
 import * as Sortable from "@gnd/ui/sortable-2";
-import { useSortableItemContext } from "@gnd/ui/sortable-2";
 
 import { cn } from "@gnd/ui/cn";
-import { Icons } from "@gnd/ui/icons";
 import { Label } from "@gnd/ui/label";
-import { Button, buttonVariants } from "@gnd/ui/button";
+import { buttonVariants } from "@gnd/ui/button";
 import { ModelInput } from "./model-input";
-import { Skeleton } from "@gnd/ui/skeleton";
-import { Popover } from "@gnd/ui/composite";
-import { TemplateInputConfig } from "./template-input-config";
-import { BlockInputConfig } from "./block-input-config";
-import { GripVertical } from "lucide-react";
 
-export interface SchemaBlockInputProps {
-    input: RouterOutputs["community"]["getCommunityBlockSchema"]["inputConfigs"][number];
-    savingSort?: boolean;
-    onInputUpdated?;
-}
-export function BlockInput(props: SchemaBlockInputProps) {
+import { BlockInputConfig } from "./block-input-config";
+
+export function BlockInput() {
+    const inputCtx = useBlockInputContext();
+    const { input, savingSort } = inputCtx;
+    const [data, setData] = useState(input);
+
     // const blk = useSchemaBlockContext();
     // const { fields, swap } = blk;
     const { setParams } = useCommunityInventoryParams();
-    const [data, setData] = useState(props.input);
+
     const openAnalytics = () => {
         setParams({
             openCommunityInventoryId: data?.id,
@@ -34,17 +32,13 @@ export function BlockInput(props: SchemaBlockInputProps) {
     const ctx = useTemplateBlocksContext();
     const { templateEditMode, printMode, modelEditMode } = ctx;
     return (
-        <Sortable.Item
-            value={(props.input as any)._id}
-            asChild
-            className={cn()}
-        >
+        <Sortable.Item value={(input as any)._id} asChild className={cn()}>
             {/* <Content {...props} /> */}
             <div
                 className={cn(
                     "flex relative gap-4",
                     `col-span-${data.columnSize || 4}`,
-                    props.savingSort && "grayscale",
+                    savingSort && "grayscale",
                     "group",
                 )}
             >

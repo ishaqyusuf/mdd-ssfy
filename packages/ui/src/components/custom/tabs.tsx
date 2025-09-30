@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Portal from "./portal";
 
 const { Provider: TabItemProvider, useContext: useTabItem } =
-  createContextFactory(function (props: { index? }) {
+  createContextFactory(function (props: { value? }) {
     const tab = useTab();
     return {
-      active: false, // tab.activeIndex === props.index,
+      active: tab.value === props.value, // tab.activeIndex === props.index,
     };
   });
 const { Provider: TabProvider, useContext: useTab } = createContextFactory(
@@ -130,7 +130,7 @@ function TabList(props: TabListProps) {
 interface TabItemProps {
   className?: string;
   children?;
-  index?;
+  // index?;
   value?;
   disabled?: boolean;
 }
@@ -141,48 +141,58 @@ function TabItem(props: TabItemProps) {
   const ref = useRef<HTMLButtonElement>(null);
 
   return (
-    <button
-      ref={ref}
-      disabled={props.disabled}
-      data-role="tabItem"
-      data-tab-active={
-        ref === activeElement
-        // ||
-        // (!activeElement && props.value === tabCtx.value)
-      }
-      onMouseEnter={() => setActiveElement(ref.current)}
-      onMouseLeave={() => setActiveElement(null)}
-      // ref={(el) => (tabRefs.current[props.index] = el as any)}
-      className={cn(
-        `px-3 py-2 cursor-pointer transition-colors duration-300 h-[30px] ${
-          ref === activeElement
-            ? // ||
-              // (!activeElement && props.value === tabCtx.value)
-              "text-[#0e0e10] dark:text-white"
-            : "text-[#0e0f1199] dark:text-[#ffffff99]"
-        } ${props.value === tabCtx.value && "bg-primary rounded-lg text-secondary"}`
-      )}
-      // onMouseEnter={() => setHoveredIndex(props.index)}
-      // onMouseLeave={() => setHoveredIndex(null)}
-      onClick={() => {
-        // setActiveIndex(props.index);
-        tabCtx?.onValueChange?.(props.index);
-      }}
+    <TabItemProvider
+      args={[
+        {
+          value: props.value,
+        },
+      ]}
     >
-      <div className="text-sm font-[var(--www-mattmannucci-me-geist-regular-font-family)] leading-5 whitespace-nowrap flex items-center justify-center h-full">
-        {props.children}
-      </div>
-    </button>
+      <button
+        ref={ref}
+        disabled={props.disabled}
+        data-role="tabItem"
+        data-tab-active={
+          ref === activeElement
+          // ||
+          // (!activeElement && props.value === tabCtx.value)
+        }
+        onMouseEnter={() => setActiveElement(ref.current)}
+        onMouseLeave={() => setActiveElement(null)}
+        // ref={(el) => (tabRefs.current[props.index] = el as any)}
+        className={cn(
+          `px-3 py-2 cursor-pointer transition-colors duration-300 h-[30px] ${
+            ref === activeElement
+              ? // ||
+                // (!activeElement && props.value === tabCtx.value)
+                "text-[#0e0e10] dark:text-white"
+              : "text-[#0e0f1199] dark:text-[#ffffff99]"
+          } ${props.value === tabCtx.value && "bg-primary rounded-lg text-secondary"}`
+        )}
+        // onMouseEnter={() => setHoveredIndex(props.index)}
+        // onMouseLeave={() => setHoveredIndex(null)}
+        onClick={() => {
+          // setActiveIndex(props.index);
+          tabCtx?.onValueChange?.(props.value);
+        }}
+      >
+        <div className="text-sm font-[var(--www-mattmannucci-me-geist-regular-font-family)] leading-5 whitespace-nowrap flex items-center justify-center h-full">
+          {props.children}
+        </div>
+      </button>
+    </TabItemProvider>
   );
 }
 interface TabContentProps {
   children?;
+  className?: string;
 }
 function TabContent(props: TabContentProps) {
   const tabItem = useTabItem();
   if (!tabItem?.active) return null;
   return (
     <Portal noDelay nodeId={"tabContents"}>
+      <div className={cn(`flex flex-col pt-4 ${props.className}`)}></div>
       {props.children}
     </Portal>
   );

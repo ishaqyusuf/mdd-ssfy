@@ -75,6 +75,7 @@ export async function inventoryList(db: Db, query: InventoryList) {
       return {
         id: r.id,
         title: r.name,
+        uid: r.uid,
         brand: r.inventoryCategory?.type,
         images: [],
         category: r.inventoryCategory?.title,

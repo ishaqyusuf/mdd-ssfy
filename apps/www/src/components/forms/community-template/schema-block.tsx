@@ -1,6 +1,8 @@
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { Suspense } from "react";
 import {
+    BlockInputProvider,
+    createBlockInputContext,
     createSchemaBlockContext,
     SchemaBlockProvider,
     useSchemaBlockContext,
@@ -117,12 +119,16 @@ function FormContent({}) {
                     templateEditMode ? "gap-6" : "gap-4",
                 )}
             >
-                {fields.map((input) => (
-                    <BlockInput
-                        key={input._id}
-                        input={input}
-                        savingSort={savingSort}
-                    />
+                {fields.map((inputField) => (
+                    <BlockInputProvider
+                        value={createBlockInputContext({
+                            input: inputField,
+                            savingSort,
+                        })}
+                        key={inputField._id}
+                    >
+                        <BlockInput />
+                    </BlockInputProvider>
                 ))}
             </Sortable.Content>
             <Sortable.Overlay />

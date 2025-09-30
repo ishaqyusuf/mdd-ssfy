@@ -298,7 +298,6 @@ model CommunityTemplateInputConfig {
     columnSize Float?
     title      String?
     meta       Json?
-    c          String?
     createdAt  DateTime? @default(now()) @db.Timestamp(0)
     updatedAt  DateTime? @updatedAt
     deletedAt  DateTime? @db.Timestamp(0)

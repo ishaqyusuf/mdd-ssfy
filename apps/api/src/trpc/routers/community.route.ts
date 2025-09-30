@@ -35,12 +35,16 @@ import {
 import {
   createCommunityTemplateBlock,
   createCommunityTemplateBlockSchema,
+  createTemplateInputLisiting,
+  createTemplateInputLisitingSchema,
   getBlockInputs,
   getBlockInputsSchema,
   getCommunityBlockSchema,
   getCommunityBlockSchemaSchema,
   getCommunitySchema,
   getCommunitySchemaSchema,
+  getTemplateInputListings,
+  getTemplateInputListingsSchema,
   updateCommunityBlockInput,
   updateCommunityBlockInputSchema,
   updateRecordsIndices,
@@ -77,6 +81,11 @@ export const communityRouters = createTRPCRouter({
     .input(createCommunityModelCostSchema)
     .mutation(async (props) => {
       return createCommnunityModelCost(props.ctx, props.input);
+    }),
+  createTemplateInputLisiting: publicProcedure
+    .input(createTemplateInputLisitingSchema)
+    .mutation(async (props) => {
+      return createTemplateInputLisiting(props.ctx.db, props.input);
     }),
   deleteCommunityModelCost: publicProcedure
     .input(deleteCommunityModelCostSchema)
@@ -117,6 +126,11 @@ export const communityRouters = createTRPCRouter({
     .input(getCommunitySchemaSchema)
     .query(async (props) => {
       return getCommunitySchema(props.ctx.db, props.input);
+    }),
+  getTemplateInputListings: publicProcedure
+    .input(getTemplateInputListingsSchema)
+    .query(async (props) => {
+      return getTemplateInputListings(props.ctx.db, props.input);
     }),
   projectsList: publicProcedure.query(async (q) => {
     return projectList(q.ctx);
