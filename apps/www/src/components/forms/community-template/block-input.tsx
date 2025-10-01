@@ -30,14 +30,16 @@ export function BlockInput() {
         });
     };
     const ctx = useTemplateBlocksContext();
+    const schemaBlock = useSchemaBlockContext();
     const { templateEditMode, printMode, modelEditMode } = ctx;
     return (
         <Sortable.Item value={(input as any)._id} asChild className={cn()}>
-            {/* <Content {...props} /> */}
             <div
                 className={cn(
                     "flex relative gap-4",
-                    `col-span-${data.columnSize || 4}`,
+                    schemaBlock.sortMode
+                        ? "col-span-4"
+                        : `col-span-${data.columnSize || 4}`,
                     savingSort && "grayscale",
                     "group",
                 )}

@@ -89,12 +89,15 @@ export const createSchemaBlockContext = (props: SchemaBlockProps) => {
         name: "inputConfigs",
         keyName: "_id",
     });
+    const [sortMode, setSortMode] = useState(false);
     return {
         form,
         blockInput,
         ...props,
         fields,
         swap,
+        sortMode,
+        setSortMode,
     };
 };
 export const useSchemaBlockContext = () => {

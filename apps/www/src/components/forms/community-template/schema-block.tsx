@@ -22,6 +22,8 @@ import { Card } from "@gnd/ui/composite";
 import { AddInput } from "./add-input";
 
 import { BlockInput } from "./block-input";
+import { Button } from "@gnd/ui/button";
+import { SortAscIcon, SortDescIcon } from "lucide-react";
 
 interface Props {
     block?;
@@ -47,7 +49,7 @@ function FormCard(props: Props) {
     const { block, savingSort } = props;
     const ctx = useTemplateBlocksContext();
     const blk = useSchemaBlockContext();
-    const { fields, swap } = blk;
+    const { fields, swap, setSortMode, sortMode } = blk;
     const { templateEditMode } = ctx;
     if (!templateEditMode && !fields?.length) return null;
     return (
@@ -67,6 +69,15 @@ function FormCard(props: Props) {
                         )}
                         {block?.title}
                         <div className="flex-1"></div>
+                        <Button
+                            variant={sortMode ? "default" : "outline"}
+                            size="sm"
+                            onClick={(e) => {
+                                setSortMode(!sortMode);
+                            }}
+                        >
+                            <SortDescIcon className="size-4" />
+                        </Button>
                         <AddInput />
                     </Card.Title>
                 </Card.Header>
