@@ -150,7 +150,26 @@ export type GetModelTemplateSchema = z.infer<typeof getModelTemplateSchema>;
 export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
   const homeTemplate = await db.homeTemplates.findFirstOrThrow({
     where: { slug: query.slug },
-    select: {},
+    select: {
+      history: !query.historySlug
+        ? undefined
+        : {
+            where: {
+              slug: query.historySlug,
+            },
+            select: {},
+          },
+      templateValues: {
+        where: {
+          deletedAt: null,
+          history: query.historySlug
+            ? {
+                slug: query.historySlug,
+              }
+            : null,
+        },
+      },
+    },
   });
 }
 export const getCommunityBlockSchemaSchema = z.object({

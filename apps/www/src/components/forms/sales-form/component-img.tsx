@@ -35,7 +35,7 @@ export function ComponentImg({
         <Wrapper>
             {/* <AspectRatio ratio={aspectRatio}> */}
             {src ? (
-                <div className="m-4 flex flex-col">
+                <div className="m-4 h-28  flex flex-col">
                     <div>
                         <Image
                             draggable={false}

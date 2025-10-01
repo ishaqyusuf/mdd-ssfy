@@ -475,38 +475,45 @@ export function Component({
                 onClick={!sortMode ? selectComponent : undefined}
             >
                 <div className="flex h-full flex-col">
-                    <div className="flex-1">
+                    <div className="flex-1 relative">
                         <ComponentImg
                             noHover={sortMode}
                             aspectRatio={4 / 2}
                             src={component.img}
                         />
+                        <div className="absolute bottom-0 right-0">
+                            <div className="flex  gap-2 items-center text-xs font-semibold px-2">
+                                <div className="flex-1" />
+                                {component.salesPrice && (
+                                    <Badge
+                                        className="h-5 px-1"
+                                        variant="default"
+                                    >
+                                        ${component.salesPrice}
+                                    </Badge>
+                                )}
+                                <SuperAdminGuard>
+                                    {!component?.statistics || (
+                                        <span className="flex gap-1">
+                                            <LineChart className="size-4" />
+                                            {component?.statistics}
+                                        </span>
+                                    )}
+                                </SuperAdminGuard>
+                            </div>
+                        </div>
                     </div>
-                    <div className="inline-flex border-t p-2 font-mono text-sm gap-2">
+                    <div className="flex flex-col p-2">
                         <Label className="text-start uppercase">
                             {component.title}
                         </Label>
-                        <div className="flex-1"></div>
-                        {component.salesPrice && (
-                            <Badge className="h-5 px-1" variant="destructive">
-                                ${component.salesPrice}
-                            </Badge>
-                        )}
-                        <SuperAdminGuard>
-                            {!component?.statistics || (
-                                <span className="flex gap-1">
-                                    <LineChart className="size-4" />
-                                    {component?.statistics}
-                                </span>
-                            )}
-                        </SuperAdminGuard>
                     </div>
                 </div>
             </button>
 
             {component.productCode ? (
-                <div className="s-rotate-90 -translate-y-1/2s top-1/2s absolute left-4 top-4 transform font-mono text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                    {component.productCode} {component.uid}
+                <div className="s-rotate-90 -translate-y-1/2s top-1/2s absolute left-4 top-4 transform text-xs font-bold uppercase tracking-wider  text-muted-foreground">
+                    {component.productCode}
                 </div>
             ) : null}
 

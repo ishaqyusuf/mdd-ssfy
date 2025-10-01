@@ -108,18 +108,20 @@ model HomeTasks {
 }
 
 model HomeTemplates {
-    id        Int          @unique @default(autoincrement())
-    builderId Int?
-    slug      String       @unique @db.VarChar(255)
-    modelNo   String?      @db.VarChar(255)
-    modelName String?      @db.VarChar(255)
-    meta      Json?        @db.Json
-    deletedAt DateTime?    @db.Timestamp(0)
-    createdAt DateTime?    @default(now()) @db.Timestamp(0)
-    updatedAt DateTime?    @updatedAt
-    builder   Builders?    @relation(fields: [builderId], references: [id])
-    homes     Homes[]
-    costs     CostCharts[]
+    id             Int                           @unique @default(autoincrement())
+    builderId      Int?
+    slug           String                        @unique @db.VarChar(255)
+    modelNo        String?                       @db.VarChar(255)
+    modelName      String?                       @db.VarChar(255)
+    meta           Json?                         @db.Json
+    deletedAt      DateTime?                     @db.Timestamp(0)
+    createdAt      DateTime?                     @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime?                     @updatedAt
+    builder        Builders?                     @relation(fields: [builderId], references: [id])
+    homes          Homes[]
+    costs          CostCharts[]
+    history        CommunityTemplateHistory[]
+    templateValues CommunityModelTemplateValue[]
 
     @@index([builderId])
 }
@@ -224,12 +226,13 @@ model CommunityModels {
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    slug           String                        @unique @db.VarChar(255)
-    project        Projects                      @relation(fields: [projectId], references: [id])
-    homes          Homes[]
+    slug    String               @unique @db.VarChar(255)
+    project Projects             @relation(fields: [projectId], references: [id])
+    homes   Homes[]
+    costs   CommunityModelCost[]
+    pivot   CommunityModelPivot? @relation(fields: [pivotId], references: [id])
+
     history        CommunityTemplateHistory[]
-    costs          CommunityModelCost[]
-    pivot          CommunityModelPivot?          @relation(fields: [pivotId], references: [id])
     templateValues CommunityModelTemplateValue[]
 
     @@index([pivotId])
@@ -260,29 +263,35 @@ model CommunityModelTemplateValue {
     inventoryId                Int?
     history                    CommunityTemplateHistory? @relation(fields: [communityTemplateHistoryId], references: [id])
     communityTemplateHistoryId Int?
+    homeTemplate               HomeTemplates?            @relation(fields: [homeTemplateId], references: [id])
+    homeTemplateId             Int?
 
     @@index([communityModelId])
     @@index([inventoryCategoryId])
     @@index([inventoryId])
     @@index([inputConfigId])
     @@index([communityTemplateHistoryId])
+    @@index([homeTemplateId])
 }
 
 model CommunityTemplateHistory {
-    id                Int                           @unique @default(autoincrement())
-    userId            Int
-    slug              String?
-    meta              Json?                         @db.Json
-    createdAt         DateTime?                     @default(now()) @db.Timestamp(0)
-    updatedAt         DateTime?                     @updatedAt
-    deletedAt         DateTime?                     @db.Timestamp(0)
-    model             CommunityModels?              @relation(fields: [communityModelsId], references: [id])
-    communityModelsId Int?
-    Users             Users                         @relation(fields: [userId], references: [id])
-    values            CommunityModelTemplateValue[]
+    id               Int                           @unique @default(autoincrement())
+    userId           Int
+    slug             String?
+    meta             Json?                         @db.Json
+    createdAt        DateTime?                     @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?                     @updatedAt
+    deletedAt        DateTime?                     @db.Timestamp(0)
+    model            CommunityModels?              @relation(fields: [communityModelId], references: [id])
+    communityModelId Int?
+    Users            Users                         @relation(fields: [userId], references: [id])
+    values           CommunityModelTemplateValue[]
+    homeTemplate     HomeTemplates?                @relation(fields: [homeTemplateId], references: [id])
+    homeTemplateId   Int?
 
     @@index([userId])
-    @@index([communityModelsId])
+    @@index([communityModelId])
+    @@index([homeTemplateId])
 }
 
 model CommunityTemplateBlockConfig {
