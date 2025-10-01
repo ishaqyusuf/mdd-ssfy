@@ -2,6 +2,7 @@ import { formatMoney } from "@/lib/use-number";
 import { ZusSales } from "../../../_common/_stores/form-data-store";
 
 import { GroupFormClass } from "./group-form-class";
+import { ComponentHelperClass } from "./step-component-class";
 type SizeForm = ReturnType<
     HptClass["getHptForm"]
 >["doors"][number]["sizeList"][number];
@@ -30,6 +31,7 @@ export class HptClass extends GroupFormClass {
 
                 return {
                     ...door,
+                    cls: new ComponentHelperClass(this.stepUid, door.uid),
                     sizeList: priceModel.heightSizeList?.map((hsl) => {
                         const path = `${door.uid}-${hsl.size}`;
                         const selected = this.isDoorSelected(path);

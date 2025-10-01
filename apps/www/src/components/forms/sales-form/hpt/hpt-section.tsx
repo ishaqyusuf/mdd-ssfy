@@ -37,6 +37,7 @@ import {
     LineInput,
     LineSwitch,
 } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
+import { HptAddDoorSize } from "./hpt-add-door-size";
 
 interface Props {
     itemStepUid;
@@ -164,49 +165,7 @@ function DoorSizeTable({ door }: DoorSizeTable) {
                     <TableFooter className="bg-accent">
                         <TableRow>
                             <TableCell>
-                                <Menu
-                                    Trigger={
-                                        <Button>
-                                            <Icons.add className="mr-2 size-4" />
-                                            <span>Size</span>
-                                        </Button>
-                                    }
-                                >
-                                    {door.sizeList.map((sl) => (
-                                        <Menu.Item
-                                            onClick={() => {
-                                                ctx.hpt.addHeight(sl);
-                                            }}
-                                            key={sl.path}
-                                            disabled={sl.selected}
-                                        >
-                                            {sl.title}
-
-                                            <DropdownMenuShortcut
-                                                className={cn(
-                                                    !sl.salesPrice ||
-                                                        "font-bold",
-                                                )}
-                                            >
-                                                {/* <Badge
-                                                    variant={
-                                                        sl.salesPrice
-                                                            ? "default"
-                                                            : "secondary"
-                                                    }
-                                                > */}
-                                                {sl.salesPrice ? (
-                                                    <Money
-                                                        value={sl.salesPrice}
-                                                    />
-                                                ) : (
-                                                    "$"
-                                                )}
-                                                {/* </Badge> */}
-                                            </DropdownMenuShortcut>
-                                        </Menu.Item>
-                                    ))}
-                                </Menu>
+                                <HptAddDoorSize cls={door?.cls} />
                             </TableCell>
                         </TableRow>
                     </TableFooter>
