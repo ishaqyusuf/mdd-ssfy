@@ -70,14 +70,14 @@ export function ComponentsSection({ itemStepUid }: Props) {
     const supplier = door?.form?.formStepMeta;
     const [tab, setTab] = useState("doors");
     if (!isDoor) return <Content itemStepUid={itemStepUid} />;
-    return (
-        <div className="grid gap-4">
-            <div className="flex flex-1 justify-end">
-                <DoorSupplierBadge itemStepUid={itemStepUid} />
-            </div>
-            <Content itemStepUid={itemStepUid} />
-        </div>
-    );
+    // return (
+    //     <div className="grid gap-4">
+    //         <div className="flex flex-1 justify-end">
+    //             <DoorSupplierBadge itemStepUid={itemStepUid} />
+    //         </div>
+    //         <Content itemStepUid={itemStepUid} />
+    //     </div>
+    // );
     return (
         <SuperAdminGuard
             Fallback={
