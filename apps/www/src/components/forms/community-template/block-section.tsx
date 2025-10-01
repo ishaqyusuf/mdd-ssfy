@@ -19,7 +19,7 @@ import { Icons } from "@gnd/ui/icons";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Card } from "@gnd/ui/composite";
 
-import { AddInput } from "./add-input";
+import { AddInput } from "./add-input-block";
 
 import { BlockInput } from "./block-input-section";
 import { Button } from "@gnd/ui/button";

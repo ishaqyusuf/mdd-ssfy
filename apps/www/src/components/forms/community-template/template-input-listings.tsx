@@ -3,7 +3,7 @@ import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { useBlockInputContext, useTemplateBlocksContext } from "./context";
 import { useZodForm } from "@/hooks/use-zod-form";
-import { createTemplateInputLisitingSchema } from "@community/community-template-schemas";
+import { saveTemplateInputListingSchema } from "@community/community-template-schemas";
 import { Form } from "@gnd/ui/form";
 import { FormInput } from "@gnd/ui/controls/form-input";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
@@ -26,14 +26,14 @@ export function TemplateInputListings() {
 function Content() {
     const ctx = useBlockInputContext();
     const { mutate, isPending } = useMutation(
-        _trpc.community.createTemplateInputLisiting.mutationOptions({}),
+        _trpc.community.saveTemplateInputListing.mutationOptions({}),
     );
     const { data: listings } = useSuspenseQuery(
         _trpc.community.getTemplateInputListings.queryOptions({
             inputInventoryId: ctx.input?.inv.id,
         }),
     );
-    const form = useZodForm(createTemplateInputLisitingSchema, {
+    const form = useZodForm(saveTemplateInputListingSchema, {
         defaultValues: {
             title: "",
         },

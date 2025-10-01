@@ -21,7 +21,7 @@ export function ModelInput() {
         ),
     );
     const { mutate } = useMutation(
-        _trpc.community.createTemplateInputLisiting.mutationOptions({
+        _trpc.community.saveTemplateInputListing.mutationOptions({
             onSuccess(data, variables, context) {
                 _qc.invalidateQueries({
                     queryKey: _trpc.community.getTemplateInputListings.queryKey(

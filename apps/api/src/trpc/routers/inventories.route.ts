@@ -42,7 +42,6 @@ import {
   updateVariantStatus,
   updateVariantStatusSchema,
   updateSubComponent,
-  deleteSubComponent,
 } from "@sales/inventory";
 import { getStoreAddonComponentForm } from "@sales/storefront-product";
 import { inventoryImport } from "@sales/inventory-import";
@@ -50,8 +49,8 @@ import { InventoryImportService } from "@sales/inventory-import-service";
 import { idSchema } from "@api/schemas/common";
 import { INVENTORY_STATUS } from "@sales/constants";
 import {
-  createCommunityInput,
-  createCommunityInputSchema,
+  saveCommunityInput,
+  saveCommunityInputSchema,
 } from "@community/community-template-schemas";
 // import {
 //   dimensionalWeightFormSchema,
@@ -69,10 +68,10 @@ import {
 //   zoneBasedFormSchema,
 // } from "@sales/shipping";
 export const inventoriesRouter = createTRPCRouter({
-  createCommunityInput: publicProcedure
-    .input(createCommunityInputSchema)
+  saveCommunityInput: publicProcedure
+    .input(saveCommunityInputSchema)
     .mutation(async (props) => {
-      return createCommunityInput(props.ctx.db, props.input);
+      return saveCommunityInput(props.ctx.db, props.input);
     }),
   deleteInventories: publicProcedure
     .input(

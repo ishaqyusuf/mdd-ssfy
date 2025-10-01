@@ -11,7 +11,6 @@ import { FormCombobox } from "@/components/common/controls/form-combobox";
 import { useSchemaBlockContext } from "./context";
 import { labelIdOptions } from "@/lib/utils";
 import { FormInput } from "@gnd/ui/controls/form-input";
-import { ConfirmBtn } from "@gnd/ui/confirm-button";
 
 export function TemplateInputConfig(props: SchemaBlockInputProps) {
     const { input } = props;

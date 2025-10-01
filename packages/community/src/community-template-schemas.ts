@@ -52,31 +52,43 @@ export async function createCommunityTemplateBlock(
   });
 }
 /*
-createCommunityInput: publicProcedure
-      .input(createCommunityInputSchema)
+saveCommunityInput: publicProcedure
+      .input(saveCommunityInputSchema)
       .mutation(async (props) => {
-        return createCommunityInput(props.ctx, props.input);
+        return saveCommunityInput(props.ctx, props.input);
       }),
 */
-export const createCommunityInputSchema = z.object({
+export const saveCommunityInputSchema = z.object({
   title: z.string().optional().nullable(),
   uid: z.string().optional().nullable(),
-  categoryId: z.number(),
+  // categoryId: z.number(),
   blockId: z.number(),
+  id: z.number().optional(),
 });
-export type CreateCommunityInputSchema = z.infer<
-  typeof createCommunityInputSchema
->;
+export type SaveCommunityInputSchema = z.infer<typeof saveCommunityInputSchema>;
 
-export async function createCommunityInput(
+export async function saveCommunityInput(
   db: Db,
-  data: CreateCommunityInputSchema
+  data: SaveCommunityInputSchema
 ) {
   return db.$transaction(async (tx) => {
+    if (data.uid && data.title) {
+      await tx.inventory.updateMany({
+        where: {
+          uid: data.uid,
+        },
+        data: {
+          name: data.title!,
+        },
+      });
+      return;
+    }
     if (data.title) {
-      const inventory = await saveInventory(db, {
+      const categoryId = (await getCommunityBlocksInventoryCategory(tx as any))
+        ?.id!;
+      const inventory = await saveInventory(tx as any, {
         product: {
-          categoryId: data.categoryId,
+          categoryId,
           name: data.title,
           status: "draft",
           primaryStoreFront: false,
@@ -87,7 +99,7 @@ export async function createCommunityInput(
       });
       data.uid = inventory.uid;
     }
-    await db.communityTemplateInputConfig.create({
+    await tx.communityTemplateInputConfig.create({
       data: {
         uid: data.uid!,
         communityTemplateBlockConfigId: data.blockId,
@@ -250,7 +262,7 @@ export async function getBlockInputs(db: Db, query: GetBlockInputsSchema) {
       columnSize: true,
       uid: true,
       title: true,
-      valueUid: true,
+      // valueUid: true,
     },
   });
   const inventories = await db.inventory.findMany({
@@ -264,6 +276,7 @@ export async function getBlockInputs(db: Db, query: GetBlockInputsSchema) {
       name: true,
       description: true,
       uid: true,
+      inventoryCategoryId: true,
     },
   });
   return {
@@ -391,25 +404,26 @@ export async function getTemplateInputListings(
 }
 
 /*
-createTemplateInputLisiting: publicProcedure
-      .input(createTemplateInputLisitingSchema)
+saveTemplateInputListing: publicProcedure
+      .input(saveTemplateInputListingSchema)
       .mutation(async (props) => {
-        return createTemplateInputLisiting(props.ctx, props.input);
+        return saveTemplateInputListing(props.ctx, props.input);
       }),
 */
-export const createTemplateInputLisitingSchema = z.object({
+export const saveTemplateInputListingSchema = z.object({
   uid: z.string(),
+
   // communityComponentCategoryId: z.number(),
   title: z.string(),
   inputBlockInventoryId: z.number(),
 });
-export type CreateTemplateInputLisitingSchema = z.infer<
-  typeof createTemplateInputLisitingSchema
+export type SaveTemplateInputListingSchema = z.infer<
+  typeof saveTemplateInputListingSchema
 >;
 
-export async function createTemplateInputLisiting(
+export async function saveTemplateInputListing(
   db: Db,
-  data: CreateTemplateInputLisitingSchema
+  data: SaveTemplateInputListingSchema
 ) {
   return db.$transaction(async (tx) => {
     let db = tx as any;
