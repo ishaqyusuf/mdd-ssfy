@@ -1,9 +1,6 @@
 "use client";
 
-import {
-    IStepProducts,
-    StepProductProps,
-} from "../components/step-items-list/item-section/step-products";
+import { IStepProducts } from "../components/step-items-list/item-section/step-products";
 
 import { getMouldingStepProduct } from "../_action/get-dyke-step-product";
 

@@ -1,4 +1,5 @@
 import {
+    Fragment,
     memo,
     useCallback,
     useEffect,
@@ -125,94 +126,40 @@ export function ComponentsSection({ itemStepUid }: Props) {
 function Content({ itemStepUid }) {
     const ctx = useStepContext(itemStepUid);
     const { items, sticky, cls, props } = ctx;
-    const sortMode = useSortControl();
-    const [savingSort, startSavingSort] = useTransition();
-    const onSorted = async (e: typeof items) => {
-        startSavingSort((async () => {
-            ctx.setItems(e);
-            const data = e
 
-                .map((i, _i) => ({
-                    prevIndex: i._metaData.sortIndex,
-                    componentId: i.id,
-                    sortUid: i?._metaData?.sortUid,
-                    sortIndex: _i,
-                }))
-                .filter((a) => {
-                    if (a.sortIndex > 0) {
-                        return a.sortIndex != a.prevIndex;
-                    }
-                    return a.prevIndex == null || a.prevIndex != a.sortIndex;
-                });
-
-            await updateComponentsSortingAction({
-                list: data,
-            });
-            cls.refreshStepComponentsData(true);
-        }) as any);
-    };
     return (
         <div className="grid gap-4">
             <ScrollArea
                 ref={sticky.containerRef}
                 className="smax-h-[80vh] sm:max-h-[200vh] relative h-full p-4 pb-20"
             >
-                <Sortable
-                    orientation="mixed"
-                    collisionDetection={closestCorners}
-                    value={items}
-                    onValueChange={onSorted}
-                    overlay={
-                        <div className="size-full rounded-md bg-primary/10" />
-                    }
-                >
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-                        {!items.length &&
-                            Array(10)
-                                .fill(null)
-                                .map((_, i) => (
-                                    <div
-                                        className="flex min-h-[25vh] flex-col rounded-lg border xl:min-h-[35vh]"
-                                        key={i}
-                                    >
-                                        <Skeleton className="flex-1" />
-                                        <Skeleton className="h-10" />
-                                    </div>
-                                ))}
-                        {items?.map((component, index) => (
-                            <SortableItem
-                                key={component.id}
-                                value={component.id}
-                                asTrigger
-                                className={cn(savingSort && "grayscale")}
-                                asChild
-                            >
-                                {sortMode && !savingSort ? (
-                                    <div className="  flex flex-col">
-                                        <Component
-                                            sortMode={sortMode}
-                                            ctx={ctx}
-                                            itemIndex={index}
-                                            key={component.uid}
-                                            component={component}
-                                        />
-                                    </div>
-                                ) : (
-                                    <Component
-                                        sortMode={sortMode}
-                                        ctx={ctx}
-                                        itemIndex={index}
-                                        key={component.uid}
-                                        component={component}
-                                    />
-                                )}
-                                {/* </div> */}
-                            </SortableItem>
-                        ))}
-                        {/* <CustomComponent ctx={ctx} /> */}
-                        <CustomComponentForm itemStepUid={itemStepUid} />
-                    </div>
-                </Sortable>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+                    {!items.length &&
+                        Array(10)
+                            .fill(null)
+                            .map((_, i) => (
+                                <div
+                                    className="flex min-h-[25vh] flex-col rounded-lg border xl:min-h-[35vh]"
+                                    key={i}
+                                >
+                                    <Skeleton className="flex-1" />
+                                    <Skeleton className="h-10" />
+                                </div>
+                            ))}
+                    {items?.map((component, index) => (
+                        <Fragment key={component.id}>
+                            <Component
+                                ctx={ctx}
+                                itemIndex={index}
+                                key={component.uid}
+                                component={component}
+                            />
+                        </Fragment>
+                    ))}
+                    {/* <CustomComponent ctx={ctx} /> */}
+                    <CustomComponentForm itemStepUid={itemStepUid} />
+                </div>
+
                 <FloatingAction ctx={ctx} />
             </ScrollArea>
         </div>

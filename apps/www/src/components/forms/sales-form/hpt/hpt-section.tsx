@@ -182,24 +182,27 @@ function DoorSizeTable({ door }: DoorSizeTable) {
                                         >
                                             {sl.title}
 
-                                            <DropdownMenuShortcut>
-                                                <Badge
+                                            <DropdownMenuShortcut
+                                                className={cn(
+                                                    !sl.salesPrice ||
+                                                        "font-bold",
+                                                )}
+                                            >
+                                                {/* <Badge
                                                     variant={
                                                         sl.salesPrice
-                                                            ? "destructive"
+                                                            ? "default"
                                                             : "secondary"
                                                     }
-                                                >
-                                                    {sl.salesPrice ? (
-                                                        <Money
-                                                            value={
-                                                                sl.salesPrice
-                                                            }
-                                                        />
-                                                    ) : (
-                                                        "$"
-                                                    )}
-                                                </Badge>
+                                                > */}
+                                                {sl.salesPrice ? (
+                                                    <Money
+                                                        value={sl.salesPrice}
+                                                    />
+                                                ) : (
+                                                    "$"
+                                                )}
+                                                {/* </Badge> */}
                                             </DropdownMenuShortcut>
                                         </Menu.Item>
                                     ))}
