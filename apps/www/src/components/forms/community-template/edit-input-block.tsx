@@ -5,7 +5,7 @@ import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { Form } from "@gnd/ui/form";
 import { useMutation } from "@tanstack/react-query";
 import { Suspense } from "react";
-import { useTemplateBlocksContext } from "./context";
+import { useSchemaBlockContext, useTemplateBlocksContext } from "./context";
 import { FormInput } from "@gnd/ui/controls/form-input";
 import { SubmitButton } from "@/components/submit-button";
 import { toast } from "@gnd/ui/use-toast";
@@ -21,10 +21,12 @@ export function EditInputBlock(props: Props) {
     // function BlockForm(props: Props)
     // {
     const ctx = useTemplateBlocksContext();
+    const b = useSchemaBlockContext();
     const input = ctx.blockInputs.find((a) => a.uid == props.uid);
     const form = useZodForm(saveCommunityInputSchema, {
         defaultValues: {
             title: input.inv?.name,
+            blockId: b.blockId,
         },
     });
     const { mutate, isPending } = useMutation(

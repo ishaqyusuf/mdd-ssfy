@@ -61,9 +61,7 @@ saveCommunityInput: publicProcedure
 export const saveCommunityInputSchema = z.object({
   title: z.string().optional().nullable(),
   uid: z.string().optional().nullable(),
-  // categoryId: z.number(),
   blockId: z.number(),
-  id: z.number().optional(),
 });
 export type SaveCommunityInputSchema = z.infer<typeof saveCommunityInputSchema>;
 
