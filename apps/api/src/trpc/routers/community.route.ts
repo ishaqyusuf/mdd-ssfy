@@ -53,6 +53,8 @@ import {
   updateCommunityBlockInputSchema,
   updateRecordsIndices,
   updateRecordsIndicesSchema,
+  deleteInputInventoryBlock,
+  deleteInputInventoryBlockSchema,
 } from "@community/community-template-schemas";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
@@ -95,6 +97,11 @@ export const communityRouters = createTRPCRouter({
     .input(deleteCommunityModelCostSchema)
     .mutation(async (props) => {
       return deleteCommunityModelCost(props.ctx, props.input);
+    }),
+  deleteInputInventoryBlock: publicProcedure
+    .input(deleteInputInventoryBlockSchema)
+    .mutation(async (props) => {
+      return deleteInputInventoryBlock(props.ctx.db, props.input);
     }),
   deleteInputSchema: publicProcedure
     .input(deleteInputSchemaSchema)

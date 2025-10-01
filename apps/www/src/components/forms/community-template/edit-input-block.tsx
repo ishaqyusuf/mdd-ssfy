@@ -9,6 +9,7 @@ import { useSchemaBlockContext, useTemplateBlocksContext } from "./context";
 import { FormInput } from "@gnd/ui/controls/form-input";
 import { SubmitButton } from "@/components/submit-button";
 import { toast } from "@gnd/ui/use-toast";
+import { ConfirmBtn } from "@gnd/ui/confirm-button";
 
 interface Props {
     uid: string;
@@ -48,8 +49,24 @@ export function EditInputBlock(props: Props) {
         }
         mutate(data);
     };
+    const { mutate: deleteInventoryInput, isPending: isDeleting } = useMutation(
+        _trpc.community.deleteInputInventoryBlock.mutationOptions({
+            onSuccess(data, variables, context) {},
+            onError(error, variables, context) {},
+        }),
+    );
+    const _delete = () => {
+        deleteInventoryInput({
+            uid: input.inv.uid,
+        });
+    };
     return (
-        <div className="w-[300px] p-2">
+        <div className="w-[300px] p-2 grid gap-4">
+            <div className="flex items-center gap-4">
+                <h3 className="font-bold">Edit</h3>
+                <div className="flex-1"></div>
+                {/* <ConfirmBtn trash size="sm" onClick={_delete} /> */}
+            </div>
             <Form {...form}>
                 <form
                     className="grid gap-4"

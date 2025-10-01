@@ -256,6 +256,7 @@ export async function getBlockInputs(db: Db, query: GetBlockInputsSchema) {
       deletedAt: {},
     },
     select: {
+      id: true,
       index: true,
       columnSize: true,
       uid: true,
@@ -401,13 +402,6 @@ export async function getTemplateInputListings(
   }));
 }
 
-/*
-saveTemplateInputListing: publicProcedure
-      .input(saveTemplateInputListingSchema)
-      .mutation(async (props) => {
-        return saveTemplateInputListing(props.ctx, props.input);
-      }),
-*/
 export const saveTemplateInputListingSchema = z.object({
   uid: z.string(),
 
@@ -457,6 +451,32 @@ export async function deleteInputSchema(
 ) {
   await db.communityTemplateInputConfig.update({
     where: { id: query.id },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+}
+export const deleteInputInventoryBlockSchema = z.object({
+  uid: z.string(),
+});
+export type DeleteInputInventoryBlockSchema = z.infer<
+  typeof deleteInputInventoryBlockSchema
+>;
+
+export async function deleteInputInventoryBlock(
+  db: Db,
+  query: DeleteInputInventoryBlockSchema
+) {
+  await db.inventory.updateMany({
+    where: {
+      uid: query.uid,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+  await db.communityTemplateInputConfig.updateMany({
+    where: { uid: query.uid },
     data: {
       deletedAt: new Date(),
     },
