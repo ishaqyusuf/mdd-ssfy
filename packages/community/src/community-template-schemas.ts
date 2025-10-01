@@ -160,7 +160,7 @@ export const getModelTemplateSchema = z.object({
 export type GetModelTemplateSchema = z.infer<typeof getModelTemplateSchema>;
 
 export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
-  const homeTemplate = await db.homeTemplates.findFirstOrThrow({
+  const homeTemplate = await db.communityModels.findFirstOrThrow({
     where: { slug: query.slug },
     select: {
       history: !query.historySlug

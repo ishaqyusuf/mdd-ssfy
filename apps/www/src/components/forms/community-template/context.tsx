@@ -27,7 +27,7 @@ export const createTemplateSchemaContext = (
     const { data, isPending } = useSuspenseQuery(
         trpc.community.getCommunitySchema.queryOptions({}),
     );
-    const { data: modelTemplate } = useSuspenseQuery(
+    const { data: communityTemplate } = useSuspenseQuery(
         trpc.community.getModelTemplate.queryOptions(
             {
                 slug: props.modelSlug,
@@ -49,7 +49,9 @@ export const createTemplateSchemaContext = (
         defaultValues: {},
     });
     useEffect(() => {
-        if (data) form.reset(data as any);
+        if (data) {
+            form.reset(data as any);
+        }
     }, [data]);
     return {
         ...(data || {}),
@@ -58,7 +60,7 @@ export const createTemplateSchemaContext = (
         modelEditMode: !!props.modelSlug,
         printMode: !!props.modelSlug && props.print,
         blockInputs: blockInputData?.inputs,
-        modelTemplate,
+        communityTemplate,
         ...props,
     };
 };
@@ -81,6 +83,7 @@ interface SchemaBlockProps {
 }
 export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
     const schm = useTemplateSchemaContext();
+    const { communityTemplate } = schm;
     const { data: blockInput } = useSuspenseQuery(
         _trpc.community.getCommunityBlockSchema.queryOptions(
             {
@@ -98,6 +101,7 @@ export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
     useEffect(() => {
         if (blockInput) {
             form.reset(blockInput as any);
+            console.log({ communityTemplate });
         }
     }, [blockInput]);
     const { fields, swap } = useFieldArray({
