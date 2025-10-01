@@ -504,7 +504,7 @@ export function Component({
                         </div>
                     </div>
                     <div className="flex flex-col p-2">
-                        <Label className="text-start uppercase">
+                        <Label className="text-start leading-normal uppercase line-clamp-3">
                             {component.title}
                         </Label>
                     </div>
