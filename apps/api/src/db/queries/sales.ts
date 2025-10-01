@@ -34,6 +34,7 @@ export async function getSales(
   ctx: TRPCContext,
   query: SalesQueryParamsSchema
 ) {
+  consoleLog("--", query);
   if (!query.salesType) query.salesType = "order";
   if (query.defaultSearch) {
     if (query.showing != "all sales") query.salesRepId = ctx.userId!;
