@@ -185,6 +185,8 @@ export type InventoryImport = z.infer<typeof inventoryImportSchema>;
 export const inventoryListSchema = z
   .object({
     categoryId: z.number().nullable().optional(),
+    subCategoryInvId: z.number().nullable().optional(),
+    subCategoryId: z.number().nullable().optional(),
     ids: z.array(z.number()).optional(),
     variantIds: z.array(z.number()).optional(),
   })

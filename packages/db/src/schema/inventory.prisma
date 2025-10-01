@@ -21,7 +21,7 @@ model InventoryCategory {
     // asSubComponents SubComponents[]   @relation(name: "asSubComponents")
 
     //for community inputs
-    communityTemplateModelInputs CommunityTemplateModelInput[]
+    communityTemplateModelValues CommunityModelTemplateValue[]
 
     createdAt          DateTime?            @default(now()) @db.Timestamp(0)
     updatedAt          DateTime?            @updatedAt
@@ -50,8 +50,10 @@ model SubComponents {
     // inventoryCategoryId Int
     defaultInventory    Inventory?         @relation(name: "defaultInventories", fields: [defaultInventoryId], references: [id])
     defaultInventoryId  Int?
-    parent              Inventory?         @relation(name: "parent", fields: [parentId], references: [id])
-    parentId            Int?
+
+    // subcomponent is owned by
+    parent   Inventory? @relation(name: "parent", fields: [parentId], references: [id])
+    parentId Int?
     // @@index([parentId])
 
     lineItemComponents LineItemComponents[]
@@ -117,7 +119,7 @@ model Inventory {
     linePricings    LinePricing[]
 
     //for community inputs
-    communityTemplateModelInputs CommunityTemplateModelInput[]
+    communityTemplateModelValues CommunityModelTemplateValue[]
 
     @@index([inventoryCategoryId])
     @@index([discountId])

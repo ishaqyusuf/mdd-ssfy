@@ -224,19 +224,19 @@ model CommunityModels {
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    slug    String                        @unique @db.VarChar(255)
-    project Projects                      @relation(fields: [projectId], references: [id])
-    homes   Homes[]
-    history CommunityTemplateHistory[]
-    costs   CommunityModelCost[]
-    pivot   CommunityModelPivot?          @relation(fields: [pivotId], references: [id])
-    inputs  CommunityTemplateModelInput[]
+    slug           String                        @unique @db.VarChar(255)
+    project        Projects                      @relation(fields: [projectId], references: [id])
+    homes          Homes[]
+    history        CommunityTemplateHistory[]
+    costs          CommunityModelCost[]
+    pivot          CommunityModelPivot?          @relation(fields: [pivotId], references: [id])
+    templateValues CommunityModelTemplateValue[]
 
     @@index([pivotId])
     @@index([projectId])
 }
 
-model CommunityTemplateModelInput {
+model CommunityModelTemplateValue {
     id        Int       @unique @default(autoincrement())
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
@@ -305,38 +305,7 @@ model CommunityTemplateInputConfig {
     blockConfig                    CommunityTemplateBlockConfig @relation(fields: [communityTemplateBlockConfigId], references: [id])
     communityTemplateBlockConfigId Int
 
-    modelInputs CommunityTemplateModelInput[]
+    values CommunityModelTemplateValue[]
 
     @@index([communityTemplateBlockConfigId])
 }
-
-// model CommunityTemplateBlocks {
-//     id    Int    @unique @default(autoincrement())
-//     title String //Exterior Door, Interior Trim, Lock & Hardware, Deco Shutters
-//     slug  String
-
-//     createdAt DateTime? @default(now()) @db.Timestamp(0)
-//     updatedAt DateTime? @updatedAt
-//     deletedAt DateTime? @db.Timestamp(0)
-// }
-
-// model CommunityTemplateSections {
-//     id    Int     @unique @default(autoincrement())
-//     title String? //Exterior Door, Garage Door, Interior Door, Double Door, Bifold Door, null = block title.
-//     slug  String
-
-//     createdAt DateTime? @default(now()) @db.Timestamp(0)
-//     updatedAt DateTime? @updatedAt
-//     deletedAt DateTime? @db.Timestamp(0)
-// }
-
-// model CommunityTemplateInput {
-//     id          Int     @unique @default(autoincrement())
-//     title       String?
-//     description String?
-//     slug        String  @unique
-
-//     createdAt DateTime? @default(now()) @db.Timestamp(0)
-//     updatedAt DateTime? @updatedAt
-//     deletedAt DateTime? @db.Timestamp(0)
-// }

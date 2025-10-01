@@ -43,6 +43,7 @@ export interface ComboboxProps<T> {
   listClassName?: string;
   pageSize?: number;
   valueKey?: string;
+  openChanged?;
   onSearch?: (value: string) => void;
 }
 
@@ -65,6 +66,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   pageSize = 20,
   onSearch,
   noSearch,
+  openChanged,
 }: ComboboxProps<T>) {
   const [open, setOpen] = React.useState(false);
   const [internalSelectedItem, setInternalSelectedItem] = React.useState<
@@ -190,7 +192,14 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal>
+    <Popover
+      open={open}
+      onOpenChange={(e) => {
+        setOpen(e);
+        openChanged(e);
+      }}
+      modal
+    >
       <PopoverTrigger asChild disabled={disabled} className="w-full">
         <Button
           variant="outline"

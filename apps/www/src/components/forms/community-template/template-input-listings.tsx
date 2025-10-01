@@ -30,7 +30,7 @@ function Content() {
     );
     const { data: listings } = useSuspenseQuery(
         _trpc.community.getTemplateInputListings.queryOptions({
-            inputCategoryId: ctx.input?.inv.id,
+            inputInventoryId: ctx.input?.inv.id,
         }),
     );
     const form = useZodForm(createTemplateInputLisitingSchema, {

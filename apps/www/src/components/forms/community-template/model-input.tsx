@@ -2,13 +2,23 @@ import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { useBlockInputContext, useTemplateBlocksContext } from "./context";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { _qc, _trpc } from "@/components/static-trpc";
+import { useState } from "react";
+import { labelIdOptions } from "@/lib/utils";
 
 export function ModelInput() {
     const ctx = useTemplateBlocksContext();
     const { modelEditMode, printMode, templateEditMode } = ctx;
     const { input } = useBlockInputContext();
-    const { data: listings } = useQuery(
-        _trpc.community.getTemplateInputListings.queryOptions({}),
+    const [searchEnabled, setSearchEnabled] = useState(false);
+    const { data: listings, isPending } = useQuery(
+        _trpc.community.getTemplateInputListings.queryOptions(
+            {
+                inputInventoryId: input.inv.id,
+            },
+            {
+                enabled: !templateEditMode && searchEnabled,
+            },
+        ),
     );
     const { mutate } = useMutation(
         _trpc.community.createTemplateInputLisiting.mutationOptions({
@@ -30,15 +40,19 @@ export function ModelInput() {
         mutate({
             uid: input.uid,
             title,
+            inputBlockInventoryId: input.inv.id,
         });
     };
     if (templateEditMode) return null;
     return (
         <ComboboxDropdown
             placeholder=""
-            items={[]}
+            items={labelIdOptions(listings, "title", "uid")}
+            openChanged={(e) => {
+                if (e) setSearchEnabled(true);
+            }}
             onSelect={(e) => {}}
-            onCreate={(e) => {}}
+            onCreate={create}
             searchPlaceholder="Find or create..."
             renderOnCreate={(value) => {
                 return (

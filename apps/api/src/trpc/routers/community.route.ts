@@ -43,6 +43,8 @@ import {
   getCommunityBlockSchemaSchema,
   getCommunitySchema,
   getCommunitySchemaSchema,
+  getModelTemplate,
+  getModelTemplateSchema,
   getTemplateInputListings,
   getTemplateInputListingsSchema,
   updateCommunityBlockInput,
@@ -126,6 +128,11 @@ export const communityRouters = createTRPCRouter({
     .input(getCommunitySchemaSchema)
     .query(async (props) => {
       return getCommunitySchema(props.ctx.db, props.input);
+    }),
+  getModelTemplate: publicProcedure
+    .input(getModelTemplateSchema)
+    .query(async (props) => {
+      return getModelTemplate(props.ctx.db, props.input);
     }),
   getTemplateInputListings: publicProcedure
     .input(getTemplateInputListingsSchema)

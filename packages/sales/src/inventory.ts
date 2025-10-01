@@ -27,11 +27,6 @@ import { z } from "zod";
 import { formatDate } from "@gnd/utils/dayjs";
 
 export async function inventoryList(db: Db, query: InventoryList) {
-  // await db.imageGallery.updateMany({
-  //   data: {
-  //     bucket: "dyke",
-  //   },
-  // });
   const where = whereInventoryProducts(query);
   const params = await composeQueryData(query, where, db.inventory);
   const data = await db.inventory.findMany({
@@ -125,6 +120,16 @@ function whereInventoryProducts(query: InventoryList) {
     wheres.push({
       id: {
         in: query.ids!,
+      },
+    });
+  if (query.subCategoryInvId)
+    wheres.push({
+      inventoryItemSubCategories: {
+        some: {
+          value: {
+            inventoryId: query.subCategoryInvId,
+          },
+        },
       },
     });
   return composeQuery(wheres);

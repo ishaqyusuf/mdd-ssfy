@@ -4,6 +4,7 @@ import {
   inventoryCategories,
   inventoryList,
   saveInventory,
+  updateSubCategory,
   updateSubComponent,
 } from "@sales/inventory";
 import { z } from "zod";
@@ -138,6 +139,17 @@ export async function getCommunitySchema(
     category,
     communityCategory,
   };
+}
+
+export const getModelTemplateSchema = z.object({
+  slug: z.string(),
+});
+export type GetModelTemplateSchema = z.infer<typeof getModelTemplateSchema>;
+
+export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
+  const homeTemplate = await db.homeTemplates.findFirstOrThrow({
+    where: { slug: query.slug },
+  });
 }
 export const getCommunityBlockSchemaSchema = z.object({
   id: z.number(),
@@ -348,6 +360,7 @@ export async function getTemplateInputListings(
 ) {
   const results = await inventoryList(db, {
     // categoryId: query.inputInventoryId,
+    subCategoryInvId: query.inputInventoryId,
     size: 99,
   });
   return results?.data?.map((r) => ({
@@ -367,6 +380,7 @@ export const createTemplateInputLisitingSchema = z.object({
   uid: z.string(),
   // communityComponentCategoryId: z.number(),
   title: z.string(),
+  inputBlockInventoryId: z.number(),
 });
 export type CreateTemplateInputLisitingSchema = z.infer<
   typeof createTemplateInputLisitingSchema
@@ -376,18 +390,25 @@ export async function createTemplateInputLisiting(
   db: Db,
   data: CreateTemplateInputLisitingSchema
 ) {
-  const category = await getCommunityListingsInventoryCategory(db);
-  const inventory = await saveInventory(db, {
-    product: {
-      categoryId: category?.id!,
-      name: data.title,
-      status: "draft",
-      primaryStoreFront: false,
-      stockMonitor: false,
-    },
-    subCategories: [],
-    subComponents: [],
+  return db.$transaction(async (tx) => {
+    let db = tx as any;
+    const category = await getCommunityListingsInventoryCategory(db);
+    const inventory = await saveInventory(db, {
+      product: {
+        categoryId: category?.id!,
+        name: data.title,
+        status: "draft",
+        primaryStoreFront: false,
+        stockMonitor: false,
+      },
+      subCategories: [],
+      subComponents: [],
+    });
+    await updateSubCategory(db, {
+      inventoryId: inventory.id,
+      categoryId: (await getCommunityBlocksInventoryCategory(db))?.id!,
+      valueInventoryId: data.inputBlockInventoryId,
+    });
+    return inventory;
   });
-
-  return inventory;
 }
