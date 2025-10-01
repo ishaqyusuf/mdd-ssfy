@@ -1,9 +1,9 @@
 "use client";
 import {
-    createTemplateBlocksContext,
-    CreateTemplateBlocksContextProps,
+    createTemplateSchemaContext,
+    CreateTemplateSchemaContextProps,
     TemplateBlocksProvider,
-    useTemplateBlocksContext,
+    useTemplateSchemaContext,
 } from "./context";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
@@ -16,19 +16,19 @@ import * as Sortable from "@gnd/ui/sortable-2";
 import { closestCorners } from "@dnd-kit/core";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 
-interface Props extends CreateTemplateBlocksContextProps {
+interface Props extends CreateTemplateSchemaContextProps {
     children?;
 }
 export function CommunityTemplateForm({ children, ...props }: Props) {
     return (
-        <TemplateBlocksProvider value={createTemplateBlocksContext(props)}>
+        <TemplateBlocksProvider value={createTemplateSchemaContext(props)}>
             {children}
             <Content />
         </TemplateBlocksProvider>
     );
 }
 function Content() {
-    const ctx = useTemplateBlocksContext();
+    const ctx = useTemplateSchemaContext();
     const inv = useInventoryParams();
     // useAfterState(inv.productId, () => {
     //     console.log("FINISHED");

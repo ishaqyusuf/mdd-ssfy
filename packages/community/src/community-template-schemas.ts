@@ -155,7 +155,7 @@ export async function getCommunitySchema(
 
 export const getModelTemplateSchema = z.object({
   slug: z.string(),
-  historySlug: z.string(),
+  historySlug: z.string().optional().nullable(),
 });
 export type GetModelTemplateSchema = z.infer<typeof getModelTemplateSchema>;
 
@@ -183,6 +183,9 @@ export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
       },
     },
   });
+  return {
+    homeTemplate,
+  };
 }
 export const getCommunityBlockSchemaSchema = z.object({
   id: z.number(),

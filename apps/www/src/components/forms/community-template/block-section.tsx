@@ -2,11 +2,11 @@ import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { Suspense } from "react";
 import {
     BlockInputProvider,
-    createBlockInputContext,
-    createSchemaBlockContext,
+    createTemplateSchemaInputContext,
+    createTemplateSchemaBlock,
     SchemaBlockProvider,
-    useSchemaBlockContext,
-    useTemplateBlocksContext,
+    useTemplateSchemaBlock,
+    useTemplateSchemaContext,
 } from "./context";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { reorderList } from "@gnd/utils";
@@ -34,7 +34,7 @@ export function SchemaBlock(props: Props) {
     return (
         <Suspense fallback={<Skeletons.Dashboard />}>
             <SchemaBlockProvider
-                value={createSchemaBlockContext({
+                value={createTemplateSchemaBlock({
                     blockId: props.block.id,
                 })}
             >
@@ -47,8 +47,8 @@ export function SchemaBlock(props: Props) {
 }
 function FormCard(props: Props) {
     const { block, savingSort } = props;
-    const ctx = useTemplateBlocksContext();
-    const blk = useSchemaBlockContext();
+    const ctx = useTemplateSchemaContext();
+    const blk = useTemplateSchemaBlock();
     const { fields, swap, setSortMode, sortMode } = blk;
     const { templateEditMode } = ctx;
     if (!templateEditMode && !fields?.length) return null;
@@ -89,9 +89,9 @@ function FormCard(props: Props) {
     );
 }
 function FormContent({}) {
-    const blk = useSchemaBlockContext();
+    const blk = useTemplateSchemaBlock();
 
-    const ctx = useTemplateBlocksContext();
+    const ctx = useTemplateSchemaContext();
     const { templateEditMode } = ctx;
 
     const { fields, swap } = blk;
@@ -132,7 +132,7 @@ function FormContent({}) {
             >
                 {fields.map((inputField) => (
                     <BlockInputProvider
-                        value={createBlockInputContext({
+                        value={createTemplateSchemaInputContext({
                             input: inputField,
                             savingSort,
                         })}

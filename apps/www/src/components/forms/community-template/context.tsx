@@ -12,21 +12,32 @@ import { cva } from "class-variance-authority";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 
-type TemplateBlocksContext = ReturnType<typeof createTemplateBlocksContext>;
-export const TemplateBlocksContext =
-    createContext<TemplateBlocksContext>(undefined);
-export const TemplateBlocksProvider = TemplateBlocksContext.Provider;
-export interface CreateTemplateBlocksContextProps {
+type TemplateSchemaContext = ReturnType<typeof createTemplateSchemaContext>;
+export const TemplateSchemaContext =
+    createContext<TemplateSchemaContext>(undefined);
+export const TemplateBlocksProvider = TemplateSchemaContext.Provider;
+export interface CreateTemplateSchemaContextProps {
     modelSlug?: string;
     print?: boolean;
 }
-export const createTemplateBlocksContext = (
-    props: CreateTemplateBlocksContextProps,
+export const createTemplateSchemaContext = (
+    props: CreateTemplateSchemaContextProps,
 ) => {
     const trpc = useTRPC();
     const { data, isPending } = useSuspenseQuery(
         trpc.community.getCommunitySchema.queryOptions({}),
     );
+    const { data: modelTemplate } = useSuspenseQuery(
+        trpc.community.getModelTemplate.queryOptions(
+            {
+                slug: props.modelSlug,
+            },
+            {
+                enabled: !!props.modelSlug,
+            },
+        ),
+    );
+
     const { data: blockInputData } = useSuspenseQuery(
         trpc.community.getBlockInputs.queryOptions({}),
     );
@@ -47,26 +58,29 @@ export const createTemplateBlocksContext = (
         modelEditMode: !!props.modelSlug,
         printMode: !!props.modelSlug && props.print,
         blockInputs: blockInputData?.inputs,
+        modelTemplate,
         ...props,
     };
 };
-export const useTemplateBlocksContext = () => {
-    const context = useContext(TemplateBlocksContext);
+export const useTemplateSchemaContext = () => {
+    const context = useContext(TemplateSchemaContext);
     if (context === undefined) {
         throw new Error(
-            "useTemplateBlocksContext must be used within a TemplateBlocksProvider",
+            "useTemplateSchemaContext must be used within a TemplateBlocksProvider",
         );
     }
     return context;
 };
 
-type SchemaBlockContext = ReturnType<typeof createSchemaBlockContext>;
-export const SchemaBlockContext = createContext<SchemaBlockContext>(undefined);
-export const SchemaBlockProvider = SchemaBlockContext.Provider;
+type TemplateSchemaBlock = ReturnType<typeof createTemplateSchemaBlock>;
+export const TemplateSchemaBlock =
+    createContext<TemplateSchemaBlock>(undefined);
+export const SchemaBlockProvider = TemplateSchemaBlock.Provider;
 interface SchemaBlockProps {
     blockId: number;
 }
-export const createSchemaBlockContext = (props: SchemaBlockProps) => {
+export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
+    const schm = useTemplateSchemaContext();
     const { data: blockInput } = useSuspenseQuery(
         _trpc.community.getCommunityBlockSchema.queryOptions(
             {
@@ -82,7 +96,9 @@ export const createSchemaBlockContext = (props: SchemaBlockProps) => {
         defaultValues: {},
     });
     useEffect(() => {
-        if (blockInput) form.reset(blockInput as any);
+        if (blockInput) {
+            form.reset(blockInput as any);
+        }
     }, [blockInput]);
     const { fields, swap } = useFieldArray({
         control: form.control,
@@ -100,36 +116,39 @@ export const createSchemaBlockContext = (props: SchemaBlockProps) => {
         setSortMode,
     };
 };
-export const useSchemaBlockContext = () => {
-    const context = useContext(SchemaBlockContext);
+export const useTemplateSchemaBlock = () => {
+    const context = useContext(TemplateSchemaBlock);
     if (context === undefined) {
         throw new Error(
-            "useSchemaBlockContext must be used within a SchemaBlockProvider",
+            "useTemplateSchemaBlock must be used within a SchemaBlockProvider",
         );
     }
     return context;
 };
 
-type BlockInputContext = ReturnType<typeof createBlockInputContext>;
-export const BlockInputContext = createContext<BlockInputContext>(undefined);
-export const BlockInputProvider = BlockInputContext.Provider;
+type TemplateSchemaInputContext = ReturnType<
+    typeof createTemplateSchemaInputContext
+>;
+export const TemplateSchemaInputContext =
+    createContext<TemplateSchemaInputContext>(undefined);
+export const BlockInputProvider = TemplateSchemaInputContext.Provider;
 interface BlockInputProps {
     input: RouterOutputs["community"]["getCommunityBlockSchema"]["inputConfigs"][number];
     savingSort?: boolean;
     onInputUpdated?;
 }
-export const createBlockInputContext = (props: BlockInputProps) => {
+export const createTemplateSchemaInputContext = (props: BlockInputProps) => {
     return {
         ...props,
         // data,
         // setData,
     };
 };
-export const useBlockInputContext = () => {
-    const context = useContext(BlockInputContext);
+export const useTemplateSchemaInputContext = () => {
+    const context = useContext(TemplateSchemaInputContext);
     if (context === undefined) {
         throw new Error(
-            "useBlockInputContext must be used within a BlockInputProvider",
+            "useTemplateSchemaInputContext must be used within a BlockInputProvider",
         );
     }
     return context;

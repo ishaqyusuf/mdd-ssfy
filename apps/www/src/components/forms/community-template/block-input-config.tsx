@@ -8,7 +8,7 @@ import { TemplateInputListings } from "./template-input-listings";
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useMutation } from "@tanstack/react-query";
-import { useSchemaBlockContext } from "./context";
+import { useTemplateSchemaBlock } from "./context";
 
 export function BlockInputConfig({ onInputUpdated, data }) {
     const [formOpen, onFormOpenChange] = useState(false);
@@ -31,7 +31,7 @@ export function BlockInputConfig({ onInputUpdated, data }) {
 }
 function Content({ onInputUpdated, data }) {
     const [tab, setTab] = useState("config");
-    const ctx = useSchemaBlockContext();
+    const ctx = useTemplateSchemaBlock();
     const { mutate, isPending } = useMutation(
         _trpc.community.deleteInputSchema.mutationOptions({
             onSuccess() {

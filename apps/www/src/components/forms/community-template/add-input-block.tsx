@@ -2,7 +2,7 @@ import { Button } from "@gnd/ui/button";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
-import { useSchemaBlockContext, useTemplateBlocksContext } from "./context";
+import { useTemplateSchemaBlock, useTemplateSchemaContext } from "./context";
 import { useMutation } from "@tanstack/react-query";
 import { _invalidate, _qc, _trpc } from "@/components/static-trpc";
 import { selectOptions, uniqueList } from "@gnd/utils";
@@ -15,8 +15,8 @@ interface CreateProps {
     title?: string;
 }
 export function AddInput() {
-    const blk = useSchemaBlockContext();
-    const temp = useTemplateBlocksContext();
+    const blk = useTemplateSchemaBlock();
+    const temp = useTemplateSchemaContext();
     const { blockInputs } = temp;
     const { modelEditMode, printMode, templateEditMode } = temp;
 

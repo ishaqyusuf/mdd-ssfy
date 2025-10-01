@@ -8,13 +8,13 @@ import { Button } from "@gnd/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { inputSizes } from "@community/utils";
 import { FormCombobox } from "@/components/common/controls/form-combobox";
-import { useSchemaBlockContext } from "./context";
+import { useTemplateSchemaBlock } from "./context";
 import { labelIdOptions } from "@/lib/utils";
 import { FormInput } from "@gnd/ui/controls/form-input";
 
 export function TemplateInputConfig(props: SchemaBlockInputProps) {
     const { input } = props;
-    const block = useSchemaBlockContext();
+    const block = useTemplateSchemaBlock();
     const valueOptions = block.blockInput?.inputConfigs?.filter(
         (a) => a.uid !== input?.uid,
     );

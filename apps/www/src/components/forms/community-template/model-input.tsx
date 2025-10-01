@@ -1,14 +1,17 @@
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
-import { useBlockInputContext, useTemplateBlocksContext } from "./context";
+import {
+    useTemplateSchemaInputContext,
+    useTemplateSchemaContext,
+} from "./context";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useState } from "react";
 import { labelIdOptions } from "@/lib/utils";
 
 export function ModelInput() {
-    const ctx = useTemplateBlocksContext();
+    const ctx = useTemplateSchemaContext();
     const { modelEditMode, printMode, templateEditMode } = ctx;
-    const { input } = useBlockInputContext();
+    const { input } = useTemplateSchemaInputContext();
     const [searchEnabled, setSearchEnabled] = useState(false);
     const { data: listings, isPending } = useQuery(
         _trpc.community.getTemplateInputListings.queryOptions(

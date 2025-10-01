@@ -1,7 +1,10 @@
 import { _trpc } from "@/components/static-trpc";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { Suspense } from "react";
-import { useBlockInputContext, useTemplateBlocksContext } from "./context";
+import {
+    useTemplateSchemaInputContext,
+    useTemplateSchemaContext,
+} from "./context";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { saveTemplateInputListingSchema } from "@community/community-template-schemas";
 import { Form } from "@gnd/ui/form";
@@ -24,7 +27,7 @@ export function TemplateInputListings() {
     );
 }
 function Content() {
-    const ctx = useBlockInputContext();
+    const ctx = useTemplateSchemaInputContext();
     const { mutate, isPending } = useMutation(
         _trpc.community.saveTemplateInputListing.mutationOptions({}),
     );

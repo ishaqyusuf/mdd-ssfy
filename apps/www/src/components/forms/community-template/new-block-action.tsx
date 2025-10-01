@@ -9,12 +9,12 @@ import { Form } from "@gnd/ui/form";
 import { Icons } from "@gnd/ui/icons";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useTemplateBlocksContext } from "./context";
+import { useTemplateSchemaContext } from "./context";
 import { FormDebugBtn } from "@/components/form-debug-btn";
 import { _qc, _trpc } from "@/components/static-trpc";
 
 export function NewBlockAction() {
-    const c = useTemplateBlocksContext();
+    const c = useTemplateSchemaContext();
     const [formOpen, onFormOpenChange] = useState(false);
     const { isPending, mutate } = useMutation(
         _trpc.community.createCommunityTemplateBlock.mutationOptions({

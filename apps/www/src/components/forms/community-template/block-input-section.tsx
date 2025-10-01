@@ -1,8 +1,8 @@
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import {
-    useBlockInputContext,
-    useSchemaBlockContext,
-    useTemplateBlocksContext,
+    useTemplateSchemaInputContext,
+    useTemplateSchemaBlock,
+    useTemplateSchemaContext,
 } from "./context";
 import { useState } from "react";
 import { useCommunityInventoryParams } from "@/hooks/use-community-inventory-params";
@@ -16,11 +16,11 @@ import { ModelInput } from "./model-input";
 import { BlockInputConfig } from "./block-input-config";
 
 export function BlockInput() {
-    const inputCtx = useBlockInputContext();
+    const inputCtx = useTemplateSchemaInputContext();
     const { input, savingSort } = inputCtx;
     const [data, setData] = useState(input);
 
-    // const blk = useSchemaBlockContext();
+    // const blk = useTemplateSchemaBlock();
     // const { fields, swap } = blk;
     const { setParams } = useCommunityInventoryParams();
     const openAnalytics = () => {
@@ -28,8 +28,8 @@ export function BlockInput() {
             openCommunityInventoryId: data?.id,
         });
     };
-    const ctx = useTemplateBlocksContext();
-    const schemaBlock = useSchemaBlockContext();
+    const ctx = useTemplateSchemaContext();
+    const schemaBlock = useTemplateSchemaBlock();
     const { templateEditMode, printMode, modelEditMode } = ctx;
     return (
         <Sortable.Item value={(input as any)._id} asChild className={cn()}>
