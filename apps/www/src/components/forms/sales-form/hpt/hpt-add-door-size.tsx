@@ -8,10 +8,11 @@ export function HptAddDoorSize({ cls }) {
     };
     return (
         <>
-            <Button onClick={addDoorSize}>
+            <Button disabled onClick={addDoorSize}>
                 <Icons.add className="mr-2 size-4" />
                 <span>Size</span>
             </Button>
         </>
     );
 }
+
