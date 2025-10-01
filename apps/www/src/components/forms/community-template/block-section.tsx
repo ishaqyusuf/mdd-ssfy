@@ -21,7 +21,7 @@ import { Card } from "@gnd/ui/composite";
 
 import { AddInput } from "./add-input";
 
-import { BlockInput } from "./block-input";
+import { BlockInput } from "./block-input-section";
 import { Button } from "@gnd/ui/button";
 import { SortAscIcon, SortDescIcon } from "lucide-react";
 

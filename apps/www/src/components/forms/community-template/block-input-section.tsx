@@ -23,7 +23,6 @@ export function BlockInput() {
     // const blk = useSchemaBlockContext();
     // const { fields, swap } = blk;
     const { setParams } = useCommunityInventoryParams();
-
     const openAnalytics = () => {
         setParams({
             openCommunityInventoryId: data?.id,

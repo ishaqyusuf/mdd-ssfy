@@ -11,7 +11,7 @@ import { reorderList } from "@gnd/utils";
 import { useFieldArray } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
-import { SchemaBlock } from "./schema-block";
+import { SchemaBlock } from "./block-section";
 import * as Sortable from "@gnd/ui/sortable-2";
 import { closestCorners } from "@dnd-kit/core";
 import { PageTitle } from "@gnd/ui/custom/page-title";

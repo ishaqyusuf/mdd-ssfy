@@ -5,7 +5,6 @@ import {
   inventoryList,
   saveInventory,
   updateSubCategory,
-  updateSubComponent,
 } from "@sales/inventory";
 import { z } from "zod";
 import {
@@ -13,6 +12,7 @@ import {
   COMMUNITY_LISTINGS_INVENTORY_CATEGORY_TITLE,
   COMMUNITY_SECTIONS_INVENTORY_CATEGORY_TITLE,
 } from "./constants";
+import { id } from "date-fns/locale";
 
 // type Db = any;
 export const createCommunityTemplateBlockSchema = z.object({
@@ -431,5 +431,22 @@ export async function createTemplateInputLisiting(
       valueInventoryId: data.inputBlockInventoryId,
     });
     return inventory;
+  });
+}
+
+export const deleteInputSchemaSchema = z.object({
+  id: z.number(),
+});
+export type DeleteInputSchemaSchema = z.infer<typeof deleteInputSchemaSchema>;
+
+export async function deleteInputSchema(
+  db: Db,
+  query: DeleteInputSchemaSchema
+) {
+  await db.communityTemplateInputConfig.update({
+    where: { id: query.id },
+    data: {
+      deletedAt: new Date(),
+    },
   });
 }

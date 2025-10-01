@@ -37,6 +37,8 @@ import {
   createCommunityTemplateBlockSchema,
   createTemplateInputLisiting,
   createTemplateInputLisitingSchema,
+  deleteInputSchema,
+  deleteInputSchemaSchema,
   getBlockInputs,
   getBlockInputsSchema,
   getCommunityBlockSchema,
@@ -93,6 +95,11 @@ export const communityRouters = createTRPCRouter({
     .input(deleteCommunityModelCostSchema)
     .mutation(async (props) => {
       return deleteCommunityModelCost(props.ctx, props.input);
+    }),
+  deleteInputSchema: publicProcedure
+    .input(deleteInputSchemaSchema)
+    .mutation(async (props) => {
+      return deleteInputSchema(props.ctx.db, props.input);
     }),
   getCommunityBlockSchema: publicProcedure
     .input(getCommunityBlockSchemaSchema)

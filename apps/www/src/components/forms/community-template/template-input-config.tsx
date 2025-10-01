@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { SchemaBlockInputProps } from "./schema-block";
+import { SchemaBlockInputProps } from "./block-section";
 import { useMutation } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
 import { Form } from "@gnd/ui/form";
@@ -11,6 +11,7 @@ import { FormCombobox } from "@/components/common/controls/form-combobox";
 import { useSchemaBlockContext } from "./context";
 import { labelIdOptions } from "@/lib/utils";
 import { FormInput } from "@gnd/ui/controls/form-input";
+import { ConfirmBtn } from "@gnd/ui/confirm-button";
 
 export function TemplateInputConfig(props: SchemaBlockInputProps) {
     const { input } = props;
@@ -30,6 +31,7 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
             id: w.id,
             columnSize: w.columnSize,
             valueUid: w.valueUid,
+            title: w.title,
         });
     };
     const { isPending, mutate } = useMutation(
@@ -42,7 +44,7 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
     return (
         <div className="grid gap-4">
             <div className="space-y-2">
-                <h4 className="leading-none font-medium">Input Config</h4>
+                <h3 className="leading-none font-medium">Input Config</h3>
                 <p className="text-muted-foreground text-sm">
                     update how you interface with {`${input.title}`}
                 </p>
@@ -100,7 +102,7 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
                             />
                         </div>
                     </div>
-                    <div className="flex justify-end">
+                    <div className="flex gap-2 justify-end">
                         <SubmitButton isSubmitting={isPending}>
                             Save
                         </SubmitButton>

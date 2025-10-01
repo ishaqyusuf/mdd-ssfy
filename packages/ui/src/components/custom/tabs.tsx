@@ -116,7 +116,7 @@ function TabList(props: TabListProps) {
   return (
     <div
       className={cn(
-        "relative flex w-full space-x-[6px] items-center",
+        "relative  flex w-full space-x-[6px] items-center",
         props.className
       )}
     >
