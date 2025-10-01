@@ -12,9 +12,7 @@ import {
   COMMUNITY_LISTINGS_INVENTORY_CATEGORY_TITLE,
   COMMUNITY_SECTIONS_INVENTORY_CATEGORY_TITLE,
 } from "./constants";
-import { id } from "date-fns/locale";
 
-// type Db = any;
 export const createCommunityTemplateBlockSchema = z.object({
   title: z.string(),
   categoryId: z.number(),
