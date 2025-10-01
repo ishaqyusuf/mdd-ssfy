@@ -3,7 +3,6 @@
 import * as React from "react";
 import { CommandList } from "cmdk";
 import { Check, ChevronsUpDown } from "lucide-react";
-
 import { cn } from "../utils";
 import { Button } from "./button";
 import {
@@ -14,7 +13,6 @@ import {
   CommandItem,
 } from "./command";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
-
 export interface ComboboxItem {
   id: string;
   label: string;
@@ -46,7 +44,6 @@ export interface ComboboxProps<T> {
   openChanged?;
   onSearch?: (value: string) => void;
 }
-
 export function ComboboxDropdown<T extends ComboboxItem>({
   headless,
   placeholder,
@@ -161,9 +158,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
                 </CommandItem>
               );
             })}
-
             <CommandEmpty>{emptyResults ?? "No item found"}</CommandEmpty>
-
             {showCreate && (
               <CommandItem
                 key={inputValue}
