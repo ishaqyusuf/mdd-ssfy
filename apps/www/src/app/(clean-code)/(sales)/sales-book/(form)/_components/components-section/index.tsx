@@ -464,7 +464,7 @@ export function Component({
                 cls.getMultiSelectData()?.length} */}
             <button
                 className={cn(
-                    "h-full w-full overflow-hidden  rounded-lg border hover:bg-muted",
+                    "h-full w-full overflow-hiddens  rounded-lg border-2 hover:border-primary-foreground",
                     (multiSelect && cls.multiSelected()) ||
                         stepForm?.componentUid == component.uid
                         ? "border-muted-foreground bg-muted"
@@ -475,13 +475,73 @@ export function Component({
                 onClick={!sortMode ? selectComponent : undefined}
             >
                 <div className="flex h-full flex-col">
-                    <div className="flex-1 relative">
+                    <div className="flex-1 flex relative">
+                        <div className="absolute  -left-3 flex flex-col gap-2 z-20">
+                            <div
+                                className={cn(
+                                    selectState?.count ? "flex" : "hidden",
+                                )}
+                            >
+                                <Checkbox
+                                    checked={selectState?.uids?.[component.uid]}
+                                />
+                            </div>
+                            {component.salesPrice && (
+                                <Badge
+                                    className="font-bold px-1"
+                                    variant="default"
+                                >
+                                    ${component.salesPrice}
+                                </Badge>
+                            )}
+                            <Badge
+                                className="flex flex-col p-0.5 gap-1  border w-fit"
+                                variant="secondary"
+                            >
+                                <div
+                                    className={cn(
+                                        !component?.variations?.length &&
+                                            "hidden",
+                                        "px-1",
+                                    )}
+                                >
+                                    <Filter className="size-4 text-muted-foreground/70" />
+                                </div>
+                                <div
+                                    className={cn(
+                                        !component?.sectionOverride
+                                            ?.overrideMode && "hidden",
+                                    )}
+                                >
+                                    <LucideVariable className="size-4 text-muted-foreground/70" />
+                                </div>
+                                <div
+                                    className={cn(
+                                        !component.redirectUid && "hidden",
+                                    )}
+                                >
+                                    <ExternalLink className="h-4 w-4 text-muted-foreground/70" />
+                                </div>
+                            </Badge>
+
+                            {/* <SuperAdminGuard>
+                                {!component?.statistics || (
+                                    <Badge
+                                        className="h-5 font-bold gap-1 flex items-center px-1"
+                                        variant="secondary"
+                                    >
+                                        <LineChart className="size-4" />
+                                        {component?.statistics}
+                                    </Badge>
+                                )}
+                            </SuperAdminGuard> */}
+                        </div>
                         <ComponentImg
                             noHover={sortMode}
                             aspectRatio={4 / 2}
                             src={component.img}
                         />
-                        <div className="absolute bottom-0 right-0">
+                        <div className="absolute hidden bottom-0 right-0">
                             <div className="flex  gap-2 items-center text-xs font-semibold px-2">
                                 <div className="flex-1" />
                                 {component.salesPrice && (
@@ -492,14 +552,6 @@ export function Component({
                                         ${component.salesPrice}
                                     </Badge>
                                 )}
-                                <SuperAdminGuard>
-                                    {!component?.statistics || (
-                                        <span className="flex gap-1">
-                                            <LineChart className="size-4" />
-                                            {component?.statistics}
-                                        </span>
-                                    )}
-                                </SuperAdminGuard>
                             </div>
                         </div>
                     </div>
@@ -519,7 +571,7 @@ export function Component({
 
             <div
                 className={cn(
-                    "absolute left-0 top-0 m-4 flex items-center gap-2",
+                    "absolute  left-0 top-0 m-4 flexs hidden items-center gap-2",
                 )}
             >
                 <div className={cn(selectState?.count ? "" : "hidden")}>
