@@ -151,5 +151,6 @@ export interface SchemaBlockInputProps {
     input: RouterOutputs["community"]["getCommunityBlockSchema"]["inputConfigs"][number];
     savingSort?: boolean;
     onInputUpdated?;
+    children?;
 }
 

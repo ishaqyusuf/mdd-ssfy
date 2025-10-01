@@ -57,7 +57,15 @@ function Content({ onInputUpdated, data }) {
                         <TemplateInputConfig
                             onInputUpdated={onInputUpdated}
                             input={data}
-                        />
+                        >
+                            <ConfirmBtn
+                                type="button"
+                                variant="destructive"
+                                onClick={_delete}
+                            >
+                                Delete
+                            </ConfirmBtn>
+                        </TemplateInputConfig>
                     </Tabs.Content>
                 </Tabs.Item>
                 <Tabs.Item value="items">
@@ -66,9 +74,6 @@ function Content({ onInputUpdated, data }) {
                         <TemplateInputListings />
                     </Tabs.Content>
                 </Tabs.Item>
-                <Tabs.TabsHeader>
-                    <ConfirmBtn type="button" trash onClick={_delete} />
-                </Tabs.TabsHeader>
             </Tabs.Items>
         </Tabs>
     );

@@ -102,6 +102,7 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
                         </div>
                     </div>
                     <div className="flex gap-2 justify-end">
+                        {props.children}
                         <SubmitButton isSubmitting={isPending}>
                             Save
                         </SubmitButton>
