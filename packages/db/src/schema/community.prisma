@@ -236,6 +236,10 @@ model CommunityModels {
     @@index([projectId])
 }
 
+model CommunityModelHistory {
+    id Int @unique @default(autoincrement())
+}
+
 model CommunityModelTemplateValue {
     id        Int       @unique @default(autoincrement())
     createdAt DateTime? @default(now()) @db.Timestamp(0)
@@ -252,25 +256,30 @@ model CommunityModelTemplateValue {
     inputConfig   CommunityTemplateInputConfig @relation(fields: [inputConfigId], references: [id])
     inputConfigId Int
 
-    inventory   Inventory? @relation(fields: [inventoryId], references: [id])
-    inventoryId Int?
+    inventory                  Inventory?                @relation(fields: [inventoryId], references: [id])
+    inventoryId                Int?
+    history                    CommunityTemplateHistory? @relation(fields: [communityTemplateHistoryId], references: [id])
+    communityTemplateHistoryId Int?
 
     @@index([communityModelId])
     @@index([inventoryCategoryId])
     @@index([inventoryId])
     @@index([inputConfigId])
+    @@index([communityTemplateHistoryId])
 }
 
 model CommunityTemplateHistory {
-    id                Int              @unique @default(autoincrement())
+    id                Int                           @unique @default(autoincrement())
     userId            Int
-    meta              Json?            @db.Json
-    createdAt         DateTime?        @default(now()) @db.Timestamp(0)
-    updatedAt         DateTime?        @updatedAt
-    deletedAt         DateTime?        @db.Timestamp(0)
-    model             CommunityModels? @relation(fields: [communityModelsId], references: [id])
+    slug              String?
+    meta              Json?                         @db.Json
+    createdAt         DateTime?                     @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime?                     @updatedAt
+    deletedAt         DateTime?                     @db.Timestamp(0)
+    model             CommunityModels?              @relation(fields: [communityModelsId], references: [id])
     communityModelsId Int?
-    Users             Users            @relation(fields: [userId], references: [id])
+    Users             Users                         @relation(fields: [userId], references: [id])
+    values            CommunityModelTemplateValue[]
 
     @@index([userId])
     @@index([communityModelsId])

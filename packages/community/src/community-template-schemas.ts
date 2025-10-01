@@ -143,12 +143,16 @@ export async function getCommunitySchema(
 
 export const getModelTemplateSchema = z.object({
   slug: z.string(),
+  historySlug: z.string(),
 });
 export type GetModelTemplateSchema = z.infer<typeof getModelTemplateSchema>;
 
 export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
   const homeTemplate = await db.homeTemplates.findFirstOrThrow({
     where: { slug: query.slug },
+    select: {
+      value,
+    },
   });
 }
 export const getCommunityBlockSchemaSchema = z.object({
