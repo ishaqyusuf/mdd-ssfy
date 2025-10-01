@@ -45,7 +45,7 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
             <div className="space-y-2">
                 <h3 className="leading-none font-medium">Input Config</h3>
                 <p className="text-muted-foreground text-sm">
-                    update how you interface with {`${input.title}`}
+                    update how you interface with {`${input.inv?.name}`}
                 </p>
             </div>
             <Form {...form}>
@@ -83,11 +83,14 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
                                 control={form.control}
                                 name="valueUid"
                                 comboProps={{
-                                    items: labelIdOptions(
-                                        valueOptions,
-                                        "inv.name",
-                                        "uid",
-                                    ),
+                                    items: [
+                                        { id: "", label: "None", data: {} },
+                                        ...labelIdOptions(
+                                            valueOptions,
+                                            "inv.name",
+                                            "uid",
+                                        ),
+                                    ],
                                 }}
                             />
                         </div>
