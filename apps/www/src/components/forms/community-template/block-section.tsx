@@ -23,7 +23,7 @@ import { AddInput } from "./add-input-block";
 
 import { BlockInput } from "./block-input-section";
 import { Button } from "@gnd/ui/button";
-import { SortAscIcon, SortDescIcon } from "lucide-react";
+import { SortDescIcon } from "lucide-react";
 
 interface Props {
     block?;

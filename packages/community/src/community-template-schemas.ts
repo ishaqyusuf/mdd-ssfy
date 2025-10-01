@@ -123,7 +123,7 @@ export async function getCommunitySchema(
 ) {
   const category = await getCommunitySectionsInventoryCategory(db);
   const communityCategory = await getCommunityBlocksInventoryCategory(db);
-  const blocks = await db.communityTemplateBlockConfig.findMany({
+  const _blocks = await db.communityTemplateBlockConfig.findMany({
     where: {},
     select: {
       uid: true,
@@ -134,18 +134,20 @@ export async function getCommunitySchema(
   const blocksInventories = await db.inventory.findMany({
     where: {
       uid: {
-        in: blocks.map((b) => b.uid),
+        in: _blocks.map((b) => b.uid),
       },
     },
   });
+  const blocks = sortList(
+    _blocks.map((b) => ({
+      ...b,
+      title: blocksInventories?.find((c) => c.uid === b.uid)?.name,
+    })),
+    "index"
+  );
+
   return {
-    blocks: sortList(
-      blocks.map((b) => ({
-        ...b,
-        title: blocksInventories?.find((c) => c.uid === b.uid)?.name,
-      })),
-      "index"
-    ),
+    blocks,
     category,
     communityCategory,
   };

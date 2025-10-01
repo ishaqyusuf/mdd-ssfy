@@ -78,10 +78,11 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
                     </div>
                     <div className="grid grid-cols-3 items-center gap-4">
                         <Label htmlFor="width">Value</Label>
-                        <div className="col-span-2">
+                        <div className="col-span-2 flex gap-2">
                             <FormCombobox
                                 control={form.control}
                                 name="valueUid"
+                                className="flex-1"
                                 comboProps={{
                                     items: [
                                         { id: "", label: "None", data: {} },
