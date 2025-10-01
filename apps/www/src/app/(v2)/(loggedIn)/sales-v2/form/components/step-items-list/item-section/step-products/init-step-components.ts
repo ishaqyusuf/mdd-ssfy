@@ -67,11 +67,3 @@ export function getDykeStepState(
     });
     return states;
 }
-
-export function getDepsUid(stepIndex, formStepArray, stepForm) {
-    const dependecies = getFormSteps(formStepArray, stepIndex).filter(
-        (_, i) => stepForm.step.meta?.priceDepencies?.[_.uid],
-    );
-    const uids = dependecies.map((s) => s.prodUid);
-    return uids.length ? uids.join("-") : null;
-}
