@@ -196,7 +196,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
       open={open}
       onOpenChange={(e) => {
         setOpen(e);
-        openChanged(e);
+        openChanged?.(e);
       }}
       modal
     >
