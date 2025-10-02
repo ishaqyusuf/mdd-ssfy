@@ -22,8 +22,7 @@ export const getSalesAccountingsSchema = z
     paymentType: z.enum(SALES_PAYMENT_METHODS).optional().nullable(),
     salesRepId: z.number().optional().nullable(),
     dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
-    payments: z.string().optional().nullable(),
-    // payments: z.string(salesHaving).optional().nullable(),
+    payments: z.enum(salesHaving).optional().nullable(),
   })
   .merge(paginationSchema);
 export type GetSalesAccountingsSchema = z.infer<
