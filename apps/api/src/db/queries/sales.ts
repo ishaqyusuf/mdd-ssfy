@@ -34,7 +34,6 @@ export async function getSales(
   ctx: TRPCContext,
   query: SalesQueryParamsSchema
 ) {
-  consoleLog("--", query);
   if (!query.salesType) query.salesType = "order";
   if (query.defaultSearch) {
     if (query.showing != "all sales") query.salesRepId = ctx.userId!;
@@ -43,7 +42,7 @@ export async function getSales(
     query.salesRepId = ctx.userId!;
 
   const { db } = ctx;
-  const { response, searchMeta, where } = await composeQueryData(
+  const { response, searchMeta, where, meta } = await composeQueryData(
     query,
     whereSales(query),
     db.salesOrders
@@ -59,6 +58,7 @@ export async function getSales(
     ctx.db
   );
 
+  consoleLog("--", { meta, query, uid: ctx?.userId });
   const result = await response(
     data.map(salesOrderDto).map((d) => ({
       ...d,

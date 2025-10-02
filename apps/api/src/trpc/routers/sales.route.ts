@@ -1,4 +1,4 @@
-import { createTRPCRouter, publicProcedure } from "../init";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 import {
   getFullSalesDataSchema,
   inboundQuerySchema,
@@ -67,11 +67,13 @@ export const salesRouter = createTRPCRouter({
       });
       // return createStep(props.ctx, props.input);
     }),
-  index: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
-    const query = props.input;
+  index: protectedProcedure
+    .input(salesQueryParamsSchema)
+    .query(async (props) => {
+      const query = props.input;
 
-    return getSales(props.ctx, transformSalesFilterQuery(query));
-  }),
+      return getSales(props.ctx, transformSalesFilterQuery(query));
+    }),
   productions: publicProcedure
     .input(salesProductionQueryParamsSchema)
     .query(async (props) => {

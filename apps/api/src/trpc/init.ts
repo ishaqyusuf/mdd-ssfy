@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { db, type Database } from "@gnd/db";
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { withAuthPermission } from "./middleware/auth-permission";
 
@@ -51,3 +51,18 @@ const withPrimaryDbMiddleware = t.middleware(async (opts) => {
 // });
 
 export const publicProcedure = t.procedure.use(withPrimaryDbMiddleware);
+
+export const protectedProcedure = t.procedure
+  .use(withPrimaryDbMiddleware)
+  .use(async (opts) => {
+    if (!opts?.ctx?.userId)
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+      });
+    return opts.next({
+      ctx: {
+        db: opts.ctx.db,
+      },
+    });
+  });
+// export const protectedProcedure = t.procedure.use();
