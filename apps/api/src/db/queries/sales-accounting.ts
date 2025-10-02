@@ -3,9 +3,11 @@ import type { Prisma } from "@gnd/db";
 import { formatMoney, sum } from "@gnd/utils";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
-import type {
-  CustomerTransactionMeta,
-  SalesPaymentMethods,
+import {
+  SALES_PAYMENT_METHODS,
+  salesHaving,
+  type CustomerTransactionMeta,
+  type SalesPaymentMethods,
 } from "@sales/constants";
 import type { SalesPaymentMeta, SalesType } from "@sales/types";
 import { z } from "zod";
@@ -16,7 +18,11 @@ export const getSalesAccountingsSchema = z
     customerTransactionId: z.number().optional().nullable(),
     orderNo: z.string().optional().nullable(),
     accountNo: z.string().optional().nullable(),
-    // payments: z.enum(['single']),
+    status: z.enum(["Success", "Cancelled"]).optional().nullable(),
+    paymentType: z.enum(SALES_PAYMENT_METHODS).optional().nullable(),
+    salesRepId: z.number().optional().nullable(),
+    dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
+    payments: z.enum(salesHaving),
   })
   .merge(paginationSchema);
 export type GetSalesAccountingsSchema = z.infer<

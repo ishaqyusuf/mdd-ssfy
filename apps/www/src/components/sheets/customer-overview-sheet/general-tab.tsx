@@ -168,7 +168,7 @@ export function GeneralTab({ setCustomerName }) {
                         ) : (
                             <div className="flex flex-col w-full overflow-auto">
                                 <CustomerTxDataTable
-                                    data={data?.recentTx || []}
+                                    data={(data?.recentTx as any) || []}
                                 />
                             </div>
                         )}

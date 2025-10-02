@@ -1,5 +1,10 @@
 import { useQueryStates } from "nuqs";
-import { createLoader, parseAsString, parseAsInteger } from "nuqs/server";
+import {
+    createLoader,
+    parseAsString,
+    parseAsInteger,
+    parseAsArrayOf,
+} from "nuqs/server";
 import { RouterInputs } from "@api/trpc/routers/_app";
 type FilterKeys = keyof Exclude<
     RouterInputs["sales"]["getSalesAccountings"],
@@ -8,6 +13,13 @@ type FilterKeys = keyof Exclude<
 
 export const salesAccountingFilterParams = {
     q: parseAsString,
+    orderNo: parseAsString,
+    accountNo: parseAsString,
+    status: parseAsString,
+    paymentType: parseAsString,
+    salesRepId: parseAsInteger,
+    payments: parseAsString,
+    dateRange: parseAsArrayOf(parseAsString),
 } satisfies Partial<Record<FilterKeys, any>>;
 
 export function useSalesAccountingFilterParams() {

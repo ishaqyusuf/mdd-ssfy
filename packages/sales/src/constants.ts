@@ -155,3 +155,10 @@ export const PRICE_UPDATE_SOURCE_OPTIONS: {
   label?: string;
   value?: PRICE_UPDATE_SOURCE;
 }[] = [{ label: "Manual Update", value: "manual update" }];
+
+export const salesHaving = [
+  "Single Payment",
+  "Multiple Payments",
+  "Duplicate Payment",
+] as const;
+export type SalesHaving = (typeof salesHaving)[number];

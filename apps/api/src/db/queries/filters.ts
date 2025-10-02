@@ -23,7 +23,11 @@ import type { GetSalesResolutions } from "./sales-resolution";
 import type { InventoryList, SalesProductionQueryParams } from "@sales/schema";
 import { getEmployeesList } from "./hrm";
 import { labelValueOptions, sortList, uniqueList } from "@gnd/utils";
-import { SALES_PRODUCTION_STATUS_FILTER_OPTIONS } from "@sales/constants";
+import {
+  SALES_PAYMENT_METHODS,
+  SALES_PRODUCTION_STATUS_FILTER_OPTIONS,
+  salesHaving,
+} from "@sales/constants";
 import type { ProductReportSchema } from "./product-report";
 import type { GetBacklogsSchema } from "./backlogs";
 import type { GetCommunityTemplatesSchema } from "./community-template";
@@ -54,15 +58,17 @@ export async function getInboundFilters(ctx: TRPCContext) {
 function optionFilter<T>(
   value: T,
   label,
-  options: { label: any; value: any }[]
+  options: ({ label: any; value: any } | string)[]
 ) {
   return {
     label,
     value,
-    options: options.map(({ label, value }) => ({
-      label,
-      value: value, //?.toString(),
-    })),
+    options: options
+      .map((a) => (typeof a !== "object" ? { label: a, value: a } : a))
+      .map(({ label, value }) => ({
+        label,
+        value: value, //?.toString(),
+      })),
     type: "checkbox",
   } satisfies PageFilterData<T>;
 }
@@ -585,10 +591,47 @@ export async function salesAccountingFilters(ctx: TRPCContext) {
   //   "title",
   //   "id"
   // );
+  const salesReps = await ctx.db.users.findMany({
+    where: {
+      reppedProductions: {
+        some: {
+          type: "order" as SalesType,
+          deletedAt: null,
+        },
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+  const salesIds = await ctx.db.salesOrders.findMany({
+    where: {
+      type: "order" as SalesType,
+    },
+    select: {
+      orderId: true,
+    },
+  });
   const resp = [
     searchFilter,
-    // optionFilter<T>("categoryId", "Category", steps),
-    // dateRangeFilter<T>("dateRange", "Filter by date"),
+    optionFilter<T>("status", "Payment Status", ["Success", "Cancelled"]),
+    optionFilter<T>("paymentType", "Payment Type", [...SALES_PAYMENT_METHODS]),
+    optionFilter<T>(
+      "salesRepId",
+      "Sales Rep",
+      salesReps.map((s) => ({
+        label: s.name,
+        value: s.id?.toString(),
+      }))
+    ),
+    dateRangeFilter<T>("dateRange", "Filter by date"),
+    optionFilter<T>("payments", "Sales having", [...salesHaving]),
+    optionFilter<T>(
+      "orderNo",
+      "Order No.",
+      salesIds.map((a) => a.orderId)
+    ),
   ] satisfies FilterData[];
 
   return resp;

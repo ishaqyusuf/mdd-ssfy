@@ -22,6 +22,7 @@ export const searchIcons: Partial<{
   dateRange: "calendar",
   showing: "monitor",
   category: "category",
+  payments: "cash",
 };
 
 export function isSearchKey(k) {
