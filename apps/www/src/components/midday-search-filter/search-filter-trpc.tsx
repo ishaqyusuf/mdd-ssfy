@@ -292,39 +292,38 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
     };
     return (
         <div className="flex">
-            <SuperAdminGuard>
-                <Table className="">
-                    <TableBody>
-                        {daysFilters.map((df) => (
-                            <TableRow
-                                onClick={(e) => {
-                                    setFilters({
-                                        [filter.value]: [df],
-                                    });
-                                }}
-                                key={df}
+            <Table className="">
+                <TableBody>
+                    {daysFilters.map((df) => (
+                        <TableRow
+                            onClick={(e) => {
+                                setFilters({
+                                    [filter.value]: [df],
+                                });
+                            }}
+                            key={df}
+                        >
+                            <TableCell
+                                className={cn(
+                                    "capitalize flex gap-4 pr-12 cursor-pointer items-center",
+                                    isCurrentFilter(df) && "font-semibold",
+                                )}
                             >
-                                <TableCell
+                                <CheckCircle
                                     className={cn(
-                                        "capitalize flex gap-4 pr-12 cursor-pointer items-center",
-                                        isCurrentFilter(df) && "font-semibold",
+                                        "size-3",
+                                        !isCurrentFilter(df)
+                                            ? "opacity-20"
+                                            : "",
                                     )}
-                                >
-                                    <CheckCircle
-                                        className={cn(
-                                            "size-3",
-                                            !isCurrentFilter(df)
-                                                ? "opacity-20"
-                                                : "",
-                                        )}
-                                    />
-                                    {df}
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </SuperAdminGuard>
+                                />
+                                {df}
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+
             <Calendar
                 mode="range"
                 initialFocus
