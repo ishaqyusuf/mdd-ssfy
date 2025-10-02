@@ -1,6 +1,6 @@
 import type { TRPCContext } from "@api/trpc/init";
 import type { ProductSearchSchema } from "@api/schemas/shopping-products";
-import { composeQueryData } from "@api/query-response";
+import { composeQueryData } from "@gnd/utils/query-response";
 import { getSalesSetting } from "./settings";
 
 export async function searchProducts(

@@ -1,6 +1,6 @@
 import { salesOrderDto, salesQuoteDto } from "@api/dto/sales-dto";
 import { whereSales } from "@api/prisma-where";
-import { composeQueryData } from "@api/query-response";
+import { composeQueryData } from "@gnd/utils/query-response";
 import type {
   GetFullSalesDataSchema,
   SalesQueryParamsSchema,
@@ -58,7 +58,13 @@ export async function getSales(
     ctx.db
   );
 
-  consoleLog("--", { meta, query, uid: ctx?.userId });
+  consoleLog("--", {
+    meta,
+    query,
+    uid: ctx?.userId,
+    result: data?.length,
+    searchMeta,
+  });
   const result = await response(
     data.map(salesOrderDto).map((d) => ({
       ...d,

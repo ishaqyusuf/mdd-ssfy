@@ -1,4 +1,4 @@
-import { composeQuery } from "@api/query-response";
+import { composeQuery } from "@gnd/utils/query-response";
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
 import {

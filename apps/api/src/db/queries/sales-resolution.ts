@@ -1,4 +1,4 @@
-import { composeQueryData } from "@api/query-response";
+import { composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@api/schemas/common";
 import type { TRPCContext } from "@api/trpc/init";
 import { dateEquals } from "@api/utils/db";
