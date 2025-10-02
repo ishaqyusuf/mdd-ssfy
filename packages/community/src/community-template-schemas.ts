@@ -1,5 +1,5 @@
 import { Db } from "@gnd/db";
-import { consoleLog, sortList } from "@gnd/utils";
+import { sortList } from "@gnd/utils";
 import {
   inventoryCategories,
   inventoryList,
@@ -9,7 +9,6 @@ import {
 import { z } from "zod";
 import {
   COMMUNITY_BLOCKS_INVENTORY_CATEGORY_TITLE,
-  COMMUNITY_LISTINGS_INVENTORY_CATEGORY_TITLE,
   COMMUNITY_SECTIONS_INVENTORY_CATEGORY_TITLE,
   CommunityCategory,
 } from "./constants";

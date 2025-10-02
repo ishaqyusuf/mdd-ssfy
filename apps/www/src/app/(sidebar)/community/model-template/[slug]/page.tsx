@@ -10,6 +10,7 @@ import { Suspense } from "react";
 import { CommunityTemplateForm } from "@/components/forms/community-template/community-template-form";
 import Portal from "@gnd/ui/custom/portal";
 import { ModelTemplateHeader } from "@/components/model-template-header";
+import { FormHeader } from "@/components/forms/community-template/form-header";
 
 export async function generateMetadata(props) {
     return constructMetadata({
@@ -30,7 +31,7 @@ export default async function Page(props: Props) {
                 <ErrorBoundary errorComponent={ErrorFallback}>
                     <Suspense fallback={<Skeletons.Dashboard />}>
                         <CommunityTemplateForm modelSlug={params.slug as any}>
-                            <NewBlockAction />
+                            <FormHeader />
                         </CommunityTemplateForm>
                     </Suspense>
                 </ErrorBoundary>

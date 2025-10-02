@@ -28,13 +28,13 @@ export function NewBlockAction() {
     );
     const form = useZodForm(createCommunityTemplateBlockSchema, {
         defaultValues: {
-            categoryId: c?.category?.id,
+            categoryId: c?.blocksCategory?.id,
             title: "",
         },
     });
     useEffect(() => {
         form.reset({
-            categoryId: c?.category?.id,
+            categoryId: c?.blocksCategory?.id,
             title: "",
         });
     }, []);
