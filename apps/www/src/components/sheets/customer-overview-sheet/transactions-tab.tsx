@@ -42,7 +42,9 @@ export function TransactionsTab({ accountNo, salesId }: Props) {
         >
             <DataSkeletonProvider value={skel}>
                 <div className="flex flex-col w-full overflow-auto">
-                    <CustomerTxDataTable data={data?.transactions || []} />
+                    <CustomerTxDataTable
+                        data={(data?.transactions as any) || []}
+                    />
                 </div>
             </DataSkeletonProvider>
         </EmptyState>
