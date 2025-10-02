@@ -44,6 +44,10 @@ import {
   saveSupplier,
   saveSupplierSchema,
 } from "@api/db/queries/sales-form";
+import {
+  getSalesAccountings,
+  getSalesAccountingsSchema,
+} from "@api/db/queries/sales-accounting";
 export const salesRouter = createTRPCRouter({
   createStep: publicProcedure
     .input(
@@ -162,6 +166,11 @@ export const salesRouter = createTRPCRouter({
     .query(async (props) => {
       const result = await accountingIndex(props.ctx, props.input);
       return result;
+    }),
+  getSalesAccountings: publicProcedure
+    .input(getSalesAccountingsSchema)
+    .query(async (props) => {
+      return getSalesAccountings(props.ctx, props.input);
     }),
   getSuppliers: publicProcedure
     .input(getSuppliersSchema)

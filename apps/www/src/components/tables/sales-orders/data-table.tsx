@@ -21,6 +21,7 @@ import { SalesQueryParamsSchema } from "@sales/schema";
 
 interface Props {
     defaultFilters?: SalesQueryParamsSchema;
+    singlePage?: boolean;
 }
 export function DataTable(props: Props) {
     const trpc = useTRPC();
@@ -72,7 +73,7 @@ export function DataTable(props: Props) {
                 rowSelection,
                 props: {
                     hasNextPage,
-                    loadMoreRef,
+                    loadMoreRef: props.singlePage ? null : loadMoreRef,
                 },
                 setRowSelection,
                 tableMeta: {

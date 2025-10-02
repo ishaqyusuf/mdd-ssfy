@@ -310,3 +310,12 @@ export interface HousePackageToolMeta {
     doorSizePriceTag?: { [size in string]: number };
   };
 }
+export interface SalesPaymentMeta {
+  ccc;
+  ccc_percentage;
+  sub_total;
+  total_due;
+  payment_option;
+  paymentOption;
+  checkNo;
+}

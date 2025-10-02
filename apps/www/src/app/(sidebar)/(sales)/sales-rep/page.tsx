@@ -15,7 +15,6 @@ import {
     SalesRepTotalSales,
 } from "@/components/sales-rep-summary-cards";
 import { SummaryCardSkeleton } from "@/components/summary-card";
-import { SalesRepRecentSales } from "@/components/widgets/sales-rep-recent-sales";
 import { Plus } from "lucide-react";
 
 import { Badge } from "@gnd/ui/badge";
@@ -36,15 +35,6 @@ export default async function SalesRepProfile(props: {
     const searchParams = await props.searchParams;
     const {} = searchParamsCache.parse(searchParams);
     const user = await authUser();
-    // await prisma.payrollHistory.deleteMany({
-    //     where: {},
-    // });
-    // await prisma.payroll.deleteMany({
-    //     where: {
-    //         deletedAt: {},
-    //     },
-    // });
-    // revalidateTag(`sales_rep_commission_summary`);
 
     return (
         <FPage can={["editOrders"]} title="Sales Rep Profile">
@@ -121,7 +111,12 @@ export default async function SalesRepProfile(props: {
                             </TabsTrigger>
                         </TabsList>
                         <TabsContent value="recent-sales" className="space-y-4">
-                            <DataTable />
+                            <DataTable
+                                singlePage
+                                defaultFilters={{
+                                    size: 5,
+                                }}
+                            />
                             {/* <RecentSales /> */}
                         </TabsContent>
                         <TabsContent

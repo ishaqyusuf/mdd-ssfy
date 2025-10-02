@@ -1,18 +1,22 @@
 "use client";
 
-import { ActionCell } from "../action-cell";
-import { ColumnDef, ColumnMeta, PageItemData } from "@/types/type";
+import { ColumnDef, ColumnMeta } from "@/types/type";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { _perm } from "@/components/sidebar/links";
-import { getCustomerTransactionsAction } from "@/actions/get-customer-tx-action";
+
 import { formatMoney } from "@/lib/use-number";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Progress } from "@/components/(clean-code)/progress";
 import { cn } from "@gnd/ui/cn";
 
 import Money from "@/components/_v1/money";
+import { RouterOutputs } from "@api/trpc/routers/_app";
 
-export type Item = PageItemData<typeof getCustomerTransactionsAction>;
+export type Item =
+    RouterOutputs["sales"]["getSalesAccountings"]["data"][number];
+interface ItemProps {
+    item: Item;
+}
 export const columns: ColumnDef<Item>[] = [
     {
         header: "date",
@@ -177,9 +181,9 @@ export const columns: ColumnDef<Item>[] = [
         },
         cell: ({ row: { original: item } }) => {
             return (
-                <ActionCell itemId={item.id}>
+                <div>
                     <Action item={item} />
-                </ActionCell>
+                </div>
             );
         },
     },
@@ -282,11 +286,7 @@ export const customerTransactionsColumn: ColumnDef<Item>[] = [
             className: "flex-1",
         },
         cell: ({ row: { original: item } }) => {
-            return (
-                <ActionCell itemId={item.id}>
-                    {/* <Action item={item} /> */}
-                </ActionCell>
-            );
+            return <div>{/* <Action item={item} /> */}</div>;
         },
     },
 ];

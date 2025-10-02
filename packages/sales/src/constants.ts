@@ -65,7 +65,10 @@ export const SALES_DELIVERY_OPTIONS: {
   { label: "Delivery", value: "delivery" },
   { label: "Pickup", value: "pickup" },
 ];
-
+export interface CustomerTransactionMeta {
+  cancelReason;
+  checkNo;
+}
 export const SALES_PAYMENT_CANCELLATION_REASONS = [
   "refund-wallet",
   "duplicate",

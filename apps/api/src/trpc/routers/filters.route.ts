@@ -12,6 +12,7 @@ import {
   getSalesProductionFilters,
   getSalesQuoteFilter,
   productReportFilters,
+  salesAccountingFilters,
 } from "@api/db/queries/filters";
 import { createTRPCRouter, publicProcedure } from "../init";
 import { z } from "zod";
@@ -69,4 +70,7 @@ export const filterRouters = createTRPCRouter({
     .query(async (props) =>
       getSalesQuoteFilter(props.ctx, props.input.salesManager)
     ),
+  salesAccounting: publicProcedure.query(async (props) => {
+    return salesAccountingFilters(props.ctx);
+  }),
 });
