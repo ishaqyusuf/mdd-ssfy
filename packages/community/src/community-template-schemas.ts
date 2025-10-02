@@ -161,6 +161,18 @@ export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
   const homeTemplate = await db.communityModels.findFirstOrThrow({
     where: { slug: query.slug },
     select: {
+      modelName: true,
+      id: true,
+      project: {
+        select: {
+          title: true,
+          builder: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
       history: !query.historySlug
         ? undefined
         : {
@@ -170,6 +182,17 @@ export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
             select: {},
           },
       templateValues: {
+        select: {
+          uid: true,
+          id: true,
+          inventoryId: true,
+          value: true,
+          inputConfig: {
+            select: {
+              id: true,
+            },
+          },
+        },
         where: {
           deletedAt: null,
           history: query.historySlug
@@ -182,7 +205,8 @@ export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
     },
   });
   return {
-    homeTemplate,
+    title: `${homeTemplate?.project?.title} | ${homeTemplate?.modelName}`,
+    values: homeTemplate.templateValues,
   };
 }
 export const getCommunityBlockSchemaSchema = z.object({
@@ -240,9 +264,18 @@ export async function getCommunityBlockSchema(
         inv: blocksInventories?.find((c) => c.uid === i.uid),
       })),
       "index"
-    ).filter((a) => ({
+    ).map((a) => ({
       ...a,
       title: a.title || a.inv?.name,
+      _formMeta: {
+        // row: 0,
+        rowEdge: false,
+        // formIndex: 0,
+        formUid: "",
+        inventoryId: null as any,
+        valueId: null as any,
+        value: null as any,
+      },
     })),
   };
 }

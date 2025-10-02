@@ -2,6 +2,11 @@ import { colorsObject } from "./colors";
 import dayjs from "./dayjs";
 import { hash } from "bcrypt-ts";
 import util from "util";
+import _ from "lodash";
+
+export function insertAt<T>(array: T[], index: number, item: T) {
+  return _.concat(_.slice(array, 0, index), [item], _.slice(array, index));
+}
 export const devMode = process.env.NODE_ENV != "production";
 export function dbConnect(id) {
   if (!id) return undefined as any;

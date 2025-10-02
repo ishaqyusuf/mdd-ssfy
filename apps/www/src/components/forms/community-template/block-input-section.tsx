@@ -10,10 +10,11 @@ import * as Sortable from "@gnd/ui/sortable-2";
 
 import { cn } from "@gnd/ui/cn";
 import { Label } from "@gnd/ui/label";
-import { buttonVariants } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import { ModelInput } from "./model-input";
 
 import { BlockInputConfig } from "./block-input-config";
+import { Icons } from "@gnd/ui/icons";
 
 export function BlockInput() {
     const inputCtx = useTemplateSchemaInputContext();
@@ -87,6 +88,13 @@ export function BlockInput() {
                         </>
                     )}
                 </div>
+                {!inputCtx.input?._formMeta?.rowEdge || (
+                    <div className="absolute -right-10">
+                        <Button className="" size="xs" variant="secondary">
+                            <Icons.Copy className="size-4" />
+                        </Button>
+                    </div>
+                )}
             </div>
         </Sortable.Item>
     );

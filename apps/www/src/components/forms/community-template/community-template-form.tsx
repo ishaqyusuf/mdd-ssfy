@@ -61,7 +61,9 @@ function Content() {
     if (!ctx.blocks?.length) return <EmptyState />;
     return (
         <div className="pb-36">
-            <PageTitle>{ctx?.modelSlug || "Template Schema"}</PageTitle>
+            <PageTitle>
+                {ctx?.communityTemplate?.title || "Template Schema"}
+            </PageTitle>
 
             <Sortable.Root
                 orientation="mixed"

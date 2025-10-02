@@ -249,6 +249,7 @@ model CommunityModelTemplateValue {
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
     value     Float?    @default(1)
+    uid       String
 
     communityModel   CommunityModels @relation(fields: [communityModelId], references: [id])
     communityModelId Int

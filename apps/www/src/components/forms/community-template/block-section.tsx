@@ -24,6 +24,7 @@ import { AddInput } from "./add-input-block";
 import { BlockInput } from "./block-input-section";
 import { Button } from "@gnd/ui/button";
 import { SortDescIcon } from "lucide-react";
+import { useCommunityModelStore } from "@/store/community-model";
 
 interface Props {
     block?;
@@ -49,7 +50,7 @@ function FormCard(props: Props) {
     const { block, savingSort } = props;
     const ctx = useTemplateSchemaContext();
     const blk = useTemplateSchemaBlock();
-    const { fields, swap, setSortMode, sortMode } = blk;
+    const { fields, modelFields, setSortMode, sortMode } = blk;
     const { templateEditMode } = ctx;
     if (!templateEditMode && !fields?.length) return null;
     return (
@@ -100,7 +101,11 @@ function FormContent({}) {
             meta: null,
         }),
     );
-    if (!blk.fields?.length) return <EmptyState />;
+
+    const store = useCommunityModelStore();
+    const __fields = ctx?.modelSlug
+        ? store?.blocks?.[blk._blockId]?.inputConfigs
+        : fields;
     const _reorderList = (newFields) => {
         reorderList({
             newFields,
@@ -115,6 +120,8 @@ function FormContent({}) {
             })),
         });
     };
+    if (!__fields?.length) return <EmptyState />;
+
     return (
         <Sortable.Root
             orientation="mixed"
@@ -130,13 +137,13 @@ function FormContent({}) {
                     templateEditMode ? "gap-6" : "gap-4",
                 )}
             >
-                {fields.map((inputField) => (
+                {__fields.map((inputField, index) => (
                     <BlockInputProvider
                         value={createTemplateSchemaInputContext({
                             input: inputField,
                             savingSort,
                         })}
-                        key={inputField._id}
+                        key={ctx?.modelSlug ? index : (inputField as any)._id}
                     >
                         <BlockInput />
                     </BlockInputProvider>

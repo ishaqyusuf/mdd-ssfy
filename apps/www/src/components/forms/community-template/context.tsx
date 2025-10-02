@@ -9,7 +9,8 @@ import { RenturnTypeAsync } from "@gnd/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-
+import { TemplateFormService } from "@community/services/template-form-service";
+import { useCommunityModelStore } from "@/store/community-model";
 type TemplateSchemaContext = ReturnType<typeof createTemplateSchemaContext>;
 export const TemplateSchemaContext =
     createContext<TemplateSchemaContext>(undefined);
@@ -53,6 +54,7 @@ export const createTemplateSchemaContext = (
     }, [data]);
     return {
         ...(data || {}),
+        schemaData: data,
         form,
         templateEditMode: !props.modelSlug,
         modelEditMode: !!props.modelSlug,
@@ -92,19 +94,36 @@ export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
             },
         ),
     );
-    type Form = RenturnTypeAsync<typeof getCommunityBlockSchema>;
+    type Form = RenturnTypeAsync<typeof getCommunityBlockSchema> & {};
     const form = useForm<Form>({
         defaultValues: {},
     });
+    const store = useCommunityModelStore();
     useEffect(() => {
         if (blockInput) {
             form.reset(blockInput as any);
-            console.log({ communityTemplate });
+            // console.log({ communityTemplate });
+            const tfs = new TemplateFormService(
+                schm.schemaData,
+                communityTemplate,
+                blockInput,
+            );
+            const modelForm = tfs.generateBlockForm();
+            store.update(`blocks.${String(props.blockId)}`, {
+                ...blockInput,
+                inputConfigs: modelForm,
+            });
+            console.log({ modelForm });
         }
     }, [blockInput]);
     const { fields, swap } = useFieldArray({
         control: form.control,
         name: "inputConfigs",
+        keyName: "_id",
+    });
+    const { fields: modelFields } = useFieldArray({
+        control: form.control,
+        name: `blocks.${props.blockId}.inputConfigs` as any,
         keyName: "_id",
     });
     const [sortMode, setSortMode] = useState(false);
@@ -116,6 +135,8 @@ export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
         swap,
         sortMode,
         setSortMode,
+        modelFields,
+        _blockId: String(props.blockId),
     };
 };
 export const useTemplateSchemaBlock = () => {
