@@ -36,6 +36,19 @@ export function BlockInput() {
     const schemaBlock = useTemplateSchemaBlock();
     const { templateEditMode, printMode, modelEditMode } = ctx;
     const store = useCommunityModelStore();
+    if (input?.id == -1)
+        return (
+            <div
+                className={cn(
+                    "flex relative gap-4",
+                    schemaBlock.sortMode
+                        ? "col-span-4"
+                        : `col-span-${data.columnSize || 4}`,
+                    savingSort && "grayscale",
+                    "group",
+                )}
+            ></div>
+        );
     const Content = (
         <div
             onMouseEnter={(e) => {
@@ -108,6 +121,7 @@ export function BlockInput() {
         </div>
     );
     if (!templateEditMode) return Content;
+
     return (
         <Sortable.Item value={(input as any)._id} asChild className={cn()}>
             {Content}

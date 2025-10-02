@@ -1,4 +1,4 @@
-import { RenturnTypeAsync, sum } from "@gnd/utils";
+import { generateRandomString, RenturnTypeAsync, sum } from "@gnd/utils";
 import {
   getCommunityBlockSchema,
   getCommunitySchema,
@@ -31,19 +31,21 @@ export class TemplateFormService {
       const blockIndex = rowBlocksArray.length - 1;
       rowBlocksArray[blockIndex]?.push(config);
     });
-    rowBlocksArray = rowBlocksArray.map((l) => {
-      const colSize = 4 - sum(l, "columnSize");
-      if (colSize > 0)
-        l.push({
-          columnSize: colSize,
-          id: -1,
-        } as any);
-      return l;
-    });
+    // rowBlocksArray = rowBlocksArray.map((l) => {
+    //   const colSize = 4 - sum(l, "columnSize");
+    //   if (colSize > 0)
+    //     l.push({
+    //       columnSize: colSize,
+    //       id: -1,
+    //       _formMeta: {},
+    //     } as any);
+    //   return l;
+    // });
     for (let index = rowBlocksArray.length - 1; index >= 0; index--) {
       const _rba = rowBlocksArray[index]!;
       const row = _rba?.map((b, i) => {
         const v = this.modelTemplate.values.find((f) => f.uid === b.uid);
+
         b._formMeta.formUid = v?.uid!;
         b._formMeta.inventoryId = v?.inventoryId!;
         b._formMeta.rowEdge = i == _rba.length - 1;
@@ -51,6 +53,14 @@ export class TemplateFormService {
         b._formMeta.value = v?.value || 1;
         return b;
       });
+      const colSize = 4 - sum(row, "columnSize");
+      if (colSize > 0)
+        row.push({
+          columnSize: colSize,
+          id: -1,
+          _formMeta: {},
+          uid: generateRandomString(4),
+        } as any);
       rowBlocks.unshift([...row]);
       const rowUids = row.map((a) => a.uid);
       const duplicates = Array.from(

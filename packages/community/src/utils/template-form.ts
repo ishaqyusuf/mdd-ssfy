@@ -30,6 +30,7 @@ export function duplicateRow(rowNo: number, grids: Grid[]) {
   // create the duplicated row with new rowNo
   const duplicated = row.map((g) => ({
     ...g,
+    id: g.id == -1 ? g.id : null,
     uid: `${g.uid.split("-")[0]}-${nextCopy}`,
     _formMeta: {
       ...g._formMeta,

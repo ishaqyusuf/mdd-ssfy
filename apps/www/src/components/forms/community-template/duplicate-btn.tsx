@@ -20,7 +20,7 @@ export function DuplicateBtn() {
         hov?.rowNo == inputCtx?.input?._formMeta?.rowNo;
     const input = inputCtx.input;
     return (
-        <div className={cn("absolute -right-10", show || "hidden")}>
+        <div className={cn("absolute -right-10 z-10", show || "hidden")}>
             <Button
                 onClick={(e) => {
                     store.update(
