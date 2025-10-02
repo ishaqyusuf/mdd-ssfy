@@ -23,7 +23,7 @@ export default async function Page(props: Props) {
     const filter = loadSalesAccountingFilterParams(searchParams);
     batchPrefetch([
         trpc.sales.getSalesAccountings.infiniteQueryOptions({
-            ...filter,
+            ...(filter as any),
         }),
     ]);
     return (

@@ -17,6 +17,7 @@ import { BlockInputConfig } from "./block-input-config";
 import { Icons } from "@gnd/ui/icons";
 import { useCommunityModelStore } from "@/store/community-model";
 import { DuplicateBtn } from "./duplicate-btn";
+import { Env } from "@/components/env";
 
 export function BlockInput() {
     const inputCtx = useTemplateSchemaInputContext();
@@ -57,9 +58,11 @@ export function BlockInput() {
                 "group",
             )}
         >
-            <div className={cn("flex w-[100px] justify-end")}>
+            <div className={cn("flex w-[100px] relative justify-end")}>
                 {/* <div className="flex-1"></div> */}
-
+                <Env isDev>
+                    <div className="absolute">{input?._formMeta?.rowNo}</div>
+                </Env>
                 <Label
                     onClick={openAnalytics}
                     className={cn(

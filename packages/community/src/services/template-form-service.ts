@@ -1,4 +1,4 @@
-import { RenturnTypeAsync } from "@gnd/utils";
+import { RenturnTypeAsync, sum } from "@gnd/utils";
 import {
   getCommunityBlockSchema,
   getCommunitySchema,
@@ -16,7 +16,7 @@ export class TemplateFormService {
   ) {}
 
   generateBlockForm() {
-    const rowBlocksArray: CommunityBlock["inputConfigs"][] = [[]];
+    let rowBlocksArray: CommunityBlock["inputConfigs"][] = [[]];
     const rowBlocks: CommunityBlock["inputConfigs"][] = [];
     let rowSize = 0;
     this.block.inputConfigs.map((config) => {
@@ -31,7 +31,15 @@ export class TemplateFormService {
       const blockIndex = rowBlocksArray.length - 1;
       rowBlocksArray[blockIndex]?.push(config);
     });
-
+    rowBlocksArray = rowBlocksArray.map((l) => {
+      const colSize = 4 - sum(l, "columnSize");
+      if (colSize > 0)
+        l.push({
+          columnSize: colSize,
+          id: -1,
+        } as any);
+      return l;
+    });
     for (let index = rowBlocksArray.length - 1; index >= 0; index--) {
       const _rba = rowBlocksArray[index]!;
       const row = _rba?.map((b, i) => {
