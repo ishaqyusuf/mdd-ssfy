@@ -105,6 +105,26 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
                             />
                         </div>
                     </div>
+                    <div className="grid grid-cols-3 items-center gap-4">
+                        <Label htmlFor="width">Type</Label>
+                        <div className="col-span-2 flex gap-2">
+                            <FormCombobox
+                                control={form.control}
+                                name="inputType"
+                                className="flex-1"
+                                comboProps={{
+                                    items: [
+                                        { id: "", label: "Text", data: {} },
+                                        {
+                                            id: "number",
+                                            label: "Number",
+                                            data: {},
+                                        },
+                                    ],
+                                }}
+                            />
+                        </div>
+                    </div>
                     <div className="flex gap-2 justify-end">
                         {props.children}
                         <SubmitButton isSubmitting={isPending}>

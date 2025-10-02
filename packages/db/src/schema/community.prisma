@@ -313,6 +313,7 @@ model CommunityTemplateInputConfig {
     id         Int       @unique @default(autoincrement())
     uid        String //categoryUid
     valueUid   String? //valueCategoryUid
+    inputType  String? //valueCategoryUid
     index      Float     @default(0)
     columnSize Float?
     title      String?

@@ -394,6 +394,7 @@ export const updateCommunityBlockInputSchema = z.object({
   id: z.number(),
   columnSize: z.number().optional().nullable().default(4),
   valueUid: z.string().optional().nullable(),
+  inputType: z.string().optional().nullable(),
   title: z.string().optional().nullable(),
 });
 export type UpdateCommunityBlockInputSchema = z.infer<
@@ -412,6 +413,7 @@ export async function updateCommunityBlockInput(
       columnSize: query.columnSize,
       valueUid: query.valueUid,
       title: query.title,
+      inputType: query.inputType,
     },
   });
 }

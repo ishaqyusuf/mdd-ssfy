@@ -1,4 +1,3 @@
-import { RouterOutputs } from "@api/trpc/routers/_app";
 import {
     useTemplateSchemaInputContext,
     useTemplateSchemaBlock,
@@ -7,14 +6,11 @@ import {
 import { useState } from "react";
 import { useCommunityInventoryParams } from "@/hooks/use-community-inventory-params";
 import * as Sortable from "@gnd/ui/sortable-2";
-
 import { cn } from "@gnd/ui/cn";
 import { Label } from "@gnd/ui/label";
-import { Button, buttonVariants } from "@gnd/ui/button";
+import { buttonVariants } from "@gnd/ui/button";
 import { ModelInput } from "./model-input";
-
 import { BlockInputConfig } from "./block-input-config";
-import { Icons } from "@gnd/ui/icons";
 import { useCommunityModelStore } from "@/store/community-model";
 import { DuplicateBtn } from "./duplicate-btn";
 import { Env } from "@/components/env";
