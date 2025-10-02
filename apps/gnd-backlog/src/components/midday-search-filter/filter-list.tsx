@@ -161,6 +161,7 @@ export function FilterList({ loading, filterList, filters, onRemove }: Props) {
       variants={listVariant}
       initial="hidden"
       animate="show"
+      //@ts-ignore
       className="flex space-x-2"
     >
       {loading && (

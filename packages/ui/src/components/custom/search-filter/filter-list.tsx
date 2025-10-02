@@ -160,7 +160,7 @@ export function FilterList({ loading, filterList, filters, onRemove }: Props) {
     <motion.ul
       variants={listVariant}
       initial="hidden"
-      animate="show"
+      animate="show" //@ts-ignore
       className="flex space-x-2"
     >
       {loading && (
