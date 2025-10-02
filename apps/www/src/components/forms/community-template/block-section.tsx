@@ -104,7 +104,7 @@ function FormContent({}) {
 
     const store = useCommunityModelStore();
     const __fields = ctx?.modelSlug
-        ? store?.blocks?.[blk._blockId]?.inputConfigs
+        ? store?.blocks?.[blk.uid]?.inputConfigs
         : fields;
     const _reorderList = (newFields) => {
         reorderList({

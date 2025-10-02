@@ -47,7 +47,11 @@ export class TemplateFormService {
         const v = this.modelTemplate.values.find((f) => f.uid === b.uid);
 
         b._formMeta.formUid = v?.uid!;
-        b._formMeta.inventoryId = v?.inventoryId!;
+        b._formMeta.valueId = v?.inventoryId!;
+        b._formMeta.selection = {
+          id: String(v?.inventoryId!),
+          label: v?.inventory?.name,
+        } as any;
         b._formMeta.rowEdge = i == _rba.length - 1;
         b._formMeta.valueId = v?.id;
         b._formMeta.value = v?.value || 1;
@@ -79,23 +83,25 @@ export class TemplateFormService {
           return {
             ...b,
             _formMeta: {
-              ...b._formMeta,
-              formUid: v?.uid!,
-              inventoryId: v?.inventoryId!,
+              formUid: dup,
               rowEdge: i == row.length - 1,
-              valueId: v?.id,
+              valueId: v?.inventoryId!,
               value: v?.value || 1,
-              duplicateKey: dup, // keep track of which duplicate row this came from
+              selection: {
+                id: String(v?.inventoryId!),
+                label: v?.inventory?.name,
+              },
             },
           };
         });
-        rowBlocks.unshift([...dupRow]);
+        rowBlocks.unshift([...dupRow] as any);
       }
     }
     return rowBlocks
       .map((a, rowNo) =>
-        a.map((b) => ({
+        a.map((b, bi) => ({
           ...b,
+          index: bi,
           _formMeta: {
             ...b._formMeta,
             rowNo,

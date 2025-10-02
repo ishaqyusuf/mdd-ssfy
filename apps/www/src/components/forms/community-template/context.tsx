@@ -11,6 +11,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { TemplateFormService } from "@community/services/template-form-service";
 import { useCommunityModelStore } from "@/store/community-model";
+import { dotObject } from "@/app/(clean-code)/_common/utils/utils";
 type TemplateSchemaContext = ReturnType<typeof createTemplateSchemaContext>;
 export const TemplateSchemaContext =
     createContext<TemplateSchemaContext>(undefined);
@@ -99,6 +100,7 @@ export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
         defaultValues: {},
     });
     const store = useCommunityModelStore();
+    const _blockId = String(props.blockId);
     useEffect(() => {
         if (blockInput) {
             form.reset(blockInput as any);
@@ -110,7 +112,7 @@ export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
                 blockInput,
             );
             const modelForm = tfs.generateBlockForm();
-            store.update(`blocks.${String(props.blockId)}`, {
+            store.update(`blocks.${blockInput.uid}`, {
                 ...blockInput,
                 inputConfigs: modelForm,
             });
@@ -128,7 +130,6 @@ export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
         keyName: "_id",
     });
     const [sortMode, setSortMode] = useState(false);
-
     return {
         form,
         blockInput,
@@ -138,7 +139,8 @@ export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
         sortMode,
         setSortMode,
         modelFields,
-        _blockId: String(props.blockId),
+        _blockId,
+        uid: blockInput?.uid,
     };
 };
 export const useTemplateSchemaBlock = () => {
@@ -163,10 +165,23 @@ interface BlockInputProps {
     onInputUpdated?;
 }
 export const createTemplateSchemaInputContext = (props: BlockInputProps) => {
-    return {
+    const { _blockId, blockId, uid } = useTemplateSchemaBlock();
+    const configPath = `blocks.${uid}.inputConfigs.${props.input.index}`;
+    const store = useCommunityModelStore();
+    const ctx = {
         ...props,
-        // data,
-        // setData,
+        inputIndex: props.input.index,
+        valuePath: `${configPath}._formMeta.value`,
+        valueIdPath: `${configPath}._formMeta.valueId`,
+    };
+    return {
+        ...ctx,
+        value: dotObject.pick(ctx.valueIdPath, store),
+        valueId: dotObject.pick(ctx.valueIdPath, store),
+        setValue: (v) => {
+            store.update(ctx.valueIdPath as any, +v);
+        },
+        setValueId: (id) => store.update(ctx.valueIdPath as any, id),
     };
 };
 export const useTemplateSchemaInputContext = () => {

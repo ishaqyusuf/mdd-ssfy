@@ -1,12 +1,13 @@
 import { dotObject, dotSet } from "@/app/(clean-code)/_common/utils/utils";
 import { getCommunityBlockSchema } from "@community/community-template-schemas";
 import { RenturnTypeAsync } from "@gnd/utils";
+import { dot } from "dot-object";
 import { FieldPath, FieldPathValue } from "react-hook-form";
 import { create } from "zustand";
 
 const data = {
     blocks: {} as {
-        [id in string]: RenturnTypeAsync<typeof getCommunityBlockSchema> & {};
+        [uid in string]: RenturnTypeAsync<typeof getCommunityBlockSchema> & {};
     },
     hoverRow: {
         blockId: null,
@@ -15,6 +16,7 @@ const data = {
 };
 type Action = ReturnType<typeof funcs>;
 type Data = typeof data;
+export type BlockInput = Data["blocks"][""]["inputConfigs"][number];
 type Store = Data & Action;
 export type ZusFormSet = (update: (state: Data) => Partial<Data>) => void;
 

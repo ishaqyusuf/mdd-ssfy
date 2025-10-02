@@ -192,7 +192,11 @@ export const inventoryListSchema = z
   })
   .merge(paginationSchema);
 export type InventoryList = z.infer<typeof inventoryListSchema>;
-export const inventoryCategoriesSchema = z.object({}).merge(paginationSchema);
+export const inventoryCategoriesSchema = z
+  .object({
+    title: z.string().optional().nullable(),
+  })
+  .merge(paginationSchema);
 export type InventoryCategories = z.infer<typeof inventoryCategoriesSchema>;
 export const inventoryFormSchema = z.object({
   mode: z.string().optional().nullable(),

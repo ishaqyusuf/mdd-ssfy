@@ -2,19 +2,23 @@ import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import {
     useTemplateSchemaInputContext,
     useTemplateSchemaContext,
+    useTemplateSchemaBlock,
 } from "./context";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { _qc, _trpc } from "@/components/static-trpc";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn, labelIdOptions } from "@/lib/utils";
 import { QuantityInput } from "@gnd/ui/quantity-input";
+import { useCommunityModelStore } from "@/store/community-model";
 
 export function ModelInput() {
     const ctx = useTemplateSchemaContext();
     const { modelEditMode, printMode, templateEditMode } = ctx;
-    const { input } = useTemplateSchemaInputContext();
+    const { _blockId } = useTemplateSchemaBlock();
+    const { input, inputIndex, value, setValue } =
+        useTemplateSchemaInputContext();
     const [searchEnabled, setSearchEnabled] = useState(false);
-
+    const store = useCommunityModelStore();
     const isNumber = input.inputType === "number";
     const { data: listings, isPending } = useQuery(
         _trpc.community.getTemplateInputListings.queryOptions(
@@ -49,21 +53,19 @@ export function ModelInput() {
             inputBlockInventoryId: input.inv.id,
         });
     };
-    const items = useMemo(() => {}, [listings, isPending]);
+    const [selection, setSelection] = useState(input?._formMeta?.selection);
+    useEffect(() => {
+        console.log(listings);
+    }, [listings]);
     if (templateEditMode) return null;
     if (isNumber)
         return (
             <>
                 <QuantityInput
-                    onChange={(e) => {}}
-                    // onFocus={() => setIsFocused(true)}
-                    // onBlur={() => {
-                    //   setIsFocused(false);
-                    //   field.onBlur();
-                    // }}
-                    // value={field.value}
+                    onChange={setValue}
+                    value={value}
                     className={cn()}
-                    // {...qtyInputProps}
+                    min={0}
                 />
             </>
         );
@@ -71,11 +73,15 @@ export function ModelInput() {
     return (
         <ComboboxDropdown
             placeholder=""
-            items={labelIdOptions(listings, "title", "uid")}
+            items={listings}
             openChanged={(e) => {
                 if (e) setSearchEnabled(true);
             }}
-            onSelect={(e) => {}}
+            selectedItem={selection}
+            onSelect={(e) => {
+                setSelection(e);
+                console.log(e);
+            }}
             onCreate={create}
             searchPlaceholder="Find or create..."
             renderOnCreate={(value) => {

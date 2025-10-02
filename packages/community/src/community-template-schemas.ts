@@ -1,5 +1,5 @@
 import { Db } from "@gnd/db";
-import { sortList } from "@gnd/utils";
+import { consoleLog, sortList } from "@gnd/utils";
 import {
   inventoryCategories,
   inventoryList,
@@ -11,6 +11,7 @@ import {
   COMMUNITY_BLOCKS_INVENTORY_CATEGORY_TITLE,
   COMMUNITY_LISTINGS_INVENTORY_CATEGORY_TITLE,
   COMMUNITY_SECTIONS_INVENTORY_CATEGORY_TITLE,
+  CommunityCategory,
 } from "./constants";
 import { InputType } from "./types";
 
@@ -120,14 +121,39 @@ export async function getCommunitySchema(
   db: Db,
   query: GetCommunitySchemaSchema
 ) {
-  const category = await getCommunitySectionsInventoryCategory(db);
-  const communityCategory = await getCommunityBlocksInventoryCategory(db);
+  const inputsCategory = await getCommunitySectionsInventoryCategory(db);
+  const blocksCategory = await getCommunityBlocksInventoryCategory(db);
   const _blocks = await db.communityTemplateBlockConfig.findMany({
     where: {},
     select: {
       uid: true,
       id: true,
       index: true,
+    },
+  });
+  const fields = await db.communityTemplateInputConfig.findMany({
+    select: {
+      uid: true,
+    },
+  });
+  await db.inventory.updateMany({
+    where: {
+      uid: {
+        in: _blocks.map((a) => a.uid),
+      },
+    },
+    data: {
+      inventoryCategoryId: blocksCategory!.id,
+    },
+  });
+  await db.inventory.updateMany({
+    where: {
+      uid: {
+        in: fields.map((a) => a.uid),
+      },
+    },
+    data: {
+      inventoryCategoryId: inputsCategory!.id,
     },
   });
   const blocksInventories = await db.inventory.findMany({
@@ -147,8 +173,8 @@ export async function getCommunitySchema(
 
   return {
     blocks,
-    category,
-    communityCategory,
+    inputsCategory,
+    blocksCategory,
   };
 }
 
@@ -188,6 +214,11 @@ export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
           id: true,
           inventoryId: true,
           value: true,
+          inventory: {
+            select: {
+              name: true,
+            },
+          },
           inputConfig: {
             select: {
               id: true,
@@ -273,10 +304,11 @@ export async function getCommunityBlockSchema(
       _formMeta: {
         // row: 0,
         rowEdge: false,
+        selection: null,
         // formIndex: 0,
-        formUid: "",
+        formUid: a.uid,
         rowNo: null as any,
-        inventoryId: null as any,
+        // inventoryId: null as any,
         valueId: null as any,
         value: null as any,
       },
@@ -332,22 +364,35 @@ export async function getBlockInputs(db: Db, query: GetBlockInputsSchema) {
 }
 
 export async function getCommunitySectionsInventoryCategory(db: Db) {
-  const response = await inventoryCategories(db, {
-    q: COMMUNITY_SECTIONS_INVENTORY_CATEGORY_TITLE,
-  });
-  return response?.data?.[0];
+  return await getCategory(db, "Community Field");
 }
 export async function getCommunityListingsInventoryCategory(db: Db) {
+  return await getCategory(db, "Community Item");
+}
+export async function getCategory(db: Db, type: CommunityCategory) {
+  await Promise.all(
+    Object.entries({
+      Community: COMMUNITY_BLOCKS_INVENTORY_CATEGORY_TITLE,
+      "Community Sections": COMMUNITY_SECTIONS_INVENTORY_CATEGORY_TITLE,
+      // "Community Item"
+    }).map(async ([o, n]) => {
+      const result = await db.inventoryCategory.updateMany({
+        where: {
+          title: o,
+        },
+        data: {
+          title: n,
+        },
+      });
+    })
+  );
   const response = await inventoryCategories(db, {
-    q: COMMUNITY_LISTINGS_INVENTORY_CATEGORY_TITLE,
+    q: type,
   });
   return response?.data?.[0];
 }
 export async function getCommunityBlocksInventoryCategory(db: Db) {
-  const response = await inventoryCategories(db, {
-    q: COMMUNITY_BLOCKS_INVENTORY_CATEGORY_TITLE,
-  });
-  return response?.data?.[0];
+  return await getCategory(db, "Community Blocks");
 }
 /*
 createTemplateSchemaBlock: publicProcedure
@@ -458,8 +503,8 @@ export async function getTemplateInputListings(
     size: 99,
   });
   return results?.data?.map((r) => ({
-    uid: r.uid,
-    title: r.title,
+    id: String(r.id),
+    label: r.title,
   }));
 }
 

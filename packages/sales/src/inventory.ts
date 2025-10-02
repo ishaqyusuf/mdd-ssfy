@@ -735,6 +735,13 @@ export async function inventoryCategories(db: Db, query: InventoryCategories) {
 }
 function whereInventoryCategories(query: InventoryCategories) {
   const wheres: Prisma.InventoryCategoryWhereInput[] = [];
+  if (query.q) {
+    wheres.push({
+      title: {
+        contains: query.q,
+      },
+    });
+  }
   return composeQuery(wheres);
 }
 export async function deleteSubComponent(db: Db, id) {
