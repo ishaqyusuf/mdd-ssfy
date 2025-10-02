@@ -11,7 +11,6 @@ import { useEmployeesParams } from "@/hooks/use-employee-params";
 import { PageFilterData } from "@/types/type";
 import { customerTransactionsColumn, Item } from "./columns";
 import { _perm } from "@/components/sidebar/links";
-import { useTransactionOverviewModal } from "@/hooks/use-tx-overview-modal";
 
 type Props = {
     data: Item[];
