@@ -12,7 +12,7 @@ import { useTemplateSchemaBlock } from "./context";
 import { labelIdOptions } from "@/lib/utils";
 import { FormInput } from "@gnd/ui/controls/form-input";
 
-export function TemplateInputConfig(props: SchemaBlockInputProps) {
+export function TemplateInputAnalytics(props: SchemaBlockInputProps) {
     const { input } = props;
     const block = useTemplateSchemaBlock();
     const valueOptions = block.blockInput?.inputConfigs?.filter(
@@ -28,14 +28,10 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
     const onSubmit = () => {
         mutate({
             id: w.id,
-            columnSize: w.columnSize,
-            valueUid: w.valueUid,
-            title: w.title,
-            inputType: w.inputType,
         });
     };
     const { isPending, mutate } = useMutation(
-        _trpc.community.updateCommunityBlockInput.mutationOptions({
+        _trpc.community.updateCommunityBlockInputAnalytics.mutationOptions({
             onSuccess(data, variables, context) {
                 props.onInputUpdated(form.getValues());
             },

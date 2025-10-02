@@ -287,3 +287,5 @@ export interface DecoShutters<T> {
   size1: T;
   statusColor: T;
 }
+
+export type InputType = "number" | "text";

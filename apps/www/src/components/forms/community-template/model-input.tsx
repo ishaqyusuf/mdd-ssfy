@@ -5,21 +5,24 @@ import {
 } from "./context";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { _qc, _trpc } from "@/components/static-trpc";
-import { useState } from "react";
-import { labelIdOptions } from "@/lib/utils";
+import { useMemo, useState } from "react";
+import { cn, labelIdOptions } from "@/lib/utils";
+import { QuantityInput } from "@gnd/ui/quantity-input";
 
 export function ModelInput() {
     const ctx = useTemplateSchemaContext();
     const { modelEditMode, printMode, templateEditMode } = ctx;
     const { input } = useTemplateSchemaInputContext();
     const [searchEnabled, setSearchEnabled] = useState(false);
+
+    const isNumber = input.inputType === "number";
     const { data: listings, isPending } = useQuery(
         _trpc.community.getTemplateInputListings.queryOptions(
             {
                 inputInventoryId: input.inv.id,
             },
             {
-                enabled: !templateEditMode && searchEnabled,
+                enabled: !templateEditMode && searchEnabled && !isNumber,
             },
         ),
     );
@@ -46,7 +49,25 @@ export function ModelInput() {
             inputBlockInventoryId: input.inv.id,
         });
     };
+    const items = useMemo(() => {}, [listings, isPending]);
     if (templateEditMode) return null;
+    if (isNumber)
+        return (
+            <>
+                <QuantityInput
+                    onChange={(e) => {}}
+                    // onFocus={() => setIsFocused(true)}
+                    // onBlur={() => {
+                    //   setIsFocused(false);
+                    //   field.onBlur();
+                    // }}
+                    // value={field.value}
+                    className={cn()}
+                    // {...qtyInputProps}
+                />
+            </>
+        );
+
     return (
         <ComboboxDropdown
             placeholder=""

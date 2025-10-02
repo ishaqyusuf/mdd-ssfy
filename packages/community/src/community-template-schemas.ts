@@ -12,6 +12,7 @@ import {
   COMMUNITY_LISTINGS_INVENTORY_CATEGORY_TITLE,
   COMMUNITY_SECTIONS_INVENTORY_CATEGORY_TITLE,
 } from "./constants";
+import { InputType } from "./types";
 
 export const createCommunityTemplateBlockSchema = z.object({
   title: z.string(),
@@ -238,6 +239,7 @@ export async function getCommunityBlockSchema(
           id: true,
           uid: true,
           columnSize: true,
+          inputType: true,
           index: true,
         },
       },
@@ -267,6 +269,7 @@ export async function getCommunityBlockSchema(
     ).map((a) => ({
       ...a,
       title: a.title || a.inv?.name,
+      inputType: a.inputType as InputType,
       _formMeta: {
         // row: 0,
         rowEdge: false,
@@ -416,6 +419,25 @@ export async function updateCommunityBlockInput(
       inputType: query.inputType,
     },
   });
+}
+export const updateCommunityBlockInputAnalyticsSchema = z.object({
+  id: z.number(),
+});
+export type UpdateCommunityBlockInputAnalyticsSchema = z.infer<
+  typeof updateCommunityBlockInputAnalyticsSchema
+>;
+
+export async function updateCommunityBlockInputAnalytics(
+  db: Db,
+  data: UpdateCommunityBlockInputAnalyticsSchema
+) {
+  // await db.communityTemplateInputConfig.update({
+  //   where: {
+  //     id: query.id,
+  //   },
+  //   data: {
+  //   },
+  // });
 }
 
 export const getTemplateInputListingsSchema = z.object({

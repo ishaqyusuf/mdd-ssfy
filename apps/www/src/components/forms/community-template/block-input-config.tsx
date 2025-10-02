@@ -9,6 +9,7 @@ import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useMutation } from "@tanstack/react-query";
 import { useTemplateSchemaBlock } from "./context";
+import { TemplateInputAnalytics } from "./template-input-analytics";
 
 export function BlockInputConfig({ onInputUpdated, data }) {
     const [formOpen, onFormOpenChange] = useState(false);
@@ -72,6 +73,15 @@ function Content({ onInputUpdated, data }) {
                     <span>Listings</span>
                     <Tabs.Content>
                         <TemplateInputListings />
+                    </Tabs.Content>
+                </Tabs.Item>
+                <Tabs.Item value="analytics">
+                    <span>Analytics</span>
+                    <Tabs.Content>
+                        <TemplateInputAnalytics
+                            onInputUpdated={onInputUpdated}
+                            input={data}
+                        />
                     </Tabs.Content>
                 </Tabs.Item>
             </Tabs.Items>
