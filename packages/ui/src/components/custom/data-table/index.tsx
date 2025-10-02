@@ -206,7 +206,7 @@ export const useTableData = ({ filter, route }) => {
     },
     {
       getNextPageParam: ({ meta }) => {
-        return meta?.cursor;
+        return meta?.cursor ?? undefined;
       },
     }
   );
