@@ -32,7 +32,7 @@ export const createTemplateSchemaContext = (
                 slug: props.modelSlug,
             },
             {
-                enabled: !!props.modelSlug,
+                enabled: false, ///!!props.modelSlug,
             },
         ),
     );
@@ -127,6 +127,7 @@ export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
         keyName: "_id",
     });
     const [sortMode, setSortMode] = useState(false);
+
     return {
         form,
         blockInput,

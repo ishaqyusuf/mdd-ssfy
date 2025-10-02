@@ -8,6 +8,10 @@ const data = {
     blocks: {} as {
         [id in string]: RenturnTypeAsync<typeof getCommunityBlockSchema> & {};
     },
+    hoverRow: {
+        blockId: null,
+        rowNo: null,
+    },
 };
 type Action = ReturnType<typeof funcs>;
 type Data = typeof data;

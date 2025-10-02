@@ -152,14 +152,14 @@ export async function getCommunitySchema(
 }
 
 export const getModelTemplateSchema = z.object({
-  slug: z.string(),
+  slug: z.string().optional(),
   historySlug: z.string().optional().nullable(),
 });
 export type GetModelTemplateSchema = z.infer<typeof getModelTemplateSchema>;
 
 export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
   const homeTemplate = await db.communityModels.findFirstOrThrow({
-    where: { slug: query.slug },
+    where: { slug: query.slug! },
     select: {
       modelName: true,
       id: true,
@@ -272,6 +272,7 @@ export async function getCommunityBlockSchema(
         rowEdge: false,
         // formIndex: 0,
         formUid: "",
+        rowNo: null as any,
         inventoryId: null as any,
         valueId: null as any,
         value: null as any,

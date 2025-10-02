@@ -7,7 +7,7 @@ import {
 
 type Schema = RenturnTypeAsync<typeof getCommunitySchema>;
 type ModelTemplate = RenturnTypeAsync<typeof getModelTemplate>;
-type CommunityBlock = RenturnTypeAsync<typeof getCommunityBlockSchema>;
+export type CommunityBlock = RenturnTypeAsync<typeof getCommunityBlockSchema>;
 export class TemplateFormService {
   constructor(
     public schema: Schema,
@@ -74,6 +74,16 @@ export class TemplateFormService {
         rowBlocks.unshift([...dupRow]);
       }
     }
-    return rowBlocks.flat();
+    return rowBlocks
+      .map((a, rowNo) =>
+        a.map((b) => ({
+          ...b,
+          _formMeta: {
+            ...b._formMeta,
+            rowNo,
+          },
+        }))
+      )
+      .flat();
   }
 }
