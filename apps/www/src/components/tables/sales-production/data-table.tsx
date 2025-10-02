@@ -2,7 +2,7 @@
 
 import { useTRPC } from "@/trpc/client";
 import { columns, workerColumns } from "./columns";
-import { Table, useTableData } from "@gnd/ui/data-table";
+import { createTableContext, Table, useTableData } from "@gnd/ui/data-table";
 import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -50,27 +50,22 @@ export function DataTable(props: Props) {
     //     }
     return (
         <Table.Provider
-            args={[
-                {
-                    columns: workerMode ? workerColumns : columns,
-                    data,
-                    tableScroll,
-                    rowSelection,
-                    setRowSelection,
-                    props: {
-                        loadMoreRef: ref,
-                        hasNextPage,
-                    },
-                    tableMeta: {
-                        rowClick(id, rowData) {
-                            overviewQuery.open2(
-                                rowData.uuid,
-                                "production-tasks",
-                            );
-                        },
+            value={createTableContext({
+                columns: workerMode ? workerColumns : columns,
+                data,
+                tableScroll,
+                rowSelection,
+                setRowSelection,
+                props: {
+                    loadMoreRef: ref,
+                    hasNextPage,
+                },
+                tableMeta: {
+                    rowClick(id, rowData) {
+                        overviewQuery.open2(rowData.uuid, "production-tasks");
                     },
                 },
-            ]}
+            })}
         >
             <div className="flex flex-col gap-4 w-full">
                 <div

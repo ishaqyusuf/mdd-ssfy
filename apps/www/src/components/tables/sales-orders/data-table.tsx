@@ -1,7 +1,11 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { Table, useTableData } from "@gnd/ui/custom/data-table/index";
+import {
+    createTableContext,
+    Table,
+    useTableData,
+} from "@gnd/ui/custom/data-table/index";
 import { columns, mobileColumn } from "./columns";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { BatchActions } from "./batch-actions";
@@ -13,7 +17,12 @@ import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/custom/icons";
-export function DataTable({}) {
+import { SalesQueryParamsSchema } from "@sales/schema";
+
+interface Props {
+    defaultFilters?: SalesQueryParamsSchema;
+}
+export function DataTable(props: Props) {
     const trpc = useTRPC();
     const { rowSelection, setRowSelection } = useSalesOrdersStore();
     const { filters, hasFilters, setFilters } = useOrderFilterParams();
@@ -25,6 +34,7 @@ export function DataTable({}) {
     } = useTableData({
         filter: {
             ...filters,
+            ...(props.defaultFilters || {}),
         },
         route: trpc.sales.index,
     });
@@ -53,26 +63,24 @@ export function DataTable({}) {
     }
     return (
         <Table.Provider
-            args={[
-                {
-                    columns,
-                    mobileColumn: mobileColumn,
-                    data,
-                    checkbox: true,
-                    tableScroll,
-                    rowSelection,
-                    props: {
-                        hasNextPage,
-                        loadMoreRef,
-                    },
-                    setRowSelection,
-                    tableMeta: {
-                        rowClick(id, rowData) {
-                            overviewQuery.open2(rowData.uuid, "sales");
-                        },
+            value={createTableContext({
+                columns,
+                mobileColumn: mobileColumn,
+                data,
+                checkbox: true,
+                tableScroll,
+                rowSelection,
+                props: {
+                    hasNextPage,
+                    loadMoreRef,
+                },
+                setRowSelection,
+                tableMeta: {
+                    rowClick(id, rowData) {
+                        overviewQuery.open2(rowData.uuid, "sales");
                     },
                 },
-            ]}
+            })}
         >
             <div className="flex flex-col gap-4 w-full">
                 <div

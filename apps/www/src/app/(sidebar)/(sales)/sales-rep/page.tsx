@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { searchParamsCache } from "./search-params";
 import { cn } from "@gnd/ui/cn";
+import { DataTable } from "@/components/tables/sales-orders/data-table";
 
 export const metadata: Metadata = {
     title: `My Dashboard | GND`,
@@ -120,7 +121,7 @@ export default async function SalesRepProfile(props: {
                             </TabsTrigger>
                         </TabsList>
                         <TabsContent value="recent-sales" className="space-y-4">
-                            <SalesRepRecentSales />
+                            <DataTable />
                             {/* <RecentSales /> */}
                         </TabsContent>
                         <TabsContent

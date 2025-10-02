@@ -1,5 +1,13 @@
 "use client";
-import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  memo,
+  useContext,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import createContextFactory from "@/utils/context-factory";
 import {
   getCoreRowModel,
@@ -71,8 +79,12 @@ type TableProps = (WithTable | WithoutTable) & {
   setRowSelection?;
   defaultRowSelection?: RowSelectionState;
 };
-export const { useContext: useTable, Provider: TableProvider } =
-  createContextFactory(function ({
+
+type TableContext = ReturnType<typeof createTableContext>;
+export const TableContext = createContext<TableContext>(undefined);
+export const TableProvider = TableContext.Provider;
+export const createTableContext = (_props: TableProps) => {
+  let {
     table,
     setParams,
     params,
@@ -90,89 +102,96 @@ export const { useContext: useTable, Provider: TableProvider } =
     rowSelection: storeRowSelection,
     setRowSelection: storeSetRowSelection,
     props,
-  }: TableProps) {
-    const [data, setData] = useState(initialData);
-    // const [from, setFrom] = useState(pageSize);
-    const { ref, inView } = useInView();
-    const [nextMeta, setNextMeta] = useState(nextPageMeta);
-    const isMobile = useMediaQuery(screens.xs);
-    const loadMoreData = async () => {
-      // const formatedFrom = from;
-      // const to = formatedFrom + pageSize * 2;
+  } = _props;
+  const [data, setData] = useState(initialData);
+  // const [from, setFrom] = useState(pageSize);
+  const { ref, inView } = useInView();
+  const [nextMeta, setNextMeta] = useState(nextPageMeta);
+  const isMobile = useMediaQuery(screens.xs);
+  const loadMoreData = async () => {
+    // const formatedFrom = from;
+    // const to = formatedFrom + pageSize * 2;
 
-      try {
-        const { data, meta } = await loadMore({
-          ...nextMeta,
-        });
+    try {
+      const { data, meta } = await loadMore({
+        ...nextMeta,
+      });
 
-        let _meta = meta as PageDataMeta;
-        setData((prev) => [...prev, ...data]);
-        // setFrom(to);
-        setNextMeta(_meta?.next);
-      } catch {
-        setNextMeta(null);
-      }
-    };
-    useEffect(() => {
-      if (inView) {
-        loadMoreData();
-      }
-    }, [inView]);
+      let _meta = meta as PageDataMeta;
+      setData((prev) => [...prev, ...data]);
+      // setFrom(to);
+      setNextMeta(_meta?.next);
+    } catch {
+      setNextMeta(null);
+    }
+  };
+  useEffect(() => {
+    if (inView) {
+      loadMoreData();
+    }
+  }, [inView]);
 
-    useEffect(() => {
-      setData(initialData);
-    }, [initialData]);
-    const [__rowSelection, __setRowSelection] =
-      useState<RowSelectionState>(defaultRowSelection);
-    const [rowSelection, setRowSelection] = [
-      storeRowSelection || __rowSelection,
-      storeSetRowSelection || __setRowSelection,
-    ];
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
+  const [__rowSelection, __setRowSelection] =
+    useState<RowSelectionState>(defaultRowSelection);
+  const [rowSelection, setRowSelection] = [
+    storeRowSelection || __rowSelection,
+    storeSetRowSelection || __setRowSelection,
+  ];
 
-    table = useReactTable({
-      data,
-      getRowId: ({ id }) => String(id),
-      columns: isMobile && mobileColumn ? mobileColumn : columns,
-      getCoreRowModel: getCoreRowModel(),
-      getFilteredRowModel: getFilteredRowModel(),
-      onRowSelectionChange: setRowSelection || undefined,
-      meta: tableMeta,
-      enableMultiRowSelection: checkbox,
-      manualFiltering: true,
-      state: {
-        rowSelection,
-      },
-    });
-    const totalRowsFetched = data?.length;
-    const selectedRows = useMemo(() => {
-      const selectedRowKey = Object.keys(rowSelection || {});
-      return table
-        .getCoreRowModel()
-        .flatRows.filter((row) => selectedRowKey.includes(row.id));
-    }, [rowSelection, table]);
-    const selectedRow = useMemo(() => {
-      const selectedRowKey = Object.keys(rowSelection || {})?.[0];
-      return table
-        .getCoreRowModel()
-        .flatRows.find((row) => row.id === selectedRowKey);
-    }, [rowSelection, table]);
-    return {
-      table,
-      setParams,
-      params,
-      tableMeta,
-      loadMoreData,
-      checkbox: checkbox && mobileColumn && isMobile ? false : checkbox,
-      moreRef: ref,
-      hasMore: !!nextMeta,
-      selectedRows,
-      selectedRow,
-      totalRowsFetched,
-      addons,
-      tableScroll,
-      props,
-    };
+  table = useReactTable({
+    data,
+    getRowId: ({ id }) => String(id),
+    columns: isMobile && mobileColumn ? mobileColumn : columns,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onRowSelectionChange: setRowSelection || undefined,
+    meta: tableMeta,
+    enableMultiRowSelection: checkbox,
+    manualFiltering: true,
+    state: {
+      rowSelection,
+    },
   });
+  const totalRowsFetched = data?.length;
+  const selectedRows = useMemo(() => {
+    const selectedRowKey = Object.keys(rowSelection || {});
+    return table
+      .getCoreRowModel()
+      .flatRows.filter((row) => selectedRowKey.includes(row.id));
+  }, [rowSelection, table]);
+  const selectedRow = useMemo(() => {
+    const selectedRowKey = Object.keys(rowSelection || {})?.[0];
+    return table
+      .getCoreRowModel()
+      .flatRows.find((row) => row.id === selectedRowKey);
+  }, [rowSelection, table]);
+  return {
+    table,
+    setParams,
+    params,
+    tableMeta,
+    loadMoreData,
+    checkbox: checkbox && mobileColumn && isMobile ? false : checkbox,
+    moreRef: ref,
+    hasMore: !!nextMeta,
+    selectedRows,
+    selectedRow,
+    totalRowsFetched,
+    addons,
+    tableScroll,
+    props,
+  };
+};
+export const useTable = () => {
+  const context = useContext(TableContext);
+  if (context === undefined) {
+    throw new Error("useTableContext must be used within a TableProvider");
+  }
+  return context;
+};
 
 export const useTableData = ({ filter, route }) => {
   // const trpc = useTRPC();

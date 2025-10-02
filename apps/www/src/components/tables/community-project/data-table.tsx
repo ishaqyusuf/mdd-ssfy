@@ -1,7 +1,7 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { Table, useTableData } from "@gnd/ui/data-table";
+import { createTableContext, Table, useTableData } from "@gnd/ui/data-table";
 import { columns, mobileColumn } from "./columns";
 import { TableHeader } from "@gnd/ui/data-table/table-header";
 import { useCommunityProjectFilterParams } from "@/hooks/use-community-project-filter-params";
@@ -48,27 +48,25 @@ export function DataTable() {
     }
     return (
         <Table.Provider
-            args={[
-                {
-                    columns,
-                    mobileColumn,
-                    data,
-                    props: {
-                        loadMoreRef: ref,
-                        hasNextPage,
-                    },
-                    tableScroll,
-                    // rowSelection,
-                    // setRowSelection,
-                    tableMeta: {
-                        rowClick(id, rowData) {
-                            setParams({
-                                openCommunityProjectId: rowData.id,
-                            });
-                        },
+            value={createTableContext({
+                columns,
+                mobileColumn,
+                data,
+                props: {
+                    loadMoreRef: ref,
+                    hasNextPage,
+                },
+                tableScroll,
+                // rowSelection,
+                // setRowSelection,
+                tableMeta: {
+                    rowClick(id, rowData) {
+                        setParams({
+                            openCommunityProjectId: rowData.id,
+                        });
                     },
                 },
-            ]}
+            })}
         >
             <div className="flex flex-col gap-4 w-full">
                 <div
