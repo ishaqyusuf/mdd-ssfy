@@ -22,7 +22,7 @@ export async function queryResponse<T>(
   }
 ) {
   let meta = {} as PageDataMeta;
-  where.deletedAt = null;
+  if (where) where.deletedAt = null;
   if (model) {
     const count = await model.count({
       where,
