@@ -7,6 +7,7 @@ import { Icons } from "@gnd/ui/icons";
 import { cn } from "@gnd/ui/cn";
 import { useCommunityModelStore } from "@/store/community-model";
 import { duplicateRow } from "@community/utils/template-form";
+import { toast } from "@gnd/ui/use-toast";
 export function DuplicateBtn() {
     const inputCtx = useTemplateSchemaInputContext();
     const blk = useTemplateSchemaBlock();
@@ -23,6 +24,12 @@ export function DuplicateBtn() {
         <div className={cn("absolute -right-10 z-10", show || "hidden")}>
             <Button
                 onClick={(e) => {
+                    toast({
+                        variant: "destructive",
+                        title: "Feature not ready",
+                        description: "We are still working on few bugs.",
+                    });
+                    return;
                     store.update(
                         `blocks.${blk.uid}.inputConfigs`,
                         duplicateRow(

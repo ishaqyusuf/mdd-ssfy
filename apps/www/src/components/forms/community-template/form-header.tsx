@@ -25,11 +25,11 @@ export function FormHeader() {
             onSuccess(data, variables, context) {},
         }),
     );
-    useDebugToast("error", { data, error });
+    // useDebugToast("error", { data, error });
     const onSubmit = () => {
         const data = extractCommunityFormValueData(Object.values(store.blocks));
-        console.log(data);
-        console.log(store.blocks);
+        // console.log(data);
+        // console.log(store.blocks);
         mutate({
             ...data,
             modelId: ctx.communityTemplate.id!,
