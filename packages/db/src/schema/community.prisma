@@ -108,20 +108,19 @@ model HomeTasks {
 }
 
 model HomeTemplates {
-    id             Int                           @unique @default(autoincrement())
-    builderId      Int?
-    slug           String                        @unique @db.VarChar(255)
-    modelNo        String?                       @db.VarChar(255)
-    modelName      String?                       @db.VarChar(255)
-    meta           Json?                         @db.Json
-    deletedAt      DateTime?                     @db.Timestamp(0)
-    createdAt      DateTime?                     @default(now()) @db.Timestamp(0)
-    updatedAt      DateTime?                     @updatedAt
-    builder        Builders?                     @relation(fields: [builderId], references: [id])
-    homes          Homes[]
-    costs          CostCharts[]
-    history        CommunityTemplateHistory[]
-    templateValues CommunityModelTemplateValue[]
+    id        Int                        @unique @default(autoincrement())
+    builderId Int?
+    slug      String                     @unique @db.VarChar(255)
+    modelNo   String?                    @db.VarChar(255)
+    modelName String?                    @db.VarChar(255)
+    meta      Json?                      @db.Json
+    deletedAt DateTime?                  @db.Timestamp(0)
+    createdAt DateTime?                  @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?                  @updatedAt
+    builder   Builders?                  @relation(fields: [builderId], references: [id])
+    homes     Homes[]
+    costs     CostCharts[]
+    history   CommunityTemplateHistory[]
 
     @@index([builderId])
 }
@@ -240,7 +239,12 @@ model CommunityModels {
 }
 
 model CommunityModelHistory {
-    id Int @unique @default(autoincrement())
+    id        Int                           @unique @default(autoincrement())
+    author    String?
+    values    CommunityModelTemplateValue[]
+    createdAt DateTime?                     @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?                     @updatedAt
+    deletedAt DateTime?                     @db.Timestamp(0)
 }
 
 model CommunityModelTemplateValue {
@@ -260,34 +264,31 @@ model CommunityModelTemplateValue {
     inputConfig   CommunityTemplateInputConfig @relation(fields: [inputConfigId], references: [id])
     inputConfigId Int
 
-    inventory                  Inventory?                @relation(fields: [inventoryId], references: [id])
-    inventoryId                Int?
-    history                    CommunityTemplateHistory? @relation(fields: [communityTemplateHistoryId], references: [id])
-    communityTemplateHistoryId Int?
-    homeTemplate               HomeTemplates?            @relation(fields: [homeTemplateId], references: [id])
-    homeTemplateId             Int?
+    inventory               Inventory?             @relation(fields: [inventoryId], references: [id])
+    inventoryId             Int?
+    history                 CommunityModelHistory? @relation(fields: [communityModelHistoryId], references: [id])
+    communityModelHistoryId Int?
 
     @@index([communityModelId])
     @@index([inventoryCategoryId])
     @@index([inventoryId])
     @@index([inputConfigId])
-    @@index([communityTemplateHistoryId])
-    @@index([homeTemplateId])
+    @@index([communityModelHistoryId])
 }
 
 model CommunityTemplateHistory {
-    id               Int                           @unique @default(autoincrement())
+    // OLD
+    id               Int              @unique @default(autoincrement())
     userId           Int
     slug             String?
-    meta             Json?                         @db.Json
-    createdAt        DateTime?                     @default(now()) @db.Timestamp(0)
-    updatedAt        DateTime?                     @updatedAt
-    deletedAt        DateTime?                     @db.Timestamp(0)
-    model            CommunityModels?              @relation(fields: [communityModelId], references: [id])
+    meta             Json?            @db.Json
+    createdAt        DateTime?        @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?        @updatedAt
+    deletedAt        DateTime?        @db.Timestamp(0)
+    model            CommunityModels? @relation(fields: [communityModelId], references: [id])
     communityModelId Int?
-    Users            Users                         @relation(fields: [userId], references: [id])
-    values           CommunityModelTemplateValue[]
-    homeTemplate     HomeTemplates?                @relation(fields: [homeTemplateId], references: [id])
+    Users            Users            @relation(fields: [userId], references: [id])
+    homeTemplate     HomeTemplates?   @relation(fields: [homeTemplateId], references: [id])
     homeTemplateId   Int?
 
     @@index([userId])
