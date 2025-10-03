@@ -37,6 +37,7 @@ export function duplicateRow(rowNo: number, grids: Grid[]) {
     _formMeta: {
       ...g._formMeta,
       rowNo: rowNo + 1,
+      formUid: `${g.uid.split("-")[0]}-${nextCopy}`,
     },
   }));
 

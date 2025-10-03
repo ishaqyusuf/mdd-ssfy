@@ -24,7 +24,7 @@ export function DuplicateBtn() {
             <Button
                 onClick={(e) => {
                     store.update(
-                        `blocks.${blk._blockId}.inputConfigs`,
+                        `blocks.${blk.uid}.inputConfigs`,
                         duplicateRow(
                             input._formMeta.rowNo,
                             store.blocks?.[blk.uid]?.inputConfigs,
