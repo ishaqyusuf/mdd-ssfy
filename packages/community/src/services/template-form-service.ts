@@ -44,7 +44,9 @@ export class TemplateFormService {
     for (let index = rowBlocksArray.length - 1; index >= 0; index--) {
       const _rba = rowBlocksArray[index]!;
       const row = _rba?.map((b, i) => {
-        const v = this.modelTemplate.values.find((f) => f.uid === b.uid);
+        const v = this.modelTemplate.values.find(
+          (f) => f.uid === b.uid && f.inputConfig.id === b.id
+        );
         b._formMeta.formUid = b?.uid!;
         b._formMeta.inventoryId = v?.inventoryId!;
         b._formMeta.selection = {
@@ -53,7 +55,7 @@ export class TemplateFormService {
         } as any;
         b._formMeta.rowEdge = i == _rba.length - 1;
         b._formMeta.templateValueId = v?.id as any;
-        b._formMeta.value = v?.value || v?.inventoryId! ? 1 : null;
+        b._formMeta.value = v?.value; // || v?.inventoryId! ? 1 : null;
         return b;
       });
       const colSize = 4 - sum(row, "columnSize");
@@ -85,7 +87,7 @@ export class TemplateFormService {
               formUid: `${b.uid}-${dup}`,
               rowEdge: i == row.length - 1,
               inventoryId: v?.inventoryId!,
-              value: v?.value || v?.inventoryId! ? 1 : null,
+              value: v?.value, // || v?.inventoryId! ? 1 : null,
               templateValueId: v?.id,
               selection: {
                 id: String(v?.inventoryId!),
