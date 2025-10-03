@@ -273,7 +273,7 @@ export async function getCommunityBlockSchema(
           id: true,
           uid: true,
           columnSize: true,
-          // inputType: true,
+          inputType: true,
           index: true,
         },
       },
@@ -303,8 +303,7 @@ export async function getCommunityBlockSchema(
     ).map((a) => ({
       ...a,
       title: a.title || a.inv?.name,
-      // inputType: a.inputType as InputType,
-      inputType: "",
+      inputType: a.inputType as InputType,
       _formMeta: {
         // row: 0,
         rowEdge: false,
@@ -465,7 +464,7 @@ export async function updateCommunityBlockInput(
       columnSize: query.columnSize,
       valueUid: query.valueUid,
       title: query.title,
-      // inputType: query.inputType,
+      inputType: query.inputType,
     },
   });
 }
