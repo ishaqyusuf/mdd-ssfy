@@ -1,6 +1,6 @@
 import { withSentryConfig } from "@sentry/nextjs";
 /** @type {import('next').NextConfig} */
-const path = require("path");
+// const path = require("path");
 // const { NormalModuleReplacementPlugin } = require("webpack");
 const config = {
     transpilePackages: [

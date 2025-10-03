@@ -22,7 +22,7 @@
         "**/*.tsx",
         "../../types",
         "next-env.d.ts",
-        "next.config.js",
+        "next.config.mjs",
         "tailwind.config.ts",
         ".next/types/**/*.ts"
     ],
