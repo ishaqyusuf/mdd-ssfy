@@ -102,20 +102,21 @@ const config = {
 // module.exports = nextConfig;
 const isProduction = process.env.NODE_ENV === "production";
 
-export default isProduction
-    ? withSentryConfig(config, {
-          org: process.env.SENTRY_ORG,
-          project: process.env.SENTRY_PROJECT,
-          authToken: process.env.SENTRY_AUTH_TOKEN,
-          telemetry: false,
+export default // isProduction
+// ?
+withSentryConfig(config, {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    telemetry: false,
 
-          // Only print logs for uploading source maps in CI
-          silent: !process.env.CI,
+    // Only print logs for uploading source maps in CI
+    silent: !process.env.CI,
 
-          // Upload source maps for better stack traces
-          widenClientFileUpload: true,
+    // Upload source maps for better stack traces
+    widenClientFileUpload: true,
 
-          // Tree-shake Sentry logger statements to reduce bundle size
-          disableLogger: true,
-      })
-    : config;
+    // Tree-shake Sentry logger statements to reduce bundle size
+    disableLogger: true,
+});
+// : config;
