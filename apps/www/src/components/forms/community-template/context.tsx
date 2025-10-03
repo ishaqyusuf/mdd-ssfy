@@ -187,6 +187,8 @@ export const createTemplateSchemaInputContext = (props: BlockInputProps) => {
         valueId: dotObject.pick(ctx.valueIdPath, store),
         setValue: (v) => {
             store.update(ctx.valuePath as any, +v);
+            console.log(dotObject.pick(ctx.valuePath, store));
+            console.log(dotObject.pick(configPath, store), props.input.index);
         },
         setValueId: (id) => store.update(ctx.valueIdPath as any, id),
     };

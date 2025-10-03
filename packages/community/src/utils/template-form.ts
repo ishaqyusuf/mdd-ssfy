@@ -119,7 +119,13 @@ export function extractCommunityFormValueData(
         data: {
           inputConfigId: input.id,
           uid: _formMeta.formUid,
-          value: _formMeta.value || _formMeta.inventoryId ? 1 : null,
+          value:
+            input.inputType == "number"
+              ? _formMeta.value
+              : _formMeta.inventoryId
+                ? 1
+                : null, // || Number(_formMeta.inventoryId) ? 1 : null,
+          // value: _formMeta.value || Number(_formMeta.inventoryId) ? 1 : null,
           inventoryId: _formMeta.inventoryId || undefined,
         },
       };
