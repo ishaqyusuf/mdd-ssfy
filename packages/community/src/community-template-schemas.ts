@@ -1,5 +1,5 @@
 import { Db } from "@gnd/db";
-import { sortList } from "@gnd/utils";
+import { RenturnTypeAsync, sortList } from "@gnd/utils";
 import {
   inventoryCategories,
   inventoryList,
@@ -238,6 +238,7 @@ export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
   return {
     title: `${homeTemplate?.project?.title} | ${homeTemplate?.modelName}`,
     values: homeTemplate.templateValues,
+    id: homeTemplate.id,
   };
 }
 export const getCommunityBlockSchemaSchema = z.object({
@@ -245,6 +246,9 @@ export const getCommunityBlockSchemaSchema = z.object({
 });
 export type GetCommunityBlockSchemaSchema = z.infer<
   typeof getCommunityBlockSchemaSchema
+>;
+export type GetCommunityBlockSchema = RenturnTypeAsync<
+  typeof getCommunityBlockSchema
 >;
 export async function getCommunityBlockSchema(
   db: Db,
@@ -269,7 +273,7 @@ export async function getCommunityBlockSchema(
           id: true,
           uid: true,
           columnSize: true,
-          inputType: true,
+          // inputType: true,
           index: true,
         },
       },
@@ -299,7 +303,8 @@ export async function getCommunityBlockSchema(
     ).map((a) => ({
       ...a,
       title: a.title || a.inv?.name,
-      inputType: a.inputType as InputType,
+      // inputType: a.inputType as InputType,
+      inputType: "",
       _formMeta: {
         // row: 0,
         rowEdge: false,
@@ -460,7 +465,7 @@ export async function updateCommunityBlockInput(
       columnSize: query.columnSize,
       valueUid: query.valueUid,
       title: query.title,
-      inputType: query.inputType,
+      // inputType: query.inputType,
     },
   });
 }
@@ -541,7 +546,10 @@ export async function saveTemplateInputListing(
       categoryId: (await getCommunityBlocksInventoryCategory(db))?.id!,
       valueInventoryId: data.inputBlockInventoryId,
     });
-    return inventory;
+    return {
+      id: String(inventory.id),
+      label: data.title,
+    };
   });
 }
 

@@ -15,7 +15,7 @@ export function ModelInput() {
     const ctx = useTemplateSchemaContext();
     const { modelEditMode, printMode, templateEditMode } = ctx;
     const { _blockId } = useTemplateSchemaBlock();
-    const { input, inputIndex, value, setValue } =
+    const { input, inputIndex, value, setValue, setValueId } =
         useTemplateSchemaInputContext();
     const [searchEnabled, setSearchEnabled] = useState(false);
     const store = useCommunityModelStore();
@@ -43,6 +43,8 @@ export function ModelInput() {
                 _qc.invalidateQueries({
                     queryKey: _trpc.community.getBlockInputs.queryKey({}),
                 });
+                setSelection(data);
+                setValueId(+data.id);
             },
         }),
     );
@@ -80,7 +82,7 @@ export function ModelInput() {
             selectedItem={selection}
             onSelect={(e) => {
                 setSelection(e);
-                console.log(e);
+                setValueId(+e.id);
             }}
             onCreate={create}
             searchPlaceholder="Find or create..."

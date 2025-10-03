@@ -1,3 +1,5 @@
+import { SaveCommunityModelSchema } from "../community-model";
+import { GetCommunityBlockSchema } from "../community-template-schemas";
 import { CommunityBlock } from "../services/template-form-service";
 
 type Grid = NonNullable<CommunityBlock["inputConfigs"][number]>;
@@ -100,4 +102,25 @@ export function moveCopiedRow(
     }
     return g;
   });
+}
+
+export function extractCommunityFormValueData(
+  blocks: GetCommunityBlockSchema[]
+): SaveCommunityModelSchema["formValues"] {
+  return blocks
+    .map((block) => {
+      return block.inputConfigs;
+    })
+    .flat()
+    .map((input) => {
+      const _formMeta = input._formMeta;
+      return {
+        id: input.id,
+        data: {
+          uid: _formMeta.formUid,
+          value: _formMeta.value,
+          valueId: _formMeta.valueId || undefined,
+        },
+      };
+    });
 }

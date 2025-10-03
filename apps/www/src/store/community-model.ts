@@ -1,13 +1,12 @@
-import { dotObject, dotSet } from "@/app/(clean-code)/_common/utils/utils";
-import { getCommunityBlockSchema } from "@community/community-template-schemas";
-import { RenturnTypeAsync } from "@gnd/utils";
-import { dot } from "dot-object";
+import { dotSet } from "@/app/(clean-code)/_common/utils/utils";
+import { GetCommunityBlockSchema } from "@community/community-template-schemas";
+
 import { FieldPath, FieldPathValue } from "react-hook-form";
 import { create } from "zustand";
 
 const data = {
     blocks: {} as {
-        [uid in string]: RenturnTypeAsync<typeof getCommunityBlockSchema> & {};
+        [uid in string]: GetCommunityBlockSchema;
     },
     hoverRow: {
         blockId: null,

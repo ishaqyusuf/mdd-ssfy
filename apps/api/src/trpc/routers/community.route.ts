@@ -58,6 +58,10 @@ import {
   updateCommunityBlockInputAnalyticsSchema,
   updateCommunityBlockInputAnalytics,
 } from "@community/community-template-schemas";
+import {
+  saveCommunityModel,
+  saveCommunityModelSchema,
+} from "@community/community-model";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -168,6 +172,11 @@ export const communityRouters = createTRPCRouter({
     .input(communityTemplateFormSchema)
     .mutation(async (props) => {
       return saveCommunityTemplateForm(props.ctx, props.input);
+    }),
+  saveCommunityModel: publicProcedure
+    .input(saveCommunityModelSchema)
+    .mutation(async (props) => {
+      return saveCommunityModel(props.ctx.db, props.input);
     }),
   updateCommunityBlockInput: publicProcedure
     .input(updateCommunityBlockInputSchema)
