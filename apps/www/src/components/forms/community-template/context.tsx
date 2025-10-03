@@ -10,7 +10,10 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { TemplateFormService } from "@community/services/template-form-service";
-import { useCommunityModelStore } from "@/store/community-model";
+import {
+    CommunityModelStore,
+    useCommunityModelStore,
+} from "@/store/community-model";
 import { dotObject } from "@/app/(clean-code)/_common/utils/utils";
 type TemplateSchemaContext = ReturnType<typeof createTemplateSchemaContext>;
 export const TemplateSchemaContext =
@@ -163,11 +166,15 @@ interface BlockInputProps {
     input: RouterOutputs["community"]["getCommunityBlockSchema"]["inputConfigs"][number];
     savingSort?: boolean;
     onInputUpdated?;
+    store: CommunityModelStore;
+    blockCtx: ReturnType<typeof useTemplateSchemaBlock>;
 }
 export const createTemplateSchemaInputContext = (props: BlockInputProps) => {
-    const { _blockId, blockId, uid } = useTemplateSchemaBlock();
+    const { _blockId, blockId, uid } = props.blockCtx;
+    // return {};
     const configPath = `blocks.${uid}.inputConfigs.${props.input.index}`;
-    const store = useCommunityModelStore();
+    // const store = useCommunityModelStore();
+    const store = props.store;
     const ctx = {
         ...props,
         inputIndex: props.input.index,

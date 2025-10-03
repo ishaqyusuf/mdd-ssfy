@@ -30,6 +30,7 @@ export function Sidebar({}) {
                     className={cn(
                         "absolute left-[8px] transition-none",
                         isExpanded && "left-[16px]s  ",
+                        process.env.NODE_ENV == "production" || "grayscale",
                     )}
                 >
                     {isExpanded ? <Icons.LogoLg /> : <Icons.Logo />}

@@ -25,6 +25,7 @@ import { BlockInput } from "./block-input-section";
 import { Button } from "@gnd/ui/button";
 import { SortDescIcon } from "lucide-react";
 import { useCommunityModelStore } from "@/store/community-model";
+import { SalesBlockCtx } from "@/app/(v2)/printer/sales/sales-print-block";
 
 interface Props {
     block?;
@@ -142,6 +143,8 @@ function FormContent({}) {
                         value={createTemplateSchemaInputContext({
                             input: inputField,
                             savingSort,
+                            store,
+                            blockCtx: blk,
                         })}
                         key={ctx?.modelSlug ? index : (inputField as any)._id}
                     >

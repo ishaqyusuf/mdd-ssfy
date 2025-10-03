@@ -16,7 +16,7 @@ const data = {
 type Action = ReturnType<typeof funcs>;
 type Data = typeof data;
 export type BlockInput = Data["blocks"][""]["inputConfigs"][number];
-type Store = Data & Action;
+export type CommunityModelStore = Data & Action;
 export type ZusFormSet = (update: (state: Data) => Partial<Data>) => void;
 
 function funcs(set: ZusFormSet) {
@@ -37,7 +37,7 @@ function funcs(set: ZusFormSet) {
             }),
     };
 }
-export const useCommunityModelStore = create<Store>((set) => ({
+export const useCommunityModelStore = create<CommunityModelStore>((set) => ({
     ...data,
     ...funcs(set),
 }));
