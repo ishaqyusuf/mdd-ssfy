@@ -162,10 +162,11 @@ export async function getCommunitySchema(
       },
     },
   });
+  const invMap = new Map(blocksInventories.map((c) => [c.uid, c]));
   const blocks = sortList(
     _blocks.map((b) => ({
       ...b,
-      title: blocksInventories?.find((c) => c.uid === b.uid)?.name,
+      title: invMap.get(b.uid)?.name,
     })),
     "index"
   );
@@ -291,13 +292,14 @@ export async function getCommunityBlockSchema(
       id: true,
     },
   });
+  const invMap = new Map(blocksInventories.map((c) => [c.uid, c]));
   return {
     ...block,
-    title: blocksInventories?.find((c) => c.uid === block.uid)?.name,
+    title: invMap.get(block.uid)?.name,
     inputConfigs: sortList(
       block.inputConfigs.map((i) => ({
         ...i,
-        inv: blocksInventories?.find((c) => c.uid === i.uid),
+        inv: invMap.get(i.uid),
       })),
       "index"
     ).map((a) => ({
@@ -354,11 +356,13 @@ export async function getBlockInputs(db: Db, query: GetBlockInputsSchema) {
       inventoryCategoryId: true,
     },
   });
+  const invMap = new Map(inventories.map((iv) => [iv.uid, iv]));
   return {
     inputs: inputs
       .map((i) => ({
         ...i,
-        inv: inventories.find((iv) => iv.uid == i.uid),
+        // inv: inventories.find((iv) => iv.uid == i.uid),
+        inv: invMap.get(i.uid),
       }))
       .filter((a) => ({
         ...a,
