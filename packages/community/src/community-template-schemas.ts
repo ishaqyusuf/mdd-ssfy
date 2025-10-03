@@ -179,7 +179,7 @@ export async function getCommunitySchema(
 
 export const getModelTemplateSchema = z.object({
   slug: z.string().optional(),
-  historySlug: z.string().optional().nullable(),
+  historyId: z.number().optional().nullable(),
 });
 export type GetModelTemplateSchema = z.infer<typeof getModelTemplateSchema>;
 
@@ -199,11 +199,11 @@ export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
           },
         },
       },
-      history: !query.historySlug
+      history: !query.historyId
         ? undefined
         : {
             where: {
-              slug: query.historySlug,
+              id: query.historyId,
             },
             select: {},
           },
@@ -226,9 +226,9 @@ export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
         },
         where: {
           deletedAt: null,
-          history: query.historySlug
+          history: query.historyId
             ? {
-                slug: query.historySlug,
+                id: query.historyId,
               }
             : null,
         },

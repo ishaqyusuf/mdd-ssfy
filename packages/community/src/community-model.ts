@@ -69,11 +69,29 @@ export async function saveCommunityModel(
         communityModelId: data.modelId,
       },
     });
-    // await tx.communityTemplateHistory.create({
-    //   data: {
-    //     author: data.authorName,
-
-    //   },
-    // });
+    await tx.communityModelHistory.create({
+      data: {
+        author: data.authorName,
+        values: {
+          createMany: {
+            data: newValues.map(
+              ({
+                communityModelId,
+                inputConfigId,
+                uid,
+                value,
+                inventoryId,
+              }) => ({
+                communityModelId,
+                inputConfigId,
+                uid,
+                value,
+                inventoryId,
+              })
+            ),
+          },
+        },
+      },
+    });
   });
 }
