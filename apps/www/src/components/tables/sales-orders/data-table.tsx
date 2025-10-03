@@ -73,7 +73,7 @@ export function DataTable(props: Props) {
                 rowSelection,
                 props: {
                     hasNextPage,
-                    loadMoreRef: props.singlePage ? null : loadMoreRef,
+                    loadMoreRef, // props.singlePage ? null : loadMoreRef,
                 },
                 setRowSelection,
                 tableMeta: {
