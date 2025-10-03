@@ -45,3 +45,5 @@ todo.md
 *.tsbuildinfo
 
 .trigger
+# Sentry Config File
+.env.sentry-build-plugin
