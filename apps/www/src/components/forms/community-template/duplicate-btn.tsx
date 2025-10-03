@@ -27,7 +27,7 @@ export function DuplicateBtn() {
                         `blocks.${blk._blockId}.inputConfigs`,
                         duplicateRow(
                             input._formMeta.rowNo,
-                            store.blocks?.[blk._blockId]?.inputConfigs,
+                            store.blocks?.[blk.uid]?.inputConfigs,
                         ),
                     );
                 }}
