@@ -73,7 +73,7 @@ export function TemplateInputAnalytics(props: SchemaBlockInputProps) {
                             ))}
                         </div>
                     </div>
-                    <div className="grid grid-cols-3 items-center gap-4">
+                    {/* <div className="grid grid-cols-3 items-center gap-4">
                         <Label htmlFor="width">Value</Label>
                         <div className="col-span-2 flex gap-2">
                             <FormCombobox
@@ -92,9 +92,9 @@ export function TemplateInputAnalytics(props: SchemaBlockInputProps) {
                                 }}
                             />
                         </div>
-                    </div>
+                    </div> */}
                     <div className="grid grid-cols-3 items-center gap-4">
-                        <Label htmlFor="width">Input name</Label>
+                        <Label htmlFor="width">Display name</Label>
                         <div className="col-span-2">
                             <FormInput
                                 name="title"
