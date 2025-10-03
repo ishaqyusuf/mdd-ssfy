@@ -1,7 +1,11 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { createTableContext, Table, useTableData } from "@gnd/ui/data-table";
+import {
+    // createTableContext,
+    Table,
+    useTableData,
+} from "@gnd/ui/data-table";
 import { columns } from "./columns";
 import { useSalesAccountingFilterParams } from "@/hooks/use-sales-accounting-filter-params";
 import { useSalesAccountingParams } from "@/hooks/use-sales-accounting-params";
@@ -58,25 +62,29 @@ export function DataTable(props: Props) {
     }
     return (
         <Table.Provider
-            value={createTableContext({
-                columns,
-                // mobileColumn,
-                data,
-                props: {
-                    loadMoreRef,
-                    hasNextPage,
-                },
-                tableScroll,
-                // rowSelection,
-                // setRowSelection,
-                tableMeta: {
-                    rowClick(id, rowData) {
-                        setParams({
-                            openSalesAccountingId: rowData.id,
-                        });
+            // value={createTableContext({
+            args={[
+                {
+                    columns,
+                    // mobileColumn,
+                    data,
+                    props: {
+                        loadMoreRef,
+                        hasNextPage,
                     },
+                    tableScroll,
+                    // rowSelection,
+                    // setRowSelection,
+                    tableMeta: {
+                        rowClick(id, rowData) {
+                            setParams({
+                                openSalesAccountingId: rowData.id,
+                            });
+                        },
+                    },
+                    // })}
                 },
-            })}
+            ]}
         >
             <div className="flex flex-col gap-4 w-full">
                 <div

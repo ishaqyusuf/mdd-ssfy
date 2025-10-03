@@ -58,13 +58,6 @@ export async function getSales(
     ctx.db
   );
 
-  consoleLog("--", {
-    meta,
-    query,
-    uid: ctx?.userId,
-    result: data?.length,
-    searchMeta,
-  });
   const result = await response(
     data.map(salesOrderDto).map((d) => ({
       ...d,
@@ -161,14 +154,25 @@ export async function salesNotesCount(salesIds: number[], prisma) {
     };
   } = {};
 
+  // salesIds.forEach((s) => {
+  //   const noteCount = notes?.filter((a) =>
+  //     a.tags?.some((t) => t.tagValue === String(s))
+  //   )?.length;
+  //   if (noteCount)
+  //     resp[String(s)] = {
+  //       noteCount,
+  //     };
+  // });
+  const countMap = new Map<string, number>();
+  notes.forEach((a) => {
+    a.tags.forEach((t) => {
+      countMap.set(t.tagValue, (countMap.get(t.tagValue) || 0) + 1);
+    });
+  });
+
   salesIds.forEach((s) => {
-    const noteCount = notes?.filter((a) =>
-      a.tags?.some((t) => t.tagValue === String(s))
-    )?.length;
-    if (noteCount)
-      resp[String(s)] = {
-        noteCount,
-      };
+    const noteCount = countMap.get(String(s));
+    if (noteCount) resp[String(s)] = { noteCount };
   });
   return resp;
 }
