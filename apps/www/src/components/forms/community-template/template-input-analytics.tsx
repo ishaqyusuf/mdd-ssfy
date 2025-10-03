@@ -3,14 +3,7 @@ import { SchemaBlockInputProps } from "./block-section";
 import { useMutation } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
 import { Form } from "@gnd/ui/form";
-import { Label } from "@gnd/ui/label";
-import { Button } from "@gnd/ui/button";
-import { SubmitButton } from "@/components/submit-button";
-import { inputSizes } from "@community/utils";
-import { FormCombobox } from "@/components/common/controls/form-combobox";
 import { useTemplateSchemaBlock } from "./context";
-import { labelIdOptions } from "@/lib/utils";
-import { FormInput } from "@gnd/ui/controls/form-input";
 
 export function TemplateInputAnalytics(props: SchemaBlockInputProps) {
     const { input } = props;

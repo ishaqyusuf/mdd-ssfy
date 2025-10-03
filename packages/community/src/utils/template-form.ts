@@ -106,8 +106,8 @@ export function moveCopiedRow(
 
 export function extractCommunityFormValueData(
   blocks: GetCommunityBlockSchema[]
-): SaveCommunityModelSchema["formValues"] {
-  return blocks
+): Partial<SaveCommunityModelSchema> {
+  const values = blocks
     .map((block) => {
       return block.inputConfigs;
     })
@@ -115,12 +115,20 @@ export function extractCommunityFormValueData(
     .map((input) => {
       const _formMeta = input._formMeta;
       return {
-        id: input.id,
+        id: _formMeta.templateValueId,
         data: {
+          inputConfigId: input.id,
           uid: _formMeta.formUid,
-          value: _formMeta.value,
-          valueId: _formMeta.valueId || undefined,
+          value: _formMeta.value || _formMeta.inventoryId ? 1 : null,
+          inventoryId: _formMeta.inventoryId || undefined,
         },
       };
-    });
+    })
+    .filter((a) => a.data.inputConfigId !== -1);
+  return {
+    formValues: values.filter((a) => a.data.value),
+    nullValueIds: values
+      .filter((a) => !a.data.value && !!a.id)
+      .map((a) => a.id!),
+  };
 }

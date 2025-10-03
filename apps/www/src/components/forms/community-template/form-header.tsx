@@ -23,11 +23,10 @@ export function FormHeader() {
         }),
     );
     const onSubmit = () => {
-        const formValues = extractCommunityFormValueData(
-            Object.values(store.blocks),
-        );
+        const data = extractCommunityFormValueData(Object.values(store.blocks));
+        console.log(data);
         mutate({
-            formValues,
+            ...data,
             modelId: ctx.communityTemplate.id!,
         });
     };

@@ -179,14 +179,14 @@ export const createTemplateSchemaInputContext = (props: BlockInputProps) => {
         ...props,
         inputIndex: props.input.index,
         valuePath: `${configPath}._formMeta.value`,
-        valueIdPath: `${configPath}._formMeta.valueId`,
+        valueIdPath: `${configPath}._formMeta.inventoryId`,
     };
     return {
         ...ctx,
-        value: dotObject.pick(ctx.valueIdPath, store),
+        value: dotObject.pick(ctx.valuePath, store),
         valueId: dotObject.pick(ctx.valueIdPath, store),
         setValue: (v) => {
-            store.update(ctx.valueIdPath as any, +v);
+            store.update(ctx.valuePath as any, +v);
         },
         setValueId: (id) => store.update(ctx.valueIdPath as any, id),
     };

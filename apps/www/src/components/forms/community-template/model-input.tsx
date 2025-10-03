@@ -56,9 +56,7 @@ export function ModelInput() {
         });
     };
     const [selection, setSelection] = useState(input?._formMeta?.selection);
-    useEffect(() => {
-        console.log(listings);
-    }, [listings]);
+
     if (templateEditMode) return null;
     if (isNumber)
         return (
