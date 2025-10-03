@@ -50,14 +50,13 @@ export async function saveCommunityModel(
         },
       },
       data: {
-        deletedAt: new Date(0),
+        deletedAt: new Date(),
       },
     });
     await tx.communityModelTemplateValue.createMany({
       data: creates.map((v) => ({
         value: v.data.value,
         inventoryId: v.data.inventoryId,
-        homeTemplateId: data.modelId,
         uid: v.data.uid,
         inputConfigId: v.data.inputConfigId,
         communityModelId: data.modelId,

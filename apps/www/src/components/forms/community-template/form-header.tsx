@@ -6,11 +6,14 @@ import { extractCommunityFormValueData } from "@community/utils/template-form";
 import { Button } from "@gnd/ui/button";
 import { useMutation } from "@tanstack/react-query";
 import { useTemplateSchemaContext } from "./context";
+import { useDebugToast } from "@/hooks/use-debug-console";
+import { useAuth } from "@/hooks/use-auth";
 
 export function FormHeader() {
     const store = useCommunityModelStore();
     const ctx = useTemplateSchemaContext();
-    const { data, isPending, mutate } = useMutation(
+    const auth = useAuth();
+    const { data, isPending, error, mutate } = useMutation(
         _trpc.community.saveCommunityModel.mutationOptions({
             meta: {
                 toastTitle: {
@@ -22,6 +25,7 @@ export function FormHeader() {
             onSuccess(data, variables, context) {},
         }),
     );
+    useDebugToast("error", { data, error });
     const onSubmit = () => {
         const data = extractCommunityFormValueData(Object.values(store.blocks));
         console.log(data);
@@ -29,6 +33,7 @@ export function FormHeader() {
         mutate({
             ...data,
             modelId: ctx.communityTemplate.id!,
+            authorName: auth?.name,
         });
     };
 
