@@ -1,19 +1,22 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { Table, useTableData } from "@gnd/ui/data-table";
-import { columns, mobileColumn } from "./columns";
+import {
+    // createTableContext,
+    Table,
+    useTableData,
+} from "@gnd/ui/data-table";
+import { columns } from "./columns";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOrdersStore } from "@/store/sales-orders";
-import { NoResults } from "@gnd/ui/custom/no-results";
+import { SalesQueryParamsSchema } from "@sales/schema";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/custom/icons";
-import { SalesQueryParamsSchema } from "@sales/schema";
 
 interface Props {
     defaultFilters?: SalesQueryParamsSchema;
@@ -21,8 +24,8 @@ interface Props {
 }
 export function DataTable(props: Props) {
     const trpc = useTRPC();
+    const { filters } = useOrderFilterParams();
     const { rowSelection, setRowSelection } = useSalesOrdersStore();
-    const { filters, hasFilters, setFilters } = useOrderFilterParams();
     const {
         data,
         ref: loadMoreRef,
@@ -41,10 +44,6 @@ export function DataTable(props: Props) {
         startFromColumn: 2,
     });
     const overviewQuery = useSalesOverviewQuery();
-    if (hasFilters && !data?.length) {
-        return <NoResults setFilter={setFilters} />;
-    }
-
     if (!data?.length && !isFetching) {
         return (
             <EmptyState
@@ -61,24 +60,26 @@ export function DataTable(props: Props) {
     }
     return (
         <Table.Provider
+            // value={createTableContext({
             args={[
                 {
                     columns,
-                    mobileColumn: mobileColumn,
+                    // mobileColumn: mobileColumn,
                     data,
                     checkbox: true,
                     tableScroll,
-                    rowSelection,
+                    // rowSelection,
                     props: {
                         hasNextPage,
                         loadMoreRef: props.singlePage ? null : loadMoreRef,
                     },
-                    setRowSelection,
+                    // setRowSelection,
                     tableMeta: {
                         rowClick(id, rowData) {
-                            overviewQuery.open2(rowData.uuid, "sales");
+                            overviewQuery.open2(rowData.uuid, "quote");
                         },
                     },
+                    // })}
                 },
             ]}
         >
