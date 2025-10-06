@@ -6,7 +6,7 @@ import {
     Table,
     useTableData,
 } from "@gnd/ui/data-table";
-import { columns } from "./columns";
+import { columns } from "../sales-quotes/columns";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
@@ -36,7 +36,7 @@ export function DataTable(props: Props) {
             ...filters,
             ...(props.defaultFilters || {}),
         },
-        route: trpc.sales.orders,
+        route: trpc.sales.index,
     });
 
     const tableScroll = useTableScroll({
