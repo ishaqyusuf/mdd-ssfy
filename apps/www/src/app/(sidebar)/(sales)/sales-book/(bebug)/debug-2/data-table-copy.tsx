@@ -90,9 +90,7 @@ export function DataTable(props: Props) {
                     {data?.length}
                     <Table>
                         <Table.TableHeader />
-                        <Table.Body>
-                            <Table.TableRow />
-                        </Table.Body>
+                        <Table.Body>{/* <Table.TableRow /> */}</Table.Body>
                     </Table>
                 </div>
                 {/* <Table.LoadMore /> */}
