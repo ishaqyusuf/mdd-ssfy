@@ -31,6 +31,7 @@ export class StepHelperClass extends SettingsClass {
     ) {
         const [itemUid, stepUid] = itemStepUid?.split("-");
         super(itemStepUid, itemUid, stepUid, staticZus);
+        console.log({ itemUid, stepUid, itemStepUid });
         this.itemUid = itemUid;
         this.stepUid = stepUid;
     }
