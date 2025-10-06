@@ -1,5 +1,4 @@
 import { formatMoney } from "@/lib/use-number";
-import { ZusSales } from "../../../_common/_stores/form-data-store";
 
 import { GroupFormClass } from "./group-form-class";
 import { ComponentHelperClass } from "./step-component-class";
@@ -28,7 +27,6 @@ export class HptClass extends GroupFormClass {
         const resp = {
             doors: doors.map((door) => {
                 const priceModel = this.getDoorPriceModel(door.uid);
-
                 return {
                     ...door,
                     cls: new ComponentHelperClass(this.stepUid, door.uid),

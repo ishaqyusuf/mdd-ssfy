@@ -43,6 +43,7 @@ export const { Provider: HptContextProvider, useContext: useHpt } =
         }, []);
         const ctx = useMemo(() => {
             const ctx = new HptClass(itemStepUid);
+            console.log("--->stepUID:", itemStepUid);
             // const itemForm = ctx.getItemForm();
             const itemType = itemForm?.groupItem?.itemType;
             const isSlab = itemType === "Door Slabs Only";
