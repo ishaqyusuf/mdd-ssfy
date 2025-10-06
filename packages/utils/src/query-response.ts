@@ -32,8 +32,8 @@ export async function queryResponse<T>(
     let cursor = (+query?.cursor || 0) + size;
 
     meta.cursor = cursor < count ? String(cursor) : null;
-    meta.hasNextPage = cursor < count;
-    meta.hasPreviousePage = cursor > 0;
+    // meta.hasNextPage = cursor < count;
+    // meta.hasPreviousePage = cursor > 0;
   }
   return {
     data,
