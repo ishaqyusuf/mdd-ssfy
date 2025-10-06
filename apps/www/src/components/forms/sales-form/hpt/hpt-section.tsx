@@ -73,7 +73,7 @@ function Content() {
                                 <Button
                                     size="xs"
                                     className={cn(
-                                        "border-b-2 border-b-transparent",
+                                        "border-b-2 border-b-transparent uppercase",
                                         ctx.hpt.tabUid == door.uid &&
                                             "rounded-b-none border-muted-foreground",
                                     )}
@@ -123,8 +123,8 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
     const itemType = ctx?.hpt?.getItemForm()?.groupItem?.itemType;
     const isSlab = itemType === "Door Slabs Only";
     return (
-        <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-4">
-            <div className="lg:col-span-3">
+        <div className="grid w-full grid-cols-1 gap-4 xl:grid-cols-4">
+            <div className="xl:col-span-3">
                 <Table className="table-fixed   p-4 font-medium">
                     <TableHeader className="text-xs">
                         <TableRow className="uppercase">
