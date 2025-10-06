@@ -3,10 +3,11 @@ import { useTakeoffItem } from "./context";
 import { useStepContext } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/components-section/ctx";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { cn } from "@gnd/ui/cn";
-import { Component } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/components-section";
+
 import { ComponentHelperClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import { composeDoor } from "@/lib/sales/compose-door";
 import { updateDoorGroupForm } from "@/lib/sales/update-door-form";
+import { ComponentItemCard } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/components-section/component-item-card";
 
 export function DoorSelect({ setOpen }) {
     const itemCtx = useTakeoffItem();
@@ -50,7 +51,7 @@ export function DoorSelect({ setOpen }) {
                 placeholder="Select"
                 renderListItem={(item) => (
                     <>
-                        <Component
+                        <ComponentItemCard
                             onSelect={onSelect}
                             ctx={stepCtx}
                             key={item.item.data.uid}

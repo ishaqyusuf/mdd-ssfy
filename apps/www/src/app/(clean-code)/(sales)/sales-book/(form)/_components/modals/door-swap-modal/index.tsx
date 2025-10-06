@@ -5,10 +5,10 @@ import { toast } from "sonner";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 
 import { getFormState } from "../../../_common/_stores/form-data-store";
-import { Component } from "../../components-section";
 import { useStepContext } from "../../components-section/ctx";
 import SearchBar from "../../components-section/search-bar";
 import { HptContext } from "@/components/forms/sales-form/context";
+import { ComponentItemCard } from "../../components-section/component-item-card";
 
 export type Door = HptContext["doors"][number];
 export const openDoorSwapModal = (door: Door, itemUid) => {
@@ -33,7 +33,7 @@ export function DoorSwapModal({ door, itemStepUid }) {
                 <ScrollArea className="h-[75vh]">
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3">
                         {items?.map((component) => (
-                            <Component
+                            <ComponentItemCard
                                 ctx={ctx}
                                 key={component.uid}
                                 component={component}
