@@ -84,17 +84,19 @@ export function DataTable(props: Props) {
             ]}
         >
             <div className="flex flex-col gap-4 w-full">
-                <div
+                {/* <div
                     ref={tableScroll.containerRef}
                     className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
                 >
                     <Table>
                         <Table.TableHeader />
-                        <Table.Body>{/* <Table.TableRow /> */}</Table.Body>
+                        <Table.Body>
+                            <Table.TableRow />
+                        </Table.Body>
                     </Table>
                 </div>
                 <Table.LoadMore />
-                <BatchActions />
+                <BatchActions /> */}
             </div>
         </Table.Provider>
     );
