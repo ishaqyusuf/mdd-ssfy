@@ -87,6 +87,7 @@ export function DataTable(props: Props) {
                     ref={tableScroll.containerRef}
                     className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
                 >
+                    {data?.length}
                     <Table>
                         <Table.TableHeader />
                         <Table.Body>{/* <Table.TableRow /> */}</Table.Body>
