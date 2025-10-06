@@ -53,15 +53,16 @@ export async function getSales(
     ...searchMeta,
     include: SalesListInclude,
   });
-  const notCounts = await salesNotesCount(
-    data?.map((a) => a.id),
-    ctx.db
-  );
+  // const notCounts = await salesNotesCount(
+  //   data?.map((a) => a.id),
+  //   ctx.db
+  // );
 
   const result = await response(
     data.map(salesOrderDto).map((d) => ({
       ...d,
-      ...(notCounts[d.id.toString()] || {}),
+      noteCount: 0,
+      // ...(notCounts[d.id.toString()] || {}),
     }))
   );
 
