@@ -1,6 +1,6 @@
 // import { ColumnSchema } from "./schema";
 import { SearchParamsType, searchParamsSerializer } from "./search-params";
-import { infiniteQueryOptions, keepPreviousData } from "@tanstack/react-query";
+import { infiniteQueryOptions, keepPreviousData } from "@gnd/ui/tanstack";
 import { Percentile } from "@/lib/request/percentile";
 
 export type InfiniteQueryMeta = {
@@ -23,7 +23,7 @@ export const dataOptions = (search, queryKey, rnd?) => {
             const start = (pageParam as number) * search.size;
             const serialize = searchParamsSerializer({ ...search, start });
             const response = await fetch(
-                `/api/infinite/${queryKey}${serialize}`
+                `/api/infinite/${queryKey}${serialize}`,
                 // { headers: { "Cache-Control": "no-cache" } }
             );
             return response.json();

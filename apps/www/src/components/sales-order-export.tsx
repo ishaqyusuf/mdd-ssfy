@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { Icons } from "@gnd/ui/custom/icons";
 import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import dayjs from "dayjs";
 import { utils, writeFile } from "xlsx";

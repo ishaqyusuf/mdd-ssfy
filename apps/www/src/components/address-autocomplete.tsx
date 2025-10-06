@@ -11,7 +11,7 @@ import useSWR from "swr";
 
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export interface AddressType {
     address1: string;

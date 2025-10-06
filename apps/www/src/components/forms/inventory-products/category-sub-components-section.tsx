@@ -15,7 +15,7 @@ import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 import { FormCombobox } from "@/components/common/controls/form-combobox";
 import { labelValueOptions, selectOptions } from "@gnd/utils";
 import { useTRPC } from "@/trpc/client";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@gnd/ui/tanstack";
 import { ComboxBox } from "@/components/(clean-code)/custom/controlled/combo-box";
 import {
     Table,

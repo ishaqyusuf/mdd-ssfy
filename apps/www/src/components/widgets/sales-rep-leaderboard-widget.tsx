@@ -9,7 +9,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@gnd/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { WidgetListSkeleton } from "./widget-skeleton";
 import { Skeleton } from "@gnd/ui/skeleton";
 

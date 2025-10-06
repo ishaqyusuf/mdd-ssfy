@@ -7,7 +7,7 @@ import { saveSupplierSchema } from "@api/db/queries/sales-form";
 import { Button } from "@gnd/ui/button";
 import { FormInput } from "@gnd/ui/controls/form-input";
 import { Form } from "@gnd/ui/form";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 
 interface Props {
     onCreate?;

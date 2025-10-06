@@ -5,7 +5,7 @@ import { useSalesDeliveryUpdate } from "@/hooks/use-sales-delivery-update";
 import { useTRPC } from "@/trpc/client";
 import { DeliveryOption as DispatchOption } from "@/types/sales";
 import { salesDeliveryMode } from "@gnd/utils/constants";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 
 export function DeliveryOption({ salesId }) {
     const trpc = useTRPC();

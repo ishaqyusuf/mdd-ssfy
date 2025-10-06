@@ -1,6 +1,6 @@
 import { useTRPC } from "@/trpc/client";
 import { UpdateSalesDeliveryOptionSchema } from "@api/schemas/sales";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 
 interface Props {
     salesId;

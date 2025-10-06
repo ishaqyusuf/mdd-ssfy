@@ -1,6 +1,6 @@
 "use client";
 import { useTRPC } from "@/trpc/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@gnd/ui/tanstack";
 import { usePathname } from "next/navigation";
 
 export let _trpc: ReturnType<typeof useTRPC> | undefined;

@@ -4,7 +4,7 @@ import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
 import { useTRPC } from "@/trpc/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { DollarSign, CreditCard, List, Activity } from "lucide-react";
 
 export function KpiWidgets() {

@@ -10,7 +10,7 @@ import { useProductVariants, useVariant, VariantProvider } from "./context";
 import { AnimatedNumber } from "@/components/animated-number";
 import { useEffect, useRef, useState } from "react";
 import { capitalize, throttle } from "lodash";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { Icons } from "@gnd/ui/custom/icons";
 import { ChartSpline } from "lucide-react";

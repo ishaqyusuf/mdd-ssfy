@@ -1,7 +1,7 @@
 import { Button } from "@gnd/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { useTRPC } from "@/trpc/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { FormDebugBtn } from "@/components/form-debug-btn";
 

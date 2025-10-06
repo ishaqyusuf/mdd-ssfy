@@ -1,7 +1,7 @@
 import { CustomModal, CustomModalContent } from "./custom-modal";
 import { useWorkOrderParams } from "@/hooks/use-work-order-params";
 import { WorkOrderForm } from "../forms/work-order-form";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { useTRPC } from "@/trpc/client";
 import { useDebugToast } from "@/hooks/use-debug-console";
 

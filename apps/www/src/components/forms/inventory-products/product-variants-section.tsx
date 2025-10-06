@@ -15,7 +15,7 @@ import { cn } from "@gnd/ui/cn";
 import { Separator } from "@gnd/ui/separator";
 import { ProductImageGallery } from "@/components/product-image-gallery";
 import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { useFieldArray } from "react-hook-form";

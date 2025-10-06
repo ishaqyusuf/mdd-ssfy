@@ -7,7 +7,7 @@ import {
     CommandItem,
     CommandList,
 } from "@gnd/ui/command";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { useMemo, useRef, useState } from "react";
 import { useDebounceValue } from "usehooks-ts";
 interface SearchItem {

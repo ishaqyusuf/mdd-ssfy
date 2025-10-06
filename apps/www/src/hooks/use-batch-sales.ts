@@ -5,7 +5,7 @@ import {
     markSalesDispatchAsComplete,
     markSalesProductionAsCompleted,
 } from "@/actions/sales-mark-as-completed";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@gnd/ui/tanstack";
 
 export function useBatchSales() {
     const trpc = useTRPC();

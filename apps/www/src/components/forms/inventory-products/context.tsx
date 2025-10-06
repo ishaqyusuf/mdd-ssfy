@@ -1,7 +1,7 @@
 import createContextFactory from "@/utils/context-factory";
 import { useInventoryForm } from "./form-context";
 import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { useFieldArray } from "react-hook-form";
 import { parseAsString, useQueryStates } from "nuqs";
 import { labelValueOptions, selectOptions } from "@gnd/utils";

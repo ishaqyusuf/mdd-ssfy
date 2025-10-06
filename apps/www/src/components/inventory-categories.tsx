@@ -1,7 +1,7 @@
 "use client";
 import { useInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
 import { useTRPC } from "@/trpc/client";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { InventorySummary } from "./inventory-summary";
 import { AlertTriangle } from "lucide-react";
 import NumberFlow from "@number-flow/react";

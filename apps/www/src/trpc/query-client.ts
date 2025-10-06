@@ -4,7 +4,7 @@ import {
     MutationCache,
     QueryClient,
     defaultShouldDehydrateQuery,
-} from "@tanstack/react-query";
+} from "@gnd/ui/tanstack";
 import superjson from "superjson";
 
 export function makeQueryClient() {

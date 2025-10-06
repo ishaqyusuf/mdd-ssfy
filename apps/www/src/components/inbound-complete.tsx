@@ -1,7 +1,7 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { InboundSummary } from "./inbound-summary";
 import { useInboundFilterParams } from "@/hooks/use-inbound-filter-params";
 

@@ -21,7 +21,7 @@ import { useZodForm } from "@/hooks/use-zod-form";
 import FormSelect from "../common/controls/form-select";
 import FormInput from "../common/controls/form-input";
 import { cn } from "@gnd/ui/cn";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { useTRPC } from "@/trpc/client";
 import { toast } from "@gnd/ui/use-toast";
 import { SALES_REFUND_METHODS_OPTIONS } from "@sales/constants";

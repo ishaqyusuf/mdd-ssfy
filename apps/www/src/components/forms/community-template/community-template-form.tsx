@@ -9,7 +9,7 @@ import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { reorderList } from "@gnd/utils";
 import { useFieldArray } from "react-hook-form";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 import { _trpc } from "@/components/static-trpc";
 import { SchemaBlock } from "./block-section";
 import * as Sortable from "@gnd/ui/sortable-2";

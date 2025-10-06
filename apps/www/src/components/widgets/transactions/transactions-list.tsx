@@ -1,7 +1,7 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import type { TransactionType } from "./data";
 import { TransactionsItemList } from "./transactions-item-list";
 

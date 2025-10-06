@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 
 import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { signIn } from "next-auth/react";
 import { env } from "@/env.mjs";
 

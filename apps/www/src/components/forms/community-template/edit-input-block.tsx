@@ -3,7 +3,7 @@ import { useZodForm } from "@/hooks/use-zod-form";
 import { saveCommunityInputSchema } from "@community/community-template-schemas";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { Form } from "@gnd/ui/form";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 import { Suspense } from "react";
 import { useTemplateSchemaBlock, useTemplateSchemaContext } from "./context";
 import { FormInput } from "@gnd/ui/controls/form-input";

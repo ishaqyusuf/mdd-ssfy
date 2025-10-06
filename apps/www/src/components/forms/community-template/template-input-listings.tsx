@@ -1,5 +1,5 @@
 import { _trpc } from "@/components/static-trpc";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@gnd/ui/tanstack";
 import { Suspense } from "react";
 import {
     useTemplateSchemaInputContext,

@@ -4,7 +4,7 @@ import {
     useTemplateSchemaContext,
     useTemplateSchemaBlock,
 } from "./context";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@gnd/ui/tanstack";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useEffect, useMemo, useState } from "react";
 import { cn, labelIdOptions } from "@/lib/utils";

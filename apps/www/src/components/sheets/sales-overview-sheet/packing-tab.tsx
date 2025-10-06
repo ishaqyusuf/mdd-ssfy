@@ -1,5 +1,5 @@
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { PackingTabSkeleton } from "./packing-tab.skeleton";
 import { PackingOrderInformation } from "@/components/packing-order-information";
 import { PackingDriverInformation } from "@/components/packing-driver-information";

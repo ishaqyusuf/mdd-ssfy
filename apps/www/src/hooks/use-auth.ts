@@ -1,7 +1,7 @@
 "use client";
 import { useTRPC } from "@/trpc/client";
 import { Roles } from "@gnd/utils/constants";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { useSession } from "next-auth/react";
 import { useDebugToast } from "./use-debug-console";
 

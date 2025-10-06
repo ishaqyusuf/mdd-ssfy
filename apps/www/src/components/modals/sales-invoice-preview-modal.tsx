@@ -16,7 +16,7 @@ import { Form } from "@gnd/ui/form";
 import { useForm } from "react-hook-form";
 import FormSelect from "../common/controls/form-select";
 import { useTRPC } from "@/trpc/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@gnd/ui/tanstack";
 
 export function SalesInvoicePreviewModal({}) {
     const ctx = useSalesPrintParams();

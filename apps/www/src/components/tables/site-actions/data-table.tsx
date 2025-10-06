@@ -2,7 +2,7 @@
 
 import { useInboundFilterParams } from "@/hooks/use-inbound-filter-params";
 import { useTRPC } from "@/trpc/client";
-import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
+import { useSuspenseInfiniteQuery } from "@gnd/ui/tanstack";
 import { useEffect, useMemo } from "react";
 import { useInView } from "react-intersection-observer";
 import { TableProvider } from "..";

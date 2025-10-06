@@ -15,7 +15,7 @@ import { Button } from "@gnd/ui/button";
 import { z } from "zod";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { saveInboundNoteSchema } from "@api/schemas/notes";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { useTRPC } from "@/trpc/client";
 import { useEffect } from "react";
 import { SubmitButton } from "../submit-button";

@@ -11,7 +11,7 @@ import {
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 import { ScrollArea } from "@gnd/ui/scroll-area";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { useTRPC } from "@/trpc/client";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";

@@ -17,7 +17,7 @@ import { Menu } from "@/components/(clean-code)/menu";
 import { salesDispatchStatus } from "@gnd/utils/constants";
 import { getColorFromName } from "@/lib/color";
 import { useTable } from "..";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@gnd/ui/tanstack";
 import { useTRPC } from "@/trpc/client";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { Card, CardContent, CardHeader } from "@gnd/ui/card";

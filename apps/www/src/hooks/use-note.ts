@@ -1,6 +1,6 @@
 import { useTRPC } from "@/trpc/client";
 import { noteTag } from "@gnd/utils/note";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 
 export function useNote() {
     const trpc = useTRPC();

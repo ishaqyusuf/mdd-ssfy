@@ -11,7 +11,7 @@ import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { toast } from "@gnd/ui/use-toast";
 import { colorsObject, hexToRgba } from "@gnd/utils/colors";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { CheckCircle, Clock, Upload } from "lucide-react";
 
 export type Item =

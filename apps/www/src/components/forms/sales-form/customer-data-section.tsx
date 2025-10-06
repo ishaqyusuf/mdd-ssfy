@@ -22,7 +22,7 @@ import { ScrollArea } from "@gnd/ui/scroll-area";
 
 import { motion } from "framer-motion";
 import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 export function CustomerDataSection() {
     const zus = useFormDataStore();
     const md = zus.metaData;

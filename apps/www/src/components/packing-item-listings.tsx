@@ -10,7 +10,7 @@ import {
     TableRow,
 } from "@gnd/ui/table";
 import { formatDate } from "@gnd/utils/dayjs";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { QtyLabel } from "./qty-label";
 import ConfirmBtn from "./confirm-button";
 import { useAuth } from "@/hooks/use-auth";

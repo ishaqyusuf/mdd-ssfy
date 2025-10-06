@@ -6,7 +6,7 @@ import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { AlertTriangle } from "lucide-react";
 
 export function ProductionAlertWidget() {

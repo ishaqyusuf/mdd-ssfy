@@ -5,7 +5,7 @@ import {
     useSearchFilterContext,
 } from "@/hooks/use-search-filter";
 import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 import { customerFilterParamsSchema } from "@/hooks/use-customer-filter-params";
 

@@ -1,6 +1,6 @@
 import { useTRPC } from "@/trpc/client";
 import { Skeleton } from "@gnd/ui/skeleton";
-import { useInfiniteQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useSuspenseQuery } from "@gnd/ui/tanstack";
 import { Suspense } from "react";
 import { EmptyState } from "./empty-state";
 import { useDebugToast } from "@/hooks/use-debug-console";

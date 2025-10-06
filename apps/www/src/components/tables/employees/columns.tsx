@@ -16,7 +16,7 @@ import { Button } from "@gnd/ui/button";
 import { useEmployeesParams } from "@/hooks/use-employee-params";
 import { Icons } from "@gnd/ui/icons";
 import { useTRPC } from "@/trpc/client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 import { triggerTask } from "@/actions/trigger-task";
 
 export type Item = PageItemData<typeof getEmployees>;

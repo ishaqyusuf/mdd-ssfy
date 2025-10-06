@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@gnd/ui/tanstack";
 
 import {
     Command,

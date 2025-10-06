@@ -1,7 +1,7 @@
 "use client";
 import { SearchFilterProvider } from "@/hooks/use-search-filter";
 import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 import { salesFilterParamsSchema } from "@/hooks/use-sales-filter-params";
 import { useAuth } from "@/hooks/use-auth";

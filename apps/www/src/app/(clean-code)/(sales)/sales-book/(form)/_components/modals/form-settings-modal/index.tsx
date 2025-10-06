@@ -35,7 +35,7 @@ import {
 } from "@gnd/ui/accordion";
 import FormInput from "@/components/common/controls/form-input";
 import { useTRPC } from "@/trpc/client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 
 export default function FormSettingsModal({}) {

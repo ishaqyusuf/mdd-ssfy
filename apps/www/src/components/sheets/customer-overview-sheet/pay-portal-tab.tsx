@@ -28,7 +28,7 @@ import {
 import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { usePayPortal } from "./pay-portal-context";
 import { useTRPC } from "@/trpc/client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "@gnd/ui/use-toast";
 

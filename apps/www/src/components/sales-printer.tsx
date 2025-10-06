@@ -1,6 +1,6 @@
 import { useTRPC } from "@/trpc/client";
 import { useSalesPrintParams } from "../hooks/use-sales-print-params";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { SalesInvoiceHtmlTemplate } from "@sales/sales-template/html";
 import { useEffect } from "react";
 export function SalesInvoiceView({}) {

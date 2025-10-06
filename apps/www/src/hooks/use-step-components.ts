@@ -1,5 +1,5 @@
 import { useTRPC } from "@/trpc/client";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@gnd/ui/tanstack";
 
 interface Props {}
 
@@ -14,3 +14,4 @@ export function useStepComponents(props: Props) {
         ),
     );
 }
+

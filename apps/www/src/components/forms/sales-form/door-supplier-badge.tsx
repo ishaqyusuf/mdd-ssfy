@@ -5,7 +5,7 @@ import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { Icons } from "@gnd/ui/icons";
 import { Label } from "@gnd/ui/label";
 import { Skeleton } from "@gnd/ui/skeleton";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import {
     BadgeDollarSign,
     CheckCheckIcon,

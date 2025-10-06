@@ -2,7 +2,7 @@ import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-pa
 import { CustomModal, CustomModalContent } from "./custom-modal";
 import { CommunityModelCostForm } from "../forms/community-model-cost-form";
 import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 
 import Money from "../_v1/money";
 

@@ -8,7 +8,7 @@ import {
     CarouselNext,
     CarouselPrevious,
 } from "@gnd/ui/carousel";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import * as React from "react";
 import { RecentSalesWidget } from "./recent-sales-widget";
 import { TopProductsWidget } from "./top-products-widget";

@@ -3,7 +3,7 @@ import { Form } from "@gnd/ui/form";
 import { CustomModalPortal } from "../modals/custom-modal";
 import { DialogFooter } from "@gnd/ui/dialog";
 import { SubmitButton } from "../submit-button";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { useTRPC } from "@/trpc/client";
 import { createCommunityModelCostSchema } from "@api/schemas/community";
 import FormInput from "../common/controls/form-input";

@@ -1,7 +1,7 @@
 import { cn } from "@gnd/ui/cn";
 import { Env } from "./env";
 import { useTRPC } from "@/trpc/client";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { Button } from "@gnd/ui/button";
 import { toast } from "@gnd/ui/use-toast";
 

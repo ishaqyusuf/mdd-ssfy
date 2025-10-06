@@ -1,5 +1,5 @@
 import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { useEffect } from "react";
 
 export function useCommunityProjectList(enabled) {

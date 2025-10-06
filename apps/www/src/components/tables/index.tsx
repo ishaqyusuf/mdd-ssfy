@@ -10,7 +10,7 @@ import {
 import { useInView } from "react-intersection-observer";
 import { PageDataMeta, PageFilterData } from "@/types/type";
 
-import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
+import { useSuspenseInfiniteQuery } from "@gnd/ui/tanstack";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { screens } from "@/lib/responsive";
 import { useMediaQuery } from "react-responsive";

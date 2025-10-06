@@ -16,7 +16,7 @@ import { useAsyncMemo } from "use-async-memo";
 import z from "zod";
 
 import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 
 const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
     createContextFactory(function () {

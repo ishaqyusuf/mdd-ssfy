@@ -13,7 +13,7 @@ import { z } from "zod";
 import FormInput from "../common/controls/form-input";
 
 import { SubmitButton } from "../submit-button";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@gnd/ui/tanstack";
 import { useTRPC } from "@/trpc/client";
 import { useEffect } from "react";
 import { useLoadingToast } from "@/hooks/use-loading-toast";

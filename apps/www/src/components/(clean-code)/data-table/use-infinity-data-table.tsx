@@ -4,7 +4,7 @@ import * as React from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { arrSome, inDateRange } from "@/lib/table/filterfns";
 import { generateRandomString } from "@/lib/utils";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@gnd/ui/tanstack";
 import {
     getCoreRowModel,
     getFacetedRowModel,

@@ -7,7 +7,7 @@ import { Tabs } from "@gnd/ui/custom/tabs";
 import { TemplateInputListings } from "./template-input-listings";
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { _qc, _trpc } from "@/components/static-trpc";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 import { useTemplateSchemaBlock } from "./context";
 import { TemplateInputAnalytics } from "./template-input-analytics";
 

@@ -9,7 +9,7 @@ import { PRICE_UPDATE_SOURCE_OPTIONS } from "@sales/constants";
 import { useAuth } from "@/hooks/use-auth";
 import { selectOptions } from "@gnd/utils";
 import { useTRPC } from "@/trpc/client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 import { toast } from "@gnd/ui/use-toast";
 

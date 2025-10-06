@@ -3,7 +3,7 @@ import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
 import { useTemplateSchemaBlock, useTemplateSchemaContext } from "./context";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 import { _invalidate, _qc, _trpc } from "@/components/static-trpc";
 import { selectOptions, uniqueList } from "@gnd/utils";
 import { labelIdOptions } from "@/lib/utils";

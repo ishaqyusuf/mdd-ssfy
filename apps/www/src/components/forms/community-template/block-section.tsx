@@ -10,7 +10,7 @@ import {
 } from "./context";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { reorderList } from "@gnd/utils";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 import { _trpc } from "@/components/static-trpc";
 import * as Sortable from "@gnd/ui/sortable-2";
 import { closestCorners } from "@dnd-kit/core";

@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { SEPARATOR } from "@/app/(clean-code)/(sales)/_common/utils/contants";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { cn } from "@/lib/utils";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@gnd/ui/tanstack";
 import { formatDistanceToNow } from "date-fns";
 import { LoaderCircle, Search, X } from "lucide-react";
 import type { z } from "zod";

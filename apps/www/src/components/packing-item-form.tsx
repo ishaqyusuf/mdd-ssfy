@@ -7,7 +7,7 @@ import FormInput from "./common/controls/form-input";
 import { SubmitButton } from "./submit-button";
 import { Icons } from "@gnd/ui/icons";
 import { hasQty, qtyFormSchema, qtySuperRefine } from "@gnd/utils/sales";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@gnd/ui/tanstack";
 import { useTRPC } from "@/trpc/client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { UpdateSalesControl } from "@sales/schema";

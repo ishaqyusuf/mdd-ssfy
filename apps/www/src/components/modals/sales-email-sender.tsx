@@ -8,7 +8,7 @@ import {
     DialogTitle,
 } from "@gnd/ui/dialog";
 import { Progress } from "@gnd/ui/progress";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { useEffect, useRef, useState } from "react";
 
 export function SalesEmailSenderModal({}) {

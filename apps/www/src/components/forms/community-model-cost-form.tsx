@@ -15,7 +15,7 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { useEffect } from "react";
 import { TCell } from "../(clean-code)/data-table/table-cells";
 import { CustomModalPortal } from "../modals/custom-modal";

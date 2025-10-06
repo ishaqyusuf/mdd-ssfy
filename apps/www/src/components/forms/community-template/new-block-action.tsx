@@ -7,7 +7,7 @@ import { Popover } from "@gnd/ui/composite";
 import { FormInput } from "@gnd/ui/controls/form-input";
 import { Form } from "@gnd/ui/form";
 import { Icons } from "@gnd/ui/icons";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 import { useEffect, useState } from "react";
 import { useTemplateSchemaContext } from "./context";
 import { FormDebugBtn } from "@/components/form-debug-btn";

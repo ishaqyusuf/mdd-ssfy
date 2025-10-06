@@ -8,7 +8,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@gnd/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { InvoiceRow } from "./sales/sales-row";
 import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
 import { WidgetListSkeleton } from "./widget-skeleton";

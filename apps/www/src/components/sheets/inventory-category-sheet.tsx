@@ -5,7 +5,7 @@ import {
     CustomSheetContentPortal,
     SheetHeader,
 } from "./custom-sheet-content";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@gnd/ui/tanstack";
 import { SheetFooter } from "@gnd/ui/sheet";
 import { useInventoryCategoryParams } from "@/hooks/use-inventory-category-params";
 import { FormContext } from "../forms/inventory-category-form/form-context";

@@ -1,7 +1,7 @@
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { toast } from "@gnd/ui/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 
 export function ResetInventories() {
     const trpc = useTRPC();

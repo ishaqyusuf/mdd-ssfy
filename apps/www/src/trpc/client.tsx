@@ -1,9 +1,9 @@
 "use client";
 
-import type { QueryClient } from "@tanstack/react-query";
-import { QueryClientProvider, isServer } from "@tanstack/react-query";
-import { createTRPCClient, httpBatchLink, loggerLink } from "@trpc/client";
-import { createTRPCContext } from "@trpc/tanstack-react-query";
+import type { QueryClient } from "@gnd/ui/tanstack";
+import { QueryClientProvider, isServer } from "@gnd/ui/tanstack";
+import { createTRPCClient, httpBatchLink, loggerLink } from "@gnd/ui/tanstack";
+import { createTRPCContext } from "@gnd/ui/tanstack";
 import { useState } from "react";
 import superjson from "superjson";
 import { makeQueryClient } from "./query-client";

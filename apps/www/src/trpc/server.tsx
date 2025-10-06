@@ -1,13 +1,15 @@
 import "server-only";
 
-import { HydrationBoundary } from "@tanstack/react-query";
-import { dehydrate } from "@tanstack/react-query";
-import { createTRPCClient, loggerLink } from "@trpc/client";
-import { httpBatchLink } from "@trpc/client/links/httpBatchLink";
 import {
+    HydrationBoundary,
+    dehydrate,
+    createTRPCClient,
+    loggerLink,
+    serverHttpBatchLink as httpBatchLink,
     type TRPCQueryOptions,
     createTRPCOptionsProxy,
-} from "@trpc/tanstack-react-query";
+} from "@gnd/ui/tanstack";
+
 import { cache } from "react";
 import superjson from "superjson";
 import { makeQueryClient } from "./query-client";

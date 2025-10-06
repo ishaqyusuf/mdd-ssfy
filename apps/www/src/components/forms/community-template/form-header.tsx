@@ -4,7 +4,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { useCommunityModelStore } from "@/store/community-model";
 import { extractCommunityFormValueData } from "@community/utils/template-form";
 import { Button } from "@gnd/ui/button";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 import { useTemplateSchemaContext } from "./context";
 import { useDebugToast } from "@/hooks/use-debug-console";
 import { useAuth } from "@/hooks/use-auth";

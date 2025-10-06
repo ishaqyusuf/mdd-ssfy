@@ -3,7 +3,7 @@ import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { Button } from "@gnd/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { useTRPC } from "@/trpc/client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { useInventoryForm } from "./form-context";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";

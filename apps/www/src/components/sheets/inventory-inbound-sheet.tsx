@@ -8,7 +8,7 @@ import {
 } from "./custom-sheet-content";
 import { FormContext } from "../forms/inventory-products/form-context";
 import { InventoryForm } from "../forms/inventory-products/inventory-form";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { SheetFooter } from "@gnd/ui/sheet";
 import { InventoryFormAction } from "../forms/inventory-products/inventory-form-action";
 import { useInventoryInboundParams } from "@/hooks/use-inventory-inbound-params";

@@ -6,7 +6,7 @@ import {
     getCommunitySchema,
 } from "@community/community-template-schemas";
 import { RenturnTypeAsync } from "@gnd/utils";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { TemplateFormService } from "@community/services/template-form-service";

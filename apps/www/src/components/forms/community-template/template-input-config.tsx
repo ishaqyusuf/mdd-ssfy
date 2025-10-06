@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { SchemaBlockInputProps } from "./block-section";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation } from "@gnd/ui/tanstack";
 import { _trpc } from "@/components/static-trpc";
 import { Form } from "@gnd/ui/form";
 import { Label } from "@gnd/ui/label";

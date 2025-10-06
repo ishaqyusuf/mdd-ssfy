@@ -1,5 +1,5 @@
 import { useTRPC } from "@/trpc/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@gnd/ui/tanstack";
 
 export function useSalesQueryClient() {
     const qc = useQueryClient();

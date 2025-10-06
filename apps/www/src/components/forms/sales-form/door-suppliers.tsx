@@ -3,7 +3,7 @@ import {
     useMutation,
     useQueryClient,
     useSuspenseQuery,
-} from "@tanstack/react-query";
+} from "@gnd/ui/tanstack";
 import { Suspense, useState } from "react";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
