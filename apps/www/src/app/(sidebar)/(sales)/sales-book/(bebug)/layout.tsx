@@ -7,7 +7,7 @@ export default async function Layout({ children }) {
     return (
         <div className="flex flex-col">
             <div className="">
-                {[...Array(3)].map((a, i) => (
+                {[...Array(4)].map((a, i) => (
                     <Link
                         className={cn(
                             buttonVariants({

@@ -94,6 +94,31 @@ export async function sales(ctx: TRPCContext, query: SalesQueryParamsSchema) {
     }))
   );
 }
+export async function __getQuotes(
+  ctx: TRPCContext,
+  query: SalesQueryParamsSchema
+) {
+  query.salesType = "quote";
+
+  const { db } = ctx;
+  const { response, searchMeta, where } = await composeQueryData(
+    query,
+    whereSales(query),
+    db.salesOrders
+  );
+
+  const data = await db.salesOrders.findMany({
+    where,
+    ...searchMeta,
+    include: SalesListInclude,
+  });
+
+  return await response(
+    data.map(salesQuoteDto).map((d) => ({
+      ...d,
+    }))
+  );
+}
 export async function getQuotes(
   ctx: TRPCContext,
   query: SalesQueryParamsSchema

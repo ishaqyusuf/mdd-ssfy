@@ -200,10 +200,8 @@ function DoorSizeRow({ lineUid, sn, doorIndex }: { lineUid; sn; doorIndex }) {
 function DoorSizeRowContent({ doorIndex, sizeIndex }) {
     const ctx = useHpt();
     const line = useHptLine();
-    const { lineUid, sizeForm, size, sn, valueChanged } = line;
+    const { lineUid, zDoor, sizeForm, size, sn, valueChanged } = line;
     const { isSlab, showNote, setShowNote } = ctx;
-    const sizeList = ctx.doors?.[doorIndex]?.sizeList?.[sizeIndex];
-    const zDoor = ctx.itemForm.groupItem?.form?.[size.path];
 
     if (!zDoor?.selected) return null;
 
@@ -215,18 +213,7 @@ function DoorSizeRowContent({ doorIndex, sizeIndex }) {
                     "hover:bg-transparent",
                 )}
             >
-                <TableCell className="font-mono">
-                    <Checkbox
-                        onCheckedChange={(e) => {
-                            ctx.hpt.dotUpdateGroupItemFormPath(
-                                size.path,
-                                "selected",
-                                !sizeForm?.selected,
-                            );
-                        }}
-                        checked={sizeForm?.selected}
-                    />
-                </TableCell>
+                <TableCell className="font-mono"></TableCell>
                 <TableCell className="font-mono text-sm font-semibold">
                     {size.size}
                 </TableCell>

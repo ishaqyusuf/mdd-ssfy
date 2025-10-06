@@ -19,7 +19,7 @@ export default async function Page(props) {
     const searchParams = await props.searchParams;
     const filter = loadOrderFilterParams(searchParams);
     batchPrefetch([
-        trpc.sales.quotes.infiniteQueryOptions({
+        trpc.sales.__getQuotes.infiniteQueryOptions({
             ...(filter as any),
         }),
     ]);

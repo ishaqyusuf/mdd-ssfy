@@ -131,6 +131,7 @@ export const { Provider: HptLineContextProvider, useContext: useHptLine } =
                 value as any,
             );
         };
+        const zDoor = ctx.itemForm.groupItem?.form?.[size.path];
         return {
             ...props,
             setValue,
@@ -139,6 +140,7 @@ export const { Provider: HptLineContextProvider, useContext: useHptLine } =
             sizeForm,
             lineUid,
             valueChanged,
+            zDoor,
         };
     });
 interface GroupedItemContextProps {
