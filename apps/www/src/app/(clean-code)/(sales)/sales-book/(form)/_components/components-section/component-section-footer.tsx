@@ -9,10 +9,7 @@ import { BoxSelect, Folder } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 
-import {
-    useFormDataStore,
-    ZusComponent,
-} from "../../_common/_stores/form-data-store";
+import { useFormDataStore } from "../../_common/_stores/form-data-store";
 import { ComponentHelperClass } from "../../_utils/helpers/zus/step-component-class";
 import { zusDeleteComponents } from "../../_utils/helpers/zus/zus-step-helper";
 
