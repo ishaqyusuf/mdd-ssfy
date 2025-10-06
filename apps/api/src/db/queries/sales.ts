@@ -98,7 +98,7 @@ export async function __getQuotes(
   ctx: TRPCContext,
   query: SalesQueryParamsSchema
 ) {
-  query.salesType = "quote";
+  query.salesType = "order";
 
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
