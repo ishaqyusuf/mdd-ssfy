@@ -94,7 +94,7 @@ export const { useContext: useTable, Provider: TableProvider } =
   }: TableProps) {
     // const [data, setData] = useState(initialData);
     // const [from, setFrom] = useState(pageSize);
-    const { ref, inView } = useInView();
+    // const { ref, inView } = useInView();
     const [nextMeta, setNextMeta] = useState(nextPageMeta);
     const isMobile = useMediaQuery(screens.xs);
 
@@ -142,7 +142,7 @@ export const { useContext: useTable, Provider: TableProvider } =
       tableMeta,
       // loadMoreData,
       checkbox: checkbox && mobileColumn && isMobile ? false : checkbox,
-      moreRef: ref,
+      // moreRef: ref,
       hasMore: !!nextMeta,
       selectedRows,
       selectedRow,
