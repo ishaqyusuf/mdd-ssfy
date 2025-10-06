@@ -12,8 +12,17 @@ import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOrdersStore } from "@/store/sales-orders";
+import { SalesQueryParamsSchema } from "@sales/schema";
+import { EmptyState } from "@gnd/ui/custom/empty-state";
+import { Button } from "@gnd/ui/button";
+import Link from "next/link";
+import { Icons } from "@gnd/ui/custom/icons";
 
-export function DataTable() {
+interface Props {
+    defaultFilters?: SalesQueryParamsSchema;
+    singlePage?: boolean;
+}
+export function DataTable(props: Props) {
     const trpc = useTRPC();
     const { filters } = useOrderFilterParams();
     const { rowSelection, setRowSelection } = useSalesOrdersStore();
@@ -25,6 +34,7 @@ export function DataTable() {
     } = useTableData({
         filter: {
             ...filters,
+            ...(props.defaultFilters || {}),
         },
         route: trpc.sales.quotes,
     });
@@ -34,6 +44,20 @@ export function DataTable() {
         startFromColumn: 2,
     });
     const overviewQuery = useSalesOverviewQuery();
+    if (!data?.length && !isFetching) {
+        return (
+            <EmptyState
+                CreateButton={
+                    <Button asChild size="sm">
+                        <Link href="/sales-book/create-order">
+                            <Icons.add className="mr-2 size-4" />
+                            <span>New</span>
+                        </Link>
+                    </Button>
+                }
+            />
+        );
+    }
     return (
         <Table.Provider
             // value={createTableContext({
@@ -47,7 +71,7 @@ export function DataTable() {
                     // rowSelection,
                     props: {
                         hasNextPage,
-                        loadMoreRef,
+                        loadMoreRef: props.singlePage ? null : loadMoreRef,
                     },
                     // setRowSelection,
                     tableMeta: {

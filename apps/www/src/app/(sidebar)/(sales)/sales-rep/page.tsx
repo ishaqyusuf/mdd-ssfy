@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { searchParamsCache } from "./search-params";
 import { cn } from "@gnd/ui/cn";
 import { DataTable } from "@/components/tables/sales-orders/data-table";
+import { DataTable as RecentQuoteDataTable } from "@/components/tables/sales-quotes/data-table";
 
 export const metadata: Metadata = {
     title: `My Dashboard | GND`,
@@ -112,10 +113,10 @@ export default async function SalesRepProfile(props: {
                         </TabsList>
                         <TabsContent value="recent-sales" className="space-y-4">
                             <DataTable
-                            // // singlePage
-                            // defaultFilters={{
-                            //     size: 5,
-                            // }}
+                                singlePage
+                                defaultFilters={{
+                                    size: 5,
+                                }}
                             />
                             {/* <RecentSales /> */}
                         </TabsContent>
@@ -123,7 +124,12 @@ export default async function SalesRepProfile(props: {
                             value="recent-quotes"
                             className="space-y-4"
                         >
-                            {/* <RecentQuotes /> */}
+                            <RecentQuoteDataTable
+                                singlePage
+                                defaultFilters={{
+                                    size: 5,
+                                }}
+                            />
                         </TabsContent>
                         <TabsContent
                             value="customer-profile"
