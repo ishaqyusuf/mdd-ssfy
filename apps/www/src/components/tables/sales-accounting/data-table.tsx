@@ -16,7 +16,6 @@ import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/custom/icons";
 import { GetSalesAccountingsSchema } from "@api/db/queries/sales-accounting";
-import { PaginationDebugger } from "@/components/pagination-debug";
 interface Props {
     defaultFilters?: GetSalesAccountingsSchema;
 }
@@ -87,7 +86,6 @@ export function DataTable(props: Props) {
                 },
             ]}
         >
-            <PaginationDebugger />
             <div className="flex flex-col gap-4 w-full">
                 <div
                     // ref={tableScroll.containerRef}

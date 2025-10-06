@@ -179,6 +179,13 @@ export const useTableData = ({ filter, route }) => {
       }) ?? [];
     const meta = (data?.pages?.reverse()?.[0] as any)?.meta;
     const { cursor, count } = meta || {};
+    if (filter.d) {
+      console.log({
+        filter,
+        meta,
+        data,
+      });
+    }
     return {
       data: list,
       resultCount: cursor,
