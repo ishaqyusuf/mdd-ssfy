@@ -26,11 +26,11 @@ export default async function Page(props) {
     return (
         <FPage can={["viewOrders"]} title="Sales">
             <OrderHeader />
-            {/* <ErrorBoundary errorComponent={ErrorFallback}> */}
-            {/* <Suspense fallback={<TableSkeleton />}> */}
-            <DataTable />
-            {/* </Suspense> */}
-            {/* </ErrorBoundary> */}
+            <ErrorBoundary errorComponent={ErrorFallback}>
+                <Suspense fallback={<TableSkeleton />}>
+                    <DataTable />
+                </Suspense>
+            </ErrorBoundary>
         </FPage>
     );
 }
