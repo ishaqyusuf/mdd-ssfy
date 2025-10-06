@@ -4,6 +4,7 @@ import {
     parseAsString,
     parseAsInteger,
     parseAsArrayOf,
+    parseAsBoolean,
 } from "nuqs/server";
 import { RouterInputs } from "@api/trpc/routers/_app";
 type FilterKeys = keyof Exclude<
@@ -20,6 +21,7 @@ export const salesAccountingFilterParams = {
     salesRepId: parseAsInteger,
     payments: parseAsString,
     dateRange: parseAsArrayOf(parseAsString),
+    d: parseAsBoolean,
 } satisfies Partial<Record<FilterKeys, any>>;
 
 export function useSalesAccountingFilterParams() {

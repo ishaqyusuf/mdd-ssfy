@@ -23,6 +23,7 @@ export const getSalesAccountingsSchema = z
     salesRepId: z.number().optional().nullable(),
     dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
     payments: z.enum(salesHaving).optional().nullable(),
+    d: z.boolean().optional().nullable(),
   })
   .merge(paginationSchema);
 export type GetSalesAccountingsSchema = z.infer<
