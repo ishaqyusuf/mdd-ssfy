@@ -6,7 +6,7 @@ import {
     Table,
     useTableData,
 } from "@gnd/ui/data-table";
-import { columns2 } from "../../../../../../components/tables/sales-orders/columns";
+import { columns } from "../../../../../../components/tables/sales-orders/columns";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -16,7 +16,6 @@ import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/custom/icons";
-import { BatchActions } from "@/components/tables/sales-orders/batch-actions";
 
 interface Props {
     defaultFilters?: SalesQueryParamsSchema;
@@ -63,7 +62,7 @@ export function DataTable(props: Props) {
             // value={createTableContext({
             args={[
                 {
-                    columns: columns2,
+                    columns,
                     // mobileColumn: mobileColumn,
                     data,
                     checkbox: true,
