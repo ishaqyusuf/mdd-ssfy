@@ -52,7 +52,6 @@ export function HptSection({ itemStepUid }: Props) {
 }
 function Content() {
     const ctx = useHpt();
-    if (ctx.refreshing) return <></>;
     return (
         <div className="">
             <Tabs
@@ -204,8 +203,10 @@ function DoorSizeRowContent({ doorIndex, sizeIndex }) {
     const { lineUid, sizeForm, size, sn, valueChanged } = line;
     const { isSlab, showNote, setShowNote } = ctx;
     const sizeList = ctx.doors?.[doorIndex]?.sizeList?.[sizeIndex];
-    if (!(sizeList?.selected || ctx.refreshing)) return null;
-    // const [checked,setChecked]
+    const zDoor = ctx.itemForm.groupItem?.form?.[size.path];
+
+    if (!zDoor?.selected) return null;
+
     return (
         <>
             <TableRow

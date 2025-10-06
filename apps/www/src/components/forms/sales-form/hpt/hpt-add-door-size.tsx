@@ -51,10 +51,6 @@ export function HptAddDoorSize({ doorIndex }) {
                                 "selected",
                                 !size.selected,
                             );
-                            ctx.setRefreshing(true);
-                            setTimeout(() => {
-                                ctx.setRefreshing(false);
-                            }, 1200);
                         }}
                         disabled={!size?.basePrice}
                         className={cn(size.selected && "bg-muted")}
