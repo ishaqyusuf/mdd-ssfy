@@ -10,7 +10,6 @@ import { makeQueryClient } from "./query-client";
 import { AppRouter } from "@gnd/api/trpc/routers/_app";
 import { generateRandomString } from "@/lib/utils";
 import { authUser } from "@/app/(v1)/_actions/utils";
-import { useSession } from "next-auth/react";
 export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
 
 let browserQueryClient: QueryClient;
