@@ -370,6 +370,8 @@ export function zhHarvestDoorSizes(data: SalesFormZusData, itemUid) {
             };
         })
         .find((v) => v.variation);
+    console.log({ stepVar });
+
     if (!stepVar?.variation) return null;
     const validSizes = stepVar.variation
         .map((c) => {
