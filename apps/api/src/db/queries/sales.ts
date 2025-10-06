@@ -68,7 +68,7 @@ export async function getSales(
   return result;
 }
 export async function sales(ctx: TRPCContext, query: SalesQueryParamsSchema) {
-  query.salesType = "order";
+  query.salesType = "quote";
   //  if (query.defaultSearch) {
   //    if (query.showing != "all sales") query.salesRepId = ctx.userId!;
   //  }

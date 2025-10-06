@@ -8,7 +8,6 @@ import {
 } from "@gnd/ui/data-table";
 import { columns } from "./columns";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
-import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOrdersStore } from "@/store/sales-orders";
