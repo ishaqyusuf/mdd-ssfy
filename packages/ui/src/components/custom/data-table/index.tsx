@@ -87,41 +87,20 @@ export const { useContext: useTable, Provider: TableProvider } =
     defaultRowSelection = {},
     addons,
     tableScroll,
+    data,
     rowSelection: storeRowSelection,
     setRowSelection: storeSetRowSelection,
     props,
   }: TableProps) {
-    const [data, setData] = useState(initialData);
+    // const [data, setData] = useState(initialData);
     // const [from, setFrom] = useState(pageSize);
     const { ref, inView } = useInView();
     const [nextMeta, setNextMeta] = useState(nextPageMeta);
     const isMobile = useMediaQuery(screens.xs);
-    const loadMoreData = async () => {
-      // const formatedFrom = from;
-      // const to = formatedFrom + pageSize * 2;
 
-      try {
-        const { data, meta } = await loadMore({
-          ...nextMeta,
-        });
-
-        let _meta = meta as PageDataMeta;
-        setData((prev) => [...prev, ...data]);
-        // setFrom(to);
-        setNextMeta(_meta?.next);
-      } catch {
-        setNextMeta(null);
-      }
-    };
-    useEffect(() => {
-      if (inView) {
-        loadMoreData();
-      }
-    }, [inView]);
-
-    useEffect(() => {
-      setData(initialData);
-    }, [initialData]);
+    // useEffect(() => {
+    //   setData(initialData);
+    // }, [initialData]);
     const [__rowSelection, __setRowSelection] =
       useState<RowSelectionState>(defaultRowSelection);
     const [rowSelection, setRowSelection] = [
@@ -161,7 +140,7 @@ export const { useContext: useTable, Provider: TableProvider } =
       setParams,
       params,
       tableMeta,
-      loadMoreData,
+      // loadMoreData,
       checkbox: checkbox && mobileColumn && isMobile ? false : checkbox,
       moreRef: ref,
       hasMore: !!nextMeta,

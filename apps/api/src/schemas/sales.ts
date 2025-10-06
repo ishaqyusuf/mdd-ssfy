@@ -39,6 +39,7 @@ export type UpdateSalesDeliveryOptionSchema = z.infer<
 
 export const salesQueryParamsSchema = z
   .object({
+    erf: z.string().optional().nullable(),
     salesNo: z.string().optional().nullable(),
     salesNos: z.array(z.string()).optional().nullable(),
     dateRange: z.array(z.string()).optional().nullable(),
