@@ -2,20 +2,36 @@ import { openDoorSizeSelectModal } from "@/app/(clean-code)/(sales)/sales-book/(
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/custom/icons";
 import { useHpt } from "../context";
-import { ComponentHelperClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import { Menu } from "@gnd/ui/custom/menu";
 import { useMemo } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@gnd/ui/cn";
+import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 
 export function HptAddDoorSize({ doorIndex }) {
     const ctx = useHpt();
+    const zus = useFormDataStore();
+
     const sizeList = ctx.doors?.[doorIndex]?.sizeList;
     const addDoorSize = () => {
         // const s = ctx.hpt.getDoorStepForm2();
         // console.log(s.);
         openDoorSizeSelectModal(ctx.componentClass);
     };
+    // return (
+    //     <div>
+    //         <Button
+    //             variant={!ctx.refreshing ? "default" : "secondary"}
+    //             className="whitespace-nowrap"
+    //             onClick={(e) => {
+    //                 console.log(">>", ctx.refreshing);
+    //                 ctx.setRefreshing(!ctx.refreshing);
+    //             }}
+    //         >
+    //             {ctx.refreshing ? "Hide unselected" : "Select More"}
+    //         </Button>
+    //     </div>
+    // );
     return (
         <>
             <Menu
@@ -35,6 +51,10 @@ export function HptAddDoorSize({ doorIndex }) {
                                 "selected",
                                 !size.selected,
                             );
+                            ctx.setRefreshing(true);
+                            setTimeout(() => {
+                                ctx.setRefreshing(false);
+                            }, 1200);
                         }}
                         disabled={!size?.basePrice}
                         className={cn(size.selected && "bg-muted")}

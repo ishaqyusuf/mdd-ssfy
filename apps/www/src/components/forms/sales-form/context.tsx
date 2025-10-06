@@ -24,6 +24,7 @@ export const { Provider: HptContextProvider, useContext: useHpt } =
     createContextFactory((itemStepUid?) => {
         const zus = useFormDataStore();
         const [itemUid] = itemStepUid.split("-");
+        const [refreshing, setRefreshing] = useState(false);
         const itemForm = zus.kvFormItem?.[itemUid];
         const height = useAsyncMemo(async () => {
             const heightItemStepUid = Object.entries(zus?.kvStepForm)?.find(
@@ -87,6 +88,8 @@ export const { Provider: HptContextProvider, useContext: useHpt } =
             componentClass,
             door,
             height,
+            refreshing,
+            setRefreshing,
         };
     });
 

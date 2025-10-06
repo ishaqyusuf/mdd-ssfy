@@ -38,6 +38,7 @@ import {
     LineSwitch,
 } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
 import { HptAddDoorSize } from "./hpt-add-door-size";
+import { Checkbox } from "@gnd/ui/checkbox";
 
 interface Props {
     itemStepUid;
@@ -51,7 +52,7 @@ export function HptSection({ itemStepUid }: Props) {
 }
 function Content() {
     const ctx = useHpt();
-
+    if (ctx.refreshing) return <></>;
     return (
         <div className="">
             <Tabs
@@ -119,6 +120,7 @@ interface DoorSizeTable {
 }
 function DoorSizeTable({ door, sn }: DoorSizeTable) {
     const ctx = useHpt();
+
     const itemType = ctx?.hpt?.getItemForm()?.groupItem?.itemType;
     const isSlab = itemType === "Door Slabs Only";
     return (
@@ -159,7 +161,12 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
                     </TableHeader>
                     <TableBody>
                         {door.sizeList.map((sl, i) => (
-                            <DoorSizeRow sn={i + 1} lineUid={sl.path} key={i} />
+                            <DoorSizeRow
+                                doorIndex={sn - 1}
+                                sn={i + 1}
+                                lineUid={sl.path}
+                                key={i}
+                            />
                         ))}
                     </TableBody>
                     <TableFooter className="bg-accent">
@@ -177,7 +184,7 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
         </div>
     );
 }
-function DoorSizeRow({ lineUid, sn }: { lineUid; sn }) {
+function DoorSizeRow({ lineUid, sn, doorIndex }: { lineUid; sn; doorIndex }) {
     return (
         <HptLineContextProvider
             args={[
@@ -187,27 +194,38 @@ function DoorSizeRow({ lineUid, sn }: { lineUid; sn }) {
                 },
             ]}
         >
-            <DoorSizeRowContent />
+            <DoorSizeRowContent doorIndex={doorIndex} sizeIndex={sn - 1} />
         </HptLineContextProvider>
     );
 }
-function DoorSizeRowContent() {
+function DoorSizeRowContent({ doorIndex, sizeIndex }) {
     const ctx = useHpt();
     const line = useHptLine();
     const { lineUid, sizeForm, size, sn, valueChanged } = line;
     const { isSlab, showNote, setShowNote } = ctx;
-
-    if (!sizeForm?.selected) return null;
-
+    const sizeList = ctx.doors?.[doorIndex]?.sizeList?.[sizeIndex];
+    if (!(sizeList?.selected || ctx.refreshing)) return null;
+    // const [checked,setChecked]
     return (
         <>
             <TableRow
                 className={cn(
-                    !sizeForm?.selected && "hidden",
+                    // !sizeForm?.selected && "hidden",
                     "hover:bg-transparent",
                 )}
             >
-                <TableCell className="font-mono">{sn}.</TableCell>
+                <TableCell className="font-mono">
+                    <Checkbox
+                        onCheckedChange={(e) => {
+                            ctx.hpt.dotUpdateGroupItemFormPath(
+                                size.path,
+                                "selected",
+                                !sizeForm?.selected,
+                            );
+                        }}
+                        checked={sizeForm?.selected}
+                    />
+                </TableCell>
                 <TableCell className="font-mono text-sm font-semibold">
                     {size.size}
                 </TableCell>

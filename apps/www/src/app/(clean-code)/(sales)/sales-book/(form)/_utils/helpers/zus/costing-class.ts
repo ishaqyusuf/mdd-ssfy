@@ -250,7 +250,7 @@ export class CostingClass {
         const priceList = [pl, formData.pricing?.addon];
         const unitPrice = sum(priceList);
         const qty = Number(formData.qty.total);
-
+        if (!formData.pricing) formData.pricing = {} as any;
         formData.pricing.laborQty = qty;
 
         const totalPrice = formatMoney(sum(priceList) * qty);
