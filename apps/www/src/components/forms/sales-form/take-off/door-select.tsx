@@ -7,7 +7,7 @@ import { cn } from "@gnd/ui/cn";
 import { ComponentHelperClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import { composeDoor } from "@/lib/sales/compose-door";
 import { updateDoorGroupForm } from "@/lib/sales/update-door-form";
-import { ComponentItemCard } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/components-section/component-item-card";
+import { ComponentItemCard } from "@/components/forms/sales-form/component-item-card";
 
 export function DoorSelect({ setOpen }) {
     const itemCtx = useTakeoffItem();

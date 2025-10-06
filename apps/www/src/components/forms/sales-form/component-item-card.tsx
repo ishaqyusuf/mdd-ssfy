@@ -41,25 +41,31 @@ import { Sortable, SortableItem } from "@gnd/ui/sortable";
 import {
     useFormDataStore,
     ZusComponent,
-} from "../../_common/_stores/form-data-store";
-import { ComponentHelperClass } from "../../_utils/helpers/zus/step-component-class";
-import { zusDeleteComponents } from "../../_utils/helpers/zus/zus-step-helper";
-import { ComponentImg } from "../../../../../../../components/forms/sales-form/component-img";
-import { openComponentModal } from "../modals/component-form";
-import { openEditComponentPrice } from "../modals/component-price-modal";
-import { openSectionSettingOverride } from "../modals/component-section-setting-override";
-import { openComponentVariantModal } from "../modals/component-visibility-modal";
-import { openDoorPriceModal } from "../modals/door-price-modal";
-import DoorSizeModal from "../modals/door-size-modal";
-import { openDoorSizeSelectModal } from "../modals/door-size-select-modal/open-modal";
-import { openStepPricingModal } from "../modals/step-pricing-modal";
-import { UseStepContext, useStepContext } from "./ctx";
-import { CustomComponentAction } from "./custom-component.action";
-import SearchBar from "./search-bar";
+} from "../../../app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { ComponentHelperClass } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
+import { zusDeleteComponents } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-step-helper";
+
+import { openComponentModal } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/component-form";
+import { openEditComponentPrice } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/component-price-modal";
+import { openSectionSettingOverride } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/component-section-setting-override";
+import { openComponentVariantModal } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/component-visibility-modal";
+import { openDoorPriceModal } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-price-modal";
+import DoorSizeModal from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-modal";
+import { openDoorSizeSelectModal } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/open-modal";
+import { openStepPricingModal } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-pricing-modal";
+import {
+    UseStepContext,
+    useStepContext,
+} from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/components-section/ctx";
+import { CustomComponentAction } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/components-section/custom-component.action";
+import SearchBar from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/components-section/search-bar";
 import { Tabs } from "@gnd/ui/custom/tabs";
 import { DoorSuppliers } from "@/components/forms/sales-form/door-suppliers";
 import { DoorSupplierBadge } from "@/components/forms/sales-form/door-supplier-badge";
 import { SuperAdminGuard } from "@/components/auth-guard";
+import Image from "next/image";
+import { env } from "@/env.mjs";
+import { ComponentImg } from "@/components/forms/sales-form/component-img";
 
 interface Props {
     itemStepUid;
@@ -208,6 +214,14 @@ export function ComponentItemCard({
                                 )}
                             </SuperAdminGuard> */}
                         </div>
+                        {/* <Image
+                            className="aspect-square"
+                            src={`${env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/dyke/${component.img}`}
+                            // src={component.img}
+                            alt={component.title}
+                            width={128}
+                            height={128}
+                        /> */}
                         <ComponentImg
                             noHover={sortMode}
                             aspectRatio={4 / 2}

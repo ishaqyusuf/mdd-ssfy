@@ -60,7 +60,7 @@ import { Tabs } from "@gnd/ui/custom/tabs";
 import { DoorSuppliers } from "@/components/forms/sales-form/door-suppliers";
 import { DoorSupplierBadge } from "@/components/forms/sales-form/door-supplier-badge";
 import { SuperAdminGuard } from "@/components/auth-guard";
-import { ComponentItemCard } from "./component-item-card";
+import { ComponentItemCard } from "../../../../../../../components/forms/sales-form/component-item-card";
 
 interface Props {
     itemStepUid;
