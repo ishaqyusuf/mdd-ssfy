@@ -19,6 +19,19 @@ import { StickyNote } from "lucide-react";
 import { InvoiceColumn } from "./column.invoice";
 import { cells } from "@gnd/ui/custom/data-table/cells";
 export type Item = RouterOutputs["sales"]["index"]["data"][number];
+export const columns2: ColumnDef<Item>[] = [
+    cells.selectColumn,
+    {
+        header: "Date",
+        accessorKey: "salesDate",
+        meta: {},
+        cell: ({ row: { original: item } }) => (
+            <TCell.Secondary className="font-mono">
+                {item?.salesDate}
+            </TCell.Secondary>
+        ),
+    },
+];
 export const columns: ColumnDef<Item>[] = [
     cells.selectColumn,
     {
