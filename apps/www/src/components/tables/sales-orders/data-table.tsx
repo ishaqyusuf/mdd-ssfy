@@ -1,7 +1,7 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { Table, useTableData } from "@gnd/ui/custom/data-table/index";
+import { Table, useTableData } from "@gnd/ui/data-table";
 import { columns, mobileColumn } from "./columns";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { BatchActions } from "./batch-actions";
@@ -28,6 +28,7 @@ export function DataTable({}) {
         },
         route: trpc.sales.index,
     });
+
     const tableScroll = useTableScroll({
         useColumnWidths: true,
         startFromColumn: 2,

@@ -112,10 +112,10 @@ export default async function SalesRepProfile(props: {
                         </TabsList>
                         <TabsContent value="recent-sales" className="space-y-4">
                             <DataTable
-                                singlePage
-                                defaultFilters={{
-                                    size: 5,
-                                }}
+                            // // singlePage
+                            // defaultFilters={{
+                            //     size: 5,
+                            // }}
                             />
                             {/* <RecentSales /> */}
                         </TabsContent>
@@ -123,7 +123,7 @@ export default async function SalesRepProfile(props: {
                             value="recent-quotes"
                             className="space-y-4"
                         >
-                            <RecentQuotes />
+                            {/* <RecentQuotes /> */}
                         </TabsContent>
                         <TabsContent
                             value="customer-profile"
