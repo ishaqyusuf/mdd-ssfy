@@ -13,7 +13,13 @@ import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/custom/icons";
-export function DataTable({}) {
+import { SalesQueryParamsSchema } from "@sales/schema";
+
+interface Props {
+    defaultFilters?: SalesQueryParamsSchema;
+    singlePage?: boolean;
+}
+export function DataTable(props: Props) {
     const trpc = useTRPC();
     const { rowSelection, setRowSelection } = useSalesOrdersStore();
     const { filters, hasFilters, setFilters } = useOrderFilterParams();
@@ -25,6 +31,7 @@ export function DataTable({}) {
     } = useTableData({
         filter: {
             ...filters,
+            ...(props.defaultFilters || {}),
         },
         route: trpc.sales.index,
     });
@@ -64,7 +71,7 @@ export function DataTable({}) {
                     rowSelection,
                     props: {
                         hasNextPage,
-                        loadMoreRef,
+                        loadMoreRef: props.singlePage ? null : loadMoreRef,
                     },
                     setRowSelection,
                     tableMeta: {
