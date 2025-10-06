@@ -117,7 +117,7 @@ interface DoorSizeTable {
     door: HptContext["doors"][number];
     sn;
 }
-function DoorSizeTable({ door }: DoorSizeTable) {
+function DoorSizeTable({ door, sn }: DoorSizeTable) {
     const ctx = useHpt();
     const itemType = ctx?.hpt?.getItemForm()?.groupItem?.itemType;
     const isSlab = itemType === "Door Slabs Only";
@@ -165,7 +165,7 @@ function DoorSizeTable({ door }: DoorSizeTable) {
                     <TableFooter className="bg-accent">
                         <TableRow>
                             <TableCell>
-                                <HptAddDoorSize cls={door?.cls} />
+                                <HptAddDoorSize doorIndex={sn - 1} />
                             </TableCell>
                         </TableRow>
                     </TableFooter>
