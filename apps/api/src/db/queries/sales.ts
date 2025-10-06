@@ -75,7 +75,6 @@ export async function sales(ctx: TRPCContext, query: SalesQueryParamsSchema) {
   //  if (query.showing != "all sales" && !query.q?.trim())
   //    query.salesRepId = ctx.userId!;
   //   // if (query.showing != "all sales") query.salesRepId = ctx.userId!;
-
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,
