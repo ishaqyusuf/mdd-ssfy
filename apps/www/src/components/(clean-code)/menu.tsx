@@ -164,7 +164,7 @@ function Item({
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                     <ScrollArea
-                        className={cn("max-h-[50vh] overflow-auto", className)}
+                        className={cn("max-h-[55vh] overflow-auto", className)}
                     >
                         {SubMenu}
                     </ScrollArea>

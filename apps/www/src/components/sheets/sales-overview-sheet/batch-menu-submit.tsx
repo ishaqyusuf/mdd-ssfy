@@ -129,8 +129,9 @@ export function BatchMenuSubmit({ itemIds, setOpened }: Props) {
                                 shortCut={`${user.pendingProductionQty} pending`}
                                 icon="production"
                                 key={user.id}
+                                className="w-[250px]"
                                 SubMenu={
-                                    <>
+                                    <div className="">
                                         <DropdownMenuLabel>
                                             Due Date
                                         </DropdownMenuLabel>
@@ -168,7 +169,7 @@ export function BatchMenuSubmit({ itemIds, setOpened }: Props) {
                                                 Proceed
                                             </Button>
                                         </div>
-                                    </>
+                                    </div>
                                 }
                             >
                                 {user.name}

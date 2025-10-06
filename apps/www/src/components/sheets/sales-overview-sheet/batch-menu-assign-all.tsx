@@ -92,6 +92,7 @@ export function BatchMenuAssignAll({ itemIds, setOpened }: Props) {
                                 shortCut={`${user.pendingProductionQty} pending`}
                                 icon="production"
                                 key={user.id}
+                                className="w-[250px]"
                                 SubMenu={
                                     <>
                                         <DropdownMenuLabel>
