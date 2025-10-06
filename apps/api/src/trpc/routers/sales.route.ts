@@ -67,6 +67,12 @@ export const salesRouter = createTRPCRouter({
       });
       // return createStep(props.ctx, props.input);
     }),
+  orders: protectedProcedure
+    .input(salesQueryParamsSchema)
+    .query(async (props) => {
+      const query = props.input;
+      return getSales(props.ctx, transformSalesFilterQuery(query));
+    }),
   index: protectedProcedure
     .input(salesQueryParamsSchema)
     .query(async (props) => {

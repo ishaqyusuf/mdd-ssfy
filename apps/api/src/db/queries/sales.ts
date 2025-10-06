@@ -72,7 +72,11 @@ export async function getQuotes(
   query: SalesQueryParamsSchema
 ) {
   query.salesType = "quote";
-
+  if (query.defaultSearch) {
+    if (query.showing != "all sales") query.salesRepId = ctx.userId!;
+  }
+  if (query.showing != "all sales" && !query.q?.trim())
+    query.salesRepId = ctx.userId!;
   // if (query.showing != "all sales") query.salesRepId = ctx.userId!;
 
   const { db } = ctx;
