@@ -177,19 +177,19 @@ export const useTableData = ({ filter, route }) => {
       data?.pages.flatMap((page) => {
         return (page as any)?.data ?? [];
       }) ?? [];
-    const meta = (data?.pages?.reverse()?.[0] as any)?.meta;
-    const { cursor, count } = meta || {};
+    // const meta = ([...(data?.pages || [])]?.reverse()?.[0] as any)?.meta;
+    // const { cursor, count } = meta || {};
     if (filter.d) {
       console.log({
         filter,
-        meta,
+        // meta,
         data,
       });
     }
     return {
       data: list,
-      resultCount: cursor,
-      total: count,
+      // resultCount: cursor,
+      // total: count,
     };
   }, [data]);
 
