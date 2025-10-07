@@ -113,6 +113,47 @@ export const columns2: ColumnDef<Item>[] = [
             return <InvoiceColumn item={item} />;
         },
     },
+    {
+        header: "Method",
+        accessorKey: "dispatch",
+        cell: ({ row: { original: item } }) => (
+            <Progress.Status>
+                {item?.deliveryOption || "Not set"}
+            </Progress.Status>
+        ),
+    },
+    {
+        header: "Production",
+        accessorKey: "production",
+        cell: ({ row: { original: item } }) => (
+            <Progress>
+                <Progress.Status>
+                    {item.status.production?.scoreStatus ||
+                        item.status.production?.status}
+                </Progress.Status>
+            </Progress>
+        ),
+    },
+    {
+        header: "Fulfillment",
+        accessorKey: "dispatch",
+        cell: ({ row: { original: item } }) => (
+            <Progress.Status>{item?.deliveryStatus || "-"}</Progress.Status>
+        ),
+    },
+    {
+        header: "",
+        accessorKey: "action",
+        meta: {
+            actionCell: true,
+            preventDefault: true,
+        },
+        cell: ({ row: { original: item } }) => (
+            <>
+                <Actions item={item} />
+            </>
+        ),
+    },
 ];
 export const columns: ColumnDef<Item>[] = [
     cells.selectColumn,
