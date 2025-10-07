@@ -6,7 +6,7 @@ import {
     Table,
     useTableData,
 } from "@gnd/ui/data-table";
-import { columns } from "../../../../../../components/tables/sales-orders/columns";
+import { columns2 } from "../../../../../../components/tables/sales-orders/columns";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -62,7 +62,7 @@ export function DataTable(props: Props) {
             // value={createTableContext({
             args={[
                 {
-                    columns,
+                    columns: columns2,
                     // mobileColumn: mobileColumn,
                     data,
                     checkbox: true,
@@ -90,7 +90,9 @@ export function DataTable(props: Props) {
                     {data?.length}
                     <Table>
                         <Table.TableHeader />
-                        <Table.Body>{/* <Table.TableRow /> */}</Table.Body>
+                        <Table.Body>
+                            <Table.TableRow />
+                        </Table.Body>
                     </Table>
                 </div>
                 {/* <Table.LoadMore /> */}
