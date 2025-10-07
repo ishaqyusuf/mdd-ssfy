@@ -130,11 +130,6 @@ export async function __getQuotes(
     }))
   );
   return result;
-  // return await response(
-  //   data.map(salesQuoteDto).map((d) => ({
-  //     ...d,
-  //   }))
-  // );
 }
 export async function getQuotes(
   ctx: TRPCContext,

@@ -6,7 +6,7 @@ import {
     Table,
     useTableData,
 } from "@gnd/ui/data-table";
-import { columns2 } from "../../../../../../components/tables/sales-orders/columns";
+import { columns2 } from "@/components/tables/sales-orders/columns";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
