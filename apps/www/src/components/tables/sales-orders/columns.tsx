@@ -78,6 +78,41 @@ export const columns2: ColumnDef<Item>[] = [
             </TCell.Primary>
         ),
     },
+    {
+        header: "Phone",
+        accessorKey: "phone",
+        cell: ({ row: { original: item } }) => (
+            <TCell.Secondary className="whitespace-nowrap">
+                <TextWithTooltip
+                    className="max-w-[85px] xl:max-w-[120px]"
+                    text={item?.customerPhone || "-"}
+                />
+            </TCell.Secondary>
+        ),
+    },
+    {
+        header: "Address",
+        accessorKey: "address",
+        cell: ({ row: { original: item } }) => (
+            <TCell.Secondary>
+                <TextWithTooltip
+                    className="max-w-[100px] xl:max-w-[200px]"
+                    text={item?.address}
+                />
+            </TCell.Secondary>
+        ),
+    },
+    {
+        header: "Invoice",
+        accessorKey: "invoice",
+        meta: {
+            className: "text-right",
+            preventDefault: true,
+        },
+        cell: ({ row: { original: item } }) => {
+            return <InvoiceColumn item={item} />;
+        },
+    },
 ];
 export const columns: ColumnDef<Item>[] = [
     cells.selectColumn,

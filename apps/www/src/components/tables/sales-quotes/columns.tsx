@@ -1,9 +1,7 @@
 "use client";
 
-import { SalesListItem } from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
-import { Progress } from "@/components/(clean-code)/progress";
 import { cn } from "@/lib/utils";
 import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
