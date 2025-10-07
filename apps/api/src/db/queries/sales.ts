@@ -117,12 +117,24 @@ export async function __getQuotes(
     ...searchMeta,
     include: SalesListInclude,
   });
+  const notCounts = await salesNotesCount(
+    data?.map((a) => a.id),
+    ctx.db
+  );
 
-  return await response(
-    data.map(salesQuoteDto).map((d) => ({
+  const result = await response(
+    data.map(salesOrderDto).map((d) => ({
       ...d,
+      noteCount: 0,
+      ...(notCounts[d.id.toString()] || {}),
     }))
   );
+  return result;
+  // return await response(
+  //   data.map(salesQuoteDto).map((d) => ({
+  //     ...d,
+  //   }))
+  // );
 }
 export async function getQuotes(
   ctx: TRPCContext,
