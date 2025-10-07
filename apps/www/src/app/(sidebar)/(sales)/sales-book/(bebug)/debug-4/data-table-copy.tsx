@@ -35,7 +35,7 @@ export function DataTable(props: Props) {
             ...filters,
             ...(props.defaultFilters || {}),
         },
-        route: trpc.sales.__getQuotes,
+        route: trpc.sales.index,
     });
 
     const tableScroll = useTableScroll({
