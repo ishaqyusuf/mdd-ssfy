@@ -31,6 +31,53 @@ export const columns2: ColumnDef<Item>[] = [
             </TCell.Secondary>
         ),
     },
+    {
+        header: "Order #",
+        accessorKey: "orderNo",
+        cell: ({ row: { original: item } }) => (
+            <TCell.Secondary className="whitespace-nowrap inline-flex items-center gap-1">
+                <span>{item.orderId}</span>
+                {!item.orderId
+                    ?.toUpperCase()
+                    .endsWith(item.salesRepInitial) && (
+                    <Badge className="font-mono" variant="secondary">
+                        {item.salesRepInitial}
+                    </Badge>
+                )}
+                {!item.noteCount || (
+                    <Badge className="p-1 h-5" variant="secondary">
+                        <StickyNote className="w-3 mr-1" />
+                        <span className="">{item.noteCount}</span>
+                    </Badge>
+                )}
+            </TCell.Secondary>
+        ),
+    },
+    {
+        header: "P.O",
+        accessorKey: "po",
+        meta: {
+            className: "",
+        },
+        cell: ({ row: { original: item } }) => <div>{item?.poNo}</div>,
+    },
+    {
+        header: "Customer",
+        accessorKey: "customer",
+        cell: ({ row: { original: item } }) => (
+            <TCell.Primary
+                className={cn(
+                    item.isBusiness && "text-blue-700",
+                    "whitespace-nowrap uppercase",
+                )}
+            >
+                <TextWithTooltip
+                    className="max-w-[100px] xl:max-w-[200px]"
+                    text={item.displayName || "-"}
+                />
+            </TCell.Primary>
+        ),
+    },
 ];
 export const columns: ColumnDef<Item>[] = [
     cells.selectColumn,
