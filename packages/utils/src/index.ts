@@ -428,7 +428,7 @@ export function consoleLog(title = "Log", ...data) {
   console.log("");
 }
 
-export function transformFilterDateToQuery(dateParts: string[]) {
+export function transformFilterDateToQuery(dateParts) {
   if (!dateParts) return undefined;
   let [fromStr, toStr] = dateParts;
   const today = dayjs();

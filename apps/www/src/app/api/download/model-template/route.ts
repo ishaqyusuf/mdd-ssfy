@@ -4,9 +4,11 @@ import { PdfTemplate, renderToStream } from "@gnd/community";
 import { z } from "zod";
 import { db } from "@gnd/db";
 import { generatePrintData } from "@community/generate-print-data";
+import { consoleLog } from "@gnd/utils";
 const paramsSchema = z.object({
-    id: z.string().uuid().optional(),
-    token: z.string().optional(),
+    // id: z.string().uuid().optional(),
+    // token: z.string().optional(),
+    slugs: z.array(z.number()).optional(),
     preview: z.preprocess((val) => val === "true", z.boolean().default(false)),
 });
 export async function GET(req: NextRequest) {
@@ -15,8 +17,14 @@ export async function GET(req: NextRequest) {
     const result = paramsSchema.safeParse(
         Object.fromEntries(requestUrl.searchParams.entries()),
     );
-    const printData = await generatePrintData(db, {});
-    const { id, token, preview } = result.data;
+    // const printData = await generatePrintData(db, {
+    //     homeIds: result.data.slugs
+    // });
+    consoleLog("PRINT>>", result);
+    const {
+        // id, token,
+        preview,
+    } = result.data;
     const data = {
         title: "756547AB",
     };

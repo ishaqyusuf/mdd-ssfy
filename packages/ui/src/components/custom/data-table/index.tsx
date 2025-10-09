@@ -71,87 +71,91 @@ type TableProps = (WithTable | WithoutTable) & {
   setRowSelection?;
   defaultRowSelection?: RowSelectionState;
 };
-export const { useContext: useTable, Provider: TableProvider } =
-  createContextFactory(function ({
+export function createTableContext({
+  table,
+  setParams,
+  params,
+  data: initialData,
+  columns,
+  mobileColumn,
+  tableMeta,
+  pageSize,
+  nextMeta: nextPageMeta,
+  loadMore,
+  checkbox,
+  defaultRowSelection = {},
+  addons,
+  tableScroll,
+  data,
+  rowSelection: storeRowSelection,
+  setRowSelection: storeSetRowSelection,
+  props,
+}: TableProps) {
+  // const [data, setData] = useState(initialData);
+  // const [from, setFrom] = useState(pageSize);
+  const { ref, inView } = useInView();
+  const [nextMeta, setNextMeta] = useState(nextPageMeta);
+  const isMobile = useMediaQuery(screens.xs);
+
+  // useEffect(() => {
+  //   setData(initialData);
+  // }, [initialData]);
+  const [__rowSelection, __setRowSelection] =
+    useState<RowSelectionState>(defaultRowSelection);
+  const [rowSelection, setRowSelection] = [
+    storeRowSelection || __rowSelection,
+    storeSetRowSelection || __setRowSelection,
+  ];
+
+  table = useReactTable({
+    data,
+    getRowId: ({ id }) => String(id),
+    columns: isMobile && mobileColumn ? mobileColumn : columns,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onRowSelectionChange: setRowSelection || undefined,
+    meta: tableMeta,
+    enableMultiRowSelection: checkbox,
+    manualFiltering: true,
+    state: {
+      rowSelection,
+    },
+  });
+  const totalRowsFetched = data?.length;
+  const selectedRows = useMemo(() => {
+    const selectedRowKey = Object.keys(rowSelection || {});
+    return table
+      .getCoreRowModel()
+      .flatRows.filter((row) => selectedRowKey.includes(row.id));
+  }, [rowSelection, table]);
+  const selectedRow = useMemo(() => {
+    const selectedRowKey = Object.keys(rowSelection || {})?.[0];
+    return table
+      .getCoreRowModel()
+      .flatRows.find((row) => row.id === selectedRowKey);
+  }, [rowSelection, table]);
+  return {
     table,
     setParams,
     params,
-    data: initialData,
-    columns,
-    mobileColumn,
     tableMeta,
-    pageSize,
-    nextMeta: nextPageMeta,
-    loadMore,
-    checkbox,
-    defaultRowSelection = {},
+    // loadMoreData,
+    checkbox: checkbox && mobileColumn && isMobile ? false : checkbox,
+    moreRef: ref,
+    hasMore: !!nextMeta,
+    selectedRows,
+    selectedRow,
+    totalRowsFetched,
     addons,
     tableScroll,
-    data,
-    rowSelection: storeRowSelection,
-    setRowSelection: storeSetRowSelection,
     props,
-  }: TableProps) {
-    // const [data, setData] = useState(initialData);
-    // const [from, setFrom] = useState(pageSize);
-    const { ref, inView } = useInView();
-    const [nextMeta, setNextMeta] = useState(nextPageMeta);
-    const isMobile = useMediaQuery(screens.xs);
-
-    // useEffect(() => {
-    //   setData(initialData);
-    // }, [initialData]);
-    const [__rowSelection, __setRowSelection] =
-      useState<RowSelectionState>(defaultRowSelection);
-    const [rowSelection, setRowSelection] = [
-      storeRowSelection || __rowSelection,
-      storeSetRowSelection || __setRowSelection,
-    ];
-
-    table = useReactTable({
-      data,
-      getRowId: ({ id }) => String(id),
-      columns: isMobile && mobileColumn ? mobileColumn : columns,
-      getCoreRowModel: getCoreRowModel(),
-      getFilteredRowModel: getFilteredRowModel(),
-      onRowSelectionChange: setRowSelection || undefined,
-      meta: tableMeta,
-      enableMultiRowSelection: checkbox,
-      manualFiltering: true,
-      state: {
-        rowSelection,
-      },
-    });
-    const totalRowsFetched = data?.length;
-    const selectedRows = useMemo(() => {
-      const selectedRowKey = Object.keys(rowSelection || {});
-      return table
-        .getCoreRowModel()
-        .flatRows.filter((row) => selectedRowKey.includes(row.id));
-    }, [rowSelection, table]);
-    const selectedRow = useMemo(() => {
-      const selectedRowKey = Object.keys(rowSelection || {})?.[0];
-      return table
-        .getCoreRowModel()
-        .flatRows.find((row) => row.id === selectedRowKey);
-    }, [rowSelection, table]);
-    return {
-      table,
-      setParams,
-      params,
-      tableMeta,
-      // loadMoreData,
-      checkbox: checkbox && mobileColumn && isMobile ? false : checkbox,
-      moreRef: ref,
-      hasMore: !!nextMeta,
-      selectedRows,
-      selectedRow,
-      totalRowsFetched,
-      addons,
-      tableScroll,
-      props,
-    };
-  });
+  };
+}
+export const {
+  useContext: useTable,
+  Provider: TableProvider,
+  Context,
+} = createContextFactory(createTableContext);
 
 export const useTableData = ({ filter, route }) => {
   // const trpc = useTRPC();
@@ -208,9 +212,13 @@ export const useTableData = ({ filter, route }) => {
     // from: data?.
   };
 };
-
+function ValueProvider({ value }) {
+  return;
+}
 export const Table = Object.assign(BaseTable, {
   Provider: TableProvider,
+  ContextProvider: Context.Provider,
+  ValueProvider,
   TableRow,
   TableHeader,
   Body: _Body,

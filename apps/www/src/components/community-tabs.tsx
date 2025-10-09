@@ -21,7 +21,7 @@ export function CommunityTabs() {
             <Tabs name="community" value={path}>
                 <Tabs.Items className="px-4">
                     <CustomTab>Projects</CustomTab>
-                    <CustomTab value="/units">Units</CustomTab>
+                    <CustomTab value="/project-units">Units</CustomTab>
                     <CustomTab value="/productions">Productions</CustomTab>
                     <CustomTab value="/invoices">Invoices</CustomTab>
                     <CustomTab value="/templates">Templates</CustomTab>

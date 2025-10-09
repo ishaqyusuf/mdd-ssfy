@@ -25,6 +25,7 @@ export default function createContextFactory<TArgs extends any[], TReturn>(
   return {
     useContext: () => reactUseContext(Context),
     Provider,
+    Context,
   };
 }
 

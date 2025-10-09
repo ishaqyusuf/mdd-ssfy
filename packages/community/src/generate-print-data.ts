@@ -9,7 +9,7 @@ import {
   SchemaData,
   TemplateFormService,
 } from "./services/template-form-service";
-import { dotObject, sum } from "@gnd/utils";
+import { dotObject } from "@gnd/utils";
 
 interface Props {
   homeIds: number[];
@@ -106,14 +106,14 @@ export async function generatePrintData(db: Db, props: Props) {
         ct.modelName?.toLowerCase() == home.modelName?.toLowerCase()
     );
     let design = (c?.meta as any)?.design;
-    if (!design)
-      design = (
-        homeTemplates.find(
-          (t) =>
-            home.builderId == t.builderId &&
-            home.modelName?.toLowerCase() == t.modelName?.toLowerCase()
-        )?.meta as any
-      )?.design;
+
+    const homeDesign = (
+      homeTemplates.find(
+        (t) =>
+          home.builderId == t.builderId &&
+          home.modelName?.toLowerCase() == t.modelName?.toLowerCase()
+      )?.meta as any
+    )?.design;
 
     units.push([
       info("Project", home.project.title, 2),
@@ -121,9 +121,9 @@ export async function generatePrintData(db: Db, props: Props) {
       info("Model", home.modelName, 2),
       info("Lot", home.lot, 1),
       info("Block", home.block, 1),
-      ...(c?.templateValues?.length
+      ...((c?.templateValues?.length
         ? await transformBlock(db, c.templateValues)
-        : []),
+        : legacyDesign(homeDesign, design)) as Info[]),
     ]);
   }
 }

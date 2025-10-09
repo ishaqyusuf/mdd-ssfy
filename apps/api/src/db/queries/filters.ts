@@ -32,6 +32,12 @@ import type { ProductReportSchema } from "./product-report";
 import type { GetBacklogsSchema } from "./backlogs";
 import type { GetCommunityTemplatesSchema } from "./community-template";
 import type { GetSalesAccountingsSchema } from "./sales-accounting";
+import {
+  communityInstllationFilters,
+  communityProductionFilter,
+  invoiceFilter,
+  type GetProjectUnitsSchema,
+} from "./project-units";
 
 export async function getDispatchFilters(ctx: TRPCContext) {
   type T = keyof DispatchQueryParamsSchema;
@@ -166,6 +172,53 @@ export async function getCustomerFilters(ctx: TRPCContext) {
     ),
   ];
   return resp as FilterData[];
+}
+export async function projectUnitFilters(ctx: TRPCContext) {
+  type T = keyof GetProjectUnitsSchema;
+  type FilterData = PageFilterData<T>;
+  const builders = await ctx.db.builders.findMany({
+    select: {
+      name: true,
+      slug: true,
+    },
+  });
+  const projects = await ctx.db.projects.findMany({
+    select: {
+      title: true,
+      slug: true,
+    },
+  });
+  const resp = [
+    searchFilter,
+    optionFilter<T>(
+      "builderSlug",
+      "Builder",
+      labelValueOptions(builders, "name", "slug")
+    ),
+    optionFilter<T>(
+      "projectSlug",
+      "Project",
+      labelValueOptions(projects, "title", "slug")
+    ),
+    optionFilter<T>(
+      "invoice",
+      "Invoice",
+      labelValueOptions([...invoiceFilter])
+    ),
+    dateRangeFilter<T>("dateRange", "Filter by date"),
+    optionFilter<T>(
+      "installation",
+      "Installation",
+      labelValueOptions([...communityInstllationFilters])
+    ),
+    optionFilter<T>(
+      "production",
+      "Production",
+      labelValueOptions([...communityProductionFilter])
+    ),
+  ] satisfies FilterData[];
+
+  return resp;
 }
 export async function getSalesOrderFilters(
   ctx: TRPCContext,

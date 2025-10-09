@@ -62,6 +62,10 @@ import {
   saveCommunityModel,
   saveCommunityModelSchema,
 } from "@community/community-model";
+import {
+  getProjectUnits,
+  getProjectUnitsSchema,
+} from "@api/db/queries/project-units";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -153,6 +157,11 @@ export const communityRouters = createTRPCRouter({
     .input(getModelTemplateSchema)
     .query(async (props) => {
       return getModelTemplate(props.ctx.db, props.input);
+    }),
+  getProjectUnits: publicProcedure
+    .input(getProjectUnitsSchema)
+    .query(async (props) => {
+      return getProjectUnits(props.ctx, props.input);
     }),
   getTemplateInputListings: publicProcedure
     .input(getTemplateInputListingsSchema)
