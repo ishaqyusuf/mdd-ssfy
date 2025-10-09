@@ -1,9 +1,10 @@
 import { useFilePreviewParams } from "@/hooks/use-file-preview-params";
 import { Sheet, SheetContent, SheetHeader } from "@gnd/ui/sheet";
 import { FileViewer } from "../file-viewer";
+import { FileViewActions } from "../file-view-actions";
 
 export function FileViewSheet() {
-    const { params, setParams } = useFilePreviewParams();
+    const { params, apiPath, setParams } = useFilePreviewParams();
 
     const isOpen = Boolean(params.filePath || params.documentId);
 
@@ -27,7 +28,8 @@ export function FileViewSheet() {
                                     formatSize(data?.metadata?.size)} */}
                             </span>
                         </div>
-
+                        <FileViewActions />
+                        <span>acbn</span>
                         {/* <DocumentActions showDelete={fullView} filePath={data?.pathTokens} /> */}
                     </SheetHeader>
 
@@ -35,7 +37,7 @@ export function FileViewSheet() {
                         <div className="flex flex-col flex-grow min-h-0 relative h-full w-full items-center justify-center">
                             <FileViewer
                                 // url={`/api/proxy?filePath=vault/${data?.pathTokens?.join("/")}`}
-                                url={`/api/download/${params.filePath}`}
+                                url={apiPath}
                                 //**// @ts-expect-error - mimetype is not typed (JSONB) */
                                 mimeType={params?.mimeType}
                                 // mimeType={data?.metadata?.mimetype}

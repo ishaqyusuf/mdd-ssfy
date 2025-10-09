@@ -12,6 +12,7 @@ export function useFilePreviewParams() {
     return {
         params,
         setParams,
+        apiPath: `/api/download/${params.filePath}`,
     };
 }
 

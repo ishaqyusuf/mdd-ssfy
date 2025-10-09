@@ -77,8 +77,8 @@ export async function PdfTemplate(props: Props) {
             padding: 20,
             backgroundColor: "#fff",
             color: "#000",
-            fontFamily: "Inter",
-            fontWeight: 400,
+            // fontFamily: "Inter",
+            // fontWeight: 400,
           }}
         >
           <View
