@@ -16,24 +16,21 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
     const requestUrl = new URL(req.url);
 
-    consoleLog("SEARCHPARAMS", requestUrl.searchParams.entries());
     const result = paramsSchema.safeParse(
         Object.fromEntries(requestUrl.searchParams.entries()),
     );
     const printData = await generatePrintData(db, {
         homeIds: result.data.slugs?.split(",").map((a) => Number(a)),
     });
-    consoleLog("PRINT>>", printData);
+    // consoleLog("PRINT>>", printData);
     const {
         // id, token,
         preview,
     } = result.data;
-    const data = {
-        title: "756547AB",
-    };
+
     const stream = await renderToStream(
         await PdfTemplate({
-            units: printData,
+            units: printData.units,
             template: {
                 size: "A4",
             },
@@ -50,7 +47,7 @@ export async function GET(req: NextRequest) {
 
     if (!preview) {
         headers["Content-Disposition"] =
-            `attachment; filename="${data.title}.pdf"`;
+            `attachment; filename="${printData.title}.pdf"`;
     }
 
     return new Response(blob, { headers });

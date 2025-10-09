@@ -128,7 +128,14 @@ export async function generatePrintData(db: Db, props: Props) {
       ],
     });
   }
-  return units;
+  return {
+    title: homes
+      .map((a) =>
+        `${a.modelName} ${a.project.title} ${a.project?.builder}`?.toLowerCase()
+      )
+      ?.join(" & "),
+    units,
+  };
 }
 const info = (label, value, cells: number, section = false) => ({
   label,
@@ -202,20 +209,27 @@ function legacyDesign(homeTemplate, communityDesign) {
     ? dotArray(transformCommunityTemplate(communityDesign))
     : homeTemplate;
   let design = designDotToObject(template);
-  return legacyDesignSystem
-    .map((section) => {
+  return [
+    [info("Deadbolt", "=lockHardware.deadbolt", 4)],
+    ...legacyDesignSystem,
+  ]
+    .map((section, i) => {
       const t = section.map((s) => {
         // if(s.value?.startsWith('='))
         if (!s.value) return s;
         const [e, k] = s.value?.split("=");
         if (k) s.value = dotObject.pick(k, design);
+        // s.value = s.value?.trim();
+        s.label = addSpacesToCamelCase(s.label);
         return s;
       });
-      return (t as any).filter(
-        (a) =>
+      const _ = t.filter(
+        (a: any) =>
           !a.row ||
           (a.row && t.some((ts) => (ts as any).row == a.row && ts.value))
       );
+      if (!_.filter((a) => !a.section && !a.value)?.length && i) return [];
+      return _;
     })
     .flat();
 }
@@ -224,7 +238,6 @@ const f = (key, cells?, label?) =>
 const c = (key, label) => f(key, "2,1", label);
 const legacySection = (node, sectionTitle, rows: Info[][]) => {
   return [
-    info("Deadbolt", "=deadbold", 4),
     section(sectionTitle),
     ...rows
       .map((r, ri) =>
@@ -237,6 +250,9 @@ const legacySection = (node, sectionTitle, rows: Info[][]) => {
       .flat(),
   ];
 };
+export function addSpacesToCamelCase(input): string {
+  return input.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
 const legacyCellSizeTransform = {
   "2,10": 4,
   "2,4": 2,

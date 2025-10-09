@@ -125,7 +125,7 @@ function Actions({ item }: ItemProps) {
                 triggerSize={isMobile ? "default" : "xs"}
                 Trigger={
                     <Button
-                        className={cn(isMobile || "size-4 p-0")}
+                        className={cn(isMobile || "size-4 p-0", "")}
                         variant="ghost"
                     >
                         <Icons.MoreHoriz className="" />
