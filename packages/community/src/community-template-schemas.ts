@@ -118,7 +118,7 @@ export const getCommunitySchemaSchema = z.object({
 export type GetCommunitySchemaSchema = z.infer<typeof getCommunitySchemaSchema>;
 export async function getCommunitySchema(
   db: Db,
-  query: GetCommunitySchemaSchema
+  query?: GetCommunitySchemaSchema
 ) {
   const inputsCategory = await getCommunitySectionsInventoryCategory(db);
   const blocksCategory = await getCommunityBlocksInventoryCategory(db);
@@ -263,7 +263,6 @@ export async function getCommunityBlockSchema(
       uid: true,
       id: true,
       index: true,
-
       inputConfigs: {
         where: {
           deletedAt: null,
@@ -309,7 +308,10 @@ export async function getCommunityBlockSchema(
       _formMeta: {
         // row: 0,
         rowEdge: false,
-        selection: null,
+        selection: {
+          id: null,
+          label: null,
+        },
         // formIndex: 0,
         formUid: a.uid,
         templateValueId: null,

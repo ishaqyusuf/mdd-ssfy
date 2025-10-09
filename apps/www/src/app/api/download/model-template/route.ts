@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 
 import { PdfTemplate, renderToStream } from "@gnd/community";
 import { z } from "zod";
-
+import { db } from "@gnd/db";
+import { generatePrintData } from "@community/generate-print-data";
 const paramsSchema = z.object({
     id: z.string().uuid().optional(),
     token: z.string().optional(),
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
     const result = paramsSchema.safeParse(
         Object.fromEntries(requestUrl.searchParams.entries()),
     );
-
+    const printData = await generatePrintData(db, {});
     const { id, token, preview } = result.data;
     const data = {
         title: "756547AB",

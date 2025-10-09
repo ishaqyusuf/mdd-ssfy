@@ -5,13 +5,15 @@ import {
   getModelTemplate,
 } from "../community-template-schemas";
 
-type Schema = RenturnTypeAsync<typeof getCommunitySchema>;
-type ModelTemplate = RenturnTypeAsync<typeof getModelTemplate>;
+export type SchemaData = RenturnTypeAsync<typeof getCommunitySchema>;
+export type ModelTemplateValues = RenturnTypeAsync<
+  typeof getModelTemplate
+>["values"];
 export type CommunityBlock = RenturnTypeAsync<typeof getCommunityBlockSchema>;
 export class TemplateFormService {
   constructor(
-    public schema: Schema,
-    public modelTemplate: ModelTemplate,
+    public schema: SchemaData,
+    public modelValues: ModelTemplateValues,
     public block: CommunityBlock
   ) {}
 
@@ -44,7 +46,7 @@ export class TemplateFormService {
     for (let index = rowBlocksArray.length - 1; index >= 0; index--) {
       const _rba = rowBlocksArray[index]!;
       const row = _rba?.map((b, i) => {
-        const v = this.modelTemplate.values.find(
+        const v = this.modelValues.find(
           (f) => f.uid === b.uid && f.inputConfig.id === b.id
         );
         b._formMeta.formUid = b?.uid!;
@@ -70,7 +72,7 @@ export class TemplateFormService {
       const rowUids = row.map((a) => a.uid);
       const duplicates = Array.from(
         new Set(
-          this.modelTemplate.values
+          this.modelValues
             .filter((v) => rowUids.some((r) => v.uid.startsWith(`${r}-`)))
             .map((a) => a.uid.split("-")[1])
         )
@@ -78,9 +80,7 @@ export class TemplateFormService {
       for (let di = duplicates.length - 1; di >= 0; di--) {
         const dup = duplicates[di]!;
         const dupRow = row.map((b, i) => {
-          const v = this.modelTemplate.values.find(
-            (f) => f.uid === `${b.uid}-${dup}`
-          );
+          const v = this.modelValues.find((f) => f.uid === `${b.uid}-${dup}`);
           return {
             ...b,
             _formMeta: {

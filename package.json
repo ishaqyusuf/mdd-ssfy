@@ -21,7 +21,7 @@
     "db:migrate": "turbo -F @gnd/db db-migrate",
     "db:generate": "turbo -F @gnd/db prisma-generate",
     "db:auth-generate": "turbo -F @gnd/auth prisma-generate",
-    "dev": "turbo dev --parallel  --filter !@gnd/site --filter !@gnd/gnd-backlog ",
+    "dev": "turbo dev --parallel  --filter !@gnd/site",
     "dev2": "turbo dev --parallel  --filter !@gnd/site --filter !@gnd/gnd-backlog --filter !@gnd/jobs",
     "dev:web": "turbo dev --parallel  --filter !@gnd/gnd-backlog --filter !@gnd/api",
     "dev:backlog": "turbo dev --parallel  --filter !@gnd/email --filter !@gnd/site --filter !@gnd/www  --filter !@gnd/jobs",

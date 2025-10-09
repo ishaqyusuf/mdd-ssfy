@@ -4,6 +4,8 @@ import { hash } from "bcrypt-ts";
 import util from "util";
 import _ from "lodash";
 
+import dotObject from "dot-object";
+export { dotObject };
 export function insertAt<T>(array: T[], index: number, item: T) {
   return _.concat(_.slice(array, 0, index), [item], _.slice(array, index));
 }

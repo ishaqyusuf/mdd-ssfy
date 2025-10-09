@@ -111,7 +111,7 @@ export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
             if (!schm.modelSlug) return;
             const tfs = new TemplateFormService(
                 schm.schemaData,
-                communityTemplate,
+                communityTemplate.values,
                 blockInput,
             );
             const modelForm = tfs.generateBlockForm();

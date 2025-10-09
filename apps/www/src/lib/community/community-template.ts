@@ -1,5 +1,3 @@
-import { TemplateDesign } from "@/types/community";
-
 export function transformCommunityTemplate(design) {
     // if (!design) return design;
     if (
@@ -17,7 +15,6 @@ export function transformCommunityTemplate(design) {
             newDesign[sec] = secD;
             // newDesign[k] = v.k;
         });
-
         return newDesign;
     }
     return design;

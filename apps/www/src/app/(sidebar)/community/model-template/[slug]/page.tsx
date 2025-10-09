@@ -28,13 +28,13 @@ export default async function Page(props: Props) {
     return (
         <HydrateClient>
             <div className="flex flex-col p-4 gap-6">
-                {/* <ErrorBoundary errorComponent={ErrorFallback}>
-                    <Suspense fallback={<Skeletons.Dashboard />}> */}
-                <CommunityTemplateForm modelSlug={params.slug as any}>
-                    <FormHeader />
-                </CommunityTemplateForm>
-                {/* </Suspense>
-                </ErrorBoundary> */}
+                <ErrorBoundary errorComponent={ErrorFallback}>
+                    <Suspense fallback={<Skeletons.Dashboard />}>
+                        <CommunityTemplateForm modelSlug={params.slug as any}>
+                            <FormHeader />
+                        </CommunityTemplateForm>
+                    </Suspense>
+                </ErrorBoundary>
             </div>
         </HydrateClient>
     );
