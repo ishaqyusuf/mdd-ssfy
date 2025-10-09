@@ -99,6 +99,8 @@ import {
   Activity,
   Monitor,
   FolderTree,
+  Wrench,
+  PackagePlus,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -222,6 +224,8 @@ export const Icons = {
   ...PaymentMethodIcon,
   monitor: Monitor,
   category: FolderTree,
+  builder: Wrench,
+  installation: PackagePlus,
 };
 
 export type IconKeys = keyof typeof Icons;

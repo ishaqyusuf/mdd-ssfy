@@ -23,6 +23,9 @@ export const searchIcons: Partial<{
   showing: "monitor",
   category: "category",
   payments: "cash",
+  project: "project",
+  builder: "user",
+  installation: "installation",
 };
 
 export function isSearchKey(k) {

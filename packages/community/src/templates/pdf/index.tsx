@@ -1,6 +1,8 @@
 import { Document, Font, Image, Page, Text, View } from "@react-pdf/renderer";
 import QRCodeUtil from "qrcode";
 import { QRCode } from "./components/qr-code";
+import { Info } from "../../generate-print-data";
+import { DataCell } from "./components/data-cell";
 
 Font.register({
   family: "Inter",
@@ -45,6 +47,9 @@ Font.register({
   ],
 });
 interface Props {
+  units: {
+    data: Info[];
+  }[];
   template: {
     logoUrl?: string;
     size: "LETTER" | "A4";
@@ -63,66 +68,66 @@ export async function PdfTemplate(props: Props) {
 
   return (
     <Document>
-      <Page
-        wrap
-        size={template.size.toUpperCase() as "LETTER" | "A4"}
-        style={{
-          padding: 20,
-          backgroundColor: "#fff",
-          color: "#000",
-          fontFamily: "Inter",
-          fontWeight: 400,
-        }}
-      >
-        <View
+      {props.units.map((unit, ui) => (
+        <Page
+          key={ui}
+          wrap
+          size={template.size.toUpperCase() as "LETTER" | "A4"}
           style={{
-            marginBottom: 20,
-            flexDirection: "row",
-            justifyContent: "space-between",
+            padding: 20,
+            backgroundColor: "#fff",
+            color: "#000",
+            fontFamily: "Inter",
+            fontWeight: 400,
           }}
         >
-          {template?.logoUrl && (
-            <div style={{ maxWidth: "300px" }}>
-              <Image
-                src={template.logoUrl}
-                style={{
-                  height: 75,
-                  objectFit: "contain",
-                }}
-              />
-            </div>
-          )}
-        </View>
+          <View
+            style={{
+              marginBottom: 20,
+              flexDirection: "row",
+              justifyContent: "space-between",
+            }}
+          >
+            {template?.logoUrl && (
+              <div style={{ maxWidth: "300px" }}>
+                <Image
+                  src={template.logoUrl}
+                  style={{
+                    height: 75,
+                    objectFit: "contain",
+                  }}
+                />
+              </div>
+            )}
+          </View>
 
-        <View style={{ flexDirection: "row", marginTop: 20 }}>
-          <View style={{ flex: 1, marginRight: 10 }}>
-            <View style={{ marginBottom: 20 }}>
-              <Text style={{ fontSize: 9, fontWeight: 500 }}>Hello</Text>
+          <View style={{ flexDirection: "row", marginTop: 20 }}>
+            <View style={{ flex: 1, marginRight: 10 }}>
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ fontSize: 9, fontWeight: 500 }}>Hello</Text>
+              </View>
             </View>
           </View>
-        </View>
-
-        <View
-          style={{
-            flex: 1,
-            flexDirection: "column",
-            justifyContent: "flex-end",
-          }}
-        >
-          {[...Array(100)].map((a, ai) => (
-            <Text key={ai} style={{ fontSize: 9, fontWeight: 500 }}>
-              Hello
-            </Text>
-          ))}
-        </View>
-        <View style={{ flexDirection: "row", marginTop: 20 }}>
-          <View style={{ flex: 1, marginRight: 10 }}>
-            {qrCode && <QRCode data={qrCode} />}
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+            }}
+          >
+            {unit.data.map((cell, ci) => (
+              <DataCell key={ci} cell={cell} />
+            ))}
           </View>
 
-          <View style={{ flex: 1, marginLeft: 10 }}></View>
-        </View>
-      </Page>
+          <View style={{ flexDirection: "row", marginTop: 20 }}>
+            <View style={{ flex: 1, marginRight: 10 }}>
+              {qrCode && <QRCode data={qrCode} />}
+            </View>
+
+            <View style={{ flex: 1, marginLeft: 10 }}></View>
+          </View>
+        </Page>
+      ))}
     </Document>
   );
 }

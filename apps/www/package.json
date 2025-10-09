@@ -110,6 +110,7 @@
         "react-inlinesvg": "^4.1.1",
         "react-intersection-observer": "^9.16.0",
         "react-number-format": "^5.4.3",
+        "react-pdf": "^9.2.1",
         "react-redux": "^8.1.1",
         "react-responsive": "^9.0.2",
         "react-signature-pad-wrapper": "^3.3.3",
@@ -147,4 +148,3 @@
         "tailwindcss": "^3.4.15"
     }
 }
-

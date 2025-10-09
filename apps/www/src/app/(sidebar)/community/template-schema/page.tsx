@@ -29,15 +29,15 @@ export default async function Page(props: Props) {
                     <div className="flex-1"></div>
                     <div id="blockAction" />
                 </div>
-                {/* <ErrorBoundary errorComponent={ErrorFallback}>
-                    <Suspense fallback={<Skeletons.Dashboard />}> */}
-                <CommunityTemplateForm>
-                    <Portal nodeId="blockAction">
-                        <NewBlockAction />
-                    </Portal>
-                </CommunityTemplateForm>
-                {/* </Suspense>
-                </ErrorBoundary> */}
+                <ErrorBoundary errorComponent={ErrorFallback}>
+                    <Suspense fallback={<Skeletons.Dashboard />}>
+                        <CommunityTemplateForm>
+                            <Portal nodeId="blockAction">
+                                <NewBlockAction />
+                            </Portal>
+                        </CommunityTemplateForm>
+                    </Suspense>
+                </ErrorBoundary>
             </div>
         </HydrateClient>
     );

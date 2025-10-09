@@ -12,6 +12,7 @@ import { formatDate } from "@gnd/utils/dayjs";
 import { Progress } from "@gnd/ui/custom/progress";
 import { Badge } from "@gnd/ui/badge";
 import { colorsObject } from "@gnd/utils/colors";
+import { openLink } from "@/lib/open-link";
 
 export type Item =
     RouterOutputs["community"]["getProjectUnits"]["data"][number];
@@ -26,10 +27,11 @@ const column1: Column = {
     cell: ({ row: { original: item } }) => (
         <>
             {/* <TCell.Primary>#{item.id}</TCell.Primary> */}
-            <TCell.Secondary>{formatDate(item.createdAt)}</TCell.Secondary>
+            <TCell.Primary>{formatDate(item.createdAt)}</TCell.Primary>
         </>
     ),
 };
+
 const projectColumn: Column = {
     header: "Project",
     accessorKey: "project",
@@ -48,6 +50,7 @@ const lotBlock: Column = {
     cell: ({ row: { original: item } }) => (
         <>
             <TCell.Primary>{item.lotBlock}</TCell.Primary>
+            <TCell.Secondary>{item.modelName}</TCell.Secondary>
         </>
     ),
 };
@@ -66,7 +69,7 @@ const production: Column = {
     ),
 };
 const installation: Column = {
-    header: "",
+    header: "Installation",
     accessorKey: "installation",
     meta: {},
     cell: ({ row: { original: item } }) => (
@@ -127,7 +130,21 @@ function Actions({ item }: ItemProps) {
                     </Button>
                 }
             >
-                <Menu.Item SubMenu={<></>}>Mark as</Menu.Item>
+                <Menu.Item
+                    icon="print"
+                    onClick={(e) => {
+                        openLink(
+                            "api/download/model-template",
+                            {
+                                preview: true,
+                                slugs: [item.id].join(","),
+                            },
+                            true,
+                        );
+                    }}
+                >
+                    Print
+                </Menu.Item>
             </Menu>
         </div>
     );

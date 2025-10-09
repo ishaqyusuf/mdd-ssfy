@@ -8,19 +8,22 @@ import { consoleLog } from "@gnd/utils";
 const paramsSchema = z.object({
     // id: z.string().uuid().optional(),
     // token: z.string().optional(),
-    slugs: z.array(z.number()).optional(),
+    // slugs: z.array(z.number()),
+    slugs: z.string(),
     preview: z.preprocess((val) => val === "true", z.boolean().default(false)),
 });
+export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
     const requestUrl = new URL(req.url);
 
+    consoleLog("SEARCHPARAMS", requestUrl.searchParams.entries());
     const result = paramsSchema.safeParse(
         Object.fromEntries(requestUrl.searchParams.entries()),
     );
-    // const printData = await generatePrintData(db, {
-    //     homeIds: result.data.slugs
-    // });
-    consoleLog("PRINT>>", result);
+    const printData = await generatePrintData(db, {
+        homeIds: result.data.slugs?.split(",").map((a) => Number(a)),
+    });
+    consoleLog("PRINT>>", printData);
     const {
         // id, token,
         preview,
@@ -30,6 +33,7 @@ export async function GET(req: NextRequest) {
     };
     const stream = await renderToStream(
         await PdfTemplate({
+            units: printData,
             template: {
                 size: "A4",
             },

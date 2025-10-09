@@ -98,7 +98,7 @@ export async function generatePrintData(db: Db, props: Props) {
       projectId: true,
     },
   });
-  const units: Info[][] = [];
+  const units: { data: Info[] }[] = [];
   for (const home of homes) {
     const c = communityPrints.find(
       (ct) =>
@@ -115,17 +115,20 @@ export async function generatePrintData(db: Db, props: Props) {
       )?.meta as any
     )?.design;
 
-    units.push([
-      info("Project", home.project.title, 2),
-      info("Builder", home.project.builder?.name, 2),
-      info("Model", home.modelName, 2),
-      info("Lot", home.lot, 1),
-      info("Block", home.block, 1),
-      ...((c?.templateValues?.length
-        ? await transformBlock(db, c.templateValues)
-        : legacyDesign(homeDesign, design)) as Info[]),
-    ]);
+    units.push({
+      data: [
+        info("Project", home.project.title, 2),
+        info("Builder", home.project.builder?.name, 2),
+        info("Model", home.modelName, 2),
+        info("Lot", home.lot, 1),
+        info("Block", home.block, 1),
+        ...((c?.templateValues?.length
+          ? await transformBlock(db, c.templateValues)
+          : legacyDesign(homeDesign, design)) as Info[]),
+      ],
+    });
   }
+  return units;
 }
 const info = (label, value, cells: number, section = false) => ({
   label,
@@ -133,7 +136,7 @@ const info = (label, value, cells: number, section = false) => ({
   cells: cells || 4,
   section,
 });
-type Info = ReturnType<typeof info>;
+export type Info = ReturnType<typeof info>;
 const section = (label) => info(label, null, 4, true);
 let schemaData: SchemaData = null as any;
 let blocks: GetCommunityBlockSchema[] = [];
@@ -203,7 +206,8 @@ function legacyDesign(homeTemplate, communityDesign) {
     .map((section) => {
       const t = section.map((s) => {
         // if(s.value?.startsWith('='))
-        const [e, k] = s.value.split("=");
+        if (!s.value) return s;
+        const [e, k] = s.value?.split("=");
         if (k) s.value = dotObject.pick(k, design);
         return s;
       });

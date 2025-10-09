@@ -17,6 +17,7 @@ export const projectUnitsSelect = {
   id: true,
   createdAt: true,
   lotBlock: true,
+  modelName: true,
   tasks: {
     where: {
       deletedAt: null,
