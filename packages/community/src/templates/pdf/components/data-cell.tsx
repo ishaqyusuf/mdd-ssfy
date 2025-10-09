@@ -31,6 +31,7 @@ export function DataCell(props: Props) {
       <View
         style={{
           flex: 1,
+          fontSize: 9,
         }}
       >
         <Text>{props.cell.value}</Text>
