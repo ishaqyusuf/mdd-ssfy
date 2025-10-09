@@ -35,7 +35,7 @@ export function FileViewSheet() {
                         <div className="flex flex-col flex-grow min-h-0 relative h-full w-full items-center justify-center">
                             <FileViewer
                                 // url={`/api/proxy?filePath=vault/${data?.pathTokens?.join("/")}`}
-                                url={`${params.filePath}`}
+                                url={`/api/download/${params.filePath}`}
                                 //**// @ts-expect-error - mimetype is not typed (JSONB) */
                                 mimeType={params?.mimeType}
                                 // mimeType={data?.metadata?.mimetype}

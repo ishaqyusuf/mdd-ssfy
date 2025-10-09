@@ -28,6 +28,7 @@ export function FileViewer({ mimeType, url, maxWidth }: Props) {
         mimeType === "application/pdf" ||
         mimeType === "application/octet-stream"
     ) {
+        console.log({ url });
         return <DynamicPdfViewer url={url} key={url} maxWidth={maxWidth} />;
     }
 

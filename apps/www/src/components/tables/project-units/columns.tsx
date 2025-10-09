@@ -13,7 +13,8 @@ import { Progress } from "@gnd/ui/custom/progress";
 import { Badge } from "@gnd/ui/badge";
 import { colorsObject } from "@gnd/utils/colors";
 import { openLink } from "@/lib/open-link";
-
+import { useFilePreviewParams } from "@/hooks/use-file-preview-params";
+import QueryString from "qs";
 export type Item =
     RouterOutputs["community"]["getProjectUnits"]["data"][number];
 interface ItemProps {
@@ -117,6 +118,7 @@ export const columns: Column[] = [
 
 function Actions({ item }: ItemProps) {
     const isMobile = useIsMobile();
+    const { setParams } = useFilePreviewParams();
     return (
         <div className="relative flex justify-end z-10">
             <Menu
@@ -133,14 +135,21 @@ function Actions({ item }: ItemProps) {
                 <Menu.Item
                     icon="print"
                     onClick={(e) => {
-                        openLink(
-                            "api/download/model-template",
-                            {
+                        setParams({
+                            mimeType: "application/pdf",
+                            filePath: `model-template?${QueryString.stringify({
                                 preview: true,
                                 slugs: [item.id].join(","),
-                            },
-                            true,
-                        );
+                            })}`,
+                        });
+                        // openLink(
+                        //     "api/download/model-template",
+                        //     {
+                        //         preview: true,
+                        //         slugs: [item.id].join(","),
+                        //     },
+                        //     true,
+                        // );
                     }}
                 >
                     Print
