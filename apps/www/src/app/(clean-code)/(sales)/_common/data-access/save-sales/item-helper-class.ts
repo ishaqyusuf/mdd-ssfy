@@ -118,7 +118,7 @@ export class ItemHelperClass {
                             formData,
                             dimension,
                             formData.stepProductId?.id ||
-                                formData.stepProductId.fallbackId,
+                                formData.stepProductId?.fallbackId,
                         );
 
                         if (formData.doorId) {
@@ -140,7 +140,7 @@ export class ItemHelperClass {
                                 housePackageToolId: hptId,
                                 salesOrderId: this.ctx.salesId,
                                 salesOrderItemId: this.itemData.id,
-                                stepProductId: formData.stepProductId.id,
+                                stepProductId: formData.stepProductId?.id,
                             } satisfies Prisma.DykeSalesDoorsCreateManyInput;
                             doorData.data = createDoor;
                             doorData.id = createDoor.id;
@@ -255,7 +255,7 @@ export class ItemHelperClass {
             swing: formData.swing,
             stepProduct: {
                 connect: {
-                    id: fid || formData.stepProductId.id,
+                    id: fid || formData.stepProductId?.id,
                 },
             },
         } satisfies Prisma.DykeSalesDoorsUpdateInput;

@@ -40,7 +40,7 @@ export default function HomePrintData({ design, home }: Props) {
                                     <span className="text-xl font-bold">
                                         GND Millwork Corp.
                                     </span>
-                                    <span className="text-base tracking-wide font-semibold leading-none">
+                                    <span className="text-base tracking-wide font-semibold leading-none ">
                                         13285 SW 131 St Miami, Fl 33186
                                     </span>
                                     <div className="my-2 space-y-1">

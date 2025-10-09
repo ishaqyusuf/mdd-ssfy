@@ -9,13 +9,13 @@ import { useHpt, useHptLine } from "../context";
 export function PriceEstimateCell({}) {
     const ctx = useHpt();
     const line = useHptLine();
-    const { sizeForm, size, lineUid, valueChanged } = line;
+    const { size, zDoor, lineUid, valueChanged } = line;
     return (
         <Menu
             noSize
             Icon={null}
             triggerSize="xs"
-            label={<Money value={sizeForm?.pricing?.unitPrice} />}
+            label={<Money value={zDoor?.pricing?.unitPrice} />}
         >
             <div className="min-w-[300px] p-2">
                 <div>
@@ -42,7 +42,7 @@ export function PriceEstimateCell({}) {
                             <div className="flex items-center justify-end gap-4">
                                 <span>{`${size?.size}`}</span>
                                 <MoneyBadge>
-                                    {sizeForm?.pricing?.itemPrice?.salesPrice}
+                                    {zDoor?.pricing?.itemPrice?.salesPrice}
                                 </MoneyBadge>
                             </div>
                         }

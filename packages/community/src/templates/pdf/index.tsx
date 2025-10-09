@@ -3,6 +3,7 @@ import QRCodeUtil from "qrcode";
 import { QRCode } from "./components/qr-code";
 import { Info } from "../../generate-print-data";
 import { DataCell } from "./components/data-cell";
+import { Header } from "./components/header";
 
 Font.register({
   family: "Inter",
@@ -81,25 +82,7 @@ export async function PdfTemplate(props: Props) {
             // fontWeight: 400,
           }}
         >
-          <View
-            style={{
-              marginBottom: 20,
-              flexDirection: "row",
-              justifyContent: "space-between",
-            }}
-          >
-            {template?.logoUrl && (
-              <div style={{ maxWidth: "300px" }}>
-                <Image
-                  src={template.logoUrl}
-                  style={{
-                    height: 75,
-                    objectFit: "contain",
-                  }}
-                />
-              </div>
-            )}
-          </View>
+          <Header />
 
           <View style={{ flexDirection: "row", marginTop: 20 }}>
             <View style={{ flex: 1, marginRight: 10 }}>

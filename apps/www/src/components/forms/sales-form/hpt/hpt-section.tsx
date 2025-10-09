@@ -287,9 +287,7 @@ function DoorSizeRowContent({ doorIndex, sizeIndex }) {
                     <WageInput />
                 </TableCell>
                 <TableCell>
-                    <AnimatedNumber
-                        value={sizeForm?.pricing?.totalPrice || 0}
-                    />
+                    <AnimatedNumber value={zDoor?.pricing?.totalPrice || 0} />
                 </TableCell>
                 <TableCell
                     align="right"

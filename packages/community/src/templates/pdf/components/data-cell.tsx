@@ -39,6 +39,8 @@ export function DataCell(props: Props) {
         flexDirection: "row",
         padding: "4px",
         paddingHorizontal: "5px",
+        // borderBottom: "0.5px",
+        // borderColor: colorsObject.gray,
       }}
     >
       <View
