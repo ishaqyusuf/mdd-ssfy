@@ -57,26 +57,28 @@ export function DataTable(props: Props) {
         );
     }
     return (
-        <Table.ContextProvider
-            value={createTableContext({
-                columns,
-                mobileColumn,
-                data,
-                props: {
-                    loadMoreRef,
-                    hasNextPage,
-                },
-                tableScroll,
-                // rowSelection,
-                // setRowSelection,
-                tableMeta: {
-                    rowClick(id, rowData) {
-                        setParams({
-                            openProjectUnitId: rowData.id,
-                        });
+        <Table.Provider
+            args={[
+                {
+                    columns,
+                    mobileColumn,
+                    data,
+                    props: {
+                        loadMoreRef,
+                        hasNextPage,
+                    },
+                    tableScroll,
+                    // rowSelection,
+                    // setRowSelection,
+                    tableMeta: {
+                        rowClick(id, rowData) {
+                            setParams({
+                                openProjectUnitId: rowData.id,
+                            });
+                        },
                     },
                 },
-            })}
+            ]}
         >
             <div className="flex flex-col gap-4 w-full">
                 <div
@@ -93,7 +95,7 @@ export function DataTable(props: Props) {
                 <Table.LoadMore />
                 <BatchActions />
             </div>
-        </Table.ContextProvider>
+        </Table.Provider>
     );
 }
 

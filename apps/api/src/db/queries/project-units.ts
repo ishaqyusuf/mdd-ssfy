@@ -1,10 +1,10 @@
 import type { TRPCContext } from "@api/trpc/init";
+import { getUnitProductionStatus, projectUnitsSelect } from "@community/utils";
 import type { Prisma } from "@gnd/db";
 import { transformFilterDateToQuery } from "@gnd/utils";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 import { z } from "zod";
-
 export const invoiceFilter = [
   //   "part paid",
   //   "full paid",
@@ -55,15 +55,19 @@ export async function getProjectUnits(
   const data = await model.findMany({
     where,
     ...searchMeta,
-    select: {
-      id: true,
-    },
+    select: projectUnitsSelect,
   });
 
   return await response(
-    data.map((d) => ({
-      ...d,
-    }))
+    data.map((d) => {
+      const { tasks, _count, ...unitData } = d;
+      const production = getUnitProductionStatus(d);
+      return {
+        ...unitData,
+        jobCount: _count?.jobs,
+        production,
+      };
+    })
   );
 }
 function whereProjectUnits(query: GetProjectUnitsSchema) {

@@ -217,7 +217,7 @@ function ValueProvider({ value }) {
 }
 export const Table = Object.assign(BaseTable, {
   Provider: TableProvider,
-  ContextProvider: Context.Provider,
+  ContextProvider: Context?.Provider,
   ValueProvider,
   TableRow,
   TableHeader,

@@ -142,7 +142,7 @@ function Date({ item }: ItemProps) {
         <>
             <TCell.Primary className="">
                 {item.alert.date ? (
-                    <TCell.Date>{item.alert.date}</TCell.Date>
+                    <TCell.Secondary>{item.alert.dateString}</TCell.Secondary>
                 ) : (
                     <>N/A</>
                 )}

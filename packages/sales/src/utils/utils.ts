@@ -9,7 +9,7 @@
 // } from "@api/type";
 import type { Db, Prisma, SalesStat } from "@gnd/db";
 import { sumArrayKeys } from "@gnd/utils";
-import dayjs from "@gnd/utils/dayjs";
+import dayjs, { formatDate } from "@gnd/utils/dayjs";
 import { padStart } from "lodash";
 import {
   AddressBookMeta,
@@ -694,7 +694,7 @@ export function dueDateAlert(dates): { text; color; date } {
   // Sort futureDues in ascending order (soonest first)
   result.futureDues.sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
 
-  return result.today
+  const _date = result.today
     ? result.today
     : result?.pastDues?.length
       ? result?.pastDues[0]
@@ -705,6 +705,10 @@ export function dueDateAlert(dates): { text; color; date } {
             color: "gray",
             date: null,
           };
+  return {
+    ..._date,
+    dateString: _date?.date ? formatDate(_date.date) : null,
+  };
 }
 export function composeSalesStatKeyValue(stats: SalesStat[]) {
   const resp: { [id in QtyControlType]: TypedSalesStat } = {} as any;

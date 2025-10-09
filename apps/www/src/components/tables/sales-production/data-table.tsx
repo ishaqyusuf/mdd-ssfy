@@ -8,8 +8,6 @@ import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOrdersStore } from "@/store/sales-orders";
 import { useSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
-import { NoResults } from "@gnd/ui/custom/no-results";
-import { EmptyState } from "@gnd/ui/custom/empty-state";
 
 interface Props {
     workerMode?: boolean;

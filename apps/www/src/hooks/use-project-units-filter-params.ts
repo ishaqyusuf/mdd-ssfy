@@ -1,5 +1,5 @@
-import { parseAsArrayOf, useQueryStates } from "nuqs";
-import { createLoader, parseAsString, parseAsInteger } from "nuqs/server";
+import { useQueryStates } from "nuqs";
+import { createLoader, parseAsString, parseAsArrayOf } from "nuqs/server";
 import { RouterInputs } from "@api/trpc/routers/_app";
 type FilterKeys = keyof Exclude<
     RouterInputs["community"]["getProjectUnits"],
