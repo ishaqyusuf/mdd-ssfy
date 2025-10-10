@@ -61,10 +61,13 @@ export async function PdfTemplate(props: Props) {
   let qrCode: any = null;
 
   //   if (template.includeQr) {
-  qrCode = await QRCodeUtil.toDataURL(`https://app.midday.ai/i/abc`, {
-    margin: 0,
-    width: 40 * 3,
-  });
+  qrCode = await QRCodeUtil.toDataURL(
+    `https://gndprodesk.com/api/model-template?preview=true&slugs=`,
+    {
+      margin: 0,
+      width: 40 * 3,
+    }
+  );
   //   }
 
   return (
@@ -84,13 +87,6 @@ export async function PdfTemplate(props: Props) {
         >
           <Header />
 
-          <View style={{ flexDirection: "row", marginTop: 20 }}>
-            <View style={{ flex: 1, marginRight: 10 }}>
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 9, fontWeight: 500 }}>Hello</Text>
-              </View>
-            </View>
-          </View>
           <View
             style={{
               flexDirection: "row",

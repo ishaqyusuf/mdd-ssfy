@@ -55,21 +55,27 @@ export const filterRouters = createTRPCRouter({
   ),
   salesOrders: publicProcedure
     .input(
-      z.object({
-        salesManager: z.boolean().optional().nullable(),
-      })
+      z
+        .object({
+          salesManager: z.boolean().optional().nullable(),
+        })
+        .optional()
+        .nullable()
     )
     .query(async (props) =>
-      getSalesOrderFilters(props.ctx, !!props.input.salesManager)
+      getSalesOrderFilters(props.ctx, !!props.input!?.salesManager)
     ),
   salesQuotes: publicProcedure
     .input(
-      z.object({
-        salesManager: z.boolean().optional().nullable(),
-      })
+      z
+        .object({
+          salesManager: z.boolean().optional().nullable(),
+        })
+        .optional()
+        .nullable()
     )
     .query(async (props) =>
-      getSalesQuoteFilter(props.ctx, props.input.salesManager)
+      getSalesQuoteFilter(props.ctx, props.input!?.salesManager)
     ),
   salesAccounting: publicProcedure.query(async (props) => {
     return salesAccountingFilters(props.ctx);

@@ -20,7 +20,7 @@ export function Header() {
       </Text>
       <Text
         style={{
-          fontSize: 14,
+          fontSize: 10,
           lineHeight: 1,
         }}
       >

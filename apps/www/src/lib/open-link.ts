@@ -7,7 +7,7 @@ export function openLink(path, query = null, newTab = false) {
     // base = path?.startsWith("http") ? null : `${base}/`;
     let base = path?.startsWith("http") ? "" : `${window.location.origin}/`;
     if (newTab) link.target = "_blank";
-    const qs = query ? `?${QueryString.stringify(query)}` : null;
+    const qs = query ? `?${QueryString.stringify(query)}` : "";
     link.href = `${base || ""}${path}${qs}`;
     link.click();
 }
