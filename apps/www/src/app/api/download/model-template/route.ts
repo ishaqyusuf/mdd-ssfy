@@ -5,6 +5,8 @@ import { z } from "zod";
 import { db } from "@gnd/db";
 import { generatePrintData } from "@community/generate-print-data";
 import { consoleLog } from "@gnd/utils";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 const paramsSchema = z.object({
     // id: z.string().uuid().optional(),
     // token: z.string().optional(),
@@ -17,7 +19,7 @@ const paramsSchema = z.object({
 // export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
     const requestUrl = new URL(req.url);
-
+    const session = await getServerSession(authOptions);
     const result = paramsSchema.safeParse(
         Object.fromEntries(requestUrl.searchParams.entries()),
     );
