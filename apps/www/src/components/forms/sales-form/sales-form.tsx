@@ -14,6 +14,7 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { SalesFormSidebar } from "./sales-form-sidebar";
+import { useSalesSummaryToggle } from "@/store/invoice-summary-toggle";
 
 export function SalesFormClient({ data }) {
     const zus = useFormDataStore();
@@ -27,15 +28,22 @@ export function SalesFormClient({ data }) {
     );
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { hidden } = useSalesSummaryToggle();
     const [takeOff, takeOffChanged] = useLocalStorage("take-off", false);
     if (!zus.formStatus || zus.currentTab != "invoice") return <></>;
 
     return (
         <div className="min-h-screen w-full bg-white dark:bg-primary-foreground  xl:gap-4">
-            <div className="xl:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+            <div
+                className={cn(
+                    " bg-white border-b border-gray-200 p-4 flex items-center gap-4",
+                    hidden || "xl:hidden",
+                )}
+            >
                 <h1 className="text-xl font-semibold text-gray-900">
                     Invoice Builder
                 </h1>
+                <div className="flex-1"></div>
                 <Button
                     variant="outline"
                     size="sm"
@@ -47,7 +55,7 @@ export function SalesFormClient({ data }) {
                 </Button>
             </div>
             <div className="flex">
-                <div className="flex-1 xl:mr-96">
+                <div className={cn("flex-1", !hidden && "xl:mr-96")}>
                     {takeOff ? (
                         <TakeOff />
                     ) : (
@@ -68,16 +76,21 @@ export function SalesFormClient({ data }) {
                         </Button>
                     </div>
                 </div>
-                <div className="hidden xl:block">
+                <div className={cn("hidden", !hidden && "xl:block")}>
                     <SalesFormSidebar />
                 </div>
                 {sidebarOpen && (
-                    <div className="xl:hidden fixed inset-0 z-50 flex">
+                    <div
+                        className={cn(
+                            "fixed inset-0 z-50 flex",
+                            !hidden && "xl:hidden",
+                        )}
+                    >
                         <div
                             className="flex-1 bg-black bg-opacity-50"
                             onClick={() => setSidebarOpen(false)}
                         />
-                        <div className="w-full sm:w-[70vw] bg-white">
+                        <div className="sw-full ssm:w-[70vw] w-96 bg-white">
                             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                                 <h2 className="text-lg font-semibold">
                                     Invoice Details

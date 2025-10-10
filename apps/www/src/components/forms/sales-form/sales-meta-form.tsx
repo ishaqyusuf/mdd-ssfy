@@ -38,6 +38,9 @@ import { SalesLaborLine } from "./sales-labor-line";
 import { useSticky } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/use-sticky";
 import { MenuItemSalesActions } from "@/components/menu-item-sales-actions";
 import { SalesHistory } from "@/components/sales-hx";
+import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useSalesSummaryToggle } from "@/store/invoice-summary-toggle";
 
 export function SalesMetaForm({}) {
     const zus = useFormDataStore();
@@ -58,15 +61,30 @@ export function SalesMetaForm({}) {
             return true;
         }, //!bv && pv,
     );
-
     const [menuOpen, setMenuOpen] = useState(false);
+    const { hidden, toggle } = useSalesSummaryToggle();
     return (
         <div>
             <div
                 ref={actionRef}
                 // style={isFixed ? { left: `${fixedOffset}px` } : {}}
             >
-                <div className="flex border-b">
+                <div className="flex relative  border-b">
+                    <div className="-ml-6">
+                        <Button
+                            onClick={(e) => {
+                                toggle();
+                            }}
+                            size="xs"
+                            variant="outline"
+                        >
+                            {!hidden ? (
+                                <ChevronsRight className="size-4" />
+                            ) : (
+                                <ChevronsLeft className="size-4" />
+                            )}
+                        </Button>
+                    </div>
                     {tabs.map((_tab, ti) => (
                         <Button
                             key={_tab}

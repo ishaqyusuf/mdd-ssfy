@@ -140,9 +140,9 @@ export function ComponentItemCard({
             {/* {multiSelect &&
                 cls.multiSelected() &&
                 cls.getMultiSelectData()?.length} */}
-            <button
+            <div
                 className={cn(
-                    "h-full w-full overflow-hiddens  rounded-lg border-2 hover:border-primary-foreground",
+                    "h-full w-full overflow-hiddens  rounded-lg border-2 cursor-pointer hover:border-primary-foreground",
                     (multiSelect && cls.multiSelected()) ||
                         stepForm?.componentUid == component.uid
                         ? "border-muted-foreground bg-muted"
@@ -247,7 +247,7 @@ export function ComponentItemCard({
                         </Label>
                     </div>
                 </div>
-            </button>
+            </div>
 
             {component.productCode ? (
                 <div className="s-rotate-90 -translate-y-1/2s top-1/2s absolute left-4 top-4 transform text-xs font-bold uppercase tracking-wider  text-muted-foreground">
