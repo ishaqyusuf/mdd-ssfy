@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
             .filter((a) => a > 0),
         templateSlug: result.data.templateSlug,
     });
-    // consoleLog("PRINT>>", printData);
+    consoleLog("PRINT>>", { printData, data: result.data });
     const {
         // id, token,
         preview,

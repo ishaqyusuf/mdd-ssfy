@@ -105,7 +105,7 @@ export async function generatePrintData(db: Db, props: Props) {
       projectId: true,
     },
   });
-  if (!props.templateSlug) {
+  if (props.templateSlug) {
     homes.push({
       project: communityPrints?.[0]?.project as any,
       modelName: communityPrints?.[0]?.modelName!,
