@@ -23,12 +23,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@gnd/ui/select";
-
-import { TakeOffForm } from "../take-off-form/take-off-form";
 import { CustomerDataSection } from "./customer-data-section";
 import { Footer } from "./footer";
-import { SalesFormEmailMenu } from "./sales-form-email-menu";
-import { SalesFormPrintMenu } from "./sales-form-print-menu";
 import { SalesFormSave } from "./sales-form-save";
 import ConfirmBtn from "@/components/confirm-button";
 import { deleteSalesExtraCost } from "@/actions/delete-sales-extra-cost";
@@ -163,9 +159,9 @@ function SummaryTab({}) {
     return (
         <div className="">
             <SalesCustomerInput />
-            <div className="min-h-[15vh] border-b">
+            {/* <div className="min-h-[15vh] border-b">
                 <CustomerDataSection />
-            </div>
+            </div> */}
             <div className="grid gap-1">
                 <Input
                     label="Date"

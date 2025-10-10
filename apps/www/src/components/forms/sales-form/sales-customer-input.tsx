@@ -7,7 +7,7 @@ import { Search } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Fragment, useState } from "react";
 import { Spinner } from "@gnd/ui/spinner";
-import { consoleLog } from "@gnd/utils";
+import { consoleLog, generateRandomString } from "@gnd/utils";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
@@ -30,9 +30,74 @@ export function SalesCustomerInput() {
             },
         ),
     );
+    const { params, setParams } = useCreateCustomerParams();
     if (isPending && isEnabled) return <Skeletons.FeedPost />;
     if (!customer) return <SearchCustomer />;
-    return <div></div>;
+    const Content = ({
+        title,
+        className = "",
+        description,
+        children = null,
+    }) => (
+        <div>
+            <Item className={className} size="sm">
+                <Item.Content>
+                    <Item.Title>{title}</Item.Title>
+                    <Item.Description>{description}</Item.Description>
+                </Item.Content>
+                {!children || <Item.Actions>{children}</Item.Actions>}
+            </Item>
+            <Item.Separator />
+        </div>
+    );
+
+    return (
+        <div>
+            <Content
+                title="Customer"
+                description={customer?.customerData.join("\n")}
+            >
+                <Button
+                    onClick={(e) => {
+                        setParams({
+                            customerId: md.customer.id,
+                            customerForm: true,
+                            // addressId: !address
+                            //     ? null
+                            //     : address == "bad"
+                            //       ? md?.billing?.id
+                            //       : md?.shipping?.id,
+                            // address,
+                        });
+                    }}
+                    className="size-7 p-0"
+                    size="sm"
+                    variant="outline"
+                >
+                    <Icons.Edit className="size-4" />
+                </Button>
+                <Button
+                    onClick={(e) => {
+                        zus.dotUpdate("metaData.billing", {});
+                        zus.dotUpdate("metaData.shipping", {});
+                        zus.dotUpdate("metaData.customer", {});
+                    }}
+                    className="size-7 p-0"
+                    variant="destructive"
+                >
+                    <Icons.Clear className="size-4" />
+                </Button>
+            </Content>
+            <Content
+                title="Bill To"
+                description={customer?.billing?.lines?.join("\n")}
+            />
+            <Content
+                title="Ship To"
+                description={customer?.shipping?.lines?.join("\n")}
+            />
+        </div>
+    );
 }
 function SearchCustomer() {
     const [q, setSearch] = useState("");
@@ -129,7 +194,32 @@ function SearchCustomer() {
                                 <Item.Description>{sr?.phone}</Item.Description>
                             </Item.Content>
                             <Item.Actions>
-                                <Button size="sm" variant="outline">
+                                <Button
+                                    onClick={(e) => {
+                                        const metaData = {
+                                            ...md,
+                                        };
+                                        // if (!props.address) {
+                                        metaData.customer.id = sr.customerId;
+                                        if (!md.shipping.id)
+                                            metaData.shipping.id = sr.addressId;
+                                        if (!md.billing.id)
+                                            metaData.billing.id = sr.addressId;
+                                        // } else {
+                                        //     if (props.address == "bad")
+                                        //         metaData.billing.id = addressId;
+                                        //     else
+                                        //         metaData.shipping.id =
+                                        //             addressId;
+                                        // }
+                                        metaData.profileChangedToken =
+                                            generateRandomString();
+
+                                        zus.dotUpdate("metaData", metaData);
+                                    }}
+                                    size="sm"
+                                    variant="outline"
+                                >
                                     Select
                                 </Button>
                             </Item.Actions>
