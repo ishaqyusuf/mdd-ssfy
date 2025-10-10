@@ -12,7 +12,7 @@ const paramsSchema = z.object({
     slugs: z.string(),
     preview: z.preprocess((val) => val === "true", z.boolean().default(false)),
 });
-export const dynamic = "force-dynamic";
+// export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
     const requestUrl = new URL(req.url);
 
