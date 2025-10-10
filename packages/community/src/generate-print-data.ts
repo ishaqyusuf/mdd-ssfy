@@ -13,6 +13,7 @@ import { dotObject } from "@gnd/utils";
 
 interface Props {
   homeIds: number[];
+  templateSlug?: string;
 }
 export async function generatePrintData(db: Db, props: Props) {
   const homes = await db.homes.findMany({
@@ -52,13 +53,18 @@ export async function generatePrintData(db: Db, props: Props) {
   });
   const communityPrints = await db.communityModels.findMany({
     where: {
-      OR: homes.map(({ projectId, modelName }) => {
-        const w: Prisma.CommunityModelsWhereInput = {
-          projectId,
-          modelName: modelName!,
-        };
-        return w;
-      }),
+      OR: [
+        ...homes.map(({ projectId, modelName }) => {
+          const w: Prisma.CommunityModelsWhereInput = {
+            projectId,
+            modelName: modelName!,
+          };
+          return w;
+        }),
+        {
+          slug: props.templateSlug || undefined,
+        },
+      ],
     },
     select: {
       meta: true,
@@ -66,6 +72,7 @@ export async function generatePrintData(db: Db, props: Props) {
       id: true,
       project: {
         select: {
+          id: true,
           title: true,
           builder: {
             select: {
@@ -98,6 +105,16 @@ export async function generatePrintData(db: Db, props: Props) {
       projectId: true,
     },
   });
+  if (!props.templateSlug) {
+    homes.push({
+      project: communityPrints?.[0]?.project as any,
+      modelName: communityPrints?.[0]?.modelName!,
+      block: "-",
+      builderId: 1,
+      lot: "",
+      projectId: communityPrints?.[0]?.project?.id!,
+    });
+  }
   const units: { data: Info[] }[] = [];
   for (const home of homes) {
     const c = communityPrints.find(

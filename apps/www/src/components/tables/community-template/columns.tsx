@@ -13,6 +13,7 @@ import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-pa
 import { Badge } from "@gnd/ui/badge";
 import Money from "@/components/_v1/money";
 import Link from "next/link";
+import { openLink } from "@/lib/open-link";
 
 export type Item =
     RouterOutputs["community"]["getCommunityTemplates"]["data"][number];
@@ -157,7 +158,22 @@ function Actions({ item }: ItemProps) {
                     </Button>
                 }
             >
-                <Menu.Item SubMenu={<></>}>Mark as</Menu.Item>
+                <Menu.Item
+                    onClick={(e) => {
+                        openLink(
+                            "api/download/model-template",
+                            {
+                                preview: true,
+                                // slugs: [item.id].join(","),
+                                slugs: "",
+                                templateSlug: item.slug,
+                            },
+                            true,
+                        );
+                    }}
+                >
+                    Preview
+                </Menu.Item>
             </Menu>
         </div>
     );

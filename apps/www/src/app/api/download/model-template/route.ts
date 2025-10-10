@@ -10,6 +10,8 @@ const paramsSchema = z.object({
     // token: z.string().optional(),
     // slugs: z.array(z.number()),
     slugs: z.string(),
+    templateSlug: z.string().optional().nullable(),
+
     preview: z.preprocess((val) => val === "true", z.boolean().default(false)),
 });
 // export const dynamic = "force-dynamic";
@@ -20,7 +22,11 @@ export async function GET(req: NextRequest) {
         Object.fromEntries(requestUrl.searchParams.entries()),
     );
     const printData = await generatePrintData(db, {
-        homeIds: result.data.slugs?.split(",").map((a) => Number(a)),
+        homeIds: result.data.slugs
+            ?.split(",")
+            .map((a) => Number(a))
+            .filter((a) => a > 0),
+        templateSlug: result.data.templateSlug,
     });
     // consoleLog("PRINT>>", printData);
     const {
