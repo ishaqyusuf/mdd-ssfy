@@ -131,7 +131,7 @@ function SearchCustomer() {
                         onChange={(e) => {
                             setSearch(e.target.value);
                         }}
-                        placeholder="Search..."
+                        placeholder="Search or create customer..."
                     />
                     <InputGroup.Addon>
                         <Search />
