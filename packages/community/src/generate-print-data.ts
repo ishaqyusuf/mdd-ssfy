@@ -9,7 +9,7 @@ import {
   SchemaData,
   TemplateFormService,
 } from "./services/template-form-service";
-import { dotObject } from "@gnd/utils";
+import { consoleLog, dotObject } from "@gnd/utils";
 
 interface Props {
   homeIds: number[];
@@ -165,7 +165,7 @@ const section = (label) => info(label, null, 4, true);
 let schemaData: SchemaData = null as any;
 let blocks: GetCommunityBlockSchema[] = [];
 async function transformBlock(db: Db, inputConfigs: ModelTemplateValues) {
-  if (schemaData) {
+  if (!schemaData) {
     schemaData = await getCommunitySchema(db);
     blocks = await Promise.all(
       schemaData.blocks.map(async (b) => {
