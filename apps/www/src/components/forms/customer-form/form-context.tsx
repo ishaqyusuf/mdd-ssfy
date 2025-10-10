@@ -66,7 +66,7 @@ export function FormContext({ children, data }: FormContextProps) {
                 // Number.isInteger(params.search?.replaceAll("-", "")?.trim())
             ) {
                 form.reset({
-                    phoneNo: params.search,
+                    name: params.search,
                 });
             }
         }

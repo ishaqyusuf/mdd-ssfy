@@ -41,6 +41,7 @@ import { SalesHistory } from "@/components/sales-hx";
 import { ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useSalesSummaryToggle } from "@/store/invoice-summary-toggle";
+import { SalesCustomerInput } from "./sales-customer-input";
 
 export function SalesMetaForm({}) {
     const zus = useFormDataStore();
@@ -56,7 +57,6 @@ export function SalesMetaForm({}) {
     const ctx = useSalesOverviewQuery();
     const { actionRef, isFixed, fixedOffset } = useSticky(
         (bv, pv, { top, bottom }) => {
-            console.log({ top, bottom });
             // return top < 0;
             return true;
         }, //!bv && pv,
@@ -162,6 +162,7 @@ function SummaryTab({}) {
     }
     return (
         <div className="">
+            <SalesCustomerInput />
             <div className="min-h-[15vh] border-b">
                 <CustomerDataSection />
             </div>

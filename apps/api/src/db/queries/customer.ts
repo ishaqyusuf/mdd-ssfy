@@ -4,9 +4,10 @@ import type {
   SearchCustomersSchema,
 } from "@api/schemas/customer";
 import { z } from "zod";
-import type { AddressBookMeta } from "@sales/types";
+import type { AddressBookMeta, CustomerMeta } from "@sales/types";
 import { composeQueryData } from "@gnd/utils/query-response";
 import { whereCustomer } from "@api/prisma-where";
+import { salesAddressLines } from "@sales/utils/utils";
 
 export async function getCustomers(ctx: TRPCContext, query: GetCustomers) {
   const { db } = ctx;
@@ -235,4 +236,80 @@ export async function customerInfoSearch(
       zipCode: addressMeta?.zip_code,
     };
   });
+}
+
+export const getSalesCustomerSchema = z.object({
+  customerId: z.number(),
+  billingId: z.number().optional().nullable(),
+  shippingId: z.number().optional().nullable(),
+});
+export type GetSalesCustomerSchema = z.infer<typeof getSalesCustomerSchema>;
+
+export async function getSalesCustomer(
+  ctx: TRPCContext,
+  query: GetSalesCustomerSchema
+) {
+  const { db } = ctx;
+  const { customerId, shippingId, billingId } = query;
+  const customer = await db.customers.findUniqueOrThrow({
+    where: {
+      id: customerId,
+    },
+    include: {
+      taxProfiles: {
+        select: {
+          taxCode: true,
+          id: true,
+        },
+      },
+      profile: true,
+      addressBooks: {
+        where: {
+          OR: [
+            {
+              isPrimary: true,
+            },
+            {
+              id: shippingId || undefined,
+            },
+            {
+              id: billingId || undefined,
+            },
+          ],
+        },
+      },
+    },
+  });
+  const billing = customer?.addressBooks?.find(
+    (a) => a.id == billingId || a.isPrimary
+  );
+  const shipping = customer?.addressBooks?.find((a) => a.id == shippingId);
+  const customerMeta = customer?.meta as any as CustomerMeta;
+  const [taxProfile] = customer?.taxProfiles;
+  return {
+    customerId: customer?.id,
+    profileId: customer?.customerTypeId,
+    customerData: [
+      [customer?.name || customer?.businessName, customer?.phoneNo]
+        ?.filter(Boolean)
+        .join(", "),
+      customer?.email,
+    ].filter(Boolean),
+    shippingId,
+    billingId,
+    netTerm: customerMeta?.netTerm,
+    shipping: {
+      id: shipping?.id,
+      lines:
+        shipping?.id == billing?.id || !shipping?.id
+          ? ["same as billing"]
+          : salesAddressLines(shipping),
+    },
+    billing: {
+      lines: salesAddressLines(billing!, customer),
+      id: billing?.id,
+    },
+    taxCode: taxProfile?.taxCode,
+    taxProfileId: taxProfile?.id,
+  };
 }

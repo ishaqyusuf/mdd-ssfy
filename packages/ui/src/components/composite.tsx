@@ -144,15 +144,11 @@ import {
   AccordionContent,
 } from "./accordion";
 
-const Accordion = Object.assign(
-  {},
-  {
-    Root: AccordionRoot,
-    Item: AccordionItem,
-    Trigger: AccordionTrigger,
-    Content: AccordionContent,
-  }
-);
+const Accordion = Object.assign(AccordionRoot, {
+  Item: AccordionItem,
+  Trigger: AccordionTrigger,
+  Content: AccordionContent,
+});
 
 import {
   HoverCard as HoverCardRoot,
@@ -198,5 +194,100 @@ const Card = Object.assign(
     Content: CardContent,
   }
 );
+import {
+  InputGroup as InputGroupRoot,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  InputGroupText,
+  InputGroupTextarea,
+} from "./input-group";
+import {
+  Field as FieldRoot,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLegend,
+  FieldSeparator,
+  FieldSet,
+  FieldContent,
+  FieldTitle,
+} from "./field";
+import {
+  Item as ItemBase,
+  ItemMedia,
+  ItemContent,
+  ItemActions,
+  ItemGroup,
+  ItemSeparator,
+  ItemTitle,
+  ItemDescription,
+  ItemHeader,
+  ItemFooter,
+} from "./item";
+const InputGroup = Object.assign(InputGroupRoot, {
+  Addon: InputGroupAddon,
+  Button: InputGroupButton,
+  Input: InputGroupInput,
+  Text: InputGroupText,
+  TextArea: InputGroupTextarea,
+});
+const Item = Object.assign(ItemBase, {
+  Media: ItemMedia,
+  Content: ItemContent,
+  Actions: ItemActions,
+  Group: ItemGroup,
+  Separator: ItemSeparator,
+  Title: ItemTitle,
+  Description: ItemDescription,
+  Header: ItemHeader,
+  Footer: ItemFooter,
+});
+const Field = Object.assign(FieldRoot, {
+  Label: FieldLabel,
+  Description: FieldDescription,
+  Error: FieldError,
+  Group: FieldGroup,
+  Legend: FieldLegend,
+  Separator: FieldSeparator,
+  Set: FieldSet,
+  Content: FieldContent,
+  Title: FieldTitle,
+});
+import {
+  Empty as EmptyBase,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+  EmptyMedia,
+} from "./empty";
 
-export { Card };
+const Empty = Object.assign(EmptyBase, {
+  Header: EmptyHeader,
+  Title: EmptyTitle,
+  Description: EmptyDescription,
+  Content: EmptyContent,
+  Media: EmptyMedia,
+});
+import { Avatar as AvatarBase, AvatarImage, AvatarFallback } from "./avatar";
+
+const Avatar = Object.assign(AvatarBase, {
+  Image: AvatarImage,
+  Fallback: AvatarFallback,
+});
+export { Card, Avatar, InputGroup, Field, Item, Empty };
+
+import {
+  Collapsible as CollapsibleBase,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "./collapsible";
+
+const Collapsible = Object.assign(CollapsibleBase, {
+  Trigger: CollapsibleTrigger,
+  Content: CollapsibleContent,
+});
+
+export { Collapsible };

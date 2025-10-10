@@ -25,7 +25,7 @@ import {
 import { SalesQueryParamsSchema } from "../schema";
 
 export function salesAddressLines(
-  address: Prisma.AddressBooksGetPayload<{}>,
+  address?: Prisma.AddressBooksGetPayload<{}>,
   customer?: Prisma.CustomersGetPayload<{}>
 ) {
   let meta = address?.meta as any as AddressBookMeta;
