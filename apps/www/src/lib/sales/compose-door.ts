@@ -3,6 +3,8 @@ import { ComponentHelperClass } from "@/app/(clean-code)/(sales)/sales-book/(for
 import { ftToIn } from "../utils";
 
 export function composeDoor(cls: ComponentHelperClass, door?: Door) {
+    console.log(cls.componentUid);
+
     const priceModel = cls.getDoorPriceModel(cls.componentUid);
     const sizeList = priceModel.heightSizeList;
     let groupItem = cls.getItemForm().groupItem;

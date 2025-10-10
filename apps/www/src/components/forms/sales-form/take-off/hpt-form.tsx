@@ -19,7 +19,13 @@ export function HptForm({}) {
     const item = useTakeoffItem();
     const hptUid = [...item.stepSequence]?.reverse()?.[0];
     return (
-        <HptContextProvider args={[hptUid]}>
+        <HptContextProvider
+            args={[
+                {
+                    itemStepUid: hptUid,
+                },
+            ]}
+        >
             <HptLineProvider />
         </HptContextProvider>
     );

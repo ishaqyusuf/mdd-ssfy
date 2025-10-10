@@ -45,7 +45,13 @@ interface Props {
 }
 export function HptSection({ itemStepUid }: Props) {
     return (
-        <HptContextProvider args={[itemStepUid]}>
+        <HptContextProvider
+            args={[
+                {
+                    itemStepUid,
+                },
+            ]}
+        >
             <Content />
         </HptContextProvider>
     );
@@ -203,7 +209,20 @@ function DoorSizeRowContent({ doorIndex, sizeIndex }) {
     const { lineUid, zDoor, sizeForm, size, sn, valueChanged } = line;
     const { isSlab, showNote, setShowNote } = ctx;
 
-    if (!zDoor?.selected) return null;
+    if (!zDoor?.selected) return <></>;
+    // return (
+    //     <tr>
+    //         <td colSpan={7}>
+    //             {JSON.stringify({
+    //                 zDoor,
+    //                 sizeForm,
+    //                 lineUid,
+    //                 size,
+    //                 priceList: ctx?.door?.sizePrice?.[0]?.path,
+    //             })}
+    //         </td>
+    //     </tr>
+    // );
 
     return (
         <>
