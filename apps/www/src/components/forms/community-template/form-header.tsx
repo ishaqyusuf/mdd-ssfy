@@ -8,6 +8,7 @@ import { useMutation } from "@gnd/ui/tanstack";
 import { useTemplateSchemaContext } from "./context";
 import { useDebugToast } from "@/hooks/use-debug-console";
 import { useAuth } from "@/hooks/use-auth";
+import { openLink } from "@/lib/open-link";
 
 export function FormHeader() {
     const store = useCommunityModelStore();
@@ -38,7 +39,24 @@ export function FormHeader() {
     };
 
     return (
-        <div className="flex justify-end">
+        <div className="flex gap-4 justify-end">
+            <div className="flex-1"></div>
+            <Button
+                onClick={(e) => {
+                    openLink(
+                        "api/download/model-template",
+                        {
+                            preview: true,
+                            // slugs: [item.id].join(","),
+                            slugs: "",
+                            templateSlug: ctx?.modelSlug,
+                        },
+                        true,
+                    );
+                }}
+            >
+                Preview
+            </Button>
             <SubmitButton
                 onClick={onSubmit}
                 isSubmitting={isPending}
