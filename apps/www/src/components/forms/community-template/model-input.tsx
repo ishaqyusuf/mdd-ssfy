@@ -82,8 +82,12 @@ export function ModelInput() {
                 setSelection(e);
                 setValueId(+e.id);
             }}
+            className="uppercase"
             onCreate={create}
             searchPlaceholder="Find or create..."
+            renderSelectedItem={(item) => (
+                <span className="uppercase">{item.label}</span>
+            )}
             renderOnCreate={(value) => {
                 return (
                     <div className="flex items-center space-x-2">

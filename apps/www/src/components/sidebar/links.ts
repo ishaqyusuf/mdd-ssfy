@@ -285,7 +285,11 @@ export const linkModules = [
                     ().data,
             ])
                 .access(_role.is("Super Admin"))
-                .level(7).data,
+                .level(7)
+                .childPaths(
+                    "community/model-template",
+                    "community/template-schema",
+                ).data,
         ]),
         _section("main", null, [
             _link("Projects", "project", "/community/projects").access(

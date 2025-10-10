@@ -352,7 +352,7 @@ const Item = ({
                         const isChildActive = pathname === child.href;
                         return (
                             <ChildItem
-                                key={child.href}
+                                key={index}
                                 child={child}
                                 isActive={isChildActive}
                                 isExpanded={isExpanded}
