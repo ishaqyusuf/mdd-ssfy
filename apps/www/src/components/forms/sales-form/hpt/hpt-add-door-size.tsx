@@ -44,7 +44,7 @@ export function HptAddDoorSize({ doorIndex }) {
                                     "pricing.itemPrice.salesPrice",
                                     size.salesPrice,
                                 );
-                                console.log({ door });
+                                // console.log({ door });
                                 ctx.hpt.dotUpdateGroupItemFormPath(
                                     size.path,
                                     "stepProductId.id",
