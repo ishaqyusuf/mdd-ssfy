@@ -33,8 +33,6 @@ export function DuplicateBtn() {
                         input._formMeta.rowNo,
                         store.blocks?.[blk.uid]?.inputConfigs,
                     );
-                    console.log(dups);
-                    // return;
                     store.update(`blocks.${blk.uid}.inputConfigs`, dups);
                 }}
                 className=""

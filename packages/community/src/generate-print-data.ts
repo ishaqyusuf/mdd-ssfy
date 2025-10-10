@@ -95,6 +95,7 @@ export async function generatePrintData(db: Db, props: Props) {
           inputConfig: {
             select: {
               id: true,
+              communityTemplateBlockConfigId: true,
             },
           },
         },

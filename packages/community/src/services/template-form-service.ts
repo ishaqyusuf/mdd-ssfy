@@ -21,6 +21,12 @@ export class TemplateFormService {
     let rowBlocksArray: CommunityBlock["inputConfigs"][] = [[]];
     const rowBlocks: CommunityBlock["inputConfigs"][] = [];
     let rowSize = 0;
+    const blockConfigIds = new Set([
+      ...this.block.inputConfigs.map((a) => a.communityTemplateBlockConfigId),
+    ]);
+    const modelValues = this.modelValues.filter((a) =>
+      blockConfigIds.has(a.inputConfig.communityTemplateBlockConfigId)
+    );
     this.block.inputConfigs.map((config) => {
       // config.columnSize
       if (!config.columnSize) config.columnSize = 4;
@@ -46,7 +52,7 @@ export class TemplateFormService {
     for (let index = rowBlocksArray.length - 1; index >= 0; index--) {
       const _rba = rowBlocksArray[index]!;
       const row = _rba?.map((b, i) => {
-        const v = this.modelValues.find(
+        const v = modelValues.find(
           (f) => f.uid === b.uid && f.inputConfig.id === b.id
         );
         b._formMeta.formUid = b?.uid!;
@@ -72,7 +78,7 @@ export class TemplateFormService {
       const rowUids = row.map((a) => a.uid);
       const duplicates = Array.from(
         new Set(
-          this.modelValues
+          modelValues
             .filter((v) => rowUids.some((r) => v.uid.startsWith(`${r}-`)))
             .map((a) => a.uid.split("-")[1])
         )
@@ -80,7 +86,7 @@ export class TemplateFormService {
       for (let di = duplicates.length - 1; di >= 0; di--) {
         const dup = duplicates[di]!;
         const dupRow = row.map((b, i) => {
-          const v = this.modelValues.find((f) => f.uid === `${b.uid}-${dup}`);
+          const v = modelValues.find((f) => f.uid === `${b.uid}-${dup}`);
           return {
             ...b,
             _formMeta: {

@@ -32,13 +32,14 @@ export function duplicateRow(rowNo: number, grids: Grid[]) {
   // create the duplicated row with new rowNo
   const duplicated = row.map((g) => ({
     ...g,
-    id: g.id == -1 ? g.id : null,
+    id: g.id, // g.id == -1 ? g.id : null,
     uid: `${g.uid.split("-")[0]}-${nextCopy}`,
     _formMeta: {
       ...g._formMeta,
       selection: null,
       value: "",
       rowNo: rowNo + 1,
+      templateValueId: null,
       formUid: `${g.uid.split("-")[0]}-${nextCopy}`,
     },
   }));
@@ -47,7 +48,10 @@ export function duplicateRow(rowNo: number, grids: Grid[]) {
   const before = shifted.filter((g) => g._formMeta.rowNo <= rowNo);
   const after = shifted.filter((g) => g._formMeta.rowNo > rowNo);
 
-  return [...before, ...duplicated, ...after];
+  return [...before, ...duplicated, ...after].map((a, index) => ({
+    ...a,
+    index,
+  }));
 }
 export function deleteCopiedRow(rowNo: number, grids: Grid[]) {
   // remove the row

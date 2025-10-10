@@ -222,6 +222,13 @@ export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
           inputConfig: {
             select: {
               id: true,
+              communityTemplateBlockConfigId: true,
+              // blockConfig: {
+              //   select: {
+              //     // uid: true,
+              //     id: true,
+              //   },
+              // },
             },
           },
         },
@@ -268,6 +275,7 @@ export async function getCommunityBlockSchema(
           deletedAt: null,
         },
         select: {
+          communityTemplateBlockConfigId: true,
           valueUid: true,
           title: true,
           id: true,

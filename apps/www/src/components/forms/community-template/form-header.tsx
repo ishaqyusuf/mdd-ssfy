@@ -26,10 +26,11 @@ export function FormHeader() {
             onSuccess(data, variables, context) {},
         }),
     );
+    useDebugToast("Error", error);
     // useDebugToast("error", { data, error });
     const onSubmit = () => {
         const data = extractCommunityFormValueData(Object.values(store.blocks));
-        // console.log(data);
+        console.log(data);
         // console.log(store.blocks);
         mutate({
             ...data,
