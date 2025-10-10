@@ -9,7 +9,11 @@ import { _qc, _trpc } from "@/components/static-trpc";
 import { useEffect, useMemo, useState } from "react";
 import { cn, labelIdOptions } from "@/lib/utils";
 import { QuantityInput } from "@gnd/ui/quantity-input";
+import { ButtonGroup } from "@gnd/ui/button-group";
 import { useCommunityModelStore } from "@/store/community-model";
+import { Input } from "@gnd/ui/input";
+import { Minus, Plus } from "lucide-react";
+import { Button } from "@gnd/ui/button";
 
 export function ModelInput() {
     const ctx = useTemplateSchemaContext();
@@ -61,12 +65,48 @@ export function ModelInput() {
     if (isNumber)
         return (
             <>
-                <QuantityInput
+                <ButtonGroup>
+                    <Button
+                        onClick={(e) => {
+                            if (!value) return;
+                            setValue(value - 1);
+                        }}
+                        disabled={!value}
+                        className="size-8 p-1"
+                        variant="outline"
+                        aria-label="Search"
+                    >
+                        <Minus className="size-4" />
+                    </Button>
+                    <Input
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            const pf = Number.parseFloat(v);
+                            if (Number.isNaN(pf) && v) return;
+                            setValue(pf || "");
+                        }}
+                        value={value}
+                        // type="number"
+                        className="h-8 w-12"
+                        placeholder=""
+                    />
+                    <Button
+                        onClick={(e) => {
+                            setValue(value ? value + 1 : 1);
+                        }}
+                        className="size-8 p-1"
+                        variant="outline"
+                        aria-label="Search"
+                    >
+                        <Plus className="size-4" />
+                    </Button>
+                </ButtonGroup>
+                {/* <QuantityInput
                     onChange={setValue}
                     value={value}
                     className={cn()}
                     min={0}
-                />
+                /> */}
             </>
         );
 

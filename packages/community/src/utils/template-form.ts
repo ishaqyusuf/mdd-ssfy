@@ -36,6 +36,8 @@ export function duplicateRow(rowNo: number, grids: Grid[]) {
     uid: `${g.uid.split("-")[0]}-${nextCopy}`,
     _formMeta: {
       ...g._formMeta,
+      selection: null,
+      value: "",
       rowNo: rowNo + 1,
       formUid: `${g.uid.split("-")[0]}-${nextCopy}`,
     },

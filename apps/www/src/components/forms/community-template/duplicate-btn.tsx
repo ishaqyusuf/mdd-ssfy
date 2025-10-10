@@ -24,19 +24,18 @@ export function DuplicateBtn() {
         <div className={cn("absolute -right-10 z-10", show || "hidden")}>
             <Button
                 onClick={(e) => {
-                    toast({
-                        variant: "destructive",
-                        title: "Feature not ready",
-                        description: "We are still working on few bugs.",
-                    });
-                    return;
-                    store.update(
-                        `blocks.${blk.uid}.inputConfigs`,
-                        duplicateRow(
-                            input._formMeta.rowNo,
-                            store.blocks?.[blk.uid]?.inputConfigs,
-                        ),
+                    // toast({
+                    //     variant: "destructive",
+                    //     title: "Feature not ready",
+                    //     description: "We are still working on few bugs.",
+                    // });
+                    const dups = duplicateRow(
+                        input._formMeta.rowNo,
+                        store.blocks?.[blk.uid]?.inputConfigs,
                     );
+                    console.log(dups);
+                    // return;
+                    store.update(`blocks.${blk.uid}.inputConfigs`, dups);
                 }}
                 className=""
                 size="xs"
