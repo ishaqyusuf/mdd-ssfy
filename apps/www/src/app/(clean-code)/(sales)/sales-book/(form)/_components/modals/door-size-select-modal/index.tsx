@@ -249,7 +249,7 @@ function PriceCell({ salesPrice, basePrice, variant }) {
     const [opened, setOpened] = useState(false);
     return (
         <Popover open={opened} onOpenChange={setOpened}>
-            <PopoverTrigger>
+            <PopoverTrigger asChild>
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
