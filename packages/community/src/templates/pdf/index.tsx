@@ -63,8 +63,8 @@ export async function PdfTemplate(props: Props) {
 
   //   if (template.includeQr) {
   qrCode = await QRCodeUtil.toDataURL(
-    // `https://gndprodesk.com/api/model-template?preview=true&slugs=`,
-    props.url,
+    `https://gndprodesk.com/api/model-template?preview=true&slugs=`,
+    // props.url,
     {
       margin: 0,
       width: 40 * 3,

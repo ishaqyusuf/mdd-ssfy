@@ -1,6 +1,6 @@
 import { Text, View } from "@react-pdf/renderer";
 import { Info } from "../../../generate-print-data";
-import { colorsObject } from "@gnd/utils/colors";
+import { colorsObject, hexToRgba } from "@gnd/utils/colors";
 
 interface Props {
   cell: Info;
@@ -16,7 +16,7 @@ export function DataCell(props: Props) {
           justifyContent: "center",
           padding: "4px",
           paddingHorizontal: "9px",
-          backgroundColor: colorsObject.gray,
+          backgroundColor: hexToRgba(colorsObject.gray, 0.5),
           fontWeight: 700,
         }}
       >
