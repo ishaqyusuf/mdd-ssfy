@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
             .filter((a) => a > 0),
         templateSlug: result.data.templateSlug,
     });
-    consoleLog("PRINT>>", { printData, data: result.data });
+
     const {
         // id, token,
         preview,
@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
     const stream = await renderToStream(
         await PdfTemplate({
             units: printData.units,
+            url: requestUrl,
             template: {
                 size: "A4",
             },

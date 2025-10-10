@@ -51,6 +51,7 @@ interface Props {
   units: {
     data: Info[];
   }[];
+  url;
   template: {
     logoUrl?: string;
     size: "LETTER" | "A4";
@@ -62,7 +63,8 @@ export async function PdfTemplate(props: Props) {
 
   //   if (template.includeQr) {
   qrCode = await QRCodeUtil.toDataURL(
-    `https://gndprodesk.com/api/model-template?preview=true&slugs=`,
+    // `https://gndprodesk.com/api/model-template?preview=true&slugs=`,
+    props.url,
     {
       margin: 0,
       width: 40 * 3,
