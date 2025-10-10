@@ -131,7 +131,9 @@ export const { Provider: HptLineContextProvider, useContext: useHptLine } =
                 value as any,
             );
         };
-        const zDoor = ctx.itemForm.groupItem?.form?.[size.path];
+        const zDoor = !size?.path
+            ? sizeForm
+            : ctx.itemForm.groupItem?.form?.[size.path];
         return {
             ...props,
             setValue,
