@@ -39,7 +39,7 @@ export const columns: ColumnDef<Item>[] = [
         cell: ({ row: { original: item } }) => (
             <div className="inline-flex gap-2 items-center">
                 <div className="">
-                    <TCell.Secondary className="font-mono">
+                    <TCell.Secondary className="font-mono$">
                         {item?.description}
                     </TCell.Secondary>
                     <TCell.Secondary>

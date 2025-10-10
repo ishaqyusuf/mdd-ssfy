@@ -106,7 +106,7 @@ function ComponentLineItem({ componentIndex }) {
 function Pill({ label, value }) {
     return (
         <Badge
-            className="inline-flex gap-1 p-0 px-0.5 font-mono"
+            className="inline-flex gap-1 p-0 px-0.5 font-mono$"
             variant={"outline"}
         >
             <span>{label}:</span>

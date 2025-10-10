@@ -258,7 +258,32 @@ export const linkModules = [
                 .level(7).data,
         ]),
         _section("main", null, [
-            _link("Dashboard", "dashbord2", "/community")
+            _link("Dashboard", "dashbord2", "/community", [
+                _subLink("Projects", "/community")
+                    .access
+                    // _perm.is("editProject"),
+                    ().data,
+                _subLink("Units", "/community/project-units")
+                    .access
+                    // _perm.is("editProject"),
+                    ().data,
+                _subLink("Productions", "/community/project-units")
+                    .access
+                    // _perm.is("editProject"),
+                    ().data,
+                _subLink("Templates", "/community/templates")
+                    .access
+                    // _perm.is("editProject"),
+                    ().data,
+                _subLink("Invoices", "/community/invoices")
+                    .access
+                    // _perm.is("editProject"),
+                    ().data,
+                _subLink("Builders", "/community/builders")
+                    .access
+                    // _perm.is("editProject"),
+                    ().data,
+            ])
                 .access(_role.is("Super Admin"))
                 .level(7).data,
         ]),

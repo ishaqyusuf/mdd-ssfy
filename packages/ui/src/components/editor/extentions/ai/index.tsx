@@ -56,7 +56,7 @@ export function AIMenu({ onOpenChange, editor }: AIMenuProps) {
     const selectedText = editor?.state.doc.textBetween(
       editor?.state.selection?.from,
       editor?.state.selection?.to,
-      "",
+      ""
     );
 
     if (!selectedText) {
@@ -103,7 +103,7 @@ export function AIMenu({ onOpenChange, editor }: AIMenuProps) {
                 }
               }}
             />
-            <kbd className="pointer-events-none h-5 select-none items-center gap-1 px-1.5 font-mono text-[13px] font-medium absolute right-2 top-1/2 -translate-y-1/2">
+            <kbd className="pointer-events-none h-5 select-none items-center gap-1 px-1.5 font-mono$ text-[13px] font-medium absolute right-2 top-1/2 -translate-y-1/2">
               <span>↵</span>
             </kbd>
           </div>
@@ -114,7 +114,7 @@ export function AIMenu({ onOpenChange, editor }: AIMenuProps) {
           >
             <div className="flex items-center space-x-1">
               <MdOutlineAutoAwesome className="size-3" />
-              <span className="text-[11px] font-mono">Ask AI</span>
+              <span className="text-[11px] font-mono$">Ask AI</span>
             </div>
           </BubbleMenuButton>
         )}

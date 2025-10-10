@@ -134,7 +134,7 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
                 <Table className="table-fixed   p-4 font-medium">
                     <TableHeader className="text-xs">
                         <TableRow className="uppercase">
-                            <TableHead className="font-mono w-8">#</TableHead>
+                            <TableHead className="font-mono$ w-8">#</TableHead>
                             <TableHead className="w-36">Size</TableHead>
                             {ctx.config.hasSwing && (
                                 <TableHead className="w-28">Swing</TableHead>
@@ -232,8 +232,8 @@ function DoorSizeRowContent({ doorIndex, sizeIndex }) {
                     "hover:bg-transparent",
                 )}
             >
-                <TableCell className="font-mono"></TableCell>
-                <TableCell className="font-mono text-sm font-semibold">
+                <TableCell className="font-mono$"></TableCell>
+                <TableCell className="font-mono$ text-sm font-semibold">
                     {size.size}
                 </TableCell>
                 {!isSlab || (

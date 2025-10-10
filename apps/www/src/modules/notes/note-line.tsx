@@ -87,7 +87,7 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
                     </div>
                 ))}
                 {!event || (
-                    <div className="flex gap-2 text-xs font-semibold border p-0.5 rounded shadow-sm bg-red-100 font-mono items-center">
+                    <div className="flex gap-2 text-xs font-semibold border p-0.5 rounded shadow-sm bg-red-100 font-mono$ items-center">
                         <BellIcon className="size-4" />
                         <span>{formatDate(event.eventDate)}</span>
                     </div>

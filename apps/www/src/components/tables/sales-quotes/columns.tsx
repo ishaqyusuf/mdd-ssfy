@@ -15,7 +15,7 @@ export const columns: ColumnDef<Item>[] = [
         accessorKey: "quoteDate",
         meta: {},
         cell: ({ row: { original: item } }) => (
-            <TCell.Secondary className="font-mono">
+            <TCell.Secondary className="font-mono$">
                 {item?.salesDate}
             </TCell.Secondary>
         ),
@@ -29,7 +29,7 @@ export const columns: ColumnDef<Item>[] = [
                 {!item.orderId
                     ?.toUpperCase()
                     .endsWith(item.salesRepInitial) && (
-                    <Badge className="font-mono" variant="secondary">
+                    <Badge className="font-mono$" variant="secondary">
                         {item.salesRepInitial}
                     </Badge>
                 )}
@@ -90,7 +90,10 @@ export const columns: ColumnDef<Item>[] = [
         accessorKey: "invoice",
         cell: ({ row: { original: item } }) => (
             <div>
-                <TCell.Money value={item.invoice.total} className="font-mono" />
+                <TCell.Money
+                    value={item.invoice.total}
+                    className="font-mono$"
+                />
             </div>
         ),
     },

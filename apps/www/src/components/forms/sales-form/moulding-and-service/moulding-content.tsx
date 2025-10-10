@@ -51,7 +51,7 @@ export function MouldingContent({}) {
                             ]}
                         >
                             <TableRow>
-                                <TableCell className="font-mono">
+                                <TableCell className="font-mono$">
                                     {sn + 1}.
                                 </TableCell>
                                 <TableCell className="uppercase">

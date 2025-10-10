@@ -74,7 +74,7 @@ export function TakeOffSection({ index }: Props) {
                 </div>
                 <CollapsibleContent>
                     <div className="border-b-2">
-                        <div className="divide-y font-mono text-sm">
+                        <div className="divide-y font-mono$ text-sm">
                             {fields.map((component, index) => (
                                 <TakeOffSectionComponent
                                     key={component?._id}

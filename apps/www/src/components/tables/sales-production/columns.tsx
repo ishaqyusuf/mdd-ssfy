@@ -29,7 +29,7 @@ const assignedToColumn: Column = {
     accessorKey: "assignedTo",
     meta: {},
     cell: ({ row: { original: item } }) => (
-        <TCell.Primary className="flex gap-4 font-mono">
+        <TCell.Primary className="flex gap-4 font-mono$">
             {item.assignedTo}
         </TCell.Primary>
     ),
@@ -81,7 +81,7 @@ const orderColumn: Column = {
     accessorKey: "orderId",
     meta: {},
     cell: ({ row: { original: item } }) => (
-        <TCell.Primary className="font-mono">{item.orderId}</TCell.Primary>
+        <TCell.Primary className="font-mono$">{item.orderId}</TCell.Primary>
     ),
 };
 const statusColumn: Column = {
@@ -239,7 +239,7 @@ function Actions({ item }: { item: Item }) {
 //                             ?.toUpperCase()
 //                             .endsWith(item.salesRepInitial) && (
 //                             <Badge
-//                                 className="font-mono text-xs"
+//                                 className="font-mono$ text-xs"
 //                                 variant="secondary"
 //                             >
 //                                 {item.salesRepInitial}
@@ -255,7 +255,7 @@ function Actions({ item }: { item: Item }) {
 //                             </Badge>
 //                         )}
 //                     </div>
-//                     <TCell.Secondary className="text-xs font-mono">
+//                     <TCell.Secondary className="text-xs font-mono$">
 //                         {item?.salesDate}
 //                     </TCell.Secondary>
 //                 </div>
@@ -292,7 +292,7 @@ function Actions({ item }: { item: Item }) {
 //                     <TCell.Money
 //                         value={item.invoice.total}
 //                         className={cn(
-//                             "font-mono font-bold",
+//                             "font-mono$ font-bold",
 //                             item.invoice.pending == item.invoice.total
 //                                 ? "text-red-600"
 //                                 : item.invoice.pending > 0

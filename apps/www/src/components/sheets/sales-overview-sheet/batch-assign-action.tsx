@@ -95,7 +95,7 @@ export function BatchAssignAction() {
             <Form {...form}>
                 <AnimateReveal opened={opened}>
                     {/* <div className="border flex items-center space-x-2"> */}
-                    <Label className="whitespace-nowrap px-2 font-mono">
+                    <Label className="whitespace-nowrap px-2 font-mono$">
                         <span className="font-bold">{ctx.selectCount}</span>
                         {/* {" of "} */}
                         {/* <span className="font-bold">{total}</span> */}
@@ -180,7 +180,7 @@ function DueDate() {
                     className="whitespace-nowrap rounded-none p-0 text-start"
                     variant="ghost"
                 >
-                    <Label className="line-clamp-1 w-24  px-2 font-mono">
+                    <Label className="line-clamp-1 w-24  px-2 font-mono$">
                         <span className="font-bold">
                             {_date ? formatDate(_date) : "Due Date"}
                         </span>
@@ -219,7 +219,7 @@ function AssignTo() {
                     className="whitespace-nowrap rounded-none p-0 text-start"
                     variant="ghost"
                 >
-                    <Label className="line-clamp-1 w-24  px-2 font-mono">
+                    <Label className="line-clamp-1 w-24  px-2 font-mono$">
                         {assignedTo ? (
                             <span className="">{assignedTo?.label}</span>
                         ) : (

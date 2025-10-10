@@ -73,7 +73,7 @@ export function ComponentSectionFooter({ ctx }: { ctx: UseStepContext }) {
                 <div className="flex items-center gap-4 rounded-lg border p-2 px-4 shadow">
                     {selectionState?.count ? (
                         <>
-                            <span className="font-mono text-sm font-semibold uppercase">
+                            <span className="font-mono$ text-sm font-semibold uppercase">
                                 {selectionState?.count} selected
                             </span>
                             <SearchBar ctx={ctx} />
@@ -103,7 +103,7 @@ export function ComponentSectionFooter({ ctx }: { ctx: UseStepContext }) {
                         </>
                     ) : (
                         <>
-                            <span className="font-mono text-sm font-semibold uppercase">
+                            <span className="font-mono$ text-sm font-semibold uppercase">
                                 {items?.length} components
                             </span>{" "}
                             <SearchBar ctx={ctx} />

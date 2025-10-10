@@ -33,7 +33,7 @@ export function DoorTitle({}) {
     const item = useTakeoffItem();
 
     return (
-        <div className="line-clamp-2 text-sm font-bold font-mono">
+        <div className="line-clamp-2 text-sm font-bold font-mono$">
             {item?.door?.title}
         </div>
     );

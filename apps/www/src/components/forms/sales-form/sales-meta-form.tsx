@@ -90,7 +90,7 @@ export function SalesMetaForm({}) {
                                 setTab(_tab);
                             }}
                             className={cn(
-                                "rounded-none border-b-2 border-transparent font-mono uppercase hover:bg-transparent",
+                                "rounded-none border-b-2 border-transparent font-mono$ uppercase hover:bg-transparent",
                                 tab == _tab
                                     ? "rounded-none border-b border-primary"
                                     : "text-muted-foreground/90 hover:text-muted-foreground",
@@ -431,7 +431,7 @@ function LineContainer({ label, lg = false, className = "", children }) {
     return (
         <div
             className={cn(
-                "items-center gap-4 font-mono uppercase",
+                "items-center gap-4 font-mono$ uppercase",
                 label && "grid grid-cols-5",
             )}
         >
@@ -485,7 +485,7 @@ export function Select<T>({
         >
             <SelectTrigger
                 noIcon
-                className="uppercases midday relative  h-7 w-auto min-w-[16px] border-none bg-transparent p-0 font-mono"
+                className="uppercases midday relative  h-7 w-auto min-w-[16px] border-none bg-transparent p-0 font-mono$"
             >
                 {isPlaceholder && (
                     <div className="pointer-events-none absolute inset-0">
@@ -494,7 +494,7 @@ export function Select<T>({
                 )}
 
                 <SelectValue
-                    // className="whitespace-nowrap border-none p-0 font-mono uppercase"
+                    // className="whitespace-nowrap border-none p-0 font-mono$ uppercase"
                     placeholder={props.placeholder}
                 >
                     <span>

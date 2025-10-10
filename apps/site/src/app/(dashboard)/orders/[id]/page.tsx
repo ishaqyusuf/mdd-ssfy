@@ -359,7 +359,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                   <div className="text-sm space-y-2">
                     <div>
                       <span className="font-semibold">Tracking Number:</span>
-                      <p className="font-mono text-blue-600">
+                      <p className="font-mono$ text-blue-600">
                         {order.trackingNumber}
                       </p>
                     </div>

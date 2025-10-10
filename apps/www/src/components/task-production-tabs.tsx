@@ -12,7 +12,7 @@ export function TaskProductionTabs({}) {
     return (
         <div className="my-2 px-4">
             {/* {JSON.stringify(data?.data)} */}
-            <Tabs className="min-w-[400px] font-mono ">
+            <Tabs className="min-w-[400px] font-mono$ ">
                 <TabsList>
                     {data?.data?.map((tab) => (
                         <TabsTrigger

@@ -12,13 +12,13 @@ export function SalesPrintHeader({ data }: TemplateProps) {
         </th>
         <th className="w-1/4 align-top text-left font-bold">
           {/* Company Address */}
-          <p className="text-sm font-mono">13285 SW 131 ST</p>
-          <p className="text-sm font-mono">Miami, Fl 33186</p>
-          <p className="text-sm font-mono">Phone: 305-278-6555</p>
+          <p className="text-sm font-mono$">13285 SW 131 ST</p>
+          <p className="text-sm font-mono$">Miami, Fl 33186</p>
+          <p className="text-sm font-mono$">Phone: 305-278-6555</p>
           {data.query?.mode == "production" && (
-            <p className="text-sm font-mono">Fax: 305-278-2003</p>
+            <p className="text-sm font-mono$">Fax: 305-278-2003</p>
           )}
-          <p className="text-sm font-mono">support@gndmillwork.com</p>
+          <p className="text-sm font-mono$">support@gndmillwork.com</p>
         </th>
         <th className="w-1/3 align-top text-right p-2">
           {/* Heading */}

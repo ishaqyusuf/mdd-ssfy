@@ -123,7 +123,7 @@ export function CustomComponentForm({ itemStepUid }) {
     const stepForm = ctx.cls.getStepForm();
     if (!stepForm?.meta?.custom) return null;
     return (
-        <div className="min-h-[56px] rounded-lg border  font-mono">
+        <div className="min-h-[56px] rounded-lg border  font-mono$">
             <div className="border-b p-4 py-2">
                 <Label>Custom</Label>
             </div>

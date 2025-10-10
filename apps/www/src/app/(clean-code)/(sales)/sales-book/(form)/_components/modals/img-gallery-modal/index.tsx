@@ -82,7 +82,7 @@ export default function StepComponentFormModal(props: Props) {
                                         src={component.img}
                                     />
                                 </div>
-                                <span className="font-mono uppercase">
+                                <span className="font-mono$ uppercase">
                                     {component.title}
                                 </span>
                             </div>

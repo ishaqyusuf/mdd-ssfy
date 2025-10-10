@@ -81,7 +81,7 @@ export function FormInput<
               {load?.loading ? (
                 <Skeleton className="h-8 w-full" />
               ) : numericProps ? (
-                <div className="relative font-mono">
+                <div className="relative font-mono$">
                   <NumericFormat
                     customInput={Input}
                     value={field.value}

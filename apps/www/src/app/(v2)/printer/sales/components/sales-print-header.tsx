@@ -15,7 +15,7 @@ export default function SalesPrintHeader() {
         <thead id="topHeader">
             <tr className="">
                 <td colSpan={16}>
-                    <table className="w-full table-fixed font-mono text-xs">
+                    <table className="w-full table-fixed font-mono$ text-xs">
                         <tbody>
                             <tr className="">
                                 <td colSpan={9} valign="top">
@@ -68,7 +68,7 @@ export default function SalesPrintHeader() {
                                         {index == 1 && (
                                             <td colSpan={4} className="">
                                                 {!sale.paymentDate || (
-                                                    <div className="sabsolute watermark-text text-strokes   inline-flex -translate-y-16 translate-x-4 -rotate-45 flex-col font-mono font-bold uppercase ">
+                                                    <div className="sabsolute watermark-text text-strokes   inline-flex -translate-y-16 translate-x-4 -rotate-45 flex-col font-mono$ font-bold uppercase ">
                                                         <span className="text-5xl">
                                                             Paid
                                                         </span>

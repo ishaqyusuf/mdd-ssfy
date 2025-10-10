@@ -88,7 +88,7 @@ export default function DoorSizeModal({ cls }: Props) {
                                         This component has not rules set, which
                                         means it will always be visible in{" "}
                                         <Badge
-                                            className="font-mono"
+                                            className="font-mono$"
                                             variant="outline"
                                         >
                                             {ctx.step?.title}

@@ -51,7 +51,7 @@ export default function NumberPicker<
                             onClick={() => {
                                 field.onChange(null);
                             }}
-                            className="h-8 font-mono uppercase"
+                            className="h-8 font-mono$ uppercase"
                         >
                             Clear
                         </Button>
@@ -63,7 +63,7 @@ export default function NumberPicker<
                             ) : null}
                             {inputs.map((i) => (
                                 <Button
-                                    className="border-nones h-8 rounded-full font-mono text-xs font-bold"
+                                    className="border-nones h-8 rounded-full font-mono$ text-xs font-bold"
                                     disabled={disabled}
                                     variant={
                                         (field.value || 0) >= i

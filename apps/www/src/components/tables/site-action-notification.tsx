@@ -51,7 +51,7 @@ export function SiteActionNotificationTable({ dataPromise, userPromise }) {
             <TableBody>
                 {data.map((e) => (
                     <TableRow key={e.id}>
-                        <TableCell className="font-mono">
+                        <TableCell className="font-mono$">
                             {Events?.[e.event]?.split("_").join(" ")}
                         </TableCell>
                         <EnableCell actionId={e.id} checked={e.enabled} />

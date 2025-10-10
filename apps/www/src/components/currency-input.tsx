@@ -31,7 +31,7 @@ export function NumberInput({
     const [isFocused, setIsFocused] = useState(false);
     const isPlaceholder = !value && !isFocused && !noMask && !props.placeholder;
     return (
-        <div className="midday relative font-mono">
+        <div className="midday relative font-mono$">
             <CurrencyInput
                 // suffix="%)"
                 // prefix="$"
@@ -42,7 +42,7 @@ export function NumberInput({
                     setIsFocused(false);
                     // onBlur();
                 }}
-                // className="p-0 border-0 h-6 text-xs !bg-transparent font-mono flex-shrink-0 w-16 text-[11px] text-[#878787]"
+                // className="p-0 border-0 h-6 text-xs !bg-transparent font-mono$ flex-shrink-0 w-16 text-[11px] text-[#878787]"
                 thousandSeparator={thousandSeparator}
                 decimalScale={2}
                 // isAllowed={(values) => {

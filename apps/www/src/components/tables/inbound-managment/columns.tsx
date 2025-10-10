@@ -17,7 +17,7 @@ export const columns: ColumnDef<Item>[] = [
         accessorKey: "order",
         cell: ({ row: { original: item } }) => (
             <div className="inline-flex gap-2 items-center">
-                <TCell.Secondary className="font-mono">
+                <TCell.Secondary className="font-mono$">
                     {item?.orderId}
                 </TCell.Secondary>
             </div>

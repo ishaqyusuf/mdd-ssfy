@@ -482,7 +482,7 @@ export function DataTableFilterCommand<TData, TSchema extends z.AnyZodObject>({
                                                         {facetedValue?.has(
                                                             optionValue,
                                                         ) ? (
-                                                            <span className="ml-auto font-mono text-muted-foreground">
+                                                            <span className="ml-auto font-mono$ text-muted-foreground">
                                                                 {facetedValue?.get(
                                                                     optionValue,
                                                                 )}

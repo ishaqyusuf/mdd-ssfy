@@ -30,7 +30,7 @@ export function InboundSummary({ count, title }: Props) {
     return (
         <Card className={cn("bg-inherit")}>
             <CardHeader className="pb-2 relative">
-                <CardTitle className="font-mono font-medium text-2xl">
+                <CardTitle className="font-mono$ font-medium text-2xl">
                     <AnimatedNumber
                         value={count}
                         currency="number"

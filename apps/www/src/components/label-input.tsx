@@ -20,7 +20,7 @@ export function LabelInput({ className, ...props }: InputProps) {
                 autoComplete="off"
                 value={props.value || ""}
                 className={cn(
-                    "h-6 border-0 border-b border-transparent p-0 font-mono text-xs focus:border-border",
+                    "h-6 border-0 border-b border-transparent p-0 font-mono$ text-xs focus:border-border",
                     isPlaceholder && "opacity-0",
                     className,
                 )}

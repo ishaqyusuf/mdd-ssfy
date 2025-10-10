@@ -127,7 +127,7 @@ export function PayPortalTab({}) {
                                             </TCell.Date>
                                         </DataSkeleton>
                                     </TableCell>
-                                    <TableCell className="font-mono">
+                                    <TableCell className="font-mono$">
                                         <DataSkeleton pok="orderId">
                                             <TCell.Primary>
                                                 {sale.orderId}
@@ -135,7 +135,7 @@ export function PayPortalTab({}) {
                                         </DataSkeleton>
                                     </TableCell>
                                     <TableCell
-                                        className="font-mono"
+                                        className="font-mono$"
                                         align="right"
                                     >
                                         $
@@ -147,7 +147,7 @@ export function PayPortalTab({}) {
                                         </DataSkeleton>
                                     </TableCell>
                                     <TableCell
-                                        className="font-mono"
+                                        className="font-mono$"
                                         align="right"
                                     >
                                         $

@@ -29,7 +29,7 @@ export const columns: ColumnDef<Item>[] = [
                 <TCell.Secondary className="font-bold">
                     {item.uid}
                 </TCell.Secondary>
-                <TCell.Secondary className="font-mono">
+                <TCell.Secondary className="font-mono$">
                     {item.date}
                 </TCell.Secondary>
             </div>
@@ -42,7 +42,7 @@ export const columns: ColumnDef<Item>[] = [
         cell: ({ row: { original: item } }) => (
             <div>
                 <TCell.Primary className="">{item.name}</TCell.Primary>
-                <TCell.Secondary className="font-mono">
+                <TCell.Secondary className="font-mono$">
                     {item.username}
                 </TCell.Secondary>
             </div>

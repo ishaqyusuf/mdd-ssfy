@@ -293,7 +293,7 @@ export default function OrdersPage() {
                           <h4 className="font-semibold mb-1">
                             Tracking Number
                           </h4>
-                          <p className="text-sm font-mono text-blue-600">
+                          <p className="text-sm font-mono$ text-blue-600">
                             {order.trackingNumber}
                           </p>
                         </div>

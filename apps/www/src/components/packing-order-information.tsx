@@ -30,7 +30,7 @@ export function PackingOrderInformation() {
                                         dispatch.deliveryMode,
                                     ),
                                 }}
-                                className="mx-2 uppercase font-mono text-muted-foreground"
+                                className="mx-2 uppercase font-mono$ text-muted-foreground"
                             >
                                 {dispatch.deliveryMode}
                             </Badge>

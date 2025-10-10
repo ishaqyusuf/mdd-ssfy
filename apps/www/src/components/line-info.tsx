@@ -13,8 +13,9 @@ export function LineInfo({
                 {label}:
             </span>
             <div className="flex-1"></div>
-            <span className="font-mono text-sm uppercase">{value}</span>
+            <span className="font-mono$ text-sm uppercase">{value}</span>
             {children}
         </div>
     );
 }
+

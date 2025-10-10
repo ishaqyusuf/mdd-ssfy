@@ -16,7 +16,7 @@ export function SelectMoulding({}) {
                         variant={"secondary"}
                         className={cn(
                             "w-full",
-                            "border border-transparent hover:border-border text-xs uppercase p-1 h-7 rounded font-mono overflow-hidden gap-2",
+                            "border border-transparent hover:border-border text-xs uppercase p-1 h-7 rounded font-mono$ overflow-hidden gap-2",
                         )}
                     >
                         <span>Add Moulding</span>

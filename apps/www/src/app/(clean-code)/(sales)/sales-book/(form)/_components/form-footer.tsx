@@ -95,7 +95,7 @@ function FixedDisplay({ label, value }) {
             <Label className="font-semibold uppercase text-muted-foreground">
                 {label}:
             </Label>
-            <div className="font-mono text-sm font-semibold">
+            <div className="font-mono$ text-sm font-semibold">
                 <AnimatedNumber value={value || 0} />
                 {/* <Money value={value} /> */}
             </div>

@@ -55,7 +55,7 @@ export function TakeOffComponent({ itemStepUid }) {
                         variant={!stepForm?.value ? "secondary" : "default"}
                         className={cn(
                             "",
-                            "border border-transparent hover:border-border text-xs uppercase p-1 h-7 rounded font-mono overflow-hidden gap-2",
+                            "border border-transparent hover:border-border text-xs uppercase p-1 h-7 rounded font-mono$ overflow-hidden gap-2",
                             stepForm?.value
                                 ? "font-medium bg-blue-900"
                                 : "text-muted-foreground",
@@ -169,7 +169,7 @@ export function Components({
                                             />
                                         </div>
 
-                                        <Label className="text-muted-foreground uppercase text-xs font-mono">
+                                        <Label className="text-muted-foreground uppercase text-xs font-mono$">
                                             {item?.item?.label}
                                         </Label>
                                     </div>

@@ -123,7 +123,7 @@ export function TransactionOverviewModal({}) {
                                                 </DataSkeleton>
                                             </TCell.Secondary>
                                         </TableCell>
-                                        <TableCell className="font-mono">
+                                        <TableCell className="font-mono$">
                                             <DataSkeleton pok="textSm">
                                                 <TCell.Status
                                                     status={tx.status}

@@ -14,7 +14,7 @@ const tw: { [key in string]: Partial<Style> } = {
   "size-lg": { fontSize: 18 },
   "text-2xl": { fontSize: 24 },
   "text-5xl": { fontSize: 40 },
-  "font-mono": {
+  "font-mono$": {
     // fontFamily: "Roboto",
     //   'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
   },
@@ -107,7 +107,7 @@ const tw: { [key in string]: Partial<Style> } = {
 export function cva(style) {
   const styles: string[] = [];
   Object.entries(style || {}).forEach(([key, value]) =>
-    styles.push(`${key}-${value}`),
+    styles.push(`${key}-${value}`)
   );
   return cn(...styles);
 }
@@ -131,7 +131,7 @@ export function cn(
 
       return acc;
     },
-    {} as Record<string, any>,
+    {} as Record<string, any>
   ) as any;
 }
 
@@ -143,6 +143,6 @@ export function style(...names: (StyleType | false | undefined | null)[]) {
       }
       return acc;
     },
-    {} as Record<string, any>,
+    {} as Record<string, any>
   );
 }

@@ -42,7 +42,7 @@ export function BatchAction({ children = null }) {
                 className="sgap-4 relative flex items-center divide-x divide-muted-foreground/50 overflow-hidden rounded-xl border border-muted-foreground/50 bg-white shadow-xl"
             >
                 {/* <div className="border flex sgap-4 items-center rounded-xl bg-white overflow-hidden border-muted-foreground/50 divide-x divide-muted-foreground/50 shadow-xl  relative "> */}
-                <Label className="px-2 font-mono">
+                <Label className="px-2 font-mono$">
                     <span className="font-bold">{selectCount}</span>
                     {" of "}
                     <span className="font-bold">{total}</span>

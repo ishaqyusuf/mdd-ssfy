@@ -130,7 +130,7 @@ function ScheduleDate({ item, editable }: { item: Item; editable?: boolean }) {
         },
     });
     return (
-        <TCell.Secondary className="font-mono">
+        <TCell.Secondary className="font-mono$">
             <div className="w-32">
                 {driverMode ? (
                     <>
@@ -198,7 +198,7 @@ const order: ColumnDef<Item> = {
     accessorKey: "order",
     cell: ({ row: { original: item } }) => (
         <div className="inline-flex gap-2 items-center">
-            <TCell.Secondary className="font-mono">
+            <TCell.Secondary className="font-mono$">
                 {item?.order?.orderId}
             </TCell.Secondary>
         </div>
@@ -209,7 +209,7 @@ const orderDate: ColumnDef<Item> = {
     accessorKey: "orderDate",
     cell: ({ row: { original: item } }) => (
         <div className="inline-flex gap-2 items-center">
-            <TCell.Secondary className="font-mono">
+            <TCell.Secondary className="font-mono$">
                 <TCell.Date>{item?.order?.createdAt}</TCell.Date>
             </TCell.Secondary>
         </div>

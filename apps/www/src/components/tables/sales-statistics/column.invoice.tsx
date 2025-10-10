@@ -47,7 +47,7 @@ export function InvoiceColumn({ item }: { item: Item }) {
                         <TCell.Money
                             value={item.invoice.total}
                             className={cn(
-                                "font-mono font-medium",
+                                "font-mono$ font-medium",
                                 pending == total
                                     ? "text-red-600"
                                     : pending > 0

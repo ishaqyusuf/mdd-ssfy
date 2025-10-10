@@ -25,13 +25,13 @@ export function SalesPrintHeader({ printData }: SalesInvoiceTemplateProps) {
           )}
         </View>
         <View style={cn("w-1/4 font-bold flex-col")}>
-          <Text style={cn("text-sm font-mono")}>13285 SW 131 ST</Text>
-          <Text style={cn("text-sm font-mono")}>Miami, Fl 33186</Text>
-          <Text style={cn("text-sm font-mono")}>Phone: 305-278-6555</Text>
+          <Text style={cn("text-sm font-mono$")}>13285 SW 131 ST</Text>
+          <Text style={cn("text-sm font-mono$")}>Miami, Fl 33186</Text>
+          <Text style={cn("text-sm font-mono$")}>Phone: 305-278-6555</Text>
           {sale?.header?.isProd && (
-            <Text style={cn("text-sm font-mono")}>Fax: 305-278-2003</Text>
+            <Text style={cn("text-sm font-mono$")}>Fax: 305-278-2003</Text>
           )}
-          <Text style={cn("text-sm font-mono")}>support@gndmillwork.com</Text>
+          <Text style={cn("text-sm font-mono$")}>support@gndmillwork.com</Text>
         </View>
         <View
           style={cn("flex-col p-2", {
@@ -62,7 +62,7 @@ export function SalesPrintHeader({ printData }: SalesInvoiceTemplateProps) {
                   ? {}
                   : {
                       width: "37.5%",
-                    },
+                    }
               )}
             >
               {index == 1 ? (
@@ -98,14 +98,14 @@ export function SalesPrintHeader({ printData }: SalesInvoiceTemplateProps) {
                 </View>
               ) : (
                 address && (
-                  <> 
+                  <>
                     <View>
                       <Text
                         style={cn(
                           "text-sm bg-slate-200 text-gray-700 border p-1 px-2",
                           {
                             fontWeight: 700,
-                          },
+                          }
                         )}
                       >
                         {address?.title}
@@ -122,7 +122,7 @@ export function SalesPrintHeader({ printData }: SalesInvoiceTemplateProps) {
                 )
               )}
             </View>
-          ),
+          )
         )}
       </View>
     </View>

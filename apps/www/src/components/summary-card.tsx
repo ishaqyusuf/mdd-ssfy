@@ -45,7 +45,7 @@ export function SummaryCard(props: Props) {
     return (
         <Card>
             <CardHeader className="relative pb-2">
-                <CardTitle className="font-mono text-2xl font-medium">
+                <CardTitle className="font-mono$ text-2xl font-medium">
                     <AnimatedNumber
                         key={props.currency}
                         value={props.total_amount}

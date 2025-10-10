@@ -125,7 +125,7 @@ function StepSectionHeader({ cls }: { cls: StepHelperClass }) {
                 >
                     <Label>{stepForm?.title}</Label>
                     <div className="flex-1"></div>
-                    <span className="font-mono">{stepForm.value}</span>
+                    <span className="font-mono$">{stepForm.value}</span>
                     {stepForm.salesPrice ? (
                         <Badge variant="destructive" className="h-5 px-1">
                             ${formatMoney(stepForm.salesPrice)}

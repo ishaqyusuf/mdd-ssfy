@@ -12,9 +12,9 @@ export interface TemplateProps {
 }
 export function SalesInvoiceHtmlTemplate({ data }: { data: PrintData }) {
   return (
-    <div className="font-monos" id={`salesPrinter`}>
+    <div className="font-mono$s" id={`salesPrinter`}>
       <section id={`s${data?.id}`} className={cn("")}>
-        <table className="main mr-10s w-full text-xs font-monos">
+        <table className="main mr-10s w-full text-xs font-mono$s">
           <SalesPrintHeader data={data} />
           <tbody className="">
             {data.linesSection.map((section, o) => (

@@ -37,7 +37,7 @@ function TakeOffItemContent({}) {
                                 e.target.value?.toLocaleUpperCase(),
                             );
                         }}
-                        className="h-8 uppercase font-mono"
+                        className="h-8 uppercase font-mono$"
                         placeholder="Takeoff title"
                     />
                     <ItemMenu />

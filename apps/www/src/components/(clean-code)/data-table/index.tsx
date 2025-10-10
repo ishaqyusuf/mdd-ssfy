@@ -292,7 +292,7 @@ function LoadMore() {
             ) : (
                 <p className="text-sm text-muted-foreground">
                     No more data to load (total:{" "}
-                    <span className="font-mono font-medium">
+                    <span className="font-mono$ font-medium">
                         {formatCompactNumber(totalRows)}
                     </span>{" "}
                     rows)

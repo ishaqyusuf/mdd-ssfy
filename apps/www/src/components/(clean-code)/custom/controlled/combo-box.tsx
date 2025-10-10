@@ -219,7 +219,7 @@ export function ComboxBox<
                                                             {optLabel(opt)}
                                                         </span>
                                                         {(opt as any).count && (
-                                                            <span className="ml-auto flex size-4 items-center justify-center font-mono text-xs">
+                                                            <span className="ml-auto flex size-4 items-center justify-center font-mono$ text-xs">
                                                                 {
                                                                     (opt as any)
                                                                         .count

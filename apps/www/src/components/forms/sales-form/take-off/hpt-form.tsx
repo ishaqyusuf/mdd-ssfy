@@ -59,7 +59,7 @@ function Content() {
                 <span>{item.itemUid}</span>
             </Env>
             <table className="">
-                <thead className="text-sm uppercase font-mono tracking-wider font-medium text-muted-foreground">
+                <thead className="text-sm uppercase font-mono$ tracking-wider font-medium text-muted-foreground">
                     <tr className="text-xs">
                         <th className="p-1 px-2" align="left">
                             Size
@@ -119,7 +119,7 @@ function Content() {
                         </td>
                         <td
                             align="right"
-                            className="text-sm font-mono font-semibold"
+                            className="text-sm font-mono$ font-semibold"
                         >
                             <AnimatedNumber
                                 value={sizeForm?.pricing?.totalPrice || 0}

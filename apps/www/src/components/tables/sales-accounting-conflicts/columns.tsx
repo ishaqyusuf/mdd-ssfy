@@ -37,7 +37,7 @@ export const columns: ColumnDef<Item>[] = [
             return (
                 <TCell.Secondary
                     className={cn(
-                        "font-mono text-sm",
+                        "font-mono$ text-sm",
                         item.amount < 0 && "text-red-700/70",
                     )}
                 >
@@ -62,7 +62,7 @@ export const columns: ColumnDef<Item>[] = [
                 </TCell.Secondary>
                 <Progress>
                     <Progress.Status>{item.paymentMethod}</Progress.Status>
-                    <span className="font-mono">{item.checkNo}</span>
+                    <span className="font-mono$">{item.checkNo}</span>
                 </Progress>
             </>
         ),
@@ -152,7 +152,7 @@ export const customerTransactionsColumn: ColumnDef<Item>[] = [
                     <TCell.Date>{item.createdAt}</TCell.Date>
                     <TCell.Secondary
                         className={cn(
-                            "font-mono text-sm",
+                            "font-mono$ text-sm",
                             item.amount < 0 && "text-red-700/70",
                         )}
                     >
@@ -179,7 +179,7 @@ export const customerTransactionsColumn: ColumnDef<Item>[] = [
                 </TCell.Secondary>
                 <Progress>
                     <Progress.Status>{item.paymentMethod}</Progress.Status>
-                    <span className="font-mono">{item.checkNo}</span>
+                    <span className="font-mono$">{item.checkNo}</span>
                 </Progress>
             </>
         ),

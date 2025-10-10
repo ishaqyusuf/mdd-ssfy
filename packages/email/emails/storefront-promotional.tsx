@@ -78,7 +78,7 @@ export default function StorefrontPromotional({
 
           <Section className="text-center my-[30px]">
             <Text
-              className={`text-[16px] font-mono tracking-wide bg-gray-100 py-2 px-4 inline-block rounded ${themeClasses.text}`}
+              className={`text-[16px] font-mono$ tracking-wide bg-gray-100 py-2 px-4 inline-block rounded ${themeClasses.text}`}
               style={{
                 backgroundColor: "#f3f4f6",
                 color: lightStyles.text.color,

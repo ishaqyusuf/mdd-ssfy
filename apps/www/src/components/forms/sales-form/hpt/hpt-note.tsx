@@ -39,7 +39,7 @@ export function HptNote({}) {
                                 tagFilters={__noteTagFilter}
                             />
                         ) : (
-                            <div className="flex text-center font-mono p-2 items-center text-red-600">
+                            <div className="flex text-center font-mono$ p-2 items-center text-red-600">
                                 <span>
                                     To access item note, you need to first save
                                     your invoice

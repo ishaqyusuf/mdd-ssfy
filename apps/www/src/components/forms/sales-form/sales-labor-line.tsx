@@ -54,7 +54,7 @@ function LineContainer({ label, lg = false, className = "", children }) {
     return (
         <div
             className={cn(
-                "items-center gap-4 font-mono uppercase",
+                "items-center gap-4 font-mono$ uppercase",
                 label && "grid grid-cols-5",
             )}
         >

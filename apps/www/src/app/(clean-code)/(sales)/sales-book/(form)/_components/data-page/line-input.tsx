@@ -60,7 +60,7 @@ export function Input({
                 <Label
                     className={cn(
                         props.disabled && "text-muted-foreground",
-                        midday && "text-xss font-mono",
+                        midday && "text-xss font-mono$",
                     )}
                 >
                     {label}:
@@ -150,7 +150,7 @@ export function Select<T>({
             {label && (
                 <Label
                     className={cn(
-                        midday && "text-xss whitespace-nowrap font-mono ",
+                        midday && "text-xss whitespace-nowrap font-mono$ ",
                     )}
                 >
                     {label}:
@@ -166,7 +166,7 @@ export function Select<T>({
                 {midday ? (
                     <SelectTrigger
                         noIcon
-                        className="uppercases midday relative  h-7 w-auto min-w-[16px] border-none bg-transparent p-0 font-mono"
+                        className="uppercases midday relative  h-7 w-auto min-w-[16px] border-none bg-transparent p-0 font-mono$"
                     >
                         {isPlaceholder && (
                             <div className="pointer-events-none absolute inset-0">
@@ -176,7 +176,7 @@ export function Select<T>({
 
                         <SelectValue
                             asChild
-                            className="whitespace-nowrap border-none p-0 font-mono uppercase"
+                            className="whitespace-nowrap border-none p-0 font-mono$ uppercase"
                             // placeholder={props.placeholder}
                         >
                             <span>

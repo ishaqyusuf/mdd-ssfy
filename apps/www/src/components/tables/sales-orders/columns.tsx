@@ -26,7 +26,7 @@ export const columns2: ColumnDef<Item>[] = [
         accessorKey: "salesDate",
         meta: {},
         cell: ({ row: { original: item } }) => (
-            <TCell.Secondary className="font-mono">
+            <TCell.Secondary className="font-mono$">
                 {item?.salesDate}
             </TCell.Secondary>
         ),
@@ -40,7 +40,7 @@ export const columns2: ColumnDef<Item>[] = [
                 {!item.orderId
                     ?.toUpperCase()
                     .endsWith(item.salesRepInitial) && (
-                    <Badge className="font-mono" variant="secondary">
+                    <Badge className="font-mono$" variant="secondary">
                         {item.salesRepInitial}
                     </Badge>
                 )}
@@ -162,7 +162,7 @@ export const columns: ColumnDef<Item>[] = [
         accessorKey: "salesDate",
         meta: {},
         cell: ({ row: { original: item } }) => (
-            <TCell.Secondary className="font-mono">
+            <TCell.Secondary className="font-mono$">
                 {item?.salesDate}
             </TCell.Secondary>
         ),
@@ -176,7 +176,7 @@ export const columns: ColumnDef<Item>[] = [
                 {!item.orderId
                     ?.toUpperCase()
                     .endsWith(item.salesRepInitial) && (
-                    <Badge className="font-mono" variant="secondary">
+                    <Badge className="font-mono$" variant="secondary">
                         {item.salesRepInitial}
                     </Badge>
                 )}
@@ -248,7 +248,7 @@ export const columns: ColumnDef<Item>[] = [
     //         <div className="text-right">
     //             <TCell.Money
     //                 value={item.invoice.total}
-    //                 className={cn("font-mono")}
+    //                 className={cn("font-mono$")}
     //             />
     //         </div>
     //     ),
@@ -273,7 +273,7 @@ export const columns: ColumnDef<Item>[] = [
     //                 <TCell.Money
     //                     value={Math.abs(item.invoice.pending || 0)}
     //                     className={cn(
-    //                         "font-mono font-medium text-muted-foreground",
+    //                         "font-mono$ font-medium text-muted-foreground",
     //                         item.invoice.pending > 0 && "text-red-700/80",
     //                         item.invoice.pending < 0 &&
     //                             "bg-emerald-700 text-white",
@@ -410,7 +410,7 @@ function ItemCard({ item }: { item: Item }) {
                             ?.toUpperCase()
                             .endsWith(item.salesRepInitial) && (
                             <Badge
-                                className="font-mono text-xs"
+                                className="font-mono$ text-xs"
                                 variant="secondary"
                             >
                                 {item.salesRepInitial}
@@ -426,7 +426,7 @@ function ItemCard({ item }: { item: Item }) {
                             </Badge>
                         )}
                     </div>
-                    <TCell.Secondary className="text-xs font-mono">
+                    <TCell.Secondary className="text-xs font-mono$">
                         {item?.salesDate}
                     </TCell.Secondary>
                 </div>
@@ -463,7 +463,7 @@ function ItemCard({ item }: { item: Item }) {
                     <TCell.Money
                         value={item.invoice.total}
                         className={cn(
-                            "font-mono font-bold",
+                            "font-mono$ font-bold",
                             item.invoice.pending == item.invoice.total
                                 ? "text-red-600"
                                 : item.invoice.pending > 0

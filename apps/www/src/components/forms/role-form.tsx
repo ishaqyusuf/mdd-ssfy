@@ -96,7 +96,7 @@ export function RoleForm({}) {
                             <TableRow key={i} className={cn("")}>
                                 <TableCell>
                                     <DataSkeleton pok="date">
-                                        <TCell.Secondary className="font-mono uppercase">
+                                        <TCell.Secondary className="font-mono$ uppercase">
                                             {tx}
                                         </TCell.Secondary>
                                     </DataSkeleton>

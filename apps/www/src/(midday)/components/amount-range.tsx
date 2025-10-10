@@ -151,7 +151,7 @@ export function AmountRange() {
 
                     <Input
                         id="min-amount"
-                        className="w-full font-mono text-xs"
+                        className="w-full font-mono$ text-xs"
                         type="text"
                         inputMode="decimal"
                         value={inputValues[0]}
@@ -174,7 +174,7 @@ export function AmountRange() {
 
                     <Input
                         id="max-amount"
-                        className="w-full font-mono text-xs"
+                        className="w-full font-mono$ text-xs"
                         type="text"
                         inputMode="decimal"
                         value={inputValues[1]}

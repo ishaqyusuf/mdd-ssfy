@@ -84,8 +84,8 @@ function ServiceRow({ lineUid, sn }: { sn; lineUid }) {
     return (
         <>
             <TableRow className={cn(!mfd?.selected && "hidden")}>
-                <TableCell className="font-mono">{sn}.</TableCell>
-                <TableCell className="font-mono text-sm font-medium">
+                <TableCell className="font-mono$">{sn}.</TableCell>
+                <TableCell className="font-mono$ text-sm font-medium">
                     <LineInput
                         cls={ctx.ctx}
                         name="meta.description"

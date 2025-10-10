@@ -28,13 +28,13 @@ export default function SalesPrintHeader({
           />
         </View>
         <View style={cn("w-1/4 font-bold flex-col")}>
-          <Text style={cn("text-sm font-mono")}>13285 SW 131 ST</Text>
-          <Text style={cn("text-sm font-mono")}>Miami, Fl 33186</Text>
-          <Text style={cn("text-sm font-mono")}>Phone: 305-278-6555</Text>
+          <Text style={cn("text-sm font-mono$")}>13285 SW 131 ST</Text>
+          <Text style={cn("text-sm font-mono$")}>Miami, Fl 33186</Text>
+          <Text style={cn("text-sm font-mono$")}>Phone: 305-278-6555</Text>
           {sale.isProd && (
-            <Text style={cn("text-sm font-mono")}>Fax: 305-278-2003</Text>
+            <Text style={cn("text-sm font-mono$")}>Fax: 305-278-2003</Text>
           )}
-          <Text style={cn("text-sm font-mono")}>support@gndmillwork.com</Text>
+          <Text style={cn("text-sm font-mono$")}>support@gndmillwork.com</Text>
         </View>
         <View
           style={cn("flex-col p-2", {
@@ -65,7 +65,7 @@ export default function SalesPrintHeader({
                   ? {}
                   : {
                       width: "37.5%",
-                    },
+                    }
               )}
             >
               {index == 1 ? (
@@ -105,7 +105,7 @@ export default function SalesPrintHeader({
                         "text-sm bg-slate-200 text-gray-700 border p-1 px-2",
                         {
                           fontWeight: 700,
-                        },
+                        }
                       )}
                     >
                       {address?.title}
@@ -121,7 +121,7 @@ export default function SalesPrintHeader({
                 </>
               )}
             </View>
-          ),
+          )
         )}
       </View>
     </View>

@@ -136,7 +136,7 @@ function TxFormContent({}) {
                                         </TCell.Date>
                                     </TableCell>
                                     <TableCell className="p-2">
-                                        <TCell.Secondary className="font-mono uppercase">
+                                        <TCell.Secondary className="font-mono$ uppercase">
                                             {order.orderId}
                                         </TCell.Secondary>
                                     </TableCell>
