@@ -326,8 +326,23 @@ model CommunityTemplateInputConfig {
 
     blockConfig                    CommunityTemplateBlockConfig @relation(fields: [communityTemplateBlockConfigId], references: [id])
     communityTemplateBlockConfigId Int
+    attrId                         Int?
 
-    values CommunityModelTemplateValue[]
+    values             CommunityModelTemplateValue[]
+    analyticAttributes CommunityAnalyticAttributes[] @relation(name: "attrs")
+    attrInputs         CommunityAnalyticAttributes[] @relation(name: "attrInput")
 
     @@index([communityTemplateBlockConfigId])
+}
+
+model CommunityAnalyticAttributes {
+    id                             Int                           @unique @default(autoincrement())
+    inputConfig                    CommunityTemplateInputConfig? @relation(name: "attrs", fields: [inputConfigId], references: [id])
+    inputConfigId                  Int?
+    attrInputId                    Int?
+    attrInput                      CommunityTemplateInputConfig? @relation(name: "attrInput", fields: [communityTemplateInputConfigId], references: [id])
+    communityTemplateInputConfigId Int?
+
+    @@index([inputConfigId])
+    @@index([communityTemplateInputConfigId])
 }

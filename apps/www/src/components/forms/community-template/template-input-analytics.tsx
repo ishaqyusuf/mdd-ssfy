@@ -35,7 +35,7 @@ export function TemplateInputAnalytics(props: SchemaBlockInputProps) {
             <div className="space-y-2">
                 <h3 className="leading-none font-medium">Analytics</h3>
                 <p className="text-muted-foreground text-sm">
-                    update how you interface with {`${input.inv?.name}`}
+                    update how you interract with {`${input.inv?.name}`}
                 </p>
             </div>
             <Form {...form}>
