@@ -403,9 +403,12 @@ export const linkModules = [
             //     _perm.in("editOrders"),
             // ).data,
 
-            _link("Sales", "orders", "/sales-book/orders")
+            _link("Sales", "orders", "/sales-book/orders", [
+                _subLink("Bin", "/sales-book/orders/bin").access(
+                    _role.is("Super Admin"),
+                ).data,
+            ])
                 .access(_perm.is("editOrders"))
-
                 .childPaths(
                     "sales-book/create-order",
                     "sales-book/edit-order",

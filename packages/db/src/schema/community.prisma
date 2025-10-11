@@ -21,37 +21,38 @@ model Projects {
 }
 
 model Homes {
-    id                  Int              @unique @default(autoincrement())
+    id                  Int                      @unique @default(autoincrement())
     archived            Boolean?
     projectId           Int
     builderId           Int?
     homeTemplateId      Int?
     communityTemplateId Int?
-    homeKey             String?          @db.VarChar(255)
-    slug                String?          @unique @db.VarChar(255)
-    modelName           String?          @db.VarChar(255)
-    modelNo             String?          @db.VarChar(255)
-    lotBlock            String?          @db.VarChar(255)
-    lot                 String?          @db.VarChar(255)
-    block               String?          @db.VarChar(255)
-    status              String?          @db.VarChar(255)
-    address             String?          @db.VarChar(255)
-    meta                Json?            @db.Json
-    sentToProdAt        DateTime?        @db.Timestamp(0)
-    installedAt         DateTime?        @db.Timestamp(0)
-    deletedAt           DateTime?        @db.Timestamp(0)
-    createdAt           DateTime?        @default(now()) @db.Timestamp(0)
-    updatedAt           DateTime?        @updatedAt
-    search              String?          @db.VarChar(255)
-    punchoutAt          DateTime?        @db.Timestamp(0)
+    homeKey             String?                  @db.VarChar(255)
+    slug                String?                  @unique @db.VarChar(255)
+    modelName           String?                  @db.VarChar(255)
+    modelNo             String?                  @db.VarChar(255)
+    lotBlock            String?                  @db.VarChar(255)
+    lot                 String?                  @db.VarChar(255)
+    block               String?                  @db.VarChar(255)
+    status              String?                  @db.VarChar(255)
+    address             String?                  @db.VarChar(255)
+    meta                Json?                    @db.Json
+    sentToProdAt        DateTime?                @db.Timestamp(0)
+    installedAt         DateTime?                @db.Timestamp(0)
+    deletedAt           DateTime?                @db.Timestamp(0)
+    createdAt           DateTime?                @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime?                @updatedAt
+    search              String?                  @db.VarChar(255)
+    punchoutAt          DateTime?                @db.Timestamp(0)
     installCost         Float?
     punchoutCost        Float?
-    project             Projects         @relation(fields: [projectId], references: [id])
-    homeTemplate        HomeTemplates?   @relation(fields: [homeTemplateId], references: [id])
-    communityTemplate   CommunityModels? @relation(fields: [communityTemplateId], references: [id])
+    project             Projects                 @relation(fields: [projectId], references: [id])
+    homeTemplate        HomeTemplates?           @relation(fields: [homeTemplateId], references: [id])
+    communityTemplate   CommunityModels?         @relation(fields: [communityTemplateId], references: [id])
     tasks               HomeTasks[]
     jobs                Jobs[]
     invoices            Invoices[]
+    analytics           CommunityHomeAnalytics[]
 
     @@index([createdAt, deletedAt, modelName, search, projectId])
     @@index([projectId])
@@ -255,6 +256,8 @@ model CommunityModelTemplateValue {
     value     Float?    @default(1)
     uid       String
 
+    homeAnalytics CommunityHomeAnalytics[]
+
     communityModel   CommunityModels @relation(fields: [communityModelId], references: [id])
     communityModelId Int
 
@@ -297,40 +300,39 @@ model CommunityTemplateHistory {
 }
 
 model CommunityTemplateBlockConfig {
-    id           Int                            @unique @default(autoincrement())
-    uid          String
-    index        Float                          @default(0)
-    status       String                         @default("draft")
-    inputConfigs CommunityTemplateInputConfig[]
-
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
+    id            Int                            @unique @default(autoincrement())
+    uid           String
+    index         Float                          @default(0)
+    status        String                         @default("draft")
+    inputConfigs  CommunityTemplateInputConfig[]
+    homeAnalytics CommunityHomeAnalytics[]
+    createdAt     DateTime?                      @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?                      @updatedAt
+    deletedAt     DateTime?                      @db.Timestamp(0)
 
     @@unique([uid])
 }
 
 model CommunityTemplateInputConfig {
-    id              Int       @unique @default(autoincrement())
-    uid             String //categoryUid
-    valueUid        String? //valueCategoryUid
-    inputType       String? //valueCategoryUid
-    index           Float     @default(0)
-    columnSize      Float?
-    title           String?
-    meta            Json?
-    enableAnalytics Boolean?
-    createdAt       DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt       DateTime? @updatedAt
-    deletedAt       DateTime? @db.Timestamp(0)
-
-    blockConfig                    CommunityTemplateBlockConfig @relation(fields: [communityTemplateBlockConfigId], references: [id])
+    id                             Int                           @unique @default(autoincrement())
+    uid                            String //categoryUid
+    valueUid                       String? //valueCategoryUid
+    inputType                      String? //valueCategoryUid
+    index                          Float                         @default(0)
+    columnSize                     Float?
+    title                          String?
+    meta                           Json?
+    enableAnalytics                Boolean?
+    createdAt                      DateTime?                     @default(now()) @db.Timestamp(0)
+    updatedAt                      DateTime?                     @updatedAt
+    deletedAt                      DateTime?                     @db.Timestamp(0)
+    blockConfig                    CommunityTemplateBlockConfig  @relation(fields: [communityTemplateBlockConfigId], references: [id])
     communityTemplateBlockConfigId Int
     attrId                         Int?
-
-    values             CommunityModelTemplateValue[]
-    analyticAttributes CommunityAnalyticAttributes[] @relation(name: "attrs")
-    attrInputs         CommunityAnalyticAttributes[] @relation(name: "attrInput")
+    homeAnalytics                  CommunityHomeAnalytics[]
+    values                         CommunityModelTemplateValue[]
+    analyticAttributes             CommunityAnalyticAttributes[] @relation(name: "attrs")
+    attrInputs                     CommunityAnalyticAttributes[] @relation(name: "attrInput")
 
     @@index([communityTemplateBlockConfigId])
 }
@@ -343,6 +345,33 @@ model CommunityAnalyticAttributes {
     attrInput                      CommunityTemplateInputConfig? @relation(name: "attrInput", fields: [communityTemplateInputConfigId], references: [id])
     communityTemplateInputConfigId Int?
 
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
     @@index([inputConfigId])
     @@index([communityTemplateInputConfigId])
+}
+
+model CommunityHomeAnalytics {
+    id    Int    @unique @default(autoincrement())
+    value Float?
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    inputConfig     CommunityTemplateInputConfig? @relation(fields: [inputConfigId], references: [id])
+    inputConfigId   Int?
+    home            Homes?                        @relation(fields: [homeId], references: [id])
+    homeId          Int?
+    templateValue   CommunityModelTemplateValue?  @relation(fields: [templateValueId], references: [id])
+    templateValueId Int?
+    blockConfig     CommunityTemplateBlockConfig? @relation(fields: [blockConfigId], references: [id])
+    blockConfigId   Int?
+
+    @@index([inputConfigId])
+    @@index([homeId])
+    @@index([templateValueId])
+    @@index([blockConfigId])
 }
