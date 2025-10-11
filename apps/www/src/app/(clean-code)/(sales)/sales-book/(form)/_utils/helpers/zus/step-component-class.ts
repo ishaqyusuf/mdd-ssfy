@@ -98,7 +98,7 @@ export class StepHelperClass extends SettingsClass {
     public isMultiSelect() {
         // return this.isDoor() || this.isMoulding();
         return ["door", "moulding", "weatherstrip color"].includes(
-            this.getStepForm().title?.toLocaleLowerCase(),
+            this.getStepForm().title?.trim()?.toLocaleLowerCase(),
         );
     }
     public getTotalSelectionsCount() {
@@ -569,6 +569,11 @@ export class StepHelperClass extends SettingsClass {
             pricing,
         };
     }
+    // public getItemType() {
+    //      const stepSeq = this.getItemStepSequence()?.[0];
+    //      const root = this.zus.kvStepForm[stepSeq];//?.componentUid;
+    //      return root?.title
+    // }
     public getPricedSteps() {
         // const itemForm = this.getItemForm();
         const itemSteps = this.getItemStepForms();
@@ -816,6 +821,8 @@ export class ComponentHelperClass extends StepHelperClass {
             groupItem.itemIds = Object.entries(groupItem.form)
                 .filter(([uid, data]) => data.selected)
                 .map(([uid, data]) => uid);
+            console.log(groupItem.itemIds);
+
             groupItem.qty.total = groupItem.itemIds?.length;
 
             this.dotUpdateItemForm("groupItem", groupItem);

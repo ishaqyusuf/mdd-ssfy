@@ -32,7 +32,9 @@ export default function MouldingLineItem({ itemStepUid }: Props) {
                     <TableHeader>
                         <TableRow className="uppercase">
                             <TableHead className="w-10">Sn.</TableHead>
-                            <TableHead className="w-full">Moulding</TableHead>
+                            <TableHead className="w-full">
+                                {ctx?.ctx?.getItemType()}
+                            </TableHead>
                             <TableHead className="w-28">Qty</TableHead>
                             <TableHead className="w-28">Estimate</TableHead>
                             <TableHead className="w-28">Addon/Qty</TableHead>
@@ -83,7 +85,7 @@ function MouldingRow({
                     valueChanged={valueChanged}
                     mask
                     qtyInputProps={{
-                        min: 1,
+                        min: 0,
                     }}
                 />
             </TableCell>

@@ -19,6 +19,7 @@ import { ComponentsSection } from "./components-section";
 import MouldingLineItem from "./moulding-step";
 import ServiceLineItem from "./service-step";
 import { HptSection } from "@/components/forms/sales-form/hpt/hpt-section";
+import { MouldingContent } from "@/components/forms/sales-form/moulding-and-service/moulding-content";
 
 interface Props {
     stepUid?;
@@ -44,10 +45,10 @@ export function StepSection({ stepUid, isFirst, isLast }: Props) {
             Render: ComponentsSection as any,
             itemStepUid: stepUid,
         };
-        console.log(renderer);
 
         if (ret.isHtp) ret.Render = HptSection;
         else if (ret.isShelfItems) ret.Render = ShelfItems;
+        // else if (ret.isMouldingLineItem) ret.Render = MouldingContent;
         else if (ret.isMouldingLineItem) ret.Render = MouldingLineItem;
         else if (ret.isServiceLineItem) ret.Render = ServiceLineItem;
         return ret;
