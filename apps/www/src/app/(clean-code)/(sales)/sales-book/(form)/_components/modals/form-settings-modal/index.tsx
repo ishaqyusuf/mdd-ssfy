@@ -172,6 +172,12 @@ function RouteSection({ uid }) {
                             name={`data.setting.data.route.${uid}.config.shipping`}
                             label="Activate Shipping"
                         />
+                        <FormCheckbox
+                            switchInput
+                            control={ctx.form.control}
+                            name={`data.setting.data.route.${uid}.config.shelfLineItems`}
+                            label="Shelf Items"
+                        />
                     </div>
                 </div>
                 <Sortable

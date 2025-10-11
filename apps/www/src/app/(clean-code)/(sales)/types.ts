@@ -628,6 +628,7 @@ export type SalesSettingsMeta = {
                 noHandle?: boolean;
                 hasSwing?: boolean;
                 addonQty?: boolean;
+                shelfLineItems?: boolean;
                 production?: boolean;
                 shipping?: boolean;
             };

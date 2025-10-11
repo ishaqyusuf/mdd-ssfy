@@ -29,6 +29,7 @@ export default function ServiceLineItem({ itemStepUid }: Props) {
     return (
         <>
             <Context.Provider value={ctx}>
+                {ctx.ctx.getItemForm().title || "-"}
                 <Table className="table-fixed p-4 text-xs font-medium">
                     <TableHeader>
                         <TableRow className="uppercase">

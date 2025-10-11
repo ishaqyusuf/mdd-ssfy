@@ -79,23 +79,21 @@ export class StepHelperClass extends SettingsClass {
     }
     public isMoulding() {
         // return this.getStepForm().title == "Moulding";
-        return [
-            // "door",
-            "moulding",
-            "weatherstrip color",
-        ].includes(this.getStepForm().title?.toLocaleLowerCase());
+        // console.log(this.getItemForm().groupItem?.type);
+        const config = this.getRouteConfig();
+        return config?.shelfLineItems;
+        // return [
+        //     // "door",
+        //     "moulding",
+        //     // "weatherstrip color",
+        //     "door hardware",
+        // ].includes(this.getStepForm().title?.trim()?.toLocaleLowerCase());
     }
     public isServiceLineItem() {
-        return (
-            this.getItemForm().groupItem?.type != "MOULDING" &&
-            this.isLineItem()
-        );
+        return !this.isMoulding() && this.isLineItem();
     }
     public isMouldingLineItem() {
-        return (
-            this.getItemForm().groupItem?.type == "MOULDING" &&
-            this.isLineItem()
-        );
+        return this.isMoulding() && this.isLineItem();
     }
     public isMultiSelect() {
         // return this.isDoor() || this.isMoulding();
@@ -695,7 +693,8 @@ export class StepHelperClass extends SettingsClass {
             const basePrice = "" as any;
             const salesPrice = "" as any;
             const type =
-                _itemType == "Moulding"
+                // _itemType == "Moulding"
+                this.isMoulding()
                     ? "MOULDING"
                     : _itemType == "Services"
                       ? "SERVICE"
@@ -754,9 +753,24 @@ export class ComponentHelperClass extends StepHelperClass {
         );
         this.refreshStepComponentsData();
     }
+    public componentIsMoulding() {
+        // return this.getStepForm().title == "Moulding";
+        // console.log(this.getItemForm().groupItem?.type);
+        const t = this.component?.title?.trim();
+
+        return [
+            // "door",
+            "moulding",
+            // "weatherstrip color",
+            "door hardware",
+        ].includes(t);
+    }
     public selectComponent(takeOff = false) {
         let component = this.getComponent;
+        // console.log(this.getRouteConfig());
+        // const config = this.getRouteConfig(component.uid)
         if (this.isMoulding()) {
+            // console.log(this.getStepForm()?.title);
             let groupItem = this.getItemForm()?.groupItem;
             groupItem.type = "MOULDING";
             groupItem.stepUid = component.uid;
@@ -795,8 +809,8 @@ export class ComponentHelperClass extends StepHelperClass {
                     swing: "",
                 };
             } else {
-                const selected = (groupItem.form[this.componentUid].selected =
-                    !groupItem.form?.[this.componentUid].selected);
+                groupItem.form[this.componentUid].selected =
+                    !groupItem.form?.[this.componentUid].selected;
             }
 
             groupItem.itemIds = Object.entries(groupItem.form)
@@ -813,9 +827,10 @@ export class ComponentHelperClass extends StepHelperClass {
             let stepData = this.getStepForm();
             // stepData.salesOrderItemId;
             if (stepData.title == "Item Type") {
-                if (component.title == "Moulding") {
-                    this.dotUpdateItemForm("groupItem.type", "SERVICE");
-                } else if (component.title == "Shelf Items") {
+                // if (component.title == "Moulding") {
+                //     this.dotUpdateItemForm("groupItem.type", "SERVICE");
+                // } else
+                if (component.title == "Shelf Items") {
                     const shelfItems = this.getItemForm()?.shelfItems;
                     if (!shelfItems) {
                         const uid = generateRandomString();
@@ -836,7 +851,7 @@ export class ComponentHelperClass extends StepHelperClass {
                         });
                     }
                 } else if (component.title == "Service") {
-                    //
+                    this.dotUpdateItemForm("groupItem.type", "SERVICE");
                 }
             }
             stepData = {

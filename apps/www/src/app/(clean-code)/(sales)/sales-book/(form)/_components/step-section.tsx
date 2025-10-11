@@ -32,15 +32,20 @@ export function StepSection({ stepUid, isFirst, isLast }: Props) {
     const zItem = zus?.kvFormItem?.[uid];
     const { cls, Render, itemStepUid } = useMemo(() => {
         const cls = new StepHelperClass(stepUid);
-        const ret = {
-            cls,
+        const renderer = {
             isHtp: cls.isHtp(),
             isShelfItems: cls.isShelfItems(),
             isMouldingLineItem: cls.isMouldingLineItem(),
             isServiceLineItem: cls.isServiceLineItem(),
+        };
+        const ret = {
+            cls,
+            ...renderer,
             Render: ComponentsSection as any,
             itemStepUid: stepUid,
         };
+        console.log(renderer);
+
         if (ret.isHtp) ret.Render = HptSection;
         else if (ret.isShelfItems) ret.Render = ShelfItems;
         else if (ret.isMouldingLineItem) ret.Render = MouldingLineItem;
