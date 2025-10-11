@@ -78,7 +78,12 @@ export class StepHelperClass extends SettingsClass {
         return this.getStepForm().title == "Line Item";
     }
     public isMoulding() {
-        return this.getStepForm().title == "Moulding";
+        // return this.getStepForm().title == "Moulding";
+        return [
+            // "door",
+            "moulding",
+            "weatherstrip color",
+        ].includes(this.getStepForm().title?.toLocaleLowerCase());
     }
     public isServiceLineItem() {
         return (
@@ -93,7 +98,10 @@ export class StepHelperClass extends SettingsClass {
         );
     }
     public isMultiSelect() {
-        return this.isDoor() || this.isMoulding();
+        // return this.isDoor() || this.isMoulding();
+        return ["door", "moulding", "weatherstrip color"].includes(
+            this.getStepForm().title?.toLocaleLowerCase(),
+        );
     }
     public getTotalSelectionsCount() {
         return this.getItemForm()?.groupItem?.itemIds?.length;
