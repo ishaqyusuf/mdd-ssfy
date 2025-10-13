@@ -28,6 +28,7 @@ export default async function proxy(req: NextRequest) {
     }`;
     const pathName = req.nextUrl.pathname;
     const _authorized = await authorized(req);
+    console.log({ pathName });
 
     const auth = await getAuth(req);
 
@@ -68,7 +69,7 @@ async function authorized(req: NextRequest) {
         cache: "no-store",
     });
     const data = await response.json();
-    console.log({ data });
+    // console.log({ data });
     return !!data?.user;
 }
 async function getAuth(req) {
