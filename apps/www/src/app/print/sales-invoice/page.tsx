@@ -2,7 +2,7 @@
 
 import { SalesInvoiceView } from "@/components/sales-printer";
 
-export function Page({}) {
+export default function Page({}) {
     return <SalesInvoiceView />;
 }
 
