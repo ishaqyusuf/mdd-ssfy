@@ -31,7 +31,7 @@ export default async function proxy(req: NextRequest) {
     if (encodedSearchParams) {
         loginUrl.searchParams.append("return_to", encodedSearchParams);
     }
-    if (!auth && !isPublic(req)) {
+    if (!auth && !isPublic(pathName)) {
         return NextResponse.redirect(loginUrl);
     }
     if (path === "/") {
