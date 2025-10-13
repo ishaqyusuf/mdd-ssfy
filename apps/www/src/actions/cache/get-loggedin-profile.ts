@@ -93,9 +93,10 @@ export async function getLoggedInProfile(debugMode = false) {
             email: user.email,
         };
     };
-    return (await unstable_cache(fn, tags, {
-        tags,
-    })()) as AsyncFnType<typeof fn>;
+    return await fn();
+    // return (await unstable_cache(fn, tags, {
+    //     tags,
+    // })()) as AsyncFnType<typeof fn>;
 }
 export async function setSidebarAuthId(userId, e) {
     (await cookies()).set(

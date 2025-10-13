@@ -27,6 +27,7 @@ export default async function proxy(req: NextRequest) {
     }`;
     const pathName = req.nextUrl.pathname;
     const auth = await getAuth(req);
+    console.log(auth);
     const loginUrl = new URL("/login", req.url);
     if (encodedSearchParams) {
         loginUrl.searchParams.append("return_to", encodedSearchParams);
