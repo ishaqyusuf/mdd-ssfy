@@ -27,17 +27,15 @@ export default async function proxy(req: NextRequest) {
         searchParams.length > 0 ? `?${searchParams}` : ""
     }`;
     const pathName = req.nextUrl.pathname;
-    await authorized(req);
+    const _authorized = await authorized(req);
 
     const auth = await getAuth(req);
-    console.log(pathName);
 
-    console.log(auth);
     const loginUrl = new URL("/login", req.url);
     if (encodedSearchParams) {
         loginUrl.searchParams.append("return_to", encodedSearchParams);
     }
-    if (!auth && !isPublic(pathName)) {
+    if (!_authorized && !isPublic(pathName)) {
         return NextResponse.redirect(loginUrl);
     }
     if (path === "/") {
