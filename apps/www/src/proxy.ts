@@ -48,7 +48,10 @@ export default async function proxy(req: NextRequest) {
     }
     return NextResponse.next();
 }
-const isPublic = (pathName) => ["/login"]?.some((a) => pathName.includes(a));
+const isPublic = (pathName) =>
+    ["/login", "/square-payment", "/api/pdf"]?.some((a) =>
+        pathName.includes(a),
+    );
 async function authorized(req: NextRequest) {
     // const c = cookies();
     const allCookies = req.cookies
