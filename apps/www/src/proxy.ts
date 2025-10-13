@@ -16,72 +16,62 @@ export const config = {
 };
 
 export default async function proxy(req: NextRequest) {
-    const url = req.nextUrl;
+    const newUrl = req.nextUrl;
 
     // Get hostname of request (e.g. demo.vercel.pub, demo.localhost:3000)
     let hostname = req.headers.get("host");
-    // .replace(".localhost:3002", `.${env.NEXT_PUBLIC_ROOT_DOMAIN}`);
-    // special case for Vercel preview deployment URLs
-    // if (
-    //   hostname.includes("---") &&
-    //   hostname.endsWith(`.${env.NEXT_PUBLIC_VERCEL_DEPLOYMENT_SUFFIX}`)
-    // ) {
-    //   hostname = `${hostname.split("---")[0]}.${
-    //     env.NEXT_PUBLIC_ROOT_DOMAIN
-    //   }`;
-    // }
-
+    const encodedSearchParams = `${newUrl?.pathname?.substring(1)}${newUrl.search}`;
     const searchParams = req.nextUrl.searchParams.toString();
-    const path = `${url.pathname}${
+    const path = `${newUrl.pathname}${
         searchParams.length > 0 ? `?${searchParams}` : ""
     }`;
-
     const pathName = req.nextUrl.pathname;
-    if (pathName == "/") {
-        try {
-            const userUrl = `${req.nextUrl.origin}/api/auth-session`;
-
-            const usr = await fetch(userUrl, {
-                method: "POST",
-                headers: req.headers,
-            });
-            if (usr.ok) {
-                const data = await usr.json();
-                if (data?.roleId) {
-                    const validLinks = getLinkModules(
-                        validateLinks({
-                            role: data.role,
-                            can: data.can,
-                            userId: data?.userId,
-                        }),
-                    );
-                    // const menuMode = await getSideMenuMode();
-                    // console.log({
-                    //     userId: data?.userId,
-                    //     pathName,
-                    //     defaultPage: validLinks.defaultLink,
-                    // });
-
-                    if (pathName == "/" && validLinks.defaultLink) {
-                        return NextResponse.redirect(
-                            `${req.nextUrl.origin}${validLinks.defaultLink}`,
-                        );
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("Error fetching user data", error);
+    const auth = await getAuth(req);
+    const loginUrl = new URL("/login", req.url);
+    if (encodedSearchParams) {
+        loginUrl.searchParams.append("return_to", encodedSearchParams);
+    }
+    if (!auth && !isPublic(req)) {
+        return NextResponse.redirect(loginUrl);
+    }
+    if (path === "/") {
+        if (auth) {
+            const link = getDefaultLink(auth);
+            const url = new URL(link, req.url);
+            return NextResponse.redirect(url);
         }
-        // } catch (error) {}
+        return NextResponse.redirect(loginUrl);
     }
-    // rewrites for app pages
-    if (hostname == `shop.${env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
-        return NextResponse.rewrite(
-            new URL(`/shop${path === "/" ? "" : path}`, req.url),
-        );
-    }
-
-    const response = NextResponse.next();
-    return response;
-    // return NextResponse.rewrite(new URL(`/${hostname}${path}`, req.url));
+    return NextResponse.next();
 }
+const isPublic = (pathName) => ["/login"]?.some((a) => pathName.includes(a));
+async function getAuth(req) {
+    try {
+        const userUrl = `${req.nextUrl.origin}/api/auth-session`;
+        const usr = await fetch(userUrl, {
+            method: "POST",
+            headers: req.headers,
+        });
+        if (usr.ok) {
+            const data = await usr.json();
+            return {
+                role: data?.role,
+                can: data?.can,
+                userId: data?.userId,
+            };
+        }
+    } catch (error) {}
+    return null;
+}
+
+function getDefaultLink(auth) {
+    const validLinks = getLinkModules(
+        validateLinks({
+            role: auth.role,
+            can: auth.can,
+            userId: auth?.userId,
+        }),
+    );
+    return validLinks.defaultLink;
+}
+
