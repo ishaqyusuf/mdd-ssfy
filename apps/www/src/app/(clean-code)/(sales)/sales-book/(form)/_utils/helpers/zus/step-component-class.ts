@@ -107,6 +107,11 @@ export class StepHelperClass extends SettingsClass {
     public getTotalSelectionsCount() {
         return this.getItemForm()?.groupItem?.itemIds?.length;
     }
+    public getSelectionComponentUids() {
+        console.log(this.getItemForm()?.groupItem);
+
+        return this.getItemForm()?.groupItem?.itemIds;
+    }
     public getTotalSelectionsQty() {
         return this.getItemForm()?.groupItem?.qty?.total;
     }

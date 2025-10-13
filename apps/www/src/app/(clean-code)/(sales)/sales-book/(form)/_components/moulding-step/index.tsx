@@ -19,12 +19,24 @@ import {
 import { MouldingClass } from "../../_utils/helpers/zus/moulding-class";
 import { LineInput } from "../line-input";
 import { Context, useCreateContext, useCtx } from "./ctx";
+import { _trpc } from "@/components/static-trpc";
+import { useQuery } from "@gnd/ui/tanstack";
+import { Skeletons } from "@gnd/ui/custom/skeletons";
 
 interface Props {
     itemStepUid;
 }
 export default function MouldingLineItem({ itemStepUid }: Props) {
     const ctx = useCreateContext(itemStepUid);
+    // const uids = ctx.ctx.getSelectionComponentUids();
+    // console.log(uids);
+    // const { data: lines, isPending } = useQuery(
+    //     _trpc.sales.getMultiLineComponents.queryOptions({
+    //         uids,
+    //     }),
+    // );
+    // if (isPending) return <Skeletons.Table />;
+    // console.log(lines);
     return (
         <>
             <Context.Provider value={ctx}>

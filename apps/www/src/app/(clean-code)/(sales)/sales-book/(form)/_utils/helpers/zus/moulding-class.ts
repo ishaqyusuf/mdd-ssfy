@@ -35,15 +35,11 @@ export class MouldingClass extends GroupFormClass {
         const selectionComponentUids = Array.from(
             new Set(itemForm.groupItem?.itemIds?.map((s) => s)),
         );
-        console.log(selectionComponentUids, { mouldingStep });
-
         return selectionComponentUids.map((componentUid) => {
             const component = this.getComponentFromSettingsByStepId(
                 mouldingStep?.stepId,
                 componentUid,
             );
-            console.log({ component });
-
             return component;
         });
     }

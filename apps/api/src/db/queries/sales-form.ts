@@ -262,3 +262,41 @@ export function dtoStepComponent(
     statistics: sum([housePackageTools, salesDoors, stepForms]),
   };
 }
+
+/*
+getMultiLineComponents: publicProcedure
+      .input(getMultiLineComponentsSchema)
+      .query(async (props) => {
+        return getMultiLineComponents(props.ctx, props.input);
+      }),
+*/
+export const getMultiLineComponentsSchema = z.object({
+  uids: z.array(z.string()),
+});
+export type GetMultiLineComponentsSchema = z.infer<
+  typeof getMultiLineComponentsSchema
+>;
+
+export async function getMultiLineComponents(
+  ctx: TRPCContext,
+  query: GetMultiLineComponentsSchema
+) {
+  const { db } = ctx;
+  const components = await db.dykeStepProducts.findMany({
+    where: {
+      uid: {
+        in: query.uids,
+      },
+    },
+    select: {
+      uid: true,
+      id: true,
+      name: true,
+      img: true,
+    },
+  });
+  return components.map((a) => ({
+    ...a,
+    title: a.name,
+  }));
+}

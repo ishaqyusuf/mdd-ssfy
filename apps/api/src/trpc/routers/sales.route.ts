@@ -43,6 +43,8 @@ import {
 import {
   deleteSupplier,
   deleteSupplierSchema,
+  getMultiLineComponents,
+  getMultiLineComponentsSchema,
   getStepComponents,
   getStepComponentsSchema,
   getSuppliers,
@@ -119,6 +121,11 @@ export const salesRouter = createTRPCRouter({
     .input(getStepComponentsSchema)
     .query(async (props) => {
       return getStepComponents(props.ctx, props.input);
+    }),
+  getMultiLineComponents: publicProcedure
+    .input(getMultiLineComponentsSchema)
+    .query(async (props) => {
+      return getMultiLineComponents(props.ctx, props.input);
     }),
   customersIndex: publicProcedure
     .input(getCustomersSchema)

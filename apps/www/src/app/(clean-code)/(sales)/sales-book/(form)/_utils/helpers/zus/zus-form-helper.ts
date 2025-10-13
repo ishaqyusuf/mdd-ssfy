@@ -234,6 +234,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                     ? null
                     : item.item?.housePackageTool?.id;
                 const dt = item.item?.meta?.doorType;
+
                 if (doorCount) {
                     setType("HPT");
                     resp.kvFormItem[uid].groupItem.doorStepProductId =
@@ -278,14 +279,11 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                             },
                         });
                     });
-                } else if (dt == "Moulding") {
+                } else if (dt == "Moulding" || !!item?.item?.housePackageTool) {
                     const formId = `${id}`;
+
                     pushItemId(formId);
 
-                    // console.log({
-                    //     m: item.item?.housePackageTool?.molding,
-                    //     md: data,
-                    // });
                     setType("MOULDING");
                     const m: any = data.priceTags?.moulding;
                     const overridePrice = m?.overridePrice || m?.overridPrice;
