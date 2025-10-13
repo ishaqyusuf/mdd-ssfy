@@ -33,7 +33,7 @@ const data = [
     },
     {
         name: "<Project-Name>",
-        description: "Midday",
+        description: "GND Prodesk",
     },
 ];
 

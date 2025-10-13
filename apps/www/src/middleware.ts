@@ -40,7 +40,6 @@ export default async function middleware(req: NextRequest) {
     if (pathName == "/") {
         try {
             const userUrl = `${req.nextUrl.origin}/api/auth-session`;
-
             const usr = await fetch(userUrl, {
                 method: "POST",
                 headers: req.headers,
@@ -72,6 +71,8 @@ export default async function middleware(req: NextRequest) {
         } catch (error) {
             console.error("Error fetching user data", error);
         }
+        if (pathName == "/")
+            return NextResponse.redirect(`${req.nextUrl.origin}/login`);
         // } catch (error) {}
     }
     // rewrites for app pages
