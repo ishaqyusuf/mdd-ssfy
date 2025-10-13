@@ -292,6 +292,8 @@ function getDoorsTable(
                 const doorType = item.meta.doorType;
 
                 const is = isComponentType(doorType);
+                // console.log({ doorType });
+
                 const noHandle = item.configs
                     ? item.configs.noHandle
                     : !is.bifold && !is.service && !is.slab;
@@ -312,7 +314,7 @@ function getDoorsTable(
                         ...(is.moulding
                             ? [
                                   _cell(
-                                      "Moulding",
+                                      "Items",
                                       "moulding",
                                       price ? 4 : isPacking ? 7 : 10,
                                       { position: "left" },
