@@ -23,7 +23,6 @@ export async function getSessionPermissions() {
 }
 export async function user() {
     const data = await getServerSession(authOptions);
-    consoleLog("SESSION", data?.user?.id);
     if (!data) return null;
     // throw new Error();
     return data.user;

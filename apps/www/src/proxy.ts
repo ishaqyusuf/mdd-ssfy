@@ -11,7 +11,7 @@ export const config = {
          * 3. /_static (inside /public)
          * 4. all root files inside /public (e.g. /favicon.ico)
          */
-        "/((?!api/|_next/|_static/|_vercel|[\\w-]+\\.\\w+).*)",
+        "/((?!api/|_next/|_static/|__nextjs|_vercel|[\\w-]+\\.\\w+).*)",
     ],
 };
 
@@ -27,6 +27,8 @@ export default async function proxy(req: NextRequest) {
     }`;
     const pathName = req.nextUrl.pathname;
     const auth = await getAuth(req);
+    console.log(pathName);
+
     console.log(auth);
     const loginUrl = new URL("/login", req.url);
     if (encodedSearchParams) {
