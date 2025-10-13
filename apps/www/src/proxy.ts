@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "./env.mjs";
 import { getLinkModules, validateLinks } from "./components/sidebar/links";
+import { cookies } from "next/headers";
 
 export const config = {
     matcher: [
@@ -17,7 +18,7 @@ export const config = {
 
 export default async function proxy(req: NextRequest) {
     const newUrl = req.nextUrl;
-
+    // req.cookies.get
     // Get hostname of request (e.g. demo.vercel.pub, demo.localhost:3000)
     let hostname = req.headers.get("host");
     const encodedSearchParams = `${newUrl?.pathname?.substring(1)}${newUrl.search}`;
@@ -26,6 +27,8 @@ export default async function proxy(req: NextRequest) {
         searchParams.length > 0 ? `?${searchParams}` : ""
     }`;
     const pathName = req.nextUrl.pathname;
+    await authorized(req);
+
     const auth = await getAuth(req);
     console.log(pathName);
 
@@ -48,6 +51,25 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.next();
 }
 const isPublic = (pathName) => ["/login"]?.some((a) => pathName.includes(a));
+async function authorized(req: NextRequest) {
+    // const c = cookies();
+    const allCookies = req.cookies
+        .getAll()
+        .map((c) => `${c.name}=${c.value}`)
+        .join("; ");
+    const headers = {
+        "Content-Type": "application/json",
+        Cookie: allCookies,
+    };
+    const url = new URL(`/api/auth/session`, req.url);
+    const response = await fetch(url.href, {
+        headers,
+        cache: "no-store",
+    });
+    const data = await response.json();
+    console.log({ data });
+    return !!data?.user;
+}
 async function getAuth(req) {
     try {
         const userUrl = `${req.nextUrl.origin}/api/auth-session`;

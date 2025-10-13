@@ -10,9 +10,7 @@ import { PERMISSIONS } from "@gnd/utils/constants";
 import { prisma } from "@/db";
 import { env } from "@/env.mjs";
 import { camel } from "@/lib/utils";
-import { AsyncFnType } from "@/types";
 import { ICan } from "@/types/auth";
-import { unstable_cache } from "next/cache";
 import { cookies } from "next/headers";
 
 export async function getLoggedInProfile(debugMode = false) {
