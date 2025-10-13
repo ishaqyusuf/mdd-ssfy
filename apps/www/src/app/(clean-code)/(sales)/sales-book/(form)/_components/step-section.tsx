@@ -25,8 +25,14 @@ interface Props {
     stepUid?;
     isFirst;
     isLast;
+    ignoreCollapse?;
 }
-export function StepSection({ stepUid, isFirst, isLast }: Props) {
+export function StepSection({
+    stepUid,
+    isFirst,
+    ignoreCollapse,
+    isLast,
+}: Props) {
     const zus = useFormDataStore();
     // const stepForm = zus?.kvStepForm?.[stepUid];
     const [uid] = stepUid?.split("-");
@@ -56,11 +62,12 @@ export function StepSection({ stepUid, isFirst, isLast }: Props) {
         stepUid,
         // , zus
     ]);
-
     if (
         (!zItem.collapsed && zus.currentTab == "invoice") ||
-        (zItem.collapsed && (isFirst || isLast))
+        (zItem.collapsed && (isFirst || isLast)) ||
+        ignoreCollapse
     )
+        // return <>{stepUid}|</>;
         return (
             <div>
                 <div className="">

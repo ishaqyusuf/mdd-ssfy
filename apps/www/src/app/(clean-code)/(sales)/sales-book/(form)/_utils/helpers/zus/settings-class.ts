@@ -154,6 +154,11 @@ export class SettingsClass extends CostingClass {
         this.zus.dotUpdate(`setting.stepsByKey.${this.stepUid}`, stepsByKey);
     }
     public getComponentFromSettingsByStepId(stepId, uid) {
+        console.log({
+            stepId,
+            uid,
+            sbk: this.zus.setting.stepsByKey,
+        });
         const c = Object.entries(this.zus.setting.stepsByKey)
             .find(([stepUid, data]) => data.id == stepId)?.[1]
             ?.components?.find((c) => c.uid == uid);

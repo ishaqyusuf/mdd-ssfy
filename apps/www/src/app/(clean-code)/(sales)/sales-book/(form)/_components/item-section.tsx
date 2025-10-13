@@ -17,6 +17,7 @@ import { useFormDataStore } from "../_common/_stores/form-data-store";
 import { ItemClass } from "../_utils/helpers/zus/item-class";
 import ItemSideView from "./item-side-view";
 import { StepSection } from "./step-section";
+import { useDebugToast } from "@/hooks/use-debug-console";
 
 interface Props {
     uid?: string;
@@ -26,7 +27,7 @@ export default function ItemSection({ uid }: Props) {
     const zItem = zus?.kvFormItem?.[uid];
 
     const sequence = zus.sequence?.stepComponent?.[uid];
-
+    useDebugToast("sequence", { sequence });
     return (
         <div className="mb-2 sm:rounded-lg bg-background sm:mb-4">
             <Collapsible
@@ -35,7 +36,10 @@ export default function ItemSection({ uid }: Props) {
                     zus.toggleItem(uid);
                 }}
             >
-                <ItemSectionHeader uid={uid} />
+                <ItemSectionHeader
+                    ignoreCollapse={sequence?.length <= 3}
+                    uid={uid}
+                />
                 <CollapsibleContent className="flex  overflow-auto border">
                     <div className="flex flex-1 flex-col ">
                         {sequence?.map((stepUid, index) => (
@@ -44,6 +48,7 @@ export default function ItemSection({ uid }: Props) {
                                 isLast={sequence?.length - 1 == index}
                                 key={index}
                                 stepUid={stepUid}
+                                ignoreCollapse={sequence?.length <= 3}
                             />
                         ))}
                     </div>
@@ -53,7 +58,7 @@ export default function ItemSection({ uid }: Props) {
         </div>
     );
 }
-function ItemSectionHeader({ uid }) {
+function ItemSectionHeader({ uid, ignoreCollapse = false }) {
     const zus = useFormDataStore();
     const cls = useMemo(() => {
         const cls = new ItemClass(uid);
@@ -94,16 +99,22 @@ function ItemSectionHeader({ uid }) {
                     />
                 </div>
             </CollapsibleTrigger>
-            <Button
-                onClick={() => {
-                    zus.updateFormItem(uid, "collapsed", !formItem.collapsed);
-                }}
-                className="h-8"
-                size="sm"
-                variant={formItem?.collapsed ? "default" : "secondary"}
-            >
-                {formItem.collapsed ? "Expand" : "Collapse"}
-            </Button>
+            {ignoreCollapse || (
+                <Button
+                    onClick={() => {
+                        zus.updateFormItem(
+                            uid,
+                            "collapsed",
+                            !formItem.collapsed,
+                        );
+                    }}
+                    className="h-8"
+                    size="sm"
+                    variant={formItem?.collapsed ? "default" : "secondary"}
+                >
+                    {formItem.collapsed ? "Expand" : "Collapse"}
+                </Button>
+            )}
             <Menu>
                 <Menu.Item onClick={restoreMissing} icon="copy">
                     Component Doors Restore

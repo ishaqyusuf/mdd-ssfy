@@ -7,10 +7,11 @@ export class MouldingClass extends GroupFormClass {
         super(itemStepUid);
     }
     public getMouldingStepForm() {
-        return Object.entries(this.zus.kvStepForm).filter(
-            ([uid, data]) =>
-                uid.startsWith(`${this.itemUid}-`) && data.title == "Moulding"
-        )?.[0]?.[1];
+        const itemSteps = this.getItemStepForms();
+        const msf = itemSteps.find((data) =>
+            this.isMultiSelectTitle(data.title),
+        );
+        return msf;
     }
 
     public getMouldingLineItemForm() {
@@ -32,14 +33,17 @@ export class MouldingClass extends GroupFormClass {
         const itemForm = this.getItemForm();
         const mouldingStep = this.getMouldingStepForm();
         const selectionComponentUids = Array.from(
-            new Set(itemForm.groupItem?.itemIds?.map((s) => s))
+            new Set(itemForm.groupItem?.itemIds?.map((s) => s)),
         );
+        console.log(selectionComponentUids, { mouldingStep });
 
         return selectionComponentUids.map((componentUid) => {
             const component = this.getComponentFromSettingsByStepId(
                 mouldingStep?.stepId,
-                componentUid
+                componentUid,
             );
+            console.log({ component });
+
             return component;
         });
     }

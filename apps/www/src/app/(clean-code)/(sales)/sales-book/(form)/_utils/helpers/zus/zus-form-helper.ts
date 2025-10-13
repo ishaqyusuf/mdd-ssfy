@@ -34,7 +34,6 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         }
         return price;
     }
-    console.log(data.order?.extraCosts);
 
     // if (!data.order?.extraCosts) data.order.extraCosts = [];
 
@@ -370,7 +369,6 @@ export function zhHarvestDoorSizes(data: SalesFormZusData, itemUid) {
             };
         })
         .find((v) => v.variation);
-    console.log({ stepVar, data, itemUid });
 
     if (!stepVar?.variation) return null;
     const validSizes = stepVar.variation

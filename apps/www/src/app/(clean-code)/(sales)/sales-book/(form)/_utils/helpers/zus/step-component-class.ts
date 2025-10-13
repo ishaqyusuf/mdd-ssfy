@@ -97,8 +97,11 @@ export class StepHelperClass extends SettingsClass {
     }
     public isMultiSelect() {
         // return this.isDoor() || this.isMoulding();
+        return this.isMultiSelectTitle(this.getStepForm().title);
+    }
+    public isMultiSelectTitle(title) {
         return ["door", "moulding", "weatherstrip color"].includes(
-            this.getStepForm().title?.trim()?.toLocaleLowerCase(),
+            title?.trim()?.toLocaleLowerCase(),
         );
     }
     public getTotalSelectionsCount() {

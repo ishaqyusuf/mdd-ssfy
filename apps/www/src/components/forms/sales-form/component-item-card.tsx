@@ -154,66 +154,6 @@ export function ComponentItemCard({
             >
                 <div className="flex h-full flex-col">
                     <div className="flex-1 flex relative">
-                        <div className="absolute  -left-3 flex flex-col gap-2 z-20">
-                            <div
-                                className={cn(
-                                    selectState?.count ? "flex" : "hidden",
-                                )}
-                            >
-                                <Checkbox
-                                    checked={selectState?.uids?.[component.uid]}
-                                />
-                            </div>
-                            {component.salesPrice && (
-                                <Badge
-                                    className="font-bold px-1"
-                                    variant="default"
-                                >
-                                    ${component.salesPrice}
-                                </Badge>
-                            )}
-                            <Badge
-                                className="flex flex-col p-0.5 gap-1  border w-fit"
-                                variant="secondary"
-                            >
-                                <div
-                                    className={cn(
-                                        !component?.variations?.length &&
-                                            "hidden",
-                                        "px-1",
-                                    )}
-                                >
-                                    <Filter className="size-4 text-muted-foreground/70" />
-                                </div>
-                                <div
-                                    className={cn(
-                                        !component?.sectionOverride
-                                            ?.overrideMode && "hidden",
-                                    )}
-                                >
-                                    <LucideVariable className="size-4 text-muted-foreground/70" />
-                                </div>
-                                <div
-                                    className={cn(
-                                        !component.redirectUid && "hidden",
-                                    )}
-                                >
-                                    <ExternalLink className="h-4 w-4 text-muted-foreground/70" />
-                                </div>
-                            </Badge>
-
-                            {/* <SuperAdminGuard>
-                                {!component?.statistics || (
-                                    <Badge
-                                        className="h-5 font-bold gap-1 flex items-center px-1"
-                                        variant="secondary"
-                                    >
-                                        <LineChart className="size-4" />
-                                        {component?.statistics}
-                                    </Badge>
-                                )}
-                            </SuperAdminGuard> */}
-                        </div>
                         {/* <Image
                             className="aspect-square"
                             src={`${env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/dyke/${component.img}`}
@@ -248,7 +188,52 @@ export function ComponentItemCard({
                     </div>
                 </div>
             </button>
+            <div className="absolute  -left-3s flex flex-col gap-2 z-20">
+                <div className={cn(selectState?.count ? "flex" : "hidden")}>
+                    <Checkbox checked={selectState?.uids?.[component.uid]} />
+                </div>
+                {component.salesPrice && (
+                    <Badge className="font-bold px-1" variant="default">
+                        ${component.salesPrice}
+                    </Badge>
+                )}
+                <Badge
+                    className="flex flex-col p-0.5 gap-1  border w-fit"
+                    variant="secondary"
+                >
+                    <div
+                        className={cn(
+                            !component?.variations?.length && "hidden",
+                            "px-1",
+                        )}
+                    >
+                        <Filter className="size-4 text-muted-foreground/70" />
+                    </div>
+                    <div
+                        className={cn(
+                            !component?.sectionOverride?.overrideMode &&
+                                "hidden",
+                        )}
+                    >
+                        <LucideVariable className="size-4 text-muted-foreground/70" />
+                    </div>
+                    <div className={cn(!component.redirectUid && "hidden")}>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground/70" />
+                    </div>
+                </Badge>
 
+                {/* <SuperAdminGuard>
+                                {!component?.statistics || (
+                                    <Badge
+                                        className="h-5 font-bold gap-1 flex items-center px-1"
+                                        variant="secondary"
+                                    >
+                                        <LineChart className="size-4" />
+                                        {component?.statistics}
+                                    </Badge>
+                                )}
+                            </SuperAdminGuard> */}
+            </div>
             {component.productCode ? (
                 <div className="s-rotate-90 -translate-y-1/2s top-1/2s absolute left-4 top-4 transform text-xs font-bold uppercase tracking-wider  text-muted-foreground">
                     {component.productCode}
