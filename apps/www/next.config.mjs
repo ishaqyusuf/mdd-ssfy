@@ -4,15 +4,7 @@ import { PrismaPlugin } from "@prisma/nextjs-monorepo-workaround-plugin";
 // const path = require("path");
 // const { NormalModuleReplacementPlugin } = require("webpack");
 const config = {
-    transpilePackages: [
-        // "@gnd/api",
-        // "@gnd/auth",
-        // "@gnd/db",
-        // "@gnd/common",
-        "@gnd/ui",
-        "@gnd/printer",
-        // "@gnd/stripe",
-    ],
+    transpilePackages: ["@gnd/ui", "@gnd/printer"],
     eslint: {
         ignoreDuringBuilds: true,
     },
