@@ -1,5 +1,5 @@
 import { withSentryConfig } from "@sentry/nextjs";
-const { PrismaPlugin } = require("@prisma/nextjs-monorepo-workaround-plugin");
+import { PrismaPlugin } from "@prisma/nextjs-monorepo-workaround-plugin";
 /** @type {import('next').NextConfig} */
 // const path = require("path");
 // const { NormalModuleReplacementPlugin } = require("webpack");
