@@ -1,0 +1,15 @@
+{
+  "extends": "@gnd/tsconfig/base.json",
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "paths": {
+      "@api/*": ["../../apps/api/src/*"],
+      "@jobs/*": ["../jobs/src/*"]
+    }
+  }
+}

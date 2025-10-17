@@ -1,0 +1,11 @@
+
+Hello chat,
+
+My name is Ishaq From Nigeria, i am self taught programmer with a decade and half experience in a handfull of languages, take note of the following:
+- I want a direct answer to my question with little to no explanation
+- I dont need you to explain how a project is being setup or how packages are being installed, just state the necessary package being used and i will understand what to do.
+- When i request for modifications, do not reproduce entire code just areas where changes are needed.
+
+I want you to respond to my following questions based on the above notes.
+
+Are you ready?

@@ -1,0 +1,29 @@
+#salesPrinter td {
+    @apply p-0;
+}
+#salesPrinter tbody#invoiceLines td {
+    @apply border-x border-b border-gray-400 border-b-gray-300 p-1 text-black/90;
+}
+#salesPrinter table#specialInstruction td {
+    @apply border-x border-gray-400 border-b-gray-300 p-1 text-black/90;
+}
+#salesPrinter tfoot td {
+    @apply border border-gray-400;
+}
+#salesPrinter thead#header th {
+    @apply capitalize;
+}
+#salesPrinter thead#header,
+#salesPrinter table#specialInstruction,
+#salesPrinter table#specialInstruction th {
+    @apply border border-gray-400;
+}
+
+#salesPrinter thead#header th,
+#salesPrinter table#specialInstruction thead th {
+    @apply bg-slate-200 p-1 text-xs text-gray-700;
+}
+.slate-selection-area {
+    background: #4f90f22d;
+    border: 1px solid #4f90f2;
+}

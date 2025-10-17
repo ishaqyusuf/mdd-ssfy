@@ -1,0 +1,65 @@
+#reportTableHeader {
+    @apply border;
+}
+#reportTableHeader th {
+    @apply border-x p-0.5;
+}
+
+#reportBody {
+    @apply border;
+}
+#reportBody td {
+    @apply border-x px-2;
+}
+tfoot thead {
+}
+tfoot thead th {
+    @apply text-sm font-semibold border-x;
+}
+tfoot {
+    @apply border-b border-x;
+}
+
+#customer {
+    @apply border;
+}
+#customer thead {
+    @apply border text-base p-2;
+}
+#customer tbody td {
+    @apply text-base p-2;
+}
+#subHeader {
+    @apply border;
+}
+#subHeader thead {
+    @apply border p-2 text-base font-semibold px-4;
+}
+#subHeader thead th {
+    @apply font-semibold border-x  px-4;
+}
+#subHeader tbody td {
+    @apply font-semibold p-2 border-x text-sm;
+}
+th {
+    @apply font-semibold;
+}
+#reportTableHeader,
+tfoot thead {
+    @apply bg-orange-300;
+}
+td,
+th,
+thead,
+tfoot {
+    @apply border-muted-foreground;
+}
+#reportBody td {
+    @apply text-sm text-gray-600;
+}
+tfoot #footerTable td {
+    @apply p-1 text-sm;
+}
+#reportBody td {
+    @apply py-1;
+}

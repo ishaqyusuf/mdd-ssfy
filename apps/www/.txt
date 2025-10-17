@@ -1,0 +1,13 @@
+FOLDER ARCHICTECTURE:
+    /app
+        (sales-books)
+            (pages)
+                /sales-books
+                    /orders: page.tsx
+                    /quotes: page.tsx
+                    /edit-quote: page.tsx
+                    /create-quote/[slug]: page.tsx
+            (orders-module)
+            (quotes-module)
+            (form-module)
+            (overview-module)

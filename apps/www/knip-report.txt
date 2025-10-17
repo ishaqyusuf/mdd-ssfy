@@ -1,0 +1,893 @@
+Unused files (277)
+_v2/components/common/control-value-accessor-props.ts                                                             
+_v2/components/common/create-control.tsx                                                                          
+_v2/components/common/form-field.tsx                                                                              
+_v2/components/common/prod-only.tsx                                                                               
+_v2/components/modal-catch-fix.tsx                                                                                
+_v2/hooks/use-window-resize.ts                                                                                    
+_v2/lib/routes.ts                                                                                                 
+_v2/lib/use-key-press.ts                                                                                          
+/(midday)/actions/filters/generate-sales-filters.ts                                                                
+(midday)/components/amount-range.tsx                                                                              
+(midday)/components/category.tsx                                                                                  
+(midday)/components/filter-list.tsx                                                                               
+(midday)/components/filter-search-input.tsx                                                                       
+(midday)/components/icons.tsx                                                                                     
+(midday)/components/select-category.tsx                                                                           
+(midday)/hooks/use-slider-with-input.ts                                                                           
+(midday)/utils/categories.ts                                                                                      
+(midday)/utils/format.ts                                                                                          
+actions/--fix/fix-payment-method.ts                                                                               
+actions/--fix/reset-sales-rep.ts                                                                                  
+actions/cache/accounting-conflict-orders.ts                                                                       
+actions/cache/employee-cache-control.ts                                                                           
+actions/cache/get-step-components.ts                                                                              
+actions/cache/sales-form-meta.ts                                                                                  
+actions/cancel-sales-payment.ts                                                                                   
+actions/create-customer-wallet-action.ts                                                                          
+actions/create-employee-profile.ts                                                                                
+actions/create-sales-restore-state.ts                                                                             
+actions/cron/cron-sales-invoice.ts                                                                                
+actions/delete-sales-delivery-item.ts                                                                             
+actions/delete-sales-payment.ts                                                                                   
+actions/find-customer-id-from-billing.ts                                                                          
+actions/get-cached-route.ts                                                                                       
+actions/get-customer-adddress-form.ts                                                                             
+actions/get-order-transactions.ts                                                                                 
+actions/get-sales-accounting-conflicts.ts                                                                         
+actions/get-sales-tax-profiles.ts                                                                                 
+actions/queries.sales.ts                                                                                          
+actions/queries.ts                                                                                                
+actions/refund-on-sales-action.ts                                                                                 
+actions/revalidate/event-revalidate-tags.ts                                                                       
+actions/sales-dashboard-stats-action.ts                                                                           
+actions/save-sales-tax-profile.ts                                                                                 
+actions/set-cached-route.ts                                                                                       
+actions/trash-soft-deletes.ts                                                                                     
+actions/update-customer-email-action.ts                                                                           
+actions/update-dispatch-status-schema.ts                                                                          
+actions/update-item-labor-cost.ts                                                                                 
+actions/update-sales-address-action.ts                                                                            
+actions/update-sales-qty-control.ts                                                                               
+app/_components/data-table/data-table-column-header.tsx                                                           
+app/(clean-code)/_common/number-flow/nf-input.tsx                                                                 
+app/(clean-code)/_common/query-tab/store.ts                                                                       
+app/(clean-code)/(sales)/_common/_components/customer-merger/action.ts                                            
+app/(clean-code)/(sales)/_common/_components/customer-merger/customer-merger.tsx                                  
+app/(clean-code)/(sales)/_common/_components/mail-box/store.tsx                                                   
+app/(clean-code)/(sales)/_common/_components/sales-form/index.tsx                                                 
+app/(clean-code)/(sales)/_common/contants/sales-includes.ts                                                       
+app/(clean-code)/(sales)/_common/data-access/sales-address-dta.ts                                                 
+app/(clean-code)/(sales)/_common/data-access/sales-address.ts                                                     
+app/(clean-code)/(sales)/_common/data-access/sales-page-query-data.ts                                             
+app/(clean-code)/(sales)/_common/data-actions/sales-payment/sales-payment.action.ts                               
+app/(clean-code)/(sales)/_common/data-actions/sales-payment/terminal-payment.action.ts                            
+app/(clean-code)/(sales)/_common/hooks/use-components.ts                                                          
+app/(clean-code)/(sales)/_common/hooks/use-sales-form.ts                                                          
+app/(clean-code)/(sales)/_common/hooks/use-sales-overview-data.ts                                                 
+app/(clean-code)/(sales)/_common/use-case/customer-use-case.ts                                                    
+app/(clean-code)/(sales)/_common/use-case/sales-address-use-case.ts                                               
+app/(clean-code)/(sales)/_common/utils/db/where.sales.ts                                                          
+app/(clean-code)/(sales)/_common/utils/db/where.users.ts                                                          
+app/(clean-code)/(sales)/_common/utils/sales-status-utils.ts                                                      
+app/(clean-code)/(sales)/sales-book/(form)/_components/components-section/custom-component.tsx                    
+app/(clean-code)/(sales)/sales-book/(form)/_components/data-page/index-copy.tsx                                   
+app/(clean-code)/(sales)/sales-book/(form)/_hooks/use-sales-book-form.ts                                          
+app/(clean-code)/(sales)/sales-book/(form)/_hooks/use-zus-form-hook.ts                                            
+app/(clean-code)/(sales)/sales-book/(form)/_utils/context.tsx                                                     
+app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/hpt-helper.tsx                                          
+app/(clean-code)/(sales)/sales-book/(pages)/_components/productions-page-client.tsx                               
+app/(clean-code)/(sales)/sales-book/customer/components/store.ts                                                  
+app/(storefront)/shop/(auth)/_action/signup-action.ts                                                             
+app/(v1)/_actions/_auto-complete.ts                                                                               
+app/(v1)/_actions/community-invoice/edit-unit-invoice.ts                                                          
+app/(v1)/_actions/community/invoice-sync.ts                                                                       
+app/(v1)/_actions/community/static-home-models.ts                                                                 
+app/(v1)/_actions/email/create-email-template.ts                                                                  
+app/(v1)/_actions/email/get-templates.ts                                                                          
+app/(v1)/_actions/sales-inbound/crud.ts                                                                           
+app/(v1)/_actions/sales-inbound/get-form.tsx                                                                      
+app/(v1)/_actions/sales-inbound/update-inbound-status.ts                                                          
+app/(v1)/_actions/sms/twilio.ts                                                                                   
+app/(v1)/_actions/upgrade/db-upgrade.ts                                                                           
+app/(v1)/_actions/upgrade/hrm-upgrade.tsx                                                                         
+app/(v1)/(loggedIn)/dashboard/sales/page-copy.tsx                                                                 
+app/(v1)/(loggedIn)/sales/_actions/_supplies.ts                                                                   
+app/(v1)/(loggedIn)/sales/_actions/copy-sales.ts                                                                  
+app/(v1)/(loggedIn)/sales/_actions/sales-save.ts                                                                  
+app/(v1)/(loggedIn)/sales/order/[slug]/components/sales-email-section.tsx                                         
+app/(v1)/(loggedIn)/sales/order/[slug]/form/route-leave-handler.ts                                                
+app/(v1)/(loggedIn)/sales/orders/components/restore-items/action.tsx                                              
+app/(v1)/(loggedIn)/sales/orders/components/restore-items/data.tsx                                                
+app/(v1)/(loggedIn)/sales/orders/components/restore-items/restore-items.tsx                                       
+app/(v1)/(loggedIn)/sales/update-payment-term.ts                                                                  
+app/(v1)/(loggedIn)/tasks/_actions/punchout-costs.ts                                                              
+app/(v2)/(loggedIn)/_components/table-header.tsx                                                                  
+app/(v2)/(loggedIn)/sales-v2/_actions/get-product-categories.ts                                                   
+app/(v2)/(loggedIn)/sales-v2/_data-access/save-order-data-access.ts                                               
+app/(v2)/(loggedIn)/sales-v2/_utils/compose-sales-items.d.ts                                                      
+app/(v2)/(loggedIn)/sales-v2/_utils/door-query-builder.ts                                                         
+app/(v2)/(loggedIn)/sales-v2/_utils/find-door-svg.d.ts                                                            
+app/(v2)/(loggedIn)/sales-v2/_utils/get-width-from-step.ts                                                        
+app/(v2)/(loggedIn)/sales-v2/dispatch/_components/dispatch-table.tsx                                              
+app/(v2)/(loggedIn)/sales-v2/dispatch/_preview-modal/dispatch-preview-modal.tsx                                   
+app/(v2)/(loggedIn)/sales-v2/dyke-utils.d.ts                                                                      
+app/(v2)/(loggedIn)/sales-v2/dykeUtils.ts                                                                         
+app/(v2)/(loggedIn)/sales-v2/form/_action/bootstraps/actions.ts                                                   
+app/(v2)/(loggedIn)/sales-v2/form/_action/bootstraps/cloudinary.ts                                                
+app/(v2)/(loggedIn)/sales-v2/form/_action/bootstraps/reset-form-value-door-step-id.ts                             
+app/(v2)/(loggedIn)/sales-v2/form/_action/bootstraps/shelf-items.ts                                               
+app/(v2)/(loggedIn)/sales-v2/form/_action/dyke-exterior-bootstrap.ts                                              
+app/(v2)/(loggedIn)/sales-v2/form/_action/get-customer-profiles.ts                                                
+app/(v2)/(loggedIn)/sales-v2/form/_action/get-dyke-form.d.ts                                                      
+app/(v2)/(loggedIn)/sales-v2/form/_action/get-dyke-step-product.d.ts                                              
+app/(v2)/(loggedIn)/sales-v2/form/_action/get-dyke-step.d.ts                                                      
+app/(v2)/(loggedIn)/sales-v2/form/[...slug]/_debug/action.ts                                                      
+app/(v2)/(loggedIn)/sales-v2/form/[...slug]/_debug/debug-save-error.tsx                                           
+app/(v2)/(loggedIn)/sales-v2/form/components/dyke-error/index.tsx                                                 
+app/(v2)/(loggedIn)/sales-v2/form/components/hider.tsx                                                            
+app/(v2)/(loggedIn)/sales-v2/form/components/modals/_action.ts                                                    
+app/(v2)/(loggedIn)/sales-v2/form/components/modals/deps-modal/index.tsx                                          
+app/(v2)/(loggedIn)/sales-v2/form/components/modals/edit-step-component-price/action.ts                           
+app/(v2)/(loggedIn)/sales-v2/form/components/modals/edit-step-component-price/index.tsx                           
+app/(v2)/(loggedIn)/sales-v2/form/components/modals/new-step-modal.tsx                                            
+app/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/_actions.ts               
+app/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/load-step-products.ts     
+app/(v2)/(loggedIn)/sales-v2/form/dyke-refresher.ts                                                               
+app/(v2)/(loggedIn)/sales-v2/form/item-form-blocks.ts                                                             
+app/(v2)/(loggedIn)/sales-v2/overview/_actions/get-sales-overview.d.ts                                            
+app/(v2)/(loggedIn)/sales-v2/overview/components/overview-tabs/dyke-doors-sales-overview-tab.tsx                  
+app/(v2)/(loggedIn)/sales-v2/overview/components/overview-tabs/index.tsx                                          
+app/(v2)/(loggedIn)/sales-v2/overview/components/overview-tabs/shelf-items-sales-overview-tab.tsx                 
+app/(v2)/(loggedIn)/sales-v2/overview/components/sales-items-overview/moudling-items.tsx                          
+app/(v2)/(loggedIn)/sales-v2/overview/is-component-type.d.ts                                                      
+app/(v2)/(loggedIn)/sales-v2/productions/_components/_modals/assignment-modal/submit-form/validate-assignment.ts  
+app/(v2)/(loggedIn)/sales-v2/productions/_components/production-list/production-item/index.tsx                    
+app/(v2)/(loggedIn)/sales-v2/productions/_components/utils.ts                                                     
+app/(v2)/(loggedIn)/sales-v2/type.d.ts                                                                            
+app/(v2)/(loggedIn)/sales/_data-access/generate-customer-id.dac.ts                                                
+app/(v2)/(loggedIn)/sales/_data-access/update-status.dac.ts                                                       
+app/(v2)/(loggedIn)/sales/_modals/delivery-mode-modal/index.tsx                                                   
+app/(v2)/(loggedIn)/sales/address-composer.tsx                                                                    
+app/(v2)/(loggedIn)/sales/dashboard/overview/action.ts                                                            
+app/(v2)/(loggedIn)/sales/dispatch/_actions/create-dispatch.ts                                                    
+app/(v2)/(loggedIn)/sales/edit/sales-form-utils.d.ts                                                              
+app/(v2)/printer/customer-report/report.tsx                                                                       
+app/(v2)/printer/sales/compose-print.d.ts                                                                         
+app/(v2)/printer/sales/get-sales-print-data.d.ts                                                                  
+components/_v1/charts/bar-chart.tsx                                                                               
+components/_v1/emails/error-mail.tsx                                                                              
+components/_v1/emails/mail-composer.tsx                                                                           
+components/_v1/emails/password-reset-request-email.tsx                                                            
+components/_v1/mobile/shell/sales-order-mobile-menu.tsx                                                           
+components/_v1/modals/community-model-cost/communit-model-cost-util.ts                                            
+components/_v1/modals/customer-profile-modal.tsx                                                                  
+components/_v1/modals/edit-job.tsx                                                                                
+components/_v1/sales/address-search-pop.tsx                                                                       
+components/_v1/shells/inbounds-table-shell.tsx                                                                    
+components/_v1/shells/products-table-shell.tsx                                                                    
+components/_v1/sidebar-nav.tsx                                                                                    
+components/_v1/skeleton/dashboard-loading.tsx                                                                     
+components/_v1/ui-customs/select.tsx                                                                              
+components/(clean-code)/custom/sheet.tsx                                                                          
+components/(clean-code)/data-table/filter-command/inifnity-filter.tsx                                             
+components/(clean-code)/data-table/server-helper.ts                                                               
+components/(clean-code)/data-table/toolbar.tsx                                                                    
+components/(clean-code)/fikr-ui/f-page-nav.tsx                                                                    
+components/(clean-code)/layouts/loggedin-layout.tsx                                                               
+components/(clean-code)/layouts/site-nav-layout.tsx                                                               
+components/(clean-code)/nav/header.tsx                                                                            
+components/(clean-code)/nav/helper.ts                                                                             
+components/(clean-code)/nav/store.ts                                                                              
+components/(clean-code)/site-nav/side-bar.tsx                                                                     
+components/(clean-code)/site-nav/site-header.tsx                                                                  
+components/(clean-code)/site-nav/utils.ts                                                                         
+components/address-form-messages.tsx                                                                              
+components/cached-route.tsx                                                                                       
+components/common/data-table/data-table-faceted-filter.tsx                                                        
+components/common/data-table/data-table-skeleton.tsx                                                              
+components/common/data-table/data-table-toolbar.tsx                                                               
+components/common/data-table/data-table-view-options.tsx                                                          
+components/common/data-table/data-table.tsx                                                                       
+components/common/data-table/date-range-filter.tsx                                                                
+components/forms/sales-form/customer-history.tsx                                                                  
+components/hrm/employee-profile-form-context.tsx                                                                  
+components/modals/custom-modal.tsx                                                                                
+components/page-header.tsx                                                                                        
+components/sales/reset-sales-rep.tsx                                                                              
+components/sheets/customer-overview-sheet/store.ts                                                                
+components/sheets/sales-customer-tx-sheet.tsx                                                                     
+components/sheets/sales-tax-profile-sheet.tsx                                                                     
+components/site-portal.tsx                                                                                        
+components/tables/commission-payments/index.tsx                                                                   
+components/tables/employee-profiles/empty-states.tsx                                                              
+components/tables/roles/empty-states.tsx                                                                          
+components/tables/sales-accounting-conflicts/columns.tsx                                                          
+components/tables/sales-accounting-conflicts/empty-states.tsx                                                     
+components/tables/sales-accounting-conflicts/index.tsx                                                            
+components/tables/sales-accounting-conflicts/table.tsx                                                            
+components/transaction-overview.tsx                                                                               
+components/ui/alert-dialog.tsx                                                                                    
+components/ui/alert.tsx                                                                                           
+components/ui/avatar.tsx                                                                                          
+components/ui/breadcrumb.tsx                                                                                      
+components/ui/button.tsx                                                                                          
+components/ui/carousel.tsx                                                                                        
+components/ui/chart.tsx                                                                                           
+components/ui/combobox-dropdown.tsx                                                                               
+components/ui/dialog.tsx                                                                                          
+components/ui/dropdown-menu.tsx                                                                                   
+components/ui/faceted-filter.tsx                                                                                  
+components/ui/navigation-menu.tsx                                                                                 
+components/ui/portal.tsx                                                                                          
+components/ui/separator.tsx                                                                                       
+components/ui/sheet.tsx                                                                                           
+components/ui/sidebar.tsx                                                                                         
+components/ui/skeleton.tsx                                                                                        
+components/ui/slider.tsx                                                                                          
+components/ui/sonner.tsx                                                                                          
+components/ui/sortable.tsx                                                                                        
+components/ui/spinner.tsx                                                                                         
+components/ui/switch.tsx                                                                                          
+components/ui/toaster.tsx                                                                                         
+components/ui/tooltip.tsx                                                                                         
+components/widgets/sales-rep-recent-quotes/index.tsx                                                              
+data-access/(clean-code)/search-dta.ts                                                                            
+data-access/sales.dealer-request.ts                                                                               
+data-access/sales.dyke-form.ts                                                                                    
+data-access/sales.dyke-save.ts                                                                                    
+data/product-category.ts                                                                                          
+data/short-codes.ts                                                                                               
+data/template-type.ts                                                                                             
+hooks/use-effect-after-mount.ts                                                                                   
+hooks/use-mounted.ts                                                                                              
+hooks/use-sales-filter-params.ts                                                                                  
+hooks/use-server-query.ts                                                                                         
+hooks/useStatusType.ts                                                                                            
+lib/better-auth.ts                                                                                                
+lib/data/dyke-full.ts                                                                                             
+lib/data/dyke-interiors.ts                                                                                        
+lib/data/dyke-shelf-items.ts                                                                                      
+lib/links.ts                                                                                                      
+lib/request/status-code.ts                                                                                        
+lib/request/timing.ts                                                                                             
+lib/sales/add-moulding-line.tsx                                                                                   
+lib/state-util.ts                                                                                                 
+lib/use-nav-links.ts                                                                                              
+lib/validations/inbound-validation.ts                                                                             
+lib/validations/sales.ts                                                                                          
+middleware_.ts                                                                                                    
+modules/notes/note-line.tsx                                                                                       
+modules/notes/store.tsx                                                                                           
+modules/pdf/contants.ts                                                                                           
+renderEmailFix.js                                                                                                 
+trigger.config.ts                                                                                                 
+trigger/example.ts                                                                                                
+trigger/tasks/notes/scheduler/note-scheduler.ts                                                                   
+trigger/tasks/sales/process-sales-payment-link.ts                                                                 
+trigger/tasks/sales/scheduler/fix-unapplied-payments.ts                                                           
+trigger/tasks/sales/scheduler/sales-prod-scheduler.ts                                                             
+trigger/tasks/sales/scheduler/schedule-sales-invoice.ts                                                           
+trigger/tasks/sales/send-email.tsx                                                                                
+trigger/trigger.config.example.js                                                                                 
+types/email-data.ts                                                                                               
+types/inventory.ts                                                                                                
+use-cases/sales-item.ts                                                                                           
+use-cases/sales-production.ts                                                                                     
+use-cases/sales/list-orders-use-case.ts                                                                           
+utils/db.ts                                                                                                       
+Unused dependencies (52)
+@actions/core                    package.json:15:10 
+@actions/github                  package.json:16:10 
+@cloudinary/react                package.json:17:10 
+@cloudinary/url-gen              package.json:18:10 
+@gnd/db                          package.json:25:10 
+@gnd/events                      package.json:26:10 
+@gnd/printer                     package.json:27:10 
+@gnd/ui                          package.json:28:10 
+@gnd/utils                       package.json:29:10 
+@mdx-js/loader                   package.json:32:10 
+@mdx-js/react                    package.json:33:10 
+@next/mdx                        package.json:36:10 
+@radix-ui/react-alert-dialog     package.json:39:10 
+@radix-ui/react-avatar           package.json:41:10 
+@radix-ui/react-navigation-menu  package.json:49:10 
+@radix-ui/react-portal           package.json:51:10 
+@radix-ui/react-separator        package.json:56:10 
+@radix-ui/react-slider           package.json:57:10 
+@radix-ui/react-switch           package.json:59:10 
+@radix-ui/react-tooltip          package.json:61:10 
+@react-hook/async                package.json:63:10 
+@tiptap/pm                       package.json:70:10 
+@trpc/client                     package.json:74:10 
+@trpc/tanstack-react-query       package.json:75:10 
+@trpc/next                       package.json:76:10 
+@trpc/react-query                package.json:77:10 
+@trpc/server                     package.json:78:10 
+@types/mdx                       package.json:79:10 
+aos                              package.json:85:10 
+better-auth                      package.json:88:10 
+crypto                           package.json:93:10 
+embla-carousel-react             package.json:99:10 
+eslint                           package.json:100:10
+focus-trap-react                 package.json:102:10
+fs-extra                         package.json:104:10
+i                                package.json:105:10
+inter-ui                         package.json:106:10
+next-cloudinary                  package.json:114:10
+next-mdx-remote                  package.json:115:10
+npm                              package.json:118:10
+pg                               package.json:120:10
+puppeteer                        package.json:122:10
+react-email                      package.json:129:10
+react-icons                      package.json:133:10
+react-signature-pad-wrapper      package.json:138:10
+react-wrap-balancer              package.json:139:10
+sass                             package.json:142:10
+slate                            package.json:143:10
+slate-history                    package.json:144:10
+slate-hyperscript                package.json:145:10
+slate-react                      package.json:146:10
+tailwindcss-animate              package.json:152:10
+Unused devDependencies (3)
+@tailwindcss/typography  package.json:164:10
+@trigger.dev/build       package.json:165:10
+@types/prettier          package.json:167:10
+Unlisted dependencies (21)
+date-fns                     actions/change-sales-chart-type.ts                              
+date-fns                     actions/get-sales-active-customers-summary.ts                   
+date-fns                     actions/get-sales-commission-summary.ts                         
+date-fns                     actions/get-sales-total-sales-summary.ts                        
+@react-email/render          actions/triggers/send-invoice-email.ts                          
+lodash.throttle              app/(clean-code)/(sales)/sales-book/(form)/_hooks/use-sticky.tsx
+date-fns                     app/(clean-code)/(sales)/sales-book/page.tsx                    
+@react-email/render          app/api/cron/send-sales-email/route.tsx                         
+@react-pdf/renderer          app/api/pdf/sales-invoice/route.ts                              
+date-fns                     components/(clean-code)/custom/controlled/date-picker.tsx       
+date-fns                     components/(clean-code)/data-table/filter-command/index.tsx     
+@tiptap/extension-document   components/common/tip-tap/index.tsx                             
+@tiptap/extension-paragraph  components/common/tip-tap/index.tsx                             
+@tiptap/extension-text       components/common/tip-tap/index.tsx                             
+tippy.js                     components/common/tip-tap/suggestion.tsx                        
+date-fns                     components/midday-search-filter/filter-list.tsx                 
+date-fns                     components/midday-search-filter/search-filter.tsx               
+date-fns                     lib/table/filterfns.ts                                          
+@radix-ui/react-primitive    types/type.d.ts                                                 
+date-fns                     utils/format.ts                                                 
+server-only                  utils/get-geolocation.ts                                        
+Unlisted binaries (2)
+next  package.json
+tsc   package.json
+Unused exports (340)
+default                     function  _v2/hooks/use-static-data.ts:27:25                                                
+useJobCostList                        _v2/hooks/use-static-data.ts:68:14                                                
+useStaticProductCategories            _v2/hooks/use-static-data.ts:84:14                                                
+useStaticProducts                     _v2/hooks/use-static-data.ts:86:14                                                
+createSalesPaymentLink      function  _v2/lib/square.ts:115:23                                                          
+ceateTerminalCheckout       function  _v2/lib/square.ts:213:23                                                          
+paymentSuccess              function  _v2/lib/square.ts:358:23                                                          
+__salesOrderIdUpdate        function  actions/cache/cache-data-changed.ts:4:17                                          
+getRoles                    function  actions/cached-hrm.ts:49:23                                                       
+getEmployeeProfiles         function  actions/cached-hrm.ts:79:23                                                       
+getNotes                              actions/cached-queries.ts:10:14                                                   
+createBackPayrolls          function  actions/create-payroll.ts:70:23                                                   
+createRole                  function  actions/create-role-action.ts:10:23                                               
+deletePayroll               function  actions/delete-payroll.ts:21:23                                                   
+deleteSalesAssignment       function  actions/delete-sales-assignment.ts:15:23                                          
+getSalesCustomerTxOvervie…  function  actions/get-customer-tx-action.ts:167:23                                          
+getRootStepComponents       function  actions/get-takeoff-context.ts:45:23                                              
+updateSalesLaborCost        function  actions/sales-labor-cost.ts:27:23                                                 
+salesSettingsKey                      actions/sales-settings.ts:8:14                                                    
+createEmployeeProfileSche…            actions/schema.hrm.ts:14:14                                                       
+createPaymentSchemaOld                actions/schema.ts:79:14                                                           
+updateDispatchStatusSchema            actions/schema.ts:179:14                                                          
+dataTableRowContext                   app/_components/data-table/use-data-table.ts:22:14                                
+useTRContext                          app/_components/data-table/use-data-table.ts:29:14                                
+cellTransform                         app/(clean-code)/_common/export/config.ts:38:14                                   
+QueryTabContext                       app/(clean-code)/_common/query-tab/provider.tsx:12:14                             
+useQueryTabContext                    app/(clean-code)/_common/query-tab/provider.tsx:21:14                             
+QueryTabForm                function  app/(clean-code)/_common/query-tab/query-tab-form.tsx:21:17                       
+isDay                       function  app/(clean-code)/_common/utils/db-utils.ts:10:17                                  
+dotArray                    function  app/(clean-code)/_common/utils/utils.ts:12:17                                     
+default                     function  app/(clean-code)/(sales)/_common/_components/mail-box/index.tsx:13:25             
+ProductionModal             function  app/(clean-code)/(sales)/_common/_components/production/index.tsx:30:17           
+getCustomersSimpleListDta   function  app/(clean-code)/(sales)/_common/data-access/customer.dta.ts:50:23                
+getCustomerProfileDta       function  app/(clean-code)/(sales)/_common/data-access/customer.dta.ts:88:23                
+getCustomerOverviewDta      function  app/(clean-code)/(sales)/_common/data-access/customer.dta.ts:114:23               
+getCustomerSalesInfoDta     function  app/(clean-code)/(sales)/_common/data-access/customer.dta.ts:118:23               
+getCustomerPaymentInfo      function  app/(clean-code)/(sales)/_common/data-access/customer.dta.ts:169:23               
+typedSalesBookFormItems     function  app/(clean-code)/(sales)/_common/data-access/dto/sales-book-form-dto.ts:44:17     
+transformSalesBookFormItem  function  app/(clean-code)/(sales)/_common/data-access/dto/sales-book-form-dto.ts:123:17    
+transformShelfItem          function  app/(clean-code)/(sales)/_common/data-access/dto/sales-book-form-dto.ts:205:17    
+transformMultiDykeItem      function  app/(clean-code)/(sales)/_common/data-access/dto/sales-book-form-dto.ts:252:17    
+transformStepProduct        function  app/(clean-code)/(sales)/_common/data-access/dto/sales-book-form-dto.ts:376:17    
+salesStatisticDto           function  app/(clean-code)/(sales)/_common/data-access/dto/sales-list-dto.ts:120:17         
+deliveriesByStatus          function  app/(clean-code)/(sales)/_common/data-access/dto/sales-shipping-dto.ts:162:17     
+calculatedStatsDto          function  app/(clean-code)/(sales)/_common/data-access/dto/sales-stat-dto.ts:34:17          
+getPricingDta               function  app/(clean-code)/(sales)/_common/data-access/dyke-step-dta.ts:52:23               
+createPricingDta            function  app/(clean-code)/(sales)/_common/data-access/dyke-step-dta.ts:60:23               
+deletePricingDta            function  app/(clean-code)/(sales)/_common/data-access/dyke-step-dta.ts:79:23               
+findCustomStepProductDta    function  app/(clean-code)/(sales)/_common/data-access/dyke-step-dta.ts:90:23               
+getHptSettings              function  app/(clean-code)/(sales)/_common/data-access/dyke-steps.persistent.ts:68:23       
+initDispatchQuery           function  app/(clean-code)/(sales)/_common/data-access/sales-dispatch-dta.ts:62:23          
+getFullSaleBySlugType       function  app/(clean-code)/(sales)/_common/data-access/sales-dta.ts:93:23                   
+getSaleByOrderIdDta         function  app/(clean-code)/(sales)/_common/data-access/sales-dta.ts:162:23                  
+restoreDeleteDta            function  app/(clean-code)/(sales)/_common/data-access/sales-dta.ts:183:23                  
+getFormStepComponentsDta    function  app/(clean-code)/(sales)/_common/data-access/sales-form-dta.ts:145:23             
+getStepDta                  function  app/(clean-code)/(sales)/_common/data-access/sales-form-step-dta.ts:41:23         
+validateNextStepIdDta       function  app/(clean-code)/(sales)/_common/data-access/sales-form-step-dta.ts:66:23         
+initSalesProgressDta        function  app/(clean-code)/(sales)/_common/data-access/sales-progress.dta.ts:12:23          
+getTaxList                  function  app/(clean-code)/(sales)/_common/data-access/sales-tax.persistent.ts:47:23        
+getWithDeletedTaxList       function  app/(clean-code)/(sales)/_common/data-access/sales-tax.persistent.ts:50:23        
+getSaleRootComponentConfi…  function  app/(clean-code)/(sales)/_common/data-access/step-components.dta.ts:32:23         
+getTaxesByTaxCodesDta       function  app/(clean-code)/(sales)/_common/data-access/tax.dta.ts:7:23                      
+salesPaymentSuccessDta      function  app/(clean-code)/(sales)/_common/data-access/wallet/sales-payment-dta.ts:189:23   
+getSalesPendingPayments     function  app/(clean-code)/(sales)/_common/data-access/wallet/transaction-dta.ts:67:23      
+createSalesCheckout         function  app/(clean-code)/(sales)/_common/data-access/wallet/transaction-dta.ts:83:23      
+getSalesPayment             function  app/(clean-code)/(sales)/_common/data-access/wallet/transaction-dta.ts:98:23      
+createSalesPaymentTransac…  function  app/(clean-code)/(sales)/_common/data-access/wallet/transaction-dta.ts:119:23     
+getWalletBalance            function  app/(clean-code)/(sales)/_common/data-access/wallet/wallet-dta.ts:67:23           
+createSalesDispatchAction   function  …de)/(sales)/_common/data-actions/dispatch-actions/create-dispatch-action.ts:29:23
+deleteDispatchAction        function  …ode)/(sales)/_common/data-actions/dispatch-actions/delete-dispatch-action.ts:6:23
+restoreDispatchAction       function  …de)/(sales)/_common/data-actions/dispatch-actions/delete-dispatch-action.ts:26:23
+loadDispatchListAction      function  …code)/(sales)/_common/data-actions/dispatch-actions/dispatch-list-action.ts:36:23
+transformDispatchListItem   function  …an-code)/(sales)/_common/data-actions/dispatch-actions/dispatch-list-dto.ts:47:17
+salesDispatchListOverview   function  …e)/(sales)/_common/data-actions/dispatch-actions/dispatch-overview-action.ts:9:23
+updateQtyControlAutoCompl…  function  app/(clean-code)/(sales)/_common/data-actions/item-control.action.ts:16:23        
+getSalesItemControllables…  function  app/(clean-code)/(sales)/_common/data-actions/item-control.action.ts:125:23       
+updateItemQtyControlsActi…  function  app/(clean-code)/(sales)/_common/data-actions/item-control.action.ts:307:23       
+deleteItemAssignmentAction  function  …code)/(sales)/_common/data-actions/production-actions/item-assign-action.ts:78:23
+updateAssignmentDueDateAc…  function  …ode)/(sales)/_common/data-actions/production-actions/item-assign-action.ts:156:23
+updateAssignmentAssignedT…  function  …ode)/(sales)/_common/data-actions/production-actions/item-assign-action.ts:166:23
+deleteSubmissionAction      function  …ode)/(sales)/_common/data-actions/production-actions/item-assign-action.ts:179:23
+getProductionListAction     function  …/(sales)/_common/data-actions/production-actions/productions-list-action.ts:92:23
+loadSalesOverviewAction     function  app/(clean-code)/(sales)/_common/data-actions/sales-overview.action.ts:14:23      
+validateSalesStatControlA…  function  app/(clean-code)/(sales)/_common/data-actions/sales-stat-control.action.ts:9:23   
+getSalesDispatchListUseCa…  function  app/(clean-code)/(sales)/_common/use-case/sales-dispatch-use-case.ts:17:23        
+salesDispatchFormUseCase    function  app/(clean-code)/(sales)/_common/use-case/sales-dispatch-use-case.ts:21:23        
+createSalesDispatchUseCase  function  app/(clean-code)/(sales)/_common/use-case/sales-dispatch-use-case.ts:24:23        
+deleteSalesDispatchUseCase  function  app/(clean-code)/(sales)/_common/use-case/sales-dispatch-use-case.ts:27:23        
+updateDispatchStatusUseCa…  function  app/(clean-code)/(sales)/_common/use-case/sales-dispatch-use-case.ts:30:23        
+updateSalesItemControlUse…  function  app/(clean-code)/(sales)/_common/use-case/sales-item-control-use-case.ts:5:23     
+getSalesItemOverviewUseCa…  function  app/(clean-code)/(sales)/_common/use-case/sales-item-use-case.ts:7:23             
+getSalesOrderListUseCase    function  app/(clean-code)/(sales)/_common/use-case/sales-list-use-case.ts:13:23            
+getSalesListByIdUseCase     function  app/(clean-code)/(sales)/_common/use-case/sales-list-use-case.ts:18:23            
+getSalesOrderInfinityList…  function  app/(clean-code)/(sales)/_common/use-case/sales-list-use-case.ts:26:23            
+getSalesPaymentUseCase      function  app/(clean-code)/(sales)/_common/use-case/sales-payment-use-case.ts:21:23         
+getPaymentTerminalsUseCase  function  app/(clean-code)/(sales)/_common/use-case/sales-payment-use-case.ts:28:23         
+createTerminalPaymentUseC…  function  app/(clean-code)/(sales)/_common/use-case/sales-payment-use-case.ts:36:23         
+checkTerminalPaymentStatu…  function  app/(clean-code)/(sales)/_common/use-case/sales-payment-use-case.ts:44:23         
+cancelSalesPaymentCheckou…  function  app/(clean-code)/(sales)/_common/use-case/sales-payment-use-case.ts:48:23         
+createTransactionUseCase    function  app/(clean-code)/(sales)/_common/use-case/sales-payment-use-case.ts:51:23         
+getItemAssignmentFormUseC…  function  app/(clean-code)/(sales)/_common/use-case/sales-prod.use-case.ts:21:23            
+createItemAssignmentUseCa…  function  app/(clean-code)/(sales)/_common/use-case/sales-prod.use-case.ts:59:23            
+getTaxListUseCase           function  app/(clean-code)/(sales)/_common/use-case/sales-tax-use-case.ts:5:23              
+getNextStepUseCase          function  app/(clean-code)/(sales)/_common/use-case/step-component-use-case.ts:65:23        
+updateCustomComponentUseC…  function  app/(clean-code)/(sales)/_common/use-case/step-component-use-case.ts:127:23       
+createCustomComponentUseC…  function  app/(clean-code)/(sales)/_common/use-case/step-component-use-case.ts:146:23       
+dispatchStatusList                    app/(clean-code)/(sales)/_common/utils/contants.ts:16:14                          
+PRODUCTION_FILTER_OPTIONS             app/(clean-code)/(sales)/_common/utils/contants.ts:30:14                          
+paymentMethods                        app/(clean-code)/(sales)/_common/utils/contants.ts:178:14                         
+dispatchModes                         app/(clean-code)/(sales)/_common/utils/contants.ts:190:14                         
+infinitListQuery            function  app/(clean-code)/(sales)/_common/utils/db-utils.ts:32:23                          
+dykeFormIncludes                      app/(clean-code)/(sales)/_common/utils/db-utils.ts:314:14                         
+includeStepPriceCount                 app/(clean-code)/(sales)/_common/utils/db-utils.ts:383:14                         
+shelfItemControlUid         function  app/(clean-code)/(sales)/_common/utils/item-control-utils.ts:49:17                
+itemLineIndex               function  app/(clean-code)/(sales)/_common/utils/sales-utils.ts:86:17                       
+useInitContext              function  …code)/(sales)/sales-book/(form)/_components/modals/component-form/index.tsx:41:17
+default                     function  …code)/(sales)/sales-book/(form)/_components/modals/component-form/index.tsx:85:25
+useInitContext              function  …sales)/sales-book/(form)/_components/modals/component-price-modal/index.tsx:29:17
+default                     function  …sales)/sales-book/(form)/_components/modals/component-price-modal/index.tsx:72:25
+useInitContext              function  …book/(form)/_components/modals/component-section-setting-override/index.tsx:35:17
+default                     function  …book/(form)/_components/modals/component-section-setting-override/index.tsx:77:25
+useInitContext              function  …)/sales-book/(form)/_components/modals/component-visibility-modal/index.tsx:37:17
+default                     function  …)/sales-book/(form)/_components/modals/component-visibility-modal/index.tsx:84:25
+useInitContext              function  …de)/(sales)/sales-book/(form)/_components/modals/door-price-modal/index.tsx:27:17
+default                     function  …de)/(sales)/sales-book/(form)/_components/modals/door-price-modal/index.tsx:65:25
+useInitContext              function  …ode)/(sales)/sales-book/(form)/_components/modals/door-size-modal/index.tsx:30:17
+DoorSwapModal               function  …ode)/(sales)/sales-book/(form)/_components/modals/door-swap-modal/index.tsx:25:17
+default                     function  …e)/(sales)/sales-book/(form)/_components/modals/img-gallery-modal/index.tsx:22:25
+useInitContext              function  …)/(sales)/sales-book/(form)/_components/modals/step-pricing-modal/index.tsx:26:17
+default                     function  …)/(sales)/sales-book/(form)/_components/modals/step-pricing-modal/index.tsx:74:25
+useLegacyDoorHPT                      …-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step/index.tsx:25:14
+zhItemUidFromStepUid        function  …lean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-form-helper.ts:457:17
+accountingPageQuery                   …e)/(sales)/sales-book/(pages)/accounting/resolution-center/search-params.ts:15:14
+fetchCache                  function  app/(v1)/_actions/_cache/load-data.ts:13:23                                       
+saveCache                   function  app/(v1)/_actions/_cache/load-data.ts:28:23                                       
+dealersLogin                function  app/(v1)/_actions/auth.ts:110:23                                                  
+checkPassword               function  app/(v1)/_actions/auth.ts:142:23                                                  
+__checkPassword             function  app/(v1)/_actions/auth.ts:154:23                                                  
+saveToDatabase              function  app/(v1)/_actions/cloudinary/cloudinary.ts:24:23                                  
+_linkTaskToJob              function  app/(v1)/_actions/community-job/_assign-jobs.ts:45:23                             
+_attachUnitsToCommunity     function  app/(v1)/_actions/community/_community-pivot.ts:114:23                            
+_attachedUnitsToCommunity   function  app/(v1)/_actions/community/community-model-cost.ts:148:23                        
+_findOrGeneratePivotForCo…  function  app/(v1)/_actions/community/community-model-cost.ts:173:23                        
+_saveCommunityModelCost     function  app/(v1)/_actions/community/community-template.ts:44:23                           
+_mergeConflicts             function  app/(v1)/_actions/fix/merge-conflict-customer.ts:171:23                           
+getMyPunchoutJobs           function  app/(v1)/_actions/hrm-jobs/get-jobs.ts:19:23                                      
+updateJobTask               function  app/(v1)/_actions/hrm-jobs/job-actions.ts:42:23                                   
+getRestorableJobsCount      function  app/(v1)/_actions/hrm-jobs/restore-jobs.ts:12:23                                  
+getRestorableJobs           function  app/(v1)/_actions/hrm-jobs/restore-jobs.ts:21:23                                  
+deleteOldNotifications      function  app/(v1)/_actions/notifications.ts:30:23                                          
+updateTimelineAction        function  app/(v1)/_actions/progress.ts:74:23                                               
+getOrderableItems           function  app/(v1)/_actions/sales-inbound/get-orderable-items.ts:14:23                      
+_updateInboundItemLocation  function  app/(v1)/_actions/sales-inbound/putaway.crud.ts:24:23                             
+getInstallCostSettingActi…  function  app/(v1)/_actions/settings.ts:24:23                                               
+getSalesSettingAction       function  app/(v1)/_actions/settings.ts:27:23                                               
+convertModelInstallCost     function  app/(v1)/_actions/upgrade/community.ts:294:23                                     
+upgradeInstallPriceChart    function  app/(v1)/_actions/upgrade/community.ts:438:23                                     
+fixSales                    function  app/(v1)/_actions/upgrade/fix-sales.ts:35:23                                      
+upgradeNewJobs              function  app/(v1)/_actions/upgrade/jobs-upgrade.ts:88:23                                   
+getSessionPermissions       function  app/(v1)/_actions/utils.ts:19:23                                                  
+streamlineMeta              function  app/(v1)/_actions/utils.ts:39:23                                                  
+default                     function  app/(v1)/(loggedIn)/community/units/home-modal.tsx:49:25                          
+updateInventoryComponentT…  function  app/(v1)/(loggedIn)/sales/_actions/inventory.ts:89:23                             
+saveAddressAction                     app/(v1)/(loggedIn)/sales/_actions/sales-address.ts:67:14                         
+updatePaymentTerm           function  app/(v1)/(loggedIn)/sales/_actions/sales-payment.ts:173:23                        
+markProduction              function  app/(v1)/(loggedIn)/sales/_actions/sales-production.ts:56:23                      
+assignProductionAction      function  app/(v1)/(loggedIn)/sales/_actions/sales-production.ts:121:23                     
+getUserProductionEventsAc…  function  app/(v1)/(loggedIn)/sales/_actions/sales-production.ts:142:23                     
+saveCustomerProfile         function  app/(v1)/(loggedIn)/sales/(customers)/_actions/sales-customer-profiles.ts:11:23   
+updateSalesDelivery         function  app/(v1)/(loggedIn)/sales/delivery/sales-delivery.ts:13:23                        
+moreInvoiceLines            function  app/(v1)/(loggedIn)/sales/order/[slug]/form/sales-utils.ts:146:17                 
+DeliveryStatus              function  app/(v1)/(loggedIn)/sales/orders/components/cells/sales-columns.tsx:284:17        
+ModelComponents             function  …)/(loggedIn)/settings/community/_components/model-form/model-components.tsx:96:17
+UnitTemplateTabs            function  …p/(v1)/(loggedIn)/settings/community/_components/model-form/model-form.tsx:114:17
+deleteBuilderTasks          function  app/(v1)/(loggedIn)/settings/community/builders/action.ts:201:23                  
+addBuilderTasks             function  app/(v1)/(loggedIn)/settings/community/builders/action.ts:202:23                  
+default                     function  app/(v1)/(loggedIn)/settings/community/builders/builder-modal.tsx:51:25           
+composeEmail                function  app/(v2)/(loggedIn)/mail-grid/lib/templates.ts:15:17                              
+useMailEvent                function  app/(v2)/(loggedIn)/mail-grid/lib/use-mail-event.ts:5:17                          
+emailTriggerEvents                    app/(v2)/(loggedIn)/mail-grid/templates/events.ts:1:14                            
+eventRecipients                       app/(v2)/(loggedIn)/mail-grid/templates/events.ts:25:14                           
+getTriggerEmailReceivers    function  app/(v2)/(loggedIn)/mail-grid/templates/events.ts:34:17                           
+getTotalDeliverables        function  app/(v2)/(loggedIn)/sales-v2/_utils/sales-utils.ts:37:17                          
+default                     function  app/(v2)/(loggedIn)/sales-v2/dealers/dealer-overview-sheet.tsx:41:25              
+dealerEmail                 function  app/(v2)/(loggedIn)/sales-v2/dealers/email-actions.ts:16:23                       
+_processEmail               function  app/(v2)/(loggedIn)/sales-v2/dealers/email-actions.ts:86:23                       
+verifyBifoldDoors           function  …)/(loggedIn)/sales-v2/dimension-variants/_actions/get-house-package-tool.ts:30:23
+getDispatchPreviewAction    function  app/(v2)/(loggedIn)/sales-v2/dispatch/action.ts:36:23                             
+_deleteDykeError            function  app/(v2)/(loggedIn)/sales-v2/form/_action/error/save-error.tsx:65:23              
+default                     function  app/(v2)/(loggedIn)/sales-v2/form/components/modals/door-size-modal.tsx:54:25     
+default                     function  …2)/(loggedIn)/sales-v2/form/components/modals/select-door-heights/index.tsx:50:25
+getDepsUid                  function  …mponents/step-items-list/item-section/step-products/init-step-components.ts:71:17
+serverDate                  function  …ales-v2/productions/_components/_modals/assignment-modal/_action/actions.ts:13:23
+moreInvoiceLines            function  app/(v2)/(loggedIn)/sales/edit/sales-form-utils.ts:178:17                         
+PrintCtx                              app/(v2)/printer/base-printer.tsx:22:14                                           
+CustomerReportCtx                     app/(v2)/printer/customer-report/report-ctx.tsx:20:14                             
+SalesPrintCtx                         app/(v2)/printer/sales/order-base-printer.tsx:7:14                                
+openSalesPrint              function  app/(v2)/printer/utils.ts:4:17                                                    
+ActionButton                function  components/_v1/data-table/data-table-row-actions.tsx:147:17                       
+StatusFilter                          components/_v1/data-table/smart-table.tsx:200:14                                  
+CostForm                    function  components/_v1/modals/model-cost-modal.tsx:148:17                                 
+CostHistory                 function  components/_v1/modals/model-cost-modal.tsx:304:17                                 
+BackOrderLine               function  components/_v1/sales/load-delivery/order-inspection.tsx:75:17                     
+shellVariants                         components/_v1/shells/shell.tsx:37:16                                             
+comboBoxVariants                      components/(clean-code)/custom/controlled/combo-box.tsx:21:14                     
+default                     function  components/(clean-code)/custom/controlled/number-picker.tsx:16:25                 
+SortableOverlay                       components/(clean-code)/custom/sortable.tsx:366:53                                
+TextWithTooltip             function  components/(clean-code)/custom/text-with-tooltip.tsx:15:17                        
+queryKeys                             components/(clean-code)/data-table/filter-command/filters.ts:7:14                 
+getFieldValueByType         function  components/(clean-code)/data-table/filter-command/utils.ts:190:17                 
+notEmpty                    function  components/(clean-code)/data-table/filter-command/utils.ts:236:17                 
+default                     function  components/(clean-code)/data-table/item-overview-sheet.tsx:36:25                  
+SecondaryTabSheet           function  components/(clean-code)/data-table/item-overview-sheet.tsx:72:17                  
+TableSheetHeader            function  components/(clean-code)/data-table/item-overview-sheet.tsx:107:17                 
+SideSheetContent            function  components/(clean-code)/data-table/item-overview-sheet.tsx:250:17                 
+parseAsSort                           components/(clean-code)/data-table/search-params.ts:29:14                         
+dataTableRowContext                   components/(clean-code)/data-table/use-data-table.ts:24:14                        
+ctx                                   components/(clean-code)/data-table/use-infinity-data-table.tsx:29:14              
+kbdVariants                           components/(clean-code)/kbd.tsx:7:14                                              
+ControlledCombox            function  components/common/controls/form-select.tsx:201:17                                 
+useDataTableColumn3         function  components/common/data-table/columns/use-data-table-columns.tsx:43:17             
+multiPaneNode                         components/common/modal/index.tsx:292:14                                          
+StatCardItem                function  components/common/stat-cards/index.tsx:18:17                                      
+CurrencyInput               function  components/currency-input.tsx:7:17                                                
+schema                                components/examples/block-featured-outline-table.tsx:106:14                       
+Select                      function  components/forms/sales-form/sales-meta-form.tsx:392:17                            
+ShelfItemLine               function  components/forms/sales-form/shelf-items.tsx:75:17                                 
+DoorTitle                   function  components/forms/sales-form/take-off/door-display.tsx:32:17                       
+SalesInvoiceDueStatus       function  components/sales-invoice-due-status.tsx:6:17                                      
+CustomSheetBase             function  components/sheets/custom-sheet-content.tsx:59:17                                  
+BatchAssignActionMenu       function  components/sheets/sales-overview-sheet/batch-assign-action.tsx:24:17              
+BatchAssignAction           function  components/sheets/sales-overview-sheet/batch-assign-action.tsx:83:17              
+useItemsTabContext          function  components/sheets/sales-overview-sheet/items-tab-context.tsx:6:17                 
+ItemsTabContext                       components/sheets/sales-overview-sheet/items-tab-context.tsx:67:14                
+ItemsTabProvider                      components/sheets/sales-overview-sheet/items-tab-context.tsx:71:14                
+LaborCostInline             function  components/sheets/sales-overview-sheet/labor-cost-inline.tsx:12:17                
+PoInline                    function  components/sheets/sales-overview-sheet/po-inline.tsx:12:17                        
+Content                     function  components/sheets/sales-overview-sheet/production-assignments.tsx:53:17           
+SalesDateInline             function  components/sheets/sales-overview-sheet/sales-date-inline.tsx:14:17                
+SalesDeliveryCostInline     function  components/sheets/sales-overview-sheet/sales-delivery-cost-inline.tsx:12:17       
+shellVariants                         components/shell.tsx:41:16                                                        
+__access                              components/sidebar/links.ts:98:14                                                 
+linkModules                           components/sidebar/links.ts:205:14                                                
+badgeVariants                         components/ui/badge.tsx:36:16                                                     
+CardFooter                            components/ui/card.tsx:79:27                                                      
+CardDescription                       components/ui/card.tsx:79:50                                                      
+ComboboxInput                         components/ui/combobox.tsx:248:20                                                 
+ComboboxCancel                        components/ui/combobox.tsx:250:21                                                 
+ComboboxBadgeList                     components/ui/combobox.tsx:251:20                                                 
+ComboboxBadgeItem                     components/ui/combobox.tsx:252:23                                                 
+ComboboxGroup                         components/ui/combobox.tsx:255:19                                                 
+ComboboxGroupLabel                    components/ui/combobox.tsx:256:19                                                 
+ComboboxProgress                      components/ui/combobox.tsx:259:19                                                 
+ComboboxSeparator                     components/ui/combobox.tsx:260:22                                                 
+useFormField                          components/ui/form.tsx:170:9                                                      
+FormDescription                       components/ui/form.tsx:175:17                                                     
+FormMessage                           components/ui/form.tsx:176:21                                                     
+PopoverAnchor                         components/ui/popover.tsx:38:50                                                   
+ScrollBar                             components/ui/scroll-area.tsx:48:21                                               
+SelectLabel                           components/ui/select.tsx:156:19                                                   
+SelectSeparator                       components/ui/select.tsx:158:16                                                   
+SelectScrollUpButton                  components/ui/select.tsx:159:21                                                   
+SelectScrollDownButton                components/ui/select.tsx:160:26                                                   
+TableFooter                           components/ui/table.tsx:117:15                                                    
+TableCaption                          components/ui/table.tsx:121:15                                                    
+updateTabIndex              function  data-access/query-tab-dta.ts:53:23                                                
+getSalesOverviewPage        function  data-access/sales.get-overview.ts:11:23                                           
+getSale                     function  data-access/sales.get-overview.ts:19:23                                           
+saveStat                    function  data-access/sales.stats.ts:100:23                                                 
+getAllSales                 function  data-access/sales.ts:348:23                                                       
+getDispatchUsersListAction  function  data-actions/users/get-users.ts:46:23                                             
+composeSalesAddress         function  data/compose-sales.ts:30:17                                                       
+composeSalesStatus          function  data/compose-sales.ts:48:17                                                       
+composeListOrders           function  data/compose-sales.ts:68:17                                                       
+statusData                  function  data/data-util.ts:1:17                                                            
+composeAddress              function  data/data-util.ts:19:17                                                           
+getPdfDownloadUrl           function  envs.ts:7:17                                                                      
+DataSkeletonContext                   hooks/use-data-skeleton.ts:7:14                                                   
+hasConflictingDateRanges    function  lib/community/community-utils.ts:60:17                                            
+taskSections                          lib/community/home-template-builder.ts:405:14                                     
+default                     variable  lib/community/home-template-builder.ts:437:8                                      
+useComposedRefs                       lib/compose-refs.ts:36:22                                                         
+_searchQuery                function  lib/db-utils.ts:4:17                                                              
+SPACE_DELIMITER                       lib/delimiters.ts:3:14                                                            
+isArrayOfNumbers            function  lib/is-array.ts:1:17                                                              
+isArrayOfStrings            function  lib/is-array.ts:11:17                                                             
+isArrayOfBooleans           function  lib/is-array.ts:16:17                                                             
+upRoutes                              lib/navs.ts:386:14                                                                
+calculateSpecificPercenti…  function  lib/request/percentile.ts:3:17                                                    
+calculatePercentile         function  lib/request/percentile.ts:30:17                                                   
+getPercentileColor          function  lib/request/percentile.ts:44:17                                                   
+useSalesComponentModal                lib/sales/sales-component-modal.tsx:54:14                                         
+InboundStatus                         lib/status.ts:1:14                                                                
+cldUploadFiles              function  lib/upload-file.ts:6:23                                                           
+toSentenceCase              function  lib/utils.ts:17:17                                                                
+filteredOptions                       lib/utils.ts:333:14                                                               
+getAllDotPaths              function  lib/utils.ts:368:17                                                               
+ObjectMetaType              function  lib/utils.ts:450:17                                                               
+_ObjectMetaType             function  lib/utils.ts:462:17                                                               
+authSchema                            lib/validations/auth.ts:2:14                                                      
+verfifyEmailSchema                    lib/validations/auth.ts:26:14                                                     
+roleSchema                            lib/validations/hrm.ts:11:14                                                      
+generateDownloadLink        function  modules/cloudinary/index.ts:6:17                                                  
+composeEmailTemplate                  modules/email/emails/composed-email.tsx:67:14                                     
+EmailTemplate                         modules/email/emails/composed-email.tsx:70:14                                     
+noteTypes                             modules/notes/constants.ts:4:14                                                   
+noteStatus                            modules/notes/constants.ts:11:14                                                  
+noteContext                           modules/notes/context.ts:9:14                                                     
+filterNotesByTags           function  modules/notes/utils.ts:5:17                                                       
+composeNoteTags             function  modules/notes/utils.ts:17:17                                                      
+composeNoteTagToken         function  modules/notes/utils.ts:20:17                                                      
+noteTokenToObject           function  modules/notes/utils.ts:26:17                                                      
+closeItemComponent                    store/invoice-item-component-slice.ts:102:10                                      
+closeCostUpdater                      store/invoice-item-component-slice.ts:106:3                                       
+navigateTo                  function  store/slicers.ts:187:17                                                           
+ROUTE_VERSIONS                        utils/constants.ts:7:14                                                           
+customerTransactionStatus             utils/constants.ts:110:14                                                         
+conflictType                          utils/constants.ts:119:14                                                         
+whereCommissionPayment      function  utils/db/query.commission-payment.ts:7:17                                         
+whereCommissions            function  utils/db/query.commissions.ts:7:17                                                
+whereEmployeesProfile       function  utils/db/query.employees-profile.ts:7:17                                          
+whereEmployees              function  utils/db/query.employees.ts:7:17                                                  
+whereRoles                  function  utils/db/query.roles.ts:7:17                                                      
+parseSearchparams           function  utils/db/where.sales.ts:532:17                                                    
+composeInline                         utils/email-composer.ts:17:14                                                     
+composeLink                           utils/email-composer.ts:26:14                                                     
+composeTable                          utils/email-composer.ts:32:14                                                     
+transformPaymentOrderIds    function  utils/format-payment-params.ts:11:17                                              
+formatSize                  function  utils/format.ts:10:17                                                             
+formatAmount                function  utils/format.ts:35:17                                                             
+secondsToHoursAndMinutes    function  utils/format.ts:54:17                                                             
+calculateAvgBurnRate        function  utils/format.ts:78:17                                                             
+formatDate                  function  utils/format.ts:86:17                                                             
+formatAccountName           function  utils/format.ts:109:17                                                            
+formatDateRange             function  utils/format.ts:123:17                                                            
+getDueDateStatus            function  utils/format.ts:148:17                                                            
+formatRelativeTime          function  utils/format.ts:175:17                                                            
+queryMeta                   function  utils/query-response.ts:35:17                                                     
+formatControlQty            function  utils/sales-utils.ts:46:17                                                        
+transformPayrollUid         function  utils/sales-utils.ts:139:17                                                       
+Unused exported types (183)
+SquarePaymentMeta              interface  _v2/lib/square.ts:11:18                                                       
+BaseSalesPaymentProps          interface  _v2/lib/square.ts:14:18                                                       
+CreateSalesPaymentLinkProps    interface  _v2/lib/square.ts:40:18                                                       
+CreateSalesPaymentTerminalPr…  interface  _v2/lib/square.ts:45:18                                                       
+GetSquareDevices               type       _v2/lib/square.ts:258:13                                                      
+SiteTicketProps                interface  actions/create-site-action-ticket.ts:9:18                                     
+CustomerGeneralInfo            type       actions/get-customer-general-info.ts:12:13                                    
+GetSalesCustomerTxOverview     type       actions/get-customer-tx-action.ts:164:13                                      
+GetSalesPayments               type       actions/get-sales-payment.ts:10:13                                            
+GetSalesResolutions            type       actions/get-sales-resolutions.ts:9:13                                         
+SiteTicketProps                interface  actions/site-event-class.ts:7:18                                              
+DataTableType                  type       app/_components/data-table/use-data-table.ts:23:13                            
+ExportMeta                     type       app/(clean-code)/_common/export/type.ts:5:13                                  
+ExportCells                    type       app/(clean-code)/_common/export/type.ts:22:13                                 
+CellTypes                      type       app/(clean-code)/_common/export/type.ts:25:13                                 
+IQueryTabStore                 type       app/(clean-code)/_common/query-tab/data-store.ts:25:13                        
+NavGroup                       type       app/(clean-code)/_common/utils/get-menu-list.ts:18:13                         
+SalesDispatchListItem          type       app/(clean-code)/(sales)/_common/data-access/dto/sales-shipping-dto.ts:17:13  
+SalesDispatchListDto           type       app/(clean-code)/(sales)/_common/data-access/dto/sales-shipping-dto.ts:18:13  
+GetStepDta                     type       app/(clean-code)/(sales)/_common/data-access/sales-form-step-dta.ts:8:13      
+GetStepsForRoutingProps        type       app/(clean-code)/(sales)/_common/data-access/sales-form-step-dta.ts:67:13     
+CreateSalesDispatchData        interface  …(sales)/_common/data-actions/dispatch-actions/create-dispatch-action.ts:15:18
+GetDispatchListActions         type       …)/(sales)/_common/data-actions/dispatch-actions/dispatch-list-action.ts:15:13
+DispatchItem                   type       …code)/(sales)/_common/data-actions/dispatch-actions/dispatch-list-dto.ts:7:13
+DispatchOverviewAction         type       …sales)/_common/data-actions/dispatch-actions/dispatch-overview-action.ts:6:13
+GetProductionList              type       …les)/_common/data-actions/production-actions/productions-list-action.ts:21:13
+GetSalesItemOverviewAction     type       app/(clean-code)/(sales)/_common/data-actions/sales-items-action.ts:22:13     
+LoadSalesOverviewAction        type       app/(clean-code)/(sales)/_common/data-actions/sales-overview.action.ts:11:13  
+GetSalesDispatchList           type       app/(clean-code)/(sales)/_common/use-case/sales-dispatch-use-case.ts:14:13    
+SalesDispatchForm              type       app/(clean-code)/(sales)/_common/use-case/sales-dispatch-use-case.ts:20:13    
+GetSalesOverview               type       app/(clean-code)/(sales)/_common/use-case/sales-item-use-case.ts:6:13         
+GetSalesOrderList              type       app/(clean-code)/(sales)/_common/use-case/sales-list-use-case.ts:11:13        
+GetSalesOrderListItem          type       app/(clean-code)/(sales)/_common/use-case/sales-list-use-case.ts:12:13        
+GetSalesPayment                type       app/(clean-code)/(sales)/_common/use-case/sales-payment-use-case.ts:20:13     
+GetPaymentTerminals            type       app/(clean-code)/(sales)/_common/use-case/sales-payment-use-case.ts:25:13     
+ItemAssignmentForm             type       app/(clean-code)/(sales)/_common/use-case/sales-prod.use-case.ts:18:13        
+AssignmentSubmitForm           type       app/(clean-code)/(sales)/_common/use-case/sales-prod.use-case.ts:67:13        
+ItemControlTypes               type       app/(clean-code)/(sales)/_common/utils/item-control-utils.ts:13:13            
+ItemControl                    type       app/(clean-code)/(sales)/_common/utils/item-control-utils.ts:15:13            
+TaxCodes                       type       app/(clean-code)/(sales)/_common/utils/sales-data.ts:9:13                     
+SalesFormSet                   type       …lean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store.ts:15:13
+LegacyDykeFormType             type       app/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy-hooks.tsx:28:13      
+ItemProps                      interface  …lean-code)/(sales)/sales-book/(pages)/_components/orders-page-cells.tsx:16:18
+SalesItemProp                  type       …lean-code)/(sales)/sales-book/(pages)/_components/orders-page-cells.tsx:20:13
+ItemProps                      interface  …n-code)/(sales)/sales-book/(pages)/_components/production-page-cells.tsx:9:18
+SalesItemProp                  type       …-code)/(sales)/sales-book/(pages)/_components/production-page-cells.tsx:13:13
+ItemProps                      interface  …lean-code)/(sales)/sales-book/(pages)/_components/quotes-page-cells.tsx:14:18
+SalesItemProp                  type       …lean-code)/(sales)/sales-book/(pages)/_components/quotes-page-cells.tsx:17:13
+SalesPriority                  type       app/(clean-code)/(sales)/types.ts:18:13                                       
+SalesPrintMode                 type       app/(clean-code)/(sales)/types.ts:64:13                                       
+SalesPaymentOptions            type       app/(clean-code)/(sales)/types.ts:80:13                                       
+DykeFormStepDataPath           type       app/(clean-code)/(sales)/types.ts:204:13                                      
+ItemMultiComponentData         type       app/(clean-code)/(sales)/types.ts:206:13                                      
+ItemMultiComponentSizeData     type       app/(clean-code)/(sales)/types.ts:208:13                                      
+HousePackageToolSettingsMeta   interface  app/(clean-code)/(sales)/types.ts:214:18                                      
+DykeSalesDoor                  type       app/(clean-code)/(sales)/types.ts:359:13                                      
+AddressForm                    interface  app/(clean-code)/(sales)/types.ts:375:18                                      
+PaymentTerms                   type       app/(clean-code)/(sales)/types.ts:401:13                                      
+SalesShelfField                interface  app/(clean-code)/(sales)/types.ts:403:18                                      
+InvoiceQueryParams             interface  app/(v1)/_actions/community-invoice/get-invoices.ts:9:18                      
+ProjectsQueryParams            interface  app/(v1)/_actions/community/projects.ts:14:18                                 
+CustomerServiceQueryParamsPr…  interface  app/(v1)/_actions/customer-services/customer-services.ts:9:18                 
+JobsQueryParamsProps           interface  app/(v1)/_actions/hrm-jobs/get-jobs.ts:9:18                                   
+JobPaymentQueryParamsProps     interface  app/(v1)/_actions/hrm-jobs/get-payments.ts:9:18                               
+EmployeeQueryParamsProps       interface  app/(v1)/_actions/hrm/get-employess.ts:9:18                                   
+NotificationType               type       app/(v1)/_actions/notifications.ts:77:13                                      
+TimelineUpdateProps            interface  app/(v1)/_actions/progress.ts:67:18                                           
+InboundOrderableItemQueryPar…  interface  app/(v1)/_actions/sales-inbound/get-orderable-items.ts:8:18                   
+salesPaymentsQueryParamsProps  interface  app/(v1)/_actions/sales-payment/crud.ts:8:18                                  
+ICreateOrderFormQuery          interface  app/(v1)/(loggedIn)/sales/_actions/get-sales-form.ts:13:18                    
+SalessalesFormData             interface  app/(v1)/(loggedIn)/sales/_actions/get-sales-form.ts:26:18                    
+ISearchQuery                   interface  app/(v1)/(loggedIn)/sales/_actions/inventory.ts:8:18                          
+InvCompTitleProps              interface  app/(v1)/(loggedIn)/sales/_actions/inventory.ts:83:18                         
+ISaveOrderResponse             interface  app/(v1)/(loggedIn)/sales/_actions/sales-components.ts:8:18                   
+IOrderInventoryUpdate          interface  app/(v1)/(loggedIn)/sales/_actions/sales-components.ts:12:18                  
+ICreateOrderFormQuery          interface  app/(v1)/(loggedIn)/sales/_actions/sales-form.ts:12:18                        
+PaymentOrderProps              interface  app/(v1)/(loggedIn)/sales/_actions/sales-payment.ts:15:18                     
+ApplyPaymentProps              interface  app/(v1)/(loggedIn)/sales/_actions/sales-payment.ts:26:18                     
+AssignProductionActionProps    interface  app/(v1)/(loggedIn)/sales/_actions/sales-production.ts:116:18                 
+UserProductionEventsProps      interface  app/(v1)/(loggedIn)/sales/_actions/sales-production.ts:138:18                 
+ICustomerOverview              interface  app/(v1)/(loggedIn)/sales/(customers)/_actions/sales-customers.ts:102:18      
+ICustomerProfileMeta           interface  …(v1)/(loggedIn)/sales/(customers)/customers/profiles/_components/type.ts:6:18
+SalesTableItem                 type       app/(v1)/(loggedIn)/sales/orders/components/orders-table.tsx:43:13            
+HomeTemplatesQueryParams       interface  app/(v1)/(loggedIn)/settings/community/_components/home-template.ts:14:18     
+GetHomeTemplates               type       app/(v1)/(loggedIn)/settings/community/_components/home-template.ts:15:13     
+BuildersQueryParams            interface  app/(v1)/(loggedIn)/settings/community/builders/action.ts:14:18               
+JobFormAction                  type       app/(v2)/(loggedIn)/contractors/_modals/submit-job-modal/_/index.tsx:17:13    
+SubmitJobModalDataProps        interface  app/(v2)/(loggedIn)/contractors/_modals/submit-job-modal/_/index.tsx:32:18    
+GetMailGridAction              type       app/(v2)/(loggedIn)/mail-grid/templates/actions.ts:6:13                       
+EventReceipientTypes           type       app/(v2)/(loggedIn)/mail-grid/templates/events.ts:32:13                       
+ResetPasswordFormInputs        type       app/(v2)/(loggedIn)/sales-v2/dimension-variants/_actions/list.tsx:25:13       
+HousePackageToolSettingsMeta   interface  app/(v2)/(loggedIn)/sales-v2/dimension-variants/type.ts:3:18                  
+DoorSize                       type       app/(v2)/(loggedIn)/sales-v2/form/_hooks/use-door-size.ts:8:13                
+OrderAssignmentDataGroup       type       …In)/sales-v2/productions/_components/_modals/assignment-modal/index.tsx:10:13
+ShelfItem                      type       …ggedIn)/sales-v2/products/shelf-items/_components/shelf-items-table.tsx:16:13
+IDykeSalesItem                 interface  app/(v2)/(loggedIn)/sales-v2/type.ts:13:18                                    
+DykeDoorSizeForm               type       app/(v2)/(loggedIn)/sales-v2/type.ts:45:13                                    
+DykeItemForm                   interface  app/(v2)/(loggedIn)/sales-v2/type.ts:58:18                                    
+ItemStepSequence               type       app/(v2)/(loggedIn)/sales-v2/type.ts:111:13                                   
+DykeShelfItemForm              interface  app/(v2)/(loggedIn)/sales-v2/type.ts:125:18                                   
+DykeSalesDoorMeta              interface  app/(v2)/(loggedIn)/sales-v2/type.ts:176:18                                   
+DykeBlock                      interface  app/(v2)/(loggedIn)/sales-v2/type.ts:180:18                                   
+SalesTabs                      type       app/(v2)/(loggedIn)/sales/dashboard/_actions/get-sales-tab-action.ts:7:13     
+SalesPrintData                 type       app/(v2)/printer/sales/sales-print-block.tsx:14:13                            
+SalesPrintData                 type       app/(v2)/printer/sales/sales-print-display.tsx:15:13                          
+ZusFormSet                     type       app/sand-box/zus-form/store.ts:5:13                                           
+Zus                            type       app/sand-box/zus-form/store.ts:8:13                                           
+IOrderRowProps                 interface  components/_v1/actions/prod-actions.tsx:20:18                                 
+IOrderRowProps                 interface  components/_v1/actions/sales-menu-actions.tsx:37:18                           
+CheckColumnProps               interface  components/_v1/columns/base-columns.tsx:19:18                                 
+ComboboxProps                  interface  components/_v1/combo-box.tsx:21:18                                            
+ConfirmBtnProps                interface  components/_v1/confirm-btn.tsx:13:18                                          
+Option                         interface  components/_v1/data-table/data-table-faceted-filter-2.tsx:22:18               
+Option                         interface  components/_v1/data-table/data-table-faceted-filter.tsx:20:18                 
+IStory                         interface  components/_v1/data-table/smart-table.tsx:194:18                              
+ResetPasswordFormInputs        type       components/_v1/forms/community/install-cost-form.tsx:23:13                    
+BaseModalProps                 interface  components/_v1/modals/base-modal.tsx:22:18                                    
+ICompleteItemProd              interface  components/_v1/modals/sales-prod-submit-modal.tsx:28:18                       
+SalesInspectPageAction         type       components/_v1/sales/load-delivery/load-delivery.tsx:52:13                    
+BaseModalProps                 interface  components/_v1/sheets/base-sheet.tsx:18:18                                    
+InfiniteQueryMeta              type       components/(clean-code)/data-table/query-options.ts:6:13                      
+SearchParams                   type       components/(clean-code)/data-table/type.ts:1:13                               
+DatePreset                     type       components/(clean-code)/data-table/type.ts:5:13                               
+Option                         type       components/(clean-code)/data-table/type.ts:12:13                              
+Input                          type       components/(clean-code)/data-table/type.ts:17:13                              
+Checkbox                       type       components/(clean-code)/data-table/type.ts:22:13                              
+Slider                         type       components/(clean-code)/data-table/type.ts:28:13                              
+Timerange                      type       components/(clean-code)/data-table/type.ts:36:13                              
+Base                           type       components/(clean-code)/data-table/type.ts:42:13                              
+DataTableCheckboxFilterField   type       components/(clean-code)/data-table/type.ts:55:13                              
+DataTableSliderFilterField     type       components/(clean-code)/data-table/type.ts:56:13                              
+DataTableInputFilterField      type       components/(clean-code)/data-table/type.ts:57:13                              
+DataTableTimerangeFilterField  type       components/(clean-code)/data-table/type.ts:58:13                              
+DataTableType                  type       components/(clean-code)/data-table/use-data-table.ts:25:13                    
+PageTab                        interface  components/(clean-code)/fikr-ui/f-page-tabs.tsx:24:18                         
+AuthPermissions                type       components/(clean-code)/fikr-ui/f-page.tsx:7:13                               
+KbdProps                       interface  components/(clean-code)/kbd.tsx:22:18                                         
+ZusFormSet                     type       components/(clean-code)/site-nav/store.ts:13:13                               
+ConfirmBtnProps                interface  components/confirm-button.tsx:10:18                                           
+ZusFormSet                     type       components/sidebar/store.tsx:20:13                                            
+ItemProps                      interface  components/tables/sales-accounting.old/columns.tsx:8:18                       
+CalendarProps                  type       components/ui/calendar.tsx:10:13                                              
+Item                           type       components/widgets/comissions/columns.tsx:9:13                                
+Item                           type       components/widgets/commission-payments/columns.tsx:6:13                       
+SiteConfig                     type       config/site.ts:3:13                                                           
+SalesQueryParam2               interface  data-access/sales.ts:343:18                                                   
+GetUsersList                   type       data-actions/users/get-users.ts:9:13                                          
+SalesEmailSender               type       hooks/use-sales-email-sender.ts:13:13                                         
+ZusFormSet                     type       hooks/use-session.tsx:32:13                                                   
+FieldErrors                    type       lib/create-safe-action.ts:9:13                                                
+ActionState                    type       lib/create-safe-action.ts:13:13                                               
+IOptions                       interface  lib/option-builder.ts:1:18                                                    
+IMobileOptions                 interface  lib/option-builder.ts:8:18                                                    
+ErrorTags                      type       modules/error/report.ts:6:13                                                  
+ErrorStatus                    type       modules/error/report.ts:7:13                                                  
+FilterKeys                     type       modules/notes/constants.ts:34:13                                              
+PdfConfig                      type       modules/pdf/create-pdf.ts:16:13                                               
+AppDispatch                    type       store/index.ts:25:13                                                          
+RootState                      type       store/index.ts:26:13                                                          
+OrderItemFormState             interface  store/invoice-item-component-slice.ts:10:18                                   
+CommunityTemplateDesign        type       types/community.ts:162:13                                                     
+IWorkOrderMeta                 interface  types/customer-service.ts:9:18                                                
+Option                         interface  types/data-table.ts:6:18                                                      
+EmailModalProps                interface  types/email.ts:9:18                                                           
+IJobStatus                     type       types/hrm.ts:33:13                                                            
+IRole                          interface  types/hrm.ts:66:18                                                            
+IRoleForm                      interface  types/hrm.ts:71:18                                                            
+PageProps                      interface  types/index.ts:4:18                                                           
+NavItem                        interface  types/index.ts:8:18                                                           
+NavItemWithChildren            interface  types/index.ts:18:18                                                          
+NavItemWithOptionalChildren    interface  types/index.ts:22:18                                                          
+DataTableSearchableColumn      interface  types/index.ts:40:18                                                          
+Option                         interface  types/index.ts:44:18                                                          
+DataTableFilterableColumn      interface  types/index.ts:49:18                                                          
+DataTableType                  type       types/index.ts:57:13                                                          
+PostType                       type       types/post.ts:8:13                                                            
+WizardInputType                type       types/post.ts:40:13                                                           
+IProductVariant                type       types/product.ts:7:13                                                         
+LegacyProduct                  interface  types/product.ts:14:18                                                        
+InboundOrder                   interface  types/sales-inbound.ts:6:18                                                   
+ProdStatus                     type       types/sales.ts:23:13                                                          
+HousePackageTool               interface  types/sales.ts:139:18                                                         
+ISaveOrder                     interface  types/sales.ts:257:18                                                         
+Duplicate exports (6)
+excludeDeleted|notDeleted   app/(clean-code)/(sales)/_common/utils/db-utils.ts  
+user|authUser               app/(v1)/_actions/utils.ts                          
+userId|authId               app/(v1)/_actions/utils.ts                          
+RowActionMoreMenu|Menu      components/_v1/data-table/data-table-row-actions.tsx
+RowActionMenuItem|MenuItem  components/_v1/data-table/data-table-row-actions.tsx
+TextWithTooltip|default     components/(clean-code)/custom/text-with-tooltip.tsx
+Configuration hints (1)

@@ -1,0 +1,19 @@
+@keyframes gradient-move {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.gradient-border {
+    border-width: 2px;
+    border-image: linear-gradient(90deg, #ff7eb3, #ff758f, #ff5858, #ffcc00);
+    border-image-slice: 1;
+    animation: gradient-move 3s infinite linear;
+    background-origin: border-box;
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@gnd/notifications",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./note": "./src/note.ts",
+    "./utils": "./src/utils.ts",
+    "./*": "./src/*.ts",
+    "./types/*": "./src/types/*.ts"
+  },
+  "scripts": {
+    "clean": "rm -rf .turbo node_modules",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@gnd/db": "workspace:*",
+    "@gnd/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@gnd/tsconfig": "workspace:*",
+    "typescript": "^5.9.2"
+  }
+}

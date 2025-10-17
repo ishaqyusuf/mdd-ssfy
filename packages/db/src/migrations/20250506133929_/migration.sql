@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `SalesOrders` ADD COLUMN `priority` ENUM('CRITICAL', 'HIGH', 'NORMAL', 'LOW') NULL DEFAULT 'NORMAL';

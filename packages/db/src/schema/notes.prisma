@@ -1,0 +1,105 @@
+model NotePad {
+    id              Int                  @unique @default(autoincrement())
+    note            String?
+    color           String?
+    subject         String?
+    headline        String?
+    createdById     Int?
+    comments        NoteComments[]
+    deletedAt       DateTime?            @db.Timestamp(0)
+    createdAt       DateTime?            @default(now()) @db.Timestamp(0)
+    commentNote     NoteComments[]       @relation(name: "commentNote")
+    tags            NoteTags[]
+    senderContactId Int
+    recipients      NoteRecipients[]
+    senderContact   NotePadContacts?     @relation(fields: [senderContactId], references: [id])
+    events          NotePadEvent[]
+    readReceipts    NotePadReadReceipt[]
+
+    @@index([senderContactId])
+}
+
+model NoteRecipients {
+    id               Int             @unique @default(autoincrement())
+    notePage         NotePad         @relation(fields: [notePadId], references: [id])
+    deletedAt        DateTime?       @db.Timestamp(0)
+    createdAt        DateTime?       @default(now()) @db.Timestamp(0)
+    notePadId        Int
+    notePadContactId Int
+    contact          NotePadContacts @relation(fields: [notePadContactId], references: [id])
+
+    @@index([notePadId])
+    @@index([notePadContactId])
+}
+
+model NotePadContacts {
+    id            Int                  @unique @default(autoincrement())
+    name          String
+    email         String?
+    phoneNo       String?
+    notesReceived NoteRecipients[]
+    notesSent     NotePad[]
+    deletedAt     DateTime?            @db.Timestamp(0)
+    createdAt     DateTime?            @default(now()) @db.Timestamp(0)
+    readReceipts  NotePadReadReceipt[]
+
+    @@unique([name, email, phoneNo])
+}
+
+model NoteTags {
+    id        Int       @unique @default(autoincrement())
+    tagName   String //itemUID, deliveryId,section=dispatch|production|sales
+    tagValue  String
+    notePad   NotePad?  @relation(fields: [notePadId], references: [id])
+    notePadId Int?
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+
+    @@unique([tagName, tagValue, notePadId])
+    @@index([notePadId])
+}
+
+model NoteComments {
+    id               Int  @unique @default(autoincrement())
+    notePadId        Int?
+    commentNotePadId Int?
+
+    commentToNote NotePad? @relation(fields: [notePadId], references: [id])
+    note          NotePad? @relation(name: "commentNote", fields: [commentNotePadId], references: [id])
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+
+    @@index([notePadId])
+    @@index([commentNotePadId])
+}
+
+model NotePadEvent {
+    id Int @unique @default(autoincrement())
+
+    reminderType String?
+    status       String? //queued,cancelled,notified,completed
+    reminderDate DateTime? @db.Timestamp(0)
+    remindedAt   DateTime? @db.Timestamp(0)
+    eventDate    DateTime? @db.Timestamp(0)
+    deletedAt    DateTime? @db.Timestamp(0)
+    createdAt    DateTime? @default(now()) @db.Timestamp(0)
+    notePad      NotePad   @relation(fields: [notePadId], references: [id])
+    notePadId    Int
+
+    @@index([notePadId])
+}
+
+model NotePadReadReceipt {
+    id Int @unique @default(autoincrement())
+
+    deletedAt        DateTime?        @db.Timestamp(0)
+    createdAt        DateTime?        @default(now()) @db.Timestamp(0)
+    notePadContactId Int
+    notePadId        Int
+    contact          NotePadContacts? @relation(fields: [notePadContactId], references: [id])
+    note             NotePad?         @relation(fields: [notePadId], references: [id])
+
+    @@index([notePadContactId])
+    @@index([notePadId])
+}

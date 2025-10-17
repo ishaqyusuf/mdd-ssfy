@@ -1,0 +1,44 @@
+{
+  "name": "@gnd/db",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "prisma": {
+    "schema": "./src/schema"
+  },
+  "scripts": {
+    "build": "prisma db push && prisma generate && tsc",
+    "dev": "rm -rf dist .turbo tsc",
+    "dev:prod": "rm -rf dist .turbo tsc",
+    "clean": "rm -rf .turbo node_modules",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "bunx with-env prisma generate",
+    "db-migrate": "bunx prisma migrate dev",
+    "prisma-generate": "bunx prisma generate",
+    "postinstall": "bunx prisma generate",
+    "push": "bunx env-cmd -f .env.production prisma db push",
+    "pull": "bunx with-env prisma db pull",
+    "studio": "bunx with-env prisma studio --port 5556",
+    "with-env": "dotenv -e ../../.env --"
+  },
+  "dependencies": {
+    "@prisma/client": "6.11.1",
+    "@prisma/extension-accelerate": "^2.0.1",
+    "@t3-oss/env-core": "^0.11.1",
+    "date-fns": "^4.1.0",
+    "react": "18.3.1",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "prisma": "6.11.1"
+  }
+}

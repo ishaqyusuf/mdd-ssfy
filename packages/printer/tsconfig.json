@@ -1,0 +1,16 @@
+{
+  "extends": "@gnd/tsconfig/base.json",
+  "include": ["src"],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "jsx": "react-jsx",
+    "baseUrl": "./src",
+    "jsxImportSource": "react",
+    "noImplicitAny": false,
+    "paths": {
+      "@/*": ["./*"]
+    }
+  }
+}

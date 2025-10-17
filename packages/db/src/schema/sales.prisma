@@ -1,0 +1,773 @@
+model CommissionPayment {
+    id            Int              @unique @default(autoincrement())
+    amount        Float
+    userId        Int
+    paidBy        Int
+    checkNo       String?
+    paymentMethod String?
+    meta          Json?            @db.Json
+    deletedAt     DateTime?        @db.Timestamp(0)
+    createdAt     DateTime?        @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?        @updatedAt
+    commissions   SalesCommision[]
+    user          Users?           @relation(name: "worker", fields: [userId], references: [id])
+    payer         Users?           @relation(name: "payer", fields: [paidBy], references: [id])
+    Users         Users?           @relation(fields: [usersId], references: [id])
+    usersId       Int?
+
+    @@index([userId])
+    @@index([paidBy])
+    @@index([usersId])
+}
+
+model SalesOrders {
+    id                Int                              @unique @default(autoincrement())
+    title             String?                          @db.VarChar(255)
+    customerId        Int?
+    billingAddressId  Int?
+    shippingAddressId Int?
+    salesRepId        Int?
+    pickupId          Int?
+    prodId            Int?
+    isDyke            Boolean?                         @default(false)
+    summary           String?                          @db.Text
+    instruction       String?                          @db.Text
+    meta              Json?                            @db.Json
+    status            String?                          @db.VarChar(255)
+    inventoryStatus   String?                          @db.VarChar(255)
+    deletedAt         DateTime?                        @db.Timestamp(0)
+    createdAt         DateTime?                        @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime?                        @updatedAt
+    orderId           String                           @db.VarChar(255)
+    slug              String                           @db.VarChar(255)
+    type              String?                          @db.VarChar(255)
+    goodUntil         DateTime?
+    priority          SalesPriority?                   @default(NORMAL)
+    paymentTerm       String?
+    prodQty           Float?
+    builtQty          Float?
+    subTotal          Float?
+    profitMargin      Float?
+    tax               Float?
+    taxPercentage     Float?
+    grandTotal        Float?
+    amountDue         Float?
+    invoiceStatus     String?                          @db.VarChar(255)
+    prodStatus        String?                          @db.VarChar(255)
+    prodDueDate       DateTime?                        @db.Timestamp(0)
+    paymentDueDate    DateTime?                        @db.Timestamp(0)
+    deliveredAt       DateTime?
+    deliveryOption    String?
+    customerProfileId Int?
+    taxes             SalesTaxes[]
+    checkouts         SalesCheckout[]
+    refunds           Refunds[]                        @relation(name: "salesRefunds")
+    refund            Refunds?                         @relation(name: "refund")
+    assignments       OrderItemProductionAssignments[]
+    billingAddress    AddressBooks?                    @relation(name: "billingAddress", fields: [billingAddressId], references: [id])
+    commisions        SalesCommision[]
+    customer          Customers?                       @relation(fields: [customerId], references: [id])
+    deliveries        OrderDelivery[]
+    doors             DykeSalesDoors[]
+    formSteps         DykeStepForm[]
+    housePackageTools HousePackageTools[]
+    items             SalesOrderItems[]
+    itemControls      SalesItemControl[]
+    itemDeliveries    OrderItemDelivery[]
+    payments          SalesPayments[]                  @relation(name: "salesPayment")
+    pickup            SalesPickup?                     @relation(fields: [pickupId], references: [id])
+    pricings          ComponentPrice[]
+    producer          Users?                           @relation(name: "producer", fields: [prodId], references: [id])
+    productions       OrderProductionSubmissions[]
+    requests          DealerSalesRequest[]
+    salesProfile      CustomerTypes?                   @relation(fields: [customerProfileId], references: [id])
+    salesRep          Users?                           @relation(name: "salesRep", fields: [salesRepId], references: [id])
+    shippingAddress   AddressBooks?                    @relation(name: "shippingAddress", fields: [shippingAddressId], references: [id])
+    stat              SalesStat[]
+    extraCosts        SalesExtraCosts[]
+    squarePayOrders   SquarePaymentOrders[]
+    payrolls          Payroll[]
+    history           SalesHistory[]
+    lineItems         LineItem[]
+
+    @@unique([orderId, type])
+    @@index([createdAt, deletedAt, orderId, grandTotal, prodId, type, prodDueDate])
+    @@index([customerProfileId])
+    @@index([customerId])
+    @@index([shippingAddressId])
+    @@index([billingAddressId])
+    @@index([prodId])
+    @@index([salesRepId])
+    @@index([pickupId])
+}
+
+model SalesHistory {
+    id         String       @unique @default(uuid())
+    data       Json?        @db.Json
+    name       String?
+    authorName String?
+    salesId    Int
+    sale       SalesOrders? @relation(fields: [salesId], references: [id])
+    createdAt  DateTime?    @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime?    @updatedAt
+    deletedAt  DateTime?    @db.Timestamp(0)
+
+    @@index([salesId])
+}
+
+enum SalesPriority {
+    CRITICAL
+    HIGH
+    NORMAL
+    LOW
+}
+
+model SalesExtraCosts {
+    id          Int                @unique @default(autoincrement())
+    label       String
+    type        SalesExtraCostType
+    taxxable    Boolean?
+    amount      Float
+    tax         Float?
+    totalAmount Float?
+    percentage  Float?
+    orderId     Int
+    order       SalesOrders        @relation(fields: [orderId], references: [id])
+
+    @@index([orderId])
+}
+
+enum SalesExtraCostType {
+    Discount
+    DiscountPercentage
+    Labor
+    CustomTaxxable
+    CustomNonTaxxable
+    Delivery
+    EXT
+}
+
+model SalesOrderItems {
+    id                 Int                              @unique @default(autoincrement())
+    description        String?                          @db.VarChar(300)
+    dykeDescription    String?                          @db.VarChar(300)
+    productId          Int?
+    supplier           String?
+    swing              String?                          @db.VarChar(255)
+    price              Float?
+    tax                Float?
+    taxPercenatage     Float?
+    discount           Float?
+    discountPercentage Float?
+    meta               Json?                            @db.Json
+    createdAt          DateTime?                        @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime?                        @updatedAt
+    deletedAt          DateTime?                        @db.Timestamp(0)
+    qty                Float?
+    prebuiltQty        Float?
+    truckLoadQty       Float?
+    salesOrderId       Int
+    profitMargin       Float?
+    rate               Float?
+    total              Float?
+    salesPercentage    Float?
+    prodStatus         String?                          @db.VarChar(255)
+    prodStartedAt      DateTime?                        @db.Timestamp(0)
+    sentToProdAt       DateTime?                        @db.Timestamp(0)
+    prodCompletedAt    DateTime?                        @db.Timestamp(0)
+    multiDyke          Boolean                          @default(false)
+    dykeProduction     Boolean                          @default(false)
+    multiDykeUid       String?
+    salesOrder         SalesOrders?                     @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    shelfItems         DykeSalesShelfItem[]
+    formSteps          DykeStepForm[]
+    housePackageTool   HousePackageTools?
+    salesDoors         DykeSalesDoors[]
+    // supplies           SalesItemSupply[]
+    assignments        OrderItemProductionAssignments[]
+    productions        OrderProductionSubmissions[]
+    itemDeliveries     OrderItemDelivery[]
+    priceList          ComponentPrice[]
+    itemControls       SalesItemControl[]
+    lineItem           LineItem?
+
+    @@index([createdAt, description, swing])
+    @@index([salesOrderId], name: "idx_SalesOrderItems_on_salesOrderId")
+}
+
+model QtyControl {
+    // uid            String //@unique // type+uid 
+    itemControlUid String
+    qty            Int?             @default(0)
+    lh             Int?             @default(0)
+    rh             Int?             @default(0)
+    total          Int              @default(0)
+    itemTotal      Int?
+    type           String
+    percentage     Float?
+    autoComplete   Boolean?
+    deletedAt      DateTime?        @db.Timestamp(0)
+    itemControl    SalesItemControl @relation(fields: [itemControlUid], references: [uid])
+
+    // @@index([uid])
+    // @@index([itemControlUid])
+
+    @@unique([itemControlUid, type])
+}
+
+model SalesItemControl {
+    uid          String  @unique // item-1, door-234, moulding-1
+    title        String?
+    subtitle     String?
+    sectionTitle String?
+
+    salesId     Int
+    produceable Boolean?
+    shippable   Boolean?
+    deletedAt   DateTime?                        @db.Timestamp(0)
+    orderItemId Int?
+    sales       SalesOrders?                     @relation(fields: [salesId], references: [id])
+    item        SalesOrderItems?                 @relation(fields: [orderItemId], references: [id])
+    qtyControls QtyControl[]
+    assignments OrderItemProductionAssignments[]
+    payroll     Payroll[]
+
+    @@index([salesId])
+    @@index([orderItemId])
+    @@index([uid])
+}
+
+model HousePackageTools {
+    id             Int                @unique @default(autoincrement())
+    orderItemId    Int                @unique
+    priceId        String?            @unique
+    height         String?
+    doorType       String?
+    doorId         Int?
+    dykeDoorId     Int?
+    jambSizeId     Int?
+    casingId       Int?
+    moldingId      Int?
+    stepProductId  Int?
+    totalPrice     Float?             @default(0)
+    totalDoors     Int?               @default(0)
+    meta           Json?              @db.Json
+    salesOrderId   Int
+    createdAt      DateTime?          @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime?          @updatedAt
+    deletedAt      DateTime?          @db.Timestamp(0)
+    order          SalesOrders        @relation(fields: [salesOrderId], references: [id])
+    salesOrderItem SalesOrderItems    @relation(fields: [orderItemId], references: [id])
+    door           DykeDoors?         @relation(name: "door", fields: [dykeDoorId], references: [id])
+    shelfProd      DykeShelfProducts? @relation(name: "shelfProd", fields: [doorId], references: [id])
+    jambSize       DykeProducts?      @relation(name: "jamb", fields: [jambSizeId], references: [id])
+    casing         DykeProducts?      @relation(name: "casing", fields: [casingId], references: [id])
+    molding        DykeProducts?      @relation(name: "molding", fields: [moldingId], references: [id])
+    doors          DykeSalesDoors[]
+    stepProduct    DykeStepProducts?  @relation(fields: [stepProductId], references: [id])
+    priceData      ComponentPrice?    @relation(fields: [priceId], references: [id], name: "moulding")
+
+    @@index([stepProductId])
+    @@index([salesOrderId])
+    @@index([dykeDoorId])
+    @@index([doorId])
+    @@index([jambSizeId])
+    @@index([casingId])
+    @@index([moldingId])
+}
+
+model ComponentPrice {
+    id             String             @unique
+    salesItemId    Int
+    salesId        Int
+    qty            Float
+    type           String
+    baseUnitCost   Float
+    baseTotalCost  Float
+    salesUnitCost  Float
+    salesTotalCost Float
+    margin         Float              @default(1)
+    salesProfit    Float
+    taxPercentage  Float?
+    totalTax       Float?
+    grandTotal     Float?
+    createdAt      DateTime?          @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime?          @updatedAt
+    deletedAt      DateTime?          @db.Timestamp(0)
+    door           DykeSalesDoors?    @relation(name: "door")
+    moulding       HousePackageTools? @relation(name: "moulding")
+    component      DykeStepForm?      @relation(name: "component")
+    sales          SalesOrders        @relation(fields: [salesId], references: [id])
+    salesItem      SalesOrderItems    @relation(fields: [salesItemId], references: [id])
+
+    @@index([salesId])
+    @@index([salesItemId])
+}
+
+model DykeSalesDoors {
+    id                 Int                              @unique @default(autoincrement())
+    priceId            String?                          @unique
+    dimension          String
+    swing              String?
+    doorType           String?
+    housePackageToolId Int
+    doorPrice          Float? // addon price.
+    jambSizePrice      Float? // total door price
+    casingPrice        Float?
+    unitPrice          Float?
+    lhQty              Int?                             @default(0)
+    rhQty              Int?                             @default(0)
+    totalQty           Int                              @default(0)
+    salesOrderId       Int
+    lineTotal          Float?                           @default(0)
+    salesOrderItemId   Int?
+    stepProductId      Int?
+    meta               Json?                            @db.Json
+    createdAt          DateTime?                        @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime?                        @updatedAt
+    deletedAt          DateTime?                        @db.Timestamp(0)
+    housePackageTool   HousePackageTools                @relation(fields: [housePackageToolId], references: [id])
+    salesOrderItem     SalesOrderItems?                 @relation(fields: [salesOrderItemId], references: [id])
+    order              SalesOrders?                     @relation(fields: [salesOrderId], references: [id])
+    productions        OrderItemProductionAssignments[]
+    priceData          ComponentPrice?                  @relation(fields: [priceId], references: [id], name: "door")
+    stepProduct        DykeStepProducts?                @relation(fields: [stepProductId], references: [id])
+
+    @@index([housePackageToolId])
+    @@index([salesOrderItemId])
+    @@index([salesOrderId])
+    @@index([stepProductId])
+}
+
+model DykeStepForm {
+    id             Int               @unique @default(autoincrement())
+    componentId    Int?
+    value          String?
+    priceId        String?           @unique
+    qty            Int?              @default(0)
+    price          Float?            @default(0)
+    basePrice      Float?            @default(0)
+    prodUid        String?
+    salesId        Int?
+    salesItemId    Int?
+    stepId         Int
+    meta           Json?             @db.Json
+    deletedAt      DateTime?         @db.Timestamp(0)
+    createdAt      DateTime?         @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime?         @updatedAt
+    sales          SalesOrders?      @relation(fields: [salesId], references: [id])
+    salesOrderItem SalesOrderItems?  @relation(fields: [salesItemId], references: [id])
+    step           DykeSteps         @relation(fields: [stepId], references: [id])
+    priceData      ComponentPrice?   @relation(fields: [priceId], references: [id], name: "component")
+    component      DykeStepProducts? @relation(fields: [componentId], references: [id])
+
+    @@index([componentId])
+    @@index([salesId])
+    @@index([salesItemId])
+    @@index([stepId])
+}
+
+model DykeSteps {
+    id              Int                 @unique @default(autoincrement())
+    title           String?
+    uid             String?
+    value           String?             @db.Text
+    createdAt       DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?           @updatedAt
+    stepProducts    DykeStepProducts[]
+    stepValueId     Int?
+    rootStepValueId Int?
+    prevStepValueId Int?
+    stepForms       DykeStepForm[]
+    priceSystem     DykePricingSystem[]
+    meta            Json?               @db.Json
+    deletedAt       DateTime?           @db.Timestamp(0)
+    rootStepValue   DykeStepValues?     @relation(fields: [rootStepValueId], references: [id], name: "rootValue")
+    stepValue       DykeStepValues?     @relation(fields: [stepValueId], references: [id], name: "stepValue")
+    prevStepValue   DykeStepValues?     @relation(fields: [prevStepValueId], references: [id], name: "prevStepValue")
+
+    @@index([rootStepValueId])
+    @@index([stepValueId])
+    @@index([prevStepValueId])
+}
+
+model DykeStepValues {
+    id        Int         @unique @default(autoincrement())
+    title     String?
+    createdAt DateTime?   @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?   @updatedAt
+    deletedAt DateTime?   @db.Timestamp(0)
+    rootSteps DykeSteps[] @relation(name: "rootValue")
+    steps     DykeSteps[] @relation(name: "stepValue")
+    prevStep  DykeSteps[] @relation(name: "prevStepValue")
+}
+
+model DykeCategories {
+    id        Int            @unique @default(autoincrement())
+    title     String         @unique
+    createdAt DateTime?      @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?      @updatedAt
+    deletedAt DateTime?      @db.Timestamp(0)
+    products  DykeProducts[]
+}
+
+model DykeProductsMetric {
+    id Int @unique @default(autoincrement())
+
+    productId      Int              @unique
+    product        DykeStepProducts @relation(fields: [productId], references: [id])
+    selectionCount Float?
+    qty            Float?
+    salesPrice     Float?
+    costPrice      Float?
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+}
+
+model DykeStepProducts {
+    id                Int                 @unique @default(autoincrement())
+    uid               String?             @unique
+    productCode       String?
+    name              String?
+    img               String?
+    redirectUid       String?
+    custom            Boolean?            @default(false)
+    sortIndex         Int?
+    dykeProductId     Int?
+    doorId            Int?
+    dykeStepId        Int
+    nextStepId        Int?
+    housePackageTools HousePackageTools[]
+    meta              Json?               @db.Json
+    createdAt         DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime?           @updatedAt
+    deletedAt         DateTime?           @db.Timestamp(0)
+    product           DykeProducts?       @relation(fields: [dykeProductId], references: [id])
+    door              DykeDoors?          @relation(fields: [doorId], references: [id])
+    salesDoors        DykeSalesDoors[]
+    step              DykeSteps           @relation(fields: [dykeStepId], references: [id])
+    stepForms         DykeStepForm[]
+    sorts             ProductSortIndex[]
+    metric            DykeProductsMetric?
+
+    @@index([doorId])
+    @@index([dykeStepId])
+    @@index([dykeProductId])
+}
+
+model ProductSortIndex {
+    id              Int              @unique @default(autoincrement())
+    sortIndex       Int
+    uid             String
+    createdAt       DateTime?        @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?        @updatedAt
+    deletedAt       DateTime?        @db.Timestamp(0)
+    stepComponentId Int
+    stepComponent   DykeStepProducts @relation(fields: [stepComponentId], references: [id])
+
+    @@unique([stepComponentId, uid])
+    @@index([stepComponentId])
+}
+
+model DykePricingSystem {
+    id              Int        @unique @default(autoincrement())
+    dykeStepId      Int
+    dependenciesUid String? //"isdu-ewr-423-dfr23" depencies uid = stepProductUids
+    stepProductUid  String
+    price           Float
+    createdAt       DateTime?  @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?  @updatedAt
+    deletedAt       DateTime?  @db.Timestamp(0)
+    step            DykeSteps? @relation(fields: [dykeStepId], references: [id])
+
+    @@index([dykeStepId])
+}
+
+model DykeDoors {
+    id                Int                 @unique @default(autoincrement())
+    query             String?
+    doorType          String? //GARAGE DOOR
+    title             String
+    img               String?
+    price             Float?
+    meta              Json?               @db.Json
+    createdAt         DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime?           @updatedAt
+    deletedAt         DateTime?           @db.Timestamp(0)
+    housePackageTools HousePackageTools[] @relation(name: "door")
+    stepProducts      DykeStepProducts[]
+}
+
+model DykeProducts {
+    id                      Int                 @unique @default(autoincrement())
+    img                     String?
+    description             String?
+    noteRequired            Boolean?            @default(false)
+    custom                  Boolean?
+    title                   String?
+    price                   Float?
+    categoryId              Int?
+    productCode             String?
+    qty                     Int?                @default(0)
+    meta                    Json?               @db.Json
+    value                   String
+    createdAt               DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt               DateTime?           @updatedAt
+    deletedAt               DateTime?           @db.Timestamp(0)
+    stepProducts            DykeStepProducts[]
+    category                DykeCategories?     @relation(fields: [categoryId], references: [id])
+    jambHousePackageTools   HousePackageTools[] @relation(name: "jamb")
+    casingHousePackageTools HousePackageTools[] @relation(name: "casing")
+    moldingHousePkgTools    HousePackageTools[] @relation(name: "molding")
+
+    @@index([categoryId])
+}
+
+model DykeProductPrices {
+    id        Int       @unique @default(autoincrement())
+    price     Float
+    dimension String // 1-0 x 6-7
+    type      String // door, jamb, casing
+    productId Int
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+}
+
+model DykeShelfCategories {
+    id   Int    @unique @default(autoincrement())
+    name String
+    type String //parent/child
+
+    categoryId       Int?
+    parentCategoryId Int?
+    products         DykeShelfProducts[]  @relation(name: "childCategory")
+    groupedProducts  DykeShelfProducts[]  @relation(name: "parentCategory")
+    shelfItems       DykeSalesShelfItem[]
+    createdAt        DateTime?            @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?            @updatedAt
+    deletedAt        DateTime?            @db.Timestamp(0)
+}
+
+model DykeShelfProducts {
+    id                Int                  @unique @default(autoincrement())
+    title             String
+    unitPrice         Float?
+    categoryId        Int?
+    parentCategoryId  Int?
+    img               String?
+    meta              Json?                @db.Json
+    createdAt         DateTime?            @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime?            @updatedAt
+    deletedAt         DateTime?            @db.Timestamp(0)
+    category          DykeShelfCategories? @relation(name: "childCategory", fields: [categoryId], references: [id])
+    parentCategory    DykeShelfCategories? @relation(name: "parentCategory", fields: [parentCategoryId], references: [id])
+    orderItems        DykeSalesShelfItem[]
+    housePackageTools HousePackageTools[]  @relation(name: "shelfProd")
+
+    // @@fulltext([title])
+
+    @@index([categoryId])
+    @@index([parentCategoryId])
+}
+
+model DykeSalesError {
+    id         Int       @unique @default(autoincrement())
+    errorId    String
+    userId     Int
+    restoredAt DateTime?
+    meta       Json?     @db.Json
+    deletedAt  DateTime? @db.Timestamp(0)
+    createdAt  DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime? @updatedAt
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+// model Refunds {
+
+// }
+model SalesTaxes {
+    id        String      @id @default(cuid())
+    sale      SalesOrders @relation(fields: [salesId], references: [id])
+    salesId   Int
+    taxCode   String
+    taxxable  Float
+    tax       Float       @default(0)
+    createdAt DateTime?   @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?   @updatedAt
+    deletedAt DateTime?   @db.Timestamp(0)
+
+    taxConfig Taxes? @relation(fields: [taxCode], references: [taxCode])
+
+    @@index([salesId])
+    @@index([taxCode])
+}
+
+model Taxes {
+    title               String
+    taxCode             String                @unique
+    percentage          Float                 @default(0.00)
+    taxOn               String                @default("total") //total, first 50000 
+    createdAt           DateTime?             @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime?             @updatedAt
+    deletedAt           DateTime?             @db.Timestamp(0)
+    salesTaxes          SalesTaxes[]
+    customerTaxProfiles CustomerTaxProfiles[]
+}
+
+model SalesStat {
+    salesId    Int
+    status     String?
+    type       String
+    score      Float?
+    total      Float?
+    percentage Float?
+    sales      SalesOrders @relation(fields: [salesId], references: [id])
+    createdAt  DateTime?   @default(now()) @db.Timestamp(0)
+
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@unique([salesId, type])
+    @@index([salesId])
+}
+
+model OrderItemProductionAssignments {
+    id                  Int                          @unique @default(autoincrement())
+    itemId              Int
+    orderId             Int
+    assignedToId        Int?
+    assignedById        Int
+    qtyAssigned         Int?
+    qtyCompleted        Int?
+    completedAt         DateTime?
+    salesItemControlUid String?
+    lhQty               Int?
+    rhQty               Int?
+    note                String?
+    salesDoorId         Int?
+    startedAt           DateTime?                    @db.Timestamp(0)
+    dueDate             DateTime?                    @db.Timestamp(0)
+    deletedAt           DateTime?                    @db.Timestamp(0)
+    createdAt           DateTime?                    @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime?                    @updatedAt
+    laborCost           Float?
+    submissions         OrderProductionSubmissions[]
+    order               SalesOrders                  @relation(fields: [orderId], references: [id])
+    item                SalesOrderItems              @relation(fields: [itemId], references: [id])
+    assignedTo          Users?                       @relation(name: "orderItemAssignments", fields: [assignedToId], references: [id])
+    assignedBy          Users                        @relation(name: "orderItemAssignedByMe", fields: [assignedById], references: [id])
+    salesDoor           DykeSalesDoors?              @relation(fields: [salesDoorId], references: [id])
+    itemControl         SalesItemControl?            @relation(fields: [salesItemControlUid], references: [uid])
+    shelfItem           DykeSalesShelfItem?          @relation(fields: [shelfItemId], references: [id])
+    shelfItemId         Int?
+
+    @@index([shelfItemId])
+    @@index([salesItemControlUid])
+    @@index([orderId])
+    @@index([itemId])
+    @@index([assignedToId])
+    @@index([assignedById])
+    @@index([salesDoorId])
+}
+
+model OrderProductionSubmissions {
+    id               Int                             @unique @default(autoincrement())
+    salesOrderId     Int?
+    salesOrderItemId Int?
+    qty              Int
+    lhQty            Int?                            @default(0)
+    rhQty            Int?                            @default(0)
+    note             String?                         @db.Text
+    deletedAt        DateTime?                       @db.Timestamp(0)
+    createdAt        DateTime?                       @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?                       @updatedAt
+    assignmentId     Int?
+    submittedById    Int?
+    meta             Json?                           @db.Json
+    order            SalesOrders?                    @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    item             SalesOrderItems?                @relation(fields: [salesOrderItemId], references: [id], onDelete: Cascade)
+    assignment       OrderItemProductionAssignments? @relation(fields: [assignmentId], references: [id])
+    itemDeliveries   OrderItemDelivery[]
+
+    payroll     Payroll?
+    submittedBy Users?   @relation(fields: [submittedById], references: [id])
+
+    @@index([submittedById])
+    @@index([salesOrderId])
+    @@index([salesOrderItemId])
+    @@index([assignmentId])
+}
+
+model DykeSalesShelfItem {
+    id               Int                              @unique @default(autoincrement())
+    salesOrderItemId Int?
+    description      String?
+    productId        Int?
+    categoryId       Int
+    qty              Int?
+    unitPrice        Int?
+    totalPrice       Int?
+    meta             Json?                            @db.Json
+    createdAt        DateTime?                        @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?                        @updatedAt
+    deletedAt        DateTime?                        @db.Timestamp(0)
+    salesOrderItem   SalesOrderItems?                 @relation(fields: [salesOrderItemId], references: [id])
+    shelfProduct     DykeShelfProducts?               @relation(fields: [productId], references: [id])
+    category         DykeShelfCategories?             @relation(fields: [categoryId], references: [id])
+    assignments      OrderItemProductionAssignments[]
+
+    @@index([salesOrderItemId])
+    @@index([productId])
+    @@index([categoryId])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+
+model SalesCommision {
+    id                  Int                @unique @default(autoincrement())
+    amount              Float
+    userId              Int
+    orderId             Int
+    orderPaymentId      Int
+    commissionPaymentId Int?
+    status              String             @db.VarChar(255)
+    deletedAt           DateTime?          @db.Timestamp(0)
+    createdAt           DateTime?          @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime?          @updatedAt
+    order               SalesOrders        @relation(fields: [orderId], references: [id])
+    user                Users              @relation(fields: [userId], references: [id])
+    orderPayment        SalesPayments      @relation(fields: [orderPaymentId], references: [id])
+    commissionPayment   CommissionPayment? @relation(fields: [commissionPaymentId], references: [id])
+
+    @@index([orderId])
+    @@index([userId])
+    @@index([orderPaymentId])
+    @@index([commissionPaymentId])
+}
+
+model SalesOrderProducts {
+    id               Int       @unique @default(autoincrement())
+    salesOrderId     Int
+    salesOrderItemId Int
+    qty              Int?
+    stockQty         Int?
+    shortQty         Int?
+    productVariantId Int?
+    productId        Int?
+    status           String    @db.VarChar(255)
+    deletedAt        DateTime? @db.Timestamp(0)
+    createdAt        DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime? @updatedAt
+}
+
+model SalesLaborCosts {
+    id        Int       @unique @default(autoincrement())
+    rate      Float
+    current   Boolean   @default(false)
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+}

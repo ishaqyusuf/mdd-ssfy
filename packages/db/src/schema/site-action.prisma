@@ -1,0 +1,41 @@
+model SiteActionTicket {
+    id                       Int                     @unique @default(autoincrement())
+    description              String
+    type                     String?
+    event                    String?
+    userId                   Int?
+    siteActionNotificationId Int
+    meta                     Json?
+    deletedAt                DateTime?               @db.Timestamp(0)
+    createdAt                DateTime?               @default(now()) @db.Timestamp(0)
+    updatedAt                DateTime?               @updatedAt
+    SiteActionNotification   SiteActionNotification? @relation(fields: [siteActionNotificationId], references: [id])
+
+    @@index([siteActionNotificationId])
+}
+
+model SiteActionNotification {
+    id            Int                                    @unique @default(autoincrement())
+    event         String
+    notifications SiteActionTicket[]
+    enabled       Boolean?
+    custom        Boolean?
+    meta          Json?
+    activeUsers   SiteActionNotificationActiveForUsers[]
+    deletedAt     DateTime?                              @db.Timestamp(0)
+    createdAt     DateTime?                              @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?                              @updatedAt
+}
+
+model SiteActionNotificationActiveForUsers {
+    id                       Int                     @unique @default(autoincrement())
+    userId                   Int
+    siteActionNotificationId Int
+    SiteActionNotification   SiteActionNotification? @relation(fields: [siteActionNotificationId], references: [id])
+    deletedAt                DateTime?               @db.Timestamp(0)
+    createdAt                DateTime?               @default(now()) @db.Timestamp(0)
+    updatedAt                DateTime?               @updatedAt
+
+    @@unique([userId, siteActionNotificationId, deletedAt])
+    @@index([siteActionNotificationId])
+}

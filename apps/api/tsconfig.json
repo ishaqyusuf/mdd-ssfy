@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "lib": ["ESNext"],
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleDetection": "force",
+    "allowJs": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "strict": true,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@api/*": ["src/*"],
+      "@community/*": ["../../packages/community/src/*"],
+      "@jobs/*": ["../../packages/jobs/src/*"],
+      "@notifications/*": ["../../packages/notifications/src/*"],
+      "@sales/*": ["../../packages/sales/src/*"],
+      "@square/*": ["../../packages/square/src/*"]
+    },
+    "types": ["bun-types"]
+  },
+  "tsc-alias": {
+    "resolveFullPaths": true
+  },
+  "exclude": ["node_modules"],
+  "include": ["_api", "src/**/*.ts"]
+}

@@ -1,0 +1,76 @@
+model OrderDelivery {
+    id           Int                 @unique @default(autoincrement())
+    salesOrderId Int
+    deliveredTo  String?
+    deliveryMode String
+    items        OrderItemDelivery[]
+    driverId     Int?
+    createdById  Int?
+    status       String?
+    dueDate      DateTime?
+    meta         Json?               @db.Json
+    createdAt    DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime            @updatedAt
+    deletedAt    DateTime?           @db.Timestamp(0)
+    order        SalesOrders         @relation(fields: [salesOrderId], references: [id])
+    driver       Users?              @relation(name: "driver", fields: [driverId], references: [id])
+    createdBy    Users?              @relation(name: "createdBy", fields: [createdById], references: [id])
+
+    @@index([salesOrderId])
+    @@index([driverId])
+    @@index([createdById])
+}
+
+model DispatchRegion {
+    id        Int            @unique @default(autoincrement())
+    title     String
+    createdAt DateTime?      @default(now()) @db.Timestamp(0)
+    updatedAt DateTime       @updatedAt
+    deletedAt DateTime?      @db.Timestamp(0)
+    address   AddressBooks[]
+}
+
+model OrderItemDelivery {
+    id                          Int                         @unique @default(autoincrement())
+    packingUid                  String?
+    orderItemId                 Int
+    orderId                     Int
+    lhQty                       Int?                        @default(0)
+    rhQty                       Int?                        @default(0)
+    qty                         Int                         @default(0)
+    meta                        Json?                       @db.Json
+    note                        String?
+    status                      String?
+    packingStatus               String?
+    createdAt                   DateTime?                   @default(now()) @db.Timestamp(0)
+    packedBy                    String?
+    unpackedBy                  String?
+    updatedAt                   DateTime                    @updatedAt
+    deletedAt                   DateTime?                   @db.Timestamp(0)
+    orderDeliveryId             Int?
+    order                       SalesOrders                 @relation(fields: [orderId], references: [id])
+    salesItem                   SalesOrderItems             @relation(fields: [orderItemId], references: [id])
+    delivery                    OrderDelivery?              @relation(fields: [orderDeliveryId], references: [id])
+    orderProductionSubmissionId Int?
+    submission                  OrderProductionSubmissions? @relation(fields: [orderProductionSubmissionId], references: [id])
+
+    @@index([orderProductionSubmissionId])
+    @@index([orderId])
+    @@index([orderItemId])
+    @@index([orderDeliveryId])
+}
+
+model SalesPickup {
+    id               Int           @unique @default(autoincrement())
+    pickupBy         String?
+    pickupApprovedBy Int
+    meta             Json?         @db.Json
+    pickupAt         DateTime?     @db.Timestamp(0)
+    createdAt        DateTime?     @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?     @updatedAt
+    deletedAt        DateTime?     @db.Timestamp(0)
+    sales            SalesOrders[]
+    approvedBy       Users         @relation(fields: [pickupApprovedBy], references: [id])
+
+    @@index([pickupApprovedBy])
+}

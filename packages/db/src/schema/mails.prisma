@@ -1,0 +1,69 @@
+model MailGrids {
+    id        Int                @unique @default(autoincrement())
+    title     String             @db.VarChar(255)
+    subject   String?            @db.VarChar(255)
+    html      String?            @db.Text
+    message   String?            @db.Text
+    design    String?            @db.LongText
+    fromName  String?            @db.VarChar(255)
+    fromEmail String?            @db.VarChar(255)
+    meta      Json?              @db.Json
+    status    String             @db.VarChar(255)
+    deletedAt DateTime?          @db.Timestamp(0)
+    createdAt DateTime?          @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?          @updatedAt
+    slug      String?            @db.VarChar(255)
+    type      String?            @db.VarChar(255)
+    events    MailEventTrigger[]
+}
+
+model MailEventTrigger {
+    id         Int        @unique @default(autoincrement())
+    when       String
+    mailGridId Int?
+    authorId   Int
+    status     String //draft,active etc
+    mail       MailGrids? @relation(fields: [mailGridId], references: [id])
+    deletedAt  DateTime?  @db.Timestamp(0)
+    createdAt  DateTime?  @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime?  @updatedAt
+    author     Users      @relation(fields: [authorId], references: [id])
+
+    @@index([mailGridId])
+    @@index([authorId])
+}
+
+model Inbox {
+    id        Int       @unique @default(autoincrement())
+    clientId  Int?
+    senderId  Int
+    parentId  Int?
+    subject   String?   @db.Text()
+    from      String    @db.Text()
+    to        String    @db.Text()
+    type      String    @db.Text()
+    body      String    @db.Text()
+    meta      Json?     @db.Json
+    sentAt    DateTime? @db.Timestamp(0)
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    sender      Users              @relation(fields: [senderId], references: [id])
+    attachments InboxAttachments[]
+
+    @@index([senderId])
+}
+
+model InboxAttachments {
+    id        Int       @unique @default(autoincrement())
+    url       String
+    title     String
+    inboxId   Int
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    inbox     Inbox     @relation(fields: [inboxId], references: [id])
+
+    @@index([inboxId])
+}

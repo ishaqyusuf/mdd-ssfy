@@ -1,0 +1,9 @@
+model SquarePaymentLink {
+    id            String    @unique @default(uuid())
+    orderIdParams String?
+    phoneNo       String?
+    option        String
+    createdAt     DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime? @updatedAt
+    deletedAt     DateTime? @db.Timestamp(0)
+}

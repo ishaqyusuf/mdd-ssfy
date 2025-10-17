@@ -1,0 +1,33 @@
+{
+  "name": "@gnd/utils",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "private": true,
+  "sideEffects": false,
+  "scripts": {
+    "clean": "rm -rf .turbo node_modules",
+    "lint": "biome check .",
+    "format": "biome --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./colors": "./src/colors.ts",
+    "./types": "./src/types.ts",
+    "./responsive": "./src/responsive.ts",
+    "./context-factory": "./src/context-factory.ts",
+    "./community": "./src/community.ts",
+    "./constants": "./src/constants.ts",
+    "./construct-metadata": "./src/construct-metadata.ts",
+    "./dayjs": "./src/dayjs.ts",
+    "./envs": "./src/envs.ts",
+    "./format": "./src/format.ts",
+    "./note": "./src/note.ts",
+    "./query-response": "./src/query-response.ts",
+    "./schema": "./src/schema.ts",
+    "./sales": "./src/sales.ts"
+  }
+}

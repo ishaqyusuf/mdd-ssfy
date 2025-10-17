@@ -1,0 +1,120 @@
+model Users {
+    id                Int        @unique @default(autoincrement())
+    slug              String?
+    name              String?    @db.VarChar(255)
+    username          String?    @db.VarChar(255)
+    email             String     @db.VarChar(255)
+    phoneNo           String?    @db.VarChar(255)
+    phoneCode         String?    @db.VarChar(255)
+    country           String?    @db.VarChar(255)
+    emailVerifiedAt   DateTime?  @db.Timestamp(0)
+    password          String?    @db.VarChar(255)
+    rememberToken     String?    @db.VarChar(100)
+    meta              Json?      @db.Json
+    deletedAt         DateTime?  @db.Timestamp(0)
+    createdAt         DateTime?  @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime?  @updatedAt
+    employeeProfileId Int?
+    type              UserTypes?
+    verificationToken String?    @unique
+
+    workOrders                  WorkOrders[]
+    salesProductions            SalesOrders[]                    @relation(name: "producer")
+    reppedProductions           SalesOrders[]                    @relation(name: "salesRep")
+    roles                       ModelHasRoles[]
+    notifications               Notifications[]                  @relation(name: "notifications")
+    sentNotifications           Notifications[]                  @relation(name: "fromUser")
+    inbox                       Inbox[]
+    jobs                        Jobs[]                           @relation(name: "installer")
+    coWorkerJobs                Jobs[]                           @relation(name: "co-worker")
+    myIssuedPayments            JobPayments[]                    @relation(name: "payer")
+    payments                    JobPayments[]                    @relation(name: "worker")
+    templateHistory             CommunityTemplateHistory[]
+    employeeProfile             EmployeeProfile?                 @relation(fields: [employeeProfileId], references: [id])
+    SalesPickup                 SalesPickup[]
+    driverDeliveries            OrderDelivery[]                  @relation(name: "driver")
+    createdDeliveries           OrderDelivery[]                  @relation(name: "createdBy")
+    assignedTasks               HomeTasks[]
+    errors                      ErrorLog[]
+    documents                   UserDocuments[]
+    commissions                 SalesCommision[]
+    commissionPayments          CommissionPayment[]              @relation(name: "payer")
+    myIssuedCommissionPayments  CommissionPayment[]              @relation(name: "worker")
+    CommissionPayment           CommissionPayment[]
+    blogs                       Blogs[]
+    orderItemAssignments        OrderItemProductionAssignments[] @relation(name: "orderItemAssignments")
+    orderItemAssignedByMe       OrderItemProductionAssignments[] @relation(name: "orderItemAssignedByMe")
+    events                      Event[]
+    pageView                    PageView[]
+    notes                       Progress[]
+    approvedDealerStatusHistory DealerStatusHistory[]
+    mailEvents                  MailEventTrigger[]
+    sessions                    Session[]
+    approvedRequests            DealerSalesRequest[]
+    checkouts                   SalesCheckout[]
+    exportConfigs               ExportConfig[]
+    squarePayments              SquarePayments[]
+    customerTransactions        CustomerTransaction[]
+    salesTransactions           SalesPayments[]
+    submissions                 OrderProductionSubmissions[]
+    salesPayrolls               Payroll[]
+    myPayouts                   SalesPayout[]                    @relation(name: "myPayouts")
+    salesPayoutsByMe            SalesPayout[]                    @relation(name: "myIssuedPayouts")
+    payrollHistory              PayrollHistory[]
+    customer                    Customers?
+
+    @@index([createdAt, deletedAt, name])
+    @@index([employeeProfileId])
+}
+
+enum UserTypes {
+    CUSTOMER
+    EMPLOYEE
+    MANAGER
+}
+
+model Session {
+    id           String    @id @default(cuid())
+    sessionToken String    @unique @map("session_token")
+    userId       Int
+    expires      DateTime
+    deletedAt    DateTime? @db.Timestamp(0)
+    user         Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+}
+
+model EmailTokenLogin {
+    id        String    @id @default(cuid())
+    userId    Int
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    deletedAt DateTime? @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+}
+
+model EmployeeProfile {
+    id                       Int       @unique @default(autoincrement())
+    name                     String
+    discount                 Int?
+    salesComissionPercentage Int?
+    meta                     Json?     @db.Json
+    createdAt                DateTime? @default(now()) @db.Timestamp(0)
+    deletedAt                DateTime? @db.Timestamp(0)
+    updatedAt                DateTime? @updatedAt
+    employees                Users[]
+}
+
+model UserDocuments {
+    id          Int       @unique @default(autoincrement())
+    title       String?
+    description String?
+    url         String
+    userId      Int
+    meta        Json?     @db.Json
+    createdAt   DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime? @updatedAt
+    deletedAt   DateTime? @db.Timestamp(0)
+    user        Users?    @relation(fields: [userId], references: [id])
+
+    @@index([userId])
+}

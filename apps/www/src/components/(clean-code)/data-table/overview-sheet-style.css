@@ -1,0 +1,17 @@
+.overview-sheet-content {
+    @apply sm:max-w-none w-auto overflow-hidden p-0 sm:m-8 sm:rounded-xl h-auto bg-background;
+}
+.overview-sheet-header {
+    @apply h-[64px] border-b p-4;
+}
+.o-scrollable-content-area {
+    @apply h-[calc(100vh-64px-4rem)];
+}
+.o-scrollable-content-area-tabbed {
+    @apply h-[calc(100vh-64px-4rem-40px)];
+    /* @apply h-[85vh]; */
+}
+.o-scrollable-content-area-tabbed > div,
+.o-scrollable-content-area > div {
+    @apply pb-16;
+}

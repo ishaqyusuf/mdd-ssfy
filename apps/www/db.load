@@ -1,0 +1,6 @@
+load database
+  from mysql://root@localhost/gnd-prodesk-migrate
+  into postgresql://postgres:postgres@localhost:5432/gndprodesk
+  with quote identifiers, include drop, create tables, create indexes
+CAST type datetime to timestamp, type timestamp to "timestamptz not null default current_timestamp" drop default drop not null
+  ;

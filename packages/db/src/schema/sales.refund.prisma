@@ -1,0 +1,36 @@
+model Refunds {
+    id            String  @unique @default(uuid())
+    refId         String //ref-salesid
+    salesId       Int
+    refundSalesId Int?    @unique
+    walletId      Int
+    total         Float
+    status        String
+    description   String?
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    sales        SalesOrders?         @relation(fields: [salesId], references: [id], name: "salesRefunds")
+    refundSale   SalesOrders?         @relation(name: "refund", fields: [refundSalesId], references: [id])
+    wallet       CustomerWallet       @relation(fields: [walletId], references: [id])
+    transactions RefundTransactions[]
+
+    @@index([salesId])
+    @@index([walletId])
+}
+
+model RefundTransactions {
+    id            String              @unique @default(uuid())
+    refundId      String
+    transactionId Int
+    refund        Refunds?            @relation(fields: [refundId], references: [id])
+    transaction   CustomerTransaction @relation(fields: [transactionId], references: [id])
+    createdAt     DateTime?           @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?           @updatedAt
+    deletedAt     DateTime?           @db.Timestamp(0)
+
+    @@index([refundId])
+    @@index([transactionId])
+}

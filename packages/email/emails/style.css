@@ -1,0 +1,9 @@
+tfoot thead {
+  @apply bg-orange-300;
+}
+td,
+th,
+thead,
+tfoot {
+  @apply border-muted-foreground;
+}

@@ -1,0 +1,54 @@
+model ExportConfig {
+    id          Int       @unique @default(autoincrement())
+    title       String
+    type        String
+    meta        Json      @db.Json
+    createdById Int
+    createdBy   Users?    @relation(fields: [createdById], references: [id])
+    createdAt   DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime? @updatedAt
+    deletedAt   DateTime? @db.Timestamp(0)
+
+    @@index([createdById])
+}
+
+model PageTabs {
+    id         Int            @unique @default(autoincrement())
+    page       String
+    userId     Int
+    private    Boolean?       @default(true)
+    meta       Json?          @db.Json
+    title      String
+    query      String
+    tabIndices PageTabIndex[]
+    createdAt  DateTime?      @default(now()) @db.Timestamp(0)
+    updatedAt  DateTime?      @updatedAt
+    deletedAt  DateTime?      @db.Timestamp(0)
+}
+
+model PageTabIndex {
+    id       String   @unique @default(uuid())
+    tabId    Int
+    tabIndex Int
+    userId   Int
+    tab      PageTabs @relation(fields: [tabId], references: [id])
+    default  Boolean? @default(false)
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@index([tabId])
+}
+
+model SearchParameters {
+    page  String
+    key   String
+    value String
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@id(name: "uid", [page, key, value])
+}
