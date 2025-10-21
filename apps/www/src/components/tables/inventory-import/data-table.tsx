@@ -6,7 +6,7 @@ import { columns } from "./columns";
 import { Table, TableBody } from "@gnd/ui/table";
 import { TableHeaderComponent } from "../table-header";
 import { TableRow } from "../table-row";
-import { BatchActions } from "./batch-actions";
+
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useInventoryImportFilterParams } from "@/hooks/use-inventory-import-filter-params";
 
@@ -52,7 +52,6 @@ export function DataTable() {
                         </TableBody>
                     </Table>
                 </div>
-                <BatchActions />
             </div>
         </TableProvider>
     );

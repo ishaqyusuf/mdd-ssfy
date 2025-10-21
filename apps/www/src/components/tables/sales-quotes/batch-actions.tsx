@@ -1,9 +1,9 @@
 import { BatchAction, BatchBtn, BatchDelete } from "../batch-action";
 import { useMemo } from "react";
 import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
-import { PrintAction } from "@/app/(clean-code)/(sales)/_common/_components/overview-sheet.bin/footer/print.action";
 import { deleteSalesByOrderIds } from "@/app/(clean-code)/(sales)/_common/data-actions/sales-actions";
 import { useTable } from "@gnd/ui/custom/data-table/index";
+import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
 
 export function BatchActions({}) {
     const ctx = useTable();
@@ -19,22 +19,14 @@ export function BatchActions({}) {
                 icon="print"
                 menu={
                     <>
-                        <PrintAction
-                            data={{
-                                slugs: slugs,
-                                item: {
-                                    type: "quote",
-                                },
-                            }}
+                        <MenuItemPrintAction
+                            slug={slugs.join(",")}
+                            type="quote"
                         />
-                        <PrintAction
+                        <MenuItemPrintAction
+                            slug={slugs.join(",")}
+                            type="quote"
                             pdf
-                            data={{
-                                slugs: slugs,
-                                item: {
-                                    type: "quote",
-                                },
-                            }}
                         />
                     </>
                 }

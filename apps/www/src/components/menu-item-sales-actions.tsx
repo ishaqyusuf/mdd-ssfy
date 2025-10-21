@@ -39,7 +39,7 @@ export function MenuItemSalesActions(props: Props) {
                             openLink(
                                 salesFormUrl(as, result.data?.slug),
                                 {},
-                                true,
+                                true
                             );
                         }}
                         altText="edit"
@@ -61,13 +61,11 @@ export function MenuItemSalesActions(props: Props) {
                 menuRef={props?.menuRef}
             />
             <MenuItemPrintAction
-                salesId={props?.id}
                 slug={props?.slug}
                 onOpenMenu={props.setMenuOpen}
                 type={props?.type as any}
             />
             <MenuItemPrintAction
-                salesId={props?.id}
                 slug={props?.slug}
                 onOpenMenu={props.setMenuOpen}
                 type={props?.type as any}

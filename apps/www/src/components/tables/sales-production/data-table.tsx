@@ -3,7 +3,7 @@
 import { useTRPC } from "@/trpc/client";
 import { columns, workerColumns } from "./columns";
 import { Table, useTableData } from "@gnd/ui/data-table";
-import { BatchActions } from "./batch-actions";
+
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOrdersStore } from "@/store/sales-orders";
@@ -64,7 +64,7 @@ export function DataTable(props: Props) {
                         rowClick(id, rowData) {
                             overviewQuery.open2(
                                 rowData.uuid,
-                                "production-tasks",
+                                "production-tasks"
                             );
                         },
                     },
@@ -85,7 +85,6 @@ export function DataTable(props: Props) {
                     </Table>
                 </div>
                 {hasNextPage && <Table.LoadMore />}
-                <BatchActions />
             </div>
         </Table.Provider>
     );

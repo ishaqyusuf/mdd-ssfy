@@ -7,7 +7,7 @@ import { Table, TableBody } from "@gnd/ui/table";
 import { TableHeaderComponent } from "../table-header";
 import { TableRow } from "../table-row";
 import { LoadMoreTRPC } from "../load-more";
-import { BatchActions } from "./batch-actions";
+
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
@@ -60,7 +60,6 @@ export function DataTable() {
                 {hasNextPage && (
                     <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />
                 )}
-                <BatchActions />
             </div>
         </TableProvider>
     );

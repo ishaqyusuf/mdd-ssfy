@@ -11,13 +11,13 @@ import { Menu } from "./(clean-code)/menu";
 interface Props {
     pdf?: boolean;
     type: SalesType;
-    onOpenMenu;
-    salesId;
+    onOpenMenu?;
+    // salesId;
     slug;
 }
 export function MenuItemPrintAction(props: Props) {
     const loader = useLoadingToast();
-    const { type, slug, salesId, pdf, onOpenMenu } = props;
+    const { type, slug, pdf, onOpenMenu } = props;
     async function print(e, params?: SalesPrintProps) {
         const query = {
             slugs: slug,
@@ -34,13 +34,13 @@ export function MenuItemPrintAction(props: Props) {
                     env.NEXT_PUBLIC_NODE_ENV == "production"
                         ? ""
                         : "https://gndprodesk.com"
-                }/api/pdf/sales?${QueryString.stringify(query)}`,
+                }/api/pdf/sales?${QueryString.stringify(query)}`
             ).then((res) => res.json());
             const link = document.createElement("a");
             // link.href = pdf.url;
             const downloadUrl = pdf.url.replace(
                 "/fl_attachment/",
-                `/fl_attachment:${query.slugs}/`,
+                `/fl_attachment:${query.slugs}/`
             ); //+ `/${query.slugs}.pdf`;
 
             link.href = downloadUrl;
