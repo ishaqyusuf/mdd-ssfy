@@ -51,6 +51,7 @@ export function SendSalesEmailModal({}) {
     const { fields } = useFieldArray({
         control: form.control,
         name: "sales",
+        keyName: "_id",
     });
     // const {  } = form.watch();
     const { data } = useQuery(
@@ -83,7 +84,7 @@ export function SendSalesEmailModal({}) {
                     )}
                 >
                     <Form {...form}>
-                        {fields.map((field) => (
+                        {fields.map((field, fi) => (
                             <div
                                 key={field._id}
                                 className="p-2 w-[250pxs] grid gap-4"
@@ -94,13 +95,16 @@ export function SendSalesEmailModal({}) {
                                         <Button
                                             onClick={(e) => {
                                                 form.setValue(
-                                                    "amount",
+                                                    `sales.${fi}.amount`,
                                                     percentageValue(
                                                         field.totalAmount,
                                                         a
                                                     )
                                                 );
-                                                form.setValue("percentage", a);
+                                                form.setValue(
+                                                    `sales.${fi}.percentage`,
+                                                    a
+                                                );
                                             }}
                                             key={a}
                                             variant={
