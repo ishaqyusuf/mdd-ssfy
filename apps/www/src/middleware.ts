@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLinkModules, validateLinks } from "./components/sidebar/links";
-import { cookies } from "next/headers";
-import { consoleLog } from "@gnd/utils";
-import { env } from "./env.mjs";
-import { notFound } from "next/navigation";
+import { consoleLog } from "@gnd/utils/index";
 
 export const config = {
     matcher: [
@@ -53,6 +50,7 @@ export default async function middlewarex(req: NextRequest) {
         }
         return NextResponse.redirect(loginUrl);
     }
+    if (isPublic(pathName)) return NextResponse.next();
     const validLinks = getLinkModules(
         validateLinks({
             role: auth.role,
@@ -60,14 +58,19 @@ export default async function middlewarex(req: NextRequest) {
             userId: auth?.userId,
         })
     );
-    const matched = validLinks.linksNameMap[pathName];
-    if (matched) {
-        consoleLog("matched link", matched);
-    }
+    // const matched = validLinks.linksNameMap[pathName];
+    // if (matched) {
+    //     consoleLog("matched link", matched);
+    // }
     const v = validatePath(pathName, validLinks.linksNameMap);
-    console.log({ v });
-    if (v?.href && !v?.hasAccess)
-        return NextResponse.rewrite(new URL("/404", req.url));
+    const prev = req.headers.get("referer");
+    // consoleLog("->", { v, pathName, linkMap: validLinks.linksNameMap, prev });
+    if (!v?.hasAccess) {
+        // if (prev) {
+        return NextResponse.redirect(new URL("/", req.url));
+        // }
+        // return NextResponse.rewrite(new URL("/404", req.url));
+    }
     return NextResponse.next();
 }
 const validatePath = <T extends Record<string, any>>(

@@ -185,7 +185,7 @@ export const validateLinks = ({
                 // if(!valid)return
                 if (lnk.subLinks?.length)
                     lnk.subLinks = lnk.subLinks.map((sl) => {
-                        sl.show = validateAccess(sl.access);
+                        sl.show = validateAccess(sl.access) && lnk.show;
                         return sl;
                     });
                 if (
