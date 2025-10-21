@@ -127,6 +127,7 @@ export function useTaskTrigger(props?: Props) {
                 },
             });
         },
+        isActionPending: _action.isPending,
         runId,
         accessToken,
         status,

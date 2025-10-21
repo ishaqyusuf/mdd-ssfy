@@ -7,6 +7,8 @@
     "paths": {
       "@jobs/*": ["src/*"],
       "@sales/*": ["../sales/src/*"],
+      "@emails/*": ["../email/src/*"],
+      "@utils/*": ["../utils/src/*"],
       "@notifications/*": ["../notifications/src/*"],
       "@api/*": ["../apps/api/src/*"]
     },

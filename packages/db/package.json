@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "typescript": "^5.9.3",
+    "@gnd/tsconfig": "workspace:*",
     "prisma": "6.11.1"
   }
 }

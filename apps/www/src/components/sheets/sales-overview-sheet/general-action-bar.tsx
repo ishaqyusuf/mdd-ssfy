@@ -21,6 +21,7 @@ import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { toast } from "sonner";
 import { PaymentLinkMenuAction } from "./payment-link-menu-action";
 import { useSendSalesEmail } from "@/hooks/use-send-sales-email";
+import { SendSalesReminder } from "@/components/send-sales-reminder";
 export function GeneralActionBar({ type, salesNo, salesId }) {
     const mailer = useSalesMailer();
     const { data } = useSaleOverview();
@@ -58,42 +59,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
     const { setParams: setSalesEmailModalParams } = useSendSalesEmail();
     return (
         <div className="flex gap-2">
-            {/* <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button
-                        disabled
-                        size="sm"
-                        variant="secondary"
-                        className="flex items-center space-x-2 hover:bg-secondary flex-1"
-                    >
-                        <Icons.Notifications className="size-3.5" />
-                        <span>Remind</span>
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Send Reminder</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Are you sure you want to send a reminder for this
-                            invoice?
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={() => {
-                                // sendReminderMutation.mutate({
-                                //     id,
-                                //     date: new Date().toISOString(),
-                                // });
-                            }}
-                            // disabled={sendReminderMutation.isPending}
-                        >
-                            Send Reminder
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog> */}
+            <SendSalesReminder salesIds={[salesId]} />
             <Button
                 onClick={(e) => {
                     preview();
@@ -159,6 +125,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
                         >
                             Payment Link
                         </Menu.Item>
+
                         <Menu.Item
                             Icon={CheckCheck}
                             SubMenu={

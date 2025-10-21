@@ -23,6 +23,7 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
+    "@gnd/tsconfig": "workspace:*",
     "@types/qrcode": "^1.5.5"
   }
 }

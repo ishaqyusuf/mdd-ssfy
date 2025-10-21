@@ -22,7 +22,7 @@
     "db:generate": "turbo -F @gnd/db prisma-generate",
     "db:auth-generate": "turbo -F @gnd/auth prisma-generate",
     "dev": "turbo dev --parallel  --filter !@gnd/site",
-    "dev2": "turbo dev --parallel  --filter !@gnd/site --filter !@gnd/gnd-backlog --filter !@gnd/jobs",
+    "dev2": "turbo dev --parallel  --filter !@gnd/site --filter !@gnd/gnd-backlog",
     "dev:web": "turbo dev --parallel  --filter !@gnd/gnd-backlog --filter !@gnd/api",
     "dev:backlog": "turbo dev --parallel  --filter !@gnd/email --filter !@gnd/site --filter !@gnd/www  --filter !@gnd/jobs",
     "--dev:web": "turbo dev --parallel  --filter !@gnd/gnd-backlog --filter !@gnd/jobs",
@@ -65,6 +65,7 @@
     "superjson": "2.2.1",
     "tailwind-merge": "^3.3.1",
     "typescript": "^5.9.3",
+    "qs": "^6.14.0",
     "zod": "^3.25.46"
   }
 }

@@ -34,7 +34,7 @@ export function GlobalModals() {
             <CommunityModelCostModal />
             {/* <Env isDev> */}
             <WorkOrderFormModal />
-            <SendSalesEmailModal />
+
             {/* </Env> */}
         </>
     );

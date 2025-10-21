@@ -97,6 +97,31 @@ const Sheet = Object.assign(
     Close: SheetClose,
   }
 );
+import {
+  AlertDialog as AlertDialogRoot,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogCancel,
+  AlertDialogOverlay,
+  AlertDialogPortal,
+  AlertDialogDescription,
+  AlertDialogTrigger,
+  AlertDialogAction,
+} from "./alert-dialog";
+const AlertDialog = Object.assign(AlertDialogRoot, {
+  Content: AlertDialogContent,
+  Header: AlertDialogHeader,
+  Footer: AlertDialogFooter,
+  Title: AlertDialogTitle,
+  Description: AlertDialogDescription,
+  Trigger: AlertDialogTrigger,
+  Action: AlertDialogAction,
+  Cancel: AlertDialogCancel,
+  Overlay: AlertDialogOverlay,
+  Portal: AlertDialogPortal,
+});
 
 import { Tabs as TabsRoot, TabsList, TabsTrigger, TabsContent } from "./tabs";
 
@@ -290,4 +315,4 @@ const Collapsible = Object.assign(CollapsibleBase, {
   Content: CollapsibleContent,
 });
 
-export { Collapsible };
+export { Collapsible, AlertDialog };
