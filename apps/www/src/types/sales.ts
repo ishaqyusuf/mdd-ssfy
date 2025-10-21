@@ -2,13 +2,10 @@ import {
     AddressBooks,
     CustomerTypes,
     OrderProductionSubmissions,
-    Prisma,
-    Progress,
     SalesOrderItems,
     SalesOrders,
     SalesPayments,
     SalesPickup,
-    Users,
 } from "@/db";
 import { UseFormReturn } from "react-hook-form";
 
@@ -16,18 +13,15 @@ import { BaseQuery } from "./action";
 import { ICustomer } from "./customers";
 import { IInboundOrderItems } from "./sales-inbound";
 import { OmitMeta } from "./type";
+import { SalesPrintModes } from "@sales/constants";
+import { SalesType } from "@sales/types";
 
 export type ISalesOrderForm = UseFormReturn<ISalesOrder>;
 
 export type IPriority = "Low" | "High" | "Medium" | "Non";
 export type ProdStatus = "In Production" | "Completed" | "Queued";
-export type ISalesType = "order" | "quote";
-export type IOrderPrintMode =
-    | "quote"
-    | "order"
-    | "production"
-    | "packing list"
-    | "order-packing";
+export type ISalesType = SalesType;
+export type IOrderPrintMode = SalesPrintModes;
 
 export interface IBackOrderForm {
     backOrder: {
@@ -39,36 +33,7 @@ export interface IBackOrderForm {
         };
     };
 }
-export type ISalesOrder = OmitMeta<
-    Prisma.SalesOrdersGetPayload<{
-        include: {
-            extraCosts: true;
-            // producer: true;
-            // salesRep: true;
-            // billingAddress: true;
-            // shippingAddress: true;
-            // customer: true;
-        };
-    }>
-> & {
-    customer?: ICustomer;
-    billingAddress?: any;
-    shippingAddress?: any;
-    progress?: Progress[];
-    producer?: Users;
-    salesRep?: Users;
-
-    items: ISalesOrderItem[] | undefined;
-    payments: ISalesPayment[] | undefined;
-    prodStatus: ProdStatus;
-    productions: OrderProductionSubmissions[];
-    type: ISalesType;
-    meta: ISalesOrderMeta;
-    pickup: ISalesPickup;
-    ctx: {
-        prodPage?: Boolean;
-    };
-};
+export type ISalesOrder = any;
 export interface ISalesPickup extends OmitMeta<SalesPickup> {
     meta: {
         signature;

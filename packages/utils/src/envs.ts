@@ -12,6 +12,11 @@ export function getAppUrl() {
 
   return "http://localhost:3000";
 }
+export function getAppApiUrl() {
+  const url = getAppUrl();
+  return `${url}/api`;
+  // return url.replace("www.", "").replace("://", "://api.");
+}
 export function getStoreUrl() {
   if (
     process.env.VERCEL_ENV === "production" ||

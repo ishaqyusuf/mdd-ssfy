@@ -162,3 +162,12 @@ export const salesHaving = [
   "Duplicate Payment",
 ] as const;
 export type SalesHaving = (typeof salesHaving)[number];
+
+export const salesPrintModes = [
+  "quote",
+  "order",
+  "production",
+  "packing list",
+  "order-packing",
+] as const;
+export type SalesPrintModes = (typeof salesPrintModes)[number];

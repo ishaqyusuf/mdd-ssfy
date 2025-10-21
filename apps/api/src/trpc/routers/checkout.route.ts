@@ -1,9 +1,13 @@
-import { createTRPCRouter, publicProcedure } from "../init";
-import { getCheckoutSchema } from "@api/schemas/checkout";
-import { getCheckout } from "@api/db/queries/checkout";
+import {
+  initializeCheckout,
+  initializeCheckoutSchema,
+} from "@api/db/queries/checkout";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 
-export const checkoutRouters = createTRPCRouter({
-  get: publicProcedure.input(getCheckoutSchema).query(async (q) => {
-    return await getCheckout(q.ctx.db, q.input);
-  }),
+export const checkoutRouter = createTRPCRouter({
+  initializeCheckout: publicProcedure
+    .input(initializeCheckoutSchema)
+    .query(async (props) => {
+      return initializeCheckout(props.ctx, props.input);
+    }),
 });

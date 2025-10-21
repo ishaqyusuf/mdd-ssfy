@@ -8,7 +8,6 @@ import { hrmRoutes } from "./hrm.route";
 import { siteActionsRoutes } from "./site-action.route";
 import { searchRouter } from "./search.route";
 import { emailsRoute } from "./emails.route";
-import { checkoutRouters } from "./checkout.route";
 import { dispatchRouters } from "./dispatch.route";
 import { userRoutes } from "./user.route";
 import { filterRouters } from "./filters.route";
@@ -20,12 +19,13 @@ import { inventoriesRouter } from "./inventories.route";
 import { communityRouters } from "./community.route";
 import { storefrontRouter } from "./storefront.route";
 import { taskTriggerRouter } from "./task-trigger.route";
+import { checkoutRouter } from "./checkout.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
   // students: studentsRouter,
   backlogs: backlogRouters,
-  checkout: checkoutRouters,
+  checkout: checkoutRouter,
   community: communityRouters,
   customers: customerRouter,
   dispatch: dispatchRouters,

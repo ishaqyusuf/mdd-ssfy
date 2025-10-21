@@ -1,5 +1,4 @@
 import { withSentryConfig } from "@sentry/nextjs";
-import { PrismaPlugin } from "@prisma/nextjs-monorepo-workaround-plugin";
 /** @type {import('next').NextConfig} */
 // const path = require("path");
 // const { NormalModuleReplacementPlugin } = require("webpack");
@@ -54,7 +53,7 @@ const config = {
         },
     },
     // experimental: {
-    serverExternalPackages: ["puppeteer-core"],
+    serverExternalPackages: ["puppeteer-core", "@prisma/client", "@gnd/db"],
     // },
     // webpack: (config, { isServer }) => {
     //     if (isServer) {

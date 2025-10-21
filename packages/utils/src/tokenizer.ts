@@ -11,6 +11,8 @@ type XOR<T, U> = T | U extends object
 export const salesPdfToken = z.object({
   salesIds: z.array(z.number()),
   expiry: z.string(),
+  mode: z.string(),
+  dispatchId: z.number().optional().nullable(),
 });
 export type SalesPdfToken = typeof salesPdfToken._type;
 export const salesPaymentTokenSchema = z.object({

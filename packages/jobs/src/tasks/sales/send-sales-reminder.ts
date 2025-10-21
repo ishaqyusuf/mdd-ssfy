@@ -1,6 +1,4 @@
 import {
-  SendSalesEmailPayload,
-  sendSalesEmailSchema,
   SendSalesReminderPayload,
   sendSalesReminderSchema,
   TaskName,
@@ -8,13 +6,11 @@ import {
 import { logger, schemaTask } from "@trigger.dev/sdk/v3";
 import { db } from "@gnd/db";
 import { processBatch } from "@jobs/utils/process-batch";
-import { sum } from "@gnd/utils";
 import { sendEmail } from "@jobs/utils/resend";
 import SalesEmail from "@gnd/email/emails/sales-email";
-import { getAppUrl } from "@utils/envs";
-import QueryString from "qs";
-import { composePaymentOrderIdsParam } from "@gnd/utils/sales";
+import { getAppApiUrl, getAppUrl } from "@utils/envs";
 const baseAppUrl = getAppUrl();
+const baseApiUrl = getAppApiUrl();
 const id = "send-sales-email" as TaskName;
 export const sendSalesReminder = schemaTask({
   id: "send-sales-reminder",
@@ -35,69 +31,28 @@ export const sendSalesReminder = schemaTask({
     // @ts-expect-error
     await processBatch(mailables, 1, async (batch) => {
       await Promise.all(
-        batch.map(async (matchingSales) => {
-          logger.log(`Processing sales: ${matchingSales[0]?.id}`);
-          return;
-          const email = matchingSales[0]?.customerEmail;
-          const customerName = matchingSales[0]?.customerName;
-          const isQuote = matchingSales[0]?.isQuote;
-          let emailSlug = email?.split("@")[0];
-          const salesRepEmail = matchingSales?.[0]?.salesRepEmail;
-          const salesRep = matchingSales?.[0]?.salesRep;
-          const pendingAmountSales = matchingSales.filter((s) => s.due! > 0);
-          const totalDueAmount = sum(pendingAmountSales, "due");
-
-          const slugs = matchingSales.map((s) => s.orderId).join(",");
-          const pdfLink = `${baseAppUrl}/api/pdf/download?${QueryString.stringify(
-            {
-              slugs,
-              mode: props.printType,
-              preview: false,
-            }
-          )}`;
-          let pid = null;
-          const orderIdParams = composePaymentOrderIdsParam(
-            matchingSales.map((a) => a.orderId)
-          );
-          if (totalDueAmount) {
-            pid = (
-              await db.squarePaymentLink.create({
-                data: {
-                  option: props.emailType as any,
-                  orderIdParams,
-                },
-              })
-            )?.id;
-          }
-          const paymentLink =
-            !totalDueAmount || props.printType == "quote"
-              ? null
-              : isDev
-              ? `${baseAppUrl}/square-payment/checkout?uid=${pid}&slugs=${slugs}&tok=${emailSlug}`
-              : `${baseAppUrl}/square-payment/${emailSlug}/${orderIdParams}?uid=${pid}`;
-          const sales = matchingSales.map((s) => ({
-            due: s.due,
-            total: s.total,
-            date: s.date,
-            orderId: s.orderId,
-            po: s.po,
-          }));
-          logger.log(`Sending email to ${email}`, { sales });
-          // const notifications = new Notifications(getDb());
+        batch.map(async (data) => {
+          logger.log(`Processing sales: ${data}`);
+          const isQuote = data.type == "quote";
           await sendEmail({
-            subject: `${salesRep} sent you ${
+            subject: `${props.salesRep} sent you ${
               isQuote ? "a quote" : "an invoice"
             }`,
             from: `GND Millwork <${
-              salesRepEmail?.split("@")[0]
+              props.salesRepEmail?.split("@")[0]
             }@gndprodesk.com>` as any,
-            to: email!,
+            to: data.customerEmail!,
             content: SalesEmail({
               isQuote,
-              pdfLink,
-              paymentLink: paymentLink!,
-              sales,
-              customerName: customerName!,
+              pdfLink: data.downloadToken
+                ? `${baseApiUrl}/pdf/sales?token=${data.downloadToken}&download=true`
+                : undefined,
+              paymentLink: data.paymentToken
+                ? `${baseAppUrl}/checkout/${data.paymentToken}`
+                : undefined,
+              //  paymentLink: paymentLink!,
+              sales: data.data,
+              customerName: data.customerName!,
             }),
             successLog: "Invoice email sent",
             errorLog: "Invoice email failed to send",

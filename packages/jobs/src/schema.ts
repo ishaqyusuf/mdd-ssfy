@@ -80,9 +80,11 @@ export const sendSalesReminderSchema = z.object({
       paymentToken: z.string().optional().nullable(),
       salesIds: z.array(z.number()),
       customerEmail: z.string(),
+      customerName: z.string(),
     })
   ),
   salesRepEmail: z.string(),
+  salesRep: z.string(),
 });
 export type SendSalesReminderPayload = z.infer<typeof sendSalesReminderSchema>;
 export const sendLoginEmailSchema = z.object({

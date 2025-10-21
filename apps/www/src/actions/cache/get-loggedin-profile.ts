@@ -15,6 +15,7 @@ import { cookies } from "next/headers";
 
 export async function getLoggedInProfile(debugMode = false) {
     let id = await authId();
+
     let roleId = await (async () => {
         try {
             const roleId = (await serverSession())?.role?.id;
@@ -22,20 +23,20 @@ export async function getLoggedInProfile(debugMode = false) {
         } catch (error) {}
         return null;
     })();
-    if (env.NODE_ENV != "production" && debugMode) {
-        const { userId, roleId: _roleId } = JSON.parse(
-            (await cookies()).get("side-bar-auth-id")?.value || `{}`,
-        );
-        if (userId) id = userId;
-        if (_roleId) roleId = _roleId;
-    }
+    // if (env.NODE_ENV != "production" && debugMode) {
+    //     const { userId, roleId: _roleId } = JSON.parse(
+    //         (await cookies()).get("side-bar-auth-id")?.value || `{}`,
+    //     );
+    //     if (userId) id = userId;
+    //     if (_roleId) roleId = _roleId;
+    // }
     const tags = [`user_${id}`, `role_${roleId}`, "permissions"];
 
     const fn = async () => {
         let can: ICan = {} as any;
         const user = await prisma.users.findFirst({
             where: {
-                id,
+                id: id || -1,
             },
             select: {
                 id: true,
@@ -102,6 +103,6 @@ export async function setSidebarAuthId(userId, e) {
         JSON.stringify({
             userId,
             roleId: e.role?.id,
-        }),
+        })
     );
 }
