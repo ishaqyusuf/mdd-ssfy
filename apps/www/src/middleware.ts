@@ -63,7 +63,7 @@ export default async function middlewarex(req: NextRequest) {
     //     consoleLog("matched link", matched);
     // }
     const v = validatePath(pathName, validLinks.linksNameMap);
-    const prev = req.headers.get("referer");
+    // const prev = req.headers.get("referer");
     // consoleLog("->", { v, pathName, linkMap: validLinks.linksNameMap, prev });
     if (!v?.hasAccess) {
         // if (prev) {
@@ -93,27 +93,10 @@ const validatePath = <T extends Record<string, any>>(
 };
 
 const isPublic = (pathName) =>
-    ["/login", "/square-payment", "/checkout", "/api/pdf"]?.some((a) =>
-        pathName.includes(a)
+    ["/login", "/square-payment", "/checkout", "/signout", "/api/pdf"]?.some(
+        (a) => pathName.includes(a)
     );
-// async function authorized(req: NextRequest) {
-//     // const c = cookies();
-//     const allCookies = req.cookies
-//         .getAll()
-//         .map((c) => `${c.name}=${c.value}`)
-//         .join("; ");
-//     const headers = {
-//         "Content-Type": "application/json",
-//         Cookie: allCookies,
-//     };
-//     const url = new URL(`/api/auth/session`, req.url);
-//     const response = await fetch(url.href, {
-//         headers,
-//         cache: "no-store",
-//     });
-//     const data = await response.json();
-//     return !!data?.user;
-// }
+
 async function getAuth(req) {
     try {
         const userUrl = `${req.nextUrl.origin}/api/auth-session`;
