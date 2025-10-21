@@ -83,53 +83,61 @@ export function SendSalesEmailModal({}) {
                     )}
                 >
                     <Form {...form}>
-                        <div className="p-2 w-[250pxs] grid gap-4">
-                            <Label>Percentage</Label>
-                            <ButtonGroup>
-                                {[25, 50, 75].map((a, i) => (
+                        {fields.map((field) => (
+                            <div
+                                key={field._id}
+                                className="p-2 w-[250pxs] grid gap-4"
+                            >
+                                <Label>Percentage</Label>
+                                <ButtonGroup>
+                                    {[25, 50, 75].map((a, i) => (
+                                        <Button
+                                            onClick={(e) => {
+                                                form.setValue(
+                                                    "amount",
+                                                    percentageValue(
+                                                        field.totalAmount,
+                                                        a
+                                                    )
+                                                );
+                                                form.setValue("percentage", a);
+                                            }}
+                                            key={a}
+                                            variant={
+                                                field.percentage === a
+                                                    ? "destructive"
+                                                    : "outline"
+                                            }
+                                            size="sm"
+                                        >
+                                            {a} %
+                                        </Button>
+                                    ))}
+                                </ButtonGroup>
+                                <Label>Amount</Label>
+                                <InputGroup>
+                                    <InputGroup.Input placeholder="Amount" />
+                                    <InputGroup.Addon align="inline-end">
+                                        /${formatMoney(field.totalAmount)}
+                                    </InputGroup.Addon>
+                                </InputGroup>
+                                <div className="flex">
                                     <Button
                                         onClick={(e) => {
-                                            form.setValue(
-                                                "amount",
-                                                percentageValue(totalAmount, a)
-                                            );
-                                            form.setValue("percentage", a);
+                                            // closeForm();
                                         }}
-                                        key={a}
-                                        variant={
-                                            percentage === a
-                                                ? "destructive"
-                                                : "outline"
-                                        }
-                                        size="sm"
+                                        size="icon"
+                                        variant="destructive"
                                     >
-                                        {a} %
+                                        <X className="size-4" />
                                     </Button>
-                                ))}
-                            </ButtonGroup>
-                            <Label>Amount</Label>
-                            <InputGroup>
-                                <InputGroup.Input placeholder="Amount" />
-                                <InputGroup.Addon align="inline-end">
-                                    /${formatMoney(totalAmount)}
-                                </InputGroup.Addon>
-                            </InputGroup>
-                            <div className="flex">
-                                <Button
-                                    onClick={(e) => {
-                                        closeForm();
-                                    }}
-                                    size="icon"
-                                    variant="destructive"
-                                >
-                                    <X className="size-4" />
-                                </Button>
-                                <div className="flex-1"></div>
-                                <Button size="icon" aria-label="Submit">
-                                    <Send className="size-4" />
-                                </Button>
+                                    <div className="flex-1"></div>
+                                    <Button size="icon" aria-label="Submit">
+                                        <Send className="size-4" />
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
+                        ))}
                     </Form>
                 </ScrollArea>
             </DialogContent>

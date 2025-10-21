@@ -47,8 +47,24 @@
   "dependencies": {
     "@biomejs/biome": "1.9.4",
     "@manypkg/cli": "^0.24.0",
+    "bcrypt-ts": "^5.0.3",
+    "date-fns": "^4.1.0",
+    "dayjs": "^1.11.18",
+    "dot-object": "^2.1.5",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.23.24",
+    "nanoid": "^5.1.5",
+    "react-hotkeys-hook": "^5.2.1",
+    "react-intersection-observer": "^9.16.0",
     "react-markdown": "^10.1.0",
+    "react-pdf": "^9.2.1",
+    "react-responsive": "^9.0.2",
     "turbo": "2.5.4",
-    "typescript": "^5.9.3"
+    "lodash": "^4.17.21",
+    "slugify": "^1.6.6",
+    "superjson": "2.2.1",
+    "tailwind-merge": "^3.3.1",
+    "typescript": "^5.9.3",
+    "zod": "^3.25.46"
   }
 }
