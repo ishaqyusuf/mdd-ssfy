@@ -14,7 +14,7 @@
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
     "dev": "email dev -p 3003",
-    "build": "email build",
+    "--build": "email build",
     "start": "email start"
   },
   "dependencies": {

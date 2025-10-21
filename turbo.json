@@ -115,7 +115,8 @@
       "outputs": []
     },
     "clean": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["^clean"]
     }
   }
 }
