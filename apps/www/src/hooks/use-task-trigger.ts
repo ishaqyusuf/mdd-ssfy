@@ -13,6 +13,7 @@ interface Props {
     executingToast?: string;
     onError?;
     onSucces?;
+    onStarted?;
     debug?: boolean;
     silent?: boolean;
 }
@@ -101,6 +102,7 @@ export function useTaskTrigger(props?: Props) {
             //     setAccessToken(data.publicAccessToken);
             // }
             if (!props.silent) pushTask(data.id, data.publicAccessToken);
+            props?.onStarted?.();
         },
         onError(e) {
             setRunId(undefined);

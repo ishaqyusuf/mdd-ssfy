@@ -1,14 +1,14 @@
 import { Button } from "@gnd/ui/button";
 import { AlertDialog, InputGroup, Item } from "@gnd/ui/composite";
 import { Icons } from "@gnd/ui/icons";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useEffect } from "react";
 import { useQuery } from "@gnd/ui/tanstack";
 import { useSendSalesEmail } from "@/hooks/use-send-sales-email";
 import { useFieldArray } from "react-hook-form";
 
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { SendSalesEmailPayload } from "@jobs/schema";
+import { SendSalesEmailPayload, SendSalesReminderPayload } from "@jobs/schema";
 import { calculatePercentile } from "@/lib/request/percentile";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { _trpc } from "@/components/static-trpc";
@@ -17,10 +17,18 @@ import { formatMoney, percentageValue, sum, uniqueList } from "@gnd/utils";
 import { Form } from "@gnd/ui/form";
 import { Label } from "@gnd/ui/label";
 import { ButtonGroup } from "@gnd/ui/button-group";
+import { useAuth } from "@/hooks/use-auth";
+import { SalesPaymentTokenSchema, SalesPdfToken } from "@gnd/utils/tokenizer";
+import { generateToken, validateTokenAction } from "@/actions/token-action";
+import { Skeletons } from "@gnd/ui/custom/skeletons";
+import { addDays } from "date-fns";
 interface Props {
     children?;
     salesIds: number[];
 }
+const defaultValues = {
+    sales: [],
+};
 export function SendSalesReminder({ children, salesIds }: Props) {
     const [opened, setOpened] = useState(false);
 
@@ -31,7 +39,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                     ids: z.array(z.number()),
                     salesNos: z.array(z.string()),
                     includePaymentLink: z.boolean(),
-                    email: z.string(),
+                    email: z.string().min(1),
                     customerName: z.string().optional().nullable(),
                     type: z.string().optional().nullable(),
                     amount: z.number(),
@@ -41,24 +49,48 @@ export function SendSalesReminder({ children, salesIds }: Props) {
             ),
         }),
         {
-            defaultValues: {
-                sales: [],
-            },
+            defaultValues,
         }
     );
-    const sendEmail = () => {
-        //    mailer.send({
-        //        emailType: "without payment",
-        //        salesIds: [salesId],
-        //        printType: type,
-        //    });
-    };
-    const trigger = useTaskTrigger({});
-    const submit = (data) => {
-        console.log(data);
-        trigger.trigger({
-            taskName: "send-sales-email",
-            payload: {} as SendSalesEmailPayload,
+    const auth = useAuth();
+    const trigger = useTaskTrigger({
+        onStarted() {
+            setOpened(false);
+            form.reset(defaultValues);
+        },
+    });
+    const [isTokenPending, startTransition] = useTransition();
+    const submit = async (data) => {
+        startTransition(async () => {
+            const payload: SendSalesReminderPayload = {
+                salesRepEmail: auth.email,
+                sales: [],
+            };
+            for (const sale of data.sales) {
+                const downloadToken = await generateToken({
+                    salesIds: sale.ids,
+                    expiry: addDays(new Date(), 7).toISOString(),
+                } satisfies SalesPdfToken);
+                const paymentToken = sale.includePaymentLink
+                    ? await generateToken({
+                          salesIds: sale.ids,
+                          expiry: addDays(new Date(), 7).toISOString(),
+                          percentage: sale.percentage,
+                          amount: sale.amount,
+                      } satisfies SalesPaymentTokenSchema)
+                    : null;
+                payload.sales.push({
+                    type: sale.type,
+                    salesIds: sale.ids,
+                    customerEmail: sale.email,
+                    downloadToken,
+                    paymentToken,
+                });
+            }
+            trigger.trigger({
+                taskName: "send-sales-reminder",
+                payload,
+            });
         });
     };
     const { fields, append, update } = useFieldArray({
@@ -106,6 +138,8 @@ export function SendSalesReminder({ children, salesIds }: Props) {
             ),
         });
     }, [data]);
+    const isDisabled =
+        trigger.isActionPending || !isValid || isPending || isTokenPending;
     return (
         <AlertDialog
             open={opened}
@@ -134,16 +168,17 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                             invoice?
                         </AlertDialog.Description>
                     </AlertDialog.Header>
+                    {!isPending || <Skeletons.Card />}
                     {fields.map((field, fi) => (
                         <div
                             key={field._id}
                             className="p-2 grid grid-cols-2s gap-4"
                         >
-                            <Item className="" size="sm">
+                            <Item className="" variant="outline" size="sm">
                                 <Item.Content>
                                     <Item.Title>
-                                        {field.salesNos?.join(", ")} {" | "}{" "}
                                         {field.email || <div>set email</div>}
+                                        {" | "} {field.salesNos?.join(", ")}
                                     </Item.Title>
                                     <Item.Description>
                                         {field.customerName}
@@ -209,6 +244,11 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                                         </div>
                                     </div>
                                 </Item.Content>
+                                {/* <Item.Actions>
+                                    <Button variant="link" size="xs">
+                                        <span>Change Email</span>
+                                    </Button>
+                                </Item.Actions> */}
                             </Item>
                         </div>
                     ))}
@@ -221,13 +261,11 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                         >
                             <AlertDialog.Action
                                 type="submit"
-                                // onClick={() => {
-                                //     // sendReminderMutation.mutate({
-                                //     //     id,
-                                //     //     date: new Date().toISOString(),
-                                //     // });
-                                // }}
-                                disabled={trigger.isActionPending || !isValid}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    submit(form.getValues());
+                                }}
+                                disabled={isDisabled}
                             >
                                 Send Reminder
                             </AlertDialog.Action>

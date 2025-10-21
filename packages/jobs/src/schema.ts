@@ -15,6 +15,7 @@ export const taskNames = [
   "send-password-reset-code",
   "send-password-reset-to-default-email",
   "send-sales-email",
+  "send-sales-reminder",
   "send-storefront-welcome-email",
   "send-storefront-order-confirmation-email",
   "send-storefront-magic-login-code-email",
@@ -71,17 +72,19 @@ export const sendSalesEmailSchema = z.object({
 });
 export type SendSalesEmailPayload = z.infer<typeof sendSalesEmailSchema>;
 
-export const sendSalesReminder = z.object({
+export const sendSalesReminderSchema = z.object({
   sales: z.array(
     z.object({
       type: z.enum(["order", "quote"]),
       downloadToken: z.string().optional().nullable(),
       paymentToken: z.string().optional().nullable(),
       salesIds: z.array(z.number()),
+      customerEmail: z.string(),
     })
   ),
+  salesRepEmail: z.string(),
 });
-export type SendSalesReminder = z.infer<typeof sendSalesReminder>;
+export type SendSalesReminderPayload = z.infer<typeof sendSalesReminderSchema>;
 export const sendLoginEmailSchema = z.object({
   //validate email
   email: z.string().email("Please enter a valid email address"),

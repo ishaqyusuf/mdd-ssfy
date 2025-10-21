@@ -27,18 +27,19 @@ function NotificationItem({ uid }) {
     const { toast, dismiss, update } = useToast();
     const [toastId, setToastId] = useState(null);
     useEffect(() => {
-        console.log({ run, error });
         if (!run) return;
         const running = run.status != "FAILED" && run.status != "COMPLETED";
         const toastData: Partial<Toast> = {
             variant: running
                 ? "spinner"
                 : error || run.status == "FAILED"
-                  ? "destructive"
-                  : "success",
+                ? "destructive"
+                : "success",
             title: title || run.status,
             description: error?.message || description || title,
-            duration: running ? Number.POSITIVE_INFINITY : 2500,
+            duration:
+                // running ? Number.POSITIVE_INFINITY :
+                2500,
             onAbort() {
                 console.log("ABORTED");
             },

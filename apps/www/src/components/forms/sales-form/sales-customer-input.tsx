@@ -7,7 +7,7 @@ import { Search } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Fragment, useState } from "react";
 import { Spinner } from "@gnd/ui/spinner";
-import { consoleLog, generateRandomString } from "@gnd/utils";
+import { generateRandomString } from "@gnd/utils";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
