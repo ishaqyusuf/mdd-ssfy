@@ -14,20 +14,20 @@ type Props = {
 export default async function Page(props: Props) {
     const searchParams = await props.searchParams;
     // const filter = loadSquarePaymentCheckoutFilterParams(searchParams);
-    const enc = encodeData({
-        ...searchParams,
-    });
-    const ss = decodeData(enc);
+    // const enc = encodeData({
+    //     ...searchParams,
+    // });
+    // const ss = decodeData(enc);
 
-    console.log({
-        enc,
-        ss,
-    });
+    // console.log({
+    //     enc,
+    //     ss,
+    // });
     return (
         <div>
             <Suspense fallback={<CheckoutSkeleton />}>
-                <div>{JSON.stringify(ss)}</div>
-                <div>{searchParams.token}</div>
+                {/* <div>{JSON.stringify(ss)}</div>
+                <div>{searchParams.token}</div> */}
             </Suspense>
         </div>
     );
