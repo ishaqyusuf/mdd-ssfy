@@ -95,16 +95,16 @@ export async function sales(ctx: TRPCContext, query: SalesQueryParamsSchema) {
     }))
   );
 }
-export async function __getQuotes(
+export async function getOrders(
   ctx: TRPCContext,
   query: SalesQueryParamsSchema
 ) {
   query.salesType = "order";
   if (query.defaultSearch) {
     if (query.showing != "all sales") query.salesRepId = ctx.userId!;
+    if (query.showing != "all sales" && !query.q?.trim())
+      query.salesRepId = ctx.userId!;
   }
-  if (query.showing != "all sales" && !query.q?.trim())
-    query.salesRepId = ctx.userId!;
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,
@@ -324,8 +324,8 @@ export async function getSalesLifeCycle(
         assignedToId
           ? null
           : item.unitLabor
-            ? `$ ${formatCurrency(item.unitLabor)}/qty labor`
-            : `no labor cost`,
+          ? `$ ${formatCurrency(item.unitLabor)}/qty labor`
+          : `no labor cost`,
       ]
         ?.filter(Boolean)
         .join(" | ");

@@ -5,7 +5,7 @@ import {
   salesQueryParamsSchema,
 } from "@api/schemas/sales";
 import {
-  __getQuotes,
+  getOrders,
   getQuotes,
   getSales,
   sales,
@@ -149,10 +149,10 @@ export const salesRouter = createTRPCRouter({
       // return resp;
       return await getSaleInformation(props.ctx.db, props.input);
     }),
-  __getQuotes: publicProcedure
+  getOrders: publicProcedure
     .input(salesQueryParamsSchema)
     .query(async (props) => {
-      return __getQuotes(props.ctx, transformSalesFilterQuery(props.input));
+      return getOrders(props.ctx, transformSalesFilterQuery(props.input));
     }),
   quotes: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
     return getQuotes(props.ctx, transformSalesFilterQuery(props.input));

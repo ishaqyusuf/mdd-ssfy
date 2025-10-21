@@ -135,7 +135,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
                     </>
                 ) : (
                     <>
-                        {/* <Menu.Item
+                        <Menu.Item
                             icon="Email"
                             SubMenu={
                                 <>
@@ -158,16 +158,6 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
                             }
                         >
                             Payment Link
-                        </Menu.Item> */}
-                        <Menu.Item
-                            // className={cn(!isQuote || "hidden")}
-                            onClick={(e) => {
-                                setSalesEmailModalParams({
-                                    sendEmailSalesId: [salesId],
-                                });
-                            }}
-                        >
-                            Sales Email
                         </Menu.Item>
                         <Menu.Item
                             Icon={CheckCheck}

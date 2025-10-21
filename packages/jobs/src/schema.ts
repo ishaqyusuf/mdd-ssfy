@@ -71,6 +71,17 @@ export const sendSalesEmailSchema = z.object({
 });
 export type SendSalesEmailPayload = z.infer<typeof sendSalesEmailSchema>;
 
+export const sendSalesReminder = z.object({
+  sales: z.array(
+    z.object({
+      type: z.enum(["order", "quote"]),
+      downloadToken: z.string().optional().nullable(),
+      paymentToken: z.string().optional().nullable(),
+      salesIds: z.array(z.number()),
+    })
+  ),
+});
+export type SendSalesReminder = z.infer<typeof sendSalesReminder>;
 export const sendLoginEmailSchema = z.object({
   //validate email
   email: z.string().email("Please enter a valid email address"),

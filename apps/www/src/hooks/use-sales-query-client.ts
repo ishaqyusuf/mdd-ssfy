@@ -9,7 +9,7 @@ export function useSalesQueryClient() {
             queryKey,
         });
     const invalidate = {
-        salesList: () => _invalidate(trpc.sales.index.infiniteQueryKey()),
+        salesList: () => _invalidate(trpc.sales.getOrders.infiniteQueryKey()),
         quoteList: () => _invalidate(trpc.sales.quotes.infiniteQueryKey()),
         productionOverview: () =>
             _invalidate(trpc.sales.productionOverview.queryKey()),

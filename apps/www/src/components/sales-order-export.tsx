@@ -27,7 +27,7 @@ export function SalesOrderExport() {
     const api = useTRPC();
 
     const { refetch, isPending } = useQuery(
-        api.sales.index.queryOptions(
+        api.sales.getOrders.queryOptions(
             {
                 ...(filters as any),
                 salesIds: selectedIds.length ? selectedIds : undefined,
@@ -35,8 +35,8 @@ export function SalesOrderExport() {
             },
             {
                 enabled: false,
-            },
-        ),
+            }
+        )
     );
     async function exportData() {
         try {
@@ -74,7 +74,7 @@ export function SalesOrderExport() {
                 })),
                 {
                     cellStyles: true,
-                },
+                }
             );
             // auto column widths
             worksheet["!cols"] = [

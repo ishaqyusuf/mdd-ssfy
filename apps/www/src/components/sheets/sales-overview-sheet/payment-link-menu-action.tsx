@@ -34,7 +34,7 @@ export function PaymentLinkMenuAction(props: Props) {
     );
     const { opened, percentage, totalAmount } = form.watch();
     const { data } = useQuery(
-        _trpc.sales.index.queryOptions(
+        _trpc.sales.getOrders.queryOptions(
             {
                 salesIds: props.salesIds,
             },

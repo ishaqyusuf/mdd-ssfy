@@ -138,8 +138,8 @@ export function uniqueList<T>(
 ) {
   if (!list) return [];
   const kValue = (b) => (!uniqueBy || typeof b === "string" ? b : b[uniqueBy]);
-  return list.filter(
-    (a, i) => i === list.findIndex((b) => kValue(b) == kValue(a))
+  return list.filter((a, i) =>
+    !kValue(a) ? true : i === list.findIndex((b) => kValue(b) == kValue(a))
   );
 }
 export function addPercentage(value: any, percentage: any) {

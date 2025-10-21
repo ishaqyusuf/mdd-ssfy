@@ -22,7 +22,7 @@ export function useBatchSales() {
             }
         }
         queryClient.invalidateQueries({
-            queryKey: trpc.sales.index.pathKey(),
+            queryKey: trpc.sales.getOrders.pathKey(),
         });
     };
     const markAsProductionCompleted = async (...ids) => {
@@ -34,7 +34,7 @@ export function useBatchSales() {
         }
         loading.success("Marked as production completed");
         queryClient.invalidateQueries({
-            queryKey: trpc.sales.index.pathKey(),
+            queryKey: trpc.sales.getOrders.pathKey(),
         });
     };
     return {
