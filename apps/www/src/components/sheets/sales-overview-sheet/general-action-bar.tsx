@@ -19,7 +19,8 @@ import { useSalesPrintParams } from "@/hooks/use-sales-print-params";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { toast } from "sonner";
-
+import { PaymentLinkMenuAction } from "./payment-link-menu-action";
+import { useSendSalesEmail } from "@/hooks/use-send-sales-email";
 export function GeneralActionBar({ type, salesNo, salesId }) {
     const mailer = useSalesMailer();
     const { data } = useSaleOverview();
@@ -37,7 +38,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
             try {
                 const resp = await resetSalesStatAction(
                     data?.id,
-                    data?.orderId,
+                    data?.orderId
                 );
                 toast.success("Reset complete");
                 qs.salesQuery.salesStatReset();
@@ -54,6 +55,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
     const loader = useLoadingToast();
     const sq = useSalesQueryClient();
     const menuRef = useRef(null);
+    const { setParams: setSalesEmailModalParams } = useSendSalesEmail();
     return (
         <div className="flex gap-2">
             {/* <AlertDialog>
@@ -133,7 +135,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
                     </>
                 ) : (
                     <>
-                        <Menu.Item
+                        {/* <Menu.Item
                             icon="Email"
                             SubMenu={
                                 <>
@@ -149,22 +151,23 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
                                     >
                                         Default
                                     </Menu.Item>
-                                    <Menu.Item
-                                        disabled
-                                        onClick={(e) => {
-                                            mailer.send({
-                                                emailType: "with part payment",
-                                                salesIds: [salesId],
-                                                printType: type,
-                                            });
-                                        }}
-                                    >
-                                        Part Payment
-                                    </Menu.Item>
+                                    <PaymentLinkMenuAction
+                                        salesIds={[salesId]}
+                                    />
                                 </>
                             }
                         >
                             Payment Link
+                        </Menu.Item> */}
+                        <Menu.Item
+                            // className={cn(!isQuote || "hidden")}
+                            onClick={(e) => {
+                                setSalesEmailModalParams({
+                                    sendEmailSalesId: [salesId],
+                                });
+                            }}
+                        >
+                            Sales Email
                         </Menu.Item>
                         <Menu.Item
                             Icon={CheckCheck}
@@ -175,7 +178,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
                                         onClick={(e) => {
                                             e.preventDefault();
                                             batchSales.markAsProductionCompleted(
-                                                salesId,
+                                                salesId
                                             );
                                         }}
                                     >
@@ -218,7 +221,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
                                         {
                                             salesNo: data.orderId,
                                         },
-                                        true,
+                                        true
                                     );
                                 }}
                                 disabled={loading}

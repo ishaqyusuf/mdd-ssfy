@@ -27,8 +27,8 @@ export function SalesCustomerInput() {
             },
             {
                 enabled: !!md.customer.id,
-            },
-        ),
+            }
+        )
     );
     const { params, setParams } = useCreateCustomerParams();
     if (isPending && isEnabled) return <Skeletons.FeedPost />;
@@ -119,8 +119,8 @@ function SearchCustomer() {
             },
             {
                 enabled: !!debouncedQuery,
-            },
-        ),
+            }
+        )
     );
     return (
         <div className="py-2">
@@ -196,6 +196,7 @@ function SearchCustomer() {
                             <Item.Actions>
                                 <Button
                                     onClick={(e) => {
+                                        console.log({ sr });
                                         const metaData = {
                                             ...md,
                                         };
@@ -214,7 +215,7 @@ function SearchCustomer() {
                                         // }
                                         metaData.profileChangedToken =
                                             generateRandomString();
-
+                                        metaData.salesProfileId = sr?.profileId;
                                         zus.dotUpdate("metaData", metaData);
                                     }}
                                     size="sm"

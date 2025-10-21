@@ -4,8 +4,10 @@ import {
   useImperativeHandle,
   useState,
   useTransition,
+  createContext,
+  useContext,
 } from "react";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { Icon, IconKeys, Icons } from "./icons";
 import { cn } from "../../utils";
 
@@ -28,7 +30,6 @@ import {
 } from "@gnd/ui/dropdown-menu";
 
 import { ScrollArea } from "@gnd/ui/scroll-area";
-import createContextFactory from "../../utils/context-factory";
 
 type MenuItemProps = {
   link?;
@@ -54,12 +55,40 @@ interface RowActionMoreMenuProps {
   className?: string;
   // dir?:  ComponentPropsWithoutRef<>
 }
-const { Provider, useContext: useDropdownMenu } = createContextFactory(
-  () => {}
-);
-export { useDropdownMenu };
-function BaseMenu(
-  {
+type MenuContext = ReturnType<typeof createMenuContext>;
+export const MenuContext = createContext<MenuContext>(undefined);
+export const MenuProvider = MenuContext.Provider;
+export const createMenuContext = (props: RowActionMoreMenuProps, ref) => {
+  const [_open, _onOpenChanged] = useState(props.open);
+  useImperativeHandle(ref, () => ({
+    _onOpenChanged,
+    async run(fn) {
+      await fn();
+    },
+  }));
+  const [hover, setHover] = useState(false);
+  const [disabled, setDisabled] = useState(false);
+  useEffect(() => {
+    setDisabled(false);
+  }, [_open]);
+  return {
+    _open,
+    _onOpenChanged,
+    setHover,
+    hover,
+    disabled,
+    setDisabled,
+  };
+};
+export const useMenuContext = () => {
+  const context = useContext(MenuContext);
+  if (context === undefined) {
+    throw new Error("useMenuContext must be used within a MenuProvider");
+  }
+  return context;
+};
+function BaseMenu(props: RowActionMoreMenuProps, ref) {
+  const {
     children,
     Icon = Icons.Menu,
     label,
@@ -72,58 +101,51 @@ function BaseMenu(
     variant = "outline",
     hoverVariant,
     className,
-  }: RowActionMoreMenuProps,
-  ref
-) {
-  const [_open, _onOpenChanged] = useState(open);
-  useImperativeHandle(ref, () => ({
-    _onOpenChanged,
-    async run(fn) {
-      await fn();
-    },
-  }));
-  const [hover, setHover] = useState(false);
-
+  } = props;
+  const value = createMenuContext(props, ref);
+  const { _open, _onOpenChanged, setHover, hover } = value;
   return (
-    <DropdownMenu
-      open={onOpenChanged ? open : _open}
-      onOpenChange={onOpenChanged || _onOpenChanged}
-    >
-      <DropdownMenuTrigger
-        onMouseEnter={(e) => {
-          setHover(true);
-        }}
-        onMouseLeave={(e) => setHover(false)}
-        asChild
+    <MenuContext.Provider value={value}>
+      <DropdownMenu
+        open={onOpenChanged ? open : _open}
+        onOpenChange={onOpenChanged || _onOpenChanged}
       >
-        {Trigger ? (
-          Trigger
-        ) : (
-          <Button
-            disabled={disabled}
-            variant={open || hover ? hoverVariant || variant : variant}
-            size={triggerSize}
-            className={cn(
-              "flex h-8 space-x-4",
-              !label && "w-8 p-0",
-              variant == "default"
-                ? "data-[state=open]:bg-muted-foreground"
-                : "data-[state=open]:bg-muted",
-              triggerSize == "sm" && "h-6 w-6"
-            )}
-          >
-            {Icon && <Icon className="h-4 w-4" />}
-            {label && <span className="">{label}</span>}
-          </Button>
-        )}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className={cn(!noSize && "w-[185px]", className)}
-      >
-        {children}
-      </DropdownMenuContent>
-    </DropdownMenu>
+        <DropdownMenuTrigger
+          onMouseEnter={(e) => {
+            setHover(true);
+          }}
+          onMouseLeave={(e) => setHover(false)}
+          asChild
+        >
+          {Trigger ? (
+            Trigger
+          ) : (
+            <Button
+              disabled={disabled}
+              variant={open || hover ? hoverVariant || variant : variant}
+              size={triggerSize}
+              className={cn(
+                "flex h-8 space-x-4",
+                !label && "w-8 p-0",
+                variant == "default"
+                  ? "data-[state=open]:bg-muted-foreground"
+                  : "data-[state=open]:bg-muted",
+                triggerSize == "sm" && "h-6 w-6"
+              )}
+            >
+              {Icon && <Icon className="h-4 w-4" />}
+              {label && <span className="">{label}</span>}
+            </Button>
+          )}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          className={cn(!noSize && "w-[185px]", className)}
+        >
+          {children}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </MenuContext.Provider>
   );
 }
 
@@ -140,11 +162,12 @@ function Item({
   className,
   ...props
 }: MenuItemProps) {
+  const { disabled } = useMenuContext();
   if (!Icon && icon) Icon = Icons[icon];
   if (SubMenu)
     return (
       <DropdownMenuSub {...props}>
-        <DropdownMenuSubTrigger disabled={props.disabled}>
+        <DropdownMenuSubTrigger>
           {Icon && <Icon className="mr-2 size-4 text-muted-foreground/70" />}
           {children}
           {!!shortCut && (
@@ -157,7 +180,7 @@ function Item({
           )}
         </DropdownMenuSubTrigger>
         <DropdownMenuSubContent>
-          <ScrollArea className={cn("max-h-[50vh] overflow-auto", className)}>
+          <ScrollArea className={cn("max-h-[55vh] overflow-auto", className)}>
             {SubMenu}
           </ScrollArea>
         </DropdownMenuSubContent>
@@ -167,6 +190,7 @@ function Item({
   const Frag = () => (
     <DropdownMenuItem
       {...props}
+      disabled={props.disabled || disabled}
       onClick={link || href ? null : (onClick as any)}
       className={cn("gap-2", className)}
     >
@@ -182,7 +206,12 @@ function Item({
       )}
     </DropdownMenuItem>
   );
-
+  // if (link || href)
+  //     return (
+  //         <LinkableNode _blank={_blank} href={link || href}>
+  //             <Frag />
+  //         </LinkableNode>
+  // );
   return <Frag />;
 }
 
@@ -196,7 +225,7 @@ interface TrashProps {
 }
 function Trash({ action, children, ...props }: TrashProps) {
   const [confirm, setConfirm] = useState(false);
-  const router = useRouter();
+  // const router = useRouter();
   const [isPending, startTransition] = useTransition();
   return (
     <DropdownMenuItem
@@ -216,7 +245,7 @@ function Trash({ action, children, ...props }: TrashProps) {
               if (action) {
                 await action();
                 // if (!noRefresh)
-                router.refresh();
+                // router.refresh();
               }
               // revalidatePath("");
             },
@@ -247,6 +276,26 @@ function Trash({ action, children, ...props }: TrashProps) {
     </DropdownMenuItem>
   );
 }
+// function LinkableNode({
+//     href,
+//     As,
+//     children,
+//     _blank,
+//     ...props
+// }: any & { href?; className?; As?; _blank?: boolean }) {
+//     if (href)
+//         return (
+//             <Link
+//                 {...(props as any)}
+//                 className={cn("hover:underline", props?.className)}
+//                 target={_blank && "_blank"}
+//                 href={href}
+//             >
+//                 {children}
+//             </Link>
+//         );
+//     return <div {...props}>{children}</div>;
+// }
 export let Menu = Object.assign(forwardRef(BaseMenu), {
   Item,
   Label: DropdownMenuLabel,

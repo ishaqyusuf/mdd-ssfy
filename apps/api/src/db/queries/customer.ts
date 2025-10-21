@@ -6,8 +6,12 @@ import type {
 import { z } from "zod";
 import type { AddressBookMeta, CustomerMeta } from "@sales/types";
 import { composeQueryData } from "@gnd/utils/query-response";
-import { whereCustomer } from "@api/prisma-where";
+import { whereCustomer, whereSales } from "@api/prisma-where";
 import { salesAddressLines } from "@sales/utils/utils";
+import type { SalesQueryParamsSchema } from "@sales/schema";
+import { getCustomerWallet } from "@sales/wallet";
+import { sum } from "@gnd/utils";
+import { fetchDevicesByLocations, getSquareDevices } from "@gnd/square";
 
 export async function getCustomers(ctx: TRPCContext, query: GetCustomers) {
   const { db } = ctx;
@@ -155,6 +159,7 @@ export async function customerInfoSearch(
       profile: {
         select: {
           title: true,
+          id: true,
         },
       },
       taxProfiles: {
@@ -232,6 +237,7 @@ export async function customerInfoSearch(
       addressId: address?.id,
       taxName: taxProfile?.tax?.title,
       profileName: customer?.profile?.title,
+      profileId: customer?.profile?.id,
       email: customer.email,
       zipCode: addressMeta?.zip_code,
     };
@@ -312,4 +318,79 @@ export async function getSalesCustomer(
     taxCode: taxProfile?.taxCode,
     taxProfileId: taxProfile?.id,
   };
+}
+
+/*
+getCustomerPayPortal: publicProcedure
+      .input(getCustomerPayPortalSchema)
+      .query(async (props) => {
+        return getCustomerPayPortal(props.ctx, props.input);
+      }),
+*/
+export const getCustomerPayPortalSchema = z.object({
+  accountNo: z.string(),
+});
+export type GetCustomerPayPortalSchema = z.infer<
+  typeof getCustomerPayPortalSchema
+>;
+
+export async function getCustomerPayPortal(
+  ctx: TRPCContext,
+  query: GetCustomerPayPortalSchema
+) {
+  const { db } = ctx;
+  const pendingSales = await getCustomerPendingSales(ctx, query.accountNo);
+  const wallet = await getCustomerWallet(db, query.accountNo);
+  const totalPayable = sum(pendingSales, "amountDue");
+  const lastTerminalId = (
+    await db.squarePayments.findFirst({
+      where: {
+        terminalId: {
+          not: null,
+        },
+        createdById: ctx.userId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        terminalId: true,
+      },
+    })?.[0]
+  )?.terminalId;
+  const terminals = await getSquareDevices();
+  const byLocations = await fetchDevicesByLocations();
+  // return {};
+  return {
+    pendingSales,
+    totalPayable,
+    terminals,
+    wallet,
+    walletBalance: wallet.balance,
+    byLocations,
+    lastTerminalId,
+  };
+}
+export async function getCustomerPendingSales(ctx: TRPCContext, accountNo) {
+  const { db } = ctx;
+  const query: SalesQueryParamsSchema = {
+    invoice: "pending",
+    // "sales.type": "order",
+    salesType: "order",
+  };
+  const [p1, p2] = accountNo?.split("-");
+  if (p1 == "cust") query.customerId = Number(p2);
+  else query["phone"] = accountNo;
+  const where = whereSales(query);
+  const ls = await db.salesOrders.findMany({
+    where,
+    select: {
+      amountDue: true,
+      orderId: true,
+      id: true,
+      grandTotal: true,
+      createdAt: true,
+    },
+  });
+  return ls;
 }

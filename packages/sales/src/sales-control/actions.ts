@@ -5,7 +5,7 @@ import {
   sum,
 } from "@gnd/utils";
 import { Db, DispatchItemPackingStatus, Qty, SalesInfoItem } from "../types";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@gnd/db";
 import { updateSalesItemStats } from "./update-sales-item-stat";
 import { updateSalesStatAction } from "./update-sales-stat";
 import { hasQty } from "@gnd/utils/sales";
@@ -51,7 +51,7 @@ export async function createSalesAssignmentAction(
           assignedById: args.authorId,
           itemId: item.itemInfo.itemId!,
           salesItemControlUid: item.itemInfo.controlUid,
-        }) satisfies Prisma.OrderItemProductionAssignmentsCreateManyInput
+        } satisfies Prisma.OrderItemProductionAssignmentsCreateManyInput)
     ),
   });
   if (args.updateStats) {
@@ -138,7 +138,7 @@ export async function createSalesAssignmentSubmissionAction(
           // salesItemControlUid: item.itemInfo.controlUid,
           meta: {},
           assignmentId: item.assignmentId,
-        }) satisfies Prisma.OrderProductionSubmissionsCreateManyInput
+        } satisfies Prisma.OrderProductionSubmissionsCreateManyInput)
     ),
   });
   if (args.updateStats) {
@@ -229,7 +229,7 @@ export async function packDispatchItemsAction(
               orderProductionSubmissionId: ps.submissionId,
               packedBy: props.authorName,
               packingStatus: "packed" as DispatchItemPackingStatus,
-            }) satisfies Prisma.OrderItemDeliveryCreateManyInput
+            } satisfies Prisma.OrderItemDeliveryCreateManyInput)
         );
       })
       .flat(),

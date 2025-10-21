@@ -15,7 +15,7 @@
     "@vercel/functions": "^1.5.0"
   },
   "devDependencies": {
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   },
   "exports": {
     "./server": "./src/server.ts",

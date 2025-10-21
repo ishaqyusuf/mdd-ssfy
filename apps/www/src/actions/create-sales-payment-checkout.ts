@@ -22,7 +22,7 @@ export async function createSalesCheckoutLinkAction(props: Props) {
         const { orderIds, emailToken, orderIdsParam } = props;
         const data = await getSalesPaymentCheckoutInfoAction(
             orderIds,
-            emailToken,
+            emailToken
         );
         let phoneNo = (data.primaryPhone as any)?.replaceAll("-", "");
         if (!phoneNo?.startsWith("+")) phoneNo = `+1${phoneNo}`;
@@ -82,7 +82,7 @@ export async function createSalesCheckoutLinkAction(props: Props) {
             tx.squarePayment?.paymentId
         }`;
         try {
-            const resp = await squareClient.checkoutApi.createPaymentLink({
+            const resp = await squareClient.checkout.paymentLinks.create({
                 idempotencyKey: new Date().toISOString(),
                 quickPay: {
                     locationId: SQUARE_LOCATION_ID,
@@ -107,16 +107,17 @@ export async function createSalesCheckoutLinkAction(props: Props) {
             });
 
             // const paymentId = tx.squarePayment.paymentId;
-            const { result, statusCode, body: _body } = resp;
+            // const { result, statusCode, body: _body } = resp;
+            const { paymentLink } = resp;
             await prisma.squarePayments.update({
                 where: {
                     id: tx.squarePayment.id,
                 },
                 data: {
-                    squareOrderId: result.paymentLink.orderId,
+                    squareOrderId: paymentLink.orderId,
                 },
             });
-            const paymentLink = result.paymentLink;
+            // const paymentLink = result.paymentLink;
             return {
                 paymentLink: paymentLink?.url,
             };

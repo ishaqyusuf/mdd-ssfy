@@ -118,6 +118,7 @@ model SquarePayments {
 model SquareRefunds {
     id              String          @id @default(cuid())
     paymentId       String?         @unique
+    refundId        String?         @unique
     note            String?
     reason          String
     author          String

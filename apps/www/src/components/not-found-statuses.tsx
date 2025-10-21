@@ -29,7 +29,7 @@ const data = [
     },
     {
         name: "<X-Powered-By>",
-        description: "Next.js",
+        description: "GND Prodesk",
     },
     {
         name: "<Project-Name>",

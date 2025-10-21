@@ -48,3 +48,5 @@ export const appRouter = createTRPCRouter({
 export type AppRouter = typeof appRouter;
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
 export type RouterInputs = inferRouterInputs<AppRouter>;
+
+export { db } from "@gnd/db";

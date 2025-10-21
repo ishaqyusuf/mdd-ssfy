@@ -3,9 +3,17 @@
 import { prisma } from "@/db";
 import { env } from "@/env.mjs";
 import { __isProd } from "@/lib/is-prod-server";
-import { squareClient } from "@/utils/square-utils";
-import { OrderLineItem, PrePopulatedData } from "square";
+import {
+    squareClient,
+    getSquareDevices as _getSquareDevices,
+} from "@gnd/square";
+// import { OrderLineItem, PrePopulatedData } from "square/";
 
+// export { getSquareDevices } from "@gnd/square";
+// export const  getSquareDevices = _getSquareDevices
+export async function getSquareDevices() {
+    return _getSquareDevices();
+}
 export interface SquarePaymentMeta {
     squareOrderId;
 }
@@ -20,8 +28,8 @@ export interface BaseSalesPaymentProps {
     phone?: string;
     deviceId?: string;
     email?: string;
-    items?: OrderLineItem[];
-    address?: PrePopulatedData["buyerAddress"];
+    items?: any[];
+    address?: any; //PrePopulatedData["buyerAddress"];
     orderId: number;
     orderIdStr: string;
     // type: "link" | "terminal";
@@ -70,20 +78,6 @@ export type CreateSalesPaymentProps =
 //     }
 // };
 
-export async function getSquareDevices() {
-    try {
-        const devices = await squareClient.devicesApi.listDeviceCodes();
-        return devices?.result?.deviceCodes
-            ?.map((device) => ({
-                label: device?.name,
-                status: device.status as "PAIRED" | "OFFLINE",
-                value: device.deviceId,
-                device,
-            }))
-            .sort((a, b) => a?.label?.localeCompare(b.label) as any);
-    } catch (error) {}
-}
-
 export async function validateSquarePayment(id) {
     // const resp = await prisma.$transaction((async (tx) => {
     const tx = prisma;
@@ -97,11 +91,15 @@ export async function validateSquarePayment(id) {
         },
     });
     const meta: SquarePaymentMeta = checkout.meta as any;
-    const {
-        result: {
-            order: { id: orderId, tenders },
-        },
-    } = await squareClient.ordersApi.retrieveOrder(meta.squareOrderId);
+    // const {
+    //     result: {
+    //         order: { id: orderId, tenders },
+    //     },
+    // } = await squareClient.ordersApi.retrieveOrder(meta.squareOrderId);
+    const { errors, order } = await squareClient.orders.get({
+        orderId: meta.squareOrderId,
+    });
+    const tenders = order.tenders;
 
     const resp: { amount; tip; status: SquarePaymentStatus } = {
         amount: null,
@@ -111,9 +109,15 @@ export async function validateSquarePayment(id) {
 
     await Promise.all(
         tenders.map(async (tender) => {
-            const {
-                result: { payment },
-            } = await squareClient.paymentsApi.getPayment(tender.paymentId);
+            // const {
+            //     result: { payment },
+            // } = await squareClient.paymentsApi.getPayment(tender.paymentId);
+            const payment = (
+                await squareClient.payments.get({
+                    paymentId: tender.paymentId,
+                })
+            )?.payment;
+            //   payment.payment.tim
             const tip = payment.tipMoney?.amount;
             resp.status = payment.status as any;
             if (resp.status == "COMPLETED") {
@@ -131,7 +135,7 @@ export async function validateSquarePayment(id) {
                     // squarePaymentId: payment.id,
                 },
             });
-        }),
+        })
     );
     if (resp.amount > 0) await paymentSuccess({ ...checkout, tip: resp.tip });
     return resp;
@@ -195,7 +199,10 @@ export async function __cancelTerminalPayment(checkoutId) {
     //         order: true,
     //     },
     // });
-    await squareClient.terminalApi.cancelTerminalCheckout(checkoutId);
+    // await squareClient.terminalApi.cancelTerminalCheckout(checkoutId);
+    await squareClient.terminal.dismissTerminalCheckout({
+        checkoutId,
+    });
 }
 export async function cancelTerminalPayment(id) {
     const p = await prisma.salesCheckout.findUnique({
@@ -206,7 +213,10 @@ export async function cancelTerminalPayment(id) {
             order: true,
         },
     });
-    await squareClient.terminalApi.cancelTerminalCheckout(p.paymentId);
+    // await squareClient.terminalApi.cancelTerminalCheckout(p.paymentId);
+    await squareClient.terminal.dismissTerminalCheckout({
+        checkoutId: p.paymentId,
+    });
     await prisma.salesCheckout.update({
         where: { id },
         data: {

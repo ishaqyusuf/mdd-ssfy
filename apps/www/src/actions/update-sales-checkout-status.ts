@@ -12,13 +12,18 @@ export async function updateSalesCheckoutStatus({
     squareOrderId,
     checkoutId,
 }: Props) {
-    const checkout = await squareClient.ordersApi.retrieveOrder(squareOrderId);
+    const { order } = await squareClient.orders.get({
+        orderId: squareOrderId,
+    });
     const createdAt = new Date();
     const tenders = await Promise.all(
-        checkout.result.order.tenders.map(async (tender) => {
+        order.tenders.map(async (tender) => {
             const {
-                result: { payment },
-            } = await squareClient.paymentsApi.getPayment(tender.paymentId);
+                // result: { payment },
+                payment,
+            } = await squareClient.payments.get({
+                paymentId: tender.paymentId,
+            });
             const tipCent = payment?.tipMoney?.amount;
             const status = payment.status as SquarePaymentStatus;
             const tenderId = payment.id;

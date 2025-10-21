@@ -8,7 +8,6 @@ import {
 } from "@/actions/get-sales-payment-checkout-info-action";
 import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";
-import Button from "@/components/common/button";
 import { openLink } from "@/lib/open-link";
 import { cn } from "@/lib/utils";
 import { formatPaymentParams } from "@gnd/utils/sales";
@@ -23,6 +22,7 @@ import {
     TableRow,
 } from "@gnd/ui/table";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
+import { Button } from "@gnd/ui/button";
 
 // export async function generateMetadata({ params }) {
 //     return constructMetadata({
@@ -39,7 +39,7 @@ export default function Page(props) {
         async function load() {
             const resp = await getSalesPaymentCheckoutInfoAction(
                 orderIds,
-                emailToken,
+                emailToken
             );
             setData(resp);
             setLoading(false);
@@ -47,6 +47,7 @@ export default function Page(props) {
         load();
     }, [emailToken, orderIdsParam]);
     async function createPayment() {
+        console.log("Creating payment link...");
         try {
             // await timeout(1000);
             const resp = await createSalesCheckoutLinkAction({
@@ -139,7 +140,7 @@ export default function Page(props) {
                                     className={cn(
                                         "text-lg",
                                         data.orders.length > 1 &&
-                                            "flex flex-col items-end",
+                                            "flex flex-col items-end"
                                     )}
                                 >
                                     <p className="font-medium text-gray-600">
@@ -151,7 +152,7 @@ export default function Page(props) {
                                 </div>
 
                                 <Button
-                                    action={createPayment}
+                                    onClick={createPayment}
                                     size="lg"
                                     className="w-full"
                                     // className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg shadow hover:bg-blue-700 transition"

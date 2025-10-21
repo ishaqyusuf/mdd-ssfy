@@ -11,9 +11,10 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   },
   "exports": {
+    "./*": "./src/*.ts",
     ".": "./src/index.ts",
     "./colors": "./src/colors.ts",
     "./types": "./src/types.ts",

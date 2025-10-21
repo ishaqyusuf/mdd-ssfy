@@ -48,6 +48,11 @@ export function whereSales(query: SalesQueryParamsSchema) {
             },
           });
         break;
+      case "customerId":
+        where.push({
+          customerId: query.customerId!,
+        });
+        break;
       case "salesIds":
         if (query.salesIds?.length)
           where.push({

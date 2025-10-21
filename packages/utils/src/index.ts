@@ -1,7 +1,7 @@
 import { colorsObject } from "./colors";
 import dayjs from "./dayjs";
 import { hash } from "bcrypt-ts";
-import util from "util";
+// import * as util from "util";
 import _ from "lodash";
 
 import dotObject from "dot-object";
@@ -36,7 +36,6 @@ export function camel(str?: string) {
     }
   );
 }
-
 export function shuffle(array: any) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -410,7 +409,8 @@ export async function rndTimeout() {
 export function timeLog(...data) {
   console.log("");
   console.log(`${new Date().toISOString()}`);
-  console.log(util.inspect(data, { colors: true, depth: null }));
+  // console.log(util.inspect(data, { colors: true, depth: null }));
+  console.log(data);
   // console.log(data);
   console.log("---");
 }
@@ -423,7 +423,8 @@ export function consoleLog(title = "Log", ...data) {
   console.log(`\x1b[33m📅 Time:\x1b[0m ${now}`);
   console.log(`\x1b[35m📌 Section:\x1b[0m ${title}`);
   console.log(`\x1b[36m${"-".repeat(40)}\x1b[0m`);
-  console.log(util.inspect(data, { colors: true, depth: null }));
+  console.log(data);
+  // console.log(util.inspect(data, { colors: true, depth: null }));
   console.log(`\x1b[36m${divider}\x1b[0m`);
   console.log("");
 }

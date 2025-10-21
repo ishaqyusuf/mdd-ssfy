@@ -4,12 +4,14 @@ import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/custom/icons";
 import { SalesOrderExport } from "./sales-order-export";
+import { Table } from "@gnd/ui/data-table";
 
 export function OrderHeader({}) {
     return (
         <div className="flex gap-4">
             <OrderSearchFilter />
             <div className="flex-1"></div>
+            <Table.SummarySlot />
             <SalesOrderExport />
             <Button asChild size="sm">
                 <Link href="/sales-book/create-order">

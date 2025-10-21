@@ -4,8 +4,6 @@
 
 // Solution for prisma edge: @link https://github.com/prisma/prisma/issues/22050#issuecomment-1821208388
 
-// import { withAccelerate } from "@prisma/extension-accelerate";
-
 import { PrismaClient, Prisma } from "@prisma/client";
 
 export {
@@ -117,6 +115,7 @@ type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClientSingleton | undefined;
+  // db: PrismaClientSingleton | undefined;
 };
 // globalForPrisma.prisma?.users.findMany({
 //   where: {
@@ -130,4 +129,6 @@ export type TransactionClient = Parameters<
 >[0];
 export type Db = typeof db;
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = db;
+}

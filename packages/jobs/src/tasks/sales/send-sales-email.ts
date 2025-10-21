@@ -9,11 +9,10 @@ import { processBatch } from "@jobs/utils/process-batch";
 import { sum } from "@gnd/utils";
 import { sendEmail } from "@jobs/utils/resend";
 import SalesEmail from "@gnd/email/emails/sales-email";
-import { getAppUrl } from "@gnd/utils/envs";
+import { getAppUrl } from "@utils/envs";
 import QueryString from "qs";
 import { composePaymentOrderIdsParam } from "@gnd/utils/sales";
 const baseAppUrl = getAppUrl();
-
 const id = "send-sales-email" as TaskName;
 export const sendSalesEmail = schemaTask({
   id: "send-sales-email",
@@ -27,7 +26,7 @@ export const sendSalesEmail = schemaTask({
     const data = await loadSales(props);
     logger.info(`Received data: ${JSON.stringify(data)}`);
     if (!data) {
-      throw new Error("No data found");
+      throw new Error(`No data found ${JSON.stringify(props)}`);
     }
     const { mailables, sales } = data;
 
@@ -71,8 +70,8 @@ export const sendSalesEmail = schemaTask({
             !totalDueAmount || props.printType == "quote"
               ? null
               : isDev
-                ? `${baseAppUrl}/square-payment/checkout?uid=${pid}&slugs=${slugs}&tok=${emailSlug}`
-                : `${baseAppUrl}/square-payment/${emailSlug}/${orderIdParams}?uid=${pid}`;
+              ? `${baseAppUrl}/square-payment/checkout?uid=${pid}&slugs=${slugs}&tok=${emailSlug}`
+              : `${baseAppUrl}/square-payment/${emailSlug}/${orderIdParams}?uid=${pid}`;
           const sales = matchingSales.map((s) => ({
             due: s.due,
             total: s.total,
@@ -81,19 +80,22 @@ export const sendSalesEmail = schemaTask({
             po: s.po,
           }));
           logger.log(`Sending email to ${email}`, { sales });
+          // const notifications = new Notifications(getDb());
           await sendEmail({
-            subject: `${salesRep} sent you ${isQuote ? "a quote" : "an invoice"}`,
-            from: `GND Millwork <${salesRepEmail?.split("@")[0]}@gndprodesk.com>` as any,
+            subject: `${salesRep} sent you ${
+              isQuote ? "a quote" : "an invoice"
+            }`,
+            from: `GND Millwork <${
+              salesRepEmail?.split("@")[0]
+            }@gndprodesk.com>` as any,
             to: email!,
-            content: (
-              <SalesEmail
-                isQuote
-                pdfLink={pdfLink}
-                paymentLink={paymentLink!}
-                sales={sales}
-                customerName={customerName!}
-              />
-            ),
+            content: SalesEmail({
+              isQuote,
+              pdfLink,
+              paymentLink: paymentLink!,
+              sales,
+              customerName: customerName!,
+            }),
             successLog: "Invoice email sent",
             errorLog: "Invoice email failed to send",
             task: {
@@ -101,43 +103,6 @@ export const sendSalesEmail = schemaTask({
               payload: props,
             },
           });
-          // const response = await resend.emails.send({
-          //   subject: `${salesRep} sent you ${isQuote ? "a quote" : "an invoice"}`,
-          //   from: `GND Millwork <${salesRepEmail?.split("@")[0]}@gndprodesk.com>`,
-          //   to: isDev
-          //     ? [
-          //         "ishaqyusuf024@gmail.com",
-          //         // "pcruz321@gmail.com"
-          //       ]
-          //     : email!,
-          //   replyTo: salesRepEmail,
-          //   headers: {
-          //     "X-Entity-Ref-ID": nanoid(),
-          //   },
-          //   html: await render(
-          //     <SalesEmail
-          //       isQuote
-          //       pdfLink={pdfLink}
-          //       paymentLink={paymentLink!}
-          //       sales={matchingSales.map((s) => ({
-          //         due: s.due,
-          //         total: s.total,
-          //         date: s.date,
-          //         orderId: s.orderId,
-          //         po: s.po,
-          //       }))}
-          //       customerName={customerName!}
-          //     />
-          //   ),
-          // });
-          // if (response.error) {
-          //   logger.error("Invoice email failed to send", {
-          //     error: response.error,
-          //     invoiceIds: matchingSales.map((a) => a.id),
-          //   });
-          //   throw new Error("Invoice email failed to send");
-          // }
-          // logger.info("Invoice email sent");
         })
       );
     });

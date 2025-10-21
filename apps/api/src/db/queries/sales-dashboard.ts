@@ -1,5 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@gnd/db";
 import type { SalesType } from "@sales/types";
 import { eachDayOfInterval, format, parseISO, subDays } from "date-fns";
 import { getSales } from "./sales";
@@ -76,14 +76,11 @@ export async function getRevenueOverTime(ctx: TRPCContext, filter: Filter) {
     end: filter.to ? parseISO(filter.to) : new Date(),
   });
 
-  const dailyRevenue = sales.reduce(
-    (acc, sale) => {
-      const date = format(sale.createdAt!, "yyyy-MM-dd");
-      acc[date] = (acc[date] || 0) + (sale.grandTotal ?? 0);
-      return acc;
-    },
-    {} as Record<string, number>
-  );
+  const dailyRevenue = sales.reduce((acc, sale) => {
+    const date = format(sale.createdAt!, "yyyy-MM-dd");
+    acc[date] = (acc[date] || 0) + (sale.grandTotal ?? 0);
+    return acc;
+  }, {} as Record<string, number>);
 
   const ret = interval.map((day) => ({
     date: format(day, "MMM d"),
@@ -245,13 +242,10 @@ export async function getSalesRepLeaderboard(ctx: TRPCContext, filter: Filter) {
     },
   });
 
-  const userMap = users.reduce(
-    (acc, user) => {
-      acc[user.id] = user.name ?? "Unknown";
-      return acc;
-    },
-    {} as Record<number, string>
-  );
+  const userMap = users.reduce((acc, user) => {
+    acc[user.id] = user.name ?? "Unknown";
+    return acc;
+  }, {} as Record<number, string>);
 
   return reps.map((rep) => ({
     id: rep.salesRepId!,

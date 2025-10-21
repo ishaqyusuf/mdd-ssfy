@@ -14,6 +14,7 @@ import { SalesInvoicePreviewModal } from "./sales-invoice-preview-modal";
 import { SalesPreviewModal } from "./sales-preview-modal";
 import { SalesQuickPayModal } from "./sales-quick-pay-modal";
 import { WorkOrderFormModal } from "./work-order-form-modal";
+import { SendSalesEmailModal } from "./send-sales-email-modal";
 
 export function GlobalModals() {
     return (
@@ -33,6 +34,7 @@ export function GlobalModals() {
             <CommunityModelCostModal />
             {/* <Env isDev> */}
             <WorkOrderFormModal />
+            <SendSalesEmailModal />
             {/* </Env> */}
         </>
     );

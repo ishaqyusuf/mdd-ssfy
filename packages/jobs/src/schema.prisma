@@ -4,7 +4,6 @@
 generator client {
     provider        = "prisma-client-js"
     previewFeatures = ["typedSql"]
-    // output          = "../generate/prisma"
 }
 
 datasource db {
@@ -1806,8 +1805,12 @@ model InventoryCategory {
     categoryVariantAttributes          InventoryCategoryVariantAttribute[] @relation(name: "inventoryCategory")
     attributedCategoryVariantAttribute InventoryCategoryVariantAttribute[] @relation(name: "valuesInventoryCategory")
 
-    subComponents      SubComponents[]      @relation(name: "subComponents")
+    subComponents SubComponents[] @relation(name: "subComponents")
     // asSubComponents SubComponents[]   @relation(name: "asSubComponents")
+
+    //for community inputs
+    communityTemplateModelValues CommunityModelTemplateValue[]
+
     createdAt          DateTime?            @default(now()) @db.Timestamp(0)
     updatedAt          DateTime?            @updatedAt
     deletedAt          DateTime?            @db.Timestamp(0)
@@ -1835,8 +1838,10 @@ model SubComponents {
     // inventoryCategoryId Int
     defaultInventory    Inventory?         @relation(name: "defaultInventories", fields: [defaultInventoryId], references: [id])
     defaultInventoryId  Int?
-    parent              Inventory?         @relation(name: "parent", fields: [parentId], references: [id])
-    parentId            Int?
+
+    // subcomponent is owned by
+    parent   Inventory? @relation(name: "parent", fields: [parentId], references: [id])
+    parentId Int?
     // @@index([parentId])
 
     lineItemComponents LineItemComponents[]
@@ -1900,6 +1905,9 @@ model Inventory {
     productMetrics  ProductMetric?
     FeaturedProduct FeaturedProduct[]
     linePricings    LinePricing[]
+
+    //for community inputs
+    communityTemplateModelValues CommunityModelTemplateValue[]
 
     @@index([inventoryCategoryId])
     @@index([discountId])
@@ -3107,6 +3115,7 @@ model SquarePayments {
 model SquareRefunds {
     id              String          @id @default(cuid())
     paymentId       String?         @unique
+    refundId        String?         @unique
     note            String?
     reason          String
     author          String
@@ -3200,7 +3209,6 @@ model Attachment {
 }
 
 // ---- community.prisma ----
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model Projects {
     id              Int               @unique @default(autoincrement())
     archived        Boolean?
@@ -3224,37 +3232,38 @@ model Projects {
 }
 
 model Homes {
-    id                  Int              @unique @default(autoincrement())
+    id                  Int                      @unique @default(autoincrement())
     archived            Boolean?
     projectId           Int
     builderId           Int?
     homeTemplateId      Int?
     communityTemplateId Int?
-    homeKey             String?          @db.VarChar(255)
-    slug                String?          @unique @db.VarChar(255)
-    modelName           String?          @db.VarChar(255)
-    modelNo             String?          @db.VarChar(255)
-    lotBlock            String?          @db.VarChar(255)
-    lot                 String?          @db.VarChar(255)
-    block               String?          @db.VarChar(255)
-    status              String?          @db.VarChar(255)
-    address             String?          @db.VarChar(255)
-    meta                Json?            @db.Json
-    sentToProdAt        DateTime?        @db.Timestamp(0)
-    installedAt         DateTime?        @db.Timestamp(0)
-    deletedAt           DateTime?        @db.Timestamp(0)
-    createdAt           DateTime?        @default(now()) @db.Timestamp(0)
-    updatedAt           DateTime?        @updatedAt
-    search              String?          @db.VarChar(255)
-    punchoutAt          DateTime?        @db.Timestamp(0)
+    homeKey             String?                  @db.VarChar(255)
+    slug                String?                  @unique @db.VarChar(255)
+    modelName           String?                  @db.VarChar(255)
+    modelNo             String?                  @db.VarChar(255)
+    lotBlock            String?                  @db.VarChar(255)
+    lot                 String?                  @db.VarChar(255)
+    block               String?                  @db.VarChar(255)
+    status              String?                  @db.VarChar(255)
+    address             String?                  @db.VarChar(255)
+    meta                Json?                    @db.Json
+    sentToProdAt        DateTime?                @db.Timestamp(0)
+    installedAt         DateTime?                @db.Timestamp(0)
+    deletedAt           DateTime?                @db.Timestamp(0)
+    createdAt           DateTime?                @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime?                @updatedAt
+    search              String?                  @db.VarChar(255)
+    punchoutAt          DateTime?                @db.Timestamp(0)
     installCost         Float?
     punchoutCost        Float?
-    project             Projects         @relation(fields: [projectId], references: [id])
-    homeTemplate        HomeTemplates?   @relation(fields: [homeTemplateId], references: [id])
-    communityTemplate   CommunityModels? @relation(fields: [communityTemplateId], references: [id])
+    project             Projects                 @relation(fields: [projectId], references: [id])
+    homeTemplate        HomeTemplates?           @relation(fields: [homeTemplateId], references: [id])
+    communityTemplate   CommunityModels?         @relation(fields: [communityTemplateId], references: [id])
     tasks               HomeTasks[]
     jobs                Jobs[]
     invoices            Invoices[]
+    analytics           CommunityHomeAnalytics[]
 
     @@index([createdAt, deletedAt, modelName, search, projectId])
     @@index([projectId])
@@ -3310,20 +3319,20 @@ model HomeTasks {
     @@index([assignedToId])
 }
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model HomeTemplates {
-    id        Int          @unique @default(autoincrement())
+    id        Int                        @unique @default(autoincrement())
     builderId Int?
-    slug      String       @unique @db.VarChar(255)
-    modelNo   String?      @db.VarChar(255)
-    modelName String?      @db.VarChar(255)
-    meta      Json?        @db.Json
-    deletedAt DateTime?    @db.Timestamp(0)
-    createdAt DateTime?    @default(now()) @db.Timestamp(0)
-    updatedAt DateTime?    @updatedAt
-    builder   Builders?    @relation(fields: [builderId], references: [id])
+    slug      String                     @unique @db.VarChar(255)
+    modelNo   String?                    @db.VarChar(255)
+    modelName String?                    @db.VarChar(255)
+    meta      Json?                      @db.Json
+    deletedAt DateTime?                  @db.Timestamp(0)
+    createdAt DateTime?                  @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?                  @updatedAt
+    builder   Builders?                  @relation(fields: [builderId], references: [id])
     homes     Homes[]
     costs     CostCharts[]
+    history   CommunityTemplateHistory[]
 
     @@index([builderId])
 }
@@ -3428,30 +3437,154 @@ model CommunityModels {
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
-    slug    String                     @unique @db.VarChar(255)
-    project Projects                   @relation(fields: [projectId], references: [id])
+    slug    String               @unique @db.VarChar(255)
+    project Projects             @relation(fields: [projectId], references: [id])
     homes   Homes[]
-    history CommunityTemplateHistory[]
     costs   CommunityModelCost[]
-    pivot   CommunityModelPivot?       @relation(fields: [pivotId], references: [id])
+    pivot   CommunityModelPivot? @relation(fields: [pivotId], references: [id])
+
+    history        CommunityTemplateHistory[]
+    templateValues CommunityModelTemplateValue[]
 
     @@index([pivotId])
     @@index([projectId])
 }
 
+model CommunityModelHistory {
+    id        Int                           @unique @default(autoincrement())
+    author    String?
+    values    CommunityModelTemplateValue[]
+    createdAt DateTime?                     @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?                     @updatedAt
+    deletedAt DateTime?                     @db.Timestamp(0)
+}
+
+model CommunityModelTemplateValue {
+    id        Int       @unique @default(autoincrement())
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+    value     Float?    @default(1)
+    uid       String
+
+    homeAnalytics CommunityHomeAnalytics[]
+
+    communityModel   CommunityModels @relation(fields: [communityModelId], references: [id])
+    communityModelId Int
+
+    category            InventoryCategory? @relation(fields: [inventoryCategoryId], references: [id])
+    inventoryCategoryId Int?
+
+    inputConfig   CommunityTemplateInputConfig @relation(fields: [inputConfigId], references: [id])
+    inputConfigId Int
+
+    inventory               Inventory?             @relation(fields: [inventoryId], references: [id])
+    inventoryId             Int?
+    history                 CommunityModelHistory? @relation(fields: [communityModelHistoryId], references: [id])
+    communityModelHistoryId Int?
+
+    @@index([communityModelId])
+    @@index([inventoryCategoryId])
+    @@index([inventoryId])
+    @@index([inputConfigId])
+    @@index([communityModelHistoryId])
+}
+
 model CommunityTemplateHistory {
-    id                Int              @unique @default(autoincrement())
-    userId            Int
-    meta              Json?            @db.Json
-    createdAt         DateTime?        @default(now()) @db.Timestamp(0)
-    updatedAt         DateTime?        @updatedAt
-    deletedAt         DateTime?        @db.Timestamp(0)
-    model             CommunityModels? @relation(fields: [communityModelsId], references: [id])
-    communityModelsId Int?
-    Users             Users            @relation(fields: [userId], references: [id])
+    // OLD
+    id               Int              @unique @default(autoincrement())
+    userId           Int
+    slug             String?
+    meta             Json?            @db.Json
+    createdAt        DateTime?        @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime?        @updatedAt
+    deletedAt        DateTime?        @db.Timestamp(0)
+    model            CommunityModels? @relation(fields: [communityModelId], references: [id])
+    communityModelId Int?
+    Users            Users            @relation(fields: [userId], references: [id])
+    homeTemplate     HomeTemplates?   @relation(fields: [homeTemplateId], references: [id])
+    homeTemplateId   Int?
 
     @@index([userId])
-    @@index([communityModelsId])
+    @@index([communityModelId])
+    @@index([homeTemplateId])
+}
+
+model CommunityTemplateBlockConfig {
+    id            Int                            @unique @default(autoincrement())
+    uid           String
+    index         Float                          @default(0)
+    status        String                         @default("draft")
+    inputConfigs  CommunityTemplateInputConfig[]
+    homeAnalytics CommunityHomeAnalytics[]
+    createdAt     DateTime?                      @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?                      @updatedAt
+    deletedAt     DateTime?                      @db.Timestamp(0)
+
+    @@unique([uid])
+}
+
+model CommunityTemplateInputConfig {
+    id                             Int                           @unique @default(autoincrement())
+    uid                            String //categoryUid
+    valueUid                       String? //valueCategoryUid
+    inputType                      String? //valueCategoryUid
+    index                          Float                         @default(0)
+    columnSize                     Float?
+    title                          String?
+    meta                           Json?
+    enableAnalytics                Boolean?
+    createdAt                      DateTime?                     @default(now()) @db.Timestamp(0)
+    updatedAt                      DateTime?                     @updatedAt
+    deletedAt                      DateTime?                     @db.Timestamp(0)
+    blockConfig                    CommunityTemplateBlockConfig  @relation(fields: [communityTemplateBlockConfigId], references: [id])
+    communityTemplateBlockConfigId Int
+    attrId                         Int?
+    homeAnalytics                  CommunityHomeAnalytics[]
+    values                         CommunityModelTemplateValue[]
+    analyticAttributes             CommunityAnalyticAttributes[] @relation(name: "attrs")
+    attrInputs                     CommunityAnalyticAttributes[] @relation(name: "attrInput")
+
+    @@index([communityTemplateBlockConfigId])
+}
+
+model CommunityAnalyticAttributes {
+    id                             Int                           @unique @default(autoincrement())
+    inputConfig                    CommunityTemplateInputConfig? @relation(name: "attrs", fields: [inputConfigId], references: [id])
+    inputConfigId                  Int?
+    attrInputId                    Int?
+    attrInput                      CommunityTemplateInputConfig? @relation(name: "attrInput", fields: [communityTemplateInputConfigId], references: [id])
+    communityTemplateInputConfigId Int?
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@index([inputConfigId])
+    @@index([communityTemplateInputConfigId])
+}
+
+model CommunityHomeAnalytics {
+    id    Int    @unique @default(autoincrement())
+    value Float?
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    inputConfig     CommunityTemplateInputConfig? @relation(fields: [inputConfigId], references: [id])
+    inputConfigId   Int?
+    home            Homes?                        @relation(fields: [homeId], references: [id])
+    homeId          Int?
+    templateValue   CommunityModelTemplateValue?  @relation(fields: [templateValueId], references: [id])
+    templateValueId Int?
+    blockConfig     CommunityTemplateBlockConfig? @relation(fields: [blockConfigId], references: [id])
+    blockConfigId   Int?
+
+    @@index([inputConfigId])
+    @@index([homeId])
+    @@index([templateValueId])
+    @@index([blockConfigId])
 }
 
 // ---- mails.prisma ----

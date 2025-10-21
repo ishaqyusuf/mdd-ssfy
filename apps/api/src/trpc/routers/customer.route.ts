@@ -3,6 +3,8 @@ import { searchCustomersSchema } from "@api/schemas/customer";
 import {
   customerInfoSearch,
   customerInfoSearchSchema,
+  getCustomerPayPortal,
+  getCustomerPayPortalSchema,
   getSalesCustomer,
   getSalesCustomerSchema,
   searchCustomers,
@@ -24,5 +26,10 @@ export const customerRouter = createTRPCRouter({
     .input(getSalesCustomerSchema)
     .query(async (props) => {
       return getSalesCustomer(props.ctx, props.input);
+    }),
+  getCustomerPayPortal: publicProcedure
+    .input(getCustomerPayPortalSchema)
+    .query(async (props) => {
+      return getCustomerPayPortal(props.ctx, props.input);
     }),
 });

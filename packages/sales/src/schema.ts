@@ -144,6 +144,7 @@ export const salesQueryParamsSchema = z
     salesIds: z.array(z.number()).optional().nullable(),
     salesType: z.enum(salesType).optional().nullable(),
     "customer.name": z.string().optional().nullable(),
+    customerId: z.number().optional().nullable(),
     phone: z.string().optional().nullable(),
     po: z.string().optional().nullable(),
     salesRepId: z.number().optional().nullable(),

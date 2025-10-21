@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getLinkModules, validateLinks } from "./components/sidebar/links";
 import { cookies } from "next/headers";
 import { consoleLog } from "@gnd/utils";
+import { env } from "./env.mjs";
 
 export const config = {
     matcher: [
@@ -16,7 +17,7 @@ export const config = {
     ],
 };
 
-export default async function middleware(req: NextRequest) {
+export default async function middlewarex(req: NextRequest) {
     const newUrl = req.nextUrl;
     // req.cookies.get
     // Get hostname of request (e.g. demo.vercel.pub, demo.localhost:3000)

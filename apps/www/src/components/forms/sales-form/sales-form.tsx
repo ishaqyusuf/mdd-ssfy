@@ -5,8 +5,6 @@ import { Icons } from "@/components/_v1/icons";
 import Button from "@/components/common/button";
 import useEffectLoader from "@/lib/use-effect-loader";
 import { cn } from "@/lib/utils";
-
-import { SalesMetaForm } from "./sales-meta-form";
 import { FormWatcher } from "./form-watcher";
 import TakeOff from "./take-off";
 import { TakeoffSwitch } from "./take-off/takeoff-switch";
@@ -24,7 +22,7 @@ export function SalesFormClient({ data }) {
         },
         {
             wait: 200,
-        },
+        }
     );
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -37,11 +35,11 @@ export function SalesFormClient({ data }) {
             <div
                 className={cn(
                     " bg-white border-b border-gray-200 p-4 flex items-center gap-4",
-                    hidden || "xl:hidden",
+                    hidden || "xl:hidden"
                 )}
             >
-                <h1 className="text-xl font-semibold text-gray-900">
-                    Invoice Builder
+                <h1 className="text-xl capitalize font-semibold text-gray-900">
+                    {data?.order?.type} Builder
                 </h1>
                 <div className="flex-1"></div>
                 <Button
@@ -83,7 +81,7 @@ export function SalesFormClient({ data }) {
                     <div
                         className={cn(
                             "fixed inset-0 z-50 flex",
-                            !hidden && "xl:hidden",
+                            !hidden && "xl:hidden"
                         )}
                     >
                         <div

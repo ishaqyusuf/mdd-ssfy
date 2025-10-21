@@ -169,7 +169,7 @@ export const useTableData = ({ filter, route }) => {
             getNextPageParam: ({ meta }) => {
                 return meta?.cursor;
             },
-        },
+        }
     );
     const { data, fetchNextPage, hasNextPage, isFetching } =
         useSuspenseInfiniteQuery(infiniteQueryOptions);

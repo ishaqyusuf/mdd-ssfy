@@ -28,6 +28,7 @@ import {
   TableHead as _Head,
 } from "../../table";
 import { LoadMoreTRPC } from "./load-more";
+import Portal from "../portal";
 export type DataTableProps = {
   data: any[];
   loadMore?: (query) => Promise<any>;
@@ -53,6 +54,8 @@ type TableProps = (WithTable | WithoutTable) & {
   nextMeta?: PageDataMeta["next"];
   columns?;
   mobileColumn?;
+  route?;
+  filter?;
   checkbox?: boolean;
   addons?;
   props?: {
@@ -89,6 +92,8 @@ export function createTableContext({
   data,
   rowSelection: storeRowSelection,
   setRowSelection: storeSetRowSelection,
+  route,
+  filter,
   props,
 }: TableProps) {
   // const [data, setData] = useState(initialData);
@@ -97,9 +102,25 @@ export function createTableContext({
   const [nextMeta, setNextMeta] = useState(nextPageMeta);
   const isMobile = useMediaQuery(screens.xs);
 
-  // useEffect(() => {
-  //   setData(initialData);
-  // }, [initialData]);
+  // const {
+  //   data: data2,
+  //   ref: loadMoreRef,
+  //   hasNextPage,
+  //   isFetching,
+  // } = useTableData({
+  //   filter: {
+  //     ...filter,
+  //   },
+  //   route,
+  // });
+  // if (route) {
+  //   data = data2;
+  //   props = {
+  //     hasNextPage,
+  //     loadMoreRef,
+  //   };
+  // }
+
   const [__rowSelection, __setRowSelection] =
     useState<RowSelectionState>(defaultRowSelection);
   const [rowSelection, setRowSelection] = [
@@ -163,7 +184,7 @@ export const useTableData = ({ filter, route }) => {
 
   const deferredSearch = useDeferredValue(filter.q);
 
-  const infiniteQueryOptions = route.infiniteQueryOptions(
+  const infiniteQueryOptions = route?.infiniteQueryOptions(
     {
       ...filter,
       q: deferredSearch,
@@ -181,19 +202,12 @@ export const useTableData = ({ filter, route }) => {
       data?.pages.flatMap((page) => {
         return (page as any)?.data ?? [];
       }) ?? [];
-    // const meta = ([...(data?.pages || [])]?.reverse()?.[0] as any)?.meta;
-    // const { cursor, count } = meta || {};
-    if (filter.d) {
-      console.log({
-        filter,
-        // meta,
-        data,
-      });
-    }
+    const meta = ([...(data?.pages || [])]?.reverse()?.[0] as any)?.meta;
+    const { cursor, count } = meta || {};
     return {
       data: list,
-      // resultCount: cursor,
-      // total: count,
+      resultCount: cursor,
+      total: count,
     };
   }, [data]);
 
@@ -212,13 +226,20 @@ export const useTableData = ({ filter, route }) => {
     // from: data?.
   };
 };
-function ValueProvider({ value }) {
-  return;
+function SummarySlot() {
+  return <div id="summary-slot" className="flex items-center gap-4"></div>;
+}
+function SummaryHeader() {
+  const t = useTable();
+  return (
+    <Portal nodeId={`summary-slot`}>
+      <span>ab</span>
+    </Portal>
+  );
 }
 export const Table = Object.assign(BaseTable, {
   Provider: TableProvider,
   ContextProvider: Context?.Provider,
-  ValueProvider,
   TableRow,
   TableHeader,
   Body: _Body,
@@ -227,4 +248,6 @@ export const Table = Object.assign(BaseTable, {
   Header: _Header,
   Cell: _Cell,
   LoadMore: LoadMoreTRPC,
+  SummarySlot,
+  SummaryHeader,
 });

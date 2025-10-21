@@ -1,14 +1,16 @@
 import { env } from "process";
-import { ApiError, Client, Environment } from "square";
+import {
+  SquareClient as Client,
+  SquareEnvironment as Environment,
+  SquareError as ApiError,
+} from "square";
 import { TransactionClient } from "@gnd/db";
 import crypto from "crypto";
-import { nanoid } from "nanoid";
-let devMode = env.NODE_ENV != "production";
+
+let devMode = env.NODE_ENV !== "production";
 export const squareClient = new Client({
   environment: devMode ? Environment.Sandbox : Environment.Production,
-  accessToken: devMode
-    ? env.SQUARE_SANDBOX_ACCESS_TOKEN
-    : env.SQUARE_ACCESS_TOKEN,
+  token: devMode ? env.SQUARE_SANDBOX_ACCESS_TOKEN : env.SQUARE_ACCESS_TOKEN,
 });
 export const SQUARE_LOCATION_ID = devMode
   ? env.SQUARE_SANDBOX_LOCATION_ID
@@ -31,11 +33,25 @@ export async function squareCreateRefund({
 }: SquareCreateRefundProps) {
   try {
     if (!amount) {
-      const { result } =
-        await squareClient.paymentsApi.getPayment(squarePaymentId);
-      amount = Number(result.payment!.amountMoney!.amount) / 100;
+      // const { result } = await squareClient.paymentsApi.getPayment(
+      //   squarePaymentId
+      // );
+      // amount = Number(result.payment!.amountMoney!.amount) / 100;
+      const payment = await squareClient.payments.get({
+        paymentId: squarePaymentId,
+      });
+      amount = Number(payment.payment?.amountMoney?.amount) / 100;
     }
-    const resp = await squareClient.refundsApi.refundPayment({
+    // const resp = await squareClient.refundsApi.refundPayment({
+    //   idempotencyKey: crypto.randomUUID(),
+    //   paymentId: squarePaymentId,
+    //   amountMoney: {
+    //     amount: BigInt(Math.round(amount * 100)), // convert to cents
+    //     currency: "USD", // Or from env if supporting multiple currencies
+    //   },
+    //   reason: reason || "Customer request",
+    // });
+    const resp = await squareClient.refunds.refundPayment({
       idempotencyKey: crypto.randomUUID(),
       paymentId: squarePaymentId,
       amountMoney: {
@@ -44,13 +60,14 @@ export async function squareCreateRefund({
       },
       reason: reason || "Customer request",
     });
-    const refundId = resp.result.refund?.id;
+    // const refundId = resp.result.refund?.id;
     await tx.squareRefunds.create({
       data: {
         author,
         reason,
         paymentId: squarePaymentId,
         note,
+        // refundId: resp?.refund?.id,
       },
     });
   } catch (error) {
@@ -62,13 +79,63 @@ export async function squareCreateRefund({
   }
 }
 
-export async function squareCreateDeviceCode() {
-  const code = await squareClient.devicesApi.createDeviceCode({
-    idempotencyKey: nanoid(),
-    deviceCode: {
-      name: "Code ...",
-      productType: "TERMINAL_API",
-      locationId: SQUARE_LOCATION_ID,
-    },
-  });
+export async function getSquareDevices() {
+  try {
+    console.log("GETTING DEVICE>>>", { devMode });
+    // const devices = await squareClient.devicesApi.listDeviceCodes();
+    const devices = await squareClient.devices.list();
+    console.log(devices);
+    // const devicesList = await squareClient.devicesApi.listDevices();
+    // const _ = devices?.result?.deviceCodes
+    //   ?.map((device) => ({
+    //     label: device?.name,
+    //     status: device.status as "PAIRED" | "OFFLINE",
+    //     value: device.deviceId,
+    //     // device,
+    //   }))
+    //   .sort((a, b) => a?.label?.localeCompare(b.label as any) as any);
+    const _ = devices?.data
+      ?.map((device) => ({
+        label: device?.attributes.name,
+        // status: device?.status as "PAIRED" | "OFFLINE",
+        status: "PAIRED",
+        value: device.id,
+        // value: device.deviceId,
+        // value: device?.attributes?.
+        // device,
+      }))
+      .sort((a, b) => a?.label?.localeCompare(b.label as any) as any);
+
+    return (_ || [])!?.filter(
+      (a, b) => _!.findIndex((c) => c.value == a.value) == b
+    );
+  } catch (error) {
+    console.log("ERROR", error);
+  }
+  return [];
+}
+export async function fetchDevicesByLocations() {
+  const {
+    // result: { locations },
+    locations,
+  } = await squareClient.locations.list();
+  let allDevices: any[] = [];
+
+  for (const loc of locations ?? []) {
+    const { data } = await squareClient.devices.list(
+      {
+        locationId: loc.id,
+      }
+      // undefined,
+      // undefined,
+      // undefined,
+      // loc.id
+    );
+    allDevices = allDevices.concat(data ?? []);
+  }
+
+  return {
+    allDevices,
+    locations,
+  };
 }

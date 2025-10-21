@@ -2,9 +2,13 @@ import { squareSalesPaymentCreatedDta } from "@/app/(clean-code)/(sales)/_common
 import { env } from "@/env.mjs";
 import { formatMoney } from "@/lib/use-number";
 import { squareSalesNote } from "@/utils/sales-utils";
-import { Client, Environment } from "square";
+import { squareClient } from "@gnd/square";
 
 import { errorHandler } from "../error/handler";
+import {
+    getSquareDevices as getSquareDevices2,
+    fetchDevicesByLocations as fetchDevicesByLocations2,
+} from "@gnd/square";
 
 export type TerminalCheckoutStatus =
     | "PENDING"
@@ -14,52 +18,12 @@ export type TerminalCheckoutStatus =
     | "COMPLETED";
 let devMode = env.NODE_ENV != "production";
 devMode = false;
-const SQUARE_LOCATION_ID = devMode
-    ? env.SQUARE_SANDBOX_LOCATION_ID
-    : env.SQUARE_LOCATION_ID;
-const client = new Client({
-    environment: devMode ? Environment.Sandbox : Environment.Production,
-    accessToken: devMode
-        ? env.SQUARE_SANDBOX_ACCESS_TOKEN
-        : env.SQUARE_ACCESS_TOKEN,
-});
+
 export async function fetchDevicesByLocations() {
-    const {
-        result: { locations },
-    } = await client.locationsApi.listLocations();
-    let allDevices: any[] = [];
-
-    for (const loc of locations ?? []) {
-        const { result } = await client.devicesApi.listDevices(
-            undefined,
-            undefined,
-            undefined,
-            loc.id,
-        );
-        allDevices = allDevices.concat(result.devices ?? []);
-    }
-
-    return {
-        allDevices,
-        locations,
-    };
+    return fetchDevicesByLocations2();
 }
 export async function getSquareDevices() {
-    try {
-        const devices = await client.devicesApi.listDeviceCodes();
-        const devicesList = await client.devicesApi.listDevices();
-        const _ = devices?.result?.deviceCodes
-            ?.map((device) => ({
-                label: device?.name,
-                status: device.status as "PAIRED" | "OFFLINE",
-                value: device.deviceId,
-                // device,
-            }))
-            .sort((a, b) => a?.label?.localeCompare(b.label) as any);
-
-        // console.log([devicesList.result.devices]);
-        return _.filter((a, b) => _.findIndex((c) => c.value == a.value) == b);
-    } catch (error) {}
+    return getSquareDevices2();
 }
 export interface CreateTerminalCheckoutProps {
     deviceId;
@@ -70,13 +34,15 @@ export interface CreateTerminalCheckoutProps {
     orderIds: string[];
 }
 export async function createSquareTerminalCheckout(
-    props: CreateTerminalCheckoutProps,
+    props: CreateTerminalCheckoutProps
 ) {
     const amt = formatMoney(props.amount);
     const cent = Math.round(props.amount * 100);
     const amount = BigInt(cent);
 
-    const resp = await client.terminalApi.createTerminalCheckout({
+    // const resp = await client.terminalApi.createTerminalCheckout({
+    // const resp = await client.terminalApi.createTerminalCheckout({
+    const { checkout } = await squareClient.terminal.checkouts.create({
         idempotencyKey: props.idempotencyKey || new Date().toISOString(),
         checkout: {
             amountMoney: {
@@ -92,7 +58,7 @@ export async function createSquareTerminalCheckout(
             },
         },
     });
-    const checkout = resp.result.checkout;
+    // const checkout = resp.result.checkout;
     return {
         id: checkout.id,
         squareOrderId: checkout.orderId,
@@ -105,45 +71,54 @@ export async function createTerminalCheckout({
     allowTipping,
 }: CreateTerminalCheckoutProps) {
     return await errorHandler(async () => {
-        const terminal = await client.terminalApi.createTerminalCheckout({
-            idempotencyKey,
-            checkout: {
-                amountMoney: {
-                    amount: BigInt(Number(amount) * 100),
-                    currency: "USD",
-                },
-                deviceOptions: {
-                    deviceId,
-                    tipSettings: {
-                        allowTipping,
+        // const terminal = await client.terminalApi.createTerminalCheckout({
+        const { checkout, errors } =
+            await squareClient.terminal.checkouts.create({
+                idempotencyKey,
+                checkout: {
+                    amountMoney: {
+                        amount: BigInt(Number(amount) * 100),
+                        currency: "USD",
                     },
+                    deviceOptions: {
+                        deviceId,
+                        tipSettings: {
+                            allowTipping,
+                        },
+                    },
+                    referenceId: "",
                 },
-                referenceId: "",
-            },
-        });
+            });
         return {
-            id: terminal.result.checkout.id,
-            squareOrderId: terminal.result.checkout.orderId,
+            id: checkout.id,
+            squareOrderId: checkout.orderId,
             salesPayment: await squareSalesPaymentCreatedDta(
                 idempotencyKey,
-                terminal.result.checkout.id,
-                terminal.result.checkout.orderId,
+                checkout.id,
+                checkout.orderId
             ),
         };
     });
 }
 export async function getTerminalPaymentStatus(checkoutId) {
-    const payment = await client.terminalApi.getTerminalCheckout(checkoutId);
-    const paymentStatus = payment.result.checkout
-        .status as TerminalCheckoutStatus;
-    const tip = Number(payment.result.checkout.tipMoney?.amount);
+    // const payment = await client.terminalApi.getTerminalCheckout(checkoutId);
+    const { checkout, errors } = await squareClient.terminal.checkouts.get({
+        checkoutId,
+    });
+    // const paymentStatus = payment.result.checkout
+    // .status as TerminalCheckoutStatus;
+    const paymentStatus = checkout.status as TerminalCheckoutStatus;
+    const tip = Number(checkout.tipMoney?.amount);
     return {
         status: paymentStatus,
         tip: tip > 0 ? tip / 100 : 0,
     };
 }
-export async function cancelSquareTerminalPayment(paymentId) {
-    await client.terminalApi.cancelTerminalCheckout(paymentId);
+export async function cancelSquareTerminalPayment(checkoutId) {
+    // await client.terminalApi.cancelTerminalCheckout(paymentId);
+    await squareClient.terminal.dismissTerminalCheckout({
+        checkoutId,
+    });
 }
 
 // export async function squarePaymentUpdated(props: SquarePayment) {
