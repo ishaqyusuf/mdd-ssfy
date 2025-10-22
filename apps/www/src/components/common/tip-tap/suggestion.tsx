@@ -1,69 +1,69 @@
-import { ReactRenderer } from "@tiptap/react";
-import tippy from "tippy.js";
-import MentionList from "./mention-list";
+// import { ReactRenderer } from "@tiptap/react";
+// import tippy from "tippy.js";
+// import MentionList from "./mention-list";
 
-export default function suggestion(list) {
-    return {
-        items: ({ query }) => {
-            return list
-                .filter((item) =>
-                    item.toLowerCase().startsWith(query.toLowerCase()),
-                )
-                .slice(0, 5);
-        },
-        render: () => {
-            let reactRenderer;
-            let popup;
+// export default function suggestion(list) {
+//     return {
+//         items: ({ query }) => {
+//             return list
+//                 .filter((item) =>
+//                     item.toLowerCase().startsWith(query.toLowerCase()),
+//                 )
+//                 .slice(0, 5);
+//         },
+//         render: () => {
+//             let reactRenderer;
+//             let popup;
 
-            return {
-                onStart: (props) => {
-                    if (!props.clientRect) {
-                        return;
-                    }
+//             return {
+//                 onStart: (props) => {
+//                     if (!props.clientRect) {
+//                         return;
+//                     }
 
-                    reactRenderer = new ReactRenderer(MentionList as any, {
-                        props,
-                        editor: props.editor,
-                    });
+//                     reactRenderer = new ReactRenderer(MentionList as any, {
+//                         props,
+//                         editor: props.editor,
+//                     });
 
-                    popup = tippy("body", {
-                        getReferenceClientRect: props.clientRect,
-                        appendTo: () => document.body,
-                        content: reactRenderer.element,
-                        showOnCreate: true,
-                        interactive: true,
-                        trigger: "manual",
-                        placement: "bottom-start",
-                    });
-                },
+//                     popup = tippy("body", {
+//                         getReferenceClientRect: props.clientRect,
+//                         appendTo: () => document.body,
+//                         content: reactRenderer.element,
+//                         showOnCreate: true,
+//                         interactive: true,
+//                         trigger: "manual",
+//                         placement: "bottom-start",
+//                     });
+//                 },
 
-                onUpdate(props) {
-                    reactRenderer.updateProps(props);
+//                 onUpdate(props) {
+//                     reactRenderer.updateProps(props);
 
-                    if (!props.clientRect) {
-                        return;
-                    }
+//                     if (!props.clientRect) {
+//                         return;
+//                     }
 
-                    popup[0].setProps({
-                        getReferenceClientRect: props.clientRect,
-                    });
-                },
+//                     popup[0].setProps({
+//                         getReferenceClientRect: props.clientRect,
+//                     });
+//                 },
 
-                onKeyDown(props) {
-                    if (props.event.key === "Escape") {
-                        popup[0].hide();
+//                 onKeyDown(props) {
+//                     if (props.event.key === "Escape") {
+//                         popup[0].hide();
 
-                        return true;
-                    }
+//                         return true;
+//                     }
 
-                    return reactRenderer.ref?.onKeyDown(props);
-                },
+//                     return reactRenderer.ref?.onKeyDown(props);
+//                 },
 
-                onExit() {
-                    popup?.[0]?.destroy();
-                    reactRenderer?.destroy();
-                },
-            };
-        },
-    };
-}
+//                 onExit() {
+//                     popup?.[0]?.destroy();
+//                     reactRenderer?.destroy();
+//                 },
+//             };
+//         },
+//     };
+// }

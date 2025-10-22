@@ -5,7 +5,7 @@ import { DownloadProps, sendMessage } from "@/app/(v1)/_actions/email";
 import FormInput from "@/components/common/controls/form-input";
 import Modal from "@/components/common/modal";
 import { useModal } from "@/components/common/modal/provider";
-import Tiptap from "@/components/common/tip-tap";
+// import Tiptap from "@/components/common/tip-tap";
 import { isProdClient } from "@/lib/is-prod";
 import { ServerPromiseType } from "@/types";
 import { Controller, useForm } from "react-hook-form";
@@ -98,7 +98,7 @@ export default function SendEmailSheet({ subtitle, data, download }: Props) {
                     meta: {},
                     attachOrder: true,
                 } as any,
-                download,
+                download
             );
 
             toast.success("sent", {});
@@ -139,13 +139,13 @@ export default function SendEmailSheet({ subtitle, data, download }: Props) {
                             label="Subject"
                         />
                         <div className="col-span-2">
-                            <Tiptap
+                            {/* <Tiptap
                                 label="Body"
                                 control={form.control}
                                 name="body"
                                 className="flex-1"
                                 mentions={emailData.suggestions}
-                            />
+                            /> */}
                         </div>
                     </div>
                 </ScrollArea>
