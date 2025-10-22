@@ -53,7 +53,8 @@ const config = {
         },
     },
     // experimental: {
-    serverExternalPackages: ["puppeteer-core", "@prisma/client", "@gnd/db"],
+    // serverExternalPackages: ["puppeteer-core", "@prisma/client", "@gnd/db"],
+    serverExternalPackages: ["puppeteer-core"],
     // },
     // webpack: (config, { isServer }) => {
     //     if (isServer) {
