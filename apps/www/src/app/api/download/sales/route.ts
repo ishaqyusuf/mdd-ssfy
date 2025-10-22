@@ -17,18 +17,19 @@ const paramsSchema = z.object({
 });
 // export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
-    const requestUrl = new URL(req.url);
-    // const session = await getServerSession(authOptions);
-    const result = paramsSchema.safeParse(
-        Object.fromEntries(requestUrl.searchParams.entries())
-    );
-    const payload = await validateTokenAction(
-        result.data.token,
-        "salesPdfToken"
-    );
+    return Response.json({});
+    // const requestUrl = new URL(req.url);
+    // // const session = await getServerSession(authOptions);
+    // const result = paramsSchema.safeParse(
+    //     Object.fromEntries(requestUrl.searchParams.entries())
+    // );
+    // const payload = await validateTokenAction(
+    //     result.data.token,
+    //     "salesPdfToken"
+    // );
 
-    if (!payload) notFound();
-    notFound();
+    // if (!payload) notFound();
+    // notFound();
     // const printData = await generateLegacyPrintData(db, payload);
 
     // const {
