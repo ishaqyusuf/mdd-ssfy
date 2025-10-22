@@ -15,7 +15,6 @@ const paramsSchema = z.object({
     // templateSlug: z.string().optional().nullable(),
     preview: z.preprocess((val) => val === "true", z.boolean().default(false)),
 });
-export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
     const requestUrl = new URL(req.url);
     // const session = await getServerSession(authOptions);
