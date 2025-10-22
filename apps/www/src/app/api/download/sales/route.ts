@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { renderToStream } from "@gnd/community";
 import { z } from "zod";
@@ -28,34 +28,39 @@ export async function GET(req: NextRequest) {
     );
 
     if (!payload) notFound();
-    const printData = await generateLegacyPrintData(db, payload);
+    notFound();
+    // const printData = await generateLegacyPrintData(db, payload);
 
-    const {
-        // id, token,
-        preview,
-    } = result.data;
+    // const {
+    //     // id, token,
+    //     preview,
+    // } = result.data;
 
-    const stream = await renderToStream(
-        await PdfTemplate({
-            pages: printData.map((a) => a.pageData),
-            template: {
-                size: "A4",
-            },
-        })
-    );
-    const title = printData.map((a) => a.orderNo).join("-");
-    // @ts-expect-error - stream is not assignable to BodyInit
-    const blob = await new Response(stream).blob();
+    // const pages = printData.map((a) => a.pageData);
 
-    const headers: Record<string, string> = {
-        "Content-Type": "application/pdf",
-        "Cache-Control": "no-store, max-age=0",
-    };
+    // const stream = await renderToStream(
+    //     await PdfTemplate({
+    //         pages,
+    //         template: {
+    //             size: "A4",
+    //         },
+    //     })
+    // );
 
-    if (!preview) {
-        headers["Content-Disposition"] = `attachment; filename="${title}.pdf"`;
-    }
+    // // return NextResponse.json({ data: "Testing Sentry Error...!", printData });
+    // const title = printData.map((a) => a.orderNo).join("-");
+    // // @ts-expect-error - stream is not assignable to BodyInit
+    // const blob = await new Response(stream).blob();
 
-    return new Response(blob, { headers });
+    // const headers: Record<string, string> = {
+    //     "Content-Type": "application/pdf",
+    //     "Cache-Control": "no-store, max-age=0",
+    // };
+
+    // if (!preview) {
+    //     headers["Content-Disposition"] = `attachment; filename="${title}.pdf"`;
+    // }
+
+    // return new Response(blob, { headers });
 }
 

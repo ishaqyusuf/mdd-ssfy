@@ -77,7 +77,7 @@ export async function PdfTemplate(props: Props) {
   return (
     <Document>
       {props.pages.map((printData, ui) => {
-        const { orderedPrinting = [], order, isPacking } = printData || {};
+        // const { orderedPrinting = [], order, isPacking } = printData || {};
         return (
           <Page
             key={ui}
@@ -92,9 +92,9 @@ export async function PdfTemplate(props: Props) {
             }}
           >
             <View style={cn("mb-2 flex-col")}>
-              <SalesPrintHeader printData={printData} />
+              {/* <SalesPrintHeader printData={printData} /> */}
             </View>
-            {order?.id && (
+            {/* {order?.id && (
               <View style={cn("w-full border")}>
                 {orderedPrinting.map((p: any, i: number) =>
                   p.nonShelf ? (
@@ -134,7 +134,7 @@ export async function PdfTemplate(props: Props) {
                   )
                 )}
               </View>
-            )}
+            )} */}
           </Page>
         );
       })}
