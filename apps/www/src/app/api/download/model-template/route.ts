@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
             size: "A4",
         },
     });
-    consoleLog("RENDRING TO STREAMMM", {});
+
     const stream = await renderToStream(streamData);
 
     // @ts-expect-error - stream is not assignable to BodyInit

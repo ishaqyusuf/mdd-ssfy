@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
         })
     );
 
-    return NextResponse.json({ data: "Testing Sentry Error...!", printData });
+    // return NextResponse.json({ data: "Testing Sentry Error...!", printData });
     const title = printData.map((a) => a.orderNo).join("-");
     // @ts-expect-error - stream is not assignable to BodyInit
     const blob = await new Response(stream).blob();

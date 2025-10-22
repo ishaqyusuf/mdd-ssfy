@@ -30,8 +30,7 @@
     "with-env": "dotenv -e ../../.env --"
   },
   "dependencies": {
-    "@prisma/client": "^6.11.1",
-    "@prisma/extension-accelerate": "^2.0.1",
+    "@prisma/client": "^6.18.0",
     "@t3-oss/env-core": "^0.11.1",
     "date-fns": "^4.1.0",
     "react": "19.1.1",
@@ -40,6 +39,6 @@
   "devDependencies": {
     "typescript": "^5.9.3",
     "@gnd/tsconfig": "workspace:*",
-    "prisma": "^6.11.1"
+    "prisma": "^6.18.0"
   }
 }
