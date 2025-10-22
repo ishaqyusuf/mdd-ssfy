@@ -1,4 +1,4 @@
-import { Document, Font, Image, Page, Text, View } from "@react-pdf/renderer";
+import { Document, Font, Page, View } from "@react-pdf/renderer";
 import QRCodeUtil from "qrcode";
 import { QRCode } from "./components/qr-code";
 import { Info } from "../../generate-print-data";
