@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLinkModules, validateLinks } from "./components/sidebar/links";
-import { consoleLog } from "@gnd/utils/index";
 
 export const config = {
     matcher: [

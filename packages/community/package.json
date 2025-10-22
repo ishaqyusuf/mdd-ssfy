@@ -23,7 +23,7 @@
     "@gnd/db": "workspace:*",
     "@gnd/sales": "workspace:*",
     "@gnd/utils": "workspace:*",
-    "@react-pdf/renderer": "^4.3.0",
+    "@react-pdf/renderer": "^4.3.1",
     "date-fns": "^4.1.0",
     "jose": "^6.0.11",
     "qrcode": "^1.5.4"

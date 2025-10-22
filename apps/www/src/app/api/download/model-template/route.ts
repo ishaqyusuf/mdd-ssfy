@@ -6,6 +6,8 @@ import { db } from "@gnd/db";
 import { generatePrintData } from "@community/generate-print-data";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { consoleLog } from "@gnd/utils";
+
 const paramsSchema = z.object({
     // id: z.string().uuid().optional(),
     // token: z.string().optional(),
@@ -33,16 +35,15 @@ export async function GET(req: NextRequest) {
         // id, token,
         preview,
     } = result.data;
-
-    const stream = await renderToStream(
-        await PdfTemplate({
-            units: printData.units,
-            url: requestUrl,
-            template: {
-                size: "A4",
-            },
-        })
-    );
+    const streamData = await PdfTemplate({
+        units: printData.units,
+        url: requestUrl,
+        template: {
+            size: "A4",
+        },
+    });
+    consoleLog("RENDRING TO STREAMMM", {});
+    const stream = await renderToStream(streamData);
 
     // @ts-expect-error - stream is not assignable to BodyInit
     const blob = await new Response(stream).blob();

@@ -7,7 +7,7 @@ import {
   SalesIncludeAll,
 } from "./utils/utils";
 import { formatDate } from "@gnd/utils/dayjs";
-import { formatCurrency, sum } from "@gnd/utils/index";
+import { formatCurrency, sum } from "@gnd/utils";
 import { AddressBookMeta, CustomerMeta } from "./types";
 import { SalesPrintModes } from "./constants";
 
