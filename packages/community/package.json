@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@gnd/ui": "workspace:*",
+    "@gnd/db": "workspace:*",
     "@gnd/sales": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@react-pdf/renderer": "^4.3.0",

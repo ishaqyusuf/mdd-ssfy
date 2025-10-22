@@ -427,6 +427,7 @@ export function dotArray(obj, parentKey = "", removeEmptyArrays = false) {
 export function designDotToObject(object) {
   // return toDotNotation(object);
   let tr = {};
+  if (!object) return {};
   Object.entries(object).map(([k, v]) => {
     const [k1, k2] = k.split(".").map(camelCaseKey) as any;
     if (k1 && k2) {

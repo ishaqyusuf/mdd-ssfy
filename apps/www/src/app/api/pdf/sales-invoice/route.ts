@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSalesPrintData } from "@/app/(v2)/printer/sales/get-sales-print-data";
 import { apiParamsTokV } from "@/utils/api-params-to-kv";
-import { renderToBuffer } from "@react-pdf/renderer";
+import { renderToBuffer } from "@gnd/community";
 
 import { SalesInvoicePdfTemplate } from "@gnd/printer/templates/sales-invoice";
 
@@ -19,12 +19,12 @@ export async function GET(req: NextRequest, res) {
                 sale: data,
                 mode: "order",
             },
-        }),
+        })
     );
     const responseHeaders = new Headers(res.headers);
     responseHeaders.set(
         "Content-Disposition",
-        `attachment; filename="${fileName}.pdf"`,
+        `attachment; filename="${fileName}.pdf"`
     );
     return new Response(buffer as any, {
         headers: responseHeaders,

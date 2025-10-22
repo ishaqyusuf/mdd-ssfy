@@ -444,6 +444,7 @@
     "packages/community": {
       "name": "@gnd/community",
       "dependencies": {
+        "@gnd/db": "workspace:*",
         "@gnd/sales": "workspace:*",
         "@gnd/ui": "workspace:*",
         "@gnd/utils": "workspace:*",
