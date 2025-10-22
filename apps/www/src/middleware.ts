@@ -15,7 +15,10 @@ export const config = {
     ],
 };
 
-export default async function middlewarex(req: NextRequest) {
+// export default async function middlewarex(req: NextRequest) {
+//     return NextResponse.next();
+// }
+export default async function middleware(req: NextRequest) {
     // return NextResponse.next();
     const newUrl = req.nextUrl;
     // req.cookies.get
