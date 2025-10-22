@@ -11,6 +11,7 @@ import { Provider } from "react-redux";
 
 import { SessionProvider } from "next-auth/react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { AuthProvider } from "@/providers/auth-provider";
 
 type Props = {
     children: ReactNode;
@@ -28,7 +29,7 @@ export function Providers({ children }: Props) {
                                     defaultTheme="light"
                                 >
                                     <CommandProvider>
-                                        {children}
+                                        <AuthProvider>{children}</AuthProvider>
                                     </CommandProvider>
                                 </ThemeProvider>
                             </ModalProvider>

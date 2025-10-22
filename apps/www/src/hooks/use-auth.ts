@@ -3,7 +3,6 @@ import { useTRPC } from "@/trpc/client";
 import { Roles } from "@gnd/utils/constants";
 import { useQuery } from "@gnd/ui/tanstack";
 import { useSession } from "next-auth/react";
-import { useDebugToast } from "./use-debug-console";
 
 export function useAuth() {
     const { data: session } = useSession();
@@ -13,7 +12,7 @@ export function useAuth() {
             enabled: !!session?.user?.id,
             staleTime: 20 * 60 * 1000, // 20 minutes
             gcTime: 20 * 60 * 1000, // 20 minutes
-        }),
+        })
     );
     // useDebugToast("AUTH", data);
     const can = data?.can;
@@ -26,6 +25,7 @@ export function useAuth() {
         role: session?.role,
         roleTitle: session?.role?.name as Roles,
         avatar: null,
+        isPending,
     };
 }
 

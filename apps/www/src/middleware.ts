@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLinkModules, validateLinks } from "./components/sidebar/links";
+import { consoleLog } from "@gnd/utils";
+import { getToken } from "next-auth/jwt";
 
 export const config = {
     matcher: [
@@ -33,18 +35,15 @@ export default async function middleware(req: NextRequest) {
     const pathName = req.nextUrl.pathname;
     // const _authorized = await authorized(req);
 
-    const auth = await getAuth(req);
-    // consoleLog("CAN->", auth?.can);
-    // consoleLog("ROLE->", auth?.role);
-
     const loginUrl = new URL("/login", req.url);
     if (encodedSearchParams) {
         loginUrl.searchParams.append("return_to", encodedSearchParams);
     }
-    if (!auth?.userId && !isPublic(pathName)) {
-        return NextResponse.redirect(loginUrl);
-    }
-    if (path === "/") {
+    // if (!auth?.userId && !isPublic(pathName)) {
+    //     return NextResponse.redirect(loginUrl);
+    // }
+    if (pathName === "/") {
+        const auth = await getAuth(req);
         if (auth) {
             const link = getDefaultLink(auth);
             const url = new URL(link, req.url);
@@ -52,28 +51,29 @@ export default async function middleware(req: NextRequest) {
         }
         return NextResponse.redirect(loginUrl);
     }
-    if (isPublic(pathName)) return NextResponse.next();
-    const validLinks = getLinkModules(
-        validateLinks({
-            role: auth.role,
-            can: auth.can,
-            userId: auth?.userId,
-        })
-    );
-    // const matched = validLinks.linksNameMap[pathName];
-    // if (matched) {
-    //     consoleLog("matched link", matched);
-    // }
-    const v = validatePath(pathName, validLinks.linksNameMap);
-    // const prev = req.headers.get("referer");
-    // consoleLog("->", { v, pathName, linkMap: validLinks.linksNameMap, prev });
-    if (!v?.hasAccess) {
-        // if (prev) {
-        return NextResponse.redirect(new URL("/", req.url));
-        // }
-        // return NextResponse.rewrite(new URL("/404", req.url));
-    }
     return NextResponse.next();
+    // if (isPublic(pathName)) return NextResponse.next();
+    // const validLinks = getLinkModules(
+    //     validateLinks({
+    //         role: auth.role,
+    //         can: auth.can,
+    //         userId: auth?.userId,
+    //     })
+    // );
+    // // const matched = validLinks.linksNameMap[pathName];
+    // // if (matched) {
+    // //     consoleLog("matched link", matched);
+    // // }
+    // const v = validatePath(pathName, validLinks.linksNameMap);
+    // // const prev = req.headers.get("referer");
+    // // consoleLog("->", { v, pathName, linkMap: validLinks.linksNameMap, prev });
+    // if (!v?.hasAccess) {
+    //     // if (prev) {
+    //     return NextResponse.redirect(new URL("/", req.url));
+    //     // }
+    //     // return NextResponse.rewrite(new URL("/404", req.url));
+    // }
+    // return NextResponse.next();
 }
 const validatePath = <T extends Record<string, any>>(
     path: string,
