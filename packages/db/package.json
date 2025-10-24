@@ -13,7 +13,7 @@
     "schema": "./src/schema"
   },
   "scripts": {
-    "build": "prisma db push && prisma generate && tsc",
+    "build": "prisma generate && tsc",
     "dev": "rm -rf dist .turbo tsc",
     "dev:prod": "rm -rf dist .turbo tsc",
     "clean": "rm -rf .turbo node_modules",
@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.18.0",
+    "@prisma/extension-accelerate": "^2.0.1",
     "@t3-oss/env-core": "^0.11.1",
     "date-fns": "^4.1.0",
     "react": "19.1.1",
@@ -38,7 +39,6 @@
   },
   "devDependencies": {
     "typescript": "^5.9.3",
-    "@gnd/tsconfig": "workspace:*",
     "prisma": "^6.18.0"
   }
 }
