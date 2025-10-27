@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 const publicRoutes = [
     "/login",
     "/square-payment",
+    "/printer/sales",
     "/checkout",
     "/signout",
     "/api/pdf",

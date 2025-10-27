@@ -91,9 +91,14 @@ const validatePath = <T extends Record<string, any>>(
 };
 
 const isPublic = (pathName) =>
-    ["/login", "/square-payment", "/checkout", "/signout", "/api/pdf"]?.some(
-        (a) => pathName.includes(a)
-    );
+    [
+        "/login",
+        "/square-payment",
+        "/printer/sales",
+        "/checkout",
+        "/signout",
+        "/api/pdf",
+    ]?.some((a) => pathName.includes(a));
 
 async function getAuth(req) {
     try {
