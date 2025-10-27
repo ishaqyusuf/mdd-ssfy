@@ -60,7 +60,7 @@ export function NotFoundStatuses() {
             if (index < data.length - 1) {
                 destinationArray.push(data[index]);
 
-                setStatuses((prev) => [...prev, data[index]]);
+                setStatuses((prev) => [...(prev || []), data[index]]);
                 index++;
 
                 scrollRef.current?.scrollTo({

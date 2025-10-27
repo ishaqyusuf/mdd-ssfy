@@ -5,42 +5,41 @@ import PageHeader from "@/components/_v1/page-header";
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 
-import CommunityProductionsTableShell from "@/components/_v1/shells/community-productions-table-shell";
-import { getProductions } from "@/app/(v1)/_actions/community-production/get-productions";
-import { _taskNames } from "@/app/(v1)/_actions/community/_task-names";
+import CommunityInvoiceTableShell from "@/components/_v1/shells/community-invoice-table-shell";
+import { getHomeInvoices } from "@/app/(v1)/_actions/community-invoice/get-invoices";
+import EditInvoiceModal from "@/components/_v1/modals/edit-invoice-modal";
 import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 
 export const metadata: Metadata = {
-    title: "Unit Productions",
+    title: "All Unit Invoices",
 };
 interface Props {}
-export default async function CommunityProductionsPage(props) {
+export default async function InvoicesPage(props) {
     const searchParams = await props.searchParams;
-    const taskNames = await _taskNames({
-        produceable: true,
-    } as any);
-
-    const response = await getProductions(
-        queryParams({ _task: taskNames, ...searchParams })
-    );
+    const response = await getHomeInvoices(queryParams({ ...searchParams }));
     // metadata.title = `${project.title} | Homes`;
 
     return (
-        <AuthGuard can={["viewProduction"]}>
+        <AuthGuard can={["viewInvoice"]}>
             <div className="space-y-4 px-8">
                 <Breadcrumbs>
                     <BreadLink isFirst title="Community" />
                     <BreadLink link="/community/projects" title="Projects" />
-                    <BreadLink title="Productions" isLast />
+                    <BreadLink
+                        link="/community/invoices"
+                        title="All Invoices"
+                        isLast
+                    />
                 </Breadcrumbs>
-                <PageHeader title={"Unit Productions"} subtitle={``} />
-                <CommunityProductionsTableShell
+                <PageHeader title={"Unit Invoices"} subtitle={``} />
+                <CommunityInvoiceTableShell
+                    projectView={false}
                     searchParams={searchParams}
                     data={response.data as any}
                     pageInfo={response.pageInfo}
                 />
+                <EditInvoiceModal />
             </div>
         </AuthGuard>
     );
 }
-

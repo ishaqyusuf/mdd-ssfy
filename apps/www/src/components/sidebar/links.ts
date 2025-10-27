@@ -295,7 +295,7 @@ export const linkModules = [
                     _subLink("Templates", "/community/templates").access(
                         _perm.is("editProject")
                     ).data,
-                    _subLink("Invoices", "/community/invoices").access(
+                    _subLink("Invoices", "/community/project-invoices").access(
                         // _perm.is("editProject"),
                         _perm.in("viewInvoice")
                     ).data,
@@ -332,7 +332,7 @@ export const linkModules = [
             _link("Invoices", "communityInvoice", "/community/invoices").access(
                 _perm.in("viewInvoice")
             ).data,
-        ]),
+        ]), //.access(_role.is("Super Admin")),
         _section("main", null, [
             _link(
                 "Sales Production",

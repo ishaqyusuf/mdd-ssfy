@@ -1,7 +1,6 @@
 import { useIsMobile } from "@gnd/ui/hooks/use-mobile";
 import { Menu } from "@gnd/ui/custom/menu";
 import { RouterOutputs } from "@api/trpc/routers/_app";
-
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { ColumnDef } from "@tanstack/react-table";
@@ -12,7 +11,6 @@ import { formatDate } from "@gnd/utils/dayjs";
 import { Progress } from "@gnd/ui/custom/progress";
 import { Badge } from "@gnd/ui/badge";
 import { colorsObject } from "@gnd/utils/colors";
-import { openLink } from "@/lib/open-link";
 import { useFilePreviewParams } from "@/hooks/use-file-preview-params";
 import QueryString from "qs";
 export type Item =
@@ -85,7 +83,7 @@ const installation: Column = {
                                 : colorsObject.dimGray,
                     }}
                     className={cn(
-                        `h-5 px-1 whitespace-nowrap  text-xs text-slate-100`,
+                        `h-5 px-1 whitespace-nowrap  text-xs text-slate-100`
                     )}
                 >
                     {item.jobCount} submitted
