@@ -255,11 +255,6 @@ export const linkModules = [
     ]),
     _module("Community", "communityInvoice", "GND Community", [
         _section("main", null, [
-            _link("Customer Service", "customerService", "/customer-services")
-                .access(_perm.is("viewCustomerService"))
-                .level(7).data,
-        ]),
-        _section("main", null, [
             _link("Dashboard", "dashbord2", "/community", [
                 _subLink("Projects", "/community")
                     .access
@@ -292,6 +287,11 @@ export const linkModules = [
                     "community/model-template",
                     "community/template-schema"
                 ).data,
+        ]),
+        _section("main", null, [
+            _link("Customer Service", "customerService", "/customer-services")
+                .access(_perm.is("viewCustomerService"))
+                .level(7).data,
         ]),
         _section("main", null, [
             _link("Projects", "project", "/community/projects").access(
