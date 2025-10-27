@@ -129,8 +129,9 @@ export const _perm = {
     some: (...roles: PermissionScope[]) =>
         __access("permission", "some", ...roles),
 };
-export function validateRules(accessList: Access[], can?, userId?, role?) {
+export function validateRules(accessList: Access[], can?, userId?, _role?) {
     if (!can) can = {};
+    const role = typeof _role === "string" ? _role : _role?.name;
     return accessList.every((a) => {
         switch (a.type) {
             // case "userId":
