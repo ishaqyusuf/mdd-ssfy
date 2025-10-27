@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
     if (!payload) notFound();
     const printData = await generateLegacyPrintData(db, payload);
-
+    const title = printData.map((a) => a.orderNo).join("-");
     const {
         // id, token,
         preview,
@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
     const stream = await renderToStream(
         await PdfTemplate({
             pages,
+            title,
             template: {
                 size: "A4",
             },
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
         );
     }
     // return NextResponse.json({ data: "Testing Sentry Error...!", printData });
-    const title = printData.map((a) => a.orderNo).join("-");
+
     // @ts-expect-error - stream is not assignable to BodyInit
     const blob = await new Response(stream).blob();
 

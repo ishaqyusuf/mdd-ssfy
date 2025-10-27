@@ -54,6 +54,7 @@ interface Props {
   pages: any[];
 
   // url;
+  title?;
   template: {
     logoUrl?: string;
     size: "LETTER" | "A4";
@@ -75,7 +76,7 @@ export async function PdfTemplate(props: Props) {
   //   }
 
   return (
-    <Document>
+    <Document title={props.title}>
       {props.pages.map((printData, ui) => {
         const { orderedPrinting = [], order, isPacking } = printData || {};
         return (
