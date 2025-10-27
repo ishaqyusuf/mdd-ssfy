@@ -256,10 +256,10 @@ export const linkModules = [
     _module("Community", "communityInvoice", "GND Community", [
         _section("main", null, [
             _link("Dashboard", "dashbord2", "/community", [
-                _subLink("Projects", "/community")
-                    .access
+                _subLink("Projects", "/community").access(
                     // _perm.is("editProject"),
-                    ().data,
+                    _perm.is("editProject")
+                ).data,
                 _subLink("Units", "/community/project-units").access(
                     // _perm.is("editProject"),
                     _perm.is("editProject")

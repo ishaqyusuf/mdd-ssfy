@@ -134,7 +134,7 @@ export async function PdfTemplate(props: Props) {
               </View>
             )}
             <View
-              style={cn("bg-slate-100 border-x border-b flex-col", {
+              style={cn("border-x border-b flex-col", {
                 flex: 1,
                 flexDirection: "column",
                 justifyContent: "flex-end",
