@@ -22,9 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (auth?.isPending) return;
-
         const isPublic = publicRoutes.some((p) => pathname.includes(p));
-
         if (!isPublic && !auth?.id) {
             router.replace(`/login?return_to=${pathname}`);
             return;
@@ -51,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 })
             );
             const v = validatePath(pathname, validLinks.linksNameMap);
-            if (!v?.hasAccess) router.replace("/");
+            if (!v?.hasAccess && v?.name) router.replace("/");
         }
     }, [pathname, auth]);
 
