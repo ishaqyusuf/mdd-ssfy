@@ -9,7 +9,6 @@ export function OpenProjectUnitSheet() {
     return (
         <div>
             <Button
-                variant="outline"
                 size="icon"
                 onClick={
                     () => x.open(null)
@@ -19,6 +18,7 @@ export function OpenProjectUnitSheet() {
                 }
             >
                 <Icons.Add />
+                New
             </Button>
         </div>
     );
