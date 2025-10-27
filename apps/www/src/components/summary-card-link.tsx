@@ -9,16 +9,23 @@ interface Props {
 }
 
 export function SummaryCardLink(props: Props) {
-    const isSelected = useMemo(() => _pathIs("/community"), [_path]);
+    const isSelected = useMemo(() => _pathIs(props.path), [_path]);
 
     return (
         <Link
             href={props.path}
             type="button"
             onClick={(e) => {}}
-            className={cn("hidden sm:block text-left")}
+            className={cn(
+                "hidden sm:block text-left",
+                !isSelected && "hover:bg-secondary"
+            )}
         >
-            <InventorySummary selected={isSelected} {...props.summaryProps} />
+            <InventorySummary
+                selectable
+                selected={isSelected}
+                {...props.summaryProps}
+            />
         </Link>
     );
 }

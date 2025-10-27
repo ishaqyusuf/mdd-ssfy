@@ -13,6 +13,8 @@ import { Badge } from "@gnd/ui/badge";
 import { colorsObject } from "@gnd/utils/colors";
 import { useFilePreviewParams } from "@/hooks/use-file-preview-params";
 import QueryString from "qs";
+import { getUnitTemplateLink } from "@/app/(v1)/_actions/community/get-unit-template";
+import { useRouter } from "next/navigation";
 export type Item =
     RouterOutputs["community"]["getProjectUnits"]["data"][number];
 interface ItemProps {
@@ -45,13 +47,28 @@ const projectColumn: Column = {
 const lotBlock: Column = {
     header: "Lot/Block",
     accessorKey: "lotBlock",
-    meta: {},
-    cell: ({ row: { original: item } }) => (
-        <>
-            <TCell.Primary>{item.lotBlock}</TCell.Primary>
-            <TCell.Secondary>{item.modelName}</TCell.Secondary>
-        </>
-    ),
+    meta: {
+        preventDefault: true,
+    },
+    cell: ({ row: { original: item } }) => {
+        const route = useRouter();
+        return (
+            <div
+                className="hover:underline"
+                onClick={async (e) => {
+                    const edit = await getUnitTemplateLink(
+                        item.projectId,
+                        item.homeTemplateId,
+                        item.modelName
+                    );
+                    if (edit) route.push(edit);
+                }}
+            >
+                <TCell.Primary>{item.lotBlock}</TCell.Primary>
+                <TCell.Secondary>{item.modelName}</TCell.Secondary>
+            </div>
+        );
+    },
 };
 const production: Column = {
     header: "Production",

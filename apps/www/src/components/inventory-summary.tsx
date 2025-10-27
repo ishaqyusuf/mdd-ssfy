@@ -14,7 +14,8 @@ export function InventorySummary(props: SummaryProps) {
         <Card
             className={cn(
                 props.selected ? "bg-primary text-secondary" : "",
-                props.selectable && "hover:border-primary hover:bg-primary/20"
+                props.selectable &&
+                    "hover:border-secondary-foreground hover:bg-secondary"
             )}
         >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

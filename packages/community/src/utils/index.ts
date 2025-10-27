@@ -34,6 +34,8 @@ export const projectUnitsSelect = {
       jobs: true,
     },
   },
+  projectId: true,
+  homeTemplateId: true,
   project: {
     select: {
       title: true,
