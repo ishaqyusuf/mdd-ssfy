@@ -22,7 +22,7 @@ export function CommunityTabs() {
                 <Tabs.Items className="px-4">
                     <CustomTab>Projects</CustomTab>
                     <CustomTab value="/project-units">Units</CustomTab>
-                    <CustomTab value="/productions">Productions</CustomTab>
+                    <CustomTab value="/unit-productions">Productions</CustomTab>
                     <CustomTab value="/invoices">Invoices</CustomTab>
                     <CustomTab value="/templates">Templates</CustomTab>
                     <CustomTab value="/builders">Builders</CustomTab>

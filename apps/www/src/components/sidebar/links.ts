@@ -260,26 +260,25 @@ export const linkModules = [
                     .access
                     // _perm.is("editProject"),
                     ().data,
-                _subLink("Units", "/community/project-units")
-                    .access
+                _subLink("Units", "/community/project-units").access(
                     // _perm.is("editProject"),
-                    ().data,
+                    _perm.is("editProject")
+                ).data,
                 _subLink("Productions", "/community/project-units")
                     .access
                     // _perm.is("editProject"),
                     ().data,
-                _subLink("Templates", "/community/templates")
-                    .access
+                _subLink("Templates", "/community/templates").access(
+                    _perm.is("editProject")
+                ).data,
+                _subLink("Invoices", "/community/invoices").access(
                     // _perm.is("editProject"),
-                    ().data,
-                _subLink("Invoices", "/community/invoices")
-                    .access
+                    _perm.in("viewInvoice")
+                ).data,
+                _subLink("Builders", "/community/builders").access(
                     // _perm.is("editProject"),
-                    ().data,
-                _subLink("Builders", "/community/builders")
-                    .access
-                    // _perm.is("editProject"),
-                    ().data,
+                    _perm.is("viewBuilders")
+                ).data,
             ])
                 .access(_role.is("Super Admin"))
                 .level(7)

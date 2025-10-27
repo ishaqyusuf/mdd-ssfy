@@ -28,7 +28,7 @@ export default async function Page(props: Props) {
     ]);
     return (
         <div className="flex flex-col gap-6">
-            <PageTitle>ProjectUnit</PageTitle>
+            <PageTitle>Project Unit</PageTitle>
             <ProjectUnitHeader />
             <ErrorBoundary errorComponent={ErrorFallback}>
                 <Suspense fallback={<TableSkeleton />}>

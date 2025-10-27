@@ -9,7 +9,6 @@ export function OpenProjectUnitSheet() {
     return (
         <div>
             <Button
-                size="icon"
                 onClick={
                     () => x.open(null)
                     // setParams({

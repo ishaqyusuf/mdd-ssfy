@@ -105,6 +105,7 @@ export function DataTable({
                                     onClick={(e) => {
                                         role.setParams({
                                             viewRoles: true,
+                                            primaryTab: "roles",
                                         });
                                     }}
                                     icon="roles"

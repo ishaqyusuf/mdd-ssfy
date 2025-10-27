@@ -10,27 +10,16 @@ import { ColumnDef } from "@tanstack/react-table";
 import UnitTaskProductionAction from "../actions/unit-task-production-actions";
 import {
     _FilterColumn,
-    Cell,
     CheckColumn,
     ColumnHeader,
-    DateCellContent,
-    PrimaryCellContent,
-    SecondaryCellContent,
 } from "../columns/base-columns";
-import {
-    HomeInstallationStatus,
-    HomeProductionStatus,
-} from "../columns/community-columns";
+
 import { HomesBatchAction } from "../community/homes-selection-action";
 import { DataTable2 } from "../data-table/data-table-2";
 import { RowActionCell } from "../data-table/data-table-row-actions";
 import { SmartTable } from "../data-table/smart-table";
-import { BuilderFilter } from "../filters/builder-filter";
 import { ProjectsFilter } from "../filters/projects-filter";
 import { TaskFilters } from "../filters/task-filters";
-import { Icons } from "../icons";
-import Money from "../money";
-import StatusBadge from "../status-badge";
 
 export default function CommunityProductionsTableShell<T>({
     data,
@@ -44,7 +33,7 @@ export default function CommunityProductionsTableShell<T>({
         data.map((task) => {
             task.__taskSubtitle = `${task.project.title} ${task.home.modelName} ${task.home.lot}/${task.home.block}`;
             return task;
-        }),
+        })
     );
     const columns = useMemo<ColumnDef<ExtendedHomeTasks, unknown>[]>(
         () => [
@@ -69,7 +58,7 @@ export default function CommunityProductionsTableShell<T>({
                     table.status(
                         data?.home?._count?.jobs
                             ? "Completed"
-                            : data.productionStatus || "unknown",
+                            : data.productionStatus || "unknown"
                     ),
                 ],
             })),
@@ -78,7 +67,7 @@ export default function CommunityProductionsTableShell<T>({
                 "_q",
                 "_task",
                 "_projectId",
-                "_builderId",
+                "_builderId"
             ),
             {
                 accessorKey: "actions",
@@ -95,7 +84,7 @@ export default function CommunityProductionsTableShell<T>({
                 ),
             },
         ], //.filter(Boolean) as any,
-        [data, isPending],
+        [data, isPending]
     );
     return (
         <>
