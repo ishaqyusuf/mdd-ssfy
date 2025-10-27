@@ -186,15 +186,30 @@ export const validateLinks = ({
                 // if(!valid)return
                 if (lnk.subLinks?.length)
                     lnk.subLinks = lnk.subLinks.map((sl) => {
-                        sl.show = validateAccess(sl.access) && lnk.show;
+                        sl.show = validateAccess(sl.access) || lnk.show;
                         return sl;
                     });
-                if (
-                    !lnk?.access?.length &&
-                    lnk.subLinks?.length &&
-                    lnk?.subLinks?.filter((a) => !a.meta)?.every((s) => !s.show)
-                )
-                    lnk.show = false;
+                lnk.show =
+                    lnk.subLinks?.length && !lnk.href
+                        ? lnk.subLinks
+                              .filter((a) => !a.meta)
+                              ?.some((a) => a.show)
+                        : lnk.show;
+                // if (
+                //     !lnk?.access?.length &&
+                //     lnk.subLinks?.length &&
+                //     lnk?.subLinks?.filter((a) => !a.meta)?.every((s) => !s.show)
+                // )
+                //     lnk.show = false;
+                if (lnk.href === "/community") {
+                    console.log([
+                        lnk?.show,
+                        lnk.subLinks
+                            .filter((a) => !a.meta)
+                            ?.some((a) => a.show),
+                        lnk.href,
+                    ]);
+                }
                 return lnk;
             });
 
@@ -255,39 +270,47 @@ export const linkModules = [
     ]),
     _module("Community", "communityInvoice", "GND Community", [
         _section("main", null, [
-            _link("Dashboard", "dashbord2", "/community", [
-                _subLink("Projects", "/community").access(
-                    // _perm.is("editProject"),
-                    _perm.is("editProject")
-                ).data,
-                _subLink("Units", "/community/project-units")
-                    .access(
+            _link(
+                "Dashboard",
+                "dashbord2",
+                //  "/community"
+                null,
+                [
+                    _subLink("Projects", "/community").access(
                         // _perm.is("editProject"),
                         _perm.is("editProject")
-                    )
-                    .childPaths("/settings/community/community-template/slug")
-                    .data,
-                _subLink("Productions", "/community/project-units")
-                    .access
-                    // _perm.is("editProject"),
-                    ().data,
-                _subLink("Templates", "/community/templates").access(
-                    _perm.is("editProject")
-                ).data,
-                _subLink("Invoices", "/community/invoices").access(
-                    // _perm.is("editProject"),
-                    _perm.in("viewInvoice")
-                ).data,
-                _subLink("Builders", "/community/builders").access(
-                    // _perm.is("editProject"),
-                    _perm.is("viewBuilders")
-                ).data,
-            ])
+                    ).data,
+                    _subLink("Units", "/community/project-units")
+                        .access(
+                            // _perm.is("editProject"),
+                            _perm.is("editProject")
+                        )
+                        .childPaths(
+                            "/settings/community/community-template/slug"
+                        ).data,
+                    _subLink("Productions", "/community/project-units")
+                        .access
+                        // _perm.is("editProject"),
+                        ().data,
+                    _subLink("Templates", "/community/templates").access(
+                        _perm.is("editProject")
+                    ).data,
+                    _subLink("Invoices", "/community/invoices").access(
+                        // _perm.is("editProject"),
+                        _perm.in("viewInvoice")
+                    ).data,
+                    _subLink("Builders", "/community/builders").access(
+                        // _perm.is("editProject"),
+                        _perm.is("viewBuilders")
+                    ).data,
+                ]
+            )
                 .access(_role.is("Super Admin"))
-                .level(7)
+                // .level(7)
                 .childPaths(
                     "community/model-template",
-                    "community/template-schema"
+                    "community/template-schema",
+                    "/community"
                 ).data,
         ]),
         _section("main", null, [

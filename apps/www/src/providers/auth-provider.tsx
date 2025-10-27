@@ -19,10 +19,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const auth = useAuth();
     const pathname = usePathname();
     const router = useRouter();
-
+    const { enabled } = auth;
     useEffect(() => {
-        if (auth?.isPending) return;
+        console.log({
+            enabled,
+            pending: auth?.isPending,
+        });
+        // if (auth?.isPending) {
+        //     return;
+        // }
+        console.log(">>>>");
         const isPublic = publicRoutes.some((p) => pathname.includes(p));
+        console.log({
+            isPublic,
+            auth,
+            enabled,
+        });
         if (!isPublic && !auth?.id) {
             router.replace(`/login?return_to=${pathname}`);
             return;
@@ -49,10 +61,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 })
             );
             const v = validatePath(pathname, validLinks.linksNameMap);
-            console.log({ v });
+
             if (!v?.hasAccess && v?.name) router.replace("/");
         }
-    }, [pathname, auth]);
+    }, [pathname, auth?.can, enabled]);
 
     // if (auth.isPending) return null; // optional spinner
     return <>{children}</>;

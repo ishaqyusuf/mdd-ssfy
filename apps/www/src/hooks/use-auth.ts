@@ -7,11 +7,12 @@ import { useSession } from "next-auth/react";
 export function useAuth() {
     const { data: session } = useSession();
     const trpc = useTRPC();
+    const enabled = !!session?.user?.id;
     const { isPending, data } = useQuery(
         trpc.user.auth.queryOptions(undefined, {
-            enabled: !!session?.user?.id,
-            staleTime: 20 * 60 * 1000, // 20 minutes
-            gcTime: 20 * 60 * 1000, // 20 minutes
+            enabled,
+            staleTime: 5 * 60 * 1000, // 5 minutes
+            gcTime: 10 * 60 * 1000, // 10 minutes
         })
     );
     // useDebugToast("AUTH", data);
@@ -21,11 +22,13 @@ export function useAuth() {
         email: session?.user?.email,
         name: session?.user?.name,
         // can: session?.can,
-        can: can || ({} as typeof can),
+        can: can || session?.can || ({} as typeof can),
         role: session?.role,
         roleTitle: session?.role?.name as Roles,
         avatar: null,
         isPending,
+        enabled,
+        data,
     };
 }
 
