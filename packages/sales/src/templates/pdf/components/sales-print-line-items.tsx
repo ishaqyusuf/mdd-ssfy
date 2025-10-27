@@ -1,6 +1,6 @@
 import { Text, View } from "@react-pdf/renderer";
 
-import { cn } from "@gnd/utils/react-email";
+import { cn } from "@gnd/utils/react-pdf";
 
 type SalesInvoiceTemplateProps = any;
 
@@ -9,7 +9,7 @@ export default function SalesPrintLineItems({
 }: SalesInvoiceTemplateProps) {
   if (sale.lineItems)
     return (
-      <View style={cn("uppercase")}>
+      <View style={cn("uppercase ")}>
         <View style={cn("w-full")}>
           <View style={cn("flex", "border border-gray-400 bg-slate-100")}>
             {sale.lineItems.heading.map((col) => (

@@ -1,6 +1,8 @@
 import { Text, View } from "@react-pdf/renderer";
 
-import { cn } from "@gnd/utils/react-email";
+import { cn } from "@gnd/utils/react-pdf";
+import { sum } from "@gnd/utils";
+import { colorsObject, hexToRgba } from "@gnd/utils/colors";
 
 export default function SalesPrintDoorItems({
   printData: sale,
@@ -10,50 +12,65 @@ export default function SalesPrintDoorItems({
   const doors = orderedPrinting?.[index]?.nonShelf;
   if (!doors) return null;
 
+  const width = (span, lns) =>
+    !span
+      ? `${100 - Number(sum(lns, "colSpan") * 5)}%`
+      : `${Number(span) * 5}%`;
+  // wm[String(span)];
   return (
-    <View style={cn("flex-col")}>
+    <View style={cn("flex-col border-x border-t text-sm")}>
       <Text
-        style={cn("text-sm p-2 uppercase bg-slate-200 border", {
+        style={cn("text-sm p-1 uppercase text-center bg-slate-200", {
           fontWeight: 700,
         })}
       >
         {doors?.sectionTitle}
       </Text>
 
-      <View style={cn("flex flex-wrap")}>
-        {doors.details
-          .filter(
-            (d) => d.value && !["Height"].includes(d.step?.title as string)
-          )
-          .map((detail, i) => (
-            <View
-              key={i}
-              style={cn("border border-red-400 col-span-2 w-1/2 flex")}
-            >
+      {!doors.details?.length || (
+        <View style={cn("flex uppercase flex-wrap")}>
+          {doors.details
+            .filter(
+              (d) => d.value && !["Height"].includes(d.step?.title as string)
+            )
+            .map((detail, i) => (
               <View
-                style={{
-                  ...cn("col-span-3 p-1 w-1/3 border-r-1"),
-                  fontWeight: 700,
-                }}
+                key={i}
+                style={cn(
+                  "col-span-2 border-t w-1/2 flex",
+                  i % 2 == 1 ? "border-l" : ""
+                )}
               >
-                <Text>{detail.step.title}</Text>
+                <View
+                  style={{
+                    ...cn("col-span-3 p-1 w-1/3 border-r"),
+                    fontWeight: 700,
+                  }}
+                >
+                  <Text>{detail.step.title}</Text>
+                </View>
+                <View style={cn("p-1 w-2/3")}>
+                  <Text>{detail.value}</Text>
+                </View>
               </View>
-              <View style={cn("p-1 w-2/3 px-4")}>
-                <Text>{detail.value}</Text>
-              </View>
-            </View>
-          ))}
-      </View>
+            ))}
+        </View>
+      )}
 
       {doors.lines?.length ? (
-        <View style={cn("flex-col")}>
+        <View style={cn("flex-col border-t")}>
           <View style={cn("flex")}>
             {doors.itemCells.map((cell, i) => (
               <View
                 key={i}
                 style={{
-                  ...cn("border px-4 py-2"),
-                  flex: cell.colSpan,
+                  ...cn(
+                    "p-1 font-semibold",
+                    i == doors.itemCells.length - 1 ? "" : "border-r uppercase"
+                  ),
+                  // flex: cell.colSpan,
+                  width: width(cell.colSpan, doors.itemCells),
+                  backgroundColor: hexToRgba(colorsObject.black, 0.2),
                 }}
               >
                 <Text>{cell.title}</Text>
@@ -62,13 +79,18 @@ export default function SalesPrintDoorItems({
           </View>
 
           {doors.lines.map((line, i) => (
-            <View key={i} style={cn("flex")}>
+            <View key={i} style={cn("flex border-t")}>
               {line.map((ld, ldi) => (
                 <View
                   key={ldi}
                   style={{
-                    ...cn("border px-4 py-2"),
-                    flex: ld.colSpan,
+                    ...cn(
+                      "p-1",
+                      ldi == line.length - 1 ? "" : "border-r uppercase"
+                    ),
+
+                    // flex: ld.colSpan,
+                    width: width(ld?.colSpan, line),
                   }}
                 >
                   {ld.value === "as-above" ? (

@@ -1,7 +1,7 @@
 import { env } from "process";
 import { Image, Text, View } from "@react-pdf/renderer";
 
-import { cn } from "@gnd/utils/react-email";
+import { cn } from "@gnd/utils/react-pdf";
 
 type SalesInvoiceTemplateProps = any;
 

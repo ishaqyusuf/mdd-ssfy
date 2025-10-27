@@ -1,7 +1,7 @@
 import { env } from "process";
 import { Image, Text, View } from "@react-pdf/renderer";
 
-import { cn, cva } from "@gnd/utils/react-email";
+import { cn, cva } from "@gnd/utils/react-pdf";
 
 type SalesInvoiceTemplateProps = any;
 
@@ -36,7 +36,7 @@ export default function SalesPrintHeader({
           <Text style={cn("text-sm font-mono$")}>support@gndmillwork.com</Text>
         </View>
         <View
-          style={cn("flex-col p-2", {
+          style={cn("flex-col p-2 text-sm", {
             width: "37.5%",
           })}
         >
@@ -53,7 +53,7 @@ export default function SalesPrintHeader({
           ))}
         </View>
       </View>
-      <View style={cn("flex")}>
+      <View style={cn("flex uppercase")}>
         {[sale?.address?.[0], null, sale?.address?.[1]].map(
           (address: any, index: number) => (
             <View
@@ -64,6 +64,7 @@ export default function SalesPrintHeader({
                   ? {}
                   : {
                       width: "37.5%",
+                      ...cn("border"),
                     }
               )}
             >
@@ -101,7 +102,7 @@ export default function SalesPrintHeader({
                   <View>
                     <Text
                       style={cn(
-                        "text-sm bg-slate-200 text-gray-700 border p-1 px-2",
+                        "text-sm border-b bg-slate-200 text-gray-700  p-1 px-2",
                         {
                           fontWeight: 700,
                         }
@@ -110,7 +111,7 @@ export default function SalesPrintHeader({
                       {address?.title}
                     </Text>
                   </View>
-                  <View style={{ ...cn("border p-2 flex-col") }}>
+                  <View style={{ ...cn("p-2 flex-col") }}>
                     {address?.lines?.map((line: string, idx: number) => (
                       <Text key={idx} style={cn("text-sm")}>
                         {line}
