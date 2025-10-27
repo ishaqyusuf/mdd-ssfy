@@ -119,7 +119,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
     } = form;
     // isSubmitting
     useEffect(() => {
-        // console.log(data);
+        console.log(data);
         if (!data || isPending) return;
         form.reset({
             sales: uniqueList(
