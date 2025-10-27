@@ -1,4 +1,3 @@
-import { Menu } from "@/components/(clean-code)/menu";
 import { useSalesMailer } from "@/hooks/use-sales-email-sender";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
@@ -22,6 +21,7 @@ import { toast } from "sonner";
 import { PaymentLinkMenuAction } from "./payment-link-menu-action";
 import { useSendSalesEmail } from "@/hooks/use-send-sales-email";
 import { SendSalesReminder } from "@/components/send-sales-reminder";
+import { Menu } from "@gnd/ui/custom/menu";
 export function GeneralActionBar({ type, salesNo, salesId }) {
     const mailer = useSalesMailer();
     const { data } = useSaleOverview();

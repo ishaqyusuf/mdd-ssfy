@@ -19,6 +19,7 @@ import {
     validateToken,
 } from "@gnd/utils/tokenizer";
 import { openLink } from "@/lib/open-link";
+import { Badge } from "@gnd/ui/badge";
 
 export function BatchActions({}) {
     const ctx = useTable();
@@ -60,7 +61,6 @@ export function BatchActions({}) {
                         />
                         <DropdownMenu.Separator />
                         <DropdownMenu.Group>
-                            <DropdownMenu.Label>V2</DropdownMenu.Label>
                             <Menu.Item
                                 icon="print"
                                 SubMenu={
@@ -75,10 +75,10 @@ export function BatchActions({}) {
                                         </Menu.Item>
                                     </>
                                 }
+                                shortCut={<>New</>}
                             >
                                 Print
                             </Menu.Item>
-                            <Menu.Item icon="pdf">PDF</Menu.Item>
                         </DropdownMenu.Group>
                     </>
                 }
