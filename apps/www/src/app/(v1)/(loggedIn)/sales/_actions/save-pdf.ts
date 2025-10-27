@@ -4,6 +4,7 @@ type SalesPrintModes =
     | "production"
     | "packing list"
     | "order"
+    | "order-packing"
     | "quote"
     | "invoice";
 export async function printSalesPdf(mode: SalesPrintModes, ids) {

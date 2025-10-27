@@ -10,6 +10,7 @@ import { ToastAction } from "@gnd/ui/toast";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
+import { toast } from "@gnd/ui/use-toast";
 
 type Props = {
     slug: string;
@@ -31,6 +32,11 @@ export function MenuItemSalesActions(props: Props) {
                 await resetSalesStatAction(result.id, props.slug);
         } catch (error) {}
         if (result.link) {
+            // toast({
+            //     variant: "success",
+            //     duration: 3000,
+            //     title: `Copied as ${as}`,
+            // });
             loader.success(`Copied as ${as}`, {
                 duration: 3000,
                 action: (
@@ -65,12 +71,13 @@ export function MenuItemSalesActions(props: Props) {
                 onOpenMenu={props.setMenuOpen}
                 type={props?.type as any}
             />
-            <MenuItemPrintAction
-                slug={props?.slug}
-                onOpenMenu={props.setMenuOpen}
-                type={props?.type as any}
-                pdf
-            />
+            {!props.id || (
+                <MenuItemPrintAction
+                    onOpenMenu={props.setMenuOpen}
+                    type={props?.type as any}
+                    salesIds={[props.id]}
+                />
+            )}
             <MenuItemSalesCopy
                 slug={props?.slug}
                 onOpenMenu={props.setMenuOpen}

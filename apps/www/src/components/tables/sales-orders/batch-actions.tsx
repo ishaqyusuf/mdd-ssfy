@@ -26,24 +26,9 @@ export function BatchActions({}) {
     const slugs = useMemo(() => {
         return ctx.selectedRows?.map((r) => (r.original as any)?.orderId);
     }, [ctx.selectedRows]);
-
+    const salesIds = ctx.selectedRows?.map((c) => c?.original?.id);
     if (!ctx.selectedRows?.length) return null;
-    const gen = async () => {
-        const salesIds = ctx.selectedRows?.map((c) => c?.original?.id);
-        const tok = await generateToken({
-            salesIds,
-            expiry: addDays(new Date(), 7).toISOString(),
-            mode: "order" as SalesPrintModes,
-        } satisfies SalesPdfToken);
-        openLink(
-            `/api/download/sales`,
-            {
-                token: tok,
-                preview: true,
-            },
-            true
-        );
-    };
+
     return (
         <BatchAction>
             <BatchBtn
@@ -54,31 +39,18 @@ export function BatchActions({}) {
                             slug={slugs.join(",")}
                             type="order"
                         />
-                        <MenuItemPrintAction
-                            slug={slugs.join(",")}
-                            type="quote"
-                            pdf
-                        />
+
                         <DropdownMenu.Separator />
                         <DropdownMenu.Group>
-                            <Menu.Item
-                                icon="print"
-                                SubMenu={
-                                    <>
-                                        <Menu.Item
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                gen();
-                                            }}
-                                        >
-                                            Customer Copy
-                                        </Menu.Item>
-                                    </>
-                                }
-                                shortCut={<>New</>}
-                            >
-                                Print
-                            </Menu.Item>
+                            <MenuItemPrintAction
+                                slug={slugs.join(",")}
+                                type="quote"
+                                pdf
+                            />
+                            <MenuItemPrintAction
+                                type="order"
+                                salesIds={salesIds}
+                            />
                         </DropdownMenu.Group>
                     </>
                 }

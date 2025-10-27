@@ -1,3 +1,4 @@
+import { generateToken } from "@/actions/token-action";
 import { SalesType } from "@/app/(clean-code)/(sales)/types";
 import { env } from "@/env.mjs";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
@@ -5,6 +6,9 @@ import { openLink } from "@/lib/open-link";
 import { timeout } from "@/lib/timeout";
 import { SalesPrintProps } from "@/utils/sales-print-utils";
 import { Menu } from "@gnd/ui/custom/menu";
+import { SalesPdfToken } from "@gnd/utils/tokenizer";
+import { SalesPrintModes } from "@sales/constants";
+import { addDays } from "date-fns";
 import QueryString from "qs";
 
 interface Props {
@@ -12,12 +16,32 @@ interface Props {
     type: SalesType;
     onOpenMenu?;
     // salesId;
-    slug;
+    slug?;
+    salesIds?: number[];
 }
 export function MenuItemPrintAction(props: Props) {
     const loader = useLoadingToast();
     const { type, slug, pdf, onOpenMenu } = props;
     async function print(e, params?: SalesPrintProps) {
+        if (props.salesIds) {
+            const tok = await generateToken({
+                salesIds: props.salesIds,
+                expiry: addDays(new Date(), 7).toISOString(),
+                mode: "order" as SalesPrintModes,
+
+                // mode: props.type
+            } satisfies SalesPdfToken);
+            openLink(
+                `/api/download/sales`,
+                {
+                    token: tok,
+                    preview: true,
+                },
+                true
+            );
+            onOpenMenu?.(false);
+            return;
+        }
         const query = {
             slugs: slug,
             mode: type,
@@ -62,6 +86,7 @@ export function MenuItemPrintAction(props: Props) {
     return (
         <Menu.Item
             icon={pdf ? "pdf" : "print"}
+            shortCut={!props.salesIds?.length || <>New</>}
             SubMenu={
                 <>
                     <Menu.Item
