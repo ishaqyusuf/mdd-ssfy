@@ -36,8 +36,33 @@ export async function generateLegacyPrintData(
         dispatchId: tokenData.dispatchId,
       }
     );
+
+    const {
+      doors,
+      address,
+      footer,
+      headerTitle,
+      heading,
+      isEstimate,
+      isOrder,
+      shelfItemsTable,
+      orderedPrinting,
+    } = data;
     return {
-      pageData: data,
+      pageData: {
+        doors,
+        address,
+        footer,
+        headerTitle,
+        heading,
+        isEstimate,
+        isOrder,
+        shelfItemsTable,
+        orderedPrinting,
+        order: {
+          id: data?.order?.id,
+        },
+      },
       orderNo: s?.orderId,
     };
   });
@@ -246,7 +271,7 @@ function shelfItemsTable(
         { position: "left" },
         { position: "left" }
       ),
-      _cell<T>("Qty", "qty", 2, { position: "center" }, { position: "center" }),
+      _cell<T>("Qty", "qty", 1, { position: "center" }, { position: "center" }),
     ],
   };
   if (price)
@@ -413,14 +438,15 @@ function getDoorsTable(
                   _cell(
                     "Items",
                     "moulding",
-                    price ? 4 : isPacking ? 7 : 10,
+                    // price ? 4 : isPacking ? 7 : 10,
+                    null as any,
                     { position: "left" },
                     { position: "left" }
                   ),
                   _cell(
                     "Qty",
                     "qty",
-                    2,
+                    1.5,
                     { position: "center" },
                     { position: "center" }
                   ),
@@ -431,7 +457,8 @@ function getDoorsTable(
                         _cell(
                           "Description",
                           "description",
-                          price ? 4 : isPacking ? 7 : 10,
+                          // price ? 4 : isPacking ? 7 : 10,
+                          null as any,
                           { position: "left" },
                           { position: "left" }
                         ),
@@ -440,14 +467,15 @@ function getDoorsTable(
                         _cell(
                           "Door",
                           "door",
-                          price ? 4 : isPacking ? 7 : 10,
+                          // price ? 4 : isPacking ? 7 : 10,
+                          null as any,
                           { position: "left" },
                           { position: "left" }
                         ),
                         _cell(
                           "Size",
                           "dimension",
-                          2,
+                          3,
                           { position: "left" },
                           { position: "left" }
                         ),
@@ -459,23 +487,23 @@ function getDoorsTable(
                         _cell(
                           "Qty",
                           "qty",
-                          2,
+                          1.5,
                           { position: "center" },
                           { position: "center" }
                         ),
                       ]
                     : [
                         _cell(
-                          "Left Hand",
+                          "LH",
                           "lhQty",
-                          2,
+                          1.5,
                           { position: "center" },
                           { position: "center" }
                         ),
                         _cell(
-                          "Right Hand",
+                          "RH",
                           "rhQty",
-                          2,
+                          1.5,
                           { position: "center" },
                           { position: "center" }
                         ),
@@ -489,14 +517,14 @@ function getDoorsTable(
               _cell(
                 "Rate",
                 "unitPrice",
-                3,
+                2,
                 { position: "right" },
                 { position: "right" }
               ),
               _cell(
                 "Total",
                 "lineTotal",
-                3,
+                2,
                 { position: "right" },
                 { position: "right", font: "bold" }
               ),
@@ -524,7 +552,10 @@ function getDoorsTable(
                       (s) => s == t.step.title
                     )
                 ),
-              ];
+              ].map((v) => {
+                v.step.title = transformStepTitle(v.step.title);
+                return v;
+              });
         const lines: any = [];
         const _multies = data.order.items.filter(
           (i) =>
@@ -553,7 +584,9 @@ function getDoorsTable(
                   ?.split("x")
                   ?.map((a) => ftToIn(a?.trim())?.replaceAll("in", '"'))
                   .join(" x ");
-                return [`${door.dimension}`, `(${dimIn})`];
+                if (!price) return door.dimension;
+                return dimIn;
+              //  return [`${door.dimension}`, `(${dimIn})`];
 
               case "moulding":
                 return (
@@ -622,7 +655,7 @@ function getDoorsTable(
           _index: item?.meta?.lineIndex,
           doorType: item.meta.doorType,
           sectionTitle: item.dykeDescription || item.meta.doorType,
-          details: details,
+          details,
           itemCells: res.cells,
           lines,
           // : true
@@ -679,7 +712,7 @@ function lineItems(data: PrintData, { isProd, isPacking }) {
   if (totalLines < 0) return null;
   const heading = [
     header("#", 1),
-    header("Description", 8),
+    header("Description", null as any),
     header("Swing", 2),
     header("Qty", 1),
   ];
@@ -970,3 +1003,11 @@ const salesTaxByCode: { [id in TaxCodes]: SalesTaxes } = {
   A: salesTaxes[0],
   B: salesTaxes[1],
 };
+
+function transformStepTitle(t) {
+  return (
+    {
+      "door configuration": "Config",
+    }[t?.toLowerCase()?.split(" ")?.filter(Boolean)?.join(" ")] || t
+  );
+}

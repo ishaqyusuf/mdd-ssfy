@@ -4,22 +4,20 @@ import { Icons } from "@gnd/ui/icons";
 import { useState, useTransition } from "react";
 import { useEffect } from "react";
 import { useQuery } from "@gnd/ui/tanstack";
-import { useSendSalesEmail } from "@/hooks/use-send-sales-email";
 import { useFieldArray } from "react-hook-form";
 
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { SendSalesEmailPayload, SendSalesReminderPayload } from "@jobs/schema";
-import { calculatePercentile } from "@/lib/request/percentile";
+import { SendSalesReminderPayload } from "@jobs/schema";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { _trpc } from "@/components/static-trpc";
-import z, { nullable } from "zod";
+import z from "zod";
 import { formatMoney, percentageValue, sum, uniqueList } from "@gnd/utils";
 import { Form } from "@gnd/ui/form";
 import { Label } from "@gnd/ui/label";
 import { ButtonGroup } from "@gnd/ui/button-group";
 import { useAuth } from "@/hooks/use-auth";
 import { SalesPaymentTokenSchema, SalesPdfToken } from "@gnd/utils/tokenizer";
-import { generateToken, validateTokenAction } from "@/actions/token-action";
+import { generateToken } from "@/actions/token-action";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { addDays } from "date-fns";
 import { SalesPrintModes } from "@sales/constants";
@@ -83,6 +81,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                           amount: sale.amount,
                       } satisfies SalesPaymentTokenSchema)
                     : null;
+                console.log({ paymentToken });
                 payload.sales.push({
                     type: sale.type,
                     salesIds: sale.ids,
@@ -92,6 +91,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                     paymentToken,
                 });
             }
+            return;
             trigger.trigger({
                 taskName: "send-sales-reminder",
                 payload,
