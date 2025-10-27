@@ -49,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 })
             );
             const v = validatePath(pathname, validLinks.linksNameMap);
+            console.log({ v });
             if (!v?.hasAccess && v?.name) router.replace("/");
         }
     }, [pathname, auth]);

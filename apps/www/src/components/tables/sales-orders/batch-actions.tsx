@@ -20,6 +20,7 @@ import {
 } from "@gnd/utils/tokenizer";
 import { openLink } from "@/lib/open-link";
 import { Badge } from "@gnd/ui/badge";
+import { SuperAdminGuard } from "@/components/auth-guard";
 
 export function BatchActions({}) {
     const ctx = useTable();
@@ -47,10 +48,12 @@ export function BatchActions({}) {
                                 type="quote"
                                 pdf
                             />
-                            <MenuItemPrintAction
-                                type="order"
-                                salesIds={salesIds}
-                            />
+                            <SuperAdminGuard>
+                                <MenuItemPrintAction
+                                    type="order"
+                                    salesIds={salesIds}
+                                />
+                            </SuperAdminGuard>
                         </DropdownMenu.Group>
                     </>
                 }

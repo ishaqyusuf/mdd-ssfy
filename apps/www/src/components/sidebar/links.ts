@@ -260,10 +260,13 @@ export const linkModules = [
                     // _perm.is("editProject"),
                     _perm.is("editProject")
                 ).data,
-                _subLink("Units", "/community/project-units").access(
-                    // _perm.is("editProject"),
-                    _perm.is("editProject")
-                ).data,
+                _subLink("Units", "/community/project-units")
+                    .access(
+                        // _perm.is("editProject"),
+                        _perm.is("editProject")
+                    )
+                    .childPaths("/settings/community/community-template/slug")
+                    .data,
                 _subLink("Productions", "/community/project-units")
                     .access
                     // _perm.is("editProject"),

@@ -11,6 +11,7 @@ import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { toast } from "@gnd/ui/use-toast";
+import { SuperAdminGuard } from "./auth-guard";
 
 type Props = {
     slug: string;
@@ -71,13 +72,15 @@ export function MenuItemSalesActions(props: Props) {
                 onOpenMenu={props.setMenuOpen}
                 type={props?.type as any}
             />
-            {!props.id || (
-                <MenuItemPrintAction
-                    onOpenMenu={props.setMenuOpen}
-                    type={props?.type as any}
-                    salesIds={[props.id]}
-                />
-            )}
+            <SuperAdminGuard>
+                {!props.id || (
+                    <MenuItemPrintAction
+                        onOpenMenu={props.setMenuOpen}
+                        type={props?.type as any}
+                        salesIds={[props.id]}
+                    />
+                )}
+            </SuperAdminGuard>
             <MenuItemSalesCopy
                 slug={props?.slug}
                 onOpenMenu={props.setMenuOpen}
