@@ -280,21 +280,20 @@ export const linkModules = [
                         // _perm.is("editProject"),
                         _perm.is("editProject")
                     ).data,
-                    _subLink("Units", "/community/project-units")
-                        .access(
-                            // _perm.is("editProject"),
-                            _perm.is("editProject")
-                        )
-                        .childPaths(
-                            "/settings/community/community-template/slug"
-                        ).data,
+                    _subLink("Units", "/community/project-units").access(
+                        // _perm.is("editProject"),
+                        _perm.is("editProject")
+                    ).data,
                     _subLink("Productions", "/community/project-units")
                         .access
                         // _perm.is("editProject"),
                         ().data,
-                    _subLink("Templates", "/community/templates").access(
-                        _perm.is("editProject")
-                    ).data,
+                    _subLink("Templates", "/community/templates")
+                        .access(_perm.is("editProject"))
+                        .childPaths(
+                            "/settings/community/community-template/slug",
+                            "/community/community-template/slug"
+                        ).data,
                     _subLink("Invoices", "/community/unit-invoices").access(
                         // _perm.is("editProject"),
                         _perm.in("viewInvoice")
