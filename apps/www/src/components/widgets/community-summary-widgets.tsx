@@ -3,6 +3,8 @@ import { SummaryCardSkeleton } from "../summary-card";
 import { CommunityTotalProjects } from "../community-total-projects";
 import { CommunityHomesSummary } from "../community-homes-summary";
 import { batchPrefetch } from "@/trpc/server";
+import { CommunitySummaryBuilders } from "../community-summary-builders";
+import { CommunitySummaryTemplates } from "../community-summary-templates";
 
 export default async function CommunitySummaryWidgets() {
     batchPrefetch([]);
@@ -15,10 +17,10 @@ export default async function CommunitySummaryWidgets() {
                 <CommunityHomesSummary />
             </Suspense>
             <Suspense fallback={<SummaryCardSkeleton />}>
-                <CommunityHomesSummary />
+                <CommunitySummaryTemplates />
             </Suspense>
             <Suspense fallback={<SummaryCardSkeleton />}>
-                <CommunityHomesSummary />
+                <CommunitySummaryBuilders />
             </Suspense>
         </div>
     );

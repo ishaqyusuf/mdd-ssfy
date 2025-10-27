@@ -418,7 +418,7 @@ export async function _addMissingPivotToModelCosts(prisma: Db) {
   );
 }
 export const communitySummarySchema = z.object({
-  type: z.enum(["projects", "units"]),
+  type: z.enum(["projects", "units", "builders", "templates"]),
 });
 export type CommunitySummary = z.infer<typeof communitySummarySchema>;
 export async function communitySummary(
@@ -441,6 +441,22 @@ export async function communitySummary(
       });
       return {
         value: inv,
+        // subtitle: `Total community units`,
+      };
+    case "builders":
+      const builders = await db.builders.count({
+        where: {},
+      });
+      return {
+        value: builders,
+        // subtitle: `Total community units`,
+      };
+    case "templates":
+      const t = await db.communityModels.count({
+        where: {},
+      });
+      return {
+        value: t,
         // subtitle: `Total community units`,
       };
   }

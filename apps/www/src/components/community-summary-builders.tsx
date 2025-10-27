@@ -4,25 +4,22 @@ import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { InventorySummary } from "./inventory-summary";
 import { Package } from "lucide-react";
 import NumberFlow from "@number-flow/react";
-import { cn } from "@gnd/ui/cn";
-import { _path, _pathIs } from "./static-trpc";
-import Link from "next/link";
-import { useMemo } from "react";
 import { SummaryCardLink } from "./summary-card-link";
 
-export function CommunityTotalProjects() {
+export function CommunitySummaryBuilders() {
     const trpc = useTRPC();
     const { data } = useSuspenseQuery(
         trpc.community.communitySummary.queryOptions({
-            type: "projects",
+            type: "builders",
         })
     );
+
     return (
         <SummaryCardLink
-            path="/community"
+            path="/community/builders"
             summaryProps={{
                 Icon: Package,
-                title: "Projects",
+                title: "Builders",
                 value: <NumberFlow value={data?.value} />,
                 subtitle: data?.subtitle,
             }}

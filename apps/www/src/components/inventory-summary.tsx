@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { cn } from "@gnd/ui/cn";
 
-interface Props {
+export interface SummaryProps {
     Icon;
     title: string;
     subtitle;
@@ -9,12 +9,12 @@ interface Props {
     selected?;
     selectable?: boolean;
 }
-export function InventorySummary(props: Props) {
+export function InventorySummary(props: SummaryProps) {
     return (
         <Card
             className={cn(
                 props.selected ? "bg-primary text-secondary" : "",
-                props.selectable && "hover:border-primary hover:bg-primary/20",
+                props.selectable && "hover:border-primary hover:bg-primary/20"
             )}
         >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
