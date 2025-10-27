@@ -3,21 +3,22 @@ import { timeout } from "@gnd/utils";
 import createContextFactory from "../utils/context-factory";
 import { isArrayParser } from "@gnd/utils";
 
-import { parseAsArrayOf, parseAsString, useQueryStates } from "nuqs";
 import { useEffect, useState } from "react";
 
 interface Props {
   filterSchema?: Partial<Record<string, any>>;
+  filters;
+  setFilters;
 }
 export const {
   Provider: SearchFilterProvider,
   useContext: useSearchFilterContext,
-} = createContextFactory(({ filterSchema }: Props) => {
+} = createContextFactory(({ filterSchema, filters, setFilters }: Props) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const [filters, setFilters] = useQueryStates(filterSchema, {
-    // shallow: false,
-  });
+  // const [filters, setFilters] = useQueryStates(filterSchema, {
+  //   // shallow: false,
+  // });
   const [hasFilter, setHasFilter] = useState(false);
   useEffect(() => {
     timeout(1000).then((e) => {
@@ -36,8 +37,8 @@ export const {
       [qk]: !isArray
         ? value
         : filters?.[qk]?.includes(value)
-          ? filters?.[qk].filter((s) => s !== value)
-          : [...(filters?.[qk] ?? []), value],
+        ? filters?.[qk].filter((s) => s !== value)
+        : [...(filters?.[qk] ?? []), value],
     });
   }
   return {

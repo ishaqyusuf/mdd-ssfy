@@ -52,17 +52,6 @@ export function PayPortalTab({}) {
     );
 }
 
-function PayPortalContent() {
-    const query = useCustomerOverviewQuery();
-    const { data, error, isPending } = useSuspenseQuery(
-        _trpc.customers.getCustomerPayPortal.queryOptions({
-            accountNo: query?.params?.accountNo,
-        })
-    );
-
-    useDebugToast("PayPortalContent data", error, data);
-    return <></>;
-}
 function Content() {
     const {
         data,
