@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
     if (!payload) notFound();
     const printData = await generateLegacyPrintData(db, payload);
     const title = printData.map((a) => a.orderNo).join("-");
+    const safeTitle = title.replace(/[^\w\-]+/g, "_");
     const {
         // id, token,
         preview,
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest) {
     const stream = await renderToStream(
         await PdfTemplate({
             pages,
-            title,
+            title: safeTitle,
             template: {
                 size: "A4",
             },
@@ -62,7 +63,11 @@ export async function GET(req: NextRequest) {
     };
 
     if (!preview) {
-        headers["Content-Disposition"] = `attachment; filename="${title}.pdf"`;
+        headers[
+            "Content-Disposition"
+        ] = `attachment; filename="${safeTitle}.pdf"`;
+    } else {
+        headers["Content-Disposition"] = `inline; filename="${safeTitle}.pdf"`;
     }
 
     return new Response(blob, { headers });
