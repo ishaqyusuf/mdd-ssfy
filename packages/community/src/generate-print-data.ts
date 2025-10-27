@@ -9,7 +9,7 @@ import {
   SchemaData,
   TemplateFormService,
 } from "./services/template-form-service";
-import { consoleLog, dotObject } from "@gnd/utils";
+import { dotObject } from "@gnd/utils";
 
 interface Props {
   homeIds: number[];

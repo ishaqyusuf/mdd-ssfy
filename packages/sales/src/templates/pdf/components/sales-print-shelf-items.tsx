@@ -1,7 +1,8 @@
-import { env } from "process";
-import { Image, Text, View } from "@react-pdf/renderer";
+import { Text, View } from "@react-pdf/renderer";
 
 import { cn } from "@gnd/utils/react-pdf";
+import { colorsObject, hexToRgba } from "@gnd/utils/colors";
+import { sum } from "@gnd/utils";
 
 type SalesInvoiceTemplateProps = any;
 
@@ -13,40 +14,52 @@ export default function SalesPrintShelfItems({
   const shelf = sale.orderedPrinting?.[index]?.shelf;
   if (!shelf) return null;
   if (!sale.shelfItemsTable) return null;
-
+  const width = (span, lns) =>
+    !span
+      ? `${100 - Number(sum(lns, "colSpan") * 5)}%`
+      : `${Number(span) * 5}%`;
   return (
-    <View style={cn("my-4")}>
-      <View style={cn("table-fixed w-full border")}>
-        <View style={cn("flex")}>
-          <Text
-            style={cn("p-2 text-start uppercase text-base bg-slate-200")}
-            // Replaced colSpan with a flex structure
-          >
-            Shelf Items
-          </Text>
-        </View>
-
-        {/* Header row for shelf cells */}
+    <View style={cn("flex-col border-x border-t text-sm")}>
+      <Text
+        style={cn("text-sm p-1 uppercase text-center bg-slate-200", {
+          fontWeight: 700,
+        })}
+      >
+        Shelf Items
+      </Text>
+      <View style={cn("flex-col border-t")}>
         <View style={cn("flex")}>
           {shelf?.cells?.map((cell, i) => (
             <View
               key={i}
-              style={cn("border px-2", "flex-1")} // Use flex-1 to distribute space evenly
+              style={{
+                ...cn(
+                  "p-1 font-semibold",
+                  i == shelf?.cells?.length - 1 ? "" : "border-r uppercase"
+                ),
+                // flex: cell.colSpan,
+                width: width(cell.colSpan, shelf?.cells),
+                backgroundColor: hexToRgba(colorsObject.black, 0.2),
+              }}
             >
-              <Text {...cell.style}>{cell.title}</Text>
+              <Text>{cell.title}</Text>
             </View>
           ))}
         </View>
-
-        {/* Data rows for shelf items */}
-        {shelf?._shelfItems?.map((cells, i) => (
-          <View key={i} style={cn("flex")}>
-            {cells.map((cel, i) => (
+        {shelf?._shelfItems?.map((line, li) => (
+          <View key={li} style={cn("flex border-t")}>
+            {line.map((cell, ci) => (
               <View
-                key={`a-${i}`}
-                style={cn("border px-2", "flex-1")} // Use flex-1 to distribute space evenly
+                key={`a-${ci}`}
+                style={{
+                  ...cn(
+                    "p-1",
+                    ci == line.length - 1 ? "" : "border-r uppercase"
+                  ),
+                  width: width(cell?.colSpan, line),
+                }} // Use flex-1 to distribute space evenly
               >
-                <Text {...cel.style}>{cel.value}</Text>
+                <Text {...cell.style}>{cell.value}</Text>
               </View>
             ))}
           </View>

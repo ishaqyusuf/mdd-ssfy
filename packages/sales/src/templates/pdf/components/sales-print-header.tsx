@@ -70,32 +70,34 @@ export default function SalesPrintHeader({
             >
               {index == 1 ? (
                 <View style={cn("relative")}>
-                  <View
-                    style={cn("flex-col", {
-                      position: "absolute",
-                      top: -20,
-                      left: 40,
-                      transform: "rotate(-45deg)",
-                      fontSize: 72,
-                      lineHeight: 1,
-                      fontWeight: 700,
-                      color: "rgba(255, 0, 0, 0.3)",
-                      textAlign: "center",
-                    })}
-                  >
-                    <Text
-                      style={{
-                        fontSize: "3rem",
+                  {!sale?.paymentDate || (
+                    <View
+                      style={cn("flex-col", {
+                        position: "absolute",
+                        top: -55,
+                        left: 15,
+                        transform: "rotate(-45deg)",
+                        fontSize: 55,
+                        lineHeight: 1,
                         fontWeight: 700,
+                        color: "rgba(255, 0, 0, 0.3)",
                         textAlign: "center",
-                      }}
+                      })}
                     >
-                      Paid
-                    </Text>
-                    <Text style={{ fontSize: 24, lineHeight: "32px" }}>
-                      {sale.paymentDate}
-                    </Text>
-                  </View>
+                      <Text
+                        style={{
+                          fontSize: "2.5rem",
+                          fontWeight: 700,
+                          textAlign: "center",
+                        }}
+                      >
+                        Paid
+                      </Text>
+                      <Text style={{ fontSize: 24, lineHeight: "15px" }}>
+                        {sale.paymentDate}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               ) : (
                 <>

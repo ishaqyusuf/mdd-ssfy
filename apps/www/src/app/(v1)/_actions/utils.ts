@@ -3,7 +3,6 @@
 import { prisma } from "@/db";
 import { authOptions } from "@/lib/auth-options";
 import { IUser } from "@/types/hrm";
-import { consoleLog } from "@gnd/utils";
 import { hash } from "bcrypt-ts";
 import { getServerSession } from "next-auth";
 

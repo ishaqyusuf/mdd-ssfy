@@ -7,7 +7,6 @@ import { PdfTemplate } from "@sales/templates/pdf";
 import { validateTokenAction } from "@/actions/token-action";
 import { notFound } from "next/navigation";
 import { db } from "@gnd/db";
-import { consoleLog } from "@gnd/utils";
 const paramsSchema = z.object({
     // id: z.string().uuid().optional(),
     // token: z.string().optional(),
@@ -26,7 +25,7 @@ export async function GET(req: NextRequest) {
         result.data.token,
         "salesPdfToken"
     );
-    consoleLog("PAYLOAD", payload);
+
     if (!payload) notFound();
     const printData = await generateLegacyPrintData(db, payload);
 

@@ -24,7 +24,6 @@ import { copySales } from "@sales/copy-sales";
 import { authUser } from "@/app/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { createNoteAction } from "@/modules/notes/actions/create-note-action";
-import { consoleLog } from "@gnd/utils";
 export type GetSalesBookForm = AsyncFnType<typeof getSalesBookFormUseCase>;
 export async function getSalesBookFormUseCase(data: GetSalesBookFormDataProps) {
     const result = await getTransformedSalesBookFormDataDta(data);
@@ -41,7 +40,7 @@ async function composeBookForm<T>(data: T) {
     };
 }
 export async function createSalesBookFormUseCase(
-    data: GetSalesBookFormDataProps,
+    data: GetSalesBookFormDataProps
 ) {
     const resp = await createSalesBookFormDataDta(data);
     return await composeBookForm(resp);
@@ -53,7 +52,7 @@ export async function saveSalesSettingUseCase(meta) {
 export async function saveFormUseCase(
     data: SalesFormFields,
     oldFormState?: SalesFormFields,
-    query?: SaveQuery,
+    query?: SaveQuery
     // allowRedirect = true
 ) {
     if (!oldFormState)
@@ -101,7 +100,6 @@ export async function copySalesUseCase(orderId, as: SalesType) {
             },
         ],
     });
-    consoleLog("Copy action", resp2);
     const link = resp2?.isDyke ? `/sales-book/edit-${as}/${resp2.slug}` : ``;
 
     return {

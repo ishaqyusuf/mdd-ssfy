@@ -13,7 +13,6 @@ import {
 import { getSaleInformation } from "./get-sale-information";
 import { noteTag, saveNote, SaveNoteSchema } from "@gnd/utils/note";
 import { pickQtyFrom, recomposeQty } from "../utils/sales-control";
-import { consoleLog } from "@gnd/utils";
 export async function submitAllTask(db: Db, data: UpdateSalesControl) {
   const submitArgs = data.submitAll;
   const info = await getSaleInformation(db, {
@@ -46,12 +45,7 @@ export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
         recomposeQty(s.qty as any),
         recomposeQty(item.analytics.assignment.pending)
       );
-      consoleLog("Job Error", {
-        pendingPick,
-        picked,
-        remainder,
-        item,
-      });
+
       if (picked) {
         // picked.lh
         createAssignments.push({
@@ -63,7 +57,6 @@ export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
   }
   if (createAssignments.length != payload?.selections?.length) {
     if (!payload?.retries) {
-      consoleLog("RETRYING>>>>>");
       await resetSalesAction(db, data.meta.salesId);
       return createAssignmentsTask(db, {
         ...data,
@@ -75,9 +68,6 @@ export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
     }
   }
   if (!createAssignments.length) {
-    consoleLog("Job Error", {
-      payload,
-    });
     throw new Error("Unable to complete, nothing to submit!");
   }
   await db.$transaction(

@@ -21,6 +21,7 @@ import salesFormUtils from "../../(loggedIn)/sales/edit/sales-form-utils";
 import { PrintTextProps } from "../components/print-text";
 import { SalesPrintProps } from "./page";
 import { Note } from "@gnd/utils/note";
+import { consoleLog } from "@gnd/utils";
 
 type PrintData = {
     order: ViewSaleType;

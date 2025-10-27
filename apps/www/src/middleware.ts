@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLinkModules, validateLinks } from "./components/sidebar/links";
-import { consoleLog } from "@gnd/utils";
-import { getToken } from "next-auth/jwt";
 
 export const config = {
     matcher: [
@@ -61,12 +59,10 @@ export default async function middleware(req: NextRequest) {
     //     })
     // );
     // // const matched = validLinks.linksNameMap[pathName];
-    // // if (matched) {
-    // //     consoleLog("matched link", matched);
-    // // }
+
     // const v = validatePath(pathName, validLinks.linksNameMap);
     // // const prev = req.headers.get("referer");
-    // // consoleLog("->", { v, pathName, linkMap: validLinks.linksNameMap, prev });
+
     // if (!v?.hasAccess) {
     //     // if (prev) {
     //     return NextResponse.redirect(new URL("/", req.url));

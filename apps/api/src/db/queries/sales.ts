@@ -27,7 +27,7 @@ import {
   itemItemControlUid,
   mouldingItemControlUid,
 } from "@api/utils/sales-control";
-import { consoleLog, formatCurrency } from "@gnd/utils";
+import { formatCurrency } from "@gnd/utils";
 import { calculateSalesDueAmount } from "@sales/sales-transaction";
 
 export async function getSales(

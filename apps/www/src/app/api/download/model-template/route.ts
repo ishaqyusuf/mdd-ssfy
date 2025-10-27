@@ -6,7 +6,6 @@ import { db } from "@gnd/db";
 import { generatePrintData } from "@community/generate-print-data";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { consoleLog } from "@gnd/utils";
 
 const paramsSchema = z.object({
     // id: z.string().uuid().optional(),

@@ -7,10 +7,14 @@ import {
   SalesIncludeAll,
 } from "./utils/utils";
 import { formatDate } from "@gnd/utils/dayjs";
-import { formatCurrency, sum } from "@gnd/utils";
+import { consoleLog, formatCurrency as _formatCurrency, sum } from "@gnd/utils";
 import { AddressBookMeta, CustomerMeta } from "./types";
 import { SalesPrintModes } from "./constants";
 
+function formatCurrency(value) {
+  const v = _formatCurrency(value);
+  return `$${v}`;
+}
 export async function generateLegacyPrintData(
   db: Db,
   tokenData: SalesPdfToken
@@ -47,6 +51,7 @@ export async function generateLegacyPrintData(
       isOrder,
       shelfItemsTable,
       orderedPrinting,
+      paymentDate,
     } = data;
     return {
       pageData: {
@@ -59,6 +64,7 @@ export async function generateLegacyPrintData(
         isOrder,
         shelfItemsTable,
         orderedPrinting,
+        paymentDate,
         order: {
           id: data?.order?.id,
         },
@@ -267,11 +273,18 @@ function shelfItemsTable(
       _cell<T>(
         "Item",
         "description",
-        price ? 7 : isPacking ? 11 : 14,
+        // price ? 7 : isPacking ? 11 : 14,
+        null as any,
         { position: "left" },
         { position: "left" }
       ),
-      _cell<T>("Qty", "qty", 1, { position: "center" }, { position: "center" }),
+      _cell<T>(
+        "Qty",
+        "qty",
+        1.2,
+        { position: "center" },
+        { position: "center" }
+      ),
     ],
   };
   if (price)
@@ -697,11 +710,10 @@ function lineItems(data: PrintData, { isProd, isPacking }) {
       }
       return item;
     });
-
   const uids = lineItems
     .map((item) => {
       let uid = item.meta.uid;
-
+      consoleLog("META: ", item.meta);
       return uid;
     })
     .filter((d) => d > -1);
@@ -709,6 +721,7 @@ function lineItems(data: PrintData, { isProd, isPacking }) {
   const maxIndex = Math.max(...uids);
   const totalLines = maxIndex ? maxIndex + 1 : lineItems?.length;
 
+  consoleLog("COMPOSING LINES", { totalLines, uids, maxIndex });
   if (totalLines < 0) return null;
   const heading = [
     header("#", 1),
@@ -720,6 +733,7 @@ function lineItems(data: PrintData, { isProd, isPacking }) {
   if (isPacking) heading.push(header("Packed Qty", 1));
   if (!noInvoice) heading.push(...[header("Rate", 2), header("Total", 2)]);
   let sn = 0;
+
   const lines = Array(totalLines)
     .fill(null)
     .map((_, index) => {
@@ -779,6 +793,8 @@ function lineItems(data: PrintData, { isProd, isPacking }) {
         cells,
       };
     });
+
+  consoleLog("LINE ITEMS::", { lines });
   if (lines.length)
     return {
       lines,

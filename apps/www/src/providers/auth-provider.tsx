@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getLinkModules, validateLinks } from "@/components/sidebar/links";
 import { useAuth } from "@/hooks/use-auth";
-import { consoleLog } from "@gnd/utils";
 
 const publicRoutes = [
     "/login",
@@ -24,9 +23,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (auth?.isPending) return;
 
         const isPublic = publicRoutes.some((p) => pathname.includes(p));
-        consoleLog("AUTH", { isPublic, auth, pathname });
+
         if (!isPublic && !auth?.id) {
-            consoleLog("AUTH->>>", { isPublic, auth });
             router.replace(`/login?return_to=${pathname}`);
             return;
         }

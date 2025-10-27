@@ -123,11 +123,7 @@ export async function PdfTemplate(props: Props) {
                 {["Employee Sig. & Date", "Customer Sig. & Date"].map(
                   (label) => (
                     <View key={label} style={cn("w-1/4")}>
-                      <View
-                        style={cn(
-                          "border-b h-10 border-dashed border-gray-500"
-                        )}
-                      />
+                      <View style={cn("border-b h-10 border-dashed ")} />
                       <Text style={cn("mt-1 italic font-semibold")}>
                         {label}
                       </Text>

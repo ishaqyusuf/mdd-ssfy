@@ -16,7 +16,6 @@ import {
 } from "@gnd/utils/query-response";
 import { INVENTORY_STATUS, StockModes } from "./constants";
 import {
-  consoleLog,
   formatMoney,
   generateRandomNumber,
   generateRandomString,

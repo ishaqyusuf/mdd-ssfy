@@ -143,8 +143,8 @@ export function getItemStatConfig({ setting, ...props }: ItemStatConfigProps) {
         production: isService
           ? props.dykeProduction
           : props?.prodOverride
-            ? props?.prodOverride?.production
-            : config?.production,
+          ? props?.prodOverride?.production
+          : config?.production,
         shipping: config?.shipping,
       }
     : {
@@ -298,7 +298,12 @@ export const SalesIncludeAll = {
     },
   },
   itemDeliveries: excludeDeleted,
-  taxes: excludeDeleted,
+  taxes: {
+    ...excludeDeleted,
+    include: {
+      taxConfig: true,
+    },
+  },
 } satisfies Prisma.SalesOrdersInclude;
 export const FullSalesSelect = {
   meta: true,
@@ -538,7 +543,8 @@ export function isComponentType(type: DykeDoorType) {
     shelf: type == "Shelf Items",
     exterior: type == "Exterior",
     interior: type == "Interior",
-    moulding: type == "Moulding",
+    // moulding: type == "Moulding",
+    moulding: ["Moulding", "Mouldings", "Door hardware"].includes(type),
     hasSwing: false,
     multiHandles: false,
   };
@@ -697,14 +703,14 @@ export function dueDateAlert(dates): { text; color; date } {
   const _date = result.today
     ? result.today
     : result?.pastDues?.length
-      ? result?.pastDues[0]
-      : result?.futureDues?.length
-        ? result?.futureDues[0]
-        : {
-            text: "No due dates",
-            color: "gray",
-            date: null,
-          };
+    ? result?.pastDues[0]
+    : result?.futureDues?.length
+    ? result?.futureDues[0]
+    : {
+        text: "No due dates",
+        color: "gray",
+        date: null,
+      };
   return {
     ..._date,
     dateString: _date?.date ? formatDate(_date.date) : null,

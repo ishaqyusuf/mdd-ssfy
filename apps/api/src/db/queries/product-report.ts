@@ -2,8 +2,6 @@ import { composeQuery } from "@gnd/utils/query-response";
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
 import {
-  consoleLog,
-  dateQuery,
   formatMoney,
   sum,
   timeLog,
@@ -43,7 +41,6 @@ export async function getProductReport(
   const dateFilter = {
     createdAt: transformFilterDateToQuery(query.dateRange as any),
   };
-  consoleLog("WHERE", { where, meta });
 
   const data = await db.dykeStepProducts.findMany({
     where,
@@ -157,26 +154,18 @@ export async function getProductReport(
       const units = doorsCount
         ? sum(d?.salesDoors || [], "totalQty")
         : isMolding
-          ? sum(hpts.map((a) => a?.qty))
-          : d?._count.stepForms;
+        ? sum(hpts.map((a) => a?.qty))
+        : d?._count.stepForms;
       const salesPrice = doorsCount
         ? formatMoney(sum(d.salesDoors, "jambSizePrice"))
         : isMolding
-          ? formatMoney(sum(hpts.map((a) => a.salesPrice)) * units)
-          : formatMoney(sum(d.stepForms, "price"));
+        ? formatMoney(sum(hpts.map((a) => a.salesPrice)) * units)
+        : formatMoney(sum(d.stepForms, "price"));
       const costPrice = doorsCount
         ? formatMoney(sum(d.salesDoors, "jambSizePrice"))
         : isMolding
-          ? formatMoney(sum(hpts.map((a) => a?.costPrice)) * units)
-          : formatMoney(sum(d.stepForms, "basePrice"));
-
-      // consoleLog("Search Result:", {
-      //   isMolding,
-      //   productCode,
-      //   doorsCount,
-      //   // hpts,
-      //   units: hpts.filter((a) => String(a.qty).includes(".")),
-      // });
+        ? formatMoney(sum(hpts.map((a) => a?.costPrice)) * units)
+        : formatMoney(sum(d.stepForms, "basePrice"));
       return {
         name: d.name || d.product?.title,
         category: d.step?.title,

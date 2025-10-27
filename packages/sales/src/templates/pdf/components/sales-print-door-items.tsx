@@ -16,6 +16,7 @@ export default function SalesPrintDoorItems({
     !span
       ? `${100 - Number(sum(lns, "colSpan") * 5)}%`
       : `${Number(span) * 5}%`;
+
   // wm[String(span)];
   return (
     <View style={cn("flex-col border-x border-t text-sm")}>
