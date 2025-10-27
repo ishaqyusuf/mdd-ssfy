@@ -295,7 +295,7 @@ export const linkModules = [
                     _subLink("Templates", "/community/templates").access(
                         _perm.is("editProject")
                     ).data,
-                    _subLink("Invoices", "/community/project-invoices").access(
+                    _subLink("Invoices", "/community/unit-invoices").access(
                         // _perm.is("editProject"),
                         _perm.in("viewInvoice")
                     ).data,

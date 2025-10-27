@@ -9,6 +9,7 @@ import CommunityInvoiceTableShell from "@/components/_v1/shells/community-invoic
 import { getHomeInvoices } from "@/app/(v1)/_actions/community-invoice/get-invoices";
 import EditInvoiceModal from "@/components/_v1/modals/edit-invoice-modal";
 import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 
 export const metadata: Metadata = {
     title: "All Unit Invoices",
@@ -22,16 +23,7 @@ export default async function InvoicesPage(props) {
     return (
         <AuthGuard can={["viewInvoice"]}>
             <div className="space-y-4 px-8">
-                <Breadcrumbs>
-                    <BreadLink isFirst title="Community" />
-                    <BreadLink link="/community/projects" title="Projects" />
-                    <BreadLink
-                        link="/community/invoices"
-                        title="All Invoices"
-                        isLast
-                    />
-                </Breadcrumbs>
-                <PageHeader title={"Unit Invoices"} subtitle={``} />
+                <PageTitle>Unit Invoices</PageTitle>
                 <CommunityInvoiceTableShell
                     projectView={false}
                     searchParams={searchParams}
@@ -43,3 +35,4 @@ export default async function InvoicesPage(props) {
         </AuthGuard>
     );
 }
+
