@@ -1,5 +1,5 @@
 import z from "zod";
-import { decrypt, encrypt } from "./encrypt";
+import { jwtDecrypt, jwtEncrypt } from "./jwt";
 
 type XOR<T, U> = T | U extends object
   ? Exclude<keyof T, keyof U> extends never
@@ -30,14 +30,14 @@ export type SalesPaymentTokenSchema = typeof salesPaymentTokenSchema._type;
 export function tokenize<T extends XOR<SalesPdfToken, SalesPaymentTokenSchema>>(
   data: T
 ) {
-  return encrypt(data);
+  return jwtEncrypt(data);
 }
 export function validateToken<T>(
   data: string,
   schema: z.ZodSchema<T>
 ): T | null {
   try {
-    const result = decrypt(data);
+    const result = jwtDecrypt(data);
     const parsed = schema.safeParse(result);
     if (!parsed.success) return null;
     return parsed.data;
