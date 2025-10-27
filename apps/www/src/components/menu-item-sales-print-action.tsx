@@ -4,9 +4,8 @@ import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { openLink } from "@/lib/open-link";
 import { timeout } from "@/lib/timeout";
 import { SalesPrintProps } from "@/utils/sales-print-utils";
+import { Menu } from "@gnd/ui/custom/menu";
 import QueryString from "qs";
-
-import { Menu } from "./(clean-code)/menu";
 
 interface Props {
     pdf?: boolean;

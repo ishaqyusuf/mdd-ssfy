@@ -10,10 +10,14 @@ import { useTable } from "@gnd/ui/custom/data-table/index";
 import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
 import { DropdownMenu } from "@gnd/ui/composite";
 import { Menu } from "@gnd/ui/custom/menu";
-import { generateToken } from "@/actions/token-action";
+import { generateToken, validateTokenAction } from "@/actions/token-action";
 import { addDays } from "date-fns";
 import { SalesPrintModes } from "@sales/constants";
-import { SalesPdfToken } from "@gnd/utils/tokenizer";
+import {
+    salesPdfToken,
+    SalesPdfToken,
+    validateToken,
+} from "@gnd/utils/tokenizer";
 import { openLink } from "@/lib/open-link";
 
 export function BatchActions({}) {

@@ -7,6 +7,8 @@ export function jwtEncrypt(data) {
 
 export function jwtDecrypt(token) {
   try {
+    console.log({ SECRET });
+
     return jwt.verify(token, SECRET);
   } catch {
     return null;

@@ -1,12 +1,12 @@
-import { Document, Font, Page, Text, View } from "@react-pdf/renderer";
+import { Document, Font, Text, View } from "@react-pdf/renderer";
 import QRCodeUtil from "qrcode";
-import { QRCode } from "./components/qr-code";
-import { cn } from "@gnd/utils/react-email";
+import { cn } from "@gnd/utils/react-pdf";
 import SalesPrintHeader from "./components/sales-print-header";
 import SalesPrintDoorItems from "./components/sales-print-door-items";
 import SalesPrintShelfItems from "./components/sales-print-shelf-items";
 import SalesPrintLineItems from "./components/sales-print-line-items";
 import SalesPrintFooter from "./components/sales-print-footer";
+import WatermarkPage from "./components/watermark-page";
 
 Font.register({
   family: "Inter",
@@ -77,9 +77,9 @@ export async function PdfTemplate(props: Props) {
   return (
     <Document>
       {props.pages.map((printData, ui) => {
-        // const { orderedPrinting = [], order, isPacking } = printData || {};
+        const { orderedPrinting = [], order, isPacking } = printData || {};
         return (
-          <Page
+          <WatermarkPage
             key={ui}
             wrap
             size={template.size.toUpperCase() as "LETTER" | "A4"}
@@ -92,29 +92,30 @@ export async function PdfTemplate(props: Props) {
             }}
           >
             <View style={cn("mb-2 flex-col")}>
-              {/* <SalesPrintHeader printData={printData} /> */}
+              <SalesPrintHeader printData={printData} />
             </View>
-            {/* {order?.id && (
-              <View style={cn("w-full border")}>
-                {orderedPrinting.map((p: any, i: number) =>
-                  p.nonShelf ? (
-                    <SalesPrintDoorItems
-                      key={`door${i}`}
-                      index={i}
-                      printData={printData}
-                    />
-                  ) : (
-                    <SalesPrintShelfItems
-                      key={`shelf${i}`}
-                      index={i}
-                      printData={printData}
-                    />
-                  )
-                )}
-
-                <SalesPrintLineItems printData={printData} />
-                <SalesPrintFooter printData={printData} />
-              </View>
+            {order?.id && (
+              <>
+                <View style={cn("w-full border-b")}>
+                  {orderedPrinting.map((p: any, i: number) =>
+                    p.nonShelf ? (
+                      <SalesPrintDoorItems
+                        key={`door${i}`}
+                        index={i}
+                        printData={printData}
+                      />
+                    ) : (
+                      <SalesPrintShelfItems
+                        key={`shelf${i}`}
+                        index={i}
+                        printData={printData}
+                      />
+                    )
+                  )}
+                  {/* <Text>{JSON.stringify(printData)}</Text> */}
+                  <SalesPrintLineItems printData={printData} />
+                </View>
+              </>
             )}
 
             {isPacking && (
@@ -134,8 +135,17 @@ export async function PdfTemplate(props: Props) {
                   )
                 )}
               </View>
-            )} */}
-          </Page>
+            )}
+            <View
+              style={cn("bg-slate-100 border-x border-b flex-col", {
+                flex: 1,
+                flexDirection: "column",
+                justifyContent: "flex-end",
+              })}
+            >
+              <SalesPrintFooter printData={printData} />
+            </View>
+          </WatermarkPage>
         );
       })}
     </Document>
