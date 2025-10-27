@@ -81,10 +81,9 @@ export async function squareCreateRefund({
 
 export async function getSquareDevices() {
   try {
-    console.log("GETTING DEVICE>>>", { devMode });
     // const devices = await squareClient.devicesApi.listDeviceCodes();
     const devices = await squareClient.devices.list();
-    console.log(devices);
+
     // const devicesList = await squareClient.devicesApi.listDevices();
     // const _ = devices?.result?.deviceCodes
     //   ?.map((device) => ({
@@ -109,9 +108,7 @@ export async function getSquareDevices() {
     return (_ || [])!?.filter(
       (a, b) => _!.findIndex((c) => c.value == a.value) == b
     );
-  } catch (error) {
-    console.log("ERROR", error);
-  }
+  } catch (error) {}
   return [];
 }
 export async function fetchDevicesByLocations() {
