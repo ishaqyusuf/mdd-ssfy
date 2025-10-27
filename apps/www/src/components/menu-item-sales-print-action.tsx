@@ -24,6 +24,7 @@ export function MenuItemPrintAction(props: Props) {
     const { type, slug, pdf, onOpenMenu } = props;
     async function print(e, params?: SalesPrintProps) {
         if (props.salesIds) {
+            e.preventDefault();
             const tok = await generateToken({
                 salesIds: props.salesIds,
                 expiry: addDays(new Date(), 7).toISOString(),
@@ -32,7 +33,7 @@ export function MenuItemPrintAction(props: Props) {
                 // mode: props.type
             } satisfies SalesPdfToken);
             openLink(
-                `/api/download/sales`,
+                `api/download/sales`,
                 {
                     token: tok,
                     preview: true,
