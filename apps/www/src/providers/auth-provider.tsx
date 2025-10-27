@@ -41,17 +41,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         //     return;
         // }
 
-        //    if (!isPublic && auth?.id) {
-        //        const validLinks = getLinkModules(
-        //            validateLinks({
-        //                role: auth.role,
-        //                can: auth.can,
-        //                userId: auth.id,
-        //            })
-        //        );
-        //        const v = validatePath(pathname, validLinks.linksNameMap);
-        //        if (!v?.hasAccess) router.replace("/");
-        //    }
+        if (!isPublic && auth?.id) {
+            const validLinks = getLinkModules(
+                validateLinks({
+                    role: auth.role,
+                    can: auth.can,
+                    userId: auth.id,
+                })
+            );
+            const v = validatePath(pathname, validLinks.linksNameMap);
+            if (!v?.hasAccess) router.replace("/");
+        }
     }, [pathname, auth]);
 
     // if (auth.isPending) return null; // optional spinner

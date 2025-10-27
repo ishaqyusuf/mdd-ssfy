@@ -8,7 +8,6 @@ import { store } from "@/store";
 import { TRPCReactProvider } from "@/trpc/client";
 import { ReactNode } from "react";
 import { Provider } from "react-redux";
-
 import { SessionProvider } from "next-auth/react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { AuthProvider } from "@/providers/auth-provider";
