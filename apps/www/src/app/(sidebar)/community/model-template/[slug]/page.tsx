@@ -1,15 +1,13 @@
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 import { batchPrefetch, HydrateClient } from "@/trpc/server";
 import { SearchParams } from "nuqs";
-import { PageTitle } from "@gnd/ui/custom/page-title";
-import { NewBlockAction } from "@/components/forms/community-template/new-block-action";
+
 import { ErrorFallback } from "@/components/error-fallback";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 import { CommunityTemplateForm } from "@/components/forms/community-template/community-template-form";
-import Portal from "@gnd/ui/custom/portal";
-import { ModelTemplateHeader } from "@/components/model-template-header";
+
 import { FormHeader } from "@/components/forms/community-template/form-header";
 
 export async function generateMetadata(props) {

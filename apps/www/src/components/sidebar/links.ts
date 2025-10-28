@@ -296,6 +296,7 @@ export const linkModules = [
                         .childPaths(
                             "/settings/community/community-template/slug",
                             "/community/community-template/slug",
+                            "/community/model-template/slug",
                             "/community/template-schema"
                         ).data,
                     _subLink("Invoices", "/community/unit-invoices").access(
