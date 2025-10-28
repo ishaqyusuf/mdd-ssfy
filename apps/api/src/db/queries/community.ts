@@ -645,3 +645,30 @@ function whereCommunityProjects(query: GetCommunityProjectsSchema) {
   }
   return composeQuery(where);
 }
+
+/*
+deleteUnits: publicProcedure
+      .input(deleteUnitsSchema)
+      .mutation(async (props) => {
+        return deleteUnits(props.ctx, props.input);
+      }),
+*/
+export const deleteUnitsSchema = z.object({
+  unitIds: z.array(z.number()),
+});
+export type DeleteUnitsSchema = z.infer<typeof deleteUnitsSchema>;
+
+export async function deleteUnits(ctx: TRPCContext, query: DeleteUnitsSchema) {
+  const { db } = ctx;
+
+  await db.homes.updateMany({
+    where: {
+      id: {
+        in: query.unitIds,
+      },
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+}

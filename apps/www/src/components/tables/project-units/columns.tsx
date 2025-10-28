@@ -15,6 +15,11 @@ import { useFilePreviewParams } from "@/hooks/use-file-preview-params";
 import QueryString from "qs";
 import { getUnitTemplateLink } from "@/app/(v1)/_actions/community/get-unit-template";
 import { useRouter } from "next/navigation";
+import { ConfirmBtn } from "@gnd/ui/confirm-button";
+import { useMutation } from "@tanstack/react-query";
+import { _qc, _trpc } from "@/components/static-trpc";
+import { AuthGuard } from "@/components/auth-guard";
+import { _perm } from "@/components/sidebar/links";
 export type Item =
     RouterOutputs["community"]["getProjectUnits"]["data"][number];
 interface ItemProps {
@@ -134,8 +139,35 @@ export const columns: Column[] = [
 function Actions({ item }: ItemProps) {
     const isMobile = useIsMobile();
     const { setParams } = useFilePreviewParams();
+    const {
+        isPending: isDeleting,
+        mutate,
+        mutateAsync,
+    } = useMutation(
+        _trpc.community.deleteUnits.mutationOptions({
+            onSuccess(data, variables, onMutateResult, context) {
+                _qc.invalidateQueries({
+                    queryKey:
+                        _trpc.community.getProjectUnits.infiniteQueryKey(),
+                });
+            },
+        })
+    );
     return (
-        <div className="relative flex justify-end z-10">
+        <div className="relative items-center gap-2 flex justify-end z-10">
+            <AuthGuard rules={[_perm.is("editProject")]}>
+                <ConfirmBtn
+                    onClick={async (e) => {
+                        await mutateAsync({
+                            unitIds: [item.id],
+                        });
+                    }}
+                    trash
+                    variant="outline"
+                    className="px-2"
+                    size="sm"
+                />
+            </AuthGuard>
             <Menu
                 triggerSize={isMobile ? "default" : "xs"}
                 Trigger={

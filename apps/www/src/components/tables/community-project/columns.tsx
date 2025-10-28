@@ -10,6 +10,8 @@ import { useCommunityProjectParams } from "@/hooks/use-community-project-params"
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { formatDate } from "@gnd/utils/dayjs";
+import { useMutation } from "@tanstack/react-query";
+import { _trpc } from "@/components/static-trpc";
 
 export type Item =
     RouterOutputs["community"]["getCommunityProjects"]["data"][number];
@@ -106,6 +108,12 @@ export const columns: Column[] = [
 
 function Actions({ item }: ItemProps) {
     const isMobile = useIsMobile();
+    const {} = useMutation(
+        _trpc.community.deleteUnits.mutationOptions({
+            onSuccess(data, variables, onMutateResult, context) {},
+        })
+    );
+
     return (
         <div className="relative flex justify-end z-10">
             {/* <Menu
@@ -121,7 +129,13 @@ function Actions({ item }: ItemProps) {
             >
                 <Menu.Item SubMenu={<></>}>Mark as</Menu.Item>
             </Menu> */}
-            <ConfirmBtn trash variant="outline" className="px-2" size="sm" />
+            <ConfirmBtn
+                onClick={(e) => {}}
+                trash
+                variant="outline"
+                className="px-2"
+                size="sm"
+            />
         </div>
     );
 }

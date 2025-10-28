@@ -12,6 +12,8 @@ import {
   createCommnunityModelCost,
   deleteCommunityModelCost,
   deleteCommunityModelCostSchema,
+  deleteUnits,
+  deleteUnitsSchema,
   getCommunityProjects,
   getCommunityProjectsSchema,
   getCommunityTemplateForm,
@@ -132,6 +134,11 @@ export const communityRouters = createTRPCRouter({
     .input(deleteInputSchemaSchema)
     .mutation(async (props) => {
       return deleteInputSchema(props.ctx.db, props.input);
+    }),
+  deleteUnits: publicProcedure
+    .input(deleteUnitsSchema)
+    .mutation(async (props) => {
+      return deleteUnits(props.ctx, props.input);
     }),
   getCommunityBlockSchema: publicProcedure
     .input(getCommunityBlockSchemaSchema)
