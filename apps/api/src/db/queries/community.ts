@@ -596,6 +596,7 @@ export async function getCommunityProjects(
       createdAt: true,
       title: true,
       meta: true,
+      slug: true,
       _count: {
         select: {
           homes: {

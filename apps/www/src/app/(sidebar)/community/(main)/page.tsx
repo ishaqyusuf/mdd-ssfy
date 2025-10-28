@@ -4,6 +4,7 @@ import { ErrorFallback } from "@/components/error-fallback";
 import { DataTable } from "@/components/tables/community-project/data-table";
 
 import { TableSkeleton } from "@/components/tables/skeleton";
+import { loadCommunityProjectFilterParams } from "@/hooks/use-community-project-filter-params";
 import { loadInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { batchPrefetch, HydrateClient, trpc } from "@/trpc/server";
@@ -22,15 +23,15 @@ type Props = {
 };
 export default async function Page(props: Props) {
     const searchParams = await props.searchParams;
-    const filter = loadInventoryFilterParams(searchParams);
+    const filter = loadCommunityProjectFilterParams(searchParams);
     batchPrefetch([
-        trpc.inventories.inventoryProducts.infiniteQueryOptions({
+        trpc.community.getCommunityProjects.infiniteQueryOptions({
             ...filter,
         }),
         ...(["projects", "units"] as CommunitySummary["type"][]).map((type) =>
             trpc.community.communitySummary.queryOptions({
                 type,
-            }),
+            })
         ),
     ]);
     return (
