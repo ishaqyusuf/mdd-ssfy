@@ -244,13 +244,19 @@ function legacyDesign(homeTemplate, communityDesign) {
     ...legacyDesignSystem,
   ]
     .map((section, i) => {
+      const isBifold = section?.[0]?.label == "Bifold Door";
       const t = section.map((s) => {
         // if(s.value?.startsWith('='))
-        if (!s.value) return s;
+        // if (s.section) sectionTitle = s.label;
+        if (!s.value) {
+          if (isBifold) consoleLog(s.label, s);
+          return s;
+        }
         const [e, k] = s.value?.split("=");
         if (k) s.value = dotObject.pick(k, design);
         // s.value = s.value?.trim();
         s.label = addSpacesToCamelCase(s.label);
+
         // if(s.section && s.label === 'Bifold Door')
         // {
         //   consoleLog()
@@ -262,7 +268,9 @@ function legacyDesign(homeTemplate, communityDesign) {
           !a.row ||
           (a.row && t.some((ts) => (ts as any).row == a.row && ts.value))
       );
-      if (!_.filter((a) => !a.section && !a.value)?.length && i) return [];
+      const valuedCount = _.filter((a) => !a.section && !!a.value)?.length;
+      // if (isBifold) consoleLog("BIFOLD", _, i, valuedCount);
+      if (!valuedCount && i) return [];
       return _;
     })
     .flat();
