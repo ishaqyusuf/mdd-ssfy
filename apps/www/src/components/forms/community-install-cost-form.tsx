@@ -46,6 +46,8 @@ export function CommunityInstallCostForm({ model }: Props) {
     const trpc = useTRPC();
     const { editModelCostId, setParams } = useCommunityModelCostParams();
 
+    console.log({ model });
+
     const qc = useQueryClient();
     const save = useMutation(
         trpc.community.updateInstallCost.mutationOptions({

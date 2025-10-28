@@ -298,6 +298,7 @@ export const linkModules = [
                             "/community/community-template/slug",
                             "/community/model-template/slug",
                             "/community/template-schema"
+                            // "/community/template-schema",
                         ).data,
                     _subLink("Invoices", "/community/unit-invoices").access(
                         // _perm.is("editProject"),
