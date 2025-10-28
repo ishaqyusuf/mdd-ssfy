@@ -31,15 +31,10 @@ export default async function middleware(req: NextRequest) {
         searchParams.length > 0 ? `?${searchParams}` : ""
     }`;
     const pathName = req.nextUrl.pathname;
-    // const _authorized = await authorized(req);
-
     const loginUrl = new URL("/login", req.url);
     if (encodedSearchParams) {
         loginUrl.searchParams.append("return_to", encodedSearchParams);
     }
-    // if (!auth?.userId && !isPublic(pathName)) {
-    //     return NextResponse.redirect(loginUrl);
-    // }
     if (pathName === "/") {
         const auth = await getAuth(req);
         if (auth) {
@@ -50,55 +45,7 @@ export default async function middleware(req: NextRequest) {
         return NextResponse.redirect(loginUrl);
     }
     return NextResponse.next();
-    // if (isPublic(pathName)) return NextResponse.next();
-    // const validLinks = getLinkModules(
-    //     validateLinks({
-    //         role: auth.role,
-    //         can: auth.can,
-    //         userId: auth?.userId,
-    //     })
-    // );
-    // // const matched = validLinks.linksNameMap[pathName];
-
-    // const v = validatePath(pathName, validLinks.linksNameMap);
-    // // const prev = req.headers.get("referer");
-
-    // if (!v?.hasAccess) {
-    //     // if (prev) {
-    //     return NextResponse.redirect(new URL("/", req.url));
-    //     // }
-    //     // return NextResponse.rewrite(new URL("/404", req.url));
-    // }
-    // return NextResponse.next();
 }
-const validatePath = <T extends Record<string, any>>(
-    path: string,
-    links: T
-): T[keyof T] & { href: string } => {
-    const segments = path.split("/");
-    const k = Object.keys(links).find((key) => {
-        const keySegs = key.split("/");
-        if (keySegs.length !== segments.length) return false;
-        return keySegs.every(
-            (seg, i) => seg.startsWith("slug") || seg === segments[i]
-        );
-    }) as keyof T | undefined;
-    return {
-        href: k as any,
-        ...(links[k] || {}),
-    } as any;
-    // return k ? links[k] : undefined;
-};
-
-const isPublic = (pathName) =>
-    [
-        "/login",
-        "/square-payment",
-        "/printer/sales",
-        "/checkout",
-        "/signout",
-        "/api/pdf",
-    ]?.some((a) => pathName.includes(a));
 
 async function getAuth(req) {
     try {
