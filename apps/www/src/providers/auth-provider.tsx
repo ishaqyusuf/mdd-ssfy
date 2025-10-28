@@ -45,7 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 auth,
                 linkNames: validLinks.linksNameMap,
             });
-
             if (!v?.hasAccess && v?.name) router.replace("/");
         }
     }, [pathname, isPending, can, role, authId]);

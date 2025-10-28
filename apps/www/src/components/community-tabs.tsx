@@ -4,13 +4,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ResetInventories } from "./reset-inventories";
-import { Tabs } from "@gnd/ui/custom/tabs";
+import { Tabs } from "@gnd/ui/composite";
+// import { Tabs } from "@gnd/ui/custom/tabs";
 export function CommunityTabs() {
     function CustomTab({ value = "", children }) {
         const link = `/community${value}`;
         return (
             <Link href={link}>
-                <Tabs.Item value={link}>{children}</Tabs.Item>
+                <Tabs.Trigger value={link}>{children}</Tabs.Trigger>
             </Link>
         );
     }
@@ -18,16 +19,16 @@ export function CommunityTabs() {
 
     return (
         <div className="flex gap-4 items-center">
-            <Tabs name="community" value={path}>
-                <Tabs.Items className="px-4">
+            <Tabs.Root value={path}>
+                <Tabs.List className="px-4">
                     <CustomTab>Projects</CustomTab>
                     <CustomTab value="/project-units">Units</CustomTab>
                     <CustomTab value="/unit-productions">Productions</CustomTab>
                     <CustomTab value="/unit-invoices">Invoices</CustomTab>
                     <CustomTab value="/templates">Templates</CustomTab>
                     <CustomTab value="/builders">Builders</CustomTab>
-                </Tabs.Items>
-            </Tabs>
+                </Tabs.List>
+            </Tabs.Root>
 
             {/* <div className="flex-1"></div> */}
             {/* <ResetInventories /> */}
