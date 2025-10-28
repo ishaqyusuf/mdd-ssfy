@@ -182,19 +182,19 @@ export const validateLinks = ({
         lm.sections = lm.sections.map((s) => {
             s.links = s.links.map((lnk) => {
                 const valid = validateAccess(lnk.access);
-                lnk.show = valid;
+                // lnk.show = valid;
                 // if(!valid)return
                 if (lnk.subLinks?.length)
                     lnk.subLinks = lnk.subLinks.map((sl) => {
-                        sl.show = validateAccess(sl.access) || lnk.show;
+                        sl.show = validateAccess(sl.access);
                         return sl;
                     });
                 lnk.show =
-                    lnk.subLinks?.length && !lnk.href
+                    lnk.subLinks?.length && !lnk.href && !lnk?.access?.length
                         ? lnk.subLinks
                               .filter((a) => !a.meta)
                               ?.some((a) => a.show)
-                        : lnk.show;
+                        : valid && !!lnk.access?.length;
                 // if (
                 //     !lnk?.access?.length &&
                 //     lnk.subLinks?.length &&
@@ -284,10 +284,13 @@ export const linkModules = [
                         // _perm.is("editProject"),
                         _perm.is("editProject")
                     ).data,
-                    _subLink("Productions", "/community/project-units")
-                        .access
+                    _subLink(
+                        "Productions",
+                        "/community/unit-productions"
+                    ).access(
                         // _perm.is("editProject"),
-                        ().data,
+                        _perm.is("editProduction")
+                    ).data,
                     _subLink("Templates", "/community/templates")
                         .access(_perm.is("editProject"))
                         .childPaths(
@@ -565,15 +568,23 @@ export function getLinkModules(_linkModules = linkModules) {
                     l.globalIndex = i.links++;
                     sectionLinks++;
                     moduleLinks++;
-                    l?.paths?.map((p) => {
-                        linksNameMap[p] = {
-                            name: l.name,
-                            module: m.name,
-                            match: "part",
-                            hasAccess: l.show,
-                        };
-                    });
                 }
+                if (l.href) {
+                    linksNameMap[l.href] = {
+                        name: l.name,
+                        module: m.name,
+                        hasAccess: l.show,
+                    };
+                }
+                l?.paths?.map((p) => {
+                    linksNameMap[p] = {
+                        name: l.name,
+                        module: m.name,
+                        match: "part",
+                        hasAccess: l.show,
+                    };
+                });
+
                 if (l?.subLinks?.length)
                     l.subLinks = l.subLinks.map((sl, sli) => {
                         if (sl.href && sl.show) {
@@ -583,12 +594,12 @@ export function getLinkModules(_linkModules = linkModules) {
                                     rank: sl.level,
                                     href: sl.href,
                                 });
-                            linksNameMap[sl.href] = {
-                                name: l.name,
-                                module: m.name,
-                                hasAccess: sl.show,
-                            };
                         }
+                        linksNameMap[sl.href] = {
+                            name: l.name,
+                            module: m.name,
+                            hasAccess: sl.show,
+                        };
                         return sl;
                     });
                 return l;

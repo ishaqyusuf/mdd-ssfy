@@ -1,7 +1,7 @@
 // app/providers/auth-provider.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getLinkModules, validateLinks } from "@/components/sidebar/links";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,7 +22,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { isPending, role, id: authId, can } = auth;
     useEffect(() => {
         const isPublic = publicRoutes.some((p) => pathname.includes(p));
-
         if (isPending || isPublic) {
             console.log("validation skipped", { isPending, isPublic });
             return;
@@ -33,62 +32,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
         }
         if (!isPublic && auth?.id) {
-            const validLinks = getLinkModules(
-                validateLinks({
-                    role: auth.role,
-                    can: auth.can,
-                    userId: auth.id,
-                })
-            );
+            const links = validateLinks({
+                role,
+                can,
+                userId: authId,
+            });
+            const validLinks = getLinkModules(links);
             const v = validatePath(pathname, validLinks.linksNameMap);
+            console.log({
+                v,
+                links,
+                auth,
+                linkNames: validLinks.linksNameMap,
+            });
+
             if (!v?.hasAccess && v?.name) router.replace("/");
         }
     }, [pathname, isPending, can, role, authId]);
 
-    if (isPending) return null; // optional spinner
-    return <>{children}</>;
-}
-export function SAuthProvider({ children }: { children: React.ReactNode }) {
-    // const [auth, setAuth] = useState<AuthState>(null);
-    const auth = useAuth();
-    const pathname = usePathname();
-    const router = useRouter();
-
-    useEffect(() => {
-        if (auth?.isPending) return;
-
-        const isPublic = publicRoutes.some((p) => pathname.includes(p));
-        if (!isPublic && !auth?.id) {
-            router.replace(`/login?return_to=${pathname}`);
-            return;
-        }
-
-        if (auth?.id && pathname === "/") {
-            const links = getLinkModules(
-                validateLinks({
-                    role: auth.role,
-                    can: auth.can,
-                    userId: auth.id,
-                })
-            );
-            router.replace(links.defaultLink);
-            return;
-        }
-
-        if (!isPublic && auth?.id) {
-            const validLinks = getLinkModules(
-                validateLinks({
-                    role: auth.role,
-                    can: auth.can,
-                    userId: auth.id,
-                })
-            );
-            const v = validatePath(pathname, validLinks.linksNameMap);
-            if (!v?.hasAccess) router.replace("/");
-        }
-    }, [pathname, auth]);
-
-    if (auth.isPending) return null; // optional spinner
+    // if (isPending) return null; // optional spinner
     return <>{children}</>;
 }
 

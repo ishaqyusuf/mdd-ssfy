@@ -37,7 +37,8 @@ export default function QuickLogin({}) {
                             }}
                             key={user?.id}
                         >
-                            <span>{user?.name}</span>
+                            <p>{user?.name}</p>
+                            <p>{user?.role}</p>
                         </Menu.Item>
                     ))}
                 </ScrollArea>

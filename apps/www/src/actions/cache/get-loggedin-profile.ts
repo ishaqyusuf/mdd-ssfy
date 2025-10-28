@@ -89,7 +89,7 @@ export async function getLoggedInProfile(debugMode = false) {
             can,
             name: user?.name,
             userId: user?.id,
-            email: user.email,
+            email: user?.email,
         };
     };
     return await fn();
