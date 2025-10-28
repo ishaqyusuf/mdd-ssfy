@@ -5,7 +5,7 @@ import { useQuery } from "@gnd/ui/tanstack";
 import { useSession } from "next-auth/react";
 
 export function useAuth() {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
     const trpc = useTRPC();
     const enabled = !!session?.user?.id;
     const { isPending, data } = useQuery(
@@ -15,18 +15,19 @@ export function useAuth() {
             gcTime: 10 * 60 * 1000, // 10 minutes
         })
     );
-    // useDebugToast("AUTH", data);
     const can = data?.can;
+    const isActuallyPending = status === "loading" || (enabled && isPending);
     return {
         id: session?.user?.id,
         email: session?.user?.email,
         name: session?.user?.name,
         // can: session?.can,
+        isPending: isActuallyPending,
         can: can || session?.can || ({} as typeof can),
         role: session?.role,
         roleTitle: session?.role?.name as Roles,
         avatar: null,
-        isPending,
+
         enabled,
         data,
     };

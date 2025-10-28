@@ -12,7 +12,10 @@ export const metadata: Metadata = {
     title: "Edit Community Template",
 };
 
-export default async function CommunityModelTemplatePage(props) {
+export default async function Page(props) {
+    return <></>;
+}
+async function CommunityModelTemplatePage(props) {
     const params = await props.params;
     const response: any = await getCommunityTemplate(params.slug);
 

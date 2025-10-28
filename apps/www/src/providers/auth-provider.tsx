@@ -7,51 +7,31 @@ import { getLinkModules, validateLinks } from "@/components/sidebar/links";
 import { useAuth } from "@/hooks/use-auth";
 
 const publicRoutes = [
-    "/login",
-    "/square-payment",
-    "/printer/sales",
-    "/checkout",
-    "/signout",
     "/api/pdf",
+    "/checkout",
+    "/login",
+    "/printer/sales",
+    "/signout",
+    "/square-payment",
 ];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const auth = useAuth();
     const pathname = usePathname();
     const router = useRouter();
-    const { enabled } = auth;
+    const { isPending, role, id: authId, can } = auth;
     useEffect(() => {
-        console.log({
-            enabled,
-            pending: auth?.isPending,
-        });
-        // if (auth?.isPending) {
-        //     return;
-        // }
-        console.log(">>>>");
         const isPublic = publicRoutes.some((p) => pathname.includes(p));
-        console.log({
-            isPublic,
-            auth,
-            enabled,
-        });
-        if (!isPublic && !auth?.id) {
+
+        if (isPending || isPublic) {
+            console.log("validation skipped", { isPending, isPublic });
+            return;
+        }
+        if (!auth?.id) {
+            console.log("REDIRECTING>>>");
             router.replace(`/login?return_to=${pathname}`);
             return;
         }
-
-        // if (auth?.id && pathname === "/") {
-        //     const links = getLinkModules(
-        //         validateLinks({
-        //             role: auth.role,
-        //             can: auth.can,
-        //             userId: auth.id,
-        //         })
-        //     );
-        //     router.replace(links.defaultLink);
-        //     return;
-        // }
-
         if (!isPublic && auth?.id) {
             const validLinks = getLinkModules(
                 validateLinks({
@@ -61,12 +41,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 })
             );
             const v = validatePath(pathname, validLinks.linksNameMap);
-
             if (!v?.hasAccess && v?.name) router.replace("/");
         }
-    }, [pathname, auth?.can, enabled]);
+    }, [pathname, isPending, can, role, authId]);
 
-    // if (auth.isPending) return null; // optional spinner
+    if (isPending) return null; // optional spinner
     return <>{children}</>;
 }
 export function SAuthProvider({ children }: { children: React.ReactNode }) {
