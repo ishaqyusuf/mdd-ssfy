@@ -14,6 +14,7 @@ import { Badge } from "@gnd/ui/badge";
 import Money from "@/components/_v1/money";
 import Link from "next/link";
 import { openLink } from "@/lib/open-link";
+import InstallCostCell from "@/components/_v1/community/install-cost-cell";
 
 export type Item =
     RouterOutputs["community"]["getCommunityTemplates"]["data"][number];
@@ -117,8 +118,19 @@ const installCost: Column = {
     accessorKey: "installCost",
     meta: {
         className: "w-[150px]",
+        preventDefault: true,
     },
-    cell: ({ row: { original: item } }) => <></>,
+    cell: ({ row: { original: item } }) => {
+        return (
+            <>
+                <InstallCostCell
+                    key={1}
+                    modal="communityInstallCost"
+                    row={item as any}
+                />
+            </>
+        );
+    },
 };
 export const columns: Column[] = [
     column1,
@@ -168,7 +180,7 @@ function Actions({ item }: ItemProps) {
                                 slugs: "",
                                 templateSlug: item.slug,
                             },
-                            true,
+                            true
                         );
                     }}
                 >
