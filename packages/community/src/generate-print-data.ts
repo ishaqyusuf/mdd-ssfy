@@ -9,7 +9,7 @@ import {
   SchemaData,
   TemplateFormService,
 } from "./services/template-form-service";
-import { dotObject } from "@gnd/utils";
+import { consoleLog, dotObject } from "@gnd/utils";
 
 interface Props {
   homeIds: number[];
@@ -132,7 +132,9 @@ export async function generatePrintData(db: Db, props: Props) {
           home.modelName?.toLowerCase() == t.modelName?.toLowerCase()
       )?.meta as any
     )?.design;
-
+    consoleLog("COMMUNITY DESIGN", {
+      bifold: design?.bifoldDoor,
+    });
     units.push({
       data: [
         info("Project", home.project.title, 2),
@@ -227,6 +229,7 @@ function legacyDesign(homeTemplate, communityDesign) {
     ? dotArray(transformCommunityTemplate(communityDesign))
     : homeTemplate;
   let design = designDotToObject(template);
+  let sectionTitle;
   return [
     [info("Deadbolt", "=lockHardware.deadbolt", 4)],
     process.env.NODE_ENV === "production"
@@ -248,6 +251,10 @@ function legacyDesign(homeTemplate, communityDesign) {
         if (k) s.value = dotObject.pick(k, design);
         // s.value = s.value?.trim();
         s.label = addSpacesToCamelCase(s.label);
+        // if(s.section && s.label === 'Bifold Door')
+        // {
+        //   consoleLog()
+        // }
         return s;
       });
       const _ = t.filter(

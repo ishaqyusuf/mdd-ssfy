@@ -250,29 +250,26 @@ function PriceCell({ salesPrice, basePrice, variant }) {
     return (
         <Popover open={opened} onOpenChange={setOpened}>
             <PopoverTrigger asChild>
-                <TooltipProvider>
+                {/* <TooltipProvider>
                     <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                onClick={() => {
-                                    ctx.togglePriceForm(variant.size);
-                                }}
-                                size="sm"
-                                className="h-8"
-                                variant={salesPrice ? "default" : "destructive"}
-                            >
-                                {salesPrice ? (
-                                    <Money value={salesPrice} />
-                                ) : (
-                                    <>Add Price</>
-                                )}
-                            </Button>
-                        </TooltipTrigger>
+                        <TooltipTrigger asChild> */}
+                <Button
+                    onClick={() => {
+                        // ctx.togglePriceForm(variant.size);
+                        // setOpened(true);
+                    }}
+                    size="sm"
+                    className="h-8"
+                    variant={salesPrice ? "default" : "destructive"}
+                >
+                    {salesPrice ? <Money value={salesPrice} /> : <>Add Price</>}
+                </Button>
+                {/* </TooltipTrigger>
                         <TooltipContent>
                             <p>Click to edit price</p>
                         </TooltipContent>
                     </Tooltip>
-                </TooltipProvider>
+                </TooltipProvider> */}
             </PopoverTrigger>
             <PopoverContent
                 onClick={(e) => {
