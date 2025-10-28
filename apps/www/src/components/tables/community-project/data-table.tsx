@@ -16,6 +16,7 @@ import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/custom/icons";
+import { useRouter } from "next/navigation";
 export function DataTable() {
     const trpc = useTRPC();
     // const { rowSelection, setRowSelection } = useCommunityProjectStore();
@@ -50,6 +51,7 @@ export function DataTable() {
             />
         );
     }
+    const router = useRouter();
     return (
         <Table.Provider
             // value={createTableContext({
@@ -67,9 +69,12 @@ export function DataTable() {
                     // setRowSelection,
                     tableMeta: {
                         rowClick(id, rowData) {
-                            setParams({
-                                openCommunityProjectId: rowData.id,
-                            });
+                            // setParams({
+                            //     openCommunityProjectId: rowData.id,
+                            // });
+                            router.push(
+                                `/community/project-units?projectSlug=${rowData?.slug}`
+                            );
                         },
                     },
                     // })}

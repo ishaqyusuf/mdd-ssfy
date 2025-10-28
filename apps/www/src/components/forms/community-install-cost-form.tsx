@@ -71,17 +71,20 @@ export function CommunityInstallCostForm({ model }: Props) {
 
     const form = useZodForm(updateInstallCostSchema, {
         defaultValues: {
-            projectId: model?.projectId,
-            installCosts: model?.installCosts,
-            costIndex: model?.costIndex,
+            // projectId: model?.projectId,
+            pivotId: model?.pivotId,
+            communitModelId: model?.communitModelId,
+            meta: model?.meta,
+            installCost: model?.installCost,
+            // costIndex: model?.costIndex,
         },
     });
-    const { append, fields } = useFieldArray({
-        control: form.control,
-        name: "installCosts",
-        keyName: "_id",
-    });
-    const costIndex = form.watch("costIndex");
+    // const { append, fields } = useFieldArray({
+    //     control: form.control,
+    //     name: "installCosts",
+    //     keyName: "_id",
+    // });
+    // const costIndex = form.watch("costIndex");
     const onSubmit = async (formData) => {
         save.mutate({
             ...formData,
@@ -96,7 +99,7 @@ export function CommunityInstallCostForm({ model }: Props) {
     return (
         <Form {...form}>
             <form className="grid grid-cols-2 gap-4">
-                <Portal noDelay nodeId="installCostModalAction">
+                {/* <Portal noDelay nodeId="installCostModalAction">
                     <Select.Root
                         value={String(costIndex)}
                         onValueChange={(e) => {
@@ -128,7 +131,7 @@ export function CommunityInstallCostForm({ model }: Props) {
                             ))}
                         </Select.Content>
                     </Select.Root>
-                </Portal>
+                </Portal> */}
                 <div className="col-span-2">
                     <Table className="table-sm w-full">
                         <TableHeader>
@@ -143,7 +146,7 @@ export function CommunityInstallCostForm({ model }: Props) {
                                 <TableRow
                                     className={cn(
                                         form.getValues(
-                                            `installCosts.${costIndex}.costings.${task.uid}` as any
+                                            `installCost.costings.${task.uid}` as any
                                         ) > 0
                                             ? "bg-teal-50"
                                             : ""
@@ -162,7 +165,7 @@ export function CommunityInstallCostForm({ model }: Props) {
                                     <TableCell>
                                         <FormInput
                                             control={form.control}
-                                            name={`installCosts.${costIndex}.costings.${task.uid}`}
+                                            name={`installCost.costings.${task.uid}`}
                                             numericProps={{
                                                 prefix: "$",
                                                 placeholder: "$0.00",

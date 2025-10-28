@@ -28,7 +28,7 @@ export function CommunityInstallCostModal() {
             }}
             size="xl"
             title={`Model Cost (${data?.title})`}
-            description={data?.builder}
+            description={data?.subtitle}
         >
             <div className="flex flex-col gap-4">
                 <div className="" id="installCostModalAction"></div>
