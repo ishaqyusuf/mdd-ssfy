@@ -13,6 +13,7 @@ import { formatDate } from "@/lib/use-day";
 import { Badge } from "@gnd/ui/badge";
 import { getBadgeColor } from "@/lib/color";
 import { PrimitiveDivProps } from "@/types/type";
+import { Progress } from "@gnd/ui/custom/progress";
 
 export function SmartTable<T>(data) {
     type IColumn = ColumnDef<T, unknown>;
@@ -32,7 +33,7 @@ export function SmartTable<T>(data) {
                 link?;
                 story: (IStory | ReactElement)[];
             };
-        },
+        }
     ): IColumn {
         const col = {
             ...props,
@@ -48,7 +49,7 @@ export function SmartTable<T>(data) {
                         href={_content.link}
                         className={cn(
                             _content.story?.length > 1 ? "flex flex-col" : "",
-                            _content.link && "hover:underline",
+                            _content.link && "hover:underline"
                         )}
                     >
                         {_content.story?.map((story, id) =>
@@ -60,7 +61,7 @@ export function SmartTable<T>(data) {
                                     link={_content.link}
                                     key={id}
                                 />
-                            ),
+                            )
                         )}
                     </LinkableNode>
                 );
@@ -100,7 +101,7 @@ export function SmartTable<T>(data) {
                 link?;
                 story: (IStory | ReactElement)[];
             },
-            params: Omit<IColumn, "id" | "header"> & { id? } = {},
+            params: Omit<IColumn, "id" | "header"> & { id? } = {}
         ) {
             if (!params.id) params.id = header?.toLowerCase();
             return column(params.id, header, {
@@ -119,33 +120,33 @@ export function SmartTable<T>(data) {
             ({
                 type: "primary",
                 value,
-            }) as IStory,
+            } as IStory),
         badgeText: (value) =>
             ({
                 type: "badge",
                 value,
-            }) as IStory,
+            } as IStory),
         text: (value) =>
             ({
                 type: "default",
                 value,
-            }) as IStory,
+            } as IStory),
         secondary: (value) =>
             ({
                 type: "secondary",
                 value,
-            }) as IStory,
+            } as IStory),
         dateText: (value, format?) =>
             ({
                 type: "date",
                 format,
                 value,
-            }) as IStory,
+            } as IStory),
         status: (value) =>
             ({
                 type: "status",
                 value,
-            }) as IStory,
+            } as IStory),
         // linkColumn(id:IdType,header,)
         Columns: (...columns) => useMemo<IColumn[]>(() => [...columns], [data]),
         Primary,
@@ -166,16 +167,13 @@ function Story({ story, link }: { story; link }) {
     let value =
         story.value instanceof Date ? formatDate(story.value) : story.value;
     if (story.type == "status") {
-        const color = getBadgeColor(value);
         return (
             <div className="w-16">
-                <Badge
-                    variant={"secondary"}
-                    className={`h-5 px-1 whitespace-nowrap  text-xs text-slate-100 ${color}`}
-                >
-                    {/* {order?.prodStatus || "-"} */}
-                    {value || story.defaultStatus}
-                </Badge>
+                <Progress>
+                    <Progress.Status>
+                        {value || story.defaultStatus}
+                    </Progress.Status>
+                </Progress>
             </div>
         );
     }
@@ -184,7 +182,7 @@ function Story({ story, link }: { story; link }) {
             className={cn(
                 "text-sm",
                 story.type == "primary" && "font-semibold",
-                story.type == "secondary" && "text-muted-foreground",
+                story.type == "secondary" && "text-muted-foreground"
             )}
         >
             {value}

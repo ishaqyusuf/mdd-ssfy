@@ -73,7 +73,7 @@ export function UserNav() {
                                 {m.sections
                                     .map((s) => s.links)
                                     .flat()
-                                    .filter((a) => a.show)
+                                    .filter((a) => a.show && a.href)
                                     .map((ms, mi) => (
                                         <DropdownMenuItem key={mi}>
                                             {/* <DropdownMenuSeparator /> */}
