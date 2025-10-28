@@ -7,6 +7,7 @@ import { transformCommunityTemplate } from "@/lib/community/community-template";
 import { Metadata } from "next";
 import ModelForm from "@/app/(v1)/(loggedIn)/settings/community/_components/model-form/model-form";
 import { getCommunityTemplate } from "@/app/(v1)/(loggedIn)/settings/community/_components/home-template";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 
 export const metadata: Metadata = {
     title: "Edit Community Template",
@@ -27,15 +28,7 @@ export default async function Page(props) {
                 }}
                 className="space-y-4 px-8"
             >
-                <Breadcrumbs>
-                    <BreadLink isFirst title="Settings" />
-                    <BreadLink title="Community" />
-                    <BreadLink
-                        link="/settings/community/community-templates"
-                        title="Community Templates"
-                    />
-                    <BreadLink title={response.modelName} isLast />
-                </Breadcrumbs>
+                <PageTitle>{response?.modelName}</PageTitle>
 
                 <ModelForm
                     title={
