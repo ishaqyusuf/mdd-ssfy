@@ -317,21 +317,21 @@ export const linkModules = [
                 .access(_perm.is("viewCustomerService"))
                 .level(7).data,
         ]),
-        _section("main", null, [
-            _link("Projects", "project", "/community/projects").access(
-                _perm.in("viewProject")
-            ).data,
-            _link("Units", "units", "/community/units").access(
-                _perm.in("viewProject")
-            ).data,
-            _link("Productions", "production", "/community/productions").access(
-                _perm.in("viewProduction"),
-                _role.isNot("Production")
-            ).data,
-            _link("Invoices", "communityInvoice", "/community/invoices").access(
-                _perm.in("viewInvoice")
-            ).data,
-        ]), //.access(_role.is("Super Admin")),
+        // _section("main", null, [
+        //     _link("Projects", "project", "/community/projects").access(
+        //         _perm.in("viewProject")
+        //     ).data,
+        //     _link("Units", "units", "/community/units").access(
+        //         _perm.in("viewProject")
+        //     ).data,
+        //     _link("Productions", "production", "/community/productions").access(
+        //         _perm.in("viewProduction"),
+        //         _role.isNot("Production")
+        //     ).data,
+        //     _link("Invoices", "communityInvoice", "/community/invoices").access(
+        //         _perm.in("viewInvoice")
+        //     ).data,
+        // ]), //.access(_role.is("Super Admin")),
         _section("main", null, [
             _link(
                 "Sales Production",
