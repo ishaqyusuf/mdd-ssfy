@@ -11,7 +11,12 @@ export function CommunityTabs() {
         const link = `/community${value}`;
         return (
             <Link href={link}>
-                <Tabs.Trigger value={link}>{children}</Tabs.Trigger>
+                <Tabs.Trigger
+                    className="text-lg border-r hover:bg-accent"
+                    value={link}
+                >
+                    {children}
+                </Tabs.Trigger>
             </Link>
         );
     }
@@ -20,7 +25,7 @@ export function CommunityTabs() {
     return (
         <div className="flex gap-4 items-center">
             <Tabs.Root value={path}>
-                <Tabs.List className="px-4">
+                <Tabs.List className="px-4 border shadow">
                     <CustomTab>Projects</CustomTab>
                     <CustomTab value="/project-units">Units</CustomTab>
                     <CustomTab value="/unit-productions">Productions</CustomTab>
