@@ -34,9 +34,11 @@ export async function GET(req: NextRequest) {
         // id, token,
         preview,
     } = result.data;
+    const title = printData.title.replace(/[^\w\-]+/g, "_");
     const streamData = await PdfTemplate({
         units: printData.units,
         url: requestUrl,
+        title,
         template: {
             size: "A4",
         },
@@ -46,16 +48,13 @@ export async function GET(req: NextRequest) {
 
     // @ts-expect-error - stream is not assignable to BodyInit
     const blob = await new Response(stream).blob();
-
     const headers: Record<string, string> = {
         "Content-Type": "application/pdf",
         "Cache-Control": "no-store, max-age=0",
     };
 
     if (!preview) {
-        headers[
-            "Content-Disposition"
-        ] = `attachment; filename="${printData.title}.pdf"`;
+        headers["Content-Disposition"] = `attachment; filename="${title}.pdf"`;
     }
 
     return new Response(blob, { headers });

@@ -20,6 +20,7 @@ import { useMutation } from "@tanstack/react-query";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { AuthGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";
+import Link from "next/link";
 export type Item =
     RouterOutputs["community"]["getProjectUnits"]["data"][number];
 interface ItemProps {
@@ -58,17 +59,13 @@ const lotBlock: Column = {
     cell: ({ row: { original: item } }) => {
         const route = useRouter();
         return (
-            <div
+            <Link
+                href={`/community/community-template/${item.communityTemplate.slug}`}
                 className="hover:underline"
-                onClick={async (e) => {
-                    route.push(
-                        `/community/community-template/${item.communityTemplate.slug}`
-                    );
-                }}
             >
                 <TCell.Primary>{item.lotBlock}</TCell.Primary>
                 <TCell.Secondary>{item.modelName}</TCell.Secondary>
-            </div>
+            </Link>
         );
     },
 };
