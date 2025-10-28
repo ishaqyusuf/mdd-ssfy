@@ -7,7 +7,7 @@ import { queryParams } from "@/app/(v1)/_actions/action-utils";
 
 import ProjectsTableShell from "@/app/(v1)/(loggedIn)/community/projects/components/projects-table-shell";
 import { getProjectsAction } from "@/app/(v1)/_actions/community/projects";
-import CommunityInstallCostModal from "@/components/_v1/modals/community-install-cost";
+
 import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
 
 export const metadata: Metadata = {
@@ -31,8 +31,8 @@ export default async function CommunityCostsPage(props) {
                     searchParams={searchParams}
                     {...response}
                 />
-                <CommunityInstallCostModal />
             </CommunitySettingsLayoutComponent>
         </AuthGuard>
     );
 }
+

@@ -545,3 +545,7 @@ export function isArrayParser(parser) {
     return false;
   }
 }
+
+export function dataAsType<T>(data): T {
+  return data;
+}

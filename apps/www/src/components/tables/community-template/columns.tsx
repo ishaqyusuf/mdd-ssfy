@@ -15,6 +15,7 @@ import Money from "@/components/_v1/money";
 import Link from "next/link";
 import { openLink } from "@/lib/open-link";
 import InstallCostCell from "@/components/_v1/community/install-cost-cell";
+import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 
 export type Item =
     RouterOutputs["community"]["getCommunityTemplates"]["data"][number];
@@ -121,13 +122,27 @@ const installCost: Column = {
         preventDefault: true,
     },
     cell: ({ row: { original: item } }) => {
+        const { setParams } = useCommunityInstallCostParams();
         return (
             <>
-                <InstallCostCell
-                    key={1}
-                    modal="communityInstallCost"
-                    row={item as any}
-                />
+                <Badge
+                    onClick={(e) => {
+                        setParams({
+                            editCommunityModelInstallCostId: item.id,
+                        });
+                    }}
+                    className={cn(
+                        item?.hasInstallCost && item?.hasPivotInstallCost
+                            ? "bg-orange-200 text-orange-700 hover:bg-orange-200"
+                            : item?.hasPivotInstallCost
+                            ? "bg-green-200 text-green-700 hover:bg-green-200"
+                            : "bg-slate-200 text-slate-700 hover:bg-slate-200"
+                    )}
+                >
+                    {item.hasInstallCost || item?.hasPivotInstallCost
+                        ? "Edit Cost"
+                        : "Set Cost"}
+                </Badge>
             </>
         );
     },

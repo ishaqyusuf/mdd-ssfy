@@ -20,7 +20,12 @@ import { formatMoney, sum } from "@gnd/utils";
 import type { Db, Prisma } from "@gnd/db";
 import { paginationSchema } from "@gnd/utils/schema";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
-import type { ProjectMeta } from "@community/types";
+import type {
+  CommunityPivotMeta,
+  CommunityTemplateMeta,
+  IntallCostMeta,
+  ProjectMeta,
+} from "@community/types";
 
 export async function projectList(ctx: TRPCContext) {
   const list = await ctx.db.projects.findMany({
@@ -193,6 +198,107 @@ export async function communityModelCostHistory(
     builderTasks: (model?.project?.builder?.meta as any as CommunityBuilderMeta)
       ?.tasks,
   };
+}
+export const communityInstallCostFormSchema = z.object({
+  projectId: z.number(),
+});
+export type CommunityInstallCostForm = z.infer<
+  typeof communityInstallCostFormSchema
+>;
+
+export async function communityInstallCostForm(
+  ctx: TRPCContext,
+  data: CommunityInstallCostForm
+) {
+  const config = await getInstallPriceConfiguration(ctx);
+  const model = await ctx.db.communityModels.findFirstOrThrow({
+    where: {
+      id: data.projectId,
+    },
+    select: {
+      id: true,
+      meta: true,
+      modelName: true,
+      pivot: {
+        select: {
+          id: true,
+          meta: true,
+        },
+      },
+      project: {
+        select: {
+          title: true,
+          builder: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  const installCosts = (model?.meta as any as CommunityTemplateMeta)
+    ?.installCosts;
+  const pivotCost = (model?.pivot?.meta as any as CommunityPivotMeta)
+    ?.installCost;
+  // installCosts?.[0]?.costings?.
+  return {
+    config,
+    communityModelId: model.id,
+    // projectId: model.id,
+    title: model.modelName,
+    subtitle: `${model.project.title} | ${model.project.builder?.name}`,
+    // builder: project?.builder?.name,
+    installCosts: [],
+    installCost: pivotCost || installCosts?.[0] || {},
+    meta: {
+      pivot: model?.pivot?.meta || ({} as CommunityPivotMeta),
+      communityModel: model?.meta as any as CommunityTemplateMeta,
+    },
+    // costIndex: 0,
+    // modelName:
+  };
+}
+export const updateInstallCostSchema = z.object({
+  communityModelId: z.number(),
+  pivotId: z.number().optional().nullable(),
+  // costIndex: z.number(),
+  // installCosts: z.array(z.any()),
+  meta: z.object({
+    pivot: z.any().optional().nullable(),
+    communityModel: z.any().optional().nullable(),
+  }),
+});
+export type UpdateInstallCostSchema = z.infer<typeof updateInstallCostSchema>;
+
+export async function updateInstallCost(
+  ctx: TRPCContext,
+  query: UpdateInstallCostSchema
+) {
+  const { db } = ctx;
+  const { communityModelId, pivotId, meta } = query;
+  if (communityModelId)
+    await db.communityModels.update({
+      where: {
+        id: communityModelId,
+      },
+      data: { meta: meta.communityModel },
+    });
+  if (pivotId)
+    await db.communityModelPivot.update({
+      where: {
+        id: pivotId,
+      },
+      data: { meta: meta.pivot },
+    });
+}
+export async function getInstallPriceConfiguration(ctx: TRPCContext) {
+  const s = await ctx.db.settings.findFirst({
+    where: {
+      type: "install-price-chart",
+    },
+  });
+  return (s?.meta || {}) as any as IntallCostMeta;
 }
 export const communityModelCostFormSchema = z.object({
   id: z.number(),

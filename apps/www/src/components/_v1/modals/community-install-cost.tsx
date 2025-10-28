@@ -3,11 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
-import { updateModelInstallCost } from "@/app/(v1)/_actions/community/install-costs";
-import {
-    updateCommunityCost,
-    updateProjectMeta,
-} from "@/app/(v1)/_actions/community/projects";
+import { updateCommunityCost } from "@/app/(v1)/_actions/community/projects";
 import { getSettingAction } from "@/app/(v1)/_actions/settings";
 import { deepCopy } from "@/lib/deep-copy";
 import { closeModal } from "@/lib/modal";
@@ -40,6 +36,7 @@ import {
 } from "../columns/base-columns";
 import Money from "../money";
 import BaseModal from "./base-modal";
+import { Item } from "@/components/tables/community-template/columns";
 
 export default function CommunityInstallCostModal() {
     const route = useRouter();
@@ -89,13 +86,13 @@ export default function CommunityInstallCostModal() {
             }
         });
     }
-    async function init(data: IProject) {
+    async function init(data: Item) {
         form.reset({
             costs: data.meta.installCosts || [{}],
         });
     }
     return (
-        <BaseModal<IProject>
+        <BaseModal<Item>
             className="sm:max-w-[500px]"
             onOpen={(data) => {
                 init(data);
@@ -105,7 +102,7 @@ export default function CommunityInstallCostModal() {
             Title={({ data }) => <div>Default Community Install Costs</div>}
             Subtitle={({ data }) => (
                 <div>
-                    {data?.title}: {data?.builder.name}
+                    {data?.project?.name}: {data?.project?.builder?.name}
                 </div>
             )}
             Content={({ data }) => (

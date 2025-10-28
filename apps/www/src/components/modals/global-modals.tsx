@@ -35,7 +35,7 @@ export function GlobalModals() {
             <WorkOrderFormModal />
 
             {/* LEGACY */}
-            <ModelInstallCostModal community />
+
             <CommunityInstallCostModal />
 
             {/* </Env> */}

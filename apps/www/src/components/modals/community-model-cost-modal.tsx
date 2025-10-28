@@ -26,8 +26,8 @@ export function CommunityModelCostModal() {
             },
             {
                 enabled: !!editModelCostTemplateId,
-            },
-        ),
+            }
+        )
     );
 
     return (
@@ -51,14 +51,7 @@ export function CommunityModelCostModal() {
                         }}
                     >
                         <SelectTrigger className="h-8">
-                            {/* <span>Cost:</span> */}
                             <SelectValue placeholder="Select Cost" />
-                            {/* <SelectValue asChild placeholder="Select Cost">
-                                <div className="flex bg-red-300">
-                                    <div className="flex-1"></div>
-                                    <span>aa</span>
-                                </div>
-                            </SelectValue> */}
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="-1">New Cost</SelectItem>

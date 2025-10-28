@@ -1,6 +1,8 @@
 import { createTRPCRouter, publicProcedure } from "../init";
 import {
   buildersList,
+  communityInstallCostForm,
+  communityInstallCostFormSchema,
   communityModelCostForm,
   communityModelCostFormSchema,
   communityModelCostHistory,
@@ -17,6 +19,8 @@ import {
   saveCommunityModelCost,
   saveCommunityModelCostSchema,
   saveCommunityTemplateForm,
+  updateInstallCost,
+  updateInstallCostSchema,
 } from "@api/db/queries/community";
 import { z } from "zod";
 import {
@@ -86,6 +90,17 @@ export const communityRouters = createTRPCRouter({
     .query(async (props) => {
       const result = await communityModelCostForm(props.ctx, props.input);
       return result;
+    }),
+  communityInstallCostForm: publicProcedure
+    .input(communityInstallCostFormSchema)
+    .query(async (props) => {
+      const result = await communityInstallCostForm(props.ctx, props.input);
+      return result;
+    }),
+  updateInstallCost: publicProcedure
+    .input(updateInstallCostSchema)
+    .mutation(async (props) => {
+      return updateInstallCost(props.ctx, props.input);
     }),
   communitySummary: publicProcedure
     .input(communitySummarySchema)

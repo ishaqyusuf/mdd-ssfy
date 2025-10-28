@@ -289,3 +289,16 @@ export interface DecoShutters<T> {
 }
 
 export type InputType = "number" | "text";
+
+export interface InstallCostLine {
+  defaultQty;
+  id;
+  title;
+  cost;
+  contractor?: boolean;
+  punchout?: boolean;
+  uid?;
+}
+export interface IntallCostMeta {
+  list: InstallCostLine[];
+}

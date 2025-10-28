@@ -96,7 +96,7 @@ export default function ModelInstallCostModal({ community = false }) {
                         data.id,
                         data.pivotId,
                         pMeta,
-                        meta,
+                        meta
                     );
                 }
                 toast.message("Saved!");
@@ -134,7 +134,7 @@ export default function ModelInstallCostModal({ community = false }) {
         return costSetting?.meta?.list?.filter(
             (t) =>
                 (type == "punchout" && t.punchout) ||
-                (!t.punchout && type != "punchout"),
+                (!t.punchout && type != "punchout")
         );
     }
     return (
@@ -163,39 +163,6 @@ export default function ModelInstallCostModal({ community = false }) {
             )}
             Content={({ data }) => (
                 <div className="flex w-full divide-x">
-                    <div className="hidden space-y-2 pr-2 sm:w-1/3">
-                        <div className="">
-                            <Label>Installations</Label>
-                        </div>
-                        <div className="">
-                            <Button
-                                disabled={fields.find((f) => !f.id) != null}
-                                onClick={() => {
-                                    append({
-                                        title: "",
-                                        costings: {},
-                                    });
-                                }}
-                                variant="outline"
-                                className="mt-1 h-7 w-full"
-                            >
-                                <Plus className="mr-2 size-4" />
-                                <span>New Install</span>
-                            </Button>
-                        </div>
-                        <ScrollArea className="max-h-[350px] w-full divide-y">
-                            {fields.map((f, i) => (
-                                <Button
-                                    variant={i == index ? "secondary" : "ghost"}
-                                    className="tex-sm h-8 w-full cursor-pointer p-0.5 text-start text-sm hover:bg-slate-200"
-                                    key={i}
-                                    onClick={() => setIndex(i)}
-                                >
-                                    <div>{f.title || "Default"}</div>
-                                </Button>
-                            ))}
-                        </ScrollArea>
-                    </div>
                     <div className="flex flex-1 flex-col  gap-2 pl-2">
                         <Tabs defaultValue="contractor" className="">
                             <TabsList>
@@ -237,10 +204,10 @@ export default function ModelInstallCostModal({ community = false }) {
                                                     <TableRow
                                                         className={cn(
                                                             form.getValues(
-                                                                `costs.${index}.costings.${l.uid}` as any,
+                                                                `costs.${index}.costings.${l.uid}` as any
                                                             ) > 0
                                                                 ? "bg-teal-50"
-                                                                : "",
+                                                                : ""
                                                         )}
                                                         key={i}
                                                     >
@@ -273,7 +240,7 @@ export default function ModelInstallCostModal({ community = false }) {
                                                                 className="h-7 w-20 px-2"
                                                                 type={"number"}
                                                                 {...form.register(
-                                                                    `costs.${index}.costings.${l.uid}`,
+                                                                    `costs.${index}.costings.${l.uid}`
                                                                 )}
                                                             />
                                                         </TableCell>
@@ -340,7 +307,7 @@ function CommunityDefaultQty({
                 !form.getValues(`costs.0.costings.${costLine.uid}`) &&
                     Number(qty) > 0
                     ? "bg-green-200 text-green-700 hover:bg-green-200"
-                    : "bg-slate-200 text-slate-700 hover:bg-slate-200",
+                    : "bg-slate-200 text-slate-700 hover:bg-slate-200"
             )}
         >
             {qty ? qty : "Not set"}

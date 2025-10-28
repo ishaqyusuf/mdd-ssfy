@@ -1,6 +1,11 @@
 import type { TRPCContext } from "@api/trpc/init";
-import type { CostChartMeta } from "@community/types";
+import type {
+  CommunityPivotMeta,
+  CommunityTemplateMeta,
+  CostChartMeta,
+} from "@community/types";
 import type { Prisma } from "@gnd/db";
+import { dataAsType } from "@gnd/utils";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 import { z } from "zod";
@@ -66,13 +71,20 @@ export async function getCommunityTemplates(
   });
 
   return await response(
-    data.map((d) => ({
-      ...d,
-      costs: d.costs.map((c) => ({
-        ...c,
-        meta: c.meta as any as CostChartMeta,
-      })),
-    }))
+    data.map((d) => {
+      const meta = dataAsType<CommunityTemplateMeta>(d.meta);
+      const pivotMeta = dataAsType<CommunityPivotMeta>(d.pivot?.meta);
+
+      return {
+        ...d,
+        hasInstallCost: !!meta?.installCosts?.[0],
+        hasPivotInstallCost: !!pivotMeta?.installCost,
+        costs: d.costs.map((c) => ({
+          ...c,
+          meta: c.meta as any as CostChartMeta,
+        })),
+      };
+    })
   );
 }
 function whereCommunityTemplates(query: GetCommunityTemplatesSchema) {
