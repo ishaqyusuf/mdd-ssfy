@@ -73,9 +73,9 @@ export function DataTable(props: Props) {
                     // setRowSelection,
                     tableMeta: {
                         rowClick(id, rowData) {
-                            setParams({
-                                openCommunityTemplateId: rowData.id,
-                            });
+                            // setParams({
+                            //     openCommunityTemplateId: rowData.id,
+                            // });
                         },
                     },
                     // })}

@@ -61,12 +61,9 @@ const lotBlock: Column = {
             <div
                 className="hover:underline"
                 onClick={async (e) => {
-                    const edit = await getUnitTemplateLink(
-                        item.projectId,
-                        item.homeTemplateId,
-                        item.modelName
+                    route.push(
+                        `/community/community-template/${item.communityTemplate.slug}`
                     );
-                    if (edit) route.push(edit);
                 }}
             >
                 <TCell.Primary>{item.lotBlock}</TCell.Primary>

@@ -16,7 +16,7 @@ import {
   synchronizeModelCost,
 } from "@community/db-utils";
 import dayjs, { formatDate } from "@gnd/utils/dayjs";
-import { formatMoney, sum } from "@gnd/utils";
+import { sum } from "@gnd/utils";
 import type { Db, Prisma } from "@gnd/db";
 import { paginationSchema } from "@gnd/utils/schema";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";

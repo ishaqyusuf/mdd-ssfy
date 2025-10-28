@@ -36,6 +36,11 @@ export const projectUnitsSelect = {
   },
   projectId: true,
   homeTemplateId: true,
+  communityTemplate: {
+    select: {
+      slug: true,
+    },
+  },
   project: {
     select: {
       title: true,

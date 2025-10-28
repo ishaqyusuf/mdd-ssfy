@@ -40,7 +40,8 @@ const model: Column = {
     },
     cell: ({ row: { original: item } }) => (
         <>
-            <Link href={`/community/model-template/${item?.slug}`}>
+            <Link href={`/community/community-template/${item?.slug}`}>
+                {/* <Link href={`/community/model-template/${item?.slug}`}> */}
                 <TCell.Primary>{item.modelName}</TCell.Primary>
             </Link>
         </>

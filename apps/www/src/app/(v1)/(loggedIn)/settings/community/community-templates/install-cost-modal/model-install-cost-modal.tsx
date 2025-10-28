@@ -88,10 +88,8 @@ export default function ModelInstallCostModal({ community = false }) {
                         const { installCosts, ...mm } = cd.meta;
                         meta = mm;
                     }
-
                     let pMeta = cd.pivot?.meta || {};
                     (pMeta as any).installCost = cost?.costings;
-
                     await updateCommunityModelInstallCost(
                         data.id,
                         data.pivotId,
@@ -145,19 +143,19 @@ export default function ModelInstallCostModal({ community = false }) {
             }}
             onClose={() => {}}
             modalName="installCost"
-            Title={({ data }) => <div>Installation Costs</div>}
+            Title={({ data }) => <>Installation Costs</>}
             Subtitle={({ data }) => (
                 <>
                     {community ? (
-                        <div>
+                        <>
                             {data?.project?.title}
                             {" | "}
                             {data?.modelName}
                             {" | "}
                             {data?.project?.builder?.name}
-                        </div>
+                        </>
                     ) : (
-                        <div>{data?.modelName}</div>
+                        <>{data?.modelName}</>
                     )}
                 </>
             )}
