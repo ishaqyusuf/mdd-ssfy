@@ -229,6 +229,15 @@ function legacyDesign(homeTemplate, communityDesign) {
   let design = designDotToObject(template);
   return [
     [info("Deadbolt", "=lockHardware.deadbolt", 4)],
+    process.env.NODE_ENV === "production"
+      ? []
+      : [
+          info(
+            `${communityDesign ? "COMMUNITY" : "HOME TEMPLATE"}`,
+            "=lockHardware.deadbolt",
+            4
+          ),
+        ],
     ...legacyDesignSystem,
   ]
     .map((section, i) => {
