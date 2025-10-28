@@ -29,7 +29,7 @@ export function FileViewSheet() {
                             </span>
                         </div>
                         <FileViewActions />
-                        <span>acbn</span>
+                        <span></span>
                         {/* <DocumentActions showDelete={fullView} filePath={data?.pathTokens} /> */}
                     </SheetHeader>
 

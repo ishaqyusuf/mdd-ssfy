@@ -1,7 +1,6 @@
 "use client";
 
 import { SuperAdminGuard } from "../auth-guard";
-import { Env } from "../env";
 import { CommunityModelCostModal } from "./community-model-cost-modal";
 import { CommunityTemplateModal } from "./community-template-modal";
 import { CreateCommunityModelCostModal } from "./create-community-model-cost-modal";
@@ -14,8 +13,8 @@ import { SalesInvoicePreviewModal } from "./sales-invoice-preview-modal";
 import { SalesPreviewModal } from "./sales-preview-modal";
 import { SalesQuickPayModal } from "./sales-quick-pay-modal";
 import { WorkOrderFormModal } from "./work-order-form-modal";
-import { SendSalesEmailModal } from "./send-sales-email-modal";
-
+import ModelInstallCostModal from "@/app/(v1)/(loggedIn)/settings/community/community-templates/install-cost-modal/model-install-cost-modal";
+import CommunityInstallCostModal from "@/components/_v1/modals/community-install-cost";
 export function GlobalModals() {
     return (
         <>
@@ -34,6 +33,10 @@ export function GlobalModals() {
             <CommunityModelCostModal />
             {/* <Env isDev> */}
             <WorkOrderFormModal />
+
+            {/* LEGACY */}
+            <ModelInstallCostModal community />
+            <CommunityInstallCostModal />
 
             {/* </Env> */}
         </>

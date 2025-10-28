@@ -5,11 +5,7 @@ import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 import { queryParams } from "@/app/(v1)/_actions/action-utils";
 
-import ModelInstallCostModal from "@/app/(v1)/(loggedIn)/settings/community/community-templates/install-cost-modal/model-install-cost-modal";
-
 import { _bootstrapPivot } from "@/app/(v1)/_actions/community/_community-pivot";
-import CommunityModelCostModal from "@/components/_v1/modals/community-model-cost/modal";
-import CommunityInstallCostModal from "@/components/_v1/modals/community-install-cost";
 
 import CommunityTemplateTableShell from "./community-templates-table-shell";
 import { getCommunityTemplates } from "../_components/home-template";
@@ -42,9 +38,6 @@ export default async function CommunityTemplatesPage(props) {
                 {...response}
             />
 
-            <ModelInstallCostModal community />
-            <CommunityModelCostModal />
-            <CommunityInstallCostModal />
             {/* <ModelCostCommunityModal /> */}
         </CommunitySettingsLayoutComponent>
     );

@@ -14,8 +14,8 @@ import { closeModal } from "@/lib/modal";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store";
 import { loadStaticList } from "@/store/slicers";
-import { IHomeTemplate, InstallCost, IProject } from "@/types/community";
-import { InstallCostSettings } from "@/types/settings";
+import { InstallCost, IProject } from "@/types/community";
+
 import { Plus } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -55,13 +55,13 @@ export default function CommunityInstallCostModal() {
     const [index, setIndex] = useState(0);
 
     const installCostSetting = useAppSelector(
-        (s) => s.slicers.installCostSetting,
+        (s) => s.slicers.installCostSetting
     );
     useEffect(() => {
         loadStaticList(
             "installCostSetting",
             installCostSetting,
-            async () => await getSettingAction("install-price-chart"),
+            async () => await getSettingAction("install-price-chart")
         );
         // (async () => {
         //     const _costList = await getSettingAction("install-price-chart");
@@ -173,10 +173,10 @@ export default function CommunityInstallCostModal() {
                                             <TableRow
                                                 className={cn(
                                                     form.getValues(
-                                                        `costs.${index}.costings.${l.uid}` as any,
+                                                        `costs.${index}.costings.${l.uid}` as any
                                                     ) > 0
                                                         ? "bg-teal-50"
-                                                        : "",
+                                                        : ""
                                                 )}
                                                 key={i}
                                             >
@@ -194,12 +194,12 @@ export default function CommunityInstallCostModal() {
                                                         className="h-7 w-20 px-2"
                                                         type={"number"}
                                                         {...form.register(
-                                                            `costs.${index}.costings.${l.uid}`,
+                                                            `costs.${index}.costings.${l.uid}`
                                                         )}
                                                     />
                                                 </TableCell>
                                             </TableRow>
-                                        ),
+                                        )
                                     )}
                                 </TableBody>
                             </Table>
