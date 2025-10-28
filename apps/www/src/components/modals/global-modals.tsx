@@ -1,6 +1,8 @@
 "use client";
 
 import { SuperAdminGuard } from "../auth-guard";
+import { CommunityInstallCostForm } from "../forms/community-install-cost-form";
+import { CommunityInstallCostModal } from "./community-install-cost-modal";
 import { CommunityModelCostModal } from "./community-model-cost-modal";
 import { CommunityTemplateModal } from "./community-template-modal";
 import { CreateCommunityModelCostModal } from "./create-community-model-cost-modal";
@@ -13,8 +15,7 @@ import { SalesInvoicePreviewModal } from "./sales-invoice-preview-modal";
 import { SalesPreviewModal } from "./sales-preview-modal";
 import { SalesQuickPayModal } from "./sales-quick-pay-modal";
 import { WorkOrderFormModal } from "./work-order-form-modal";
-import ModelInstallCostModal from "@/app/(v1)/(loggedIn)/settings/community/community-templates/install-cost-modal/model-install-cost-modal";
-import CommunityInstallCostModal from "@/components/_v1/modals/community-install-cost";
+
 export function GlobalModals() {
     return (
         <>

@@ -137,7 +137,7 @@ export function CommunityInstallCostForm({ model }: Props) {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Task</TableHead>
-                                <TableHead className="w-32">Cost $</TableHead>
+                                <TableHead className="w-32">Def. Qty</TableHead>
                                 <TableHead className="w-32">Qty</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -162,14 +162,16 @@ export function CommunityInstallCostForm({ model }: Props) {
                                             {" per qty"}
                                         </TCell.Secondary>
                                     </TableCell>
+
+                                    <TableCell></TableCell>
                                     <TableCell>
                                         <FormInput
                                             control={form.control}
                                             name={`installCost.costings.${task.uid}`}
                                             numericProps={{
-                                                prefix: "$",
-                                                placeholder: "$0.00",
-                                                className: "h-8 w-24",
+                                                // prefix: "$",
+                                                placeholder: "0",
+                                                className: "h-8 w-16",
                                                 type: "tel",
                                             }}
                                         />

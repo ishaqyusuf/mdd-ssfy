@@ -295,7 +295,8 @@ export const linkModules = [
                         .access(_perm.is("editProject"))
                         .childPaths(
                             "/settings/community/community-template/slug",
-                            "/community/community-template/slug"
+                            "/community/community-template/slug",
+                            "/community/template-schema"
                         ).data,
                     _subLink("Invoices", "/community/unit-invoices").access(
                         // _perm.is("editProject"),

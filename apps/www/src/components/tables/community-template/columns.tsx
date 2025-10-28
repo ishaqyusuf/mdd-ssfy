@@ -115,7 +115,7 @@ const modelCost: Column = {
     },
 };
 const installCost: Column = {
-    header: "installCost",
+    header: "Install Cost",
     accessorKey: "installCost",
     meta: {
         className: "w-[150px]",

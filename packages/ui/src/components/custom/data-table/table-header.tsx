@@ -39,7 +39,7 @@ export function TableHeader({}) {
     }
   };
   return (
-    <BaseTableHeader className={cn("border-l-0 border-r-0 ")}>
+    <BaseTableHeader className={cn("border-l-0 border-r-0 bg-muted")}>
       {table.getHeaderGroups().map((headerGroup) => (
         <TableRow
           key={headerGroup.id}
