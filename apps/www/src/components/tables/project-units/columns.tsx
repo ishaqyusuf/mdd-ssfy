@@ -60,7 +60,11 @@ const lotBlock: Column = {
         const route = useRouter();
         return (
             <Link
-                href={`/community/community-template/${item.communityTemplate.slug}`}
+                href={
+                    item.communityTemplate
+                        ? `/community/community-template/${item.communityTemplate.slug}`
+                        : ""
+                }
                 className="hover:underline"
             >
                 <TCell.Primary>{item.lotBlock}</TCell.Primary>
