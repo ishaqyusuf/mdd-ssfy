@@ -421,15 +421,14 @@ function getDoorsTable(
         const doorType = item.meta.doorType;
 
         const is = isComponentType(doorType);
-        // console.log({ doorType });
 
-        const noHandle = item.configs
+        const noHandle = !item.configs
           ? item.configs.noHandle
-          : !is.bifold && !is.service && !is.slab;
+          : is.bifold || is.service || is.slab;
         const hasSwing = item.configs
           ? item.configs.hasSwing
           : !is.bifold && !is.service;
-
+        consoleLog(".....", { noHandle, doorType, is, configs: item.configs });
         const res = {
           cells: [
             _cell("#", null, 1, "text-center", "text-center"),

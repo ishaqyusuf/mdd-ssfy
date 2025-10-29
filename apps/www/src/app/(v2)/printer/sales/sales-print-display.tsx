@@ -52,7 +52,7 @@ export default function SalesPrintDisplay({ data, slug }) {
                                             index={i}
                                             key={"shelf" + i}
                                         />
-                                    ),
+                                    )
                                 )}
                                 <SalesPrintLineItems />
                             </tbody>

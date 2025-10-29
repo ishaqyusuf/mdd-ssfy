@@ -11,6 +11,7 @@ import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
 import { printQuote } from "@/utils/sales-invoice";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/custom/icons";
+import { Download } from "lucide-react";
 
 export function BatchActions({}) {
     const ctx = useTable();
@@ -48,6 +49,33 @@ export function BatchActions({}) {
             >
                 <Icons.print className="size-4 mr-2" />
                 Print
+            </Button>
+            <Button
+                // icon="print"
+
+                variant="ghost"
+                onClick={async (e) => {
+                    await printQuote({
+                        salesIds,
+                        preview: false,
+                    });
+                }}
+                // menu={
+                //     <>
+                //         <MenuItemPrintAction
+                //             slug={slugs.join(",")}
+                //             type="quote"
+                //         />
+                //         <MenuItemPrintAction
+                //             slug={slugs.join(",")}
+                //             type="quote"
+                //             pdf
+                //         />
+                //     </>
+                // }
+            >
+                <Download className="size-4 mr-2" />
+                Download
             </Button>
             <BatchBtn
                 icon="Email"

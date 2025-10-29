@@ -535,6 +535,7 @@ export function getDispatchControlType(
   }
 }
 export function isComponentType(type: DykeDoorType) {
+  let _type = type?.trim() as string;
   const resp = {
     slab: type == "Door Slabs Only",
     bifold: type == "Bifold",
@@ -544,7 +545,7 @@ export function isComponentType(type: DykeDoorType) {
     exterior: type == "Exterior",
     interior: type == "Interior",
     // moulding: type == "Moulding",
-    moulding: ["Moulding", "Mouldings", "Door hardware"].includes(type),
+    moulding: ["Moulding", "Mouldings", "Door hardware"].includes(_type),
     hasSwing: false,
     multiHandles: false,
   };
