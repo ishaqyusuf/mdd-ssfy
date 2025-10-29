@@ -292,12 +292,12 @@ function getDoorsTable(
                 const hasSwing = item.configs
                     ? item.configs.hasSwing
                     : !is.bifold && !is.service;
-                consoleLog(".....", {
-                    noHandle,
-                    doorType,
-                    is,
-                    configs: item.configs,
-                });
+                // consoleLog(".....", {
+                //     noHandle,
+                //     doorType,
+                //     is,
+                //     configs: item.configs,
+                // });
                 const res = {
                     cells: [
                         _cell(

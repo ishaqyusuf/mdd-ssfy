@@ -80,7 +80,7 @@ export default function SalesPrintDoorItems({
           </View>
 
           {doors.lines.map((line, i) => (
-            <View key={i} style={cn("flex border-t")}>
+            <View wrap={false} key={i} style={cn("flex border-t")}>
               {line.map((ld, ldi) => (
                 <View
                   key={ldi}

@@ -66,38 +66,38 @@ const tw: { [key in string]: Partial<any> } = {
   // Border
   border: {
     borderWidth: 1,
-    // borderColor: "#000000",
+    borderColor: "#b0b0b0",
     borderStyle: "solid",
   },
   "border-x": {
     borderRightWidth: 1,
     borderLeftWidth: 1,
-    // borderColor: "#000000",
+    borderColor: "#b0b0b0",
     borderStyle: "solid",
   },
   "border-b": {
     borderBottomWidth: 1,
-    // borderColor: "#000000",
+    borderColor: "#b0b0b0",
     borderStyle: "solid",
   },
   "border-t": {
     borderTopWidth: 1,
-    // borderColor: "#000000",
+    borderColor: "#b0b0b0",
     borderStyle: "solid",
   },
   "border-l": {
     borderLeftWidth: 1,
-    // borderColor: "#000000",
+    borderColor: "#b0b0b0",
     borderStyle: "solid",
   },
   "border-r": {
     borderRightWidth: 1,
-    // borderColor: "#000000",
+    borderColor: "#b0b0b0",
     borderStyle: "solid",
   },
   "border-r-1": {
     borderRightWidth: 1,
-    // borderColor: "#000000",
+    borderColor: "#b0b0b0",
     borderStyle: "solid",
   },
   "border-gray-400": {
