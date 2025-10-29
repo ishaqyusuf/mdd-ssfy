@@ -8,7 +8,7 @@ import { Suspense, useState } from "react";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { DoorSupplierForm } from "./door-supplier-form";
-import { Table } from "@gnd/ui/custom/data-table/index";
+import { Table } from "@gnd/ui/data-table";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Label } from "@gnd/ui/label";
@@ -42,7 +42,7 @@ export function Content({ itemStepUid }) {
                         queryKey: trpc.sales.getSuppliers.queryKey({}),
                     });
                 },
-            }),
+            })
         );
     if (!data?.uid && !supplierFormData)
         return (
@@ -72,7 +72,7 @@ export function Content({ itemStepUid }) {
                                     <Button
                                         onClick={(e) => {
                                             stepClass.setDoorSupplier(
-                                                door.itemStepUid,
+                                                door.itemStepUid
                                             );
                                         }}
                                         variant="link"
@@ -103,7 +103,7 @@ export function Content({ itemStepUid }) {
                                 setSupplierFormData(null);
                                 qc.invalidateQueries({
                                     queryKey: trpc.sales.getSuppliers.queryKey(
-                                        {},
+                                        {}
                                     ),
                                 });
                             }}
@@ -129,7 +129,7 @@ export function Content({ itemStepUid }) {
                                             "size-4",
                                             meta?.supplierUid === p?.uid
                                                 ? ""
-                                                : "text-transparent",
+                                                : "text-transparent"
                                         )}
                                     />
                                 </Table.Cell>
@@ -138,7 +138,7 @@ export function Content({ itemStepUid }) {
                                     onClick={(e) => {
                                         stepClass.setDoorSupplier(
                                             door.itemStepUid,
-                                            { uid: p.uid, name: p.name },
+                                            { uid: p.uid, name: p.name }
                                         );
                                     }}
                                 >
@@ -161,7 +161,7 @@ export function Content({ itemStepUid }) {
                                         onClick={(e) => {
                                             if (meta?.supplierUid === p?.uid) {
                                                 stepClass.setDoorSupplier(
-                                                    door.itemStepUid,
+                                                    door.itemStepUid
                                                 );
                                             }
                                             deleteSupplier({

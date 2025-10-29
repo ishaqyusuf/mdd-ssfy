@@ -138,20 +138,11 @@ function shelfItemsTable(
     if (price)
         res.cells.push(
             ...[
-                _cell<T>(
-                    "Rate",
-                    "unitPrice",
-                    3,
-                    { position: "right" },
-                    { position: "right" }
-                ),
-                _cell<T>(
-                    "Total",
-                    "totalPrice",
-                    3,
-                    { position: "right" },
-                    { position: "right", font: "bold" }
-                ),
+                _cell<T>("Rate", "unitPrice", 3, "text-right", "text-right"),
+                _cell<T>("Total", "totalPrice", 3, "text-right", {
+                    position: "right",
+                    font: "bold",
+                }),
             ]
         );
     if (isPacking) res.cells.push(_cell<T>("Fulfilment", "packing", 3));
@@ -396,16 +387,13 @@ function getDoorsTable(
                                 "Rate",
                                 "unitPrice",
                                 3,
-                                { position: "right" },
-                                { position: "right" }
+                                "text-right",
+                                "text-right"
                             ),
-                            _cell(
-                                "Total",
-                                "lineTotal",
-                                3,
-                                { position: "right" },
-                                { position: "right", font: "bold" }
-                            ),
+                            _cell("Total", "lineTotal", 3, "text-right", {
+                                position: "right",
+                                font: "bold",
+                            }),
                         ]
                     );
                 }

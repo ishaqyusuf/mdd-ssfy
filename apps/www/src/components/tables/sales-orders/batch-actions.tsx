@@ -6,20 +6,9 @@ import {
 import { useMemo } from "react";
 import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
 import { deleteSalesByOrderIds } from "@/app/(clean-code)/(sales)/_common/data-actions/sales-actions";
-import { useTable } from "@gnd/ui/custom/data-table/index";
+import { useTable } from "@gnd/ui/data-table";
 import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
 import { DropdownMenu } from "@gnd/ui/composite";
-import { Menu } from "@gnd/ui/custom/menu";
-import { generateToken, validateTokenAction } from "@/actions/token-action";
-import { addDays } from "date-fns";
-import { SalesPrintModes } from "@sales/constants";
-import {
-    salesPdfToken,
-    SalesPdfToken,
-    validateToken,
-} from "@gnd/utils/tokenizer";
-import { openLink } from "@/lib/open-link";
-import { Badge } from "@gnd/ui/badge";
 import { SuperAdminGuard } from "@/components/auth-guard";
 
 export function BatchActions({}) {
@@ -45,7 +34,7 @@ export function BatchActions({}) {
                         <DropdownMenu.Group>
                             <MenuItemPrintAction
                                 slug={slugs.join(",")}
-                                type="quote"
+                                type="order"
                                 pdf
                             />
                             <SuperAdminGuard>

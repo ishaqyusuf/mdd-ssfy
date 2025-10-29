@@ -269,40 +269,28 @@ function shelfItemsTable(
   type T = keyof any;
   const res = {
     cells: [
-      _cell<T>("#", null, 1, { position: "center" }, { position: "center" }),
+      _cell<T>("#", null, 1, "text-center", "text-center"),
       _cell<T>(
         "Item",
         "description",
         // price ? 7 : isPacking ? 11 : 14,
         null as any,
-        { position: "left" },
-        { position: "left" }
+        "text-left",
+        "text-left"
       ),
-      _cell<T>(
-        "Qty",
-        "qty",
-        1.2,
-        { position: "center" },
-        { position: "center" }
-      ),
+      _cell<T>("Qty", "qty", 1.2, "text-center", "text-center"),
     ],
   };
   if (price)
     res.cells.push(
       ...[
-        _cell<T>(
-          "Rate",
-          "unitPrice",
-          3,
-          { position: "right" },
-          { position: "right" }
-        ),
+        _cell<T>("Rate", "unitPrice", 3.5, "text-right", "text-right"),
         _cell<T>(
           "Total",
           "totalPrice",
-          3,
-          { position: "right" },
-          { position: "right", font: "bold" }
+          3.5,
+          "text-right",
+          "text-right font-bold"
         ),
       ]
     );
@@ -444,7 +432,7 @@ function getDoorsTable(
 
         const res = {
           cells: [
-            _cell("#", null, 1, { position: "center" }, { position: "center" }),
+            _cell("#", null, 1, "text-center", "text-center"),
 
             ...(is.moulding
               ? [
@@ -456,13 +444,7 @@ function getDoorsTable(
                     { position: "left" },
                     { position: "left" }
                   ),
-                  _cell(
-                    "Qty",
-                    "qty",
-                    1.5,
-                    { position: "center" },
-                    { position: "center" }
-                  ),
+                  _cell("Qty", "qty", 1.5, "text-center", "text-center"),
                 ]
               : [
                   ...(is.service
@@ -496,30 +478,10 @@ function getDoorsTable(
                   ...(is.garage ? [_cell("Swing", "swing", 2, {}, {})] : []),
                   ...// is.bifold || is.slab || is.service
                   (noHandle
-                    ? [
-                        _cell(
-                          "Qty",
-                          "qty",
-                          1.5,
-                          { position: "center" },
-                          { position: "center" }
-                        ),
-                      ]
+                    ? [_cell("Qty", "qty", 1.5, "text-center", "text-center")]
                     : [
-                        _cell(
-                          "LH",
-                          "lhQty",
-                          1.5,
-                          { position: "center" },
-                          { position: "center" }
-                        ),
-                        _cell(
-                          "RH",
-                          "rhQty",
-                          1.5,
-                          { position: "center" },
-                          { position: "center" }
-                        ),
+                        _cell("LH", "lhQty", 1.5, "text-center", "text-center"),
+                        _cell("RH", "rhQty", 1.5, "text-center", "text-center"),
                       ]),
                 ]),
           ],
@@ -527,19 +489,13 @@ function getDoorsTable(
         if (price) {
           res.cells.push(
             ...[
-              _cell(
-                "Rate",
-                "unitPrice",
-                2,
-                { position: "right" },
-                { position: "right" }
-              ),
+              _cell("Rate", "unitPrice", 3, "text-right", "text-right"),
               _cell(
                 "Total",
                 "lineTotal",
-                2,
-                { position: "right" },
-                { position: "right", font: "bold" }
+                3,
+                "text-right",
+                "text-right font-bold"
               ),
             ]
           );
@@ -550,8 +506,8 @@ function getDoorsTable(
               "Shipped Qty",
               "packing",
               3,
-              { position: "center" },
-              { position: "center", font: "bold" }
+              "text-center",
+              "text-center font-bold"
             )
           );
 
@@ -731,7 +687,7 @@ function lineItems(data: PrintData, { isProd, isPacking }) {
   ];
   const noInvoice = isProd || isPacking;
   if (isPacking) heading.push(header("Packed Qty", 1));
-  if (!noInvoice) heading.push(...[header("Rate", 2), header("Total", 2)]);
+  if (!noInvoice) heading.push(...[header("Rate", 3), header("Total", 3)]);
   let sn = 0;
 
   const lines = Array(totalLines)
@@ -741,50 +697,35 @@ function lineItems(data: PrintData, { isProd, isPacking }) {
       if (!item) return { cells: [] };
 
       const cells = [
-        styled(item.rate ? `${++sn}.` : "", null, {
-          font: "bold",
-          colSpan: "1",
-          position: "center",
-        }),
-        styled(item.description, null, {
-          font: "bold",
-          bg: !item.rate ? "shade" : "default",
-          position: !item.rate ? "center" : "default",
-          text: "uppercase",
-          colSpan: "8",
-        }),
-        styled(item.swing, null, {
-          font: "bold",
-          position: "center",
-          text: "uppercase",
-          colSpan: "2",
-        }),
-        styled(item.qty, null, {
-          font: "bold",
-          position: "center",
-          colSpan: "1",
-        }),
+        styled(item.rate ? `${++sn}.` : "", null, "font-bold text-center"),
+        styled(
+          item.description,
+          null,
+          `font-bold ${!item.rate ? "bg-shade" : ""} ${
+            !item.rate ? "text-center" : ""
+          } uppercase `
+        ),
+        styled(item.swing, null, "font-bold text-center uppercase"),
+        styled(item.qty, null, "font-bold text-center"),
       ];
       if (!noInvoice)
         cells.push(
           ...[
-            styled(item.total ? formatCurrency(item.rate || 0) : null, null, {
-              position: "right",
-              colSpan: "2",
-            }),
-            styled(!item.total ? null : formatCurrency(item.total || 0), null, {
-              font: "bold",
-              position: "right",
-              colSpan: "2",
-            }),
+            styled(
+              item.total ? formatCurrency(item.rate || 0) : null,
+              null,
+              "text-right"
+            ),
+            styled(
+              !item.total ? null : formatCurrency(item.total || 0),
+              null,
+              "font-bold text-right"
+            ),
           ]
         );
       if (isPacking)
         cells.push(
-          styled(packingInfo(data, item.id), "", {
-            font: "bold",
-            position: "center",
-          })
+          styled(packingInfo(data, item.id), "", "font-bold text-center")
         );
       return {
         id: item.id,
@@ -824,9 +765,7 @@ function printFooter(data: PrintData, notPrintable) {
             styled(
               `${sData.title} ${sData.percentage}%`,
               formatCurrency(t.tax),
-              {
-                font: "bold",
-              }
+              "font-bold"
             )
           );
         } else {
@@ -838,9 +777,7 @@ function printFooter(data: PrintData, notPrintable) {
                   : "Tax"
               }`,
               formatCurrency(t.tax),
-              {
-                font: "bold",
-              }
+              "font-bold"
             )
           );
         }
@@ -851,53 +788,48 @@ function printFooter(data: PrintData, notPrintable) {
         styled(
           `Tax (${data.order.taxPercentage}%)`,
           formatCurrency(data.order.tax || 0),
-          {
-            font: "bold",
-          }
+          "font-bold"
         )
       );
   }
   return {
     lines: [
-      styled("Subtotal", formatCurrency(data.order.subTotal || 0), {
-        font: "bold",
-      }),
+      styled("Subtotal", formatCurrency(data.order.subTotal || 0), "font-bold"),
       ...taxLines,
       data.order.meta?.labor_cost
-        ? styled("Labor", formatCurrency(data.order.meta?.labor_cost || 0), {
-            font: "bold",
-          })
+        ? styled(
+            "Labor",
+            formatCurrency(data.order.meta?.labor_cost || 0),
+            "font-bold"
+          )
         : null,
       ...data.order?.extraCosts?.map((ec) =>
-        styled(ec.label, formatCurrency(ec.amount || 0), {
-          font: "bold",
-        })
+        styled(ec.label, formatCurrency(ec.amount || 0), "font-bold")
       ),
       data.order.meta?.ccc
-        ? styled("C.C.C", formatCurrency(data.order.meta.ccc || 0), {
-            font: "bold",
-          })
+        ? styled("C.C.C", formatCurrency(data.order.meta.ccc || 0), "font-bold")
         : null,
       data.order.meta.deliveryCost > 0
         ? styled(
             "Delivery",
             `${formatCurrency(data.order.meta.deliveryCost)}`,
-            {
-              //   font: "bold",
-            }
+            ""
           )
         : null,
       totalPaid > 0
-        ? styled("Total Paid", `(${formatCurrency(totalPaid || 0)})`, {
-            font: "bold",
-          })
+        ? styled(
+            "Total Paid",
+            `(${formatCurrency(totalPaid || 0)})`,
+            "font-bold"
+          )
         : null,
-      styled("Total Due", formatCurrency(data.order.amountDue || 0), {
-        font: "bold",
-        size: "base",
-      }),
+      styled(
+        "Total Due",
+        formatCurrency(data.order.amountDue || 0),
+        "text-base font-bold"
+      ),
       // styled("Total", formatCurrency.format(data.order.grandTotal || 0), {
-      //     font: "bold",
+      //     "font-bold",
       //     size: "base",
       // }),
     ].filter(Boolean),
@@ -908,10 +840,11 @@ function heading({ mode, isOrder, order, isEstimate, isPacking }) {
   let h = {
     title: mode,
     lines: [
-      styled(isOrder ? "Invoice #" : "Quote #", order.orderId?.toUpperCase(), {
-        font: "bold",
-        size: "lg",
-      }),
+      styled(
+        isOrder ? "Invoice #" : "Quote #",
+        order.orderId?.toUpperCase(),
+        "font-bold size-lg"
+      ),
       styled(
         isOrder ? "Invoice Date" : "Quote Date",
         formatDate(order.createdAt)
@@ -932,18 +865,15 @@ function heading({ mode, isOrder, order, isEstimate, isPacking }) {
       styled(
         "Invoice Status",
         (order.amountDue || 0) > 0 ? "Pending" : "Paid",
-        {
-          size: "base",
-          font: "bold",
-          text: "uppercase",
-        }
+        "text-base font-bold uppercase"
       )
     );
     h.lines.push(
-      styled("Invoice Total", formatCurrency(order?.grandTotal), {
-        size: "base",
-        font: "bold",
-      })
+      styled(
+        "Invoice Total",
+        formatCurrency(order?.grandTotal),
+        "text-base font-bold"
+      )
     );
     if (order?.amountDue > 0) {
       let { goodUntil, paymentTerm, createdAt } = order;

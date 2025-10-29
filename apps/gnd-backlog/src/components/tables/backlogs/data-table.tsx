@@ -8,7 +8,7 @@ import { TableRow } from "@gnd/ui/data-table/table-row";
 import { useBacklogFilterParams } from "@/hooks/use-backlog-filter-params";
 import { useBacklogParams } from "@/hooks/use-backlog-params";
 import { LoadMoreTRPC } from "@gnd/ui/data-table/load-more";
-import { TableProvider, useTableData } from "@gnd/ui/custom/data-table/index";
+import { TableProvider, useTableData } from "@gnd/ui/data-table";
 
 export function DataTable() {
   const trpc = useTRPC();

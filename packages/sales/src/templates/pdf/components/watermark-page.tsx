@@ -15,6 +15,7 @@ export default function WatermarkPage({
   return (
     <Page {...pageProps} style={cn("relative", style)}>
       <View
+        fixed
         style={{
           position: "absolute",
           top: "30%",

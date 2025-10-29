@@ -20,6 +20,7 @@ const tw: { [key in string]: Partial<any> } = {
     //   'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
   },
   uppercase: { textTransform: "uppercase" },
+  capitalize: { textTransform: "capitalize" },
   "font-bold": { fontWeight: "bold" },
   italic: { fontStyle: "italic" },
   "flex-wrap": { flexWrap: "wrap" },

@@ -41,7 +41,12 @@ export default function SalesPrintHeader({
           })}
         >
           {/* Heading */}
-          <Text style={{ fontSize: 18, fontWeight: 700 }}>
+          <Text
+            style={cn(
+              { fontSize: 18, fontWeight: 700 },
+              "text-right capitalize"
+            )}
+          >
             {sale?.headerTitle}
           </Text>
 

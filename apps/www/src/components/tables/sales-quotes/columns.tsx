@@ -7,9 +7,11 @@ import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 
 import { Badge } from "@gnd/ui/badge";
+import { cells } from "@gnd/ui/custom/data-table/cells";
 
 type Item = RouterOutputs["sales"]["quotes"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
+    cells.selectColumn,
     {
         header: "Date",
         accessorKey: "quoteDate",
@@ -51,7 +53,7 @@ export const columns: ColumnDef<Item>[] = [
             <TCell.Primary
                 className={cn(
                     item.isBusiness && "text-blue-700",
-                    "whitespace-nowrap uppercase",
+                    "whitespace-nowrap uppercase"
                 )}
             >
                 <TextWithTooltip

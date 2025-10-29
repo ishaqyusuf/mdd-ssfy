@@ -5,7 +5,7 @@ import {
 import { useMemo } from "react";
 
 import { deleteSalesByOrderIds } from "@/app/(clean-code)/(sales)/_common/data-actions/sales-actions";
-import { useTable } from "@gnd/ui/custom/data-table/index";
+import { useTable } from "@gnd/ui/data-table";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/custom/icons";
 
