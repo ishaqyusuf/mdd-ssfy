@@ -236,6 +236,7 @@ export async function customerInfoSearch(
       phone: customer?.phoneNo,
       addressId: address?.id,
       taxName: taxProfile?.tax?.title,
+      taxCode: taxProfile?.tax?.taxCode,
       profileName: customer?.profile?.title,
       profileId: customer?.profile?.id,
       email: customer.email,

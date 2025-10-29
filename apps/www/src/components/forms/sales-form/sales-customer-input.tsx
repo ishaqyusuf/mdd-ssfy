@@ -11,6 +11,7 @@ import { generateRandomString } from "@gnd/utils";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
+import { SettingsClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
 export function SalesCustomerInput() {
     const zus = useFormDataStore();
     const md = zus.metaData;
@@ -190,7 +191,9 @@ function SearchCustomer() {
                     <Fragment key={sr.id}>
                         <Item size="sm" key={sr.id}>
                             <Item.Content>
-                                <Item.Title>{sr?.name}</Item.Title>
+                                <Item.Title>
+                                    {sr?.name} {" - "} {sr?.profileName}
+                                </Item.Title>
                                 <Item.Description>{sr?.phone}</Item.Description>
                             </Item.Content>
                             <Item.Actions>
@@ -216,7 +219,10 @@ function SearchCustomer() {
                                         metaData.profileChangedToken =
                                             generateRandomString();
                                         metaData.salesProfileId = sr?.profileId;
+                                        if (sr?.taxCode)
+                                            metaData.tax.taxCode = sr?.taxCode;
                                         zus.dotUpdate("metaData", metaData);
+                                        new SettingsClass().taxCodeChanged();
                                     }}
                                     size="sm"
                                     variant="outline"
