@@ -422,8 +422,8 @@ function getDoorsTable(
 
         const is = isComponentType(doorType);
 
-        const noHandle = !item.configs
-          ? item.configs.noHandle
+        const noHandle = !!item.configs
+          ? item.configs?.noHandle
           : is.bifold || is.service || is.slab;
         const hasSwing = item.configs
           ? item.configs.hasSwing
