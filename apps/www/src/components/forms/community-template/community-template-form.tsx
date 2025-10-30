@@ -56,7 +56,7 @@ function Content() {
     const { mutate, isPending: savingSort } = useMutation(
         _trpc.community.updateRecordsIndicesIndices.mutationOptions({
             meta: null,
-        }),
+        })
     );
     if (!ctx.blocks?.length) return <EmptyState />;
     return (
@@ -73,9 +73,11 @@ function Content() {
                 onValueChange={_reorderList}
             >
                 <Sortable.Content className="grid sgrid-cols-3 gap-4">
-                    {fields.map((field) => (
-                        <SchemaBlock key={field._id} block={field} />
-                    ))}
+                    {fields
+                        // .filter((a, i) => i < 2)
+                        .map((field) => (
+                            <SchemaBlock key={field._id} block={field} />
+                        ))}
                 </Sortable.Content>
                 <Sortable.Overlay />
             </Sortable.Root>

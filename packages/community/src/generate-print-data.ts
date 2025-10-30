@@ -14,6 +14,7 @@ import { consoleLog, dotObject } from "@gnd/utils";
 interface Props {
   homeIds: number[];
   templateSlug?: string;
+  printMode?: boolean;
 }
 export async function generatePrintData(db: Db, props: Props) {
   const homes = await db.homes.findMany({
@@ -132,9 +133,9 @@ export async function generatePrintData(db: Db, props: Props) {
           home.modelName?.toLowerCase() == t.modelName?.toLowerCase()
       )?.meta as any
     )?.design;
-    consoleLog("COMMUNITY DESIGN", {
-      bifold: design?.bifoldDoor,
-    });
+    // consoleLog("COMMUNITY DESIGN", {
+    //   bifold: design?.bifoldDoor,
+    // });
     units.push({
       data: [
         info("Project", home.project.title, 2),
@@ -143,7 +144,7 @@ export async function generatePrintData(db: Db, props: Props) {
         info("Lot", home.lot, 1),
         info("Block", home.block, 1),
         ...((c?.templateValues?.length
-          ? await transformBlock(db, c.templateValues)
+          ? await transformBlock(db, c.templateValues, props.printMode)
           : legacyDesign(homeDesign, design)) as Info[]),
       ],
     });
@@ -167,7 +168,11 @@ export type Info = ReturnType<typeof info>;
 const section = (label) => info(label, null, 4, true);
 let schemaData: SchemaData = null as any;
 let blocks: GetCommunityBlockSchema[] = [];
-async function transformBlock(db: Db, inputConfigs: ModelTemplateValues) {
+async function transformBlock(
+  db: Db,
+  inputConfigs: ModelTemplateValues,
+  printMode
+) {
   if (!schemaData) {
     schemaData = await getCommunitySchema(db);
     blocks = await Promise.all(
@@ -180,13 +185,19 @@ async function transformBlock(db: Db, inputConfigs: ModelTemplateValues) {
   }
   return blocks
     .map((block) => {
-      const tfs = new TemplateFormService(schemaData, inputConfigs, block);
+      const tfs = new TemplateFormService(
+        schemaData,
+        inputConfigs,
+        block,
+        printMode
+      );
       const modelForm = tfs.generateBlockForm();
+      if (printMode) tfs.extendEdgeCells(modelForm);
       const valuedForms = modelForm.filter((a) => {
         return modelForm.some(
           (b) =>
-            (b._formMeta.rowNo === a._formMeta.rowNo && b._formMeta.value) ||
-            b._formMeta.selection?.label
+            b._formMeta.rowNo === a._formMeta.rowNo &&
+            (b._formMeta.value || b._formMeta.selection?.label)
         );
       });
       if (!valuedForms?.length) return [];
@@ -229,7 +240,6 @@ function legacyDesign(homeTemplate, communityDesign) {
     ? dotArray(transformCommunityTemplate(communityDesign))
     : homeTemplate;
   let design = designDotToObject(template);
-  let sectionTitle;
   return [
     [info("Deadbolt", "=lockHardware.deadbolt", 4)],
     process.env.NODE_ENV === "production"
@@ -248,10 +258,7 @@ function legacyDesign(homeTemplate, communityDesign) {
       const t = section.map((s) => {
         // if(s.value?.startsWith('='))
         // if (s.section) sectionTitle = s.label;
-        if (!s.value) {
-          if (isBifold) consoleLog(s.label, s);
-          return s;
-        }
+        if (!s.value) return s;
         const [e, k] = s.value?.split("=");
         if (k) s.value = dotObject.pick(k, design);
         // s.value = s.value?.trim();

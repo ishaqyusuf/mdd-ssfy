@@ -14,7 +14,8 @@ export class TemplateFormService {
   constructor(
     public schema: SchemaData,
     public modelValues: ModelTemplateValues,
-    public block: CommunityBlock
+    public block: CommunityBlock,
+    public printMode: Boolean
   ) {}
 
   generateBlockForm() {
@@ -67,7 +68,8 @@ export class TemplateFormService {
         return b;
       });
       const colSize = 4 - sum(row, "columnSize");
-      if (colSize > 0)
+      // Remove during print.
+      if (colSize > 0 && !this.printMode)
         row.push({
           columnSize: colSize,
           id: -1,
@@ -121,5 +123,23 @@ export class TemplateFormService {
         ...a,
         index,
       }));
+  }
+  extendEdgeCells(cells: ReturnType<typeof this.generateBlockForm>) {
+    const rowGroups = cells.reduce((acc, cell) => {
+      if (!acc[cell._formMeta.rowNo]) {
+        acc[cell._formMeta!.rowNo] = [];
+      }
+      acc[cell._formMeta!.rowNo]?.push(cell);
+      return acc;
+    }, {} as Record<number, typeof cells>);
+    Object.values(rowGroups).forEach((row) => {
+      const sum = row.reduce((total, cell) => total + cell?.columnSize!, 0);
+
+      if (sum < 4) {
+        const remainder = 4 - sum;
+        const lastCell: any = row[row.length - 1];
+        lastCell.columnSize += remainder;
+      }
+    });
   }
 }

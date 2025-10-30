@@ -29,7 +29,7 @@ export function Header() {
       <View
         style={{
           flex: 1,
-          height: "1px",
+          height: "3px",
           backgroundColor: colorsObject.black,
         }}
       />

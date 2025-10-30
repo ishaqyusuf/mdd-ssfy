@@ -24,11 +24,11 @@ export interface CreateTemplateSchemaContextProps {
     print?: boolean;
 }
 export const createTemplateSchemaContext = (
-    props: CreateTemplateSchemaContextProps,
+    props: CreateTemplateSchemaContextProps
 ) => {
     const trpc = useTRPC();
     const { data, isPending } = useSuspenseQuery(
-        trpc.community.getCommunitySchema.queryOptions({}),
+        trpc.community.getCommunitySchema.queryOptions({})
     );
     const { data: communityTemplate } = useSuspenseQuery(
         trpc.community.getModelTemplate.queryOptions(
@@ -37,12 +37,12 @@ export const createTemplateSchemaContext = (
             },
             {
                 enabled: false, ///!!props.modelSlug,
-            },
-        ),
+            }
+        )
     );
 
     const { data: blockInputData } = useSuspenseQuery(
-        trpc.community.getBlockInputs.queryOptions({}),
+        trpc.community.getBlockInputs.queryOptions({})
     );
     // const form = useZodForm(getCommunitySchemaSchema, {
     //     defaultValues: {},
@@ -72,7 +72,7 @@ export const useTemplateSchemaContext = () => {
     const context = useContext(TemplateSchemaContext);
     if (context === undefined) {
         throw new Error(
-            "useTemplateSchemaContext must be used within a TemplateBlocksProvider",
+            "useTemplateSchemaContext must be used within a TemplateBlocksProvider"
         );
     }
     return context;
@@ -95,8 +95,8 @@ export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
             },
             {
                 enabled: !!props.blockId,
-            },
-        ),
+            }
+        )
     );
     type Form = RenturnTypeAsync<typeof getCommunityBlockSchema> & {};
     const form = useForm<Form>({
@@ -107,12 +107,12 @@ export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
     useEffect(() => {
         if (blockInput) {
             form.reset(blockInput as any);
-            // console.log({ communityTemplate });
+            console.log({ communityTemplate, schm, blockInput });
             if (!schm.modelSlug) return;
             const tfs = new TemplateFormService(
                 schm.schemaData,
                 communityTemplate.values,
-                blockInput,
+                blockInput
             );
             const modelForm = tfs.generateBlockForm();
             store.update(`blocks.${blockInput.uid}`, {
@@ -150,7 +150,7 @@ export const useTemplateSchemaBlock = () => {
     const context = useContext(TemplateSchemaBlock);
     if (context === undefined) {
         throw new Error(
-            "useTemplateSchemaBlock must be used within a SchemaBlockProvider",
+            "useTemplateSchemaBlock must be used within a SchemaBlockProvider"
         );
     }
     return context;
@@ -197,7 +197,7 @@ export const useTemplateSchemaInputContext = () => {
     const context = useContext(TemplateSchemaInputContext);
     if (context === undefined) {
         throw new Error(
-            "useTemplateSchemaInputContext must be used within a BlockInputProvider",
+            "useTemplateSchemaInputContext must be used within a BlockInputProvider"
         );
     }
     return context;

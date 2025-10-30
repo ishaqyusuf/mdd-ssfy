@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
             .map((a) => Number(a))
             .filter((a) => a > 0),
         templateSlug: result.data.templateSlug,
+        printMode: true,
     });
 
     const {

@@ -1,6 +1,5 @@
 "use client";
 import { _trpc } from "@/components/static-trpc";
-import { SubmitButton } from "@/components/submit-button";
 import { useCommunityModelStore } from "@/store/community-model";
 import { extractCommunityFormValueData } from "@community/utils/template-form";
 import { Button } from "@gnd/ui/button";
@@ -24,14 +23,12 @@ export function FormHeader() {
                 },
             },
             onSuccess(data, variables, context) {},
-        }),
+        })
     );
     useDebugToast("Error", error);
     // useDebugToast("error", { data, error });
     const onSubmit = () => {
         const data = extractCommunityFormValueData(Object.values(store.blocks));
-        console.log(data);
-        // console.log(store.blocks);
         mutate({
             ...data,
             modelId: ctx.communityTemplate.id!,
@@ -52,19 +49,15 @@ export function FormHeader() {
                             slugs: "",
                             templateSlug: ctx?.modelSlug,
                         },
-                        true,
+                        true
                     );
                 }}
             >
                 Preview
             </Button>
-            <SubmitButton
-                onClick={onSubmit}
-                isSubmitting={isPending}
-                type="button"
-            >
+            <Button onClick={onSubmit} isSubmitting={isPending} type="button">
                 Save
-            </SubmitButton>
+            </Button>
         </div>
     );
 }

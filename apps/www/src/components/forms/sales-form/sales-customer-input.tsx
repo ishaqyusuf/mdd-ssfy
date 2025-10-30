@@ -194,12 +194,13 @@ function SearchCustomer() {
                                 <Item.Title>
                                     {sr?.name} {" - "} {sr?.profileName}
                                 </Item.Title>
-                                <Item.Description>{sr?.phone}</Item.Description>
+                                <Item.Description>
+                                    {sr?.phone} {" - "} {sr?.taxName}
+                                </Item.Description>
                             </Item.Content>
                             <Item.Actions>
                                 <Button
                                     onClick={(e) => {
-                                        console.log({ sr });
                                         const metaData = {
                                             ...md,
                                         };
@@ -220,7 +221,9 @@ function SearchCustomer() {
                                             generateRandomString();
                                         metaData.salesProfileId = sr?.profileId;
                                         if (sr?.taxCode)
-                                            metaData.tax.taxCode = sr?.taxCode;
+                                            metaData.tax = {
+                                                taxCode: sr?.taxCode,
+                                            } as any;
                                         zus.dotUpdate("metaData", metaData);
                                         new SettingsClass().taxCodeChanged();
                                     }}

@@ -41,7 +41,7 @@ export function BlockInput() {
                         ? "col-span-4"
                         : `col-span-${data.columnSize || 4}`,
                     savingSort && "grayscale",
-                    "group",
+                    "group"
                 )}
             ></div>
         );
@@ -64,7 +64,7 @@ export function BlockInput() {
                     ? "col-span-4"
                     : `col-span-${data.columnSize || 4}`,
                 savingSort && "grayscale",
-                "group",
+                "group"
             )}
         >
             <div className={cn("flex w-[100px] relative justify-end")}>
@@ -80,10 +80,10 @@ export function BlockInput() {
                             variant: "link",
                         }),
                         templateEditMode ?? "whitespace-nowrap",
-                        "z-20 relative",
+                        "z-20 relative"
                     )}
                 >
-                    {data.title || data.inv.name}
+                    {data.title || data.inv?.name}
                 </Label>
             </div>
             <div className="flex flex-1 relative">
