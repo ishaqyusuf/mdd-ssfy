@@ -68,7 +68,15 @@ const lotBlock: Column = {
                 className="hover:underline"
             >
                 <TCell.Primary>{item.lotBlock}</TCell.Primary>
-                <TCell.Secondary>{item.modelName}</TCell.Secondary>
+                <TCell.Secondary>
+                    {item.modelName}
+
+                    {item.communityTemplate?.version != "v2" || (
+                        <>
+                            <Badge>v2</Badge>
+                        </>
+                    )}
+                </TCell.Secondary>
             </Link>
         );
     },

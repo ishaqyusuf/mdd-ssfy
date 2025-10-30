@@ -16,7 +16,7 @@ export function Header({}) {
                 <div className="flex h-16 shrink-0 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12  items-center gap-2 px-4">
                     <div
                         className={cn(
-                            "flex items-center gap-2",
+                            "flex items-center gap-2"
                             // ctx.renderMode == "none" && "hidden",
                         )}
                     >

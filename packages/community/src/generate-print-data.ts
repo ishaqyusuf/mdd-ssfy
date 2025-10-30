@@ -15,6 +15,7 @@ interface Props {
   homeIds: number[];
   templateSlug?: string;
   printMode?: boolean;
+  version?: "v1" | "v2";
 }
 export async function generatePrintData(db: Db, props: Props) {
   const homes = await db.homes.findMany({
@@ -71,6 +72,7 @@ export async function generatePrintData(db: Db, props: Props) {
       meta: true,
       modelName: true,
       id: true,
+      version: true,
       project: {
         select: {
           id: true,
@@ -136,6 +138,7 @@ export async function generatePrintData(db: Db, props: Props) {
     // consoleLog("COMMUNITY DESIGN", {
     //   bifold: design?.bifoldDoor,
     // });
+    const version = props.version || c?.version;
     units.push({
       data: [
         info("Project", home.project.title, 2),
@@ -143,7 +146,8 @@ export async function generatePrintData(db: Db, props: Props) {
         info("Model", home.modelName, 2),
         info("Lot", home.lot, 1),
         info("Block", home.block, 1),
-        ...((c?.templateValues?.length
+        ...// c?.templateValues?.length
+        ((version == "v2"
           ? await transformBlock(db, c.templateValues, props.printMode)
           : legacyDesign(homeDesign, design)) as Info[]),
       ],

@@ -36,7 +36,7 @@ export const createTemplateSchemaContext = (
                 slug: props.modelSlug,
             },
             {
-                enabled: false, ///!!props.modelSlug,
+                enabled: !!props.modelSlug,
             }
         )
     );
@@ -112,7 +112,8 @@ export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
             const tfs = new TemplateFormService(
                 schm.schemaData,
                 communityTemplate.values,
-                blockInput
+                blockInput,
+                false
             );
             const modelForm = tfs.generateBlockForm();
             store.update(`blocks.${blockInput.uid}`, {

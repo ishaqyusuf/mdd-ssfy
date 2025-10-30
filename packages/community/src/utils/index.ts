@@ -39,6 +39,7 @@ export const projectUnitsSelect = {
   communityTemplate: {
     select: {
       slug: true,
+      version: true,
     },
   },
   project: {

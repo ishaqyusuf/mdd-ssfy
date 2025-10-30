@@ -217,14 +217,15 @@ model CostCharts {
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model CommunityModels {
-    id        Int       @unique @default(autoincrement())
+    id        Int           @unique @default(autoincrement())
     projectId Int
     pivotId   Int?
-    modelName String    @db.VarChar(255)
-    meta      Json?     @db.Json
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-    deletedAt DateTime? @db.Timestamp(0)
+    modelName String        @db.VarChar(255)
+    meta      Json?         @db.Json
+    version   ModelVersion?
+    createdAt DateTime?     @default(now()) @db.Timestamp(0)
+    updatedAt DateTime?     @updatedAt
+    deletedAt DateTime?     @db.Timestamp(0)
 
     slug    String               @unique @db.VarChar(255)
     project Projects             @relation(fields: [projectId], references: [id])
@@ -237,6 +238,11 @@ model CommunityModels {
 
     @@index([pivotId])
     @@index([projectId])
+}
+
+enum ModelVersion {
+    v1
+    v2
 }
 
 model CommunityModelHistory {

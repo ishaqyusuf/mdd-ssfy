@@ -190,6 +190,7 @@ export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
     select: {
       modelName: true,
       id: true,
+      version: true,
       project: {
         select: {
           title: true,
@@ -247,6 +248,7 @@ export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
     title: `${homeTemplate?.project?.title} | ${homeTemplate?.modelName}`,
     values: homeTemplate.templateValues,
     id: homeTemplate.id,
+    version: homeTemplate.version,
   };
 }
 export const getCommunityBlockSchemaSchema = z.object({

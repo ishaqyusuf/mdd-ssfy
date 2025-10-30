@@ -8,6 +8,7 @@ import { useTemplateSchemaContext } from "./context";
 import { useDebugToast } from "@/hooks/use-debug-console";
 import { useAuth } from "@/hooks/use-auth";
 import { openLink } from "@/lib/open-link";
+import { ModelTemplateSetting } from "@/components/model-template-setting";
 
 export function FormHeader() {
     const store = useCommunityModelStore();
@@ -58,6 +59,13 @@ export function FormHeader() {
             <Button onClick={onSubmit} isSubmitting={isPending} type="button">
                 Save
             </Button>
+            <ModelTemplateSetting
+                id={ctx?.communityTemplate?.id!}
+                defaultValues={{
+                    version: ctx?.communityTemplate?.version,
+                }}
+                slug={ctx?.modelSlug}
+            />
         </div>
     );
 }
