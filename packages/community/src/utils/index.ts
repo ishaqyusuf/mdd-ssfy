@@ -61,7 +61,6 @@ export function getUnitProductionStatus(
   const prod = home?.tasks?.filter((t) => t.produceable);
   let prodDate: any = null;
   // if (home.builderId == 14)
-
   const produceables = prod?.length;
   let produced = prod?.filter((p) => p.producedAt).length;
   const hasJob = home?._count.jobs;

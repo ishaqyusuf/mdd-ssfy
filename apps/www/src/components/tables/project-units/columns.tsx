@@ -13,7 +13,6 @@ import { Badge } from "@gnd/ui/badge";
 import { colorsObject } from "@gnd/utils/colors";
 import { useFilePreviewParams } from "@/hooks/use-file-preview-params";
 import QueryString from "qs";
-import { getUnitTemplateLink } from "@/app/(v1)/_actions/community/get-unit-template";
 import { useRouter } from "next/navigation";
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { useMutation } from "@tanstack/react-query";
@@ -58,11 +57,15 @@ const lotBlock: Column = {
     },
     cell: ({ row: { original: item } }) => {
         const route = useRouter();
+        const path =
+            item.communityTemplate?.version === "v2"
+                ? "model-template"
+                : "community-template";
         return (
             <Link
                 href={
                     item.communityTemplate
-                        ? `/community/community-template/${item.communityTemplate.slug}`
+                        ? `/community/${path}/${item.communityTemplate.slug?.toLowerCase()}`
                         : ""
                 }
                 className="hover:underline"

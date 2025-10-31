@@ -1,17 +1,17 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "kitchen-sink",
-  slug: "kitchen-sink",
+  name: "gnd-prodesk",
+  slug: "gnd-prodesk",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./src/assets/images/icon.png",
-  scheme: "kitchensink",
+  scheme: "gndprodesk",
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.ishaqyusuf.kitchensink",
+    bundleIdentifier: "com.ishaqyusuf.gndprodesk",
   },
   android: {
     adaptiveIcon: {
@@ -19,7 +19,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundColor: "#ffffff",
     },
     edgeToEdgeEnabled: true,
-    package: "com.ishaqyusuf.kitchensink",
+    package: "com.ishaqyusuf.gndprodesk",
   },
   web: {
     bundler: "metro",

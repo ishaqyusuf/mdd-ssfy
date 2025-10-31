@@ -31,6 +31,7 @@ export function Header({}) {
                             className="mr-2 h-4 xl:hidden"
                         />
                     </div>
+                    <div id="goBackSlot" />
                     <div className="flex items-center space-x-4 lg:space-x-0">
                         <h1 className="font-bold" id="pageTitle"></h1>
                     </div>

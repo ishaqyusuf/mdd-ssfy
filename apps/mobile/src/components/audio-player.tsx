@@ -59,7 +59,7 @@ export const AudioPlayer = () => {
         });
       }
     };
-    const fileInfo = new.File(filePath).info();
+    const fileInfo = new File(filePath).info();
 
     if (fileInfo.exists) {
       // Load audio from local file

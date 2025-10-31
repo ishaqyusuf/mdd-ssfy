@@ -10,6 +10,7 @@ export function Header() {
                 <div className="md:hidden">
                     <MobileMenu />
                 </div>
+                <div id="goBackSlot" />
                 <div className="flex items-center space-x-4 lg:space-x-0">
                     <h1 className="font-bold" id="pageTitle"></h1>
                 </div>

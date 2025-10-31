@@ -15,6 +15,7 @@ import { SchemaBlock } from "./block-section";
 import * as Sortable from "@gnd/ui/sortable-2";
 import { closestCorners } from "@dnd-kit/core";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+import { GoBack } from "@/components/go-back";
 
 interface Props extends CreateTemplateSchemaContextProps {
     children?;
@@ -64,7 +65,7 @@ function Content() {
             <PageTitle>
                 {ctx?.communityTemplate?.title || "Template Schema"}
             </PageTitle>
-
+            <GoBack href="/community/project-units" />
             <Sortable.Root
                 orientation="mixed"
                 collisionDetection={closestCorners}
