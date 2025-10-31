@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 import { ScrollArea } from "@gnd/ui/scroll-area";
 
-import { getFormState } from "../../../_common/_stores/form-data-store";
+import { getFormState } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { useStepContext } from "../../components-section/ctx";
 import SearchBar from "../../components-section/search-bar";
 import { HptContext } from "@/components/forms/sales-form/context";
@@ -14,11 +14,11 @@ export type Door = HptContext["doors"][number];
 export const openDoorSwapModal = (door: Door, itemUid) => {
     const zus = getFormState();
     const itemStepUid = Object.entries(zus.kvStepForm)?.find(
-        ([k, v]) => v.title == "Door" && k?.startsWith(itemUid),
+        ([k, v]) => v.title == "Door" && k?.startsWith(itemUid)
     )?.[0];
     if (itemStepUid)
         _modal.openModal(
-            <DoorSwapModal itemStepUid={itemStepUid} door={door} />,
+            <DoorSwapModal itemStepUid={itemStepUid} door={door} />
         );
     else toast.error("Door step not found");
 };

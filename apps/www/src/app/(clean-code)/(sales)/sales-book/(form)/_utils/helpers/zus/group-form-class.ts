@@ -2,7 +2,7 @@ import { FieldPath, FieldPathValue } from "react-hook-form";
 import {
     ZusGroupItemForm,
     ZusGroupItemFormPath,
-} from "../../../_common/_stores/form-data-store";
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { StepHelperClass } from "./step-component-class";
 import { dotObject } from "@/app-deps/(clean-code)/_common/utils/utils";
 

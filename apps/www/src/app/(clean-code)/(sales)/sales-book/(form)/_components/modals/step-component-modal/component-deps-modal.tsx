@@ -9,7 +9,9 @@ import { Button } from "@gnd/ui/button";
 import { Form } from "@gnd/ui/form";
 import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 
-import stepHelpers, { StepProduct } from "../../../_utils/helpers/step-helper";
+import stepHelpers, {
+    StepProduct,
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/step-helper";
 
 interface Props {
     // lineItemIndex: number;

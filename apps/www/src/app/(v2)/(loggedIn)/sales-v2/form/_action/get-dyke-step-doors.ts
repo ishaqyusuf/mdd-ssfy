@@ -2,7 +2,7 @@
 
 import { DykeDoors, prisma, Prisma } from "@/db";
 
-import { findDoorSvg } from "../../_utils/find-door-svg";
+import { findDoorSvg } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/find-door-svg";
 import { sortStepProducts, transformStepProducts } from "../../dyke-utils";
 import { DykeDoorType, DykeProductMeta, StepProdctMeta } from "../../type";
 import { IStepProducts } from "../components/step-items-list/item-section/step-products";

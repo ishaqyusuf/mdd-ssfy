@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
     useFormDataStore,
     ZusComponent,
-} from "../../_common/_stores/form-data-store";
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 
-import { StepHelperClass } from "../../_utils/helpers/zus/step-component-class";
-import { useSticky } from "../../_hooks/use-sticky";
+import { StepHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
+import { useSticky } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/use-sticky";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Edit3, EyeOff, Layout } from "lucide-react";
 
@@ -41,11 +41,11 @@ export function useStepContext(stepUid) {
     const tabs = useMemo(() => {
         const tabCounts = {
             main: stepComponents.filter(
-                (s) => s._metaData.visible && !s._metaData.custom,
+                (s) => s._metaData.visible && !s._metaData.custom
             ).length,
             custom: stepComponents.filter((s) => s._metaData.custom).length,
             hidden: stepComponents.filter(
-                (s) => !s._metaData.visible && !s._metaData.custom,
+                (s) => !s._metaData.visible && !s._metaData.custom
             ).length,
         };
 
@@ -79,9 +79,9 @@ export function useStepContext(stepUid) {
                 return tab == "custom"
                     ? md.custom
                     : tab == "hidden"
-                      ? !md.visible
-                      : md.visible;
-            }),
+                    ? !md.visible
+                    : md.visible;
+            })
         );
     }, [tab, stepComponents]);
     useEffect(() => {
@@ -89,7 +89,7 @@ export function useStepContext(stepUid) {
             const filters = [];
             if (q)
                 filters.push(
-                    s.title?.toLowerCase()?.includes(q?.toLowerCase()),
+                    s.title?.toLowerCase()?.includes(q?.toLowerCase())
                 );
             switch (tab) {
                 case "hidden":
@@ -108,7 +108,7 @@ export function useStepContext(stepUid) {
         setFilteredComponents(_filtered);
     }, [stepComponents, db, tab]);
     const salesMultiplier = useFormDataStore(
-        (s) => s.metaData?.salesMultiplier,
+        (s) => s.metaData?.salesMultiplier
     );
     const stepHelper = useMemo(() => new StepHelperClass(stepUid), [stepUid]);
     const zusStepComponents = stepHelper.getStepComponents;

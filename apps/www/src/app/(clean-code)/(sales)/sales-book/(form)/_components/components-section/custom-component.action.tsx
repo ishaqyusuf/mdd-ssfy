@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Menu } from "@/components/(clean-code)/menu";
 
-import { useFormDataStore } from "../../_common/_stores/form-data-store";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { UseStepContext } from "./ctx";
 
 export function CustomComponentAction({ ctx }: { ctx: UseStepContext }) {
@@ -16,7 +16,7 @@ export function CustomComponentAction({ ctx }: { ctx: UseStepContext }) {
             onClick={() => {
                 zus.dotUpdate(
                     `kvStepForm.${ctx.stepUid}.meta.custom`,
-                    !customMode,
+                    !customMode
                 );
             }}
             icon="add"

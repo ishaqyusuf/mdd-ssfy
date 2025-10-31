@@ -3,8 +3,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useLegacyDykeForm, useLegacyDykeFormItem } from "../../legacy-hooks";
 import { useDykeComponentStore } from "../../data-store";
 import { IStepProducts } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products";
-import legacyDykeFormHelper from "../../../_utils/helpers/legacy-dyke-form-helper";
-import stepHelpers from "../../../_utils/helpers/step-helper";
+import legacyDykeFormHelper from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/legacy-dyke-form-helper";
+import stepHelpers from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/step-helper";
 import { toast } from "sonner";
 import { useTransition } from "@/utils/use-safe-transistion";
 export type LegacyDykeFormStepType = ReturnType<

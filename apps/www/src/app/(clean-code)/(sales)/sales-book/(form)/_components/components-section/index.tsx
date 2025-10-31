@@ -41,9 +41,9 @@ import { Sortable, SortableItem } from "@gnd/ui/sortable";
 import {
     useFormDataStore,
     ZusComponent,
-} from "../../_common/_stores/form-data-store";
-import { ComponentHelperClass } from "../../_utils/helpers/zus/step-component-class";
-import { zusDeleteComponents } from "../../_utils/helpers/zus/zus-step-helper";
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { ComponentHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
+import { zusDeleteComponents } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-step-helper";
 import { ComponentImg } from "../../../../../../../components/forms/sales-form/component-img";
 import { openComponentModal } from "../modals/component-form";
 import { openEditComponentPrice } from "../modals/component-price-modal";
@@ -196,7 +196,7 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
         const uids = selectionUids();
         openComponentVariantModal(
             new ComponentHelperClass(stepUid, uids[0]),
-            uids,
+            uids
         );
         ctx.clearSelection();
     }, [selectionState, stepUid, ctx]);
@@ -210,7 +210,7 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
                     isFixed
                         ? "fixed bottom-2 sm:bottom-12 left-1/2 -translate-x-1/2 transform"
                         : "absolute bottom-4 left-1/2 -translate-x-1/2 transform",
-                    "z-10 bg-secondary",
+                    "z-10 bg-secondary"
                 )}
             >
                 <div className="flex items-center gap-4 rounded-lg border p-2 px-4 shadow">
@@ -285,7 +285,7 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
                                                 _modal.openModal(
                                                     <DoorSizeModal
                                                         cls={ctx.cls}
-                                                    />,
+                                                    />
                                                 );
                                             }}
                                         >

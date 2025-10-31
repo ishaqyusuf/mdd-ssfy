@@ -16,12 +16,12 @@ import {
     ItemMultiComponentSizeDataPath,
     OldDykeFormData,
 } from "../../../types";
-import legacyDykeFormHelper from "../_utils/helpers/legacy-dyke-form-helper";
+import legacyDykeFormHelper from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/legacy-dyke-form-helper";
 
 import { IStepProducts } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products";
 
 import { generateRandomString } from "@/lib/utils";
-import stepHelpers from "../_utils/helpers/step-helper";
+import stepHelpers from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/step-helper";
 import { toast } from "sonner";
 import { DykeStep } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
 

@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Form } from "@gnd/ui/form";
 import { Label } from "@gnd/ui/label";
 
-import { StepHelperClass } from "../../../_utils/helpers/zus/step-component-class";
+import { StepHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import { ComponentImg } from "../../../../../../../../components/forms/sales-form/component-img";
 import { openImgModal } from "../img-gallery-modal";
 

@@ -1,4 +1,4 @@
-import { ZusSales } from "../../../_common/_stores/form-data-store";
+import { ZusSales } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { GroupFormClass } from "./group-form-class";
 import { StepHelperClass } from "./step-component-class";
 
@@ -9,7 +9,7 @@ export class MouldingClass extends GroupFormClass {
     public getMouldingStepForm() {
         const itemSteps = this.getItemStepForms();
         const msf = itemSteps.find((data) =>
-            this.isMultiSelectTitle(data.title),
+            this.isMultiSelectTitle(data.title)
         );
         return msf;
     }
@@ -33,12 +33,12 @@ export class MouldingClass extends GroupFormClass {
         const itemForm = this.getItemForm();
         const mouldingStep = this.getMouldingStepForm();
         const selectionComponentUids = Array.from(
-            new Set(itemForm.groupItem?.itemIds?.map((s) => s)),
+            new Set(itemForm.groupItem?.itemIds?.map((s) => s))
         );
         return selectionComponentUids.map((componentUid) => {
             const component = this.getComponentFromSettingsByStepId(
                 mouldingStep?.stepId,
-                componentUid,
+                componentUid
             );
             return component;
         });

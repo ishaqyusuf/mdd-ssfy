@@ -19,7 +19,7 @@ import {
 } from "@gnd/ui/select";
 import { Switch } from "@gnd/ui/switch";
 
-import { useFormDataStore } from "../../_common/_stores/form-data-store";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 
 interface LineInputProps {
     name: FieldPath<SalesFormZusData>;

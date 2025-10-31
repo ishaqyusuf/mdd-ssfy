@@ -14,7 +14,7 @@ import {
     ZusItemFormData,
     ZusSales,
     ZusStepFormData,
-} from "../../../_common/_stores/form-data-store";
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SettingsClass } from "./settings-class";
 import { zhHarvestDoorSizes } from "./zus-form-helper";
 

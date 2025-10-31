@@ -12,7 +12,7 @@ import {
     ISalesType,
 } from "@/types/sales";
 
-import { composeSalesItems } from "../../_utils/compose-sales-items";
+import { composeSalesItems } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/compose-sales-items";
 import { DykeDoorType } from "../../type";
 import { isComponentType } from "../is-component-type";
 import { DispatchItemPackingStatus } from "@sales/types";

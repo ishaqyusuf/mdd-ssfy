@@ -13,8 +13,8 @@ import {
 } from "@gnd/ui/collapsible";
 import { Label } from "@gnd/ui/label";
 
-import { useFormDataStore } from "../_common/_stores/form-data-store";
-import { StepHelperClass } from "../_utils/helpers/zus/step-component-class";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { StepHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import { ComponentsSection } from "./components-section";
 import MouldingLineItem from "./moulding-step";
 import ServiceLineItem from "./service-step";

@@ -1,5 +1,5 @@
 import { generateRandomString } from "@/lib/utils";
-import { ZusSales } from "../../../_common/_stores/form-data-store";
+import { ZusSales } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { GroupFormClass } from "./group-form-class";
 import { StepHelperClass } from "./step-component-class";
 

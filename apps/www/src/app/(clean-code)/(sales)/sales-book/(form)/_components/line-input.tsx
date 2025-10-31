@@ -5,8 +5,8 @@ import { FieldPath } from "react-hook-form";
 import { Input, InputProps } from "@gnd/ui/input";
 import { Switch } from "@gnd/ui/switch";
 
-import { ZusGroupItemFormPath } from "../_common/_stores/form-data-store";
-import { GroupFormClass } from "../_utils/helpers/zus/group-form-class";
+import { ZusGroupItemFormPath } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { GroupFormClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/group-form-class";
 import { NumericFormatProps } from "react-number-format";
 import { QtyInputProps, QuantityInput } from "@gnd/ui/quantity-input";
 import { useState } from "react";

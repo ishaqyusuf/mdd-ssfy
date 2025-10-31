@@ -1,5 +1,5 @@
 import { useFieldArray, useForm } from "react-hook-form";
-import { useFormDataStore } from "../../../_common/_stores/form-data-store";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { createContext, useContext } from "react";
 import { toast } from "sonner";
 import { saveSalesSettingUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";

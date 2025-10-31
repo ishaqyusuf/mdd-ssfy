@@ -4,8 +4,11 @@ import { cn } from "@/lib/utils";
 
 import { Label } from "@gnd/ui/label";
 
-import { useFormDataStore } from "../_common/_stores/form-data-store";
-import { Sticky, useSticky } from "../_hooks/use-sticky";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import {
+    Sticky,
+    useSticky,
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/use-sticky";
 
 export function FormFooter() {
     const zus = useFormDataStore();
@@ -46,7 +49,7 @@ export function FormFooter() {
                         "flex items-center border-b",
                         isFixed
                             ? "sborder-2 srounded-full bg-backgrounds fixed bottom-0  z-10 h-12  overflow-hidden border-t border-muted-foreground/50 px-4 shadow-xl"
-                            : "justify-end border-t",
+                            : "justify-end border-t"
                     )}
                 >
                     <div className="flex h-full flex-1 bg-background">
@@ -56,7 +59,7 @@ export function FormFooter() {
                             className={cn(
                                 isFixed
                                     ? "inline-flex gap-4 sm:gap-6"
-                                    : "flex min-w-[250px] flex-col gap-4 p-4 sm:gap-6",
+                                    : "flex min-w-[250px] flex-col gap-4 p-4 sm:gap-6"
                             )}
                         >
                             <FixedDisplay

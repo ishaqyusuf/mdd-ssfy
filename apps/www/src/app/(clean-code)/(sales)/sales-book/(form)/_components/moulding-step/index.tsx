@@ -16,7 +16,7 @@ import {
     TableRow,
 } from "@gnd/ui/table";
 
-import { MouldingClass } from "../../_utils/helpers/zus/moulding-class";
+import { MouldingClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/moulding-class";
 import { LineInput } from "../line-input";
 import { Context, useCreateContext, useCtx } from "./ctx";
 import { _trpc } from "@/components/static-trpc";

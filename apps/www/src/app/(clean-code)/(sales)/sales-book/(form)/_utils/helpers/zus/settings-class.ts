@@ -6,7 +6,7 @@ import {
     useFormDataStore,
     ZusItemFormData,
     ZusSales,
-} from "../../../_common/_stores/form-data-store";
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { CostingClass } from "./costing-class";
 
 export class SettingsClass extends CostingClass {

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/db";
 
-import { findDoorSvg } from "../../_utils/find-door-svg";
+import { findDoorSvg } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/find-door-svg";
 import { sortStepProducts, transformStepProducts } from "../../dyke-utils";
 import {
     DykeProductMeta,
@@ -59,8 +59,8 @@ export async function getStepProduct(stepId, doorType?) {
                 stepProducts.findIndex(
                     (p) =>
                         p.dykeProductId == _.dykeProductId ||
-                        p.product?.title == _.product?.title,
-                ) == i,
+                        p.product?.title == _.product?.title
+                ) == i
         )
         .map(transformStepProducts);
     // prods[0].meta.

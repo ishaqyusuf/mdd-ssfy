@@ -15,8 +15,8 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Form } from "@gnd/ui/form";
 
-import { useFormDataStore } from "../../../_common/_stores/form-data-store";
-import { ComponentHelperClass } from "../../../_utils/helpers/zus/step-component-class";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { ComponentHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { FormCombobox } from "@/components/common/controls/form-combobox";
 import { selectOptions } from "@gnd/utils";

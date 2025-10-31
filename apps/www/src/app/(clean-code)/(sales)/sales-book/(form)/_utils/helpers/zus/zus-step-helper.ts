@@ -1,7 +1,6 @@
 import { deleteStepComponentsUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/step-component-use-case";
-import { ZusSales } from "../../../_common/_stores/form-data-store";
+import { ZusSales } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { toast } from "sonner";
-import { StepHelperClass } from "./step-component-class";
 
 interface LoadStepComponentsProps {
     stepUid: string;

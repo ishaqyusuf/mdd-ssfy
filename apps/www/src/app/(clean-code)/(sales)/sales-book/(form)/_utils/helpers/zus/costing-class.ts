@@ -4,7 +4,7 @@ import { formatMoney } from "@/lib/use-number";
 import { addPercentage, dotArray, percentageValue, sum } from "@/lib/utils";
 import { toast } from "sonner";
 
-import { ZusGroupItem } from "../../../_common/_stores/form-data-store";
+import { ZusGroupItem } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SettingsClass } from "./settings-class";
 import { laborRate } from "@/utils/sales-utils";
 

@@ -40,7 +40,7 @@ import {
     TooltipTrigger,
 } from "@gnd/ui/tooltip";
 
-import { ComponentHelperClass } from "../../../_utils/helpers/zus/step-component-class";
+import { ComponentHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 
 import { Door } from "../door-swap-modal";
 
