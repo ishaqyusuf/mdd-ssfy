@@ -92,11 +92,43 @@ export function SalesCustomerInput() {
             <Content
                 title="Bill To"
                 description={customer?.billing?.lines?.join("\n")}
-            />
+            >
+                <Button
+                    onClick={(e) => {
+                        setParams({
+                            customerId: md.customer.id,
+                            customerForm: true,
+                            addressId: customer?.billing?.id,
+                            address: "bad",
+                        });
+                    }}
+                    className="size-7 p-0"
+                    size="sm"
+                    variant="outline"
+                >
+                    <Icons.Edit className="size-4" />
+                </Button>
+            </Content>
             <Content
                 title="Ship To"
                 description={customer?.shipping?.lines?.join("\n")}
-            />
+            >
+                <Button
+                    onClick={(e) => {
+                        setParams({
+                            customerId: md.customer.id,
+                            customerForm: true,
+                            addressId: customer?.shipping?.id,
+                            address: "sad",
+                        });
+                    }}
+                    className="size-7 p-0"
+                    size="sm"
+                    variant="outline"
+                >
+                    <Icons.Edit className="size-4" />
+                </Button>
+            </Content>
         </div>
     );
 }
@@ -132,7 +164,7 @@ function SearchCustomer() {
                         onChange={(e) => {
                             setSearch(e.target.value);
                         }}
-                        placeholder="Search or create customer..."
+                        placeholder=" create customer..."
                     />
                     <InputGroup.Addon>
                         <Search />

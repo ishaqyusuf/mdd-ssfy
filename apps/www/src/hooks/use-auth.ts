@@ -27,7 +27,6 @@ export function useAuth() {
         role: session?.role,
         roleTitle: session?.role?.name as Roles,
         avatar: null,
-
         enabled,
         data,
     };
