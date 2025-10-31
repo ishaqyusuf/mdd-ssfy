@@ -1,0 +1,14 @@
+model Organization {
+    id      Int     @unique @default(autoincrement())
+    name    String
+    address String?
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    projects     Projects[]
+    sales        SalesOrders[]
+    userProfiles ModelHasRoles[]
+    workOrders   WorkOrders[]
+}

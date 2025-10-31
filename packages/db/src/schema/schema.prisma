@@ -147,12 +147,15 @@ model ModelHasRoles {
     roleId  Int
     modelId Int
 
-    role      Roles     @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "model_has_roles_role_id_foreign")
-    user      Users     @relation(fields: [modelId], references: [id])
-    deletedAt DateTime? @db.Timestamp(0)
+    role           Roles         @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "model_has_roles_role_id_foreign")
+    user           Users         @relation(fields: [modelId], references: [id])
+    deletedAt      DateTime?     @db.Timestamp(0)
+    organization   Organization? @relation(fields: [organizationId], references: [id])
+    organizationId Int?
 
     @@id([roleId, modelId])
     @@index([modelId])
+    @@index([organizationId])
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
@@ -271,35 +274,6 @@ model Progress {
     @@index([userId])
 }
 
-// model Note {
-//     id             Int        @unique @default(autoincrement())
-//     note           String?
-//     createdById    Int
-//     resolvedById   Int?
-//     visibility     String? //public,production,delivery,admin
-//     flagId         Int
-//     replyToNoteId  Int?
-//     deletedAt      DateTime?  @db.Timestamp(0)
-//     createdAt      DateTime?  @default(now()) @db.Timestamp(0)
-//     updatedAt      DateTime?  @updatedAt
-//     salesNote      SalesNote? @relation(name: "salesNote")
-//     replySalesNote SalesNote? @relation(name: "replySalesNote")
-//     flag           NoteFlags? @relation(fields: [flagId], references: [id])
-
-//     @@index([flagId])
-// }
-
-// model NoteFlags {
-//     id              Int       @unique @default(autoincrement())
-//     title           String
-//     color           String?
-//     resolveRequired Boolean?
-//     notes           Note[]
-//     deletedAt       DateTime? @db.Timestamp(0)
-//     createdAt       DateTime? @default(now()) @db.Timestamp(0)
-//     updatedAt       DateTime? @updatedAt
-// }
-
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model RoleHasPermissions {
     permissionId Int
@@ -342,30 +316,33 @@ model Roles {
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model WorkOrders {
-    id           Int       @unique @default(autoincrement())
+    id           Int           @unique @default(autoincrement())
     techId       Int?
-    slug         String    @unique @db.VarChar(255)
-    description  String?   @db.Text
-    lot          String?   @db.VarChar(255)
-    block        String?   @db.VarChar(255)
-    projectName  String?   @db.VarChar(255)
-    builderName  String?   @db.VarChar(255)
+    slug         String        @unique @db.VarChar(255)
+    description  String?       @db.Text
+    lot          String?       @db.VarChar(255)
+    block        String?       @db.VarChar(255)
+    projectName  String?       @db.VarChar(255)
+    builderName  String?       @db.VarChar(255)
     requestDate  DateTime?
-    supervisor   String?   @db.VarChar(255)
-    scheduleDate DateTime? @db.Timestamp(0)
-    scheduleTime String?   @db.VarChar(255)
-    homeAddress  String?   @db.VarChar(255)
-    homeOwner    String?   @db.VarChar(255)
-    homePhone    String?   @db.VarChar(255)
-    meta         Json?     @db.Json
-    status       String?   @db.VarChar(255)
-    assignedAt   DateTime? @db.Timestamp(0)
-    completedAt  DateTime  @default(now()) @db.Timestamp(0)
-    deletedAt    DateTime? @db.Timestamp(0)
-    createdAt    DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt    DateTime? @updatedAt
-    tech         Users?    @relation(fields: [techId], references: [id])
+    supervisor   String?       @db.VarChar(255)
+    scheduleDate DateTime?     @db.Timestamp(0)
+    scheduleTime String?       @db.VarChar(255)
+    homeAddress  String?       @db.VarChar(255)
+    homeOwner    String?       @db.VarChar(255)
+    homePhone    String?       @db.VarChar(255)
+    meta         Json?         @db.Json
+    status       String?       @db.VarChar(255)
+    assignedAt   DateTime?     @db.Timestamp(0)
+    completedAt  DateTime      @default(now()) @db.Timestamp(0)
+    deletedAt    DateTime?     @db.Timestamp(0)
+    createdAt    DateTime?     @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime?     @updatedAt
+    tech         Users?        @relation(fields: [techId], references: [id])
+    org          Organization? @relation(fields: [orgId], references: [id])
+    orgId        Int?
 
+    @@index([orgId])
     @@index([techId])
 }
 

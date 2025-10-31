@@ -90,7 +90,11 @@ model SalesOrders {
     history           SalesHistory[]
     lineItems         LineItem[]
 
+    org   Organization? @relation(fields: [orgId], references: [id])
+    orgId Int?
+
     @@unique([orderId, type])
+    @@index([orgId])
     @@index([createdAt, deletedAt, orderId, grandTotal, prodId, type, prodDueDate])
     @@index([customerProfileId])
     @@index([customerId])

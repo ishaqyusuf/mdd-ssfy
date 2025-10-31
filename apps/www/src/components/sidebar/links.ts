@@ -227,6 +227,8 @@ const profileSection = _section("settings", null, [
         "/settings/site-action-notifications"
     ).access(_role.is("Super Admin")).data,
 ]);
+
+const canEditProject = _perm.is("editProject");
 export const linkModules = [
     _module("HRM", "hrm", "GND HRM", [
         _section("", null, [
@@ -277,22 +279,22 @@ export const linkModules = [
                 null,
                 [
                     _subLink("Projects", "/community").access(
-                        // _perm.is("editProject"),
-                        _perm.is("editProject")
+                        // canEditProject,
+                        canEditProject
                     ).data,
                     _subLink("Units", "/community/project-units").access(
-                        // _perm.is("editProject"),
-                        _perm.is("editProject")
+                        // canEditProject,
+                        canEditProject
                     ).data,
                     _subLink(
                         "Productions",
                         "/community/unit-productions"
                     ).access(
-                        // _perm.is("editProject"),
+                        // canEditProject,
                         _perm.is("editProduction")
                     ).data,
                     _subLink("Templates", "/community/templates")
-                        .access(_perm.is("editProject"))
+                        .access(canEditProject)
                         .childPaths(
                             "/settings/community/community-template/slug",
                             "/community/community-template/slug",
@@ -301,11 +303,11 @@ export const linkModules = [
                             // "/community/template-schema",
                         ).data,
                     _subLink("Invoices", "/community/unit-invoices").access(
-                        // _perm.is("editProject"),
+                        // canEditProject,
                         _perm.in("viewInvoice")
                     ).data,
                     _subLink("Builders", "/community/builders").access(
-                        // _perm.is("editProject"),
+                        // canEditProject,
                         _perm.is("viewBuilders")
                     ).data,
                 ]
@@ -384,19 +386,19 @@ export const linkModules = [
                 _subLink(
                     "Install Costs",
                     "/settings/community/install-costs"
-                ).access(_perm.is("editProject")).data,
+                ).access(canEditProject).data,
                 _subLink(
                     "Model Costs",
                     "/settings/community/model-costs"
-                ).access(_perm.is("editProject")).data,
+                ).access(canEditProject).data,
                 _subLink(
                     "Community Cost",
                     "/settings/community/community-costs"
-                ).access(_perm.is("editProject")).data,
+                ).access(canEditProject).data,
                 _subLink(
                     "Community Templates",
                     "/settings/community/community-templates"
-                ).access(_perm.is("editProject")).data,
+                ).access(canEditProject).data,
                 _subLink("Builders", "/settings/community/builders").access(
                     _perm.is("viewBuilders")
                 ).data,

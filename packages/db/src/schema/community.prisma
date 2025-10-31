@@ -17,6 +17,10 @@ model Projects {
     invoices        Invoices[]
     homeTasks       HomeTasks[]
 
+    org   Organization? @relation(fields: [orgId], references: [id])
+    orgId Int?
+
+    @@index([orgId])
     @@index([builderId])
 }
 
