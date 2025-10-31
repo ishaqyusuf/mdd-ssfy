@@ -35,7 +35,8 @@ export async function GET(req: NextRequest) {
         // id, token,
         preview,
     } = result.data;
-    const title = printData.title.replace(/[^\w\-]+/g, "_");
+    // "".upper
+    const title = printData.title.replace(/[^\w\-]+/g, "_")?.toUpperCase();
     const streamData = await PdfTemplate({
         units: printData.units,
         url: requestUrl,
