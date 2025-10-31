@@ -12,10 +12,10 @@ import {
     ISalesType,
 } from "@/types/sales";
 
-import { composeSalesItems } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/compose-sales-items";
 import { DykeDoorType } from "../../type";
 import { isComponentType } from "../is-component-type";
 import { DispatchItemPackingStatus } from "@sales/types";
+import { composeSalesItems } from "@/app-deps/(v2)/(loggedIn)/sales-v2/_utils/compose-sales-items";
 
 export async function getSalesOverview({
     type,
