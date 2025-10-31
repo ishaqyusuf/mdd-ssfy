@@ -1,4 +1,4 @@
-import { ISalesFormItem } from "@/app/(v2)/(loggedIn)/sales/edit/type";
+import { ISalesFormItem } from "@/app-deps/(v2)/(loggedIn)/sales/edit/type";
 import { SaveOrderActionProps } from "@/types/sales";
 declare const _default: {
     _calculatePaymentTerm: typeof _calculatePaymentTerm;
@@ -20,6 +20,10 @@ declare function initInvoiceItems(items: ISalesFormItem[] | undefined): {
     footer: any;
 };
 declare function generateInvoiceItem(baseItem?: any): ISalesFormItem;
-declare function newInvoiceLine(toIndex: any, fields: ISalesFormItem[]): ISalesFormItem[];
+declare function newInvoiceLine(
+    toIndex: any,
+    fields: ISalesFormItem[]
+): ISalesFormItem[];
 export declare function moreInvoiceLines(): any[];
 declare function calibrateLines(fields: any): ISalesFormItem[];
+

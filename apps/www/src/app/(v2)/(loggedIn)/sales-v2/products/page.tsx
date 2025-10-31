@@ -2,11 +2,11 @@ import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import DykeTabLayout from "./_components/dyke-tab-layout";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 import { getDykeProducts } from "./_actions/get-dyke-products";
-import { queryParams } from "@/app/(v1)/_actions/action-utils";
+import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
 import ProductsTable from "./_components/products-table";
 import { Metadata } from "next";
 import { Shell } from "@/components/shell";
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 
 export const metadata: Metadata = {
     title: "Door Components | GND",
@@ -29,3 +29,4 @@ export default async function ProductsPage(props) {
         </AuthGuard>
     );
 }
+

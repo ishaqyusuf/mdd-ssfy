@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
-import { assignTech } from "@/app/(v1)/_actions/customer-services/assign-tech";
-import { updateWorkOrderStatus } from "@/app/(v1)/_actions/customer-services/update-status";
+import { assignTech } from "@/app-deps/(v1)/_actions/customer-services/assign-tech";
+import { updateWorkOrderStatus } from "@/app-deps/(v1)/_actions/customer-services/update-status";
 import { useAppSelector } from "@/store";
 import { IWorkOrder } from "@/types/customer-service";
 import { toast } from "sonner";

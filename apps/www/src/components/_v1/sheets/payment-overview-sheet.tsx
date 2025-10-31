@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
-import { getSettingAction } from "@/app/(v1)/_actions/settings";
+import { getSettingAction } from "@/app-deps/(v1)/_actions/settings";
 import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 import { IJobPayment, IJobs } from "@/types/hrm";
@@ -44,11 +44,11 @@ export default function PaymentOverviewSheet() {
         getSettingAction<InstallCostSettings>("install-price-chart").then(
             (res) => {
                 setCostSetting(res);
-            },
+            }
         );
     }, []);
     const [costSetting, setCostSetting] = useState<InstallCostSettings>(
-        {} as any,
+        {} as any
     );
     async function init(data) {}
     return (
@@ -145,7 +145,7 @@ function Content({
             <CollapsibleTrigger
                 className={cn(
                     "flex w-full items-center space-x-4 border-b p-2",
-                    isOpen && "bg-accent",
+                    isOpen && "bg-accent"
                 )}
             >
                 <div className="inline-flex">
@@ -227,7 +227,7 @@ function Content({
                                         ?.filter(
                                             (l) =>
                                                 (job.meta.costData[l.uid]
-                                                    ?.qty || 0) > 0,
+                                                    ?.qty || 0) > 0
                                         )
                                         .map((cd, i) => (
                                             <TaskRow

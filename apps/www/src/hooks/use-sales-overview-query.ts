@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { SalesType } from "@/app/(clean-code)/(sales)/types";
+import { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
 import { useSession } from "next-auth/react";
 import {
     parseAsInteger,
@@ -73,7 +73,7 @@ export function useSalesOverviewQuery() {
         openDispatch(
             orderNo: string,
             dispatchId,
-            salesTab: typeof params.salesTab,
+            salesTab: typeof params.salesTab
         ) {
             setParams({
                 "sales-overview-id": orderNo,

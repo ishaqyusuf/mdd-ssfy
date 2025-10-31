@@ -12,8 +12,8 @@ import { SelectMoulding } from "./select-moulding";
 import { useTakeoffItem } from "../take-off/context";
 import { QtyInput } from "./qty-input";
 import { AnimatedNumber } from "@/components/animated-number";
-import { LineInput } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
-import { MouldingClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/moulding-class";
+import { LineInput } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
+import { MouldingClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/moulding-class";
 import { Menu } from "@/components/(clean-code)/menu";
 import Money from "@/components/_v1/money";
 import { Label } from "@gnd/ui/label";
@@ -128,7 +128,7 @@ function PriceEstimateCell({}) {
     const mould = new MouldingClass(ctx.mouldingItemStepUid);
     const lineItem = mould.getMouldingLineItemForm();
     const moulding = ctx?.mouldings?.find(
-        (m) => m.productId == lineForm?.mouldingProductId,
+        (m) => m.productId == lineForm?.mouldingProductId
     );
 
     return (

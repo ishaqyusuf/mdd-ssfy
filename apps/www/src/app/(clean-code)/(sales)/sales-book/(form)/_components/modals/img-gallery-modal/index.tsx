@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { browseComponentImgUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
+import { browseComponentImgUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/step-component-use-case";
 import Modal from "@/components/common/modal";
 import { _modal } from "@/components/common/modal/provider";
 import { useDebounceInput } from "@/hooks/use-debounce";
@@ -22,7 +22,7 @@ export function openImgModal(props: Props) {
 export default function StepComponentFormModal(props: Props) {
     let initialInput = "";
     const [results, setResults] = useState<{ img: string; title: string }[]>(
-        [],
+        []
     );
     const [msg, setMsg] = useState("");
     async function search() {

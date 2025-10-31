@@ -1,4 +1,4 @@
-import { dotObject } from "@/app/(clean-code)/_common/utils/utils";
+import { dotObject } from "@/app-deps/(clean-code)/_common/utils/utils";
 import { FieldPath } from "react-hook-form";
 
 export function dotCompare<T extends object>(
@@ -7,6 +7,6 @@ export function dotCompare<T extends object>(
     ...paths: FieldPath<T>[]
 ): boolean {
     return paths.every(
-        (path) => dotObject.pick(path, obj1) === dotObject.pick(path, obj2),
+        (path) => dotObject.pick(path, obj1) === dotObject.pick(path, obj2)
     );
 }

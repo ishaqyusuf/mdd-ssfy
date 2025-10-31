@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { Metadata } from "next";
 import Link from "@/components/link";
-import { authUser } from "@/app/(v1)/_actions/utils";
+import { authUser } from "@/app-deps/(v1)/_actions/utils";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import CommissionPayments from "@/components/sales-rep-commission-payment";
 import PendingCommissions from "@/components/sales-rep-pending-comissions";
@@ -54,7 +54,7 @@ export default async function SalesRepProfile(props: {
                     <Link
                         className={cn(
                             buttonVariants({ variant: "default" }),
-                            "flex items-center gap-2",
+                            "flex items-center gap-2"
                         )}
                         href="/sales-book/create-order"
                     >

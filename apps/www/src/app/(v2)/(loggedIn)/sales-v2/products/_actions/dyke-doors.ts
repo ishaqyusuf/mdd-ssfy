@@ -1,6 +1,6 @@
 "use server";
 
-import { paginatedAction } from "@/app/_actions/get-action-utils";
+import { paginatedAction } from "@/app-deps/_actions/get-action-utils";
 import { prisma, Prisma } from "@/db";
 import { BaseQuery } from "@/types/action";
 
@@ -12,7 +12,7 @@ export async function _getDykeDoors(query: QueryProps) {
     const { pageCount, skip, take } = await paginatedAction(
         query,
         prisma.dykeShelfProducts,
-        where,
+        where
     );
     const data = await prisma.dykeDoors.findMany({
         where,

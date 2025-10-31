@@ -1,6 +1,6 @@
 "use server";
 
-import { authId } from "@/app/(v1)/_actions/utils";
+import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { EventTypes } from "@/utils/constants";
 

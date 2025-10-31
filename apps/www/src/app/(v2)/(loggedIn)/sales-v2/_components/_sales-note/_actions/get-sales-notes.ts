@@ -1,6 +1,6 @@
 "use server";
 
-import { getProgressTypes } from "@/app/(v1)/_actions/progress";
+import { getProgressTypes } from "@/app-deps/(v1)/_actions/progress";
 import { prisma } from "@/db";
 
 export async function getSalesNote(salesId) {
@@ -40,13 +40,13 @@ export async function getSalesNote(salesId) {
             item: items?.find(
                 (item) =>
                     parseInt(item.value) == progress.progressableId &&
-                    progress.progressableType == "SalesOrderItem",
+                    progress.progressableType == "SalesOrderItem"
             )?.label,
         };
     });
     const progressTypes = await getProgressTypes(
         "SalesOrder",
-        "SalesOrderItem",
+        "SalesOrderItem"
     );
 
     items.unshift({

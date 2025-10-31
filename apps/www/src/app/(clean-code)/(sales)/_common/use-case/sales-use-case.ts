@@ -1,6 +1,6 @@
 "use server";
 
-import { __revalidatePath } from "@/app/(v1)/_actions/_revalidate";
+import { __revalidatePath } from "@/app-deps/(v1)/_actions/_revalidate";
 import { deleteSaleAction } from "@/actions/delete-sales";
 import { restoreSale } from "@/actions/restore-sale";
 

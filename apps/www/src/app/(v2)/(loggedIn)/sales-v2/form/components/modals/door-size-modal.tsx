@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import salesFormUtils from "@/app/(clean-code)/(sales)/_common/utils/sales-form-utils";
+import salesFormUtils from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-form-utils";
 import Money from "@/components/_v1/money";
 import Button from "@/components/common/button";
 import FormInput from "@/components/common/controls/form-input";
@@ -46,7 +46,7 @@ export function useDoorSizeModal(form, rowIndex) {
                     rowIndex={rowIndex}
                     superAdmin={ctx.superAdmin}
                     {...args}
-                />,
+                />
             );
         },
     };
@@ -78,7 +78,7 @@ export default function DoorSizeModal({
     useEffect(() => {
         const _values = {};
         const doors = form.getValues(
-            `${basePath}._doorForm` as any,
+            `${basePath}._doorForm` as any
         ) as DykeDoorForm;
         Object.entries(doors || {}).map(([size, doorForm]) => {
             const { swing, jambSizePrice, lhQty, rhQty } = doorForm as any;
@@ -126,10 +126,10 @@ export default function DoorSizeModal({
                         form,
                         existingData.priceData,
                         _size.basePrice,
-                        _qty,
+                        _qty
                     ),
                 };
-            },
+            }
         );
 
         // return;

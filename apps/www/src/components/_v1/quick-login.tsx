@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getEmployees } from "@/app/(v1)/_actions/hrm/get-employess";
+import { getEmployees } from "@/app-deps/(v1)/_actions/hrm/get-employess";
 import { env } from "@/env.mjs";
 import { IUser } from "@/types/hrm";
 import { Plus } from "lucide-react";

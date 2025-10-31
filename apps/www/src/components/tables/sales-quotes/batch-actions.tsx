@@ -5,7 +5,7 @@ import {
 } from "@gnd/ui/custom/data-table/batch-action";
 import { useMemo } from "react";
 import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
-import { deleteSalesByOrderIds } from "@/app/(clean-code)/(sales)/_common/data-actions/sales-actions";
+import { deleteSalesByOrderIds } from "@/app-deps/(clean-code)/(sales)/_common/data-actions/sales-actions";
 import { useTable } from "@gnd/ui/data-table";
 import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
 import { printQuote } from "@/utils/sales-invoice";

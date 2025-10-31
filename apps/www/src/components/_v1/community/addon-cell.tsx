@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import { updateProjectMeta } from "@/app/(v1)/_actions/community/projects";
+import { updateProjectMeta } from "@/app-deps/(v1)/_actions/community/projects";
 import { IProject } from "@/types/community";
 
 import { Button } from "@gnd/ui/button";

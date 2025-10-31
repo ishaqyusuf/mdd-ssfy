@@ -1,5 +1,5 @@
-import { user } from "@/app/(v1)/_actions/utils";
-import { SalesPrinterProps } from "@/app/(v2)/printer/type";
+import { user } from "@/app-deps/(v1)/_actions/utils";
+import { SalesPrinterProps } from "@/app-deps/(v2)/printer/type";
 import { prisma } from "@/db";
 import { env } from "@/env.mjs";
 import { UploadFolders } from "@/modules/cloudinary";

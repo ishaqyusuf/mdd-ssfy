@@ -4,7 +4,7 @@ import {
     staticEmployees,
     staticJobEmployees,
     staticLoadTechEmployees,
-} from "@/app/(v1)/_actions/hrm/get-employess";
+} from "@/app-deps/(v1)/_actions/hrm/get-employess";
 import { DynamicFilter } from "../data-table/data-table-dynamic-filter";
 
 export function PayableEmployees({ table }) {

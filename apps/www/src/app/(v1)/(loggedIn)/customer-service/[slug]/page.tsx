@@ -1,5 +1,5 @@
-import { getCustomerService } from "@/app/(v1)/_actions/customer-services/crud";
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import { getCustomerService } from "@/app-deps/(v1)/_actions/customer-services/crud";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 import { DataPageShell } from "@/components/_v1/shells/data-page-shell";
@@ -15,9 +15,7 @@ export const metadata: Metadata = {
 export default async function CustomerServicePage(props) {
     const params = await props.params;
 
-    const {
-        slug
-    } = params;
+    const { slug } = params;
 
     const workOrder = await getCustomerService(slug);
     metadata.description = workOrder?.homeOwner;
@@ -44,3 +42,4 @@ export default async function CustomerServicePage(props) {
         </AuthGuard>
     );
 }
+

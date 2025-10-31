@@ -1,6 +1,6 @@
 "use server";
 
-import { _cache } from "@/app/(v1)/_actions/_cache/load-data";
+import { _cache } from "@/app-deps/(v1)/_actions/_cache/load-data";
 import { prisma } from "@/db";
 import { unstable_cache } from "next/cache";
 
@@ -15,7 +15,7 @@ export async function getProductCategoriesFilter() {
             }));
             return c;
         },
-        "dyke-categories",
+        "dyke-categories"
     );
 
     return resp;

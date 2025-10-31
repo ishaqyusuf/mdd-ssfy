@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidateTag } from "next/cache";
-import { AddressBookMeta } from "@/app/(clean-code)/(sales)/types";
+import { AddressBookMeta } from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma, Prisma } from "@/db";
 import { Tags } from "@/utils/constants";
 

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo } from "react";
-import { saveComponentVariantUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
+import { saveComponentVariantUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/step-component-use-case";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@/components/_v1/icons";
 import { ComboxBox } from "@/components/(clean-code)/custom/controlled/combo-box";
@@ -30,10 +30,10 @@ const Context = createContext<ReturnType<typeof useInitContext>>(null);
 const useCtx = () => useContext(Context);
 export function openComponentVariantModal(
     cls: ComponentHelperClass,
-    componentsUid,
+    componentsUid
 ) {
     _modal.openModal(
-        <ComponentVariantModal componentsUid={componentsUid} cls={cls} />,
+        <ComponentVariantModal componentsUid={componentsUid} cls={cls} />
     );
 }
 export function useInitContext(cls: ComponentHelperClass, componentsUid) {
@@ -176,7 +176,7 @@ function RuleComponent({ index }) {
                             items: selectOptions(
                                 ctx?.data?.steps,
                                 "title",
-                                "uid",
+                                "uid"
                             ),
                             // items: ctx.data?.steps,
                             // :"title",
@@ -221,7 +221,7 @@ function RuleComponent({ index }) {
 function ComponentInput({ fieldIndex, index }) {
     const ctx = useCtx();
     const stepUid = ctx.form.watch(
-        `variations.${index}.rules.${fieldIndex}.stepUid`,
+        `variations.${index}.rules.${fieldIndex}.stepUid`
     );
     const components = ctx.data?.componentsByStepUid[stepUid];
     const options = useMemo(() => {
@@ -229,11 +229,11 @@ function ComponentInput({ fieldIndex, index }) {
         let _options = components
             .filter((a, i) => {
                 let duplicates = components.filter(
-                    (b) => b.uid == a.uid || b.title == a.title,
+                    (b) => b.uid == a.uid || b.title == a.title
                 );
                 if (duplicates.length > 1) {
                     let filteredIndex = duplicates.findIndex(
-                        (a) => (a as any).variations?.length > 0,
+                        (a) => (a as any).variations?.length > 0
                     );
                     if (filteredIndex > -1) {
                         return i == filteredIndex;

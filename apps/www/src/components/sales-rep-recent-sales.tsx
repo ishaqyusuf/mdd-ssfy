@@ -1,4 +1,4 @@
-import { authId } from "@/app/(v1)/_actions/utils";
+import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { Eye, MoreHorizontal } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";

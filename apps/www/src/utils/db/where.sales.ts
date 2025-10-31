@@ -1,9 +1,9 @@
 import {
     anyDateQuery,
     withDeleted,
-} from "@/app/(clean-code)/_common/utils/db-utils";
-import salesData from "@/app/(clean-code)/(sales)/_common/utils/sales-data";
-import { dateEquals, fixDbTime } from "@/app/(v1)/_actions/action-utils";
+} from "@/app-deps/(clean-code)/_common/utils/db-utils";
+import salesData from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-data";
+import { dateEquals, fixDbTime } from "@/app-deps/(v1)/_actions/action-utils";
 import {
     FilterKeys,
     SearchParamsType,
@@ -15,7 +15,7 @@ import dayjs from "dayjs";
 import { ftToIn } from "../../app/(clean-code)/(sales)/_common/utils/sales-utils";
 import { QtyControlType } from "../../app/(clean-code)/(sales)/types";
 import { transformDate } from "@/lib/db-utils";
-import { composeQuery } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
+import { composeQuery } from "@/app-deps/(clean-code)/(sales)/_common/utils/db-utils";
 
 type Queries = Prisma.SalesOrdersWhereInput[];
 
@@ -398,7 +398,7 @@ function whereInvoice(queries: Queries, params: SearchParamsType) {
                                     {
                                         paymentTerm: {
                                             in: salesData.paymentTerms.map(
-                                                (a) => a.value,
+                                                (a) => a.value
                                             ),
                                         },
                                     },

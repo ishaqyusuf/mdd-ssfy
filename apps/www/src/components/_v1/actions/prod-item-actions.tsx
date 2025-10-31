@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useCallback, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { ISalesOrder, ISalesOrderItem, ProdActions } from "@/types/sales";
-import { orderItemProductionAction } from "@/app/(v1)/(loggedIn)/sales/_actions/sales-production";
+import { orderItemProductionAction } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/sales-production";
 import { openModal } from "@/lib/modal";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store";
@@ -43,7 +43,7 @@ export const ProdItemActions = ({ item }: IProp) => {
             router.refresh();
             toast.success("Success");
         },
-        [item, router],
+        [item, router]
     );
     useEffect(() => {
         if (qty == produced_qty) setProdState("Completed");

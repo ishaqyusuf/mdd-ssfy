@@ -3,8 +3,8 @@
 // import cloudinary from "@/lib/cloudinary";
 import { useRef } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import { _saveDocUpload } from "@/app/(v2)/(loggedIn)/contractors/overview/_actions/upload-contractor-doc";
-import { ContractorOverview } from "@/app/(v2)/(loggedIn)/contractors/overview/type";
+import { _saveDocUpload } from "@/app-deps/(v2)/(loggedIn)/contractors/overview/_actions/upload-contractor-doc";
+import { ContractorOverview } from "@/app-deps/(v2)/(loggedIn)/contractors/overview/type";
 import Btn from "@/components/_v1/btn";
 import BaseModal from "@/components/_v1/modals/base-modal";
 import { closeModal } from "@/lib/modal";

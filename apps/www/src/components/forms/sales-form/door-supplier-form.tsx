@@ -1,4 +1,4 @@
-import { DykeStepMeta } from "@/app/(v2)/(loggedIn)/sales-v2/type";
+import { DykeStepMeta } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
 import { SubmitButton } from "@/components/submit-button";
 import { debugToast } from "@/hooks/use-debug-console";
 import { useZodForm } from "@/hooks/use-zod-form";
@@ -47,7 +47,7 @@ export function DoorSupplierForm({
                     success: "Success",
                 },
             },
-        }),
+        })
     );
     async function onSubmit(data: typeof saveSupplierSchema._type) {
         mutate(data);

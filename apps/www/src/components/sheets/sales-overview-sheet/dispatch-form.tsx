@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { SalesDispatchStatus } from "@/app/(clean-code)/(sales)/types";
+import { SalesDispatchStatus } from "@/app-deps/(clean-code)/(sales)/types";
 import { DatePicker } from "@/components/(clean-code)/custom/controlled/date-picker";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import FormCheckbox from "@/components/common/controls/form-checkbox";

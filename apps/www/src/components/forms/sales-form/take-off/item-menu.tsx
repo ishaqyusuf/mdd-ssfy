@@ -2,7 +2,7 @@ import { Menu } from "@/components/(clean-code)/menu";
 import { useTakeoffItem } from "./context";
 import { copySalesTakeOffItem } from "@/lib/sales/copy-sales-item";
 import ConfirmBtn from "@/components/confirm-button";
-import { ItemClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/item-class";
+import { ItemClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/item-class";
 
 export function ItemMenu({}) {
     const ctx = useTakeoffItem();

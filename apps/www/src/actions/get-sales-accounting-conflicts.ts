@@ -1,7 +1,7 @@
 "use server";
 
-import { pageQueryFilter } from "@/app/(clean-code)/_common/utils/db-utils";
-import { SalesType } from "@/app/(clean-code)/(sales)/types";
+import { pageQueryFilter } from "@/app-deps/(clean-code)/_common/utils/db-utils";
+import { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
@@ -107,9 +107,7 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
             const paymentMethod = item.paymentMethod as PaymentMethods;
             const description = item.description;
             const salesReps = Array.from(
-                new Set(
-                    item.salesPayments?.map((s) => s.order?.salesRep?.name),
-                ),
+                new Set(item.salesPayments?.map((s) => s.order?.salesRep?.name))
             );
             const meta = (item.meta || {}) as any as CustomerTransactionMeta;
             const spMeta = item.salesPayments?.[0]
@@ -140,7 +138,7 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
                 sales: item.salesPayments,
                 meta,
             };
-        }),
+        })
     );
 }
 

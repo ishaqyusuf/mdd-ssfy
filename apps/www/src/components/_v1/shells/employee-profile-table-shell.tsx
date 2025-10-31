@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import { deleteEmployeeProfile } from "@/app/(v1)/_actions/hrm/employee-profiles";
+import { deleteEmployeeProfile } from "@/app-deps/(v1)/_actions/hrm/employee-profiles";
 import { EmployeeProfile } from "@/db";
 import { TableShellProps } from "@/types/data-table";
 import { ColumnDef } from "@tanstack/react-table";
@@ -82,7 +82,7 @@ export default function EmployeeProfileTableShell<T>({
                 ),
             },
         ], //.filter(Boolean) as any,
-        [data, isPending],
+        [data, isPending]
     );
     return (
         <DataTable2

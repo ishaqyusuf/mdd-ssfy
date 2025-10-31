@@ -19,8 +19,12 @@ import {
     ISalesType,
     SalesStatus,
 } from "@/types/sales";
-import { dealerSession, serverSession, user } from "@/app/(v1)/_actions/utils";
-import { salesFormData } from "@/app/(v1)/(loggedIn)/sales/_actions/get-sales-form";
+import {
+    dealerSession,
+    serverSession,
+    user,
+} from "@/app-deps/(v1)/_actions/utils";
+import { salesFormData } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/get-sales-form";
 import {
     generateRandomString,
     inToFt,
@@ -32,9 +36,9 @@ import dayjs from "dayjs";
 import { isComponentType } from "../../overview/is-component-type";
 import { includeStepPriceCount } from "../../dyke-utils";
 
-import { salesTaxForm } from "@/app/(clean-code)/(sales)/_common/data-access/sales-tax.persistent";
-import { withDeleted } from "@/app/(clean-code)/_common/utils/db-utils";
-import { SalesBookFormIncludes } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
+import { salesTaxForm } from "@/app-deps/(clean-code)/(sales)/_common/data-access/sales-tax.persistent";
+import { withDeleted } from "@/app-deps/(clean-code)/_common/utils/db-utils";
+import { SalesBookFormIncludes } from "@/app-deps/(clean-code)/(sales)/_common/utils/db-utils";
 
 export async function getDykeFormAction(type: ISalesType, slug, query?) {
     const restore = query?.restore == "true";
@@ -168,7 +172,7 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
                     [dimension in string]: { id: number };
                 } = {};
                 const isType = isComponentType(
-                    item.housePackageTool?.doorType as any,
+                    item.housePackageTool?.doorType as any
                 );
                 item.housePackageTool?.doors?.map((d) => {
                     if (d.rhQty && !isType.multiHandles) d.rhQty = 0;
@@ -223,8 +227,8 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
                         .filter(
                             (f, fi) =>
                                 item.formSteps.findIndex(
-                                    (p) => p.stepId == f.stepId,
-                                ) == fi,
+                                    (p) => p.stepId == f.stepId
+                                ) == fi
                         ),
                     shelfItems: item.shelfItems.map((item) => ({
                         ...item,
@@ -234,7 +238,7 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
             }),
         },
         ["deletedAt"] as any,
-        true,
+        true
     );
     const {
         items,
@@ -261,7 +265,7 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
         .map(
             (
                 { formSteps, shelfItems, housePackageTool, ...itemData },
-                itemIndex,
+                itemIndex
             ) => {
                 let sectionPrice = 0;
                 const shelfItemArray: {
@@ -439,13 +443,13 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
                 };
                 rItem.stepIndex = rItem.item.formStepArray.length - 1;
                 return rItem;
-            },
+            }
         );
 
     if (itemArray?.every((item) => item?.item?.meta?.lineIndex > -1)) {
         itemArray = itemArray.sort(
             (item, item2) =>
-                item.item.meta.lineIndex - item2.item.meta.lineIndex,
+                item.item.meta.lineIndex - item2.item.meta.lineIndex
         );
     }
     const fsids = form.items.map((i) => i.formSteps.map((f) => f.id)).flat();
@@ -483,7 +487,7 @@ export async function getDykeFormAction(type: ISalesType, slug, query?) {
     const _taxForm = await salesTaxForm(
         taxes as any,
         order?.id,
-        ctx?.defaultProfile?.meta?.taxCode,
+        ctx?.defaultProfile?.meta?.taxCode
     );
 
     return {

@@ -1,6 +1,6 @@
 "use server";
 
-import { user } from "@/app/(v1)/_actions/utils";
+import { user } from "@/app-deps/(v1)/_actions/utils";
 import { CustomerTypes, prisma } from "@/db";
 import { authOptions } from "@/lib/auth-options";
 import { sum } from "@/lib/utils";
@@ -30,7 +30,7 @@ export interface SalessalesFormData {
     items: any[];
 }
 export async function _getSalesFormAction(
-    query: ICreateOrderFormQuery,
+    query: ICreateOrderFormQuery
 ): Promise<SalesFormResponse> {
     const order = await prisma.salesOrders.findFirst({
         where: {
@@ -98,7 +98,7 @@ export async function salesFormData(dyke = false) {
                 ...profile,
                 goodUntil,
             };
-        },
+        }
     );
 
     const extras = dyke
@@ -144,7 +144,7 @@ export async function salesFormData(dyke = false) {
     };
 }
 async function newSalesFormAction(
-    query: ICreateOrderFormQuery,
+    query: ICreateOrderFormQuery
 ): Promise<SalesFormResponse> {
     const ctx = await salesFormData();
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { _getModelCostStat } from "@/app/(v1)/_actions/community/_model-cost-stat";
+import { _getModelCostStat } from "@/app-deps/(v1)/_actions/community/_model-cost-stat";
 import { deepCopy } from "@/lib/deep-copy";
 import { ICommunityCosts, ICommunityTemplate } from "@/types/community";
 import { UseFormReturn, useForm } from "react-hook-form";
@@ -8,8 +8,8 @@ import BaseModal from "../base-modal";
 import {
     _deleteCommunityModelCost,
     _saveCommunitModelCostData,
-} from "@/app/(v1)/_actions/community/community-model-cost";
-import { _getCommunityModelCostUnits } from "@/app/(v1)/_actions/community/community-model-cost-units";
+} from "@/app-deps/(v1)/_actions/community/community-model-cost";
+import { _getCommunityModelCostUnits } from "@/app-deps/(v1)/_actions/community/community-model-cost-units";
 import { CommunityCostHistory } from "./cost-history";
 import { CommunityCostForm } from "./cost-form";
 

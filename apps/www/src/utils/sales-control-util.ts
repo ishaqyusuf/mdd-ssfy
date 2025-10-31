@@ -1,8 +1,8 @@
-import { generateItemControlUid } from "@/app/(clean-code)/(sales)/_common/utils/item-control-utils";
+import { generateItemControlUid } from "@/app-deps/(clean-code)/(sales)/_common/utils/item-control-utils";
 import {
     QtyControlType,
     SalesDispatchStatus,
-} from "@/app/(clean-code)/(sales)/types";
+} from "@/app-deps/(clean-code)/(sales)/types";
 import { Prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import { ItemControlData } from "@api/type";
@@ -51,7 +51,7 @@ export function composeSalesItemControlStat(
     // uid,
     // qty: Qty,
     item: ItemControlData,
-    _order,
+    _order
     // { production, shipping },
 ) {
     const {
@@ -98,7 +98,7 @@ export function composeSalesItemControlStat(
             (a) =>
                 a.itemId == item.itemId &&
                 a.salesDoorId == item.doorId &&
-                a.shelfItemId == item.shelfId,
+                a.shelfItemId == item.shelfId
         )
         .filter((a) => {
             if (a.salesDoorId) return true;
@@ -119,7 +119,7 @@ export function composeSalesItemControlStat(
             lh,
             rh,
             qty,
-        })),
+        }))
     );
     const submitted = qtyMatrixSum(
         ...assignments
@@ -128,9 +128,9 @@ export function composeSalesItemControlStat(
                     lh,
                     rh,
                     qty,
-                })),
+                }))
             )
-            .flat(),
+            .flat()
     );
     const deliverables = assignments
         .map((assignment) => {
@@ -141,7 +141,7 @@ export function composeSalesItemControlStat(
                         .filter(
                             (d) =>
                                 (d.status as SalesDispatchStatus) !==
-                                "cancelled",
+                                "cancelled"
                         )
                         .map((d) =>
                             qtyMatrixSum(
@@ -149,12 +149,12 @@ export function composeSalesItemControlStat(
                                     .filter(
                                         (i) =>
                                             i.orderProductionSubmissionId ==
-                                            s.id,
+                                            s.id
                                     )
-                                    .map(transformQtyHandle),
-                            ),
+                                    .map(transformQtyHandle)
+                            )
                         )
-                        .flat(),
+                        .flat()
                 );
                 return {
                     submissionId: s.id,
@@ -185,35 +185,35 @@ export function composeSalesItemControlStat(
                         rh,
                         status: d.status as SalesDispatchStatus,
                         orderProductionSubmissionId,
-                    }),
+                    })
                 )
                 .filter((a) =>
-                    submissionIds.includes(a.orderProductionSubmissionId),
-                ),
+                    submissionIds.includes(a.orderProductionSubmissionId)
+                )
         )
         .flat();
     const dispatch = {
         queued: qtyMatrixSum(
-            ...(deliveries.filter((a) => a.status == "queue") as any),
+            ...(deliveries.filter((a) => a.status == "queue") as any)
         ),
         inProgress: qtyMatrixSum(
-            ...(deliveries.filter((a) => a.status == "in progress") as any),
+            ...(deliveries.filter((a) => a.status == "in progress") as any)
         ),
         completed: qtyMatrixSum(
-            ...(deliveries.filter((a) => a.status == "completed") as any),
+            ...(deliveries.filter((a) => a.status == "completed") as any)
         ),
         cancelled: qtyMatrixSum(
-            ...(deliveries.filter((a) => a.status == "cancelled") as any),
+            ...(deliveries.filter((a) => a.status == "cancelled") as any)
         ),
     };
     const pendingDispatch = qtyMatrixDifference(
         qty,
-        qtyMatrixSum(dispatch.queued, dispatch.inProgress, dispatch.completed),
+        qtyMatrixSum(dispatch.queued, dispatch.inProgress, dispatch.completed)
     );
 
     const availableDispatch = qtyMatrixDifference(
         !production ? qty : submitted,
-        qtyMatrixSum(dispatch.queued, dispatch.inProgress, dispatch.completed),
+        qtyMatrixSum(dispatch.queued, dispatch.inProgress, dispatch.completed)
     );
     const pendingSubmissions = assignments
         .map((assignment) => {
@@ -228,8 +228,8 @@ export function composeSalesItemControlStat(
                         lh: s.lhQty,
                         rh: s.rhQty,
                         qty: s.qty,
-                    })),
-                ),
+                    }))
+                )
             );
             return {
                 qty: pendingSubmission,
@@ -258,7 +258,7 @@ export function composeSalesItemControlStat(
         deliveredQty: qtyMatrixSum(
             stats.dispatchAssigned,
             stats.dispatchCompleted,
-            stats.dispatchInProgress,
+            stats.dispatchInProgress
         )?.qty,
         submitQty: submitted.qty,
         pendingSubmissions,

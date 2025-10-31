@@ -28,7 +28,7 @@ import { openModal } from "@/lib/modal";
 import { getHomeProductionStatus } from "@/lib/community/community-utils";
 import { toast } from "sonner";
 import { transformCommunityTemplate } from "@/lib/community/community-template";
-import { printHomesAction } from "@/app/(v1)/(loggedIn)/settings/community/_components/home-template";
+import { printHomesAction } from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/home-template";
 interface Props {
     id?;
 }
@@ -61,7 +61,7 @@ export default function HomePrinter({ id }: Props) {
                 modelName,
                 projectId,
                 builderId: builderId as any,
-            })),
+            }))
         )) as any;
 
         setHomes(
@@ -70,7 +70,7 @@ export default function HomePrinter({ id }: Props) {
                     (ct) =>
                         ct.projectId == home.projectId &&
                         ct.modelName?.toLowerCase() ==
-                            home.modelName?.toLowerCase(),
+                            home.modelName?.toLowerCase()
                 )?.meta?.design;
                 let template = communityDesign
                     ? dotArray(transformCommunityTemplate(communityDesign))
@@ -79,14 +79,14 @@ export default function HomePrinter({ id }: Props) {
                               (t) =>
                                   home.builderId == t.builderId &&
                                   home.modelName?.toLowerCase() ==
-                                      t.modelName?.toLowerCase(),
-                          )?.meta?.design,
+                                      t.modelName?.toLowerCase()
+                          )?.meta?.design
                       );
                 // template?.bifoldDoor.bifoldOther1.
 
                 const dotDesign = removeEmptyValues(template);
                 const design: HomeTemplateDesign = designDotToObject(
-                    dotDesign,
+                    dotDesign
                 ) as any;
                 design.project = {
                     projectName: home?.project?.title,
@@ -102,13 +102,13 @@ export default function HomePrinter({ id }: Props) {
                     dotDesign,
                     home,
                 };
-            }),
+            })
         );
         await timeout(900);
         window.print();
         const _homes = printer.homes;
         const actProd = _homes.filter(
-            (h) => getHomeProductionStatus(h).productionStatus == "Idle",
+            (h) => getHomeProductionStatus(h).productionStatus == "Idle"
         );
 
         if (actProd.length)

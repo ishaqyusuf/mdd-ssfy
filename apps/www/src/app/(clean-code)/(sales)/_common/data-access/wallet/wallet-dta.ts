@@ -1,4 +1,4 @@
-import { authId, userId } from "@/app/(v1)/_actions/utils";
+import { authId, userId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import { SalesPaymentStatus } from "../../../types";
@@ -57,7 +57,7 @@ export async function applyPaymentDta(
     walletId,
     transactionIds,
     paymentMethod,
-    checkNo?,
+    checkNo?
 ) {
     const transactions = await prisma.salesPayments.findMany({
         where: {
@@ -103,6 +103,6 @@ export async function applyPaymentDta(
                     },
                 },
             });
-        }),
+        })
     );
 }

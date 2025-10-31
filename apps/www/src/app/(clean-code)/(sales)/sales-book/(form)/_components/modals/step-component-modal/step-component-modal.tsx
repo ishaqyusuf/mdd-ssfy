@@ -1,7 +1,7 @@
 "use client";
 
 import RenderForm from "@/_v2/components/common/render-form";
-import { LegacyDykeFormStepType } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
+import { LegacyDykeFormStepType } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
 import { Icons } from "@/components/_v1/icons";
 import { Search } from "@/components/(clean-code)/search";
 import FormCheckbox from "@/components/common/controls/form-checkbox";
@@ -165,7 +165,7 @@ export default function StepComponentModal({ item, ctx }: Props) {
                                                                     label={size}
                                                                     type="number"
                                                                 />
-                                                            ),
+                                                            )
                                                         )}
                                                     </div>
                                                 </TabsContent>
@@ -208,7 +208,7 @@ export default function StepComponentModal({ item, ctx }: Props) {
                                                     stepS.fields.filter(
                                                         (f, fi) =>
                                                             !f.id &&
-                                                            fi != fieldIndex,
+                                                            fi != fieldIndex
                                                     );
                                                 const emptyLength =
                                                     empties.length <= 0;

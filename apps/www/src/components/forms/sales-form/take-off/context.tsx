@@ -1,6 +1,6 @@
 import { getStepProductImg } from "@/actions/get-step-product-img";
 import { getTakeOffContext } from "@/actions/get-takeoff-context";
-import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { rndTimeout } from "@/lib/timeout";
 import { generateRandomString } from "@/lib/utils";
 import createContextFactory from "@/utils/context-factory";
@@ -33,7 +33,7 @@ export const { Provider: TakeoffItemProvider, useContext: useTakeoffItem } =
         const section = ctx.sections?.find(
             (a) =>
                 ctx.zus?.kvStepForm?.[`${itemUid}-${a.stepUid}`]
-                    ?.componentUid == a.componentUid,
+                    ?.componentUid == a.componentUid
         );
         const itemForm = ctx.zus.kvFormItem[itemUid];
         const doorStepProductId = itemForm?.groupItem?.doorStepProductId;

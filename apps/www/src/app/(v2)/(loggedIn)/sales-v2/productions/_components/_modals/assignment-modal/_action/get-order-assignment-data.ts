@@ -1,12 +1,12 @@
 "use server";
 
 import { unstable_noStore } from "next/cache";
-import { SalesIncludeAll } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
-import { serverSession, userId } from "@/app/(v1)/_actions/utils";
-import { composeDoorDetails } from "@/app/(v2)/(loggedIn)/sales-v2/_utils/compose-sales-items";
-import getDoorConfig from "@/app/(v2)/(loggedIn)/sales-v2/form/_hooks/use-door-config";
-import { isComponentType } from "@/app/(v2)/(loggedIn)/sales-v2/overview/is-component-type";
-import salesData from "@/app/(v2)/(loggedIn)/sales/sales-data";
+import { SalesIncludeAll } from "@/app-deps/(clean-code)/(sales)/_common/utils/db-utils";
+import { serverSession, userId } from "@/app-deps/(v1)/_actions/utils";
+import { composeDoorDetails } from "@/app-deps/(v2)/(loggedIn)/sales-v2/_utils/compose-sales-items";
+import getDoorConfig from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/_hooks/use-door-config";
+import { isComponentType } from "@/app-deps/(v2)/(loggedIn)/sales-v2/overview/is-component-type";
+import salesData from "@/app-deps/(v2)/(loggedIn)/sales/sales-data";
 import { OrderItemProductionAssignments, prisma, Users } from "@/db";
 import { ArrayMetaType, sum } from "@/lib/utils";
 import { ServerPromiseType } from "@/types";
@@ -42,7 +42,7 @@ export async function getOrderAssignmentData(id, mode?: mode) {
             const metaKeys = Object.keys(item.meta);
             if (metaKeys.includes("uid")) item.meta.lineIndex = item.meta.uid;
             return item;
-        },
+        }
     );
     let assignmentSummary = {};
     type AssignmentType = (typeof order)["items"][0]["assignments"];
@@ -51,7 +51,7 @@ export async function getOrderAssignmentData(id, mode?: mode) {
         (item) =>
             (!order.isDyke && item.swing) ||
             (order.isDyke &&
-                (item.multiDyke || (!item.multiDyke && !item.multiDykeUid))),
+                (item.multiDyke || (!item.multiDyke && !item.multiDykeUid)))
     );
 
     let doorGroups = fItems
@@ -59,7 +59,7 @@ export async function getOrderAssignmentData(id, mode?: mode) {
             const _items = order.items.filter(
                 (i) =>
                     i.id == item.id ||
-                    (item.multiDyke && item.multiDykeUid == i.multiDykeUid),
+                    (item.multiDyke && item.multiDykeUid == i.multiDykeUid)
             );
             const report = {
                 assigned: 0,
@@ -137,7 +137,7 @@ export async function getOrderAssignmentData(id, mode?: mode) {
                         (_item) =>
                             _item.meta.lineIndex < item.meta.lineIndex &&
                             !_item.qty &&
-                            _item.description.includes("**"),
+                            _item.description.includes("**")
                     )
                     ?.description?.replaceAll("*", "")
                     ?.toUpperCase();
@@ -145,7 +145,7 @@ export async function getOrderAssignmentData(id, mode?: mode) {
 
                 if (
                     salesDoors.findIndex(
-                        (s) => s.salesDoor.salesOrderId == item.id,
+                        (s) => s.salesDoor.salesOrderId == item.id
                     ) == -1
                 )
                     salesDoors.push(analyseItem(ret, report) as any);
@@ -166,7 +166,7 @@ export async function getOrderAssignmentData(id, mode?: mode) {
                                     ...s,
                                     assignedTo: a.assignedTo as Users,
                                 };
-                            }),
+                            })
                         )
                         .flat();
                     return {
@@ -174,7 +174,7 @@ export async function getOrderAssignmentData(id, mode?: mode) {
                         submissions: submissions.filter(
                             (s, i) =>
                                 submissions.findIndex((sq) => sq.id == s.id) ==
-                                i,
+                                i
                         ),
                     };
                 }),
@@ -182,7 +182,7 @@ export async function getOrderAssignmentData(id, mode?: mode) {
                 formSteps: item?.formSteps,
                 doorDetails: composeDoorDetails(
                     item.formSteps as any,
-                    item as any,
+                    item as any
                 ),
             };
         })
@@ -191,13 +191,13 @@ export async function getOrderAssignmentData(id, mode?: mode) {
                 ? undefined
                 : (item, item2) =>
                       (item.item.meta.lineIndex || item.item.meta.uid) -
-                      (item2.item.meta.lineIndex || item2.item.meta.lineIndex),
+                      (item2.item.meta.lineIndex || item2.item.meta.lineIndex)
         );
     let _doorGroups = doorGroups
         .map((group, index) => {
             if (!order.isDyke) {
                 const gItem = doorGroups.findLast(
-                    (g, i) => !g.item.qty && i < index,
+                    (g, i) => !g.item.qty && i < index
                 )?.item;
                 let title = gItem?.description?.replaceAll("*", "");
 
@@ -232,8 +232,8 @@ export async function getOrderAssignmentData(id, mode?: mode) {
                 (_.groupItemId &&
                     i ==
                         doorGroups.findIndex(
-                            (d) => d.groupItemId == _.groupItemId,
-                        )),
+                            (d) => d.groupItemId == _.groupItemId
+                        ))
         );
 
         doorGroups = ng.map((n) => {
@@ -257,8 +257,8 @@ export async function getOrderAssignmentData(id, mode?: mode) {
                         n.salesDoors.findIndex(
                             (d) =>
                                 d.salesDoor.salesOrderItemId ==
-                                s.salesDoor.salesOrderItemId,
-                        ),
+                                s.salesDoor.salesOrderItemId
+                        )
                 ),
             };
         });
@@ -314,12 +314,12 @@ function composeAssignment<T>(data: T) {
             status,
             __report: {
                 submissions: assignment.submissions?.filter((s) =>
-                    isLeft ? s.lhQty : s.rhQty,
+                    isLeft ? s.lhQty : s.rhQty
                 ),
                 submitted: sum(
                     assignment.submissions.map((s) =>
-                        isLeft ? s.lhQty : s.rhQty,
-                    ),
+                        isLeft ? s.lhQty : s.rhQty
+                    )
                 ),
                 pending: 0,
                 handle: isLeft ? "LH" : "RH",
@@ -330,7 +330,7 @@ function composeAssignment<T>(data: T) {
                 lh: sum(
                     assignment.submissions
                         // .filter((s) => s.)
-                        .map((s) => s.lhQty),
+                        .map((s) => s.lhQty)
                 ),
                 rh: sum(assignment.submissions.map((s) => s.rhQty)),
             },

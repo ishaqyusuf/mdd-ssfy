@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { dotObject } from "@/app/(clean-code)/_common/utils/utils";
-import { SalesFormZusData } from "@/app/(clean-code)/(sales)/types";
+import { dotObject } from "@/app-deps/(clean-code)/_common/utils/utils";
+import { SalesFormZusData } from "@/app-deps/(clean-code)/(sales)/types";
 import { FormSelectProps } from "@/components/common/controls/form-select";
 import { NumberInput } from "@/components/currency-input";
 import { LabelInput } from "@/components/label-input";
@@ -30,7 +30,7 @@ interface LineInputProps {
 }
 function getValue<K extends FieldPath<SalesFormZusData>>(
     path: K,
-    state: SalesFormZusData,
+    state: SalesFormZusData
 ): FieldPathValue<SalesFormZusData, K> {
     return dotObject.pick(path, state);
 }
@@ -53,14 +53,14 @@ export function Input({
         <div
             className={cn(
                 label && "grid gap-2",
-                midday && "flex grid-cols-2 items-center   space-x-2 uppercase",
+                midday && "flex grid-cols-2 items-center   space-x-2 uppercase"
             )}
         >
             {label && (
                 <Label
                     className={cn(
                         props.disabled && "text-muted-foreground",
-                        midday && "text-xss font-mono$",
+                        midday && "text-xss font-mono$"
                     )}
                 >
                     {label}:
@@ -136,21 +136,21 @@ export function Select<T>({
         return typeof option == "string"
             ? option
             : titleKey == "label"
-              ? option[titleKey] || option["text"]
-              : option[titleKey];
+            ? option[titleKey] || option["text"]
+            : option[titleKey];
     }
     const isPlaceholder = !value;
     return (
         <div
             className={cn(
                 label && "grid gap-2",
-                midday && "flex items-center  uppercase",
+                midday && "flex items-center  uppercase"
             )}
         >
             {label && (
                 <Label
                     className={cn(
-                        midday && "text-xss whitespace-nowrap font-mono$ ",
+                        midday && "text-xss whitespace-nowrap font-mono$ "
                     )}
                 >
                     {label}:
@@ -181,7 +181,7 @@ export function Select<T>({
                         >
                             <span>
                                 {itemText(
-                                    options?.find((o) => itemValue(o) == value),
+                                    options?.find((o) => itemValue(o) == value)
                                 )}
                             </span>
                         </SelectValue>
@@ -212,7 +212,7 @@ export function Select<T>({
                                         <>{itemText(option)}</>
                                     )}
                                 </SelectItem>
-                            ),
+                            )
                         )}
                     </ScrollArea>
                 </SelectContent>

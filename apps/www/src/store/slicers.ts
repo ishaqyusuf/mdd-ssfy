@@ -1,5 +1,5 @@
 // import { ISalesOrder, ISalesOrderItem } from "@/types/ISales";
-import { INotification } from "@/app/(v1)/_actions/notifications";
+import { INotification } from "@/app-deps/(v1)/_actions/notifications";
 import {
     Builders,
     Customers,
@@ -138,7 +138,7 @@ const headerNavSlice = createSlice({
     reducers: {
         updateSlice(
             state,
-            action: PayloadAction<{ key: keyof ISlicer; data }>,
+            action: PayloadAction<{ key: keyof ISlicer; data }>
         ) {
             const { key, data } = action.payload;
             // Object.entries(data).map(([k, v]) => {
@@ -172,7 +172,7 @@ export function dispatchSlice(key: keyof ISlicer, data: any = null) {
         updateSlice({
             key,
             data: deepCopy(data),
-        }),
+        })
     );
 }
 
@@ -187,6 +187,6 @@ export function navigateTo(href) {
         updateSlice({
             key: "href",
             data: href,
-        }),
+        })
     );
 }

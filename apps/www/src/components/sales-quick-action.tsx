@@ -1,6 +1,6 @@
 "use client";
 
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 
 import Portal from "./_v1/portal";
 import { Menu } from "./(clean-code)/menu";

@@ -1,7 +1,7 @@
 "use server";
 
 import { unstable_cache } from "next/cache";
-import { AddressBookMeta } from "@/app/(clean-code)/(sales)/types";
+import { AddressBookMeta } from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { Tags } from "@/utils/constants";
 

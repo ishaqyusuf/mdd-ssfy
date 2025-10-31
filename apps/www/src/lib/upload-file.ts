@@ -1,5 +1,5 @@
 "use server";
-import { getSignature } from "@/app/(v1)/_actions/cloudinary/cloudinary";
+import { getSignature } from "@/app-deps/(v1)/_actions/cloudinary/cloudinary";
 import { env } from "@/env.mjs";
 
 export type UploadFolders = "contractor-document" | "dyke";

@@ -1,6 +1,6 @@
 "use client";
 
-import { staticBuildersAction } from "@/app/(v1)/(loggedIn)/settings/community/builders/action";
+import { staticBuildersAction } from "@/app-deps/(v1)/(loggedIn)/settings/community/builders/action";
 
 import { DynamicFilter } from "../data-table/data-table-dynamic-filter";
 

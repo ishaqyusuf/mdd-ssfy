@@ -14,7 +14,7 @@ import { cache } from "react";
 import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
 import { AppRouter } from "@gnd/api/trpc/routers/_app";
-// import { authUser } from "@/app/(v1)/_actions/utils";
+// import { authUser } from "@/app-deps/(v1)/_actions/utils";
 import { generateRandomString } from "@gnd/utils";
 // import { AppRouter } from "./routers/_app";
 

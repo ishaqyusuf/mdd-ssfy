@@ -1,4 +1,4 @@
-import { SalesType } from "@/app/(clean-code)/(sales)/types";
+import { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
 import { IOrderPrintMode } from "@/types/sales";
 import { parseAsString, parseAsStringEnum, useQueryStates } from "nuqs";
 

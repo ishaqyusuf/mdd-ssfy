@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo } from "react";
-import { saveComponentPricingUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-pricing-use-case";
+import { saveComponentPricingUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-pricing-use-case";
 import FormInput from "@/components/common/controls/form-input";
 import Modal from "@/components/common/modal";
 import { _modal } from "@/components/common/modal/provider";
@@ -47,7 +47,7 @@ export function useInitContext(cls: ComponentHelperClass) {
                     dependenciesUid,
                     dykeStepId: data.dykeStepId,
                     stepProductUid: data.stepProductUid,
-                })),
+                }))
         );
         await cls.fetchUpdatedPrice();
         _modal.close();

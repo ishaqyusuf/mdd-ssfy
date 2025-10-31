@@ -1,6 +1,6 @@
 "use server";
 
-import { LabelValue } from "@/app/(clean-code)/type";
+import { LabelValue } from "@/app-deps/(clean-code)/type";
 import { Prisma, prisma } from "@/db";
 
 import { SalesFormZusData, StepComponentForm } from "../../types";
@@ -43,7 +43,7 @@ export async function getDykeStepTitlesOptionUseCase() {
             ({
                 label: title,
                 value: id,
-            }) as LabelValue,
+            } as LabelValue)
     );
 }
 export async function sortStepComponentsUseCase(components) {
@@ -51,7 +51,7 @@ export async function sortStepComponentsUseCase(components) {
         components.map(async (c, index) => {
             const data = { sortIndex: index };
             await updateStepComponentDta(c.id, data);
-        }),
+        })
     );
 }
 export async function getStepComponentsUseCase(stepTitle, stepId) {
@@ -88,9 +88,9 @@ export async function saveComponentVariantUseCase(uids, variants) {
             product.meta.variations = variants;
             const resp = await updateStepComponentMetaDta(
                 product.id,
-                product.meta,
+                product.meta
             );
-        }),
+        })
     );
     return {
         variants,
@@ -125,7 +125,7 @@ export async function createComponentUseCase(data: StepComponentForm) {
             { db: prisma },
             {
                 id: c.id,
-            },
+            }
         )
     )[0];
     return resp;
@@ -146,7 +146,7 @@ export async function updateCustomComponentUseCase(data: {
             {
                 isCustom: true,
                 id: data.id,
-            },
+            }
         )
     )[0];
     return c;
@@ -173,7 +173,7 @@ export async function createCustomComponentUseCase(data: {
             { db: prisma },
             {
                 id: component.id,
-            },
+            }
         )
     )[0];
     return resp;

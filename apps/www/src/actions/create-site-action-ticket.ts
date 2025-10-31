@@ -2,8 +2,8 @@ import {
     ActionTicketEvents,
     ActionTicketMeta,
     ActionTicketType,
-} from "@/app/(clean-code)/type";
-import { user } from "@/app/(v1)/_actions/utils";
+} from "@/app-deps/(clean-code)/type";
+import { user } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 
 export interface SiteTicketProps {
@@ -14,7 +14,7 @@ export interface SiteTicketProps {
 export async function createSiteActionTicket(
     // description,type: ActionTicketType,
     // meta: ActionTicketMeta
-    props: SiteTicketProps,
+    props: SiteTicketProps
 ) {
     let { meta } = props;
     if (!meta) meta = {};

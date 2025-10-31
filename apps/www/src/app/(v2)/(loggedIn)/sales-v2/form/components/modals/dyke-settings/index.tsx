@@ -1,6 +1,6 @@
 import {} from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import { updateSettingsMeta } from "@/app/(v1)/_actions/settings";
+import { updateSettingsMeta } from "@/app-deps/(v1)/_actions/settings";
 import Btn from "@/components/_v1/btn";
 import FormSelect from "@/components/common/controls/form-select";
 import Modal from "@/components/common/modal";
@@ -82,7 +82,7 @@ export default function DykeSettingsModal({ form }: Props) {
                                 size="sm"
                                 onSelect={(e) => {
                                     const index = fields.findIndex(
-                                        (f) => f.name == (e as any),
+                                        (f) => f.name == (e as any)
                                     );
 
                                     if (index >= 0) remove(index);
@@ -92,7 +92,7 @@ export default function DykeSettingsModal({ form }: Props) {
                                         });
                                     form.setValue(
                                         "data.settings.dyke.customInputSection._sectionSelect",
-                                        null,
+                                        null
                                     );
                                 }}
                                 options={

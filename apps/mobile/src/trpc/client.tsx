@@ -12,7 +12,7 @@ import Constants from "expo-constants";
 import { getBaseUrl } from "@/lib/base-url";
 import { StaticTrpc } from "@/components/static-trpc";
 // import { generateRandomString } from "@/lib/utils";
-// import { authUser } from "@/app/(v1)/_actions/utils";
+// import { authUser } from "@/app-deps/(v1)/_actions/utils";
 
 export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
 

@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo } from "react";
-import { saveComponentPricingUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-pricing-use-case";
+import { saveComponentPricingUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-pricing-use-case";
 import FormInput from "@/components/common/controls/form-input";
 import Modal from "@/components/common/modal";
 import { _modal } from "@/components/common/modal/provider";
@@ -55,7 +55,7 @@ export function useInitContext(cls: ComponentHelperClass) {
                     dependenciesUid,
                     dykeStepId: cls.getStepForm().stepId,
                     stepProductUid: cls.componentUid,
-                })),
+                }))
         );
         await cls.fetchUpdatedPrice();
         _modal.close();
@@ -121,7 +121,7 @@ function MainTab({}) {
                     key={index}
                     className={cn(
                         "flex items-center gap-4 border-b py-2",
-                        variant.current && "bg-emerald-50",
+                        variant.current && "bg-emerald-50"
                     )}
                 >
                     <div className="flex-1">

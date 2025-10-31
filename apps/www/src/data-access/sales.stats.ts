@@ -1,10 +1,10 @@
 "use server";
 
-import { statStatus } from "@/app/(clean-code)/(sales)/_common/utils/sales-utils";
+import { statStatus } from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-utils";
 import {
     SalesStatStatus,
     TypedSalesStat,
-} from "@/app/(clean-code)/(sales)/types";
+} from "@/app-deps/(clean-code)/(sales)/types";
 import { composeSalesStatKeyValue } from "@/data/compose-sales";
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
@@ -57,7 +57,7 @@ export async function updateSalesStat(id) {
                       .filter((i) => i.dykeProduction)
                       .map((s) => s.qty),
               ]
-            : data.items.filter((a) => a.swing).map((a) => a.qty),
+            : data.items.filter((a) => a.swing).map((a) => a.qty)
     );
     const statkv = composeSalesStatKeyValue(data.stat);
     await saveStat({
@@ -71,9 +71,9 @@ export async function updateSalesStat(id) {
                     sum(
                         a.submissions
                             .filter((s) => !s.deletedAt)
-                            .map((s) => s.qty),
-                    ),
-                ),
+                            .map((s) => s.qty)
+                    )
+                )
         ),
         id: statkv["production"]?.id,
     });
@@ -84,7 +84,7 @@ export async function updateSalesStat(id) {
         score: sum(
             data.assignments
                 .filter((s) => !s.deletedAt)
-                .map((s) => s.qtyAssigned),
+                .map((s) => s.qtyAssigned)
         ),
     });
     await saveStat({
@@ -96,7 +96,7 @@ export async function updateSalesStat(id) {
             : sum(
                   data.itemDeliveries
                       .filter((s) => !s.deletedAt)
-                      .map((s) => s.qty),
+                      .map((s) => s.qty)
               ),
     });
 }

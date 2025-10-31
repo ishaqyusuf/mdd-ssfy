@@ -4,7 +4,7 @@ import {
     useState,
 } from "react";
 import { deleteSalesAssignmentAction } from "@/actions/delete-sales-assignment";
-import { updateAssignmentDueDateUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sales-prod.use-case";
+import { updateAssignmentDueDateUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-prod.use-case";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
@@ -162,7 +162,7 @@ function Content() {
                                 variant="outline"
                                 className={cn(
                                     "h-7 w-full",
-                                    ctx.openSubmitForm && "hidden",
+                                    ctx.openSubmitForm && "hidden"
                                 )}
                             >
                                 <Send className="mr-2 h-4 w-4" />
@@ -175,8 +175,8 @@ function Content() {
                             assignment.status === "completed"
                                 ? "success"
                                 : assignment.status === "in progress"
-                                  ? "default"
-                                  : "outline"
+                                ? "default"
+                                : "outline"
                         }
                     >
                         {assignment.status === "completed" ? (

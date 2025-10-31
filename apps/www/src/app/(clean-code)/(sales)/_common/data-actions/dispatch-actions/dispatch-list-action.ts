@@ -6,8 +6,8 @@ import { prisma } from "@/db";
 import {
     getPageInfo,
     pageQueryFilter,
-} from "@/app/(clean-code)/_common/utils/db-utils";
-import { AsyncFnType } from "@/app/(clean-code)/type";
+} from "@/app-deps/(clean-code)/_common/utils/db-utils";
+import { AsyncFnType } from "@/app-deps/(clean-code)/type";
 import { transformDispatchList } from "./dispatch-list-dto";
 import { whereDispatch } from "@/utils/db/where.dispatch";
 

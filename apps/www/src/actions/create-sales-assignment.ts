@@ -1,6 +1,6 @@
 "use server";
 
-import { authId } from "@/app/(v1)/_actions/utils";
+import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import z from "zod";
@@ -12,7 +12,7 @@ import { updateSalesStatAction } from "./update-sales-stat";
 
 export async function createSalesAssignment(
     data: z.infer<typeof createAssignmentSchema>,
-    tx: typeof prisma = prisma,
+    tx: typeof prisma = prisma
 ) {
     const assignment = await tx.orderItemProductionAssignments.create({
         data: {
@@ -91,14 +91,14 @@ export const _createSalesAssignmentAction = async (input) => {
                     ...input.qty,
                 },
             },
-            tx,
+            tx
         );
         await updateSalesStatAction(
             {
                 salesId: input.salesId,
                 types: ["prodAssigned"],
             },
-            tx,
+            tx
         );
         return {
             assignmentId: assignment.id,

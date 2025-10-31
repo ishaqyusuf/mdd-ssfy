@@ -2,13 +2,13 @@ import {
     useFormDataStore,
     ZusComponent,
     ZusGroupItemFormPath,
-} from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
-import { HptClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/hpt-class";
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { HptClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/hpt-class";
 import {
     ComponentHelperClass,
     StepHelperClass,
-} from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
-import { DykeDoorType } from "@/app/(clean-code)/(sales)/types";
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
+import { DykeDoorType } from "@/app-deps/(clean-code)/(sales)/types";
 import { composeDoor } from "@/lib/sales/compose-door";
 import { generateRandomString, sum } from "@/lib/utils";
 import createContextFactory from "@/utils/context-factory";
@@ -16,8 +16,8 @@ import { useEffect, useMemo, useState } from "react";
 import { FieldPath, FieldPathValue } from "react-hook-form";
 import { useAsyncMemo } from "use-async-memo";
 import { useTakeoffItem } from "./take-off/context";
-import { GroupFormClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/group-form-class";
-import { ServiceClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/service-class";
+import { GroupFormClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/group-form-class";
+import { ServiceClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/service-class";
 
 export type HptContext = ReturnType<typeof useHpt>;
 export const { Provider: HptContextProvider, useContext: useHpt } =
@@ -37,11 +37,11 @@ export const { Provider: HptContextProvider, useContext: useHpt } =
                 const heightItemStepUid = Object.entries(zus?.kvStepForm)?.find(
                     ([k, v]) =>
                         v?.title == "Height" &&
-                        k?.startsWith(itemStepUid?.split("-")?.[0]),
+                        k?.startsWith(itemStepUid?.split("-")?.[0])
                 )?.[0];
                 const step = new StepHelperClass(heightItemStepUid);
                 const components = (await step?.fetchStepComponents())?.filter(
-                    (a) => a._metaData?.visible,
+                    (a) => a._metaData?.visible
                 );
                 return {
                     components,
@@ -69,7 +69,7 @@ export const { Provider: HptContextProvider, useContext: useHpt } =
             const componentClass = new ComponentHelperClass(
                 itemStepUid,
                 // itemForm?.groupItem?.doorStepProductUid,
-                ctx.hpt.tabUid,
+                ctx.hpt.tabUid
             );
             const door = composeDoor(componentClass);
             useEffect(() => {
@@ -78,7 +78,7 @@ export const { Provider: HptContextProvider, useContext: useHpt } =
                     tuid = ctx.doors?.[0]?.uid;
                     ctx.hpt.dotUpdateItemForm(
                         "groupItem._.tabUid",
-                        ctx.doors?.[0]?.uid,
+                        ctx.doors?.[0]?.uid
                     );
                 }
             }, [ctx.doors]);
@@ -97,7 +97,7 @@ export const { Provider: HptContextProvider, useContext: useHpt } =
                 door,
                 height,
             };
-        },
+        }
     );
 
 interface Props {
@@ -121,7 +121,7 @@ export const { Provider: HptLineContextProvider, useContext: useHptLine } =
             const size = ctx?.door?.sizePrice?.find((s) => s.path == lineUid);
             const unitLabor = ctx.hpt.dotGetGroupItemFormValue(
                 lineUid,
-                "pricing.unitLabor",
+                "pricing.unitLabor"
             );
             const sizeForm = ctx.itemForm?.groupItem.form[size?.path];
 
@@ -135,11 +135,11 @@ export const { Provider: HptLineContextProvider, useContext: useHptLine } =
         console.log({ size, sizeForm, sp: ctx?.door?.sizePrice });
         const setValue = <K extends FieldPath<ZusGroupItemFormPath>>(
             pathName: K,
-            value: FieldPathValue<ZusGroupItemFormPath, K>,
+            value: FieldPathValue<ZusGroupItemFormPath, K>
         ) => {
             ctx.zus.dotUpdate(
                 `kvFormItem.${ctx.itemUid}.groupItem.form.${lineUid}.${pathName}`,
-                value as any,
+                value as any
             );
         };
         const zDoor = !size?.path
@@ -176,7 +176,7 @@ export const { Provider: GroupedItemContext, useContext: useGroupedItem } =
             const component = new ComponentHelperClass(
                 mouldingUid,
                 data.uid,
-                data,
+                data
             );
             const groupItem = component.getItemForm()?.groupItem;
             const formUid = generateRandomString();
@@ -216,11 +216,11 @@ export const { Provider: GroupedItemContext, useContext: useGroupedItem } =
         const setValue = <K extends FieldPath<ZusGroupItemFormPath>>(
             pathName: K,
             lineUid,
-            value: FieldPathValue<ZusGroupItemFormPath, K>,
+            value: FieldPathValue<ZusGroupItemFormPath, K>
         ) => {
             item.zus.dotUpdate(
                 `kvFormItem.${item.itemUid}.groupItem.form.${lineUid}.${pathName}`,
-                value as any,
+                value as any
             );
         };
         const mouldings = useAsyncMemo(async () => {
@@ -251,10 +251,10 @@ export const { Provider: GroupedItemContext, useContext: useGroupedItem } =
                 const itemIds = item.itemForm?.groupItem?.itemIds;
                 stepClass.dotUpdateItemForm(
                     `groupItem.itemIds`,
-                    itemIds.filter((a) => a !== pathUid),
+                    itemIds.filter((a) => a !== pathUid)
                 );
                 item.zus.removeKey(
-                    `kvFormItem.${item.itemUid}.groupItem.form.${pathUid}`,
+                    `kvFormItem.${item.itemUid}.groupItem.form.${pathUid}`
                 );
                 stepClass.calculateTotalPrice();
             },

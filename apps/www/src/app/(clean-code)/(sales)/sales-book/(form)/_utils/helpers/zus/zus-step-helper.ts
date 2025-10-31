@@ -1,4 +1,4 @@
-import { deleteStepComponentsUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
+import { deleteStepComponentsUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/step-component-use-case";
 import { ZusSales } from "../../../_common/_stores/form-data-store";
 import { toast } from "sonner";
 import { StepHelperClass } from "./step-component-class";

@@ -1,6 +1,6 @@
 "use server";
 
-import categoryUtils from "@/app/(v2)/dyke/category-utils";
+import categoryUtils from "@/app-deps/(v2)/dyke/category-utils";
 import { DykeShelfProducts, prisma } from "@/db";
 import dykeShelfItems from "@/lib/data/dyke-shelf-items";
 import { uploadFile } from "@/lib/upload-file";
@@ -28,7 +28,7 @@ export async function bootstrapShelfItems() {
                 if (resp?.secure_url) p.img = resp.secure_url.split("dyke/")[1];
             }
             return p;
-        }),
+        })
     );
     await prisma.dykeShelfCategories.createMany({
         data: categoryUtils.categories,

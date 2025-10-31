@@ -1,4 +1,4 @@
-import { AsyncFnType } from "@/app/(clean-code)/type";
+import { AsyncFnType } from "@/app-deps/(clean-code)/type";
 // import { ApiError } from "square";
 
 export async function errorHandler<T extends (...args: any) => any>(fn: T) {

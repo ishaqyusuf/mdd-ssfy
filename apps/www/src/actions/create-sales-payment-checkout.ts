@@ -1,7 +1,7 @@
 "use server";
 
 import { SquarePaymentStatus } from "@/_v2/lib/square";
-import { PaymentMethods } from "@/app/(clean-code)/(sales)/types";
+import { PaymentMethods } from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma as _prisma } from "@/db";
 import { getBaseUrl } from "@/envs";
 import { generateRandomString } from "@/lib/utils";

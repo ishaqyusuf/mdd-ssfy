@@ -6,7 +6,7 @@ import BasePrinter from "../base-printer";
 import { useState } from "react";
 import { WaterMark } from "./water-mark";
 import { adjustWatermark } from "@/lib/adjust-watermark";
-import { salesPrintAction } from "@/app/(v1)/(loggedIn)/sales/_actions/sales";
+import { salesPrintAction } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/sales";
 import { ISalesOrder } from "@/types/sales";
 import { OrderPrintHeader } from "./order-print-header";
 import { OrderPrintInvoiceLines } from "./order-print-invoice-lines";
@@ -17,7 +17,7 @@ import Link from "@/components/link";
 import Image from "next/image";
 import { timeout } from "@/lib/timeout";
 import "@/styles/sales.css";
-import { printSalesPdf } from "@/app/(v1)/(loggedIn)/sales/_actions/save-pdf";
+import { printSalesPdf } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/save-pdf";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 interface Props {
@@ -69,7 +69,7 @@ export default function OrderPrinter({
             // return;
             const pdf = await printSalesPdf(
                 printer.mode,
-                printer.ids?.join(","),
+                printer.ids?.join(",")
             );
 
             const link = document.createElement("a");
@@ -86,7 +86,7 @@ export default function OrderPrinter({
             printer.ids.map((slug) => ({
                 slug,
                 loading: true,
-            })) as any,
+            })) as any
         );
         const _sales: ISalesOrder[] = (await salesPrintAction({
             ids: printer.ids,
@@ -106,19 +106,19 @@ export default function OrderPrinter({
                     sale.tax = addPercentage(sale.tax, mockPercentage);
                     sale.subTotal = addPercentage(
                         sale.subTotal,
-                        mockPercentage,
+                        mockPercentage
                     );
                     sale.meta.ccc = addPercentage(
                         sale.meta.ccc,
-                        mockPercentage,
+                        mockPercentage
                     );
                     sale.grandTotal = addPercentage(
                         sale.grandTotal,
-                        mockPercentage,
+                        mockPercentage
                     );
                 }
                 return sale;
-            }) as any,
+            }) as any
         );
         await timeout(900);
         adjustWatermark(sales?.map((s) => s.orderId));

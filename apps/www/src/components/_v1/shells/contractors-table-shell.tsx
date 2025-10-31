@@ -7,9 +7,9 @@ import { useEmployeeProfiles } from "@/_v2/hooks/use-static-data";
 import {
     getStaticEmployeeProfiles,
     setEmployeeProfileAction,
-} from "@/app/(v1)/_actions/hrm/employee-profiles";
-import { _deleteEmployee } from "@/app/(v1)/_actions/hrm/employees.crud";
-import { resetEmployeePassword } from "@/app/(v1)/_actions/hrm/save-employee";
+} from "@/app-deps/(v1)/_actions/hrm/employee-profiles";
+import { _deleteEmployee } from "@/app-deps/(v1)/_actions/hrm/employees.crud";
+import { resetEmployeePassword } from "@/app-deps/(v1)/_actions/hrm/save-employee";
 import { openModal } from "@/lib/modal";
 import { useAppSelector } from "@/store";
 import { loadStaticList } from "@/store/slicers";
@@ -61,7 +61,7 @@ export default function ContractorsTableShell({
         loadStaticList(
             "staticEmployeeProfiles",
             profiles,
-            getStaticEmployeeProfiles,
+            getStaticEmployeeProfiles
         );
     }, []);
     const route = useRouter();
@@ -145,10 +145,10 @@ export default function ContractorsTableShell({
                             <RowActionMenuItem
                                 onClick={async () => {
                                     await resetEmployeePassword(
-                                        row.original?.id,
+                                        row.original?.id
                                     );
                                     toast.success(
-                                        "Password reset successfully!",
+                                        "Password reset successfully!"
                                     );
                                 }}
                                 Icon={Key}
@@ -165,7 +165,7 @@ export default function ContractorsTableShell({
                 ),
             },
         ], //.filter(Boolean) as any,
-        [data, isPending],
+        [data, isPending]
     );
     return (
         <DataTable2

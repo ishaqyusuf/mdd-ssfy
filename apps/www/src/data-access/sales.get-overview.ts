@@ -1,4 +1,4 @@
-import { SalesIncludeAll } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
+import { SalesIncludeAll } from "@/app-deps/(clean-code)/(sales)/_common/utils/db-utils";
 import {
     composeSalesCostBreakdown,
     composeSalesInformation,

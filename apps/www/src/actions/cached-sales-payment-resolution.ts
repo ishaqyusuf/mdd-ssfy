@@ -3,7 +3,7 @@
 import {
     SalesPaymentStatus,
     SalesType,
-} from "@/app/(clean-code)/(sales)/types";
+} from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { PageFilterData } from "@/types/type";
 import { paymentMethods, salesHaving } from "@/utils/constants";
@@ -27,7 +27,7 @@ export async function salesPaymentResoltionFilters() {
                     (a) => ({
                         label: a,
                         value: a,
-                    }),
+                    })
                 ),
             },
         ];

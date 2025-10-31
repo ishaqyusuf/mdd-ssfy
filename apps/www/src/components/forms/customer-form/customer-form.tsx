@@ -5,7 +5,7 @@ import { getCustomerProfilesAction } from "@/actions/cache/get-customer-profiles
 import { getTaxProfilesAction } from "@/actions/cache/get-tax-profiles";
 import { getSalesListAction } from "@/actions/get-sales-list";
 import { createCustomerSchema } from "@/actions/schema";
-import salesData from "@/app/(clean-code)/(sales)/_common/utils/sales-data";
+import salesData from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-data";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import useEffectLoader from "@/lib/use-effect-loader";
@@ -43,7 +43,7 @@ export function CustomerForm() {
         },
         {
             wait: 120,
-        },
+        }
     );
     const { taxProfiles, salesProfiles } = resp?.data || {};
 
@@ -139,7 +139,7 @@ export function CustomerForm() {
                                                     (s) => ({
                                                         ...s,
                                                         id: String(s.id),
-                                                    }),
+                                                    })
                                                 )}
                                             />
                                             <FormSelect
@@ -177,28 +177,28 @@ export function CustomerForm() {
                                         setAddress={(address) => {
                                             form.setValue(
                                                 "formattedAddress",
-                                                address.formattedAddress,
+                                                address.formattedAddress
                                             );
                                             form.setValue(
                                                 "address1",
-                                                address.address1,
+                                                address.address1
                                             );
                                             form.setValue(
                                                 "address2",
-                                                address.address2,
+                                                address.address2
                                             );
                                             form.setValue("city", address.city);
                                             form.setValue(
                                                 "state",
-                                                address.region,
+                                                address.region
                                             );
                                             form.setValue(
                                                 "zip_code",
-                                                address.postalCode,
+                                                address.postalCode
                                             );
                                             form.setValue(
                                                 "country",
-                                                address.country,
+                                                address.country
                                             );
                                             // form.setValue("country", address.);
                                             // form.setValue(
@@ -298,7 +298,7 @@ export function CustomerForm() {
                                                             size="sm"
                                                             onClick={() => {
                                                                 setResolutionRequired(
-                                                                    false,
+                                                                    false
                                                                 );
                                                             }}
                                                         >
@@ -330,7 +330,7 @@ export function CustomerForm() {
                                                                 <div className="space-y-3">
                                                                     {sales.map(
                                                                         (
-                                                                            sale,
+                                                                            sale
                                                                         ) => (
                                                                             <div
                                                                                 key={
@@ -350,9 +350,9 @@ export function CustomerForm() {
                                                                                             "Completed"
                                                                                                 ? "default"
                                                                                                 : sale.status ===
-                                                                                                    "Pending"
-                                                                                                  ? "outline"
-                                                                                                  : "destructive"
+                                                                                                  "Pending"
+                                                                                                ? "outline"
+                                                                                                : "destructive"
                                                                                         }
                                                                                     >
                                                                                         {
@@ -364,7 +364,7 @@ export function CustomerForm() {
                                                                                     <div>
                                                                                         Date:{" "}
                                                                                         {new Date(
-                                                                                            sale.date,
+                                                                                            sale.date
                                                                                         ).toLocaleDateString()}
                                                                                     </div>
                                                                                     <div>
@@ -376,7 +376,7 @@ export function CustomerForm() {
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
-                                                                        ),
+                                                                        )
                                                                     )}
                                                                 </div>
                                                             </AccordionContent>

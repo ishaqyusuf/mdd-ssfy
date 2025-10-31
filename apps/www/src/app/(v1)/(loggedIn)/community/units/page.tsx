@@ -1,14 +1,14 @@
-import { queryParams } from "@/app/(v1)/_actions/action-utils";
+import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
 import { Metadata } from "next";
 import PageHeader from "@/components/_v1/page-header";
 import { ExtendedHome, IProject } from "@/types/community";
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 
-import { getHomesAction } from "@/app/(v1)/_actions/community/home";
+import { getHomesAction } from "@/app-deps/(v1)/_actions/community/home";
 import ActivateProductionModal from "@/components/_v1/modals/activate-production-modal";
-import { _addLotBlocks } from "@/app/(v1)/_actions/community/units/_add-lotblocks";
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import { _addLotBlocks } from "@/app-deps/(v1)/_actions/community/units/_add-lotblocks";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 import HomesTableShell from "./homes-table-shell";
 import AddBtn from "./add-button";
 
@@ -20,7 +20,7 @@ export default async function CommunityUnitsPage(props) {
     const params = await props.params;
     const searchParams = await props.searchParams;
     const response = await getHomesAction(
-        queryParams({ ...searchParams, _projectSlug: params.slug }),
+        queryParams({ ...searchParams, _projectSlug: params.slug })
     );
     await _addLotBlocks();
 

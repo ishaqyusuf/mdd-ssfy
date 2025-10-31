@@ -1,4 +1,4 @@
-import { __filters } from "@/app/(clean-code)/(sales)/_common/utils/contants";
+import { __filters } from "@/app-deps/(clean-code)/(sales)/_common/utils/contants";
 import { createColumnHelper } from "@tanstack/react-table";
 
 import { FilterKeys } from "../search-params";
@@ -40,7 +40,7 @@ function filterField(
     value: FilterKeys,
     type: "checkbox" | "input" | "date" | "date-range" = "input",
     options = [],
-    label?,
+    label?
 ) {
     return {
         [value]: {

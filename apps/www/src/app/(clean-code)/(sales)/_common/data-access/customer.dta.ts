@@ -1,8 +1,8 @@
 import {
     getPageInfo,
     pageQueryFilter,
-} from "@/app/(clean-code)/_common/utils/db-utils";
-import { AsyncFnType } from "@/app/(clean-code)/type";
+} from "@/app-deps/(clean-code)/_common/utils/db-utils";
+import { AsyncFnType } from "@/app-deps/(clean-code)/type";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { prisma, Prisma } from "@/db";
 import { sum } from "@/lib/utils";

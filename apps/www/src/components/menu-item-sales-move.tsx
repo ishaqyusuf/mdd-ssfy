@@ -3,8 +3,8 @@ import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import {
     copySalesUseCase,
     moveOrderUseCase,
-} from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
-import { SalesType } from "@/app/(clean-code)/(sales)/types";
+} from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
+import { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
 import { env } from "@/env.mjs";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { openLink } from "@/lib/open-link";

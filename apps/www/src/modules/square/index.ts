@@ -1,4 +1,4 @@
-import { squareSalesPaymentCreatedDta } from "@/app/(clean-code)/(sales)/_common/data-access/wallet/sales-payment-dta";
+import { squareSalesPaymentCreatedDta } from "@/app-deps/(clean-code)/(sales)/_common/data-access/wallet/sales-payment-dta";
 import { env } from "@/env.mjs";
 import { formatMoney } from "@/lib/use-number";
 import { squareSalesNote } from "@/utils/sales-utils";

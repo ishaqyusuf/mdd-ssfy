@@ -4,7 +4,7 @@ import { unstable_cache } from "next/cache";
 import {
     getSalesListDta,
     getSalesOrdersDta,
-} from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
+} from "@/app-deps/(clean-code)/(sales)/_common/data-access/sales-dta";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 
 export async function getMyRecentSales(query: SearchParamsType) {

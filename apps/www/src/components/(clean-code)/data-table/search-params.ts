@@ -3,7 +3,7 @@ import {
     INVOICE_FILTER_OPTIONS,
     PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
     PRODUCTION_STATUS,
-} from "@/app/(clean-code)/(sales)/_common/utils/contants";
+} from "@/app-deps/(clean-code)/(sales)/_common/utils/contants";
 import { PERMISSIONS } from "@gnd/utils/constants";
 import { ROLES } from "@gnd/utils/constants";
 // Note: import from 'nuqs/server' to avoid the "use client" directive
@@ -110,7 +110,7 @@ export const searchParamsParser: {
     "salesRep.id": parseAsInteger,
     "sales.priority": parseAsArrayOf(
         parseAsStringLiteral(Object.keys(SalesPriority)),
-        ARRAY_DELIMITER,
+        ARRAY_DELIMITER
     ),
     "payment.type": parseAsString,
     _q: parseAsString,
@@ -118,11 +118,11 @@ export const searchParamsParser: {
     "user.id": parseAsInteger,
     "user.permissions": parseAsArrayOf(
         parseAsStringLiteral(PERMISSIONS),
-        ARRAY_DELIMITER,
+        ARRAY_DELIMITER
     ),
     "user.cannot": parseAsArrayOf(
         parseAsStringLiteral(PERMISSIONS),
-        ARRAY_DELIMITER,
+        ARRAY_DELIMITER
     ),
     "user.role": parseAsArrayOf(parseAsStringLiteral(ROLES), ARRAY_DELIMITER),
     roleId: parseAsInteger,

@@ -9,7 +9,7 @@ import {
     INotification,
     loadNotificationsAction,
     markAsReadAction,
-} from "@/app/(v1)/_actions/notifications";
+} from "@/app-deps/(v1)/_actions/notifications";
 import dayjs from "@/lib/dayjs";
 import { deepCopy } from "@/lib/deep-copy";
 import { cn } from "@/lib/utils";
@@ -34,7 +34,7 @@ import { ToolTip } from "./tool-tip";
 export default function NotificationComponent({}) {
     const [notificationCount, setNotificationCount] = useState(0);
     const notifications = useAppSelector(
-        (state) => state.slicers?.notifications,
+        (state) => state.slicers?.notifications
     );
 
     useEffect(() => {
@@ -87,7 +87,7 @@ export default function NotificationComponent({}) {
                         size="sm"
                         className={cn(
                             "relative h-auto space-x-2  rounded-full",
-                            notificationCount > 0 ? "p-1" : "p-1",
+                            notificationCount > 0 ? "p-1" : "p-1"
                         )}
                     >
                         <Bell className="size-4 text-muted-foreground" />
@@ -136,27 +136,29 @@ function NotificationList({
     setOpen;
 }) {
     const notifications = useAppSelector(
-        (state) => state.slicers.notifications,
+        (state) => state.slicers.notifications
     );
 
     return (
         <ScrollArea className="  -mt-2 h-[350px] min-h-[400px] ">
             <div className="divide-y">
-                {// Array(30)
-                //   .fill(null)
-                //   .map((a) => notifications?.[0] as any)
-                //   .filter(Boolean)
-                notifications?.map((item, index) => (
-                    <NotificationItem
-                        type={type}
-                        onClick={() => {
-                            setOpen(false);
-                        }}
-                        key={index}
-                        index={index}
-                        item={item}
-                    />
-                ))}
+                {
+                    // Array(30)
+                    //   .fill(null)
+                    //   .map((a) => notifications?.[0] as any)
+                    //   .filter(Boolean)
+                    notifications?.map((item, index) => (
+                        <NotificationItem
+                            type={type}
+                            onClick={() => {
+                                setOpen(false);
+                            }}
+                            key={index}
+                            index={index}
+                            item={item}
+                        />
+                    ))
+                }
             </div>
         </ScrollArea>
     );
@@ -174,7 +176,7 @@ function NotificationItem({
 }) {
     const visible = type == "inbox" ? !item.archived : item.archived;
     const notifications = useAppSelector(
-        (state) => state.slicers.notifications,
+        (state) => state.slicers.notifications
     );
     const [archiving, startTransition] = useTransition();
     if (!visible) return null;
@@ -215,7 +217,7 @@ function NotificationItem({
                         <p
                             className={cn(
                                 "text-sm  leading-snug",
-                                !item.seenAt ? "font-medium" : "font-normal",
+                                !item.seenAt ? "font-medium" : "font-normal"
                             )}
                         >
                             {item.message}

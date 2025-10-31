@@ -6,8 +6,8 @@ import {
     _assignJob,
     AssignJobActions,
     AssignJobProps,
-} from "@/app/(v1)/_actions/community-job/_assign-jobs";
-import { _changeWorker } from "@/app/(v1)/_actions/hrm-jobs/job-actions";
+} from "@/app-deps/(v1)/_actions/community-job/_assign-jobs";
+import { _changeWorker } from "@/app-deps/(v1)/_actions/hrm-jobs/job-actions";
 import Btn from "@/components/_v1/btn";
 import {
     DateCellContent,

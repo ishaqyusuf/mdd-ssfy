@@ -1,11 +1,11 @@
 "use client";
 
-import { _getModelCostStat } from "@/app/(v1)/_actions/community/_model-cost-stat";
+import { _getModelCostStat } from "@/app-deps/(v1)/_actions/community/_model-cost-stat";
 import {
     _deleteCommunityModelCost,
     _saveCommunitModelCostData,
-} from "@/app/(v1)/_actions/community/community-model-cost";
-import { _getCommunityModelCostUnits } from "@/app/(v1)/_actions/community/community-model-cost-units";
+} from "@/app-deps/(v1)/_actions/community/community-model-cost";
+import { _getCommunityModelCostUnits } from "@/app-deps/(v1)/_actions/community/community-model-cost-units";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import Money from "@/components/_v1/money";
 import { cn } from "@/lib/utils";
@@ -109,7 +109,7 @@ export function CommunityCostHistory({
                                 variant="ghost"
                                 size="icon"
                                 className={cn(
-                                    "opacity-20 group-hover:opacity-100",
+                                    "opacity-20 group-hover:opacity-100"
                                 )}
                                 trash
                             ></ConfirmBtn>

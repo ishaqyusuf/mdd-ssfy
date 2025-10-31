@@ -3,7 +3,7 @@ import { useTakeoff, useTakeoffItem } from "./context";
 import {
     ComponentHelperClass,
     StepHelperClass,
-} from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import { useAsyncMemo } from "use-async-memo";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
@@ -16,7 +16,7 @@ import { Switch } from "@gnd/ui/switch";
 import { ComponentImg } from "@/components/forms/sales-form/component-img";
 import NumberFlow from "@number-flow/react";
 import { updateComponentsPrice } from "@/lib/sales/update-components-price";
-import { ZusComponent } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { ZusComponent } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 
 export function TakeOffComponent({ itemStepUid }) {
     const itemCtx = useTakeoffItem();
@@ -41,7 +41,7 @@ export function TakeOffComponent({ itemStepUid }) {
         const comp = new ComponentHelperClass(
             itemStepUid,
             data.data.uid,
-            data.data,
+            data.data
         );
         comp.selectComponent(true);
         setOpen(false);
@@ -58,14 +58,12 @@ export function TakeOffComponent({ itemStepUid }) {
                             "border border-transparent hover:border-border text-xs uppercase p-1 h-7 rounded font-mono$ overflow-hidden gap-2",
                             stepForm?.value
                                 ? "font-medium bg-blue-900"
-                                : "text-muted-foreground",
+                                : "text-muted-foreground"
                         )}
                     >
                         <span
                             className={cn(
-                                !stepForm?.value
-                                    ? ""
-                                    : "hidden xl:inline-block",
+                                !stepForm?.value ? "" : "hidden xl:inline-block"
                             )}
                         >
                             {stepForm?.title}
@@ -74,7 +72,7 @@ export function TakeOffComponent({ itemStepUid }) {
                         <TextWithTooltip
                             className={cn(
                                 "max-w-[100px] lg:max-w-[150px] xl:max-w-[200px]",
-                                stepForm?.value || "hidden",
+                                stepForm?.value || "hidden"
                             )}
                             text={stepForm?.value || `${stepForm?.title}:`}
                         />
@@ -115,7 +113,7 @@ export function Components({
         <div
             className={cn(
                 "transition-all duration-300",
-                grid ? "w-[500px]" : "w-[250px]",
+                grid ? "w-[500px]" : "w-[250px]"
             )}
         >
             <DataSkeletonProvider
@@ -149,7 +147,7 @@ export function Components({
                             noSearch
                             listClassName={cn(
                                 grid &&
-                                    "grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+                                    "grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                             )}
                             onSelect={onSelect}
                             headless

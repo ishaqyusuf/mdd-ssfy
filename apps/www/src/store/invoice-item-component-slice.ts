@@ -4,7 +4,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 // import {
 //   IOrderInventoryUpdate,
 //   ISaveOrderResponse,
-// } from "@/app/api/sales-orders/save-order-component";
+// } from "@/app-deps/api/sales-orders/save-order-component";
 // import { IOrderComponent } from "@/types/ISales";
 import {
     FooterRowInfo,

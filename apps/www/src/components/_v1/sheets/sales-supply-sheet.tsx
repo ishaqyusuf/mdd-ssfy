@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
-import { getSettingAction } from "@/app/(v1)/_actions/settings";
+import { getSettingAction } from "@/app-deps/(v1)/_actions/settings";
 import { useDebounce } from "@/hooks/use-debounce";
 import { openModal } from "@/lib/modal";
 import { IJobs } from "@/types/hrm";
@@ -98,13 +98,13 @@ export default function SalesSupplySheet() {
 function Content({ data }: { data: IJobs }) {
     const [job, setJob] = useState<IJobs>(data);
     const [costSetting, setCostSetting] = useState<InstallCostSettings>(
-        {} as any,
+        {} as any
     );
     useEffect(() => {
         getSettingAction<InstallCostSettings>("install-price-chart").then(
             (res) => {
                 setCostSetting(res);
-            },
+            }
         );
     }, []);
     const [divider, setDivider] = useState(data?.coWorkerId ? 2 : 1);
@@ -164,7 +164,7 @@ function Content({ data }: { data: IJobs }) {
                                 ?.filter(
                                     (l) =>
                                         (job.meta?.costData[l.uid]?.qty || 0) >
-                                        0,
+                                        0
                                 )
                                 .map((cd, i) => (
                                     <TaskRow

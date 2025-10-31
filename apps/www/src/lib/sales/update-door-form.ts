@@ -1,4 +1,4 @@
-import { ComponentHelperClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
+import { ComponentHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import { sum, toNumber } from "../utils";
 import { formatMoney } from "../use-number";
 import { composeDoor } from "./compose-door";
@@ -11,7 +11,7 @@ export function updateDoorGroupForm(
     selections: ReturnType<typeof composeDoor>["selections"],
     swapPaths = null,
     clear = false,
-    params: Params = {},
+    params: Params = {}
 ) {
     let groupItem = cls.getItemForm().groupItem;
     if (!groupItem && !clear) {
@@ -38,7 +38,7 @@ export function updateDoorGroupForm(
     else {
         const _uids = Object.keys(selections);
         groupItem.itemIds = groupItem.itemIds.filter(
-            (id) => !_uids.includes(id) && !swapPaths?.includes(id),
+            (id) => !_uids.includes(id) && !swapPaths?.includes(id)
         );
         swapPaths?.map((p) => {
             delete groupItem.form[p];
@@ -76,7 +76,7 @@ export function updateDoorGroupForm(
                             sum([
                                 groupItem?.pricing?.components?.salesPrice,
                                 data?.salesPrice,
-                            ]),
+                            ])
                         ),
                     },
                 };

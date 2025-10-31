@@ -1,4 +1,4 @@
-import salesFormUtils from "@/app/(clean-code)/(sales)/_common/utils/sales-form-utils";
+import salesFormUtils from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-form-utils";
 import { useModal } from "@/components/common/modal/provider";
 import { ComponentPrice } from "@/db";
 import { timeout } from "@/lib/timeout";
@@ -26,11 +26,11 @@ export function useMultiSelector(rowIndex, get) {
             // if (!uid) {
             form.setValue(
                 `itemArray.${rowIndex}.multiComponent.uid`,
-                generateRandomString(4),
+                generateRandomString(4)
             );
             form.setValue(
                 `itemArray.${rowIndex}.multiComponent.multiDyke`,
-                true,
+                true
             );
             form.setValue(`itemArray.${rowIndex}.multiComponent.components`, {
                 [generateRandomString(4)]: {
@@ -43,25 +43,25 @@ export function useMultiSelector(rowIndex, get) {
         },
         watchMultiComponent() {
             return form.watch(
-                `itemArray.${rowIndex}.multiComponent.components`,
+                `itemArray.${rowIndex}.multiComponent.components`
             );
         },
         watchItemSelected(title): boolean {
             return form.watch(
-                `itemArray.${rowIndex}.multiComponent.components.${title}.checked`,
+                `itemArray.${rowIndex}.multiComponent.components.${title}.checked`
             );
         },
         validateMultiSelect(products: IStepProducts, stepFormTitle) {
             const items = form.getValues(
-                `itemArray.${rowIndex}.multiComponent.components`,
+                `itemArray.${rowIndex}.multiComponent.components`
             );
 
             const checkedItems = Object.values(items || {}).filter(
-                (b) => b?.checked,
+                (b) => b?.checked
             );
             const isMoulding = stepFormTitle == "Moulding";
             const pkdId = get.packageToolId(
-                isMoulding ? "molding" : "dykeDoor",
+                isMoulding ? "molding" : "dykeDoor"
             );
 
             if (!checkedItems.length) {
@@ -72,7 +72,7 @@ export function useMultiSelector(rowIndex, get) {
                 .map(([k, v]) => v?.checked && k)
                 .filter(Boolean);
             const prods = products.filter((p) =>
-                checked.includes(safeFormText(p.product.title) as any),
+                checked.includes(safeFormText(p.product.title) as any)
             );
             let prod = prods[0];
             if (pkdId) {
@@ -80,7 +80,7 @@ export function useMultiSelector(rowIndex, get) {
                 if (stillChecked) prod = stillChecked;
                 form.setValue(
                     `itemArray.${rowIndex}.stillChecked`,
-                    stillChecked != null,
+                    stillChecked != null
                 );
             }
             // form.setValue(
@@ -89,7 +89,7 @@ export function useMultiSelector(rowIndex, get) {
             // );
             form.setValue(
                 `itemArray.${rowIndex}.multiComponent.rowIndex`,
-                rowIndex,
+                rowIndex
             );
             return prod;
         },
@@ -97,7 +97,7 @@ export function useMultiSelector(rowIndex, get) {
             currentState,
             stepProd: IStepProducts[0],
             stepFormTitle,
-            onSelect,
+            onSelect
         ) {
             const safeTitle = safeFormText(stepProd.product.title);
             const isMoulding = stepFormTitle == "Moulding";
@@ -110,7 +110,7 @@ export function useMultiSelector(rowIndex, get) {
             if (isMoulding) {
                 form.setValue(
                     `${basePath}.toolId` as any,
-                    stepProd.dykeProductId,
+                    stepProd.dykeProductId
                 );
                 const componentPrice = stepProd._metaData.price || 0;
                 // .product.meta?.priced
@@ -141,14 +141,14 @@ export function useMultiSelector(rowIndex, get) {
                     salesFormUtils.componentPrice.update(
                         form,
                         pData,
-                        stepProd._metaData?.basePrice,
-                    ),
+                        stepProd._metaData?.basePrice
+                    )
                 );
             }
             if (!uid)
                 form.setValue(
                     `${basePath}.uid` as any,
-                    generateRandomString(4),
+                    generateRandomString(4)
                 );
             if (!isMoulding) {
                 // form.setValue(`${basePath}.checked` as any, true);
@@ -172,7 +172,7 @@ export function useMultiSelector(rowIndex, get) {
         isChecked(stepProd) {
             const safeTitle = safeFormText(stepProd.product.title);
             return form.getValues(
-                `itemArray.${rowIndex}.multiComponent.components.${safeTitle}.checked`,
+                `itemArray.${rowIndex}.multiComponent.components.${safeTitle}.checked`
             );
         },
     };

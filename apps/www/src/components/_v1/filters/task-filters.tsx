@@ -6,7 +6,7 @@ import { DynamicFilter } from "../data-table/data-table-dynamic-filter";
 import {
     TaskNameWhere,
     _taskNames,
-} from "@/app/(v1)/_actions/community/_task-names";
+} from "@/app-deps/(v1)/_actions/community/_task-names";
 
 interface Props {
     table;

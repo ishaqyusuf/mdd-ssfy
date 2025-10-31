@@ -1,7 +1,7 @@
 "use server";
 
-import { getSalesItemOverviewDta } from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
-import { getSalesItemsOverviewAction } from "@/app/(clean-code)/(sales)/_common/data-actions/sales-items-action";
+import { getSalesItemOverviewDta } from "@/app-deps/(clean-code)/(sales)/_common/data-access/sales-dta";
+import { getSalesItemsOverviewAction } from "@/app-deps/(clean-code)/(sales)/_common/data-actions/sales-items-action";
 import { prisma } from "@/db";
 
 export async function getTakeOffForm(id) {

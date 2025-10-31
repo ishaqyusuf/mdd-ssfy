@@ -15,7 +15,7 @@ import { Label } from "@gnd/ui/label";
 
 import { ExtendedHome } from "@/types/community";
 import { DatePicker } from "../date-range-picker";
-import { activateHomeProductionAction } from "@/app/(v1)/_actions/community/activate-production";
+import { activateHomeProductionAction } from "@/app-deps/(v1)/_actions/community/activate-production";
 import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 import { Checkbox } from "@gnd/ui/checkbox";
 import {
@@ -37,7 +37,7 @@ export default function ActivateProductionModal() {
             try {
                 const ids: number[] = [];
                 Object.entries(checkedIds).map(
-                    ([k, v]) => v && ids.push(Number(k)),
+                    ([k, v]) => v && ids.push(Number(k))
                 );
 
                 await activateHomeProductionAction(ids, dueDate);
@@ -98,7 +98,7 @@ export default function ActivateProductionModal() {
                                                         onCheckedChange={(e) =>
                                                             checkHome(
                                                                 home.id,
-                                                                e,
+                                                                e
                                                             )
                                                         }
                                                     />

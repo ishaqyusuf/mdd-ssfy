@@ -1,6 +1,6 @@
 "use client";
 
-import { DesignTemplateForm } from "@/app/(v1)/(loggedIn)/settings/community/_components/model-form/model-form";
+import { DesignTemplateForm } from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/model-form/model-form";
 import {
     BifoldDoorForm,
     DecoForm,
@@ -10,7 +10,7 @@ import {
     InteriorDoorForm,
     LockHardwareForm,
     ProjectHeaderForm,
-} from "@/app/(v1)/(loggedIn)/settings/community/_components/model-form/model-sections";
+} from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/model-form/model-sections";
 import { ExtendedHome, HomeTemplateDesign, IHome } from "@/types/community";
 import { useForm } from "react-hook-form";
 

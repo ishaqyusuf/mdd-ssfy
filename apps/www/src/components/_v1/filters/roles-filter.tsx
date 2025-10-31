@@ -1,6 +1,6 @@
 "use client";
 
-import { staticRolesAction } from "@/app/(v1)/_actions/hrm/static-roles";
+import { staticRolesAction } from "@/app-deps/(v1)/_actions/hrm/static-roles";
 import { DynamicFilter } from "../data-table/data-table-dynamic-filter";
 
 export function RolesFilter({ table }) {

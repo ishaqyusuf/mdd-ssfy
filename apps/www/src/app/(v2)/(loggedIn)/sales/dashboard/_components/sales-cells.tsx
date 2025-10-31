@@ -1,7 +1,7 @@
-import { TableCell } from "@/app/_components/data-table/table-cells";
-import { deleteOrderAction } from "@/app/(v1)/(loggedIn)/sales/_actions/sales";
-import { updateDeliveryModeDac } from "@/app/(v2)/(loggedIn)/sales/_data-access/update-delivery-mode.dac";
-import salesData from "@/app/(v2)/(loggedIn)/sales/sales-data";
+import { TableCell } from "@/app-deps/_components/data-table/table-cells";
+import { deleteOrderAction } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/sales";
+import { updateDeliveryModeDac } from "@/app-deps/(v2)/(loggedIn)/sales/_data-access/update-delivery-mode.dac";
+import salesData from "@/app-deps/(v2)/(loggedIn)/sales/sales-data";
 import {
     DeleteRowAction,
     Menu,
@@ -29,7 +29,7 @@ function OrderDispatch({ item, href }: SalesCellProps & { href? }) {
             <TableCell.Medium
                 className={cn(
                     item.isDyke ? "font-bold" : "",
-                    "whitespace-nowrap",
+                    "whitespace-nowrap"
                 )}
             >
                 {item.orderId}
@@ -79,7 +79,7 @@ function SalesRep({ item }: SalesCellProps) {
             <TableCell.Secondary
                 className={cn(
                     !item?.salesRep?.name && "text-red-500",
-                    "w-16 truncate",
+                    "w-16 truncate"
                 )}
             >
                 {item?.salesRep?.name || item?.customer?.businessName}
@@ -143,7 +143,7 @@ function Dispatch({ item }: SalesCellProps) {
             await updateDeliveryModeDac(
                 item.id,
                 delivery,
-                item.type == "order" ? "orders" : "quotes",
+                item.type == "order" ? "orders" : "quotes"
             );
 
             toast.success("Updated");
@@ -253,8 +253,8 @@ function SalesStatus({ item }: SalesCellProps) {
 function ProductionStatus({ item }: SalesCellProps) {
     const submitted = sum(
         item.assignments.map((a) =>
-            sum(a.submissions.map((s) => sum([s.lhQty, s.rhQty]))),
-        ),
+            sum(a.submissions.map((s) => sum([s.lhQty, s.rhQty])))
+        )
     );
     // item.assignments[0].
     const totalDoors = item._meta.totalDoors;

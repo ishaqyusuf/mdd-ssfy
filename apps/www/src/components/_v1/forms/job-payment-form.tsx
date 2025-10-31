@@ -3,7 +3,7 @@
 import {} from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
-import { makePayment } from "@/app/(v1)/_actions/hrm-jobs/make-payment";
+import { makePayment } from "@/app-deps/(v1)/_actions/hrm-jobs/make-payment";
 import { EmployeeProfile } from "@/db";
 import { IJobPayment } from "@/types/hrm";
 import { useForm } from "react-hook-form";

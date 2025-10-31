@@ -1,4 +1,4 @@
-import { openDoorSizeSelectModal } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/open-modal";
+import { openDoorSizeSelectModal } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/open-modal";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/custom/icons";
 import { useHpt } from "../context";
@@ -6,7 +6,7 @@ import { Menu } from "@gnd/ui/custom/menu";
 import { useMemo } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@gnd/ui/cn";
-import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { Badge } from "@gnd/ui/badge";
 
 export function HptAddDoorSize({ doorIndex }) {
@@ -37,18 +37,18 @@ export function HptAddDoorSize({ doorIndex }) {
                                 ctx.hpt.dotUpdateGroupItemFormPath(
                                     size.path,
                                     "selected",
-                                    !selected,
+                                    !selected
                                 );
                                 ctx.hpt.dotUpdateGroupItemFormPath(
                                     size.path,
                                     "pricing.itemPrice.salesPrice",
-                                    size.salesPrice,
+                                    size.salesPrice
                                 );
                                 // console.log({ door });
                                 ctx.hpt.dotUpdateGroupItemFormPath(
                                     size.path,
                                     "stepProductId.id",
-                                    door?.id,
+                                    door?.id
                                 );
                             }}
                             disabled={!size?.basePrice}
@@ -58,7 +58,7 @@ export function HptAddDoorSize({ doorIndex }) {
                             <Check
                                 className={cn(
                                     "size-4 mr-2",
-                                    selected || "opacity-20",
+                                    selected || "opacity-20"
                                 )}
                             />
                             <span>{size.title}</span>

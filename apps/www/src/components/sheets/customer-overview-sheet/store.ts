@@ -1,4 +1,4 @@
-import { dotObject, dotSet } from "@/app/(clean-code)/_common/utils/utils";
+import { dotObject, dotSet } from "@/app-deps/(clean-code)/_common/utils/utils";
 import { FieldPath, FieldPathValue } from "react-hook-form";
 import { create } from "zustand";
 

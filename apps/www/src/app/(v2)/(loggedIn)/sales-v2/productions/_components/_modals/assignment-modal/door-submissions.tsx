@@ -1,6 +1,6 @@
 "use client";
 
-import { _revalidate } from "@/app/(v1)/_actions/_revalidate";
+import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { TableCol } from "@/components/common/data-table/table-cells";
 
@@ -30,7 +30,7 @@ export default function DoorSubmissions({ doorIndex, groupIndex }: Props) {
     const data = useAssignmentData();
     const group = data.data.doorGroups[groupIndex];
     const modal = useAssignment(
-        data.data.isProd ? { type: "prod" } : undefined,
+        data.data.isProd ? { type: "prod" } : undefined
     );
     if (!group) return null;
 
@@ -84,8 +84,8 @@ export default function DoorSubmissions({ doorIndex, groupIndex }: Props) {
                                     !group.isDyke
                                         ? ""
                                         : submission.rhQty
-                                          ? " RH"
-                                          : " LH"}
+                                        ? " RH"
+                                        : " LH"}
                                 </TableCol.Primary>
                             </TableCell>
 

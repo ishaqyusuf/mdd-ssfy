@@ -1,5 +1,5 @@
-import { whereNotTrashed } from "@/app/(clean-code)/_common/utils/db-utils";
-import { userId } from "@/app/(v1)/_actions/utils";
+import { whereNotTrashed } from "@/app-deps/(clean-code)/_common/utils/db-utils";
+import { userId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { formatDate } from "@/lib/use-day";
 import {
@@ -114,7 +114,7 @@ export async function createSalesPaymentDta({
 export async function squareSalesPaymentCreatedDta(
     id,
     paymentId,
-    squareOrderId,
+    squareOrderId
 ) {
     const result = await prisma.salesCheckout.update({
         where: { id },

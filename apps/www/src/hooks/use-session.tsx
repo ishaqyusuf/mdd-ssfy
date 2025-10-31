@@ -4,7 +4,7 @@ import { rndTimeout } from "@/lib/timeout";
 import { AsyncFnType } from "@/types";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { dotSet } from "@/app/(clean-code)/_common/utils/utils";
+import { dotSet } from "@/app-deps/(clean-code)/_common/utils/utils";
 import { FieldPath, FieldPathValue } from "react-hook-form";
 import { create } from "zustand";
 

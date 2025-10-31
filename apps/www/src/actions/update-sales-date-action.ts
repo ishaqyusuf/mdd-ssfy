@@ -3,8 +3,8 @@
 import { prisma } from "@/db";
 import { actionClient } from "./safe-action";
 import { z } from "zod";
-import { calculatePaymentDueDate } from "@/app/(clean-code)/(sales)/_common/utils/sales-utils";
-import { SalesType } from "@/app/(clean-code)/(sales)/types";
+import { calculatePaymentDueDate } from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-utils";
+import { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
 
 export const updateSalesDateAction = actionClient
     .schema(

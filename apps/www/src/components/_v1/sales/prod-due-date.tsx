@@ -4,7 +4,7 @@ import { formatDate } from "@/lib/use-day";
 import { ISalesOrder } from "@/types/sales";
 import { useState } from "react";
 import { DatePicker } from "../date-range-picker";
-import { updateProductionDate } from "@/app/(v1)/(loggedIn)/sales/_actions/sales-production";
+import { updateProductionDate } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/sales-production";
 import { toast } from "sonner";
 
 export default function ProductionDueDate({

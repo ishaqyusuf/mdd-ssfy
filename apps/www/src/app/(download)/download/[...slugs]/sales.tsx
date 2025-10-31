@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import useSalesPdf from "@/app/(v2)/printer/sales/use-sales-pdf";
+import useSalesPdf from "@/app-deps/(v2)/printer/sales/use-sales-pdf";
 import { generateRandomString } from "@/lib/utils";
 // import { useDebounce } from "@/hooks/use-debounce";
 import { useDebounce } from "use-debounce";

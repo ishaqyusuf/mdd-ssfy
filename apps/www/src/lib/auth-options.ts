@@ -1,4 +1,4 @@
-import { loginAction } from "@/app/(v1)/_actions/auth";
+import { loginAction } from "@/app-deps/(v1)/_actions/auth";
 import { PrismaClient, Roles, Users } from "@/db";
 import { env } from "@/env.mjs";
 import { ICan } from "@/types/auth";

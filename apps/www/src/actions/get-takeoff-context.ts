@@ -5,13 +5,13 @@ import { loadSalesSetting } from "./sales-settings";
 import { prisma } from "@/db";
 import { TakeOffTemplateData } from "@/types/sales";
 import { Tags } from "@/utils/constants";
-import { StepComponentMeta } from "@/app/(clean-code)/(sales)/types";
+import { StepComponentMeta } from "@/app-deps/(clean-code)/(sales)/types";
 
 export async function getTakeOffContext() {
     const settings = await loadSalesSetting();
     const templates = await getTakeOffTemplates();
     const components = await getRootStepComponents(
-        Object.keys(settings.data.route),
+        Object.keys(settings.data.route)
     );
     const sections = Object.entries(settings.data.route)
         .map(([k, v]) => {
@@ -36,7 +36,7 @@ export async function getTakeOffContext() {
                 // "moulding",
                 // "shelf items",
                 // "services",
-            ].every((t) => a.title?.toLocaleLowerCase() != t),
+            ].every((t) => a.title?.toLocaleLowerCase() != t)
         );
     return {
         sections,
@@ -79,7 +79,7 @@ export async function getRootStepComponents(uids) {
             }));
         },
         tags,
-        { tags },
+        { tags }
     )();
 }
 async function getTakeOffTemplates() {
@@ -97,6 +97,6 @@ async function getTakeOffTemplates() {
         tags,
         {
             tags,
-        },
+        }
     )();
 }

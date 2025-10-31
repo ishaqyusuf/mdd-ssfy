@@ -1,4 +1,4 @@
-import { AsyncFnType, PageBaseQuery } from "@/app/(clean-code)/type";
+import { AsyncFnType, PageBaseQuery } from "@/app-deps/(clean-code)/type";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { prisma } from "@/db";
 import { whereSales } from "@/utils/db/where.sales";

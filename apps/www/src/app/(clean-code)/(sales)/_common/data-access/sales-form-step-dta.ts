@@ -1,9 +1,9 @@
-import { AsyncFnType } from "@/app/(clean-code)/type"; 
+import { AsyncFnType } from "@/app-deps/(clean-code)/type";
 import { ComponentPrice, DykeStepForm, prisma, Prisma } from "@/db";
 
 import { DykeFormStepMeta, StepComponentMeta, StepMeta } from "../../types";
 import { notDeleted } from "../utils/db-utils";
- 
+
 export async function getSalesFormStepByIdDta(id) {
     const step = await prisma.dykeSteps.findUnique({
         where: {

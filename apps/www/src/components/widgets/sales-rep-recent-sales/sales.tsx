@@ -3,7 +3,7 @@
 import {
     GetSalesListDta,
     GetSalesOrdersDta,
-} from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
+} from "@/app-deps/(clean-code)/(sales)/_common/data-access/sales-dta";
 import { columns } from "@/components/tables/sales-orders/columns";
 import { useSimpleTable } from "@/hooks/use-simple-table";
 

@@ -1,7 +1,7 @@
 import { prisma } from "@/db";
 import { AddressBookMeta } from "../../types";
 import { notDeleted } from "../utils/db-utils";
-import { AsyncFnType } from "@/app/(clean-code)/type";
+import { AsyncFnType } from "@/app-deps/(clean-code)/type";
 
 export type SearchAddressType = AsyncFnType<typeof searchAddressDta>[number];
 export async function searchAddressDta(q = null) {

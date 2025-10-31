@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
-import salesData from "@/app/(clean-code)/(sales)/_common/utils/sales-data";
-import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
-import { SettingsClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
+import salesData from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-data";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { SettingsClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import { Icons } from "@/components/_v1/icons";
 import { Menu } from "@/components/(clean-code)/menu";
@@ -23,15 +23,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@gnd/ui/select";
-import { CustomerDataSection } from "./customer-data-section";
 import { Footer } from "./footer";
 import { SalesFormSave } from "./sales-form-save";
 import ConfirmBtn from "@/components/confirm-button";
 import { deleteSalesExtraCost } from "@/actions/delete-sales-extra-cost";
-import FormSettingsModal from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/modals/form-settings-modal";
+import FormSettingsModal from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/form-settings-modal";
 import { _modal } from "@/components/common/modal/provider";
 import { SalesLaborLine } from "./sales-labor-line";
-import { useSticky } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/use-sticky";
+import { useSticky } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/use-sticky";
 import { MenuItemSalesActions } from "@/components/menu-item-sales-actions";
 import { SalesHistory } from "@/components/sales-hx";
 import { ChevronsLeft, ChevronsRight } from "lucide-react";
@@ -55,7 +54,7 @@ export function SalesMetaForm({}) {
         (bv, pv, { top, bottom }) => {
             // return top < 0;
             return true;
-        }, //!bv && pv,
+        } //!bv && pv,
     );
     const [menuOpen, setMenuOpen] = useState(false);
     const { hidden, toggle } = useSalesSummaryToggle();
@@ -93,7 +92,7 @@ export function SalesMetaForm({}) {
                                 "rounded-none border-b-2 border-transparent font-mono$ uppercase hover:bg-transparent",
                                 tab == _tab
                                     ? "rounded-none border-b border-primary"
-                                    : "text-muted-foreground/90 hover:text-muted-foreground",
+                                    : "text-muted-foreground/90 hover:text-muted-foreground"
                             )}
                         >
                             {_tab}
@@ -110,7 +109,7 @@ export function SalesMetaForm({}) {
                                         zus.metaData?.salesId,
                                         zus.metaData.type == "order"
                                             ? "sales"
-                                            : "quote",
+                                            : "quote"
                                     );
                                 }}
                                 Icon={Icons.customerService}
@@ -279,7 +278,7 @@ function SummaryTab({}) {
                                                 onChange={(e) => {
                                                     zus.dotUpdate(
                                                         `metaData.extraCosts.${i}.label`,
-                                                        e.target.value,
+                                                        e.target.value
                                                     );
                                                 }}
                                             />
@@ -295,11 +294,11 @@ function SummaryTab({}) {
                                         onClick={async (e) => {
                                             if (k.id)
                                                 await deleteSalesExtraCost(
-                                                    k.id,
+                                                    k.id
                                                 );
 
                                             zus.removeKey(
-                                                `metaData.extraCosts.${i}`,
+                                                `metaData.extraCosts.${i}`
                                             );
                                             calculateTotal();
                                         }}
@@ -307,7 +306,7 @@ function SummaryTab({}) {
                                         trash
                                     />
                                 </Input>
-                            ),
+                            )
                         )
                 }
                 <Menu Icon={Icons.add} label={"Add Cost"}>
@@ -432,7 +431,7 @@ function LineContainer({ label, lg = false, className = "", children }) {
         <div
             className={cn(
                 "items-center gap-4 font-mono$ uppercase",
-                label && "grid grid-cols-5",
+                label && "grid grid-cols-5"
             )}
         >
             <div className="col-span-3 flex justify-end text-muted-foreground">
@@ -471,8 +470,8 @@ export function Select<T>({
         return typeof option == "string"
             ? option
             : titleKey == "label"
-              ? option[titleKey] || option["text"]
-              : option[titleKey];
+            ? option[titleKey] || option["text"]
+            : option[titleKey];
     }
     const isPlaceholder = !value && !props.placeholder;
     return (
@@ -516,7 +515,7 @@ export function Select<T>({
                                     <>{itemText(option)}</>
                                 )}
                             </SelectItem>
-                        ),
+                        )
                     )}
                 </ScrollArea>
             </SelectContent>

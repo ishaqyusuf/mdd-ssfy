@@ -1,6 +1,6 @@
 "use server";
 
-import { SalesPaymentStatus } from "@/app/(clean-code)/(sales)/types";
+import { SalesPaymentStatus } from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { Tags } from "@/utils/constants";
 import { unstable_cache } from "next/cache";
@@ -30,6 +30,6 @@ export async function accountingConflictOrders() {
             });
         },
         tags,
-        { tags },
+        { tags }
     )();
 }

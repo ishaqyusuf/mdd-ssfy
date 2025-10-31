@@ -1,5 +1,5 @@
-import { dotObject, dotSet } from "@/app/(clean-code)/_common/utils/utils";
-import { PricingMetaData } from "@/app/(clean-code)/(sales)/types";
+import { dotObject, dotSet } from "@/app-deps/(clean-code)/_common/utils/utils";
+import { PricingMetaData } from "@/app-deps/(clean-code)/(sales)/types";
 import { formatMoney } from "@/lib/use-number";
 import { addPercentage, dotArray, percentageValue, sum } from "@/lib/utils";
 import { toast } from "sonner";
@@ -52,18 +52,18 @@ export class CostingClass {
                     if (prod && prod.productId == productId) {
                         prod.salesPrice = salesPrice;
                         prod.totalPrice = formatMoney(
-                            prod.salesPrice * prod.qty,
+                            prod.salesPrice * prod.qty
                         );
                         data?.dotUpdate(
                             `kvFormItem.${k}.shelfItems.lines.${uid}.products.${puid}`,
-                            prod,
+                            prod
                         );
                     }
                     subTotal += Number(prod?.totalPrice || 0);
                 });
                 data?.dotUpdate(
                     `kvFormItem.${k}.shelfItems.subTotal`,
-                    subTotal,
+                    subTotal
                 );
             });
         });
@@ -71,7 +71,7 @@ export class CostingClass {
     }
     public updateShelfCosts(
         itemUid = this.setting.itemUid,
-        forceUpdate = false,
+        forceUpdate = false
     ) {
         const data = this.setting.zus;
         if (this.setting.staticZus) return;
@@ -87,7 +87,7 @@ export class CostingClass {
                 prod.totalPrice = formatMoney(prod.salesPrice * prod.qty);
                 data.dotUpdate(
                     `kvFormItem.${itemUid}.shelfItems.lines.${uid}.products.${puid}`,
-                    prod,
+                    prod
                 );
                 subTotal += prod.totalPrice;
             });
@@ -110,13 +110,13 @@ export class CostingClass {
         ds.set("pricing.components.basePrice", totalBasePrice);
         ds.set(
             "pricing.components.salesPrice",
-            this.calculateSales(totalBasePrice),
+            this.calculateSales(totalBasePrice)
         );
         ds.set("pricing.flatRate", totalFlatRate);
     }
     public updateComponentCost(
         itemUid = this.setting.itemUid,
-        forceUpdate = false,
+        forceUpdate = false
     ) {
         const data = this.setting.zus;
         // if (this.setting.staticZus) return;
@@ -177,7 +177,7 @@ export class CostingClass {
                     if (kform.pricing?.itemPrice)
                         kform.pricing.itemPrice.salesPrice =
                             this.calculateSales(
-                                kform.pricing.itemPrice?.basePrice,
+                                kform.pricing.itemPrice?.basePrice
                             );
                 });
             this.saveGroupItem(groupItem, itemUid);
@@ -208,7 +208,7 @@ export class CostingClass {
     }
     public estimateGroupPricing(
         groupItem: ZusGroupItem,
-        itemUid = this.setting.itemUid,
+        itemUid = this.setting.itemUid
     ) {
         groupItem.pricing.total = {
             // flatRate: 0,
@@ -231,7 +231,7 @@ export class CostingClass {
         if (!staticData)
             this.setting.zus.dotUpdate(
                 `kvFormItem.${itemUid}.groupItem`,
-                groupItem,
+                groupItem
             );
         else staticData.kvFormItem[itemUid].groupItem = groupItem;
     }
@@ -284,7 +284,7 @@ export class CostingClass {
         // const extraDiscount = data?.metaData?.extraCosts?.Discount?.amount;
         const extraDiscount = sum(
             data?.metaData?.extraCosts?.filter((a) => a.type == "Discount"),
-            "amount",
+            "amount"
         );
         const discount = extraDiscount || Number(estimate.discount) || 0;
         const taxxableDiscount = Math.min(discount, estimate.taxxable);
@@ -311,12 +311,12 @@ export class CostingClass {
                             sum([
                                 laborRate(
                                     data?.metaData?.salesLaborConfig?.rate,
-                                    d?.pricing?.unitLabor,
+                                    d?.pricing?.unitLabor
                                 ),
-                            ]),
-                    ),
+                            ])
+                    )
                 );
-            }),
+            })
         );
 
         const extraCosts = sum(
@@ -325,14 +325,14 @@ export class CostingClass {
                     (a) =>
                         a.type != "CustomTaxxable" &&
                         a.type != "Discount" &&
-                        a.type != "Labor",
+                        a.type != "Labor"
                 )
-                .map((a) => a.amount),
+                .map((a) => a.amount)
         );
         if (data.metaData.paymentMethod == "Credit Card") {
             estimate.ccc = percentageValue(
                 sum([subGrandTot, extraCosts, Labor]),
-                3,
+                3
             );
         } else estimate.ccc = 0;
         estimate.grandTotal = formatMoney(
@@ -343,7 +343,7 @@ export class CostingClass {
                 extraCosts,
                 subGrandTot,
                 estimate.ccc || 0,
-            ]),
+            ])
         );
         const labor = this.getLaborCosts();
         if (labor.index > -1)
@@ -355,7 +355,7 @@ export class CostingClass {
                 this.setting.zus.dotUpdate("metaData.pricing", estimate);
                 this.setting.zus.dotUpdate(
                     `metaData.extraCosts.${labor?.index}.amount`,
-                    Labor,
+                    Labor
                 );
             }
     }
@@ -369,7 +369,7 @@ export class CostingClass {
             const groupItem = itemData.groupItem;
             if (itemData.shelfItems) {
                 const shelfSubTotal = Number(
-                    itemData.shelfItems?.subTotal || 0,
+                    itemData.shelfItems?.subTotal || 0
                 );
                 estimate.subTotal += shelfSubTotal;
                 estimate.taxxable += shelfSubTotal;
@@ -391,20 +391,20 @@ export class CostingClass {
     }
     public getLaborCosts() {
         const cost = this.setting.zus?.metaData?.extraCosts?.find(
-            (a) => a.type == "Labor",
+            (a) => a.type == "Labor"
         );
         const index = this.setting.zus.metaData.extraCosts.indexOf(cost);
         return { cost, index };
     }
     public taxCodeChanged() {
         const taxProfile = this.taxList().find(
-            (tax) => tax.taxCode == this.setting.dotGet("metaData.tax.taxCode"),
+            (tax) => tax.taxCode == this.setting.dotGet("metaData.tax.taxCode")
         );
         // this.setting?.zus.dotUpdate("metaData.tax.taxCode", taxProfile.taxCode);
         this.setting?.zus.dotUpdate("metaData.tax.title", taxProfile?.title);
         this.setting?.zus.dotUpdate(
             "metaData.tax.percentage",
-            taxProfile?.percentage,
+            taxProfile?.percentage
         );
 
         this.calculateTotalPrice();

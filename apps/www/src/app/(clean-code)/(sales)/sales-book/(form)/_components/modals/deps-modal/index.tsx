@@ -1,6 +1,6 @@
 "use  client";
 
-import { LegacyDykeFormStepType } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
+import { LegacyDykeFormStepType } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
 import FormCheckbox from "@/components/common/controls/form-checkbox";
 import Modal from "@/components/common/modal";
 import { _modal } from "@/components/common/modal/provider";
@@ -31,7 +31,7 @@ export default function DependenciesModal({ settingKey, stepCtx }: Props) {
             (_, i) =>
                 i < stepIndex &&
                 !_.item.meta.hidden &&
-                ["Door", "Moulding"].every((s) => s != _.step.title),
+                ["Door", "Moulding"].every((s) => s != _.step.title)
         )
         .map((s) => {
             const checked = stepForm.step.meta[settingKey][s.step.uid];

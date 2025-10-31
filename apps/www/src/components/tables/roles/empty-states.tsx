@@ -4,7 +4,7 @@ import { useQueryStates } from "nuqs";
 
 import { Button } from "@gnd/ui/button";
 import { useEmployeesParams } from "@/hooks/use-employee-params";
-import { employeePageQuery } from "@/app/(sidebar)/hrm/employees/search-params";
+import { employeePageQuery } from "@/app-deps/(sidebar)/hrm/employees/search-params";
 
 export function EmptyState({}) {
     const { setParams } = useEmployeesParams();

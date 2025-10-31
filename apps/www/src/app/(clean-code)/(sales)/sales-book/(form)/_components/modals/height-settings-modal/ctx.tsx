@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { LegacyDykeFormStepType } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
+import { LegacyDykeFormStepType } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
 import { useDoor } from "../step-component-modal/use-step-component-modal";
 
 export function useHeightSettingCtx(ctx: LegacyDykeFormStepType) {

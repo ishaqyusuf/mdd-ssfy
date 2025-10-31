@@ -1,4 +1,4 @@
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 import { cn } from "@/lib/utils";
 import { ICan } from "@/types/auth";
 import FTitle from "./f-page-title";

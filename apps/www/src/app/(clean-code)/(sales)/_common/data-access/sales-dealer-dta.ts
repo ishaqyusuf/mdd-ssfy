@@ -1,4 +1,4 @@
-import { dealerSession, serverSession } from "@/app/(v1)/_actions/utils";
+import { dealerSession, serverSession } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 
 export async function getLoggedInDealerAccountDta() {

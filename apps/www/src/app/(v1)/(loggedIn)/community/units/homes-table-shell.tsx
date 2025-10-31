@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 
 import { useRouter } from "next/navigation";
-import { deactivateProduction } from "@/app/(v1)/_actions/community/activate-production";
-import { getUnitTemplateLink } from "@/app/(v1)/_actions/community/get-unit-template";
-import { deleteHome } from "@/app/(v1)/_actions/community/home";
+import { deactivateProduction } from "@/app-deps/(v1)/_actions/community/activate-production";
+import { getUnitTemplateLink } from "@/app-deps/(v1)/_actions/community/get-unit-template";
+import { deleteHome } from "@/app-deps/(v1)/_actions/community/home";
 import { deepCopy } from "@/lib/deep-copy";
 import { openModal } from "@/lib/modal";
 import { labelValue } from "@/lib/utils";
@@ -113,7 +113,7 @@ export default function HomesTableShell<T>({
                             const edit = await getUnitTemplateLink(
                                 row.original.projectId,
                                 row.original.homeTemplateId,
-                                row.original.modelName,
+                                row.original.modelName
                             );
                             if (edit) route.push(edit);
                         }}
@@ -185,7 +185,7 @@ export default function HomesTableShell<T>({
                 "_status",
                 "_q",
                 "_builderId",
-                "_projectId",
+                "_projectId"
                 // "_installation",
                 // "_production"
             ),
@@ -217,7 +217,7 @@ export default function HomesTableShell<T>({
                                     const edit = await getUnitTemplateLink(
                                         row.original.projectId,
                                         row.original.homeTemplateId,
-                                        row.original.modelName,
+                                        row.original.modelName
                                     );
                                     if (edit) route.push(edit);
                                     else
@@ -239,7 +239,7 @@ export default function HomesTableShell<T>({
                                 Edit Model
                             </DropdownMenuItem>
                             {!row.original?.tasks.some(
-                                (t) => t.sentToProductionAt,
+                                (t) => t.sentToProductionAt
                             ) ? (
                                 <MenuItem
                                     onClick={() => {
@@ -286,7 +286,7 @@ export default function HomesTableShell<T>({
                 ),
             },
         ], //.filter(Boolean) as any,
-        [data, isPending],
+        [data, isPending]
     );
 
     return (

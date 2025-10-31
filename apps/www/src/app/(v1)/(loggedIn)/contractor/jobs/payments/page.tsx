@@ -3,13 +3,13 @@ import { Metadata } from "next";
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 
-import { queryParams } from "@/app/(v1)/_actions/action-utils";
+import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
 
-import { getJobPayments } from "@/app/(v1)/_actions/hrm-jobs/get-payments";
+import { getJobPayments } from "@/app-deps/(v1)/_actions/hrm-jobs/get-payments";
 
 import TabbedLayout from "@/components/_v1/tab-layouts/tabbed-layout";
 import PaymentOverviewSheet from "@/components/_v1/sheets/payment-overview-sheet";
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 import JobPaymentTableShell from "./job-payment-table-shell";
 
 export const metadata: Metadata = {
@@ -41,3 +41,4 @@ export default async function JobPaymentsPage(props) {
         </TabbedLayout>
     );
 }
+

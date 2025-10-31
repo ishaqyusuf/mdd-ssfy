@@ -1,6 +1,6 @@
 "use server";
 
-import { AsyncFnType } from "@/app/(clean-code)/type";
+import { AsyncFnType } from "@/app-deps/(clean-code)/type";
 
 import { SalesFormFields, SalesType } from "../../types";
 import { deleteSalesByOrderId } from "../data-access/sales-dta";
@@ -21,7 +21,7 @@ import { composeSalesPricing } from "../utils/sales-pricing-utils";
 import { composeStepRouting } from "../utils/sales-step-utils";
 import { getSalesLaborCost } from "@/actions/sales-labor-cost";
 import { copySales } from "@sales/copy-sales";
-import { authUser } from "@/app/(v1)/_actions/utils";
+import { authUser } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { createNoteAction } from "@/modules/notes/actions/create-note-action";
 export type GetSalesBookForm = AsyncFnType<typeof getSalesBookFormUseCase>;

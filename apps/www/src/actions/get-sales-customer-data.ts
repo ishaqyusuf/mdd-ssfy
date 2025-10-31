@@ -1,7 +1,7 @@
 "use server";
 
 import { unstable_cache } from "next/cache";
-import { CustomerMeta } from "@/app/(clean-code)/(sales)/types";
+import { CustomerMeta } from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { salesAddressLines } from "@/utils/sales-utils";
 
@@ -50,10 +50,10 @@ export async function getSalesCustomerData({
             },
         });
         const billing = customer?.addressBooks?.find(
-            (a) => a.id == billingId || a.isPrimary,
+            (a) => a.id == billingId || a.isPrimary
         );
         const shipping = customer?.addressBooks?.find(
-            (a) => a.id == shippingId,
+            (a) => a.id == shippingId
         );
         const customerMeta = customer?.meta as any as CustomerMeta;
         const [taxProfile] = customer?.taxProfiles;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DownloadProps, sendMessage } from "@/app/(v1)/_actions/email";
+import { DownloadProps, sendMessage } from "@/app-deps/(v1)/_actions/email";
 import FormInput from "@/components/common/controls/form-input";
 import Modal from "@/components/common/modal";
 import { useModal } from "@/components/common/modal/provider";

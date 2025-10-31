@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LegacyDykeFormStepType } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
+import { LegacyDykeFormStepType } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
 import { Icons } from "@/components/_v1/icons";
 import FormCheckbox from "@/components/common/controls/form-checkbox";
 import Modal from "@/components/common/modal";
@@ -40,8 +40,8 @@ export default function RestoreComponentsModal({
     const { step: stepForm, stepIndex, deletedComponents } = stepCtx;
     const [sortedProds, setSortedProds] = useState(
         deletedComponents.sort((a, b) =>
-            a.product.title?.localeCompare(b.product.title),
-        ),
+            a.product.title?.localeCompare(b.product.title)
+        )
     );
     const form = useForm({
         defaultValues: {
@@ -115,7 +115,7 @@ export default function RestoreComponentsModal({
                             }}
                             key={item.id}
                             className={cn(
-                                "relative flex min-h-[200px] flex-col items-center justify-center border hover:shadow-sm",
+                                "relative flex min-h-[200px] flex-col items-center justify-center border hover:shadow-sm"
                             )}
                         >
                             <div className="absolute left-0 top-0 -m-4">
@@ -145,7 +145,7 @@ export default function RestoreComponentsModal({
 }
 function PriceInfo({ prod }: { prod: IStepProducts[number] }) {
     let priceLen = Object.values(prod.door?.meta?.doorPrice || {}).filter(
-        Boolean,
+        Boolean
     ).length;
     if (priceLen)
         return (

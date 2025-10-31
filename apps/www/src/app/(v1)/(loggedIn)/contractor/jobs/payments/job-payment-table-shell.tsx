@@ -23,7 +23,7 @@ import {
     DeleteRowAction,
     RowActionCell,
 } from "../../../../../../components/_v1/data-table/data-table-row-actions";
-import { _deleteJobPayment } from "@/app/(v1)/_actions/hrm-jobs/payment.crud";
+import { _deleteJobPayment } from "@/app-deps/(v1)/_actions/hrm-jobs/payment.crud";
 
 export default function JobPaymentTableShell({
     data,
@@ -142,7 +142,7 @@ export default function JobPaymentTableShell({
                 enableHiding: false,
             },
         ], //.filter(Boolean) as any,
-        [data, isPending],
+        [data, isPending]
     );
     return (
         <DataTable2

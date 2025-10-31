@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import { _getModelCostStat } from "@/app/(v1)/_actions/community/_model-cost-stat";
+import { _getModelCostStat } from "@/app-deps/(v1)/_actions/community/_model-cost-stat";
 import {
     _deleteCommunityModelCost,
     _saveCommunitModelCostData,
-} from "@/app/(v1)/_actions/community/community-model-cost";
-import { _getCommunityModelCostUnits } from "@/app/(v1)/_actions/community/community-model-cost-units";
+} from "@/app-deps/(v1)/_actions/community/community-model-cost";
+import { _getCommunityModelCostUnits } from "@/app-deps/(v1)/_actions/community/community-model-cost-units";
 import Btn from "@/components/_v1/btn";
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import Money from "@/components/_v1/money";
@@ -63,7 +63,7 @@ export function CommunityCostForm({ form, data, watchIndex }: ModelCostProps) {
 
         const meta = calculateCommunitModelCost(
             _.meta,
-            data?.project?.builder?.meta?.tasks,
+            data?.project?.builder?.meta?.tasks
         );
         // _setCost(_);
         setTotalTax(meta?.totalTax);
@@ -96,7 +96,7 @@ export function CommunityCostForm({ form, data, watchIndex }: ModelCostProps) {
                 }
                 cost.meta = calculateCommunitModelCost(
                     cost.meta,
-                    data.project?.builder?.meta?.tasks,
+                    data.project?.builder?.meta?.tasks
                 ) as any;
                 cost.model = data.modelName;
 
@@ -104,7 +104,7 @@ export function CommunityCostForm({ form, data, watchIndex }: ModelCostProps) {
                 const c = await _saveCommunitModelCostData(
                     _cost as any,
                     data.id,
-                    data.pivotId,
+                    data.pivotId
                 );
                 toast.success("Saved!");
 
@@ -140,7 +140,7 @@ export function CommunityCostForm({ form, data, watchIndex }: ModelCostProps) {
                                                 setValue={(e) =>
                                                     costForm.setValue(
                                                         `startDate`,
-                                                        e,
+                                                        e
                                                     )
                                                 }
                                                 value={watchCosts.startDate}
@@ -153,7 +153,7 @@ export function CommunityCostForm({ form, data, watchIndex }: ModelCostProps) {
                                                 setValue={(e) =>
                                                     costForm.setValue(
                                                         `endDate`,
-                                                        e,
+                                                        e
                                                     )
                                                 }
                                                 value={watchCosts.endDate}
@@ -187,7 +187,7 @@ export function CommunityCostForm({ form, data, watchIndex }: ModelCostProps) {
                                                     key="cost"
                                                     className="h-8"
                                                     {...costForm.register(
-                                                        `meta.costs.${t.uid}`,
+                                                        `meta.costs.${t.uid}`
                                                     )}
                                                 />
                                             </div>
@@ -196,12 +196,12 @@ export function CommunityCostForm({ form, data, watchIndex }: ModelCostProps) {
                                                     type="number"
                                                     className="h-8"
                                                     {...costForm.register(
-                                                        `meta.tax.${t.uid}`,
+                                                        `meta.tax.${t.uid}`
                                                     )}
                                                 />
                                             </div>
                                         </div>
-                                    ),
+                                    )
                                 )}
                                 <div className="col-span-5 grid grid-cols-7">
                                     <div className="col-span-3"></div>

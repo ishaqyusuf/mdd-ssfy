@@ -1,5 +1,5 @@
 import { generateToken } from "@/actions/token-action";
-import { SalesType } from "@/app/(clean-code)/(sales)/types";
+import { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
 import { env } from "@/env.mjs";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { openLink } from "@/lib/open-link";

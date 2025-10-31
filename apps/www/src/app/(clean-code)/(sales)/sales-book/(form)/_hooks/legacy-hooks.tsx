@@ -18,12 +18,12 @@ import {
 } from "../../../types";
 import legacyDykeFormHelper from "../_utils/helpers/legacy-dyke-form-helper";
 
-import { IStepProducts } from "@/app/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products";
+import { IStepProducts } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products";
 
 import { generateRandomString } from "@/lib/utils";
 import stepHelpers from "../_utils/helpers/step-helper";
 import { toast } from "sonner";
-import { DykeStep } from "@/app/(v2)/(loggedIn)/sales-v2/type";
+import { DykeStep } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
 
 export type LegacyDykeFormType = ReturnType<typeof useLegacyDykeFormContext>;
 export const LegacyDykeFormContext = createContext<LegacyDykeFormType>(null);
@@ -103,7 +103,7 @@ function useLegacyFooter(form: UseFormReturn<OldDykeFormData>) {
         form.setValue(`_taxForm.taxByCode.${c.taxCode}.selected`, true);
         form.setValue(
             `_taxForm.taxByCode.${c.taxCode}.data.taxCode`,
-            c.taxCode,
+            c.taxCode
         );
         form.setValue(`_taxForm.taxByCode.${c.taxCode}._tax`, c);
         setTimeout(() => {

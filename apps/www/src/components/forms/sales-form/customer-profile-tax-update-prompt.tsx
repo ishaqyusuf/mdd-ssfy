@@ -4,7 +4,7 @@ import { useState } from "react";
 import { getCustomerFormAction } from "@/actions/get-customer-form";
 import { updateCustomerProfile } from "@/actions/update-customer-profile";
 import { updateCustomerTax } from "@/actions/update-customer-tax";
-import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { generateRandomString } from "@/lib/utils";
 import { useAsyncMemo } from "use-async-memo";
 

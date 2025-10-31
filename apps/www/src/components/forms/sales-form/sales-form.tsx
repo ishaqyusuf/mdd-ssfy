@@ -1,6 +1,6 @@
-import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
-import ItemSection from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/item-section";
-import { zhAddItem } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-form-helper";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import ItemSection from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/item-section";
+import { zhAddItem } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-form-helper";
 import { Icons } from "@/components/_v1/icons";
 import Button from "@/components/common/button";
 import useEffectLoader from "@/lib/use-effect-loader";

@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
     saveComponentPricingUseCase,
     updateComponentPricingUseCase,
-} from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-pricing-use-case";
+} from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-pricing-use-case";
 import Money from "@/components/_v1/money";
 import { Menu } from "@/components/(clean-code)/menu";
 import FormInput from "@/components/common/controls/form-input";

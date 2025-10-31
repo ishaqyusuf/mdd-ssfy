@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "crypto";
-import { _updateProdQty } from "@/app/(v2)/(loggedIn)/sales/_data-access/update-prod-qty.dac";
+import { _updateProdQty } from "@/app-deps/(v2)/(loggedIn)/sales/_data-access/update-prod-qty.dac";
 import { prisma, Prisma } from "@/db";
 import { composeItemDescription } from "@/lib/sales/sales-invoice-form";
 import { ISalesSetting, ISalesSettingMeta, PostTypes } from "@/types/post";
@@ -108,7 +108,7 @@ async function addTypeToSalesOrder() {
                 },
                 data,
             });
-        }),
+        })
     );
 }
 async function upgradeOrderQty() {

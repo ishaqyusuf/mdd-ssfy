@@ -3,7 +3,7 @@
 import { prisma } from "@/db";
 import { EmailTypes } from "../types";
 import { getLeafDotPaths } from "@/lib/utils";
-import { user } from "@/app/(v1)/_actions/utils";
+import { user } from "@/app-deps/(v1)/_actions/utils";
 
 export async function getEmailData(id, type: EmailTypes) {
     let data: any = null;

@@ -1,5 +1,5 @@
-import { _email } from "@/app/(v1)/_actions/_email";
-import { userId } from "@/app/(v1)/_actions/utils";
+import { _email } from "@/app-deps/(v1)/_actions/_email";
+import { userId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { Err, Ok, Result } from "ts-results";
 import { z } from "zod";
@@ -18,7 +18,7 @@ export type ActionState<TInput, TOutput> = {
 
 export const createSafeAction = <TInput = any, TOutput = any>(
     handler: (validatedData: TInput) => Promise<TOutput>,
-    schema?: z.Schema<TInput>,
+    schema?: z.Schema<TInput>
 ) => {
     return async (data: TInput): Promise<Result<TOutput, any>> => {
         const validationResult = schema

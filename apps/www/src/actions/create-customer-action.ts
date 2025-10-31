@@ -4,7 +4,7 @@ import { revalidateTag } from "next/cache";
 import {
     AddressBookMeta,
     CustomerMeta,
-} from "@/app/(clean-code)/(sales)/types";
+} from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma, Prisma } from "@/db";
 import { nextId } from "@/lib/nextId";
 import { Tags } from "@/utils/constants";
@@ -55,12 +55,12 @@ export const createCustomerAction = actionClient
                           }
                         : undefined
                     : input?.taxCode
-                      ? {
-                            create: {
-                                taxCode: input.taxCode,
-                            },
-                        }
-                      : undefined,
+                    ? {
+                          create: {
+                              taxCode: input.taxCode,
+                          },
+                      }
+                    : undefined,
             } satisfies Prisma.CustomersUpdateInput;
             if (input.id) {
                 const customer = await prisma.customers.update({

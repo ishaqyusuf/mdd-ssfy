@@ -3,7 +3,7 @@ import {
     getSalesRepCommissionSummary,
     getSalesRepTotalSales,
 } from "@/actions/cached-commission-queries";
-import { authId } from "@/app/(v1)/_actions/utils";
+import { authId } from "@/app-deps/(v1)/_actions/utils";
 
 import { SummaryCard } from "./summary-card";
 

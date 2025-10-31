@@ -6,7 +6,7 @@ import {
     composeText,
     mailComposer,
 } from "@/utils/email-composer";
-import { user } from "@/app/(v1)/_actions/utils";
+import { user } from "@/app-deps/(v1)/_actions/utils";
 
 export async function salesCreatedEvent(id) {
     const data = await salesEventData(id);

@@ -1,4 +1,4 @@
-import { queryParams } from "@/app/(v1)/_actions/action-utils";
+import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
 import { Metadata } from "next";
 import PageHeader from "@/components/_v1/page-header";
 
@@ -6,9 +6,9 @@ import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 
 import CommunityProductionsTableShell from "@/components/_v1/shells/community-productions-table-shell";
-import { getProductions } from "@/app/(v1)/_actions/community-production/get-productions";
-import { _taskNames } from "@/app/(v1)/_actions/community/_task-names";
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import { getProductions } from "@/app-deps/(v1)/_actions/community-production/get-productions";
+import { _taskNames } from "@/app-deps/(v1)/_actions/community/_task-names";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 
 export const metadata: Metadata = {
     title: "Unit Productions",

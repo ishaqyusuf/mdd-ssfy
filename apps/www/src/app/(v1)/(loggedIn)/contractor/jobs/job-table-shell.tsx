@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import { deleteJobAction } from "@/app/(v1)/_actions/hrm-jobs/delete-job";
+import { deleteJobAction } from "@/app-deps/(v1)/_actions/hrm-jobs/delete-job";
 import {
     approveJob,
     rejectJob,
-} from "@/app/(v1)/_actions/hrm-jobs/job-actions";
-import SubmitJobModal from "@/app/(v2)/(loggedIn)/contractors/_modals/submit-job-modal";
+} from "@/app-deps/(v1)/_actions/hrm-jobs/job-actions";
+import SubmitJobModal from "@/app-deps/(v2)/(loggedIn)/contractors/_modals/submit-job-modal";
 import { useModal } from "@/components/common/modal/provider";
 import { openModal } from "@/lib/modal";
 import { labelValue, truthy } from "@/lib/utils";
@@ -71,7 +71,7 @@ export default function JobTableShell<T>({
                                 <JobOverviewSheet
                                     job={row.original}
                                     admin={payment}
-                                />,
+                                />
                             );
                         }}
                     >
@@ -197,7 +197,7 @@ export default function JobTableShell<T>({
                                             modal.openModal(
                                                 <SubmitJobModal
                                                     job={row.original}
-                                                />,
+                                                />
                                             );
                                         }}
                                         Icon={Icons.edit}
@@ -253,7 +253,7 @@ export default function JobTableShell<T>({
                             </RowActionCell>
                         ),
                     },
-                ],
+                ]
             ),
             ..._FilterColumn(
                 "_projectId",
@@ -261,10 +261,10 @@ export default function JobTableShell<T>({
                 "_userId",
                 "_show",
                 "_builderId",
-                "_date",
+                "_date"
             ),
         ], //.filter(Boolean) as any,
-        [data, isPending],
+        [data, isPending]
     );
     return (
         <DataTable2

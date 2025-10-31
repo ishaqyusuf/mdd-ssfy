@@ -1,9 +1,9 @@
 import { useMemo } from "react";
-import { saveComponentPricingUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-pricing-use-case";
+import { saveComponentPricingUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-pricing-use-case";
 import {
     createCustomComponentUseCase,
     updateCustomComponentUseCase,
-} from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
+} from "@/app-deps/(clean-code)/(sales)/_common/use-case/step-component-use-case";
 import AutoComplete from "@/components/_v1/common/auto-complete";
 import Button from "@/components/common/button";
 import FormInput from "@/components/common/controls/form-input";
@@ -35,11 +35,11 @@ export function CustomComponent({ ctx }: Props) {
     const [basePrice, title] = form.watch(["basePrice", "title"]);
     const customInputs = useMemo(
         () => ctx.stepComponents?.filter((s) => s._metaData.custom),
-        [ctx.stepComponents],
+        [ctx.stepComponents]
     );
     const hasCost = useMemo(
         () => ctx.items?.filter((s) => s.salesPrice)?.length > 0,
-        [ctx.items],
+        [ctx.items]
     );
     async function _continue() {
         const data = form.getValues();
@@ -50,7 +50,7 @@ export function CustomComponent({ ctx }: Props) {
         const priceModel = ctx.cls.getComponentPriceModel(productUid);
         // const pm = ctx.cls.getComponentPriceModel(generateRandomString());
         let currentPricingId = Object.entries(priceModel.priceVariants).find(
-            ([k, d]) => d.current,
+            ([k, d]) => d.current
         )[0];
         const current = priceModel.priceVariants?.[currentPricingId];
         const currentPricingModel = priceModel?.pricing?.[currentPricingId];
@@ -71,7 +71,7 @@ export function CustomComponent({ ctx }: Props) {
             cls = new ComponentHelperClass(
                 ctx.cls.itemStepUid,
                 eProd.uid,
-                eProd,
+                eProd
             );
             ctx.cls.addStepComponent(eProd);
         } else {
@@ -83,7 +83,7 @@ export function CustomComponent({ ctx }: Props) {
                 cls = new ComponentHelperClass(
                     ctx.cls.itemStepUid,
                     eProd.uid,
-                    eProd,
+                    eProd
                 );
             }
         }

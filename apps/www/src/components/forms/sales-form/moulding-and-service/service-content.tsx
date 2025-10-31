@@ -16,7 +16,7 @@ import { AnimatedNumber } from "@/components/animated-number";
 import {
     LineInput,
     LineSwitch,
-} from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
 
 export function ServiceContent({}) {
     const { addService, groupClass, valueChanged } = useGroupedItem();
@@ -98,7 +98,7 @@ export function ServiceContent({}) {
                 variant={"secondary"}
                 className={cn(
                     "w-full",
-                    "border border-transparent hover:border-border text-xs uppercase p-1 h-7 rounded font-mono$ overflow-hidden gap-2",
+                    "border border-transparent hover:border-border text-xs uppercase p-1 h-7 rounded font-mono$ overflow-hidden gap-2"
                 )}
                 onClick={addService}
             >

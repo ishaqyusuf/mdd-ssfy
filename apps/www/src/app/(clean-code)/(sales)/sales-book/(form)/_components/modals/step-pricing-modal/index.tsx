@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo } from "react";
-import { updateStepMetaUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
+import { updateStepMetaUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/step-component-use-case";
 import { ComboxBox } from "@/components/(clean-code)/custom/controlled/combo-box";
 import FormSelect from "@/components/common/controls/form-select";
 import Modal from "@/components/common/modal";
@@ -52,7 +52,7 @@ export function useInitContext(itemStepUid) {
         } else {
             if (meta.priceStepDeps?.length == 0 || !meta.priceStepDeps) {
                 toast.error(
-                    `Multi Pricing requires atleast one price dependencies.`,
+                    `Multi Pricing requires atleast one price dependencies.`
                 );
                 return;
             }

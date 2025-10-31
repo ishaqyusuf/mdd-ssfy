@@ -1,7 +1,7 @@
 import { useState } from "react";
 
-import { assignAllPendingToProductionAction } from "@/app/(clean-code)/(sales)/_common/data-actions/production-actions/batch-action";
-import { getSalesProdWorkersAsSelectOption } from "@/app/(clean-code)/(sales)/_common/use-case/sales-prod-workers-use-case";
+import { assignAllPendingToProductionAction } from "@/app-deps/(clean-code)/(sales)/_common/data-actions/production-actions/batch-action";
+import { getSalesProdWorkersAsSelectOption } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-prod-workers-use-case";
 import { Icons } from "@/components/_v1/icons";
 import { Menu } from "@/components/(clean-code)/menu";
 import { AnimateReveal } from "@/components/animate-reveal";
@@ -41,7 +41,7 @@ export function BatchAssignActionMenu() {
                                         (a) =>
                                             a.produceable &&
                                             a.status.qty?.total >
-                                                a.status.prodAssigned?.total,
+                                                a.status.prodAssigned?.total
                                     )
                                     .map((a) => ({
                                         itemUid: a.itemControlUid,
@@ -63,7 +63,7 @@ export function BatchAssignActionMenu() {
                             onClick={() => {
                                 ctx.form.setValue(
                                     "batchAction",
-                                    "assign-production",
+                                    "assign-production"
                                 );
                                 ctx.form.setValue("selectMode", true);
                             }}
@@ -138,7 +138,7 @@ function AssignBtn() {
             }),
             {
                 loading: "Assigning...",
-            },
+            }
         );
         await assignAllPendingToProductionAction(
             {
@@ -147,7 +147,7 @@ function AssignBtn() {
                 assignedToId,
                 controlIds: ctx.selections?.map((a) => a.itemUid),
             },
-            true,
+            true
         );
         toast.success("Assigned to production");
 
@@ -208,7 +208,7 @@ function AssignTo() {
     const form = useFormContext();
     const assignedToId = form.watch("assignedToId");
     const assignedTo = workers.data?.find(
-        (worker) => worker.value == assignedToId,
+        (worker) => worker.value == assignedToId
     );
 
     return (

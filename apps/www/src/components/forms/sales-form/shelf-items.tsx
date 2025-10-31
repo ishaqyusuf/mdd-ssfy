@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useDeferredValue, useEffect, useState } from "react";
-import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@/components/_v1/icons";
 import { AnimatedNumber } from "@/components/animated-number";
@@ -173,7 +173,7 @@ function ShelfItemProduct({ prodUid, isLast }) {
         if (!deferredInputValue || !isTyping) return products?.products;
         const normalized = deferredInputValue.toLowerCase();
         const __products = products?.products?.filter((item) =>
-            item.title.toLowerCase().includes(normalized),
+            item.title.toLowerCase().includes(normalized)
         );
         return __products;
     }, [deferredInputValue, products, isTyping]);
@@ -188,7 +188,7 @@ function ShelfItemProduct({ prodUid, isLast }) {
                 //  virtualizer.measure();
             }
         },
-        [content],
+        [content]
     );
 
     return (

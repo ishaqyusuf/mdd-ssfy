@@ -13,7 +13,7 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Label } from "@gnd/ui/label";
 import { saveSupplierSchema } from "@api/db/queries/sales-form";
-import { StepHelperClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
+import { StepHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import { cn } from "@gnd/ui/cn";
 export function DoorSuppliers({ itemStepUid }) {
     return (

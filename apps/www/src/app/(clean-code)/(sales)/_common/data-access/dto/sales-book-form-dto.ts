@@ -1,4 +1,4 @@
-import { AsyncFnType } from "@/app/(clean-code)/type";
+import { AsyncFnType } from "@/app-deps/(clean-code)/type";
 import { getSalesBookFormDataDta } from "../sales-form-dta";
 import {
     DykeDoorType,
@@ -85,7 +85,7 @@ export function typedSalesBookFormItems(data: SalesFormData) {
                       _doorForm,
                       _doorFormDefaultValue,
                       stepProduct: transformStepProduct(
-                          item.housePackageTool.stepProduct,
+                          item.housePackageTool.stepProduct
                       ),
                   }
                 : undefined,
@@ -109,7 +109,7 @@ export function typedSalesBookFormItems(data: SalesFormData) {
                 .filter(
                     (f, fi) =>
                         item.formSteps.findIndex((p) => p.stepId == f.stepId) ==
-                        fi,
+                        fi
                 ),
             shelfItems: item.shelfItems.map((item) => ({
                 ...item,
@@ -120,7 +120,7 @@ export function typedSalesBookFormItems(data: SalesFormData) {
 }
 export function transformSalesBookFormItem(
     data: SalesFormData,
-    items: SalesFormItems,
+    items: SalesFormItems
 ) {
     const itemArray = (items || [null])
         .filter((item) => {
@@ -145,7 +145,7 @@ export function transformSalesBookFormItem(
                         component,
                         step: transformSalesStepMeta(step),
                         item: rest,
-                    }),
+                    })
                 ),
                 item: {
                     ...itemData,
@@ -161,13 +161,13 @@ export function transformSalesBookFormItem(
     return itemArray?.every((item) => item?.item?.meta?.lineIndex > -1)
         ? itemArray.sort(
               (item, item2) =>
-                  item.item.meta.lineIndex - item2.item.meta.lineIndex,
+                  item.item.meta.lineIndex - item2.item.meta.lineIndex
           )
         : itemArray;
 }
 function getItemStepSequence(
     item: SalesFormItems[number],
-    data: SalesFormData,
+    data: SalesFormData
 ) {
     const stepSequence: {
         [uid in string]: StepComponentMeta["stepSequence"];
@@ -207,12 +207,12 @@ export function transformShelfItem(item: SalesFormItems[number]) {
         lineUids: [],
     };
     const sorted = shelfItems.sort(
-        (a, b) => a.meta.itemIndex - b.meta.itemIndex,
+        (a, b) => a.meta.itemIndex - b.meta.itemIndex
     );
 
     sorted.map((line) => {
         const siblings = sorted.filter(
-            (a) => a.meta.lineUid == line.meta.lineUid,
+            (a) => a.meta.lineUid == line.meta.lineUid
         );
         if (line?.id == siblings?.[0]?.id) {
             shelfItemsData.lineUids.push(line.meta.lineUid);
@@ -248,7 +248,7 @@ export function transformShelfItem(item: SalesFormItems[number]) {
 export function transformMultiDykeItem(
     item: SalesFormItems[number],
     items: SalesFormItems,
-    itemIndex,
+    itemIndex
 ) {
     const { formSteps, shelfItems, housePackageTool, ...itemData } = item;
     const multiComponent: MultiSalesFormItem = {
@@ -278,13 +278,13 @@ export function transformMultiDykeItem(
                   title: generateRandomString(4),
               }
             : item.housePackageTool?.door ||
-                item.housePackageTool?.stepProduct?.uid
-              ? {
-                    title: item.housePackageTool?.stepProduct?.uid,
-                }
-              : {
-                    title: generateRandomString(4),
-                };
+              item.housePackageTool?.stepProduct?.uid
+            ? {
+                  title: item.housePackageTool?.stepProduct?.uid,
+              }
+            : {
+                  title: generateRandomString(4),
+              };
 
         const isMoulding = item.housePackageTool?.moldingId != null;
 

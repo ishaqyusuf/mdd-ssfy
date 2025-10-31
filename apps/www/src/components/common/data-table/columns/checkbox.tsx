@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TableCell } from "@/app/_components/data-table/table-cells";
+import { TableCell } from "@/app-deps/_components/data-table/table-cells";
 
 import { Checkbox } from "@gnd/ui/checkbox";
 
@@ -12,9 +12,7 @@ function DataTableCheckBoxHeader({ table, setSelectedRowIds, data }) {
             onCheckedChange={(value) => {
                 table.toggleAllPageRowsSelected(!!value);
                 setSelectedRowIds((prev) =>
-                    prev.length === data.length
-                        ? []
-                        : data.map((row) => row.id),
+                    prev.length === data.length ? [] : data.map((row) => row.id)
                 );
             }}
             aria-label="Select all"
@@ -32,7 +30,7 @@ function DataTableCheckbox({ row, setSelectedRowIds, v2 }) {
                     setSelectedRowIds((prev) =>
                         value
                             ? [...prev, row.original.id]
-                            : prev.filter((id) => id !== row.original.id),
+                            : prev.filter((id) => id !== row.original.id)
                     );
                 }}
                 aria-label="Select row"

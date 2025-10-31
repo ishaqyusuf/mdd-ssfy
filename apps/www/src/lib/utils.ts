@@ -7,7 +7,7 @@ import { formatMoney } from "./use-number";
 import JsonSearch from "@/_v2/lib/json-search";
 import { slugModel } from "@gnd/utils";
 import { FieldPath } from "react-hook-form";
-import { dotObject } from "@/app/(clean-code)/_common/utils/utils";
+import { dotObject } from "@/app-deps/(clean-code)/_common/utils/utils";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -48,14 +48,14 @@ export function toLabelValue(data) {
 export function textValue<T extends object>(
     text: string,
     value?: string,
-    extras: T = {} as T,
+    extras: T = {} as T
 ) {
     return { text, value: value || text, ...extras };
 }
 export function labelIdOptions<T, L extends FieldPath<T>, I extends keyof T>(
     list: T[],
     label: L,
-    id: I,
+    id: I
 ) {
     if (!list?.length) return [];
 
@@ -119,7 +119,7 @@ export { slugModel };
 export function sumArrayKeys<T>(
     array?: T[],
     keys: (keyof T | undefined)[] = undefined,
-    subtract = false,
+    subtract = false
 ) {
     if (!array?.length) return array;
     let [first, ...others] = array;
@@ -204,7 +204,7 @@ export function camel(str?: string) {
         function (match: any, p1: any, p2: any, offset: any) {
             if (p2) return p2.toUpperCase();
             return p1.toLowerCase();
-        },
+        }
     );
 }
 export function designDotToObject(object) {
@@ -265,7 +265,7 @@ export function getModelNumber(modelName) {
     return modelName
         ?.split(" ")
         .filter(
-            (f) => !["lh", "rh", "unkn", "unkwn"].includes(f?.toLowerCase()),
+            (f) => !["lh", "rh", "unkn", "unkwn"].includes(f?.toLowerCase())
         )
         .join(" ");
 }
@@ -299,7 +299,7 @@ export async function _serverAction(
         fn;
         onSuccess?(data?);
         onError?(error);
-    },
+    }
 ) {
     try {
         const data = await fn();
@@ -340,7 +340,7 @@ export const filteredOptions = (q, items, labelKey = "label") => {
 
     const pattern = new RegExp(escapedText, "i");
     let filteredOptions = items?.filter((option) =>
-        pattern.test(option[labelKey]),
+        pattern.test(option[labelKey])
     );
     // filteredOptions = uniqueBy(filteredOptions, "name").filter(
     //     (a, i) => i < 25
@@ -396,7 +396,7 @@ export function getLeafDotPaths<T>(obj: T, parentKey: string = ""): string[] {
                 leafDotPaths.push(currentKey);
             } else {
                 leafDotPaths = leafDotPaths.concat(
-                    getLeafDotPaths(value, currentKey),
+                    getLeafDotPaths(value, currentKey)
                 );
             }
         }
@@ -440,7 +440,7 @@ export const math = {
         let est = 0;
 
         values.map((v, i) =>
-            i == 0 ? (est = toNumber(v)) : (est *= toNumber(v)),
+            i == 0 ? (est = toNumber(v)) : (est *= toNumber(v))
         );
 
         return est;
@@ -448,7 +448,7 @@ export const math = {
 };
 export function ObjectMetaType<T, TMeta>(
     data: T,
-    meta: TMeta,
+    meta: TMeta
 ): Omit<NonNullable<T>, "meta"> & { meta: TMeta } {
     return {
         ...data,
@@ -460,7 +460,7 @@ export function ArrayMetaType<T, TMeta>(data: T[], meta: TMeta) {
 }
 export function _ObjectMetaType<T, MetaType>(
     data: T,
-    metaKey = "meta",
+    metaKey = "meta"
 ): Omit<T, typeof metaKey> & { [key in typeof metaKey]: MetaType } {
     return {
         ...data,
@@ -470,7 +470,7 @@ export function _ObjectMetaType<T, MetaType>(
 export function removeKeys<T>(
     from: T,
     objectKeys: (keyof T | any)[],
-    deep = false,
+    deep = false
 ): T {
     // Base case: if 'from' is not an object, return it as is
     if (typeof from !== "object" || from === null) {

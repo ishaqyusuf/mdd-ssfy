@@ -1,17 +1,18 @@
-import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { _trpc } from "@/components/static-trpc";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { useQuery } from "@gnd/ui/tanstack";
 import { InputGroup, Item } from "@gnd/ui/composite";
 import { Search } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Spinner } from "@gnd/ui/spinner";
 import { generateRandomString } from "@gnd/utils";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
-import { SettingsClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
+import { SettingsClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
+import { dotCompare } from "@/utils/compare";
 export function SalesCustomerInput() {
     const zus = useFormDataStore();
     const md = zus.metaData;
@@ -32,6 +33,77 @@ export function SalesCustomerInput() {
         )
     );
     const { params, setParams } = useCreateCustomerParams();
+    useEffect(() => {
+        if (params?.payload) {
+            let data = params.payload;
+            let metaData = { ...md };
+            if (!data?.address) {
+                metaData.customer.id = data.customerId;
+                metaData.billing.id = data.addressId;
+            } else {
+                metaData.customer.id = data.customerId;
+                if (data.address == "bad") metaData.billing.id = data.addressId;
+                else metaData.shipping.id = data.addressId;
+                if (
+                    data?.address == "bad" &&
+                    (md.shipping.id == md.billing.id || !md.shipping.id)
+                )
+                    metaData.shipping.id = data.addressId;
+
+                // metaData[data?.address] = data.addressId;
+            }
+            if (
+                dotCompare(
+                    metaData,
+                    md,
+                    "billing.id",
+                    "shipping.id",
+                    "customer.id"
+                )
+            ) {
+                metaData.dataRefreshToken = generateRandomString();
+            }
+            metaData.profileChangedToken = data.address
+                ? null
+                : generateRandomString();
+            zus.dotUpdate("metaData", metaData);
+            setParams(null);
+        }
+    }, [params, md, zus]);
+    useEffect(() => {
+        if (!customer || !md) return;
+        const patch: typeof md = {
+            ...md,
+            billing: {
+                id: customer.billingId,
+                customerId: customer.customerId,
+            },
+            shipping: {
+                id: customer.shippingId,
+                customerId: customer.customerId,
+            },
+            customer: {
+                id: customer.customerId,
+            },
+        };
+        // patch.profileChangedToken = null;
+        if (md.profileChangedToken) {
+            patch.tax.taxCode = customer?.taxCode;
+            patch.salesProfileId = customer.profileId;
+            patch.paymentTerm = customer.netTerm as any;
+        }
+
+        zus.dotUpdate("metaData", patch);
+        // zus.dotUpdate("metaData", patch);
+        if (md.profileChangedToken) {
+            const setting = new SettingsClass();
+            setting.taxCodeChanged();
+            setting.salesProfileChanged();
+            setTimeout(() => {
+                setting.calculateTotalPrice();
+            }, 100);
+        }
+    }, [customer]);
     if (isPending && isEnabled) return <Skeletons.FeedPost />;
     if (!customer) return <SearchCustomer />;
     const Content = ({
@@ -95,10 +167,11 @@ export function SalesCustomerInput() {
             >
                 <Button
                     onClick={(e) => {
+                        const addressId = customer?.billing?.id;
                         setParams({
                             customerId: md.customer.id,
                             customerForm: true,
-                            addressId: customer?.billing?.id,
+                            addressId: addressId > 0 ? addressId : undefined,
                             address: "bad",
                         });
                     }}
@@ -115,10 +188,13 @@ export function SalesCustomerInput() {
             >
                 <Button
                     onClick={(e) => {
+                        const addressId = customer?.shipping?.id;
+                        console.log(addressId);
+
                         setParams({
                             customerId: md.customer.id,
                             customerForm: true,
-                            addressId: customer?.shipping?.id,
+                            addressId: !!addressId ? addressId : undefined,
                             address: "sad",
                         });
                     }}

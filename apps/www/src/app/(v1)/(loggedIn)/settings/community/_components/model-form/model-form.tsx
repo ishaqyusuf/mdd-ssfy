@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import { _revalidate } from "@/app/(v1)/_actions/_revalidate";
-import { getHomeTemplateSuggestions } from "@/app/(v1)/_actions/community/home-template-suggestion";
+import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
+import { getHomeTemplateSuggestions } from "@/app-deps/(v1)/_actions/community/home-template-suggestion";
 import Btn from "@/components/_v1/btn";
 import PageHeader from "@/components/_v1/page-header";
 import ImportModelTemplateSheet from "@/components/_v1/sheets/import-model-template-sheet";
@@ -65,7 +65,7 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
         loadStaticList(
             "templateFormSuggestion",
             suggestions,
-            getHomeTemplateSuggestions,
+            getHomeTemplateSuggestions
         );
     }, []);
     async function save() {
@@ -74,9 +74,9 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                 ...((data?.meta || {}) as any),
                 design: form.getValues(),
             };
-            await (
-                community ? saveCommunityTemplateDesign : saveHomeTemplateDesign
-            )(data.slug, _meta);
+            await (community
+                ? saveCommunityTemplateDesign
+                : saveHomeTemplateDesign)(data.slug, _meta);
             toast.success("Saved successfully!");
             _revalidate("communityTemplate");
         });
@@ -92,7 +92,7 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                         <Button
                             onClick={() => {
                                 modal.openSheet(
-                                    <TemplateHistoryModal data={data} />,
+                                    <TemplateHistoryModal data={data} />
                                 );
                             }}
                             size="sm"

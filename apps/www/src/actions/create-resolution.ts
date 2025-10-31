@@ -1,6 +1,6 @@
 "use server";
 
-import { authUser } from "@/app/(v1)/_actions/utils";
+import { authUser } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { resolutionActions, resolutionReasons } from "@/utils/constants";
 import { revalidatePath } from "next/cache";

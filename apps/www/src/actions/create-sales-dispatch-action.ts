@@ -1,6 +1,6 @@
 "use server";
 
-import { userId } from "@/app/(v1)/_actions/utils";
+import { userId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import z from "zod";
 
@@ -9,7 +9,7 @@ import { createSalesDispatchSchema } from "./schema";
 
 export async function createSalesDispatch(
     data: z.infer<typeof createSalesDispatchSchema>,
-    tx = prisma,
+    tx = prisma
 ) {
     const dispatch = await tx.orderDelivery.create({
         data: {

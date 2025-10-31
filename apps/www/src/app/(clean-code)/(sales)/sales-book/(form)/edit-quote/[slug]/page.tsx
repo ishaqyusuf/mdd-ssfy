@@ -1,4 +1,4 @@
-import { getSalesBookFormUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
+import { getSalesBookFormUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import { FormClient } from "../../_components/form-client";
 import { prisma } from "@/db";

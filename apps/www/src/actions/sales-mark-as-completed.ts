@@ -1,5 +1,5 @@
 "use server";
-import { authUser } from "@/app/(v1)/_actions/utils";
+import { authUser } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { QtyControlType } from "@gnd/utils/sales";
 import { updateSalesStatAction } from "./update-sales-stat";

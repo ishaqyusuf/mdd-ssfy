@@ -4,8 +4,8 @@ import { SquarePaymentStatus } from "@/_v2/lib/square";
 import {
     SalesPaymentStatus,
     SquarePaymentMethods,
-} from "@/app/(clean-code)/(sales)/types";
-import { authId } from "@/app/(v1)/_actions/utils";
+} from "@/app-deps/(clean-code)/(sales)/types";
+import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { errorHandler } from "@/modules/error/handler";
 import { createSquareTerminalCheckout } from "@/modules/square";
@@ -35,8 +35,9 @@ export const createSalesPaymentAction = actionClient
                 await applySalesPayment(input);
                 response.status = "success";
             } else {
-                const { error, resp: data } =
-                    await createTerminalPayment(input);
+                const { error, resp: data } = await createTerminalPayment(
+                    input
+                );
                 if (error) throw Error(error.message);
                 response.terminalPaymentSession = {
                     squarePaymentId: data.squarePaymentId,
@@ -131,14 +132,14 @@ async function applySalesPayment(props: z.infer<typeof createPaymentSchema>) {
                     salesPaymentId: sp.id,
                     salesAmount: sp.amount,
                 });
-            }),
+            })
         );
         return {};
     }) as any);
 }
 
 async function createTerminalPayment(
-    props: z.infer<typeof createPaymentSchema>,
+    props: z.infer<typeof createPaymentSchema>
 ) {
     return await errorHandler(async () => {
         const checkout = await createSquareTerminalCheckout({

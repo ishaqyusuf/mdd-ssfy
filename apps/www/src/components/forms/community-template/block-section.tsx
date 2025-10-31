@@ -25,7 +25,7 @@ import { BlockInput } from "./block-input-section";
 import { Button } from "@gnd/ui/button";
 import { SortDescIcon } from "lucide-react";
 import { useCommunityModelStore } from "@/store/community-model";
-import { SalesBlockCtx } from "@/app/(v2)/printer/sales/sales-print-block";
+import { SalesBlockCtx } from "@/app-deps/(v2)/printer/sales/sales-print-block";
 
 interface Props {
     block?;
@@ -100,7 +100,7 @@ function FormContent({}) {
     const { mutate, isPending: savingSort } = useMutation(
         _trpc.community.updateRecordsIndicesIndices.mutationOptions({
             meta: null,
-        }),
+        })
     );
 
     const store = useCommunityModelStore();
@@ -135,7 +135,7 @@ function FormContent({}) {
             <Sortable.Content
                 className={cn(
                     "grid gap-4 grid-cols-4",
-                    templateEditMode ? "gap-6" : "gap-4",
+                    templateEditMode ? "gap-6" : "gap-4"
                 )}
             >
                 {__fields.map((inputField, index) => (

@@ -7,9 +7,9 @@ import {
     _assignJob,
     _unassignTask,
     AssignJobProps,
-} from "@/app/(v1)/_actions/community-job/_assign-jobs";
-import { _changeWorker } from "@/app/(v1)/_actions/hrm-jobs/job-actions";
-import { loadStatic1099Contractors } from "@/app/(v1)/_actions/hrm/get-employess";
+} from "@/app-deps/(v1)/_actions/community-job/_assign-jobs";
+import { _changeWorker } from "@/app-deps/(v1)/_actions/hrm-jobs/job-actions";
+import { loadStatic1099Contractors } from "@/app-deps/(v1)/_actions/hrm/get-employess";
 import { closeModal, openModal } from "@/lib/modal";
 import { _useAsync } from "@/lib/use-async";
 import { useAppSelector } from "@/store";
@@ -28,7 +28,7 @@ export default function AssignTaskModal() {
         loadStaticList(
             "staticInstallers",
             techEmployees,
-            loadStatic1099Contractors,
+            loadStatic1099Contractors
         );
     }, []);
     async function unassign(data: ExtendedHomeTasks) {

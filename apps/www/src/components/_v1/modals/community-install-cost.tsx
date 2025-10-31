@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
-import { updateCommunityCost } from "@/app/(v1)/_actions/community/projects";
-import { getSettingAction } from "@/app/(v1)/_actions/settings";
+import { updateCommunityCost } from "@/app-deps/(v1)/_actions/community/projects";
+import { getSettingAction } from "@/app-deps/(v1)/_actions/settings";
 import { deepCopy } from "@/lib/deep-copy";
 import { closeModal } from "@/lib/modal";
 import { cn } from "@/lib/utils";

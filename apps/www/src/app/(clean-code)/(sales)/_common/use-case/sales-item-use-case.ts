@@ -1,6 +1,6 @@
 "use server";
 
-import { AsyncFnType } from "@/app/(clean-code)/type";
+import { AsyncFnType } from "@/app-deps/(clean-code)/type";
 import { getSalesItemOverviewDta } from "../data-access/sales-dta";
 
 export type GetSalesOverview = AsyncFnType<typeof getSalesItemOverviewUseCase>;

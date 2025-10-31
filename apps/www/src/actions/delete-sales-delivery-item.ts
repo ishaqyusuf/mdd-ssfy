@@ -1,6 +1,6 @@
 "use server";
 
-import { SalesDispatchStatus } from "@/app/(clean-code)/(sales)/types";
+import { SalesDispatchStatus } from "@/app-deps/(clean-code)/(sales)/types";
 import { Prisma, prisma } from "@/db";
 import {
     negativeQty,
@@ -22,7 +22,7 @@ export const deleteSalesDeliveryItemSchema = z.object({
 });
 export async function deleteSalesDeliveryItem(
     data: z.infer<typeof deleteSalesDeliveryItemSchema>,
-    tx: typeof prisma = prisma,
+    tx: typeof prisma = prisma
 ) {
     const whereQueries: Prisma.OrderItemDeliveryWhereInput[] = [];
     if (data.submissionId)
@@ -84,16 +84,16 @@ export const deleteSalesDeliveryItemAction = actionClient
                 input.dispatchStatus == "cancelled"
                     ? "dispatchCancelled"
                     : input.dispatchStatus == "completed"
-                      ? "dispatchCompleted"
-                      : input.dispatchStatus == "in progress"
-                        ? "dispatchInProgress"
-                        : "dispatchAssigned";
+                    ? "dispatchCompleted"
+                    : input.dispatchStatus == "in progress"
+                    ? "dispatchInProgress"
+                    : "dispatchAssigned";
             await Promise.all(
                 items.map(async (item, index) => {
                     let commonItems = items.filter(
                         (i) =>
                             i.submission.assignment.salesItemControlUid ==
-                            item.submission.assignment.salesItemControlUid,
+                            item.submission.assignment.salesItemControlUid
                     );
                     if (item.id != commonItems[0]?.id) return;
                     const itemUid =
@@ -105,20 +105,20 @@ export const deleteSalesDeliveryItemAction = actionClient
                             type,
                             qty: negativeQty(
                                 qtyMatrixSum(
-                                    ...commonItems.map(transformQtyHandle),
-                                ),
+                                    ...commonItems.map(transformQtyHandle)
+                                )
                             ),
                         },
-                        tx,
+                        tx
                     );
-                }),
+                })
             );
             await updateSalesStatAction(
                 {
                     salesId: input.salesId,
                     types: [type],
                 },
-                tx,
+                tx
             );
             return {};
         });

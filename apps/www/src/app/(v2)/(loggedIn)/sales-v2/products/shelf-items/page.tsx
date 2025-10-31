@@ -5,9 +5,9 @@ import { Metadata } from "next";
 import { Shell } from "@/components/shell";
 import ShelfItemsTable from "./_components/shelf-items-table";
 import { SearchParams } from "@/types";
-import { queryParams } from "@/app/(v1)/_actions/action-utils";
+import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
 import { getShelfItems } from "../_actions/get-shelf-items";
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 export const metadata: Metadata = {
     title: "Shelf Items | GND",
 };
@@ -32,3 +32,4 @@ export default async function ShelfItemsPage(props: Props) {
         </DykeTabLayout>
     );
 }
+

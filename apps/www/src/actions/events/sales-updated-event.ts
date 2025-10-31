@@ -1,6 +1,6 @@
 "use server";
 
-import { user } from "@/app/(v1)/_actions/utils";
+import { user } from "@/app-deps/(v1)/_actions/utils";
 import {
     composeStackLine,
     composeText,
@@ -21,13 +21,13 @@ export async function salesUpdatedEvent(id) {
                 [
                     mc.tableRow(
                         mc.text(`${data.type} #`),
-                        mc.text(`${data.orderId}`),
+                        mc.text(`${data.orderId}`)
                     ),
                     mc.tableRow(
                         mc.text(`Sales Rep:`),
-                        mc.text(`${data.salesRep?.name}`),
+                        mc.text(`${data.salesRep?.name}`)
                     ),
-                ],
+                ]
             ),
         ]),
         preview: `${data.type} updated by ${auth?.name}`,

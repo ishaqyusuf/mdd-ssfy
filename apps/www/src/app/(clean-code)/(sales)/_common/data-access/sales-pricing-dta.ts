@@ -1,11 +1,11 @@
-import { AsyncFnType } from "@/app/(clean-code)/type";
+import { AsyncFnType } from "@/app-deps/(clean-code)/type";
 import { prisma, Prisma } from "@/db";
 
 import { DykeProductMeta } from "../../types";
 
 export type GetPricingList = AsyncFnType<typeof getPricingListDta>;
 export async function getPricingListDta(
-    where: Prisma.DykePricingSystemWhereInput = {},
+    where: Prisma.DykePricingSystemWhereInput = {}
 ) {
     const pricings = await prisma.dykePricingSystem.findMany({
         where,
@@ -24,7 +24,7 @@ export async function getComponentPricingListByUidDta(stepProductUid) {
     });
 }
 export async function updateComponentPricingsDta(
-    data: Partial<Prisma.DykePricingSystemCreateManyInput>[],
+    data: Partial<Prisma.DykePricingSystemCreateManyInput>[]
 ) {
     const updateByPrice: { [price in string]: number[] } = {};
     const deleteIds = [];
@@ -42,7 +42,7 @@ export async function updateComponentPricingsDta(
                     price: price == "del" ? null : Number(price),
                 },
             });
-        }),
+        })
     );
     if (deleteIds.length)
         await prisma.dykePricingSystem.updateMany({
@@ -53,7 +53,7 @@ export async function updateComponentPricingsDta(
         });
 }
 export async function saveComponentPricingsDta(
-    data: Prisma.DykePricingSystemCreateManyInput[],
+    data: Prisma.DykePricingSystemCreateManyInput[]
 ) {
     const newData = data
         .filter((a) => !a.id && a.price)

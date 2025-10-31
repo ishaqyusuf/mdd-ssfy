@@ -4,7 +4,7 @@ import { DykeForm, SaveMode } from "../../type";
 import { useRouter, useSearchParams } from "next/navigation";
 import { saveDykeSales } from "../_action/save-dyke";
 import { toast } from "sonner";
-import { _revalidate } from "@/app/(v1)/_actions/_revalidate";
+import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
 import { _saveDykeError, errorRestored } from "../_action/error/save-error";
 import initDykeSaving from "../../_utils/init-dyke-saving";
 import salesFormUtils from "../../../sales/edit/sales-form-utils";
@@ -22,7 +22,7 @@ export default function useDykeFormSaver(form) {
     function save(
         data: DykeForm,
         mode: SaveMode = "default",
-        onComplete = null,
+        onComplete = null
     ) {
         const errorId = params.get("errorId");
         startTransition(async () => {
@@ -38,7 +38,7 @@ export default function useDykeFormSaver(form) {
                     e.order.paymentDueDate =
                         salesFormUtils._calculatePaymentTerm(
                             e.order.paymentTerm,
-                            e.order.createdAt,
+                            e.order.createdAt
                         );
                     const { paymentDueDate, paymentTerm, createdAt } = e.order;
                 }
@@ -54,8 +54,8 @@ export default function useDykeFormSaver(form) {
                             data.dealerMode
                                 ? `/${resp.type}s`
                                 : type == "order"
-                                  ? `/sales-book/${type}s`
-                                  : `/sales/${type}s`,
+                                ? `/sales-book/${type}s`
+                                : `/sales/${type}s`
                         );
                         break;
                     case "default":
@@ -63,7 +63,7 @@ export default function useDykeFormSaver(form) {
                             router.push(
                                 data.dealerMode
                                     ? `/sales-form/${resp.type}/${resp.slug}`
-                                    : `/sales-v2/form/${resp.type}/${resp.slug}`,
+                                    : `/sales-v2/form/${resp.type}/${resp.slug}`
                             );
                         else await _revalidate("salesV2Form");
                         break;
@@ -71,7 +71,7 @@ export default function useDykeFormSaver(form) {
                         router.push(
                             data.dealerMode
                                 ? `/create-quote`
-                                : `/sales-book/create-${resp.type}`,
+                                : `/sales-book/create-${resp.type}`
                         );
                         break;
                 }

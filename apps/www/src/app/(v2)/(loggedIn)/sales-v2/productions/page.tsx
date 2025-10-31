@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { _getProductionList } from "./_components/actions";
 import ProductionList from "./_components/production-list";
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 import { Shell } from "@/components/shell";
@@ -49,3 +49,4 @@ export default async function SalesProductionPage(props) {
         </AuthGuard>
     );
 }
+

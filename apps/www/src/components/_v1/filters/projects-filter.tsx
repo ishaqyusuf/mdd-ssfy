@@ -1,7 +1,7 @@
 "use client";
 
 import { DynamicFilter } from "../data-table/data-table-dynamic-filter";
-import { staticProjectsAction } from "@/app/(v1)/_actions/community/projects";
+import { staticProjectsAction } from "@/app-deps/(v1)/_actions/community/projects";
 
 export function ProjectsFilter({ table }) {
     return (

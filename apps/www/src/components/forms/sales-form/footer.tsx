@@ -1,4 +1,4 @@
-import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
@@ -42,7 +42,7 @@ export function Footer({}) {
                     onClick={() => {
                         overviewQuery.open2(
                             zus.metaData?.salesId,
-                            zus.metaData.type == "order" ? "sales" : "quote",
+                            zus.metaData.type == "order" ? "sales" : "quote"
                         );
                         // openSalesOverview({
                         //     salesId: zus.metaData.id,

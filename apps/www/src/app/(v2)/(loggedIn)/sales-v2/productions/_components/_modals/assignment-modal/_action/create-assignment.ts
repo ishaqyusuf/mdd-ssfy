@@ -1,7 +1,7 @@
 "use server";
 
-import { updateSalesProgressDta } from "@/app/(clean-code)/(sales)/_common/data-access/sales-progress.dta";
-import { userId } from "@/app/(v1)/_actions/utils";
+import { updateSalesProgressDta } from "@/app-deps/(clean-code)/(sales)/_common/data-access/sales-progress.dta";
+import { userId } from "@/app-deps/(v1)/_actions/utils";
 import { OrderItemProductionAssignments, prisma } from "@/db";
 import { math, sum } from "@/lib/utils";
 
@@ -9,7 +9,7 @@ export async function createProdAssignment(
     data: Partial<OrderItemProductionAssignments>[],
     // productionStatusId,
     allQty,
-    prodDueDate,
+    prodDueDate
 ) {
     const assignedById = await userId();
     let score = 0;

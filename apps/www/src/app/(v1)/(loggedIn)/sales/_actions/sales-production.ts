@@ -19,12 +19,12 @@ import {
 } from "../../../_actions/notifications";
 import { formatDate } from "@/lib/use-day";
 import { _revalidate } from "../../../_actions/_revalidate";
-import { _updateProdQty } from "@/app/(v2)/(loggedIn)/sales/_data-access/update-prod-qty.dac";
+import { _updateProdQty } from "@/app-deps/(v2)/(loggedIn)/sales/_data-access/update-prod-qty.dac";
 import { getSales } from "@/data-access/sales";
 
 export async function getSalesProductionsAction(
     query: SalesQueryParams,
-    admin = false,
+    admin = false
 ) {
     const sessionId = await userId();
     query._page = "production";

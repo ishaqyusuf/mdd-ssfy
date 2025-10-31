@@ -1,6 +1,6 @@
-import { queryParams } from "@/app/(v1)/_actions/action-utils";
-import { _getCommunityJobTasks } from "@/app/(v1)/_actions/community-job/_assign-jobs";
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
+import { _getCommunityJobTasks } from "@/app-deps/(v1)/_actions/community-job/_assign-jobs";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 import AssignTaskModal from "@/components/_v1/modals/assign-task-modal";
@@ -41,3 +41,4 @@ export default async function AssignTasksPage(props) {
         </AuthGuard>
     );
 }
+

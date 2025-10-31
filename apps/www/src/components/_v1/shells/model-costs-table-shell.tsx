@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import { deleteHomeTemplateAction } from "@/app/(v1)/(loggedIn)/settings/community/_components/home-template";
+import { deleteHomeTemplateAction } from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/home-template";
 import { openModal } from "@/lib/modal";
 import { cn } from "@/lib/utils";
 import { ICostChart, IHomeTemplate } from "@/types/community";
@@ -148,7 +148,7 @@ export default function ModelCostTableShell<T>({
                 ),
             },
         ], //.filter(Boolean) as any,
-        [data, isPending],
+        [data, isPending]
     );
     return (
         <DataTable2

@@ -1,6 +1,6 @@
 "use client";
 
-import { SalesFormResponse } from "@/app/(v1)/(loggedIn)/sales/_actions/get-sales-form";
+import { SalesFormResponse } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/get-sales-form";
 import { FormProvider, useForm } from "react-hook-form";
 import { InvoiceTable } from "./invoice-table";
 import { SalesFormContext } from "../ctx";
@@ -26,7 +26,7 @@ export default function EditSalesForm({ data }: Props) {
     const _formData: any = data?.form || { meta: {} };
 
     const { _items, footer } = salesFormUtils.initInvoiceItems(
-        data?.form?.items,
+        data?.form?.items
     );
     const defaultValues: ISalesForm = {
         ..._formData,
@@ -103,7 +103,7 @@ export default function EditSalesForm({ data }: Props) {
                                     .length == 0
                                     ? "text-green-700 bg-green-200"
                                     : "text-pink-700 bg-pink-200",
-                                "inline-flex items-center h-6 leading-none rounded-full px-4  py-0.5",
+                                "inline-flex items-center h-6 leading-none rounded-full px-4  py-0.5"
                             )}
                         >
                             <Dot className="" />

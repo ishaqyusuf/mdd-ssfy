@@ -1,4 +1,4 @@
-import { StepComponentMeta } from "@/app/(clean-code)/(sales)/types";
+import { StepComponentMeta } from "@/app-deps/(clean-code)/(sales)/types";
 import { Prisma, prisma } from "@/db";
 import { unstable_cache } from "next/cache";
 
@@ -50,7 +50,7 @@ export async function getStepComponents(stepId, stepTitle) {
         [`step-components-${stepId}`],
         {
             tags: [`step-components-${stepId}`],
-        },
+        }
     )(stepId, stepTitle);
 }
 export function dtoStepComponent(data) {
@@ -83,7 +83,7 @@ export function dtoStepComponent(data) {
                     sortIndex,
                     stepComponentId,
                     uid,
-                }),
+                })
             ),
             custom: component.custom,
             visible: false,

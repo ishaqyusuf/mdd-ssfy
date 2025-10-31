@@ -6,10 +6,10 @@ import { useDataTableColumn2 } from "@/components/common/data-table/columns/use-
 import { screens } from "@/lib/responsive";
 import { useMediaQuery } from "react-responsive";
 import { SalesCells } from "./sales-cells";
-import { DataTable } from "@/app/_components/data-table";
-import { TableToolbar } from "@/app/_components/data-table/toolbar";
+import { DataTable } from "@/app-deps/_components/data-table";
+import { TableToolbar } from "@/app-deps/_components/data-table/toolbar";
 import salesData from "../../sales-data";
-import { getStaticCustomers } from "@/app/(v1)/(loggedIn)/sales/(customers)/_actions/sales-customers";
+import { getStaticCustomers } from "@/app-deps/(v1)/(loggedIn)/sales/(customers)/_actions/sales-customers";
 import { SaleSattBtn } from "../../_components/sale-stat-bootstrap/sale-stat-bootstrap-modal";
 import { SalesPageType } from "../(tabbed)/delivery/page";
 
@@ -98,7 +98,7 @@ export default function PageClient({
                 "_salesRepId",
             ],
         },
-        (ctx) => renderWebView(ctx),
+        (ctx) => renderWebView(ctx)
     );
     return (
         <>

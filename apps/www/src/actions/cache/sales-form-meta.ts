@@ -1,5 +1,5 @@
 import { salesSettingsKey } from "@/actions/sales-settings";
-import { SalesSettingsMeta } from "@/app/(clean-code)/(sales)/types";
+import { SalesSettingsMeta } from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { unstable_cache } from "next/cache";
 
@@ -19,6 +19,6 @@ export async function getSalesSettings() {
         [salesSettingsKey],
         {
             tags: [salesSettingsKey],
-        },
+        }
     );
 }

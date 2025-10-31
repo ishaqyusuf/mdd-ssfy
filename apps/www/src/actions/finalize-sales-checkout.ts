@@ -1,7 +1,7 @@
 "use server";
 
 import { SquarePaymentStatus } from "@/_v2/lib/square";
-import { SalesPaymentStatus } from "@/app/(clean-code)/(sales)/types";
+import { SalesPaymentStatus } from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
@@ -77,7 +77,7 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
 
     const tenders = cTx.squarePayment.checkout.tenders;
     const validTenders = tenders.filter(
-        (s) => s.status == ("COMPLETED" as SquarePaymentStatus),
+        (s) => s.status == ("COMPLETED" as SquarePaymentStatus)
     );
     if (!validTenders.length) {
         // const _status = Array.from(new Set(cTx.squarePayment.checkout.tenders.map(s =>s.status)));
@@ -171,7 +171,7 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
                         };
                     salesRepsNotifications[salesRep.email].amount += paidAmount;
                     salesRepsNotifications[salesRep.email].ordersNo.push(
-                        o.order.orderId,
+                        o.order.orderId
                     );
                     await createPayrollAction({
                         orderId: sp.order.id,
@@ -188,7 +188,7 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
             return {
                 paidAmount,
             };
-        }),
+        })
     );
     const tx = await prisma.customerTransaction.update({
         where: {

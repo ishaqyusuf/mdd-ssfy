@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
-import { createComponentUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
-import { StepComponentForm } from "@/app/(clean-code)/(sales)/types";
+import { createComponentUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/step-component-use-case";
+import { StepComponentForm } from "@/app-deps/(clean-code)/(sales)/types";
 import Button from "@/components/common/button";
 import FormInput from "@/components/common/controls/form-input";
 import { FileUploader } from "@/components/common/file-uploader";
@@ -26,7 +26,7 @@ const Context = createContext<ReturnType<typeof useInitContext>>(null);
 const useCtx = () => useContext(Context);
 export function openComponentModal(
     stepCls: StepHelperClass,
-    data?: Props["data"],
+    data?: Props["data"]
 ) {
     if (!data) {
         data = {

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import Link from "@/components/link";
 import { useRouter } from "next/navigation";
-import { searchImport } from "@/app/(v1)/_actions/community/_template-import";
+import { searchImport } from "@/app-deps/(v1)/_actions/community/_template-import";
 import { useDebounce } from "@/hooks/use-debounce";
 import { transformCommunityTemplate } from "@/lib/community/community-template";
 import { closeModal, openModal } from "@/lib/modal";
@@ -60,7 +60,7 @@ export default function ImportModelTemplateSheet({
             query,
             data?.id,
             // (data as any)?.projectId
-            searchType != "Master",
+            searchType != "Master"
         );
 
         setResult(_res);
@@ -177,7 +177,7 @@ export default function ImportModelTemplateSheet({
                                                             data={t}
                                                             _import={(md) => {
                                                                 importSections(
-                                                                    md,
+                                                                    md
                                                                 );
                                                             }}
                                                         />

@@ -173,9 +173,7 @@ function AddressAutoCompleteInput(props: CommonProps) {
             },
         ),
     );
-    useEffect(() => {
-        console.log(data);
-    }, [data]);
+    
     const predictions: Prediction[] = data || [];
     return (
         <div>
@@ -183,7 +181,7 @@ function AddressAutoCompleteInput(props: CommonProps) {
                 placeholder="Search Address"
                 searchPlaceholder="Search Address"
                 onSelect={(item) => {
-                    console.log(item);
+                     
                     setSelectedPlaceId(item?.placePrediction?.placeId);
                 }}
                 items={predictions?.map((prediction) => ({

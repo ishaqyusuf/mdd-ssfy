@@ -1,4 +1,4 @@
-import { LineInput } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
+import { LineInput } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
 import { DataLine } from "@/components/(clean-code)/data-table/Dl";
 import { Menu } from "@/components/(clean-code)/menu";
 import { MoneyBadge } from "@/components/(clean-code)/money-badge";

@@ -1,6 +1,6 @@
 "use server";
 
-import { SelectOption } from "@/app/(clean-code)/type";
+import { SelectOption } from "@/app-deps/(clean-code)/type";
 import { getSalesProdWorkersdta } from "../data-access/production-workers-dta";
 import { unstable_cache } from "next/cache";
 

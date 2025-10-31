@@ -1,9 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { isNewSales } from "@/app/(clean-code)/(sales)/_common/utils/sales-utils";
-import { _saveSales } from "@/app/(v2)/(loggedIn)/sales/_data-access/save-sales.persistence";
-import { _updateProdQty } from "@/app/(v2)/(loggedIn)/sales/_data-access/update-prod-qty.dac";
+import { isNewSales } from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-utils";
+import { _saveSales } from "@/app-deps/(v2)/(loggedIn)/sales/_data-access/save-sales.persistence";
+import { _updateProdQty } from "@/app-deps/(v2)/(loggedIn)/sales/_data-access/update-prod-qty.dac";
 import { getSales } from "@/data-access/sales";
 import { prisma, Prisma } from "@/db";
 import { removeEmptyValues } from "@/lib/utils";
@@ -199,7 +199,7 @@ export async function salesPrintAction({
         await Promise.all(
             ids.map(async (id) => {
                 await fixSalesPaymentAction(Number(id));
-            }),
+            })
         );
     const where: Prisma.SalesOrdersWhereInput = {
         deletedAt: null,

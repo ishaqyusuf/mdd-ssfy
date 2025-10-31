@@ -10,7 +10,7 @@ import {
     SalesStat,
 } from "@/db";
 import { FieldPath } from "react-hook-form";
-import { DykeForm as OldDykeForm } from "@/app/(v2)/(loggedIn)/sales-v2/type";
+import { DykeForm as OldDykeForm } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
 
 import type { HousePackageToolMeta } from "@sales/types";
 

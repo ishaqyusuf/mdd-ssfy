@@ -1,7 +1,7 @@
-import { whereTrashed } from "@/app/(clean-code)/_common/utils/db-utils";
-import { AsyncFnType } from "@/app/(clean-code)/type";
-import { dealerSession, user, userId } from "@/app/(v1)/_actions/utils";
-import { salesFormData } from "@/app/(v1)/(loggedIn)/sales/_actions/get-sales-form";
+import { whereTrashed } from "@/app-deps/(clean-code)/_common/utils/db-utils";
+import { AsyncFnType } from "@/app-deps/(clean-code)/type";
+import { dealerSession, user, userId } from "@/app-deps/(v1)/_actions/utils";
+import { salesFormData } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/get-sales-form";
 import { ComponentPrice, prisma, Prisma } from "@/db";
 import dayjs from "dayjs";
 
@@ -40,7 +40,7 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
                 ? {
                       deletedAt: {},
                   }
-                : {},
+                : {}
         ),
     });
 
@@ -77,7 +77,7 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
     // return typedSalesBookForm(order)
 }
 export async function createSalesBookFormDataDta(
-    props: GetSalesBookFormDataProps,
+    props: GetSalesBookFormDataProps
 ) {
     const session = await user();
     const ctx = await salesFormData(true);
@@ -145,7 +145,7 @@ async function formatForm(data: GetSalesBookFormDataDta) {
     const _taxForm = await salesTaxForm(
         data.order.taxes as any,
         data.order?.id,
-        ctx?.defaultProfile?.meta?.taxCode,
+        ctx?.defaultProfile?.meta?.taxCode
     );
     return {
         ...result,
@@ -162,7 +162,7 @@ async function formatForm(data: GetSalesBookFormDataDta) {
     };
 }
 export async function getTransformedSalesBookFormDataDta(
-    data: GetSalesBookFormDataProps,
+    data: GetSalesBookFormDataProps
 ) {
     const sbf = await getSalesBookFormDataDta(data);
     return await formatForm(sbf);
@@ -180,7 +180,7 @@ export async function getFormStepComponentsDta(uids) {
 }
 export async function saveSalesComponentPricingDta(
     prices: Partial<ComponentPrice>[],
-    orderId,
+    orderId
 ) {
     return;
     const ids = [];
@@ -203,7 +203,7 @@ export async function saveSalesComponentPricingDta(
                     },
                 });
                 ids.push(s.id);
-            }),
+            })
     );
     const res = await prisma.componentPrice.updateMany({
         where: {

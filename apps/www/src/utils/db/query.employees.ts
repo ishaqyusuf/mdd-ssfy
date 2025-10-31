@@ -1,4 +1,4 @@
-import { composeQuery } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
+import { composeQuery } from "@/app-deps/(clean-code)/(sales)/_common/utils/db-utils";
 import { prisma } from "@/db";
 import { Prisma } from "@/db";
 import { composeQueryData } from "../query-response";

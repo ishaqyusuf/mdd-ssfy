@@ -36,7 +36,7 @@ import { HptNote } from "@/components/forms/sales-form/hpt/hpt-note";
 import {
     LineInput,
     LineSwitch,
-} from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
 import { HptAddDoorSize } from "./hpt-add-door-size";
 import { Checkbox } from "@gnd/ui/checkbox";
 
@@ -81,7 +81,7 @@ function Content() {
                                     className={cn(
                                         "border-b-2 border-b-transparent uppercase",
                                         ctx.hpt.tabUid == door.uid &&
-                                            "rounded-b-none border-muted-foreground",
+                                            "rounded-b-none border-muted-foreground"
                                     )}
                                     variant={
                                         ctx.hpt.tabUid == door.uid
@@ -97,7 +97,7 @@ function Content() {
                                 <div
                                     className={cn(
                                         // ctx.hpt.tabUid != door.uid &&
-                                        "hidden",
+                                        "hidden"
                                     )}
                                 >
                                     <Menu>
@@ -229,7 +229,7 @@ function DoorSizeRowContent({ doorIndex, sizeIndex }) {
             <TableRow
                 className={cn(
                     // !sizeForm?.selected && "hidden",
-                    "hover:bg-transparent",
+                    "hover:bg-transparent"
                 )}
             >
                 <TableCell className="font-mono$"></TableCell>

@@ -4,7 +4,7 @@ import { MenuItemPrintAction } from "./menu-item-sales-print-action";
 import { MenuItemSalesCopy } from "./menu-item-sales-copy";
 import { MenuItemSalesMove } from "./menu-item-sales-move";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
-import { copySalesUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
+import { copySalesUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { ToastAction } from "@gnd/ui/toast";
 import { openLink } from "@/lib/open-link";

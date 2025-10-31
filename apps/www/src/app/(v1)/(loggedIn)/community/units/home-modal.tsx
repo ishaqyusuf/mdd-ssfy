@@ -3,13 +3,13 @@
 import React, { useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
-import { _revalidate } from "@/app/(v1)/_actions/_revalidate";
-import { staticCommunity } from "@/app/(v1)/_actions/community/community-template";
+import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
+import { staticCommunity } from "@/app-deps/(v1)/_actions/community/community-template";
 import {
     _updateCommunityHome,
     createHomesAction,
-} from "@/app/(v1)/_actions/community/create-homes";
-import { staticProjectsAction } from "@/app/(v1)/_actions/community/projects";
+} from "@/app-deps/(v1)/_actions/community/create-homes";
+import { staticProjectsAction } from "@/app-deps/(v1)/_actions/community/projects";
 import Modal from "@/components/common/modal";
 import { useModal } from "@/components/common/modal/provider";
 import { homeSearchMeta } from "@/lib/community/community-utils";
@@ -75,7 +75,7 @@ export default function HomeModal({ home }: Props) {
                 if (home?.id) {
                     const unit = formData.units[0] as any;
                     unit.modelName = communityTemplates.find(
-                        (f) => f.id == unit.communityTemplateId,
+                        (f) => f.id == unit.communityTemplateId
                     )?.modelName as any;
                     await _updateCommunityHome(unit);
                     msg = "Unit updated!";
@@ -86,11 +86,11 @@ export default function HomeModal({ home }: Props) {
                     const unitForms = formData.units?.map((u) => {
                         const pid = (u.projectId = Number(formData.projectId));
                         u.modelName = communityTemplates.find(
-                            (f) => f.id == u.communityTemplateId,
+                            (f) => f.id == u.communityTemplateId
                         )?.modelName as any;
                         u.modelNo = getModelNumber(u.modelName);
                         u.builderId = Number(
-                            projects.find((p) => p.id == pid)?.builderId,
+                            projects.find((p) => p.id == pid)?.builderId
                         );
                         // u.communityTemplateId = Number(
                         //     communityTemplates.find(
@@ -197,7 +197,7 @@ export default function HomeModal({ home }: Props) {
                                                     ?.filter(
                                                         (m) =>
                                                             m.projectId ==
-                                                            projectId,
+                                                            projectId
                                                     )
                                                     ?.map((i) => ({
                                                         id: String(i.id),
@@ -228,11 +228,11 @@ export default function HomeModal({ home }: Props) {
                                             setValue={(e) =>
                                                 form.setValue(
                                                     `units.${i}.createdAt`,
-                                                    e,
+                                                    e
                                                 )
                                             }
                                             value={form.getValues(
-                                                `units.${i}.createdAt`,
+                                                `units.${i}.createdAt`
                                             )}
                                         />
                                     </div>

@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import { deleteCustomerService } from "@/app/(v1)/_actions/customer-services/crud";
-import { staticEmployees } from "@/app/(v1)/_actions/hrm/get-employess";
+import { deleteCustomerService } from "@/app-deps/(v1)/_actions/customer-services/crud";
+import { staticEmployees } from "@/app-deps/(v1)/_actions/hrm/get-employess";
 import { labelValue } from "@/lib/utils";
 import { useAppSelector } from "@/store";
 import { loadStaticList } from "@/store/slicers";
@@ -114,7 +114,7 @@ export default function CustomerServiceTableShell<T>({
                 ),
             },
         ],
-        [data, isPending],
+        [data, isPending]
     );
     return (
         <DataTable2

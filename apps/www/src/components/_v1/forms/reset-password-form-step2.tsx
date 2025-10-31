@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { resetPassword } from "@/app/(v1)/_actions/auth";
+import { resetPassword } from "@/app-deps/(v1)/_actions/auth";
 import { Icons } from "@/components/_v1/icons";
 import { PasswordInput } from "@/components/_v1/password-input";
 import { resetPasswordSchema } from "@/lib/validations/auth";

@@ -4,7 +4,7 @@ import {
     SalesFormFields,
     StepComponentMeta,
     StepMeta,
-} from "@/app/(clean-code)/(sales)/types";
+} from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { TakeOffTemplateData } from "@/types/sales";
 
@@ -46,8 +46,8 @@ export async function getTakeOffStepForms({ configs, itemUid }: Props) {
         (a, i) =>
             i ==
             steps.findIndex(
-                (e) => e.title?.toLowerCase() === a?.title?.toLowerCase(),
-            ),
+                (e) => e.title?.toLowerCase() === a?.title?.toLowerCase()
+            )
     );
     const components = (
         await prisma.dykeStepProducts.findMany({
@@ -91,10 +91,10 @@ export async function getTakeOffStepForms({ configs, itemUid }: Props) {
     return configs
         .map((c) => {
             const step = steps.find(
-                (s) => s.uid == c.stepUid || s.id == c.stepId,
+                (s) => s.uid == c.stepUid || s.id == c.stepId
             );
             const component = components.find(
-                (s) => s.uid == c.componentUid || s.id == c.componentId,
+                (s) => s.uid == c.componentUid || s.id == c.componentId
             );
             return {
                 stepFormUid: `${itemUid}-${step?.uid}`,

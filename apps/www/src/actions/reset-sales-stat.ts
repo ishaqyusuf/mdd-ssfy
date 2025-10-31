@@ -1,6 +1,6 @@
 "use server";
 
-import { QtyControlType } from "@/app/(clean-code)/(sales)/types";
+import { QtyControlType } from "@/app-deps/(clean-code)/(sales)/types";
 import { Prisma, prisma } from "@/db";
 import { percent, sum } from "@/lib/utils";
 import { trpcGetSalesItemsOverviewAction } from "./trpc";
@@ -37,7 +37,7 @@ export async function resetSalesStatAction(id, salesNo) {
 
             function qtyControlData(
                 type: QtyControlType,
-                qty,
+                qty
             ): Prisma.QtyControlCreateManyInput {
                 return {
                     type,
@@ -53,29 +53,29 @@ export async function resetSalesStatAction(id, salesNo) {
                     qtyControlData("qty", item.qty),
                     qtyControlData(
                         "prodAssigned",
-                        item.analytics.stats.prodAssigned,
+                        item.analytics.stats.prodAssigned
                     ),
                     qtyControlData(
                         "prodCompleted",
-                        item.analytics.stats.prodCompleted,
+                        item.analytics.stats.prodCompleted
                     ),
                     qtyControlData(
                         "dispatchAssigned",
-                        item.analytics.stats.dispatchAssigned,
+                        item.analytics.stats.dispatchAssigned
                     ),
                     qtyControlData(
                         "dispatchInProgress",
-                        item.analytics.stats.dispatchInProgress,
+                        item.analytics.stats.dispatchInProgress
                     ),
                     qtyControlData(
                         "dispatchCancelled",
-                        item.analytics.stats.dispatchCancelled,
+                        item.analytics.stats.dispatchCancelled
                     ),
                     qtyControlData(
                         "dispatchCompleted",
-                        item.analytics.stats.dispatchCompleted,
+                        item.analytics.stats.dispatchCompleted
                     ),
-                ],
+                ]
             );
         });
         await tx.salesItemControl.deleteMany({
@@ -93,7 +93,7 @@ export async function resetSalesStatAction(id, salesNo) {
                     create: sic,
                     update: sic,
                 });
-            }),
+            })
         );
         await tx.qtyControl.createMany({
             data: qc.map((d) => ({
@@ -111,7 +111,7 @@ export async function resetSalesStatAction(id, salesNo) {
         await tx.salesStat.createMany({
             data: statTypes.map((type) => {
                 const controls = overview.items.map(
-                    (i) => i.analytics?.stats?.[type],
+                    (i) => i.analytics?.stats?.[type]
                 );
                 const qties = overview.items
                     .filter((a) => {

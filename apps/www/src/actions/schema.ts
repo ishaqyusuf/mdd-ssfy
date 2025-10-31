@@ -2,7 +2,7 @@ import {
     AddressBookMeta,
     SalesDispatchStatus,
     StepComponentMeta,
-} from "@/app/(clean-code)/(sales)/types";
+} from "@/app-deps/(clean-code)/(sales)/types";
 import { DeliveryOption } from "@/types/sales";
 import { paymentMethods } from "@/utils/constants";
 import { z } from "zod";
@@ -128,7 +128,7 @@ export const updateComponentPricingSchema = z.object({
             id: z.number().optional(),
             dependenciesUid: z.string().optional(),
             price: z.number().optional(),
-        }),
+        })
     ),
 });
 export const createPaymentSchema = z
@@ -210,7 +210,7 @@ export const createSalesDispatchItemsSchema = z.object({
             itemUid: z.string(),
             note: z.string().optional().nullable(),
             totalItemQty: z.number(),
-        }),
+        })
     ),
 });
 export const createSalesDispatchSchema = z.object({

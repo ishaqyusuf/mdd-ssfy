@@ -1,7 +1,7 @@
 "use server";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { getSalesOrdersDta } from "../data-access/sales-dta";
-import { AsyncFnType } from "@/app/(clean-code)/type";
+import { AsyncFnType } from "@/app-deps/(clean-code)/type";
 import { unstable_noStore } from "next/cache";
 
 export type GetSalesOrderList = AsyncFnType<typeof getSalesOrderListUseCase>;

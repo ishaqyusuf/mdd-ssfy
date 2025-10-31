@@ -1,7 +1,7 @@
 import { Fragment, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Env } from "@/components/env";
-import { __revalidatePath } from "@/app/(v1)/_actions/_revalidate";
+import { __revalidatePath } from "@/app-deps/(v1)/_actions/_revalidate";
 import { DataTablePagination } from "@/components/common/data-table/data-table-pagination";
 import { formatCompactNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -77,7 +77,7 @@ function Header({
                 top == "sm" && "top-[60px]",
                 top == "lg" && "top-24",
                 "flex flex-col",
-                className,
+                className
             )}
             ref={ctx.topBarRef}
         >
@@ -176,7 +176,7 @@ function CustomTable({}) {
                                         <TableHead
                                             className={cn(
                                                 cellVariants(ctx.cellVariants),
-                                                "whitespace-nowrap",
+                                                "whitespace-nowrap"
                                             )}
                                             key={`${header.id}_${index}`}
                                         >
@@ -185,7 +185,7 @@ function CustomTable({}) {
                                                 : flexRender(
                                                       header.column.columnDef
                                                           .header,
-                                                      header.getContext(),
+                                                      header.getContext()
                                                   )}
                                         </TableHead>
                                     );
@@ -240,10 +240,10 @@ function Tr({ row, rowIndex }: TrProps) {
                         <Fragment key={`${cell.id}_cell_${index}`}>
                             {flexRender(
                                 cell.column.columnDef.cell,
-                                cell.getContext(),
+                                cell.getContext()
                             )}
                         </Fragment>
-                    ),
+                    )
                 )
                 .filter(Boolean)}
             {ctx.ActionCell && (

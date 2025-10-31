@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
-import { getSettingAction } from "@/app/(v1)/_actions/settings";
-import SubmitJobModal from "@/app/(v2)/(loggedIn)/contractors/_modals/submit-job-modal";
+import { getSettingAction } from "@/app-deps/(v1)/_actions/settings";
+import SubmitJobModal from "@/app-deps/(v2)/(loggedIn)/contractors/_modals/submit-job-modal";
 import Modal from "@/components/common/modal";
 import { useModal } from "@/components/common/modal/provider";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -133,13 +133,13 @@ export default function JobOverviewSheet({ admin, job }: Props) {
 function Content({ data }: { data: IJobs }) {
     const [job, setJob] = useState<IJobs>(data);
     const [costSetting, setCostSetting] = useState<InstallCostSettings>(
-        {} as any,
+        {} as any
     );
     useEffect(() => {
         getSettingAction<InstallCostSettings>("install-price-chart").then(
             (res) => {
                 setCostSetting(res);
-            },
+            }
         );
     }, []);
     const [divider, setDivider] = useState(data?.coWorkerId ? 2 : 1);
@@ -199,7 +199,7 @@ function Content({ data }: { data: IJobs }) {
                                 ?.filter(
                                     (l) =>
                                         (job.meta?.costData[l.uid]?.qty || 0) >
-                                        0,
+                                        0
                                 )
                                 .map((cd, i) => (
                                     <TaskRow

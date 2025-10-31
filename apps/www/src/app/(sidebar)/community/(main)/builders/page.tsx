@@ -4,10 +4,10 @@ import { Metadata } from "next";
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 
-import { queryParams } from "@/app/(v1)/_actions/action-utils";
-import { getBuildersAction } from "@/app/(v1)/(loggedIn)/settings/community/builders/action";
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
-import BuildersTableShell from "@/app/(v1)/(loggedIn)/settings/community/builders/builders-table-shell";
+import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
+import { getBuildersAction } from "@/app-deps/(v1)/(loggedIn)/settings/community/builders/action";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
+import BuildersTableShell from "@/app-deps/(v1)/(loggedIn)/settings/community/builders/builders-table-shell";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 
 export const metadata: Metadata = {

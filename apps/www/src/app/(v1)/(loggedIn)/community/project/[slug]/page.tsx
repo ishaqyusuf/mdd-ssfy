@@ -1,12 +1,12 @@
-import { queryParams } from "@/app/(v1)/_actions/action-utils";
+import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
 import { Metadata } from "next";
 import PageHeader from "@/components/_v1/page-header";
 import { ExtendedHome, IProject } from "@/types/community";
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 
-import { getProjectHomesAction } from "@/app/(v1)/_actions/community/home";
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import { getProjectHomesAction } from "@/app-deps/(v1)/_actions/community/home";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 import HomesTableShell from "../../units/homes-table-shell";
 import AddBtn from "../../units/add-button";
 
@@ -18,7 +18,7 @@ export default async function ProjectHomesPage(props) {
     const params = await props.params;
     const searchParams = await props.searchParams;
     const { project, ...response } = (await getProjectHomesAction(
-        queryParams({ ...searchParams, _projectSlug: params.slug }),
+        queryParams({ ...searchParams, _projectSlug: params.slug })
     )) as any;
     metadata.title = `${project.title} | Homes`;
 
@@ -46,3 +46,4 @@ export default async function ProjectHomesPage(props) {
         </AuthGuard>
     );
 }
+

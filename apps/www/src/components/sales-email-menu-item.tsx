@@ -1,4 +1,4 @@
-import { SalesType } from "@/app/(clean-code)/(sales)/types";
+import { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
 import {
     useSalesEmailSender,
     useSalesMailer,
@@ -49,8 +49,8 @@ export function SalesEmailMenuItem({
                     emailType: withPayment
                         ? "with payment"
                         : partPayment
-                          ? "with part payment"
-                          : "without payment",
+                        ? "with part payment"
+                        : "without payment",
                     printType: isQuote ? "quote" : "order",
                     salesIds: [salesId],
                 } as SendSalesEmailPayload,

@@ -1,7 +1,7 @@
 import { Env } from "@/components/env";
-import { getSalesPrintData } from "@/app/(v2)/printer/sales/get-sales-print-data";
-import { OrderBasePrinter } from "@/app/(v2)/printer/sales/order-base-printer";
-import SalesPrintDisplay from "@/app/(v2)/printer/sales/sales-print-display";
+import { getSalesPrintData } from "@/app-deps/(v2)/printer/sales/get-sales-print-data";
+import { OrderBasePrinter } from "@/app-deps/(v2)/printer/sales/order-base-printer";
+import SalesPrintDisplay from "@/app-deps/(v2)/printer/sales/sales-print-display";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { rndTimeout } from "@/lib/timeout";
 

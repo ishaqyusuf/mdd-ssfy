@@ -2,10 +2,10 @@ import {
     DykeStep,
     DykeStepMeta,
     FormStepArray,
-} from "@/app/(v2)/(loggedIn)/sales-v2/type";
+} from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
 import { IStepProducts } from ".";
 // import { getStepPricings } from "./_actions";
-import salesFormUtils from "@/app/(clean-code)/(sales)/_common/utils/sales-form-utils";
+import salesFormUtils from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-form-utils";
 
 interface Props {
     stepProducts: IStepProducts;
@@ -15,7 +15,7 @@ interface Props {
 }
 export async function initStepComponents(
     form,
-    { stepProducts, stepForm, stepArray, stepIndex }: Props,
+    { stepProducts, stepForm, stepArray, stepIndex }: Props
 ) {
     return null as any;
 }
@@ -32,7 +32,7 @@ export function getFormSteps(formStepArray: FormStepArray, stepIndex) {
 }
 export function getDykeStepState(
     _formSteps: ReturnType<typeof getFormSteps>,
-    stepForm: DykeStep,
+    stepForm: DykeStep
 ) {
     const stateDeps = stepForm.step.meta.stateDeps;
     let states: {

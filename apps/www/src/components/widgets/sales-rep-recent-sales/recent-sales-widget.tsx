@@ -1,5 +1,5 @@
 import { getMyRecentSales } from "@/actions/cached-sales-queries";
-import { authId } from "@/app/(v1)/_actions/utils";
+import { authId } from "@/app-deps/(v1)/_actions/utils";
 
 import { Skeleton } from "@gnd/ui/skeleton";
 

@@ -1,9 +1,9 @@
-import { dotSet } from "@/app/(clean-code)/_common/utils/utils";
-import { getPricingByUidUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-pricing-use-case";
+import { dotSet } from "@/app-deps/(clean-code)/_common/utils/utils";
+import { getPricingByUidUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-pricing-use-case";
 import {
     getStepComponentsUseCase,
     saveComponentRedirectUidUseCase,
-} from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
+} from "@/app-deps/(clean-code)/(sales)/_common/use-case/step-component-use-case";
 import { _modal } from "@/components/common/modal/provider";
 import { generateRandomString, sum } from "@/lib/utils";
 import { FieldPath, FieldPathValue } from "react-hook-form";
@@ -25,10 +25,7 @@ interface Filters {
 export class StepHelperClass extends SettingsClass {
     stepUid: string;
     itemUid;
-    constructor(
-        public itemStepUid,
-        public staticZus?: ZusSales,
-    ) {
+    constructor(public itemStepUid, public staticZus?: ZusSales) {
         const [itemUid, stepUid] = itemStepUid?.split("-");
         super(itemStepUid, itemUid, stepUid, staticZus);
         this.itemUid = itemUid;
@@ -46,7 +43,7 @@ export class StepHelperClass extends SettingsClass {
     }
     public getDoorStepForm2() {
         const doorStepForm = Object.entries(this.zus.kvStepForm).find(
-            ([k, v]) => k.startsWith(`${this.itemUid}-`) && v.title === "Door",
+            ([k, v]) => k.startsWith(`${this.itemUid}-`) && v.title === "Door"
         );
         return {
             itemStepUid: doorStepForm?.[0],
@@ -58,7 +55,7 @@ export class StepHelperClass extends SettingsClass {
         supplier?: {
             uid: string;
             name: string;
-        },
+        }
     ) {
         if (!doorItemStepUid)
             doorItemStepUid = this.getDoorStepForm2()?.itemStepUid;
@@ -66,11 +63,11 @@ export class StepHelperClass extends SettingsClass {
         if (doorItemStepUid) {
             this.zus.dotUpdate(
                 `kvStepForm.${doorItemStepUid}.formStepMeta.supplierUid`,
-                supplier?.uid || null,
+                supplier?.uid || null
             );
             this.zus.dotUpdate(
                 `kvStepForm.${doorItemStepUid}.formStepMeta.supplierName`,
-                supplier?.name || null,
+                supplier?.name || null
             );
         }
     }
@@ -101,7 +98,7 @@ export class StepHelperClass extends SettingsClass {
     }
     public isMultiSelectTitle(title) {
         return ["door", "moulding", "weatherstrip color"].includes(
-            title?.trim()?.toLocaleLowerCase(),
+            title?.trim()?.toLocaleLowerCase()
         );
     }
     public getTotalSelectionsCount() {
@@ -215,13 +212,13 @@ export class StepHelperClass extends SettingsClass {
                             !componentsUid?.length ||
                             (operator == "is"
                                 ? componentsUid?.some(
-                                      (a) => a == selectedComponentUid,
+                                      (a) => a == selectedComponentUid
                                   )
                                 : componentsUid?.every(
-                                      (a) => a != selectedComponentUid,
+                                      (a) => a != selectedComponentUid
                                   ))
                         );
-                    },
+                    }
                 );
                 if (matches)
                     vis.push(...rules.map((r) => r.componentsUid.join("-")));
@@ -245,7 +242,7 @@ export class StepHelperClass extends SettingsClass {
             this.getStepComponents?.map((c) => {
                 if (c.uid == data.uid) return data;
                 return c;
-            }),
+            })
         );
         this.refreshStepComponentsData();
     }
@@ -259,7 +256,7 @@ export class StepHelperClass extends SettingsClass {
                 }
 
                 return c;
-            }),
+            })
         );
     }
     public updateStepComponentVariants(variations, componentUids: string[]) {
@@ -269,7 +266,7 @@ export class StepHelperClass extends SettingsClass {
                 if (componentUids.includes(c.uid)) c.variations = variations;
 
                 return c;
-            }),
+            })
         );
     }
     public getComponentVariantData() {
@@ -334,15 +331,15 @@ export class StepHelperClass extends SettingsClass {
             ls?.length && !reload
                 ? ls
                 : stepData
-                  ? await getStepComponentsUseCase(
-                        stepData.title,
-                        stepData.stepId,
-                    )
-                  : [];
+                ? await getStepComponentsUseCase(
+                      stepData.title,
+                      stepData.stepId
+                  )
+                : [];
         if (!ls?.length || reload)
             this.zus.dotUpdate(
                 `kvStepComponentList.${this.stepUid}`,
-                components,
+                components
             );
         return this.filterStepComponents(components);
     }
@@ -411,7 +408,7 @@ export class StepHelperClass extends SettingsClass {
     }
     public rootStepFromUid(stepUid) {
         const mainStep = Object.values(
-            this.zus.setting.rootComponentsByKey,
+            this.zus.setting.rootComponentsByKey
         )?.find((s) => s.stepUid == stepUid);
         return mainStep;
     }
@@ -460,7 +457,7 @@ export class StepHelperClass extends SettingsClass {
     }
     public dotUpdateItemForm<K extends FieldPath<ZusItemFormData>>(
         k: K,
-        value: FieldPathValue<ZusItemFormData, K>,
+        value: FieldPathValue<ZusItemFormData, K>
     ) {
         this.zus.dotUpdate(`kvFormItem.${this.itemUid}.${k}`, value as any);
     }
@@ -487,7 +484,7 @@ export class StepHelperClass extends SettingsClass {
             if (prevNextStepUid != nextStepUid) {
                 const rems = stepSq.splice(
                     prevStepIndex + 1,
-                    stepSq.length - prevStepIndex - 1,
+                    stepSq.length - prevStepIndex - 1
                 );
                 this.deleteStepsForm(rems);
                 stepSq.push(nextStepUid);
@@ -503,7 +500,7 @@ export class StepHelperClass extends SettingsClass {
         const nrs = this.getNextRouteFromSettings(
             this.getItemForm(),
             isRoot,
-            redirectUid,
+            redirectUid
         );
 
         if (!nrs.nextRoute) {
@@ -558,7 +555,7 @@ export class StepHelperClass extends SettingsClass {
             sizeList,
             height,
             heightSizeList: filt?.filter(
-                (a, i) => i == filt.findIndex((s) => s.size == a.size),
+                (a, i) => i == filt.findIndex((s) => s.size == a.size)
             ),
         };
     }
@@ -652,7 +649,7 @@ export class StepHelperClass extends SettingsClass {
             const visibleComponentsUID = visibleComponents.map((a) => a.uid);
             const filteredCombs = combs.filter((a) => {
                 return a.uidStack.every((u) =>
-                    visibleComponentsUID.includes(u),
+                    visibleComponentsUID.includes(u)
                 );
             });
             const kvstepforms = this.zus.kvStepForm;
@@ -661,7 +658,7 @@ export class StepHelperClass extends SettingsClass {
                 let current = fc.uidStack.every(
                     (u, i) =>
                         kvstepforms[`${this.itemUid}-${fc.stepUidStack[i]}`]
-                            ?.componentUid == u,
+                            ?.componentUid == u
                 );
                 if (!form.pricing) form.pricing = {};
                 if (!form.pricing[path])
@@ -710,10 +707,10 @@ export class StepHelperClass extends SettingsClass {
                 this.isMoulding()
                     ? "MOULDING"
                     : _itemType == "Services"
-                      ? "SERVICE"
-                      : (_itemType as any) == "Shelf Items"
-                        ? "SHELF"
-                        : "HPT";
+                    ? "SERVICE"
+                    : (_itemType as any) == "Shelf Items"
+                    ? "SHELF"
+                    : "HPT";
             itemForm.groupItem = {
                 pricing: {
                     components: {
@@ -742,7 +739,7 @@ export class ComponentHelperClass extends StepHelperClass {
         itemStepUid,
         // zus: ZusSales,
         public componentUid,
-        public component?: ZusComponent,
+        public component?: ZusComponent
     ) {
         super(itemStepUid);
         this.redirectUid = this.getComponent?.redirectUid;
@@ -752,7 +749,7 @@ export class ComponentHelperClass extends StepHelperClass {
     public get getComponent() {
         if (this.component) return this.component;
         return this.zus.kvStepComponentList[this.stepUid]?.find(
-            (c) => c.uid == this.componentUid,
+            (c) => c.uid == this.componentUid
         );
         // this.component = load component
         // return this.component;
@@ -762,7 +759,7 @@ export class ComponentHelperClass extends StepHelperClass {
         const priceData = await getPricingByUidUseCase(this.componentUid);
 
         Object.entries(priceData).map(([k, d]) =>
-            this.zus.dotUpdate(`pricing.${k}`, d),
+            this.zus.dotUpdate(`pricing.${k}`, d)
         );
         this.refreshStepComponentsData();
     }
@@ -939,7 +936,7 @@ export class ComponentHelperClass extends StepHelperClass {
         });
         if (delistUids.length) {
             groupItem.itemIds = groupItem.itemIds?.filter(
-                (s) => !delistUids.includes(s),
+                (s) => !delistUids.includes(s)
             );
             this.dotUpdateItemForm("groupItem", groupItem);
             this.updateComponentCost();
@@ -948,7 +945,7 @@ export class ComponentHelperClass extends StepHelperClass {
 }
 
 function getCombinations(
-    arr: { title: string; uid: string; stepUid: string }[][],
+    arr: { title: string; uid: string; stepUid: string }[][]
 ) {
     // : { titleStack: string[]; uidStack: string[] }[]
     const result: {
@@ -961,7 +958,7 @@ function getCombinations(
         titleStack: string[],
         uidStack: string[],
         stepUidStack: string[],
-        index: number,
+        index: number
     ) {
         if (index === arr.length) {
             result.push({

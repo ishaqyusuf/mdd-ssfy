@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import {
     harvestDoorPricingUseCase,
     saveHarvestedDoorPricingUseCase,
-} from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
+} from "@/app-deps/(clean-code)/(sales)/_common/use-case/step-component-use-case";
 import { Menu } from "@/components/(clean-code)/menu";
 import { chunker } from "@/lib/chunker";
 import { toast } from "sonner";

@@ -25,11 +25,11 @@ import { calculateComponentPrices } from "../components/step-items-list/item-sec
 import { generateRandomString } from "@/lib/utils";
 import DeleteItemModal from "../components/modals/delete-item-modal";
 import { useModal } from "@/components/common/modal/provider";
-import { LegacyDykeFormStepType } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
-import StepComponentModal from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-component-modal/step-component-modal";
+import { LegacyDykeFormStepType } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
+import StepComponentModal from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-component-modal/step-component-modal";
 
 export const StepItemCtx = createContext<ReturnType<typeof useStepItems>>(
-    {} as any,
+    {} as any
 );
 export const useStepItemCtx = () => useContext(StepItemCtx);
 export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
@@ -61,7 +61,7 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
     async function selectProduct(
         currentState,
         stepProd?: IStepProducts[0],
-        custom = false,
+        custom = false
     ) {
         // return;
         let proceed = !stepProd;
@@ -72,14 +72,14 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
                 stepFormTitle,
                 () => {
                     selectProduct(false);
-                },
+                }
             );
             return;
         }
         if (proceed) {
             stepProd = item.multi.validateMultiSelect(
                 stepProducts,
-                stepFormTitle,
+                stepFormTitle
             ) as any;
         }
         if (!stepProd || !stepProd?.product) {
@@ -92,7 +92,7 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
                 stepProd?.product?.title;
 
             const hpt = form.getValues(
-                `itemArray.${item.rowIndex}.item.housePackageTool`,
+                `itemArray.${item.rowIndex}.item.housePackageTool`
             );
             const stepTitle = stepForm.step?.title;
 
@@ -157,19 +157,19 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
                                           },
                             },
                             stepProduct: null as any,
-                        },
+                        }
                     );
                     break;
                 case "Jamb Size":
                     form.setValue(
                         `itemArray.${item.rowIndex}.item.housePackageTool.jambSizeId`,
-                        stepProd?.dykeProductId,
+                        stepProd?.dykeProductId
                     );
                     break;
                 case "Door":
                     form.setValue(
                         `itemArray.${item.rowIndex}.item.housePackageTool.dykeDoorId`,
-                        stepProd?.dykeProductId,
+                        stepProd?.dykeProductId
                     );
                     break;
                 case "Specie":
@@ -177,11 +177,11 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
                 case "Item Type":
                     form.setValue(
                         `itemArray.${item.rowIndex}.multiComponent.components`,
-                        {},
+                        {}
                     );
                     form.setValue(
                         `itemArray.${item.rowIndex}.item.meta.doorType`,
-                        stepProd?.product?.title as any,
+                        stepProd?.product?.title as any
                     );
                     switch (stepProd?.product?.title) {
                         case "Services":
@@ -190,14 +190,14 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
                         case "Shelf Items":
                             form.setValue(
                                 `itemArray.${item.rowIndex}.item.housePackageTool`,
-                                null as any,
+                                null as any
                             );
                             //clean up package tools
                             break;
                         case "Moulding":
                             form.setValue(
                                 `itemArray.${item.rowIndex}.item.housePackageTool.moldingId`,
-                                stepProd?.dykeProductId,
+                                stepProd?.dykeProductId
                             );
                         case "Interior":
                         case "Exterior":
@@ -207,7 +207,7 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
                         case "Door Slabs Only":
                             form.setValue(
                                 `itemArray.${item.rowIndex}.item.housePackageTool.doorType`,
-                                stepProd?.product?.title as any,
+                                stepProd?.product?.title as any
                             );
                             doorType = stepProd?.product?.title;
                             break;
@@ -218,12 +218,12 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
             }
 
             const formSteps = form.getValues(
-                `itemArray.${item.rowIndex}.item.formStepArray`,
+                `itemArray.${item.rowIndex}.item.formStepArray`
             );
             formSteps[stepIndex].item = data as any;
             form.setValue(
                 `itemArray.${item.rowIndex}.item.formStepArray.${stepIndex}.item` as any,
-                data,
+                data
             );
             // form.setValue(
             //     `itemArray.${item.rowIndex}.item.formStepArray.${stepIndex}.item` as any,
@@ -236,7 +236,7 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
                 seq[stepProd.uid] = stepSeq;
                 form.setValue(
                     `itemArray.${item.rowIndex}.stepSequence.${stepProd.uid}`,
-                    stepSeq as any,
+                    stepSeq as any
                 );
             }
             let nextStepId = null;
@@ -247,7 +247,7 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
                 if (formSeq) {
                     formSeq.map(({ id: fsId }) => {
                         const existingStep = formSteps.find(
-                            (f) => f.step.id == fsId,
+                            (f) => f.step.id == fsId
                         );
 
                         if (!existingStep && !nextStepId) nextStepId = fsId;
@@ -263,7 +263,7 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
                 nextStepId ? null : (stepProd?.product as any),
                 stepProd,
                 [],
-                doorType,
+                doorType
             );
 
             if (nextSteps?.length) {
@@ -365,7 +365,7 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
                 // moulding={isMoulding && stepFormTitle == "Moulding"}
                 // item={_item}
                 // products={stepProducts}
-            />,
+            />
         );
     }
 
@@ -388,20 +388,20 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
     const isRoot = stepFormTitle == "Item Type";
     const [allowCustom, setAllowCustom] = useState(false);
     const customsChanged = form.watch(
-        "data.settings.dyke.customInputSection.changed",
+        "data.settings.dyke.customInputSection.changed"
     );
     useEffect(() => {
         allowsCustom();
     }, [customsChanged]);
     function allowsCustom() {
         const settings = form.getValues(
-            "data.settings.dyke.customInputSection.sections",
+            "data.settings.dyke.customInputSection.sections"
         );
         const title = stepForm.step.title;
         setAllowCustom(
             settings?.findIndex(
-                (s) => s.name?.toLowerCase() == title?.toLowerCase(),
-            ) > -1,
+                (s) => s.name?.toLowerCase() == title?.toLowerCase()
+            ) > -1
         );
     }
     const onDeleteItem = (stepItems) => {
@@ -428,7 +428,7 @@ export default function useStepItems(stepCtx: LegacyDykeFormStepType) {
                     stepForm={stepForm}
                     onComplete={onDeleteItem}
                     stepItems={items}
-                />,
+                />
             );
         },
         stepIndex,

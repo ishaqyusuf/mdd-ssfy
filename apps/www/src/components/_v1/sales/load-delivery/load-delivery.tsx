@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
-import { _readyForDelivery } from "@/app/(v1)/(loggedIn)/sales/_actions/delivery/ready-for-delivery";
-import { _startSalesDelivery } from "@/app/(v1)/(loggedIn)/sales/_actions/delivery/start-sales-delivery";
+import { _readyForDelivery } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/delivery/ready-for-delivery";
+import { _startSalesDelivery } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/delivery/start-sales-delivery";
 import Btn from "@/components/_v1/btn";
 import PageHeader from "@/components/_v1/page-header";
 import { useDataPage } from "@/lib/data-page-context";

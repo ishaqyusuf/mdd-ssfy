@@ -1,4 +1,4 @@
-import { composeQuery } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
+import { composeQuery } from "@/app-deps/(clean-code)/(sales)/_common/utils/db-utils";
 import { prisma } from "@/db";
 import { Prisma } from "@/db";
 import { composeQueryData, queryResponse } from "../query-response";
@@ -14,7 +14,7 @@ export async function commissionPaymentQueryMetaData(query: SearchParamsType) {
     const qd = await composeQueryData(
         query,
         whereCommissionPayment(query),
-        model,
+        model
     );
     return {
         ...qd,

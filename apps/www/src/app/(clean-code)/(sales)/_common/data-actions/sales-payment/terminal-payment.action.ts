@@ -8,7 +8,7 @@ import {
     getTerminalPaymentStatus,
 } from "@/modules/square";
 import { SquarePaymentMethods } from "../../../types";
-import { authId } from "@/app/(v1)/_actions/utils";
+import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { __cancelTerminalPayment, SquarePaymentStatus } from "@/_v2/lib/square";
 import { AsyncFnType } from "@/types";
 
@@ -59,14 +59,14 @@ interface CheckTerminalPaymentStatusActionProps {
     checkoutId;
 }
 export async function checkTerminalPaymentStatusAction(
-    props: CheckTerminalPaymentStatusActionProps,
+    props: CheckTerminalPaymentStatusActionProps
 ) {
     const { status, tip } = await getTerminalPaymentStatus(props.checkoutId);
     return { status, tip };
 }
 export async function cancelTerminalCheckoutAction(
     checkoutId,
-    squarePaymentId,
+    squarePaymentId
 ) {
     return await errorHandler(async () => {
         if (checkoutId) {

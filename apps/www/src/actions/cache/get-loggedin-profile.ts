@@ -5,7 +5,7 @@ import {
     authUser,
     serverSession,
     user,
-} from "@/app/(v1)/_actions/utils";
+} from "@/app-deps/(v1)/_actions/utils";
 import { PERMISSIONS } from "@gnd/utils/constants";
 import { prisma } from "@/db";
 import { env } from "@/env.mjs";

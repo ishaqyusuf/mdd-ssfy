@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo } from "react";
-import { updateStepMetaUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
-import { widthList } from "@/app/(clean-code)/(sales)/_common/utils/contants";
+import { updateStepMetaUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/step-component-use-case";
+import { widthList } from "@/app-deps/(clean-code)/(sales)/_common/utils/contants";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@/components/_v1/icons";
 import { ComboxBox } from "@/components/(clean-code)/custom/controlled/combo-box";
@@ -44,7 +44,7 @@ export function useInitContext(cls: StepHelperClass) {
     async function save() {
         const resp = await updateStepMetaUseCase(
             step.stepId,
-            form.getValues("meta"),
+            form.getValues("meta")
         );
         _modal.close();
         toast.success("Door Heights saved.");
@@ -136,7 +136,7 @@ function RuleComponent({ index }) {
     }
     function ComponentInput({ fieldIndex }) {
         const stepUid = ctx.form.watch(
-            `meta.doorSizeVariation.${index}.rules.${fieldIndex}.stepUid`,
+            `meta.doorSizeVariation.${index}.rules.${fieldIndex}.stepUid`
         );
         return (
             <ComboxBox

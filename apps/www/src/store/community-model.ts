@@ -1,4 +1,4 @@
-import { dotSet } from "@/app/(clean-code)/_common/utils/utils";
+import { dotSet } from "@/app-deps/(clean-code)/_common/utils/utils";
 import { GetCommunityBlockSchema } from "@community/community-template-schemas";
 
 import { FieldPath, FieldPathValue } from "react-hook-form";

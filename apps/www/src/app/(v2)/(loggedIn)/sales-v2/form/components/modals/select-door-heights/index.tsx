@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import salesFormUtils from "@/app/(clean-code)/(sales)/_common/utils/sales-form-utils";
+import salesFormUtils from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-form-utils";
 import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";
 import FormCheckbox from "@/components/common/controls/form-checkbox";
@@ -61,7 +61,7 @@ export default function SelectDoorHeightsModal({
 
     const heights: ComponentHeight = form.getValues(heightsKey as any);
     const height = form.getValues(
-        `itemArray.${rowIndex}.item.housePackageTool.height`,
+        `itemArray.${rowIndex}.item.housePackageTool.height`
     );
     let hIn = ftToIn(height);
 
@@ -80,7 +80,7 @@ export default function SelectDoorHeightsModal({
     });
     if (!stepProd.product.meta.doorPrice) stepProd.product.meta.doorPrice = {};
     const [heightPrices, setHeightPrices] = useState(
-        stepProd.product.meta.doorPrice,
+        stepProd.product.meta.doorPrice
     );
     useEffect(() => {
         (async () => {
@@ -96,7 +96,7 @@ export default function SelectDoorHeightsModal({
                     basePrice: heightPrices[s?.dimFt],
                     price: salesFormUtils.salesProfileCost(
                         form,
-                        heightPrices[s?.dimFt],
+                        heightPrices[s?.dimFt]
                     ),
                 };
             });
@@ -110,10 +110,10 @@ export default function SelectDoorHeightsModal({
                         basePrice: heightPrices[s?.dimFt],
                         price: salesFormUtils.salesProfileCost(
                             form,
-                            heightPrices[s?.dimFt],
+                            heightPrices[s?.dimFt]
                         ),
                     };
-                }),
+                })
             );
         })();
     }, []);
@@ -121,7 +121,7 @@ export default function SelectDoorHeightsModal({
     function _onSubmit() {
         const sizesData = sizeForm.getValues("sizes");
         const priceTags: HousePackageToolMeta["priceTags"] = form.getValues(
-            `${baseKey}.priceTags` as any,
+            `${baseKey}.priceTags` as any
         ) || {
             doorSizePriceTag: {},
         };
@@ -147,8 +147,8 @@ export default function SelectDoorHeightsModal({
                     salesFormUtils.componentPrice.update(
                         form,
                         pData,
-                        size.basePrice,
-                    ),
+                        size.basePrice
+                    )
                 );
             }
         });
@@ -224,7 +224,7 @@ export default function SelectDoorHeightsModal({
                 <DropdownMenu open={show} onOpenChange={setShow}>
                     <DropdownMenuTrigger
                         className={cn(
-                            !show && "opacity-0 group-hover:opacity-100",
+                            !show && "opacity-0 group-hover:opacity-100"
                         )}
                     >
                         <Button

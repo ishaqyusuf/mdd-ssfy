@@ -1,4 +1,4 @@
-import { useHomeModal } from "@/app/(v1)/(loggedIn)/community/units/home-modal";
+import { useHomeModal } from "@/app-deps/(v1)/(loggedIn)/community/units/home-modal";
 import { useProjectUnitParams } from "@/hooks/use-project-units-params";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";

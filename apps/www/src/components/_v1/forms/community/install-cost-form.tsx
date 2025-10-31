@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { saveSettingAction } from "@/app/(v1)/_actions/settings";
+import { saveSettingAction } from "@/app-deps/(v1)/_actions/settings";
 import Btn from "@/components/_v1/btn";
 import PageHeader from "@/components/_v1/page-header";
 import { generateRandomString } from "@/lib/utils";
@@ -186,7 +186,7 @@ export function InstallCostForm({ data }: { data: InstallCostSettings }) {
                                                                 <Button
                                                                     onClick={() => {
                                                                         remove(
-                                                                            rowIndex,
+                                                                            rowIndex
                                                                         );
                                                                     }}
                                                                     size="icon"

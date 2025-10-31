@@ -3,12 +3,12 @@
 import React, { memo, useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
-import { _getModelCostStat } from "@/app/(v1)/_actions/community/_model-cost-stat";
+import { _getModelCostStat } from "@/app-deps/(v1)/_actions/community/_model-cost-stat";
 import {
     _deleteCommunityModelCost,
     _saveCommunitModelCostData,
-} from "@/app/(v1)/_actions/community/community-model-cost";
-import { saveModelCost } from "@/app/(v1)/_actions/community/model-costs";
+} from "@/app-deps/(v1)/_actions/community/community-model-cost";
+import { saveModelCost } from "@/app-deps/(v1)/_actions/community/model-costs";
 import { calculateCommunitModelCost } from "@/lib/community/community-utils";
 import { deepCopy } from "@/lib/deep-copy";
 import { cn, sum } from "@/lib/utils";
@@ -56,7 +56,7 @@ export default function ModelCostModal({ community }: { community?: Boolean }) {
 
     async function init(data: IHomeTemplate) {
         let costs = deepCopy<ICostChart[]>(
-            (data as any)?.pivot?.modelCosts || data.costs || [],
+            (data as any)?.pivot?.modelCosts || data.costs || []
         )?.map((c) => {
             if (c.startDate) c.startDate = new Date(c.startDate);
             if (c.endDate) c.endDate = new Date(c.endDate);
@@ -122,7 +122,7 @@ export default function ModelCostModal({ community }: { community?: Boolean }) {
                                             changeIndex={changeIndex}
                                             index={index}
                                         />
-                                    ),
+                                    )
                             )}
                         </div>
                     </div>
@@ -174,7 +174,7 @@ export function CostForm({ form, data, fIndex, community, index }: Props) {
                 if (community) {
                     cost.meta = calculateCommunitModelCost(
                         cost.meta,
-                        data.project?.builder?.meta?.tasks,
+                        data.project?.builder?.meta?.tasks
                     ) as any;
 
                     cost.model = data.modelName;
@@ -187,7 +187,7 @@ export function CostForm({ form, data, fIndex, community, index }: Props) {
                         _cost as any,
                         data.id,
                         data.pivotId,
-                        form.getValues("includeCompleted"),
+                        form.getValues("includeCompleted")
                     );
                     form.setValue(`costs.${index}` as any, {
                         ...c,
@@ -251,7 +251,7 @@ export function CostForm({ form, data, fIndex, community, index }: Props) {
                             key="cost"
                             className="h-8"
                             {...form.register(
-                                `costs.${fIndex}.meta.costs.${t.uid}`,
+                                `costs.${fIndex}.meta.costs.${t.uid}`
                             )}
                         />
                     </div>
@@ -260,7 +260,7 @@ export function CostForm({ form, data, fIndex, community, index }: Props) {
                             type="number"
                             className="h-8"
                             {...form.register(
-                                `costs.${fIndex}.meta.tax.${t.uid}`,
+                                `costs.${fIndex}.meta.tax.${t.uid}`
                             )}
                         />
                     </div>
@@ -360,7 +360,7 @@ export function CostHistory({
                                     <div>
                                         <Badge className="" variant={"outline"}>
                                             {form.getValues(
-                                                `costStats.${f._id}`,
+                                                `costStats.${f._id}`
                                             ) || 0}
                                         </Badge>
                                     </div>
@@ -386,7 +386,7 @@ export function CostHistory({
                                 size="icon"
                                 className={cn(
                                     community &&
-                                        "opacity-20 group-hover:opacity-100",
+                                        "opacity-20 group-hover:opacity-100"
                                 )}
                                 trash
                             ></ConfirmBtn>

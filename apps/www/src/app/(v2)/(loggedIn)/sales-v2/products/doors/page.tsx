@@ -4,10 +4,10 @@ import DykeTabLayout from "../_components/dyke-tab-layout";
 import { Metadata } from "next";
 import { Shell } from "@/components/shell";
 import { SearchParams } from "@/types";
-import { queryParams } from "@/app/(v1)/_actions/action-utils";
+import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
 import DykeDoorsTable from "./_components/dyke-doors-table";
 import { _getDykeDoors } from "../_actions/dyke-doors";
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 export const metadata: Metadata = {
     title: "Shelf Items | GND",
 };
@@ -32,3 +32,4 @@ export default async function DykeDoorsPage(props: Props) {
         </AuthGuard>
     );
 }
+

@@ -1,6 +1,6 @@
 "use server";
 
-import { SalesMeta } from "@/app/(clean-code)/(sales)/types";
+import { SalesMeta } from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
 

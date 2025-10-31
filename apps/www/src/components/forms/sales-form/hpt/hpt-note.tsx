@@ -1,4 +1,4 @@
-import { doorItemControlUid } from "@/app/(clean-code)/(sales)/_common/utils/item-control-utils";
+import { doorItemControlUid } from "@/app-deps/(clean-code)/(sales)/_common/utils/item-control-utils";
 import { useHpt, useHptLine } from "../context";
 import { noteTagFilter } from "@/modules/notes/utils";
 import { TableCell, TableRow } from "@gnd/ui/table";

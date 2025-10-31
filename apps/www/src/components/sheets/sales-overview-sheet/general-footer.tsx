@@ -4,7 +4,7 @@ import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import {
     deleteSalesUseCase,
     restoreDeleteUseCase,
-} from "@/app/(clean-code)/(sales)/_common/use-case/sales-use-case";
+} from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-use-case";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@/components/_v1/icons";
 import { Menu } from "@/components/(clean-code)/menu";
@@ -43,7 +43,7 @@ export function GeneralFooter({}) {
             try {
                 const resp = await resetSalesStatAction(
                     data?.id,
-                    data?.orderId,
+                    data?.orderId
                 );
                 toast.success("Reset complete");
                 qs.salesQuery.salesStatReset();
@@ -139,7 +139,7 @@ export function GeneralFooter({}) {
                                     {
                                         salesNo: data.orderId,
                                     },
-                                    true,
+                                    true
                                 );
                             }}
                             disabled={loading}

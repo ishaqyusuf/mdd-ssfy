@@ -1,7 +1,7 @@
 "use server";
 
-import { fixDbTime } from "@/app/(v1)/_actions/action-utils";
-import { authId } from "@/app/(v1)/_actions/utils";
+import { fixDbTime } from "@/app-deps/(v1)/_actions/action-utils";
+import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { Prisma, prisma } from "@/db";
 import dayjs from "dayjs";
@@ -55,7 +55,7 @@ export async function getSalesProductionQueryTabs() {
     ];
 }
 async function whereSales(
-    query: SearchParamsType,
+    query: SearchParamsType
 ): Promise<Prisma.SalesOrdersWhereInput> {
     const assignedToId = await authId();
     switch (query["production.status"]) {

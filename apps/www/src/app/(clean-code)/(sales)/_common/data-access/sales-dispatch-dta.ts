@@ -1,9 +1,9 @@
 import {
     getPageInfo,
     pageQueryFilter,
-} from "@/app/(clean-code)/_common/utils/db-utils";
-import { AsyncFnType, PageBaseQuery } from "@/app/(clean-code)/type";
-import { userId } from "@/app/(v1)/_actions/utils";
+} from "@/app-deps/(clean-code)/_common/utils/db-utils";
+import { AsyncFnType, PageBaseQuery } from "@/app-deps/(clean-code)/type";
+import { userId } from "@/app-deps/(v1)/_actions/utils";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { prisma, Prisma } from "@/db";
 import { sum } from "@/lib/utils";
@@ -44,7 +44,7 @@ export type GetSalesDispatchListDta = AsyncFnType<
     typeof getSalesDispatchListDta
 >;
 export async function getSalesDispatchListDta(
-    query: GetSalesDispatchListQuery,
+    query: GetSalesDispatchListQuery
 ) {
     const where = whereDispatch(query);
     const data = await prisma.orderDelivery.findMany({
@@ -105,7 +105,7 @@ export async function deleteSalesDispatchDta(id) {
         },
     });
     let totalQty = sum(
-        d.items.map((item) => sum([item.lhQty, item.rhQty]) || item.qty),
+        d.items.map((item) => sum([item.lhQty, item.rhQty]) || item.qty)
     );
     await prisma.orderItemDelivery.updateMany({
         where: {
@@ -124,7 +124,7 @@ export async function deleteSalesDispatchDta(id) {
 export async function updateSalesDispatchStatusDta(
     id,
     status: SalesDispatchStatus,
-    oldStatus: SalesDispatchStatus,
+    oldStatus: SalesDispatchStatus
 ) {
     const dispatch = await prisma.orderDelivery.update({
         where: { id },
@@ -148,7 +148,7 @@ export async function updateSalesDispatchStatusDta(
             "dispatchCompleted",
             {
                 minusScore: score,
-            },
+            }
         );
     if (oldStatus == "cancelled" && status != oldStatus)
         await updateSalesProgressDta(
@@ -156,7 +156,7 @@ export async function updateSalesDispatchStatusDta(
             "dispatchCompleted",
             {
                 plusScore: score,
-            },
+            }
         );
 }
 
@@ -178,7 +178,7 @@ export async function createSalesDispatchDta(data: SalesDispatchFormData) {
             } satisfies CreateManyDeliveryItem;
             const { analytics, deliverableSubmissions, assignments } =
                 data.shipping.dispatchableItemList.find(
-                    (item) => item.id == selection.itemId,
+                    (item) => item.id == selection.itemId
                 );
             let qty = selection.deliveryQty; //{lh:10,rh:5}
             qty.total = sum([qty.lh, qty.rh]) || qty.qty;
@@ -253,7 +253,7 @@ export async function createSalesDispatchDta(data: SalesDispatchFormData) {
                             },
                         },
                     },
-                    false,
+                    false
                 );
                 const subQty = {
                     lh: submission.lhQty,
@@ -277,10 +277,10 @@ export async function createSalesDispatchDta(data: SalesDispatchFormData) {
                     "dispatchCompleted",
                     {
                         plusScore: totalQty,
-                    },
+                    }
                 );
             }
-        }),
+        })
     );
     return {
         dispatch,

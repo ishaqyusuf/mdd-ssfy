@@ -3,9 +3,9 @@
 import React, { useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
-import { _readyForDelivery } from "@/app/(v1)/(loggedIn)/sales/_actions/delivery/ready-for-delivery";
-import { _startSalesDelivery } from "@/app/(v1)/(loggedIn)/sales/_actions/delivery/start-sales-delivery";
-import { _createBackorder } from "@/app/(v2)/(loggedIn)/sales/_actions/create-back-order";
+import { _readyForDelivery } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/delivery/ready-for-delivery";
+import { _startSalesDelivery } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/delivery/start-sales-delivery";
+import { _createBackorder } from "@/app-deps/(v2)/(loggedIn)/sales/_actions/create-back-order";
 import Btn from "@/components/_v1/btn";
 import { TruckLoaderForm } from "@/components/_v1/sales/load-delivery/load-delivery";
 import { closeModal } from "@/lib/modal";
@@ -101,7 +101,7 @@ export default function InspectBackOrderModal() {
                                                         <p>{slug}</p>
                                                     </div>
                                                 </TabsTrigger>
-                                            ),
+                                            )
                                     )}
                                 </TabsList>
                                 <ScrollArea className="h-[50vh]">
@@ -143,12 +143,12 @@ export default function InspectBackOrderModal() {
                                                                             item
                                                                         }
                                                                     />
-                                                                ),
+                                                                )
                                                             )}
                                                         </TableBody>
                                                     </Table>
                                                 </TabsContent>
-                                            ),
+                                            )
                                     )}
                                 </ScrollArea>
                             </Tabs>
@@ -171,7 +171,7 @@ function BackOrderLine({ form, slug, item }) {
                 !backQty && item.qty > 0 && "grayscale-0",
                 checked && "bg-orange-100 hover:bg-orange-100",
                 backQty &&
-                    "cursor-not-allowed bg-orange-200 hover:bg-orange-200",
+                    "cursor-not-allowed bg-orange-200 hover:bg-orange-200"
             )}
             key={item.id}
         >

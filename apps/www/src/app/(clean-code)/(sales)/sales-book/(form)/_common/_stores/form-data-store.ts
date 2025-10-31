@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import { SalesFormZusData } from "../../../../types";
 import { FieldPath } from "react-hook-form";
-import { dotObject } from "@/app/(clean-code)/_common/utils/utils";
+import { dotObject } from "@/app-deps/(clean-code)/_common/utils/utils";
 import { deepCopy } from "@/lib/deep-copy";
 import { StepComponentData } from "@api/db/queries/sales-form";
 export type ZusSales = SalesFormZusData & SalesFormZusAction;
@@ -14,7 +14,7 @@ export type ZusGroupItemForm = ZusItemFormData["groupItem"]["form"];
 export type ZusGroupItemFormPath = ZusGroupItemForm[string];
 type SalesFormZusAction = ReturnType<typeof fns>;
 export type SalesFormSet = (
-    update: (state: SalesFormZusData) => Partial<SalesFormZusData>,
+    update: (state: SalesFormZusData) => Partial<SalesFormZusData>
 ) => void;
 function fns(set: SalesFormSet) {
     return {
@@ -68,7 +68,7 @@ function fns(set: SalesFormSet) {
             }),
         dotUpdate: <K extends FieldPath<SalesFormZusData>>(
             k: K,
-            stepSq, //: FieldPathValue<SalesFormZusData, K>
+            stepSq //: FieldPathValue<SalesFormZusData, K>
         ) =>
             set((state) => {
                 const newState = {
@@ -88,7 +88,7 @@ function fns(set: SalesFormSet) {
         updateFormItem: (
             uid,
             k: keyof SalesFormZusData["kvFormItem"][number],
-            value,
+            value
         ) =>
             set((state) => {
                 const newState = { ...state };
@@ -107,6 +107,6 @@ export const useFormDataStore = create<ZusSales>(
     (set) =>
         ({
             ...fns(set),
-        }) as any,
+        } as any)
 );
 export const getFormState = () => useFormDataStore.getState();

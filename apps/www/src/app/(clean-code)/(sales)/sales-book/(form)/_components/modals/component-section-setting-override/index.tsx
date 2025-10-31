@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo } from "react";
 import {
     saveComponentVariantUseCase,
     updateSectionOverrideUseCase,
-} from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
+} from "@/app-deps/(clean-code)/(sales)/_common/use-case/step-component-use-case";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@/components/_v1/icons";
 import { ComboxBox } from "@/components/(clean-code)/custom/controlled/combo-box";

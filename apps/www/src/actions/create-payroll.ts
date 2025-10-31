@@ -1,6 +1,6 @@
 "use server";
 
-import { authId } from "@/app/(v1)/_actions/utils";
+import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { payrollUid } from "@/utils/sales-utils";
@@ -36,7 +36,7 @@ export async function createPayrollAction(data: Props) {
     const uid = payrollUid(
         data.orderId,
         data.salesPaymentId,
-        data.submissionId,
+        data.submissionId
     );
     await prisma.payroll.create({
         data: {

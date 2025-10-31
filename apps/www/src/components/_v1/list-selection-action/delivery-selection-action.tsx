@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "@/components/link";
-import { updateSalesDelivery } from "@/app/(v1)/(loggedIn)/sales/_actions/_sales-pickup";
+import { updateSalesDelivery } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/_sales-pickup";
 import useQueryParams from "@/lib/use-query-params";
 
 import { Button } from "@gnd/ui/button";
@@ -17,7 +17,7 @@ export function DeliveryBatchAction({ items }) {
     async function _updateSales(status) {
         await updateSalesDelivery(
             items.map((i) => i.id),
-            status,
+            status
         );
     }
     return (
@@ -26,7 +26,7 @@ export function DeliveryBatchAction({ items }) {
                 <Button asChild size={"sm"} className="h-8">
                     <Link
                         href={`/sales/delivery/get-ready?orderIds=${items.map(
-                            ({ slug }) => slug,
+                            ({ slug }) => slug
                         )}`}
                     >
                         <span>Ready</span>
@@ -37,7 +37,7 @@ export function DeliveryBatchAction({ items }) {
                 <Button asChild size={"sm"} className="h-8">
                     <Link
                         href={`/sales/delivery/load?orderIds=${items.map(
-                            ({ slug }) => slug,
+                            ({ slug }) => slug
                         )}`}
                     >
                         <span>Ready</span>

@@ -1,7 +1,7 @@
 import {
     QtyControlType,
     TypedSalesStat,
-} from "@/app/(clean-code)/(sales)/types";
+} from "@/app-deps/(clean-code)/(sales)/types";
 import { GetAllSales, SalesItem } from "@/data-access/sales";
 import { IGetFullSale } from "@/data-access/sales.get-overview";
 import { SalesStat } from "@/db";

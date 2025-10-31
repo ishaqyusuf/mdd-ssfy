@@ -3,7 +3,7 @@
 import { ISalesOrder, ISalesOrderForm } from "@/types/sales";
 import { DatePicker } from "../date-range-picker";
 import { toast } from "sonner";
-import { _updateSalesDate } from "@/app/(v1)/(loggedIn)/sales/update-sales-date";
+import { _updateSalesDate } from "@/app-deps/(v1)/(loggedIn)/sales/update-sales-date";
 import { useEffect, useState } from "react";
 import { Label } from "@gnd/ui/label";
 

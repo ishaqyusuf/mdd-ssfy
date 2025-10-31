@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { saveSettingAction } from "@/app/(v1)/_actions/settings";
+import { saveSettingAction } from "@/app-deps/(v1)/_actions/settings";
 import Btn from "@/components/_v1/btn";
 import PageHeader from "@/components/_v1/page-header";
 import { resetPasswordSchema } from "@/lib/validations/auth";
@@ -46,7 +46,7 @@ export function DimensionList({ data }: { data: HousePackageToolSettings }) {
             try {
                 await saveHousePackageTool(
                     form.getValues("id"),
-                    form.getValues("data"),
+                    form.getValues("data")
                 );
                 toast.success("Saved.");
             } catch (err: any) {
@@ -177,7 +177,7 @@ export function DimensionList({ data }: { data: HousePackageToolSettings }) {
                                                                 <Button
                                                                     onClick={() => {
                                                                         remove(
-                                                                            rowIndex,
+                                                                            rowIndex
                                                                         );
                                                                     }}
                                                                     size="icon"

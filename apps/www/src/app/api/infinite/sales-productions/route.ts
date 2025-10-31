@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 
-import { getProductionListPageAction } from "@/app/(clean-code)/(sales)/_common/data-actions/production-actions/productions-list-action";
+import { getProductionListPageAction } from "@/app-deps/(clean-code)/(sales)/_common/data-actions/production-actions/productions-list-action";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 
 export async function GET(req: NextRequest) {
@@ -12,6 +12,6 @@ export async function GET(req: NextRequest) {
     } as SearchParamsType;
 
     return Response.json(
-        await getProductionListPageAction(search as any, true),
+        await getProductionListPageAction(search as any, true)
     );
 }

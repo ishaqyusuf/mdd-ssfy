@@ -3,8 +3,8 @@
 import {
     inifinitePageInfo,
     pageQueryFilter,
-} from "@/app/(clean-code)/_common/utils/db-utils";
-import { authId } from "@/app/(v1)/_actions/utils";
+} from "@/app-deps/(clean-code)/_common/utils/db-utils";
+import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { composeSalesStatKeyValue } from "@/data/compose-sales";
 import { prisma, Prisma } from "@/db";
@@ -20,7 +20,7 @@ export type GetProductionListPage = AsyncFnType<
 >;
 export type GetProductionList = AsyncFnType<typeof getProductionListAction>;
 export async function getProductionTasksListPageAction(
-    query: SearchParamsType,
+    query: SearchParamsType
 ) {
     const q = { ...query };
     q["production.assignedToId"] = await authId();
@@ -29,7 +29,7 @@ export async function getProductionTasksListPageAction(
 }
 export async function getProductionListPageAction(
     query: SearchParamsType,
-    admin = false,
+    admin = false
 ) {
     const excludes: (keyof SearchParamsType)[] = [
         "sort",
@@ -40,7 +40,7 @@ export async function getProductionListPageAction(
     if (!admin) excludes.push("production.assignedToId");
 
     const q = Object.entries(query)?.filter(
-        ([a, b]) => b && !excludes.includes(a as any),
+        ([a, b]) => b && !excludes.includes(a as any)
     );
     const queryCount = q?.length;
     const assignedToId = query["production.assignedToId"];
@@ -85,7 +85,7 @@ export async function getProductionListPageAction(
         query,
         whereSales(query),
         prisma.salesOrders,
-        [...customs, ...others.map(transformProductionList)],
+        [...customs, ...others.map(transformProductionList)]
         // [...dueToday, ...pastDue, ...others].map(transformProductionList)
     );
     return result;
@@ -98,8 +98,8 @@ export async function getProductionListAction(query: SearchParamsType) {
             Array.isArray(where?.AND)
                 ? where.AND?.map((a) => a.assignments?.some).filter(Boolean)
                 : where?.assignments
-                  ? [where?.assignments]
-                  : []
+                ? [where?.assignments]
+                : []
         ) as any;
 
     const data = await prisma.salesOrders.findMany({
@@ -168,14 +168,14 @@ function transformProductionList(item: GetProductionList[number]) {
     const alert = dueDateAlert(dueDate);
 
     const totalAssigned = sum(
-        item.assignments.map((p) => p.qtyAssigned || sum([p.lhQty, p.rhQty])),
+        item.assignments.map((p) => p.qtyAssigned || sum([p.lhQty, p.rhQty]))
     );
     const stats = composeSalesStatKeyValue(item.stat);
 
     const totalCompleted = sum(
         item.assignments.map((a) =>
-            sum(a.submissions.map((s) => s.qty || sum([s.lhQty, s.rhQty]))),
-        ),
+            sum(a.submissions.map((s) => s.qty || sum([s.lhQty, s.rhQty])))
+        )
     );
     const completed = totalAssigned == totalCompleted;
     // if (completed) alert.date = null;
@@ -190,7 +190,7 @@ function transformProductionList(item: GetProductionList[number]) {
 
         salesRep: item?.salesRep?.name,
         assignedTo: Array.from(
-            new Set(item.assignments.map((a) => a.assignedTo?.name)),
+            new Set(item.assignments.map((a) => a.assignedTo?.name))
         )
             .filter((a) => !!a)
             .join(" & "),

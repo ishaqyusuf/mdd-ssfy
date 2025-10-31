@@ -1,6 +1,6 @@
 "use server";
 
-import { CustomerProfileMeta } from "@/app/(clean-code)/(sales)/types";
+import { CustomerProfileMeta } from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { Tags } from "@/utils/constants";
 import { unstable_cache } from "next/cache";

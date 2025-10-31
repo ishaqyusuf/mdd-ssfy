@@ -1,4 +1,4 @@
-import { ActionTicketMeta } from "@/app/(clean-code)/type";
+import { ActionTicketMeta } from "@/app-deps/(clean-code)/type";
 import { actionTicketEvents, actionTicketTypes } from "@/utils/constants";
 import { createSiteActionTicket } from "./create-site-action-ticket";
 

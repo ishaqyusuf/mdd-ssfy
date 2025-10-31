@@ -14,7 +14,7 @@ import {
     CommunityModelStore,
     useCommunityModelStore,
 } from "@/store/community-model";
-import { dotObject } from "@/app/(clean-code)/_common/utils/utils";
+import { dotObject } from "@/app-deps/(clean-code)/_common/utils/utils";
 type TemplateSchemaContext = ReturnType<typeof createTemplateSchemaContext>;
 export const TemplateSchemaContext =
     createContext<TemplateSchemaContext>(undefined);

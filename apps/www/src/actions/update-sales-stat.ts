@@ -1,4 +1,4 @@
-import { QtyControlType } from "@/app/(clean-code)/(sales)/types";
+import { QtyControlType } from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { percent, sum } from "@/lib/utils";
 
@@ -8,7 +8,7 @@ interface Props {
 }
 export async function updateSalesStatAction(
     props: Props,
-    tx: typeof prisma = prisma,
+    tx: typeof prisma = prisma
 ) {
     const sale = await tx.salesOrders.findUnique({
         where: {
@@ -56,7 +56,7 @@ export async function updateSalesStatAction(
                             ...a,
                             ...q,
                         }))
-                        .filter((a) => a.type == stat.type),
+                        .filter((a) => a.type == stat.type)
                 )
                 .flat();
 
@@ -66,7 +66,7 @@ export async function updateSalesStatAction(
                     if (a.autoComplete) a.qty = a.itemTotal;
                     return a;
                 }),
-                "qty",
+                "qty"
             );
             let percentage = percent(qty, total);
             await tx.salesStat.update({
@@ -82,6 +82,6 @@ export async function updateSalesStatAction(
                     total,
                 },
             });
-        }),
+        })
     );
 }

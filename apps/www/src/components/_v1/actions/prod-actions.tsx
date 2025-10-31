@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "@/components/link";
-import { _updateOrderInventoryStatus } from "@/app/(v1)/(loggedIn)/sales/_actions/sales-inventory";
+import { _updateOrderInventoryStatus } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/sales-inventory";
 import { ISalesOrder, ISalesType } from "@/types/sales";
 import { MoreHorizontal, View } from "lucide-react";
 import { toast } from "sonner";
@@ -65,7 +65,7 @@ export function ProdActions(props: IOrderRowProps) {
                                         >
                                             {status}
                                         </RowActionMenuItem>
-                                    ),
+                                    )
                                 )}
                             </>
                         }

@@ -1,11 +1,11 @@
 import {
     ComponentHelperClass,
     StepHelperClass,
-} from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 
 export async function updateComponentsPrice(
     component: ComponentHelperClass,
-    takeOff = false,
+    takeOff = false
 ) {
     const stepuids = component.getItemStepSequence();
     await Promise.all(
@@ -17,16 +17,15 @@ export async function updateComponentsPrice(
                 if (!stepForm?.componentId) return;
                 const components = await stepClass.fetchStepComponents();
                 const selection = components?.find(
-                    (s) =>
-                        s._metaData.visible && stepForm?.componentId === s.id,
+                    (s) => s._metaData.visible && stepForm?.componentId === s.id
                 );
                 if (selection?.basePrice != stepForm?.basePrice) {
                     new ComponentHelperClass(
                         itemStepUid,
                         selection?.uid,
-                        selection,
+                        selection
                     ).selectComponent(takeOff);
                 }
-            }),
+            })
     );
 }

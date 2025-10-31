@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import {
     _getSalesFormAction,
     SalesFormResponse,
-} from "@/app/(v1)/(loggedIn)/sales/_actions/get-sales-form";
+} from "@/app-deps/(v1)/(loggedIn)/sales/_actions/get-sales-form";
 import AutoComplete from "@/components/_v1/common/auto-complete";
 import {
     Menu,
@@ -111,7 +111,7 @@ export default function InvoiceTable() {
                                                             if (index != 0)
                                                                 move(
                                                                     index,
-                                                                    index - 1,
+                                                                    index - 1
                                                                 );
                                                         }}
                                                     >
@@ -126,7 +126,7 @@ export default function InvoiceTable() {
                                                             )
                                                                 move(
                                                                     index,
-                                                                    index + 1,
+                                                                    index + 1
                                                                 );
                                                         }}
                                                     >

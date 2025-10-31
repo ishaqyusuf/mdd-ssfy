@@ -1,11 +1,11 @@
-import { IStepProducts } from "@/app/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products";
-import { LegacyDykeFormStepType } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
+import { IStepProducts } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products";
+import { LegacyDykeFormStepType } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
 import { generateRandomString } from "@/lib/utils";
 import { _modal } from "@/components/common/modal/provider";
 import ComponentDepsModal from "../../_components/modals/step-component-modal/component-deps-modal";
 import { toast } from "sonner";
-import { saveStepProduct } from "@/app/(v2)/(loggedIn)/sales-v2/form/_action/save-step-product";
-import { sortStepComponentsUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
+import { saveStepProduct } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/_action/save-step-product";
+import { sortStepComponentsUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/step-component-use-case";
 
 type CtxProps = LegacyDykeFormStepType;
 export type StepProduct = IStepProducts[number];
@@ -40,11 +40,11 @@ async function saveComponent(ctx: CtxProps, formData: StepProduct, form?) {
         let _show = {};
         let valid = false;
         Object.entries(d).map(
-            ([k, v]) => v && (_show[k] = true) && (valid = true),
+            ([k, v]) => v && (_show[k] = true) && (valid = true)
         );
         if (!valid) {
             toast.error(
-                "Select atleast one component tree and use the visible for all button",
+                "Select atleast one component tree and use the visible for all button"
             );
             return;
         }
@@ -87,7 +87,7 @@ function copyProduct(form, root, product: StepProduct) {
         onUpload(form, product.product?.meta?.svg, "product.meta.svg");
     form.setValue(
         root ? "product.value" : "product.title",
-        root ? product?.product?.value : product?.product?.title,
+        root ? product?.product?.value : product?.product?.title
     );
     if (product.door?.meta?.doorPrice)
         form.setValue("product.meta.doorPrice", product.door?.meta?.doorPrice);
@@ -98,7 +98,7 @@ function onUpload(
     path:
         | "product.img"
         | "product.meta.svg"
-        | "product.meta.url" = "product.img",
+        | "product.meta.url" = "product.img"
 ) {
     let paths: (typeof path)[] = [
         "product.img",

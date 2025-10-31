@@ -1,4 +1,4 @@
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { __isProd } from "@/lib/is-prod-server";
 import { __getSalesOrderNos } from "@/actions/cache/sales-data-query";

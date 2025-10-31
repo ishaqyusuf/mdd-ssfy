@@ -1,5 +1,5 @@
-import { Door } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-swap-modal";
-import { ComponentHelperClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
+import { Door } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-swap-modal";
+import { ComponentHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import { ftToIn } from "../utils";
 
 export function composeDoor(cls: ComponentHelperClass, door?: Door) {
@@ -26,7 +26,7 @@ export function composeDoor(cls: ComponentHelperClass, door?: Door) {
     const sizePrice = priceModel.sizeList.map((sl) => {
         const path = `${componentUid}-${sl.size}`;
         const swapPath = door?.sizeList?.find((s) =>
-            s.path?.endsWith(`-${sl.size}`),
+            s.path?.endsWith(`-${sl.size}`)
         )?.path;
         const sizeData = groupItem?.form?.[swapPath] || groupItem?.form?.[path];
 

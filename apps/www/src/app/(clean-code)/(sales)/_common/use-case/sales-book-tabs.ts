@@ -1,5 +1,5 @@
 import { getSalesAnalyticsDta } from "../data-access/sales-analytics-dta";
-import { PageTab } from "@/app/(clean-code)/type";
+import { PageTab } from "@/app-deps/(clean-code)/type";
 
 const salesTabs = [
     "Orders",

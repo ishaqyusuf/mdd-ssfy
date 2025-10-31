@@ -1,6 +1,6 @@
 import { CustomerTransactionType } from "@/actions/get-customer-tx-action";
-import { composeQuery } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
-import { PaymentMethods } from "@/app/(clean-code)/(sales)/types";
+import { composeQuery } from "@/app-deps/(clean-code)/(sales)/_common/utils/db-utils";
+import { PaymentMethods } from "@/app-deps/(clean-code)/(sales)/types";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { Prisma } from "@/db";
 

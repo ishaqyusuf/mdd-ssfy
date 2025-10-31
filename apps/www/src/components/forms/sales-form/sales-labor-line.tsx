@@ -2,11 +2,11 @@ import { AnimatedNumber } from "@/components/animated-number";
 import { cn } from "@gnd/ui/cn";
 import { Label } from "@gnd/ui/label";
 import { SuperAdminGuard } from "@/components/auth-guard";
-import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import Button from "@/components/common/button";
 import { useLaborCostModal } from "@/hooks/use-labor-cost-modal";
 import { useEffect, useMemo } from "react";
-import { SettingsClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
+import { SettingsClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
 
 export function SalesLaborLine({}) {
     const zus = useFormDataStore();
@@ -55,7 +55,7 @@ function LineContainer({ label, lg = false, className = "", children }) {
         <div
             className={cn(
                 "items-center gap-4 font-mono$ uppercase",
-                label && "grid grid-cols-5",
+                label && "grid grid-cols-5"
             )}
         >
             <div className="col-span-3 flex justify-end text-black/70 dark:text-muted-foreground">

@@ -6,7 +6,7 @@ import {
     SalesDispatchStatus,
     SalesSettingsMeta,
     SalesStatStatus,
-} from "@/app/(clean-code)/(sales)/types";
+} from "@/app-deps/(clean-code)/(sales)/types";
 import { Prisma } from "@/db";
 import dayjs from "dayjs";
 
@@ -25,7 +25,7 @@ export function composeSalesStat(stats: Prisma.SalesStatGetPayload<{}>[]) {
     const statDateCheck = stats.map((stat) => {
         const isValid = dayjs(stat.createdAt).isAfter(
             dayjs("2025-04-15"),
-            "days",
+            "days"
         );
         return {
             isValid,
@@ -46,7 +46,7 @@ export function qtyControlsByType(controls: Prisma.QtyControlGetPayload<{}>[]) {
     return _stat;
 }
 export function formatControlQty(
-    control: Prisma.QtyControlGetPayload<{}>,
+    control: Prisma.QtyControlGetPayload<{}>
 ): Qty {
     return {
         lh: control?.lh,
@@ -64,7 +64,7 @@ export function productionStatus(qty, completed): SalesStatStatus {
 
 export function salesAddressLines(
     address: Prisma.AddressBooksGetPayload<{}>,
-    customer?: Prisma.CustomersGetPayload<{}>,
+    customer?: Prisma.CustomersGetPayload<{}>
 ) {
     let meta = address?.meta as any as AddressBookMeta;
     let cMeta = customer?.meta as any as CustomerMeta;
@@ -100,8 +100,8 @@ export function getItemStatConfig({ setting, ...props }: ItemStatConfigProps) {
               production: isService
                   ? props.dykeProduction
                   : props?.prodOverride
-                    ? props?.prodOverride?.production
-                    : config?.production,
+                  ? props?.prodOverride?.production
+                  : config?.production,
               shipping: config?.shipping,
           }
         : {
@@ -116,7 +116,7 @@ export function squareSalesNote(orderIds: string[]) {
 }
 
 export function getDispatchControlType(
-    status: SalesDispatchStatus,
+    status: SalesDispatchStatus
 ): QtyControlType {
     switch (status) {
         case "cancelled":
@@ -144,7 +144,7 @@ export function transformPayrollUid(uid) {
         uid?.split(",").map((a) => {
             const [k, v] = a?.split(":");
             return [k, Number(v)];
-        }),
+        })
     ) as any as {
         oid: number;
         pid: number;

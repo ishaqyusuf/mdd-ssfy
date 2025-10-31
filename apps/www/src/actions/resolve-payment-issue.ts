@@ -6,8 +6,8 @@ import z from "zod";
 import { createSiteActionTicket } from "./create-site-action-ticket";
 import { actionClient } from "./safe-action";
 import { updateSalesDueAmount } from "./update-sales-due-amount";
-import { SalesPaymentStatus } from "@/app/(clean-code)/(sales)/types";
-import { authUser } from "@/app/(v1)/_actions/utils";
+import { SalesPaymentStatus } from "@/app-deps/(clean-code)/(sales)/types";
+import { authUser } from "@/app-deps/(v1)/_actions/utils";
 import { deleteSalesCommission } from "./delete-payroll";
 import { revalidatePath } from "next/cache";
 import { createResolution } from "./create-resolution";
@@ -80,7 +80,7 @@ export const resolvePaymentAction = actionClient
                         reason: input.reason as any,
                         salesId: sp?.orderId,
                     });
-                }),
+                })
             );
             revalidatePath("/sales-rep");
             revalidatePath("/sales-book/accounting/resolution-center");

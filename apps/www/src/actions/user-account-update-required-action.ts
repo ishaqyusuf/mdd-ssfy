@@ -1,6 +1,6 @@
 "use server";
 
-import { user } from "@/app/(v1)/_actions/utils";
+import { user } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 
 // export async function

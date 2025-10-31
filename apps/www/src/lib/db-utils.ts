@@ -1,4 +1,7 @@
-import { getPageInfo, queryFilter } from "@/app/(v1)/_actions/action-utils";
+import {
+    getPageInfo,
+    queryFilter,
+} from "@/app-deps/(v1)/_actions/action-utils";
 import dayjs from "dayjs";
 
 export function _searchQuery<T>(query, ...columns: (keyof T)[]) {
@@ -59,7 +62,7 @@ export function whereQuery<T>(query, soft = true) {
         },
         searchRelationQuery: <T1>(...columns: (keyof T)[]) => {
             Object.entries(_searchQuery<T>(query, ...columns)).map(
-                ([k, v]) => (where[k] = v),
+                ([k, v]) => (where[k] = v)
             );
         },
         q,
@@ -82,7 +85,7 @@ export function whereQuery<T>(query, soft = true) {
         },
         searchQuery: (...columns: (keyof T)[]) => {
             Object.entries(_searchQuery<T>(query, ...columns)).map(
-                ([k, v]) => (where[k] = v),
+                ([k, v]) => (where[k] = v)
             );
         },
     };

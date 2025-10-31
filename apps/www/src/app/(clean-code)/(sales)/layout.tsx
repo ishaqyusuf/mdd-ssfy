@@ -7,7 +7,7 @@ import { CustomerOverviewSheet } from "@/components/sheets/customer-overview-she
 import SalesOverviewSheet from "@/components/sheets/sales-overview-sheet";
 
 import BackwardCompat from "./_backward-compat";
-import NewSideBarLayout from "@/app/(sidebar)/layout";
+import NewSideBarLayout from "@/app-deps/(sidebar)/layout";
 
 export default async function Layout({ children, ...props }) {
     return <SideBarLayout1 {...props}>{children}</SideBarLayout1>;

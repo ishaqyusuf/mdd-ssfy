@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { saveStepComponent } from "@/actions/save-step-component";
 import { updateComponentPricingAction } from "@/actions/update-component-pricing-action";
-import { useStepContext } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/components-section/ctx";
-import { ComponentHelperClass } from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
+import { useStepContext } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/ctx";
+import { ComponentHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import Button from "@/components/common/button";
 import { NumberInput } from "@/components/currency-input";
 import { LabelInput } from "@/components/label-input";
@@ -17,7 +17,7 @@ export function CustomComponentForm({ itemStepUid }) {
     const ctx = useStepContext(itemStepUid);
     const customInputs = useMemo(
         () => ctx.stepComponents?.filter((s) => s._metaData.custom),
-        [ctx.stepComponents],
+        [ctx.stepComponents]
     );
 
     const form = useForm({
@@ -35,7 +35,7 @@ export function CustomComponentForm({ itemStepUid }) {
         const uid = formData.saveData.uid;
         const priceModel = ctx.cls.getComponentPriceModel(uid);
         const dependenciesUid = priceModel.priceVariants?.find(
-            (d) => d.current,
+            (d) => d.current
         )?.path;
 
         //  let currentPricingId = Object.entries(priceModel.priceVariants).find(
@@ -108,7 +108,7 @@ export function CustomComponentForm({ itemStepUid }) {
         let existing = customInputs?.find(
             (i) =>
                 i.title?.toLocaleLowerCase() ==
-                formData?.title?.toLocaleLowerCase(),
+                formData?.title?.toLocaleLowerCase()
         );
 
         saveAction.execute({
@@ -145,7 +145,7 @@ export function CustomComponentForm({ itemStepUid }) {
                         onValueChange={(values) => {
                             form.setValue(
                                 "basePrice",
-                                values.floatValue || null,
+                                values.floatValue || null
                             );
                         }}
                     />

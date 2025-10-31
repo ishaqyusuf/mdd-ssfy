@@ -1,12 +1,12 @@
-import { queryParams } from "@/app/(v1)/_actions/action-utils";
+import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
 import { Metadata } from "next";
 import { IProject } from "@/types/community";
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 
-import { getProjectsAction } from "@/app/(v1)/_actions/community/projects";
-import ProjectsTableShell from "@/app/(v1)/(loggedIn)/community/projects/components/projects-table-shell";
-import AuthGuard from "@/app/(v2)/(loggedIn)/_components/auth-guard";
+import { getProjectsAction } from "@/app-deps/(v1)/_actions/community/projects";
+import ProjectsTableShell from "@/app-deps/(v1)/(loggedIn)/community/projects/components/projects-table-shell";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 
 export const metadata: Metadata = {
     title: "Projects",
@@ -31,3 +31,4 @@ export default async function ProjectsPage(props) {
         </AuthGuard>
     );
 }
+

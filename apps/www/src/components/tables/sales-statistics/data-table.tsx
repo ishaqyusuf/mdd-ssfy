@@ -9,7 +9,7 @@ import { useSalesOrdersStore } from "@/store/sales-orders";
 import { Card, CardContent } from "@gnd/ui/card";
 import { EyeIcon } from "lucide-react";
 import { Badge } from "@gnd/ui/badge";
-import { ProductImage } from "@/app/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/product";
+import { ProductImage } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/product";
 import { useProductReportFilters } from "@/hooks/use-product-report-filter-params";
 import { FormatAmount } from "@gnd/ui/custom/format-amount";
 

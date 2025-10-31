@@ -2,7 +2,7 @@
 
 import { prisma } from "@/db";
 import { whereDispatchSalesOrders } from "./where";
-import { paginatedAction } from "@/app/_actions/get-action-utils";
+import { paginatedAction } from "@/app-deps/_actions/get-action-utils";
 
 export async function getDispatchSales(query) {
     // return await prisma.$transaction(async (tx) => {
@@ -10,7 +10,7 @@ export async function getDispatchSales(query) {
     const { pageCount, skip, take } = await paginatedAction(
         query,
         prisma.orderDelivery,
-        where,
+        where
     );
     const data = await prisma.orderDelivery.findMany({
         where,

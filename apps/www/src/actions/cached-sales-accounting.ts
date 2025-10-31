@@ -3,7 +3,7 @@
 import {
     SalesPaymentStatus,
     SalesType,
-} from "@/app/(clean-code)/(sales)/types";
+} from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { PageFilterData } from "@/types/type";
 import { paymentMethods, salesHaving } from "@/utils/constants";
@@ -123,7 +123,7 @@ export async function __getPaymentCountBySales() {
             const paymentIds = l.payments.map((a) => a.id);
             const hasDuplicate = l.payments.some(
                 (a, i) =>
-                    l.payments.findIndex((b) => b.amount === a.amount) != i,
+                    l.payments.findIndex((b) => b.amount === a.amount) != i
             );
             return {
                 id: l.id,

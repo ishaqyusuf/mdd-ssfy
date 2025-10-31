@@ -1,4 +1,4 @@
-import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
 
 export function SalesFormEmailMenu({}) {

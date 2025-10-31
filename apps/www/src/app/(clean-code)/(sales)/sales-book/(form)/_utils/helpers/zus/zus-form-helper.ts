@@ -1,8 +1,8 @@
-import { GetSalesBookForm } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
+import { GetSalesBookForm } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
 import {
     DykeDoorType,
     SalesFormZusData,
-} from "@/app/(clean-code)/(sales)/types";
+} from "@/app-deps/(clean-code)/(sales)/types";
 import { formatMoney } from "@/lib/use-number";
 import { generateRandomString } from "@/lib/utils";
 import dayjs from "dayjs";
@@ -133,7 +133,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
             // data.salesSetting.stepsByKey[''].components.find()
             const c = Object.entries(data.salesSetting.stepsByKey)
                 .map(([k, s]) =>
-                    s.components.find((s) => s.uid == componentUid),
+                    s.components.find((s) => s.uid == componentUid)
                 )
                 .filter(Boolean)[0];
             const stepMeta = fs.step.meta;
@@ -161,7 +161,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
             }
             if (stp.title == "Door") {
                 fallBackDoorStepProd = Object.values(
-                    data.salesSetting.stepsByKey,
+                    data.salesSetting.stepsByKey
                 )
                     .map((s) => s.components)
                     .flat()
@@ -249,14 +249,14 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                                 itemPrice: {
                                     salesPrice: doorForm.jambSizePrice,
                                     basePrice: basePrice(
-                                        doorForm.jambSizePrice,
+                                        doorForm.jambSizePrice
                                     ),
                                 },
                                 unitLabor: doorForm?.meta?.unitLabor,
                                 laborQty: doorForm?.meta?.laborQty,
                                 unitPrice: doorForm.unitPrice,
                                 customPrice: customPrice(
-                                    doorForm?.meta?.overridePrice,
+                                    doorForm?.meta?.overridePrice
                                 ),
                                 addon: doorForm.doorPrice,
                             },
@@ -349,7 +349,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         costCls.updateGroupedCost();
     });
     const costCls = new CostingClass(
-        new SettingsClass("", "", "", resp as any),
+        new SettingsClass("", "", "", resp as any)
     );
     costCls.calculateTotalPrice();
     return resp;
@@ -380,13 +380,13 @@ export function zhHarvestDoorSizes(data: SalesFormZusData, itemUid) {
                         !componentsUid?.length ||
                         (operator == "is"
                             ? componentsUid?.some(
-                                  (a) => a == selectedComponentUid,
+                                  (a) => a == selectedComponentUid
                               )
                             : componentsUid?.every(
-                                  (a) => a != selectedComponentUid,
+                                  (a) => a != selectedComponentUid
                               ))
                     );
-                },
+                }
             );
             return {
                 widthList: c.widthList,

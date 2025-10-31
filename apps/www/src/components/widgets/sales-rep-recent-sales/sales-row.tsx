@@ -1,6 +1,6 @@
 "use client";
 
-import { GetSalesListDta } from "@/app/(clean-code)/(sales)/_common/data-access/sales-dta";
+import { GetSalesListDta } from "@/app-deps/(clean-code)/(sales)/_common/data-access/sales-dta";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { flexRender } from "@tanstack/react-table";
 
@@ -52,7 +52,7 @@ export function SalesTableRow({ row }) {
                                 cell.column.id === "recurring" ||
                                 cell.column.id === "invoice_number" ||
                                 cell.column.id === "issue_date") &&
-                                "hidden md:table-cell",
+                                "hidden md:table-cell"
                         )}
                         // onClick={() =>
                         //   index !== row.getVisibleCells().length - 1 && setOpen(row.id)
@@ -60,7 +60,7 @@ export function SalesTableRow({ row }) {
                     >
                         {flexRender(
                             cell.column.columnDef.cell,
-                            cell.getContext(),
+                            cell.getContext()
                         )}
                     </TableCell>
                 ))}

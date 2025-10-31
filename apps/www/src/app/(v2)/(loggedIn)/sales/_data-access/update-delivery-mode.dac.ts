@@ -1,6 +1,9 @@
 "use server";
 
-import { _revalidate, RevalidatePaths } from "@/app/(v1)/_actions/_revalidate";
+import {
+    _revalidate,
+    RevalidatePaths,
+} from "@/app-deps/(v1)/_actions/_revalidate";
 import { prisma } from "@/db";
 
 export async function updateDeliveryModeDac(

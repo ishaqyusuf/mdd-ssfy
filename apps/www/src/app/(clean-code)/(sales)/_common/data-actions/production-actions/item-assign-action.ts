@@ -1,6 +1,6 @@
 "use server";
 
-import { authId } from "@/app/(v1)/_actions/utils";
+import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import { updateQtyControlAction } from "../item-control.action";
@@ -9,7 +9,7 @@ import {
     updateSalesStatControlAction,
 } from "../sales-stat-control.action";
 import { itemControlUidObject } from "../../utils/item-control-utils";
-import { _notify } from "@/app/(v1)/_actions/notifications";
+import { _notify } from "@/app-deps/(v1)/_actions/notifications";
 
 export async function createItemAssignmentAction({
     salesItemId,

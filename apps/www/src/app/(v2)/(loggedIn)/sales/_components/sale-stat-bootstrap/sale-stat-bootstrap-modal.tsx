@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { TableCell } from "@/app/_components/data-table/table-cells";
+import { TableCell } from "@/app-deps/_components/data-table/table-cells";
 import {
     Menu,
     MenuItem,
@@ -45,7 +45,7 @@ function SaleStatBootstrapModal({}) {
         const promise = Promise.all(
             vals.map(async (d, i) => {
                 await updateSalesStat(d.id);
-            }),
+            })
         );
         toast.promise(promise, {
             loading: "Loading...",

@@ -3,11 +3,11 @@
 import React, { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
-import { deleteInvoiceTasks } from "@/app/(v1)/_actions/community-invoice/delete-invoice-task";
+import { deleteInvoiceTasks } from "@/app-deps/(v1)/_actions/community-invoice/delete-invoice-task";
 import {
     updateInvoiceTasksAction,
     UpdateIvoiceTasksActionProps,
-} from "@/app/(v1)/_actions/community-invoice/update-invoice-tasks";
+} from "@/app-deps/(v1)/_actions/community-invoice/update-invoice-tasks";
 import { closeModal } from "@/lib/modal";
 import { ExtendedHome, IHomeTask, IHomeTaskList } from "@/types/community";
 import { UpdateOrderPriorityProps } from "@/types/sales";
@@ -205,11 +205,11 @@ export default function EditInvoiceModal() {
                                                 setValue={(e) =>
                                                     form.setValue(
                                                         `tasks.${i}.checkDate`,
-                                                        e,
+                                                        e
                                                     )
                                                 }
                                                 value={form.getValues(
-                                                    `tasks.${i}.checkDate`,
+                                                    `tasks.${i}.checkDate`
                                                 )}
                                             />
                                         </div>

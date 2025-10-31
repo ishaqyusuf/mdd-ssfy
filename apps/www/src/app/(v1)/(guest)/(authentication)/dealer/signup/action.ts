@@ -3,7 +3,7 @@
 import { prisma } from "@/db";
 import { RegisterSchema } from "./validation";
 import { redirect } from "next/navigation";
-import { signupSuccess } from "@/app/(v2)/(loggedIn)/sales-v2/dealers/email-actions";
+import { signupSuccess } from "@/app-deps/(v2)/(loggedIn)/sales-v2/dealers/email-actions";
 
 export async function signupDealerAction(data: RegisterSchema) {
     const dealer = await prisma.dealerAuth.findFirst({

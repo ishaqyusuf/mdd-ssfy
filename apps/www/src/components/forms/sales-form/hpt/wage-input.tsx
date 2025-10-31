@@ -1,5 +1,5 @@
-import { useFormDataStore } from "@/app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
-import { LineInput } from "@/app/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { LineInput } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
 import { AnimatedNumber } from "@/components/animated-number";
 import { laborRate } from "@/utils/sales-utils";
 
@@ -18,7 +18,7 @@ export function WageInput({}) {
     const { lineUid } = line;
     const unitLabor = cls.dotGetGroupItemFormValue(
         lineUid,
-        "pricing.unitLabor",
+        "pricing.unitLabor"
     );
     const __value = laborRate(laborConfig?.rate, unitLabor);
     return (

@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { findAddressAction } from "@/app/(v1)/(loggedIn)/sales/_actions/sales-address";
+import { findAddressAction } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/sales-address";
 import { useDebounce } from "@/hooks/use-debounce";
 import { AddressType, IAddressBook, ISalesAddressForm } from "@/types/sales";
 import { Search } from "lucide-react";

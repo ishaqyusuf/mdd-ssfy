@@ -3,12 +3,12 @@
 import React, { useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
-import { _revalidate } from "@/app/(v1)/_actions/_revalidate";
+import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
 import {
     _getBuilderHomeIds,
     _syncBuilderTasks,
-} from "@/app/(v2)/(loggedIn)/community-settings/builders/_actions/save-builder-task-action";
-import { _updateBuilderMetaAction } from "@/app/(v2)/(loggedIn)/community-settings/builders/_actions/update-builder-action";
+} from "@/app-deps/(v2)/(loggedIn)/community-settings/builders/_actions/save-builder-task-action";
+import { _updateBuilderMetaAction } from "@/app-deps/(v2)/(loggedIn)/community-settings/builders/_actions/update-builder-action";
 import FormInput from "@/components/common/controls/form-input";
 import Modal from "@/components/common/modal";
 import { useModal } from "@/components/common/modal/provider";
@@ -64,7 +64,7 @@ export default function BuilderModal({
         },
     });
     const [taskIds, setTaskIds] = useState(
-        data?.meta?.tasks?.map((t) => t.uid) || [],
+        data?.meta?.tasks?.map((t) => t.uid) || []
     );
     const modal = useModal();
     async function save() {
@@ -92,13 +92,13 @@ export default function BuilderModal({
                     }
                     const b = await _updateBuilderMetaAction(
                         data.meta,
-                        data.id,
+                        data.id
                     );
                     const homeIds = await _getBuilderHomeIds(data.id);
 
                     const a = await chunkArray(
                         homeIds.map(({ id }) => id),
-                        500,
+                        500
                     );
 
                     await toastArrayAction({
@@ -108,7 +108,7 @@ export default function BuilderModal({
                                 data,
                                 deleteIds,
                                 newTaskIds,
-                                units,
+                                units
                             ),
                         loading(item) {
                             return "Synchronizing....";

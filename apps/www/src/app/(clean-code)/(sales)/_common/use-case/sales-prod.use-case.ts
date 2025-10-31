@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { AsyncFnType } from "@/app/(clean-code)/type";
-import { _revalidate } from "@/app/(v1)/_actions/_revalidate";
-import { userId } from "@/app/(v1)/_actions/utils";
+import { AsyncFnType } from "@/app-deps/(clean-code)/type";
+import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
+import { userId } from "@/app-deps/(v1)/_actions/utils";
 import { OrderProductionSubmissions, Prisma } from "@/db";
 
 import { LineItemOverview } from "../data-access/dto/sales-item-dto";
@@ -58,7 +58,7 @@ export async function getItemAssignmentFormUseCase(item: LineItemOverview) {
 }
 export async function createItemAssignmentUseCase(
     data: ItemAssignmentForm,
-    produceable,
+    produceable
 ) {
     await createItemAssignmentDta(data, produceable);
     // await _revalidate('sales')
@@ -68,7 +68,7 @@ export type AssignmentSubmitForm =
     Prisma.OrderProductionSubmissionsCreateManyInput;
 export async function submitAssignmentUseCase(
     data: AssignmentSubmitForm,
-    produceable,
+    produceable
 ) {
     await submitAssignmentDta(data, produceable);
 }

@@ -3,10 +3,10 @@ import {
     getDoorSizesUseCase,
     getDykeStepTitlesOptionUseCase,
     getMouldingSpeciesUseCase,
-} from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
-import { LegacyDykeFormStepType } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
-import stepHelpers from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/step-helper";
-import { LabelValue } from "@/app/(clean-code)/type";
+} from "@/app-deps/(clean-code)/(sales)/_common/use-case/step-component-use-case";
+import { LegacyDykeFormStepType } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
+import stepHelpers from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/step-helper";
+import { LabelValue } from "@/app-deps/(clean-code)/type";
 import { Icons } from "@/components/_v1/icons";
 import { Search } from "@/components/(clean-code)/search";
 import { cn } from "@/lib/utils";
@@ -21,7 +21,7 @@ import { ProductImage } from "../../../../../../../(v2)/(loggedIn)/sales-v2/form
 type TabType = "general" | "price" | "deleted" | "restore" | "step";
 export function useStepComponentModal(
     ctx: LegacyDykeFormStepType,
-    item: IStepProducts[number],
+    item: IStepProducts[number]
 ) {
     const mainForm = ctx.mainCtx.form;
     const { ...defaultValues } = item;
@@ -67,7 +67,7 @@ export function useStepComponentModal(
     };
     function PriceInfo({ prod }: { prod: IStepProducts[number] }) {
         let priceLen = Object.values(prod.door?.meta?.doorPrice || {}).filter(
-            Boolean,
+            Boolean
         ).length;
         if (priceLen)
             return (
@@ -97,7 +97,7 @@ export function useStepComponentModal(
                     key={item.id}
                     className={cn(
                         "relative flex flex-col items-center hover:border hover:shadow-sm",
-                        selected && isRestore && "border  border-purple-600",
+                        selected && isRestore && "border  border-purple-600"
                     )}
                 >
                     {/* {restores[item.uid] && tab == "restore" && (
@@ -174,10 +174,10 @@ export function useDoor(isDoor = true) {
                         const result = await getDoorSizesUseCase(height); //.then((result) => {
 
                         d[height] = Array.from(
-                            new Set(result.map((s) => s.dimFt)),
+                            new Set(result.map((s) => s.dimFt))
                         );
                         // });/
-                    }),
+                    })
                 );
 
                 setHeight(d);

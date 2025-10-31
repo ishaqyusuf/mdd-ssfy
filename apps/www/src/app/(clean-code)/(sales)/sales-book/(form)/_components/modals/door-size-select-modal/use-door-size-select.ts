@@ -7,7 +7,7 @@ import { _modal } from "@/components/common/modal/provider";
 import { ComponentHelperClass } from "../../../_utils/helpers/zus/step-component-class";
 import { formatMoney } from "@/lib/use-number";
 import { Door } from "../door-swap-modal";
-import { ftToIn } from "@/app/(clean-code)/(sales)/_common/utils/sales-utils";
+import { ftToIn } from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-utils";
 import { composeDoor } from "@/lib/sales/compose-door";
 import { updateDoorGroupForm } from "@/lib/sales/update-door-form";
 import createContextFactory from "@/utils/context-factory";
@@ -54,11 +54,11 @@ export const { useContext: useCtx, Provider: DoorSizeSelectProvider } =
         function priceChanged(size, price) {
             form.setValue(
                 `selections.${cls.componentUid}-${size}.basePrice`,
-                price,
+                price
             );
             form.setValue(
                 `selections.${cls.componentUid}-${size}.salesPrice`,
-                cls.calculateSales(price),
+                cls.calculateSales(price)
             );
         }
 

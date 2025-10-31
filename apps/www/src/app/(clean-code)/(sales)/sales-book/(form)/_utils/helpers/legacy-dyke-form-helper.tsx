@@ -1,11 +1,11 @@
-import { LoadStepComponentsProps } from "@/app/(clean-code)/(sales)/_common/data-access/step-components.dta";
+import { LoadStepComponentsProps } from "@/app-deps/(clean-code)/(sales)/_common/data-access/step-components.dta";
 import { DykeDoorType } from "../../../../types";
 import { IDykeComponentStore } from "../../_hooks/data-store";
 import { LegacyDykeFormItemType } from "../../_hooks/legacy-hooks";
-import { LegacyDykeFormStepType } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
+import { LegacyDykeFormStepType } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
 import { getStepComponents } from "../../_actions/steps.action";
-import { initStepComponents } from "@/app/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/init-step-components";
-import { IStepProducts } from "@/app/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products";
+import { initStepComponents } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/init-step-components";
+import { IStepProducts } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products";
 
 const helpers = {
     item: {
@@ -22,7 +22,7 @@ function getStepTitle(stepCtx: LegacyDykeFormStepType) {
 }
 function getDoorType(itemCtx: LegacyDykeFormItemType): DykeDoorType {
     const steps = itemCtx.mainCtx.form.getValues(
-        `itemArray.${itemCtx.rowIndex}.item.formStepArray`,
+        `itemArray.${itemCtx.rowIndex}.item.formStepArray`
     );
 
     return steps?.find((s) => s.step.title == "Item Type")?.item?.value as any;
@@ -30,10 +30,10 @@ function getDoorType(itemCtx: LegacyDykeFormItemType): DykeDoorType {
 async function loadComponents(
     storeComponentsByTitle: IDykeComponentStore["loadedComponentsByStepTitle"],
     stepCtx: LegacyDykeFormStepType,
-    ignoreCache = false,
+    ignoreCache = false
 ) {
     const title = `${helpers.step.getStepTitle(
-        stepCtx,
+        stepCtx
     )}-${stepCtx.itemCtx.get.uid()}`;
 
     const storedComponents = storeComponentsByTitle[title];
@@ -55,14 +55,14 @@ async function loadComponents(
     }
     const allComponents: IStepProducts = await initComponents(
         stepCtx,
-        resp.data,
+        resp.data
     );
     stepCtx.setComponents(allComponents);
     stepCtx.setFilteredComponents(
-        allComponents.filter((s) => !s._metaData.hidden && !s.custom),
+        allComponents.filter((s) => !s._metaData.hidden && !s.custom)
     );
     stepCtx.setDeletedComponents(
-        allComponents.filter((s) => s._metaData.hidden),
+        allComponents.filter((s) => s._metaData.hidden)
     );
 
     return resp;

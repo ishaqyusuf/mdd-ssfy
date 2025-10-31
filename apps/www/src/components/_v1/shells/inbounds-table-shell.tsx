@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
-import { deleteEmployeeProfile } from "@/app/(v1)/_actions/hrm/employee-profiles";
-import { updateInboundStatusAction } from "@/app/(v1)/_actions/sales-inbound/update-inbound-status";
+import { deleteEmployeeProfile } from "@/app-deps/(v1)/_actions/hrm/employee-profiles";
+import { updateInboundStatusAction } from "@/app-deps/(v1)/_actions/sales-inbound/update-inbound-status";
 import { EmployeeProfile } from "@/db";
 import { InboundStatus } from "@/lib/status";
 import { TableShellProps } from "@/types/data-table";
@@ -57,12 +57,12 @@ export default function InboundsTableShell<T>({
                         table.secondary(data.createdAt),
                     ],
                 }),
-                { id: "id" },
+                { id: "id" }
             ),
 
             table.simpleColumn("Putaway", (data) => {
                 const putAway = data.inboundItems.filter(
-                    (ii) => ii.putawayAt,
+                    (ii) => ii.putawayAt
                 ).length;
                 const total = data.inboundItems.length;
                 return {
@@ -91,7 +91,7 @@ export default function InboundsTableShell<T>({
                                                 onClick={() =>
                                                     updateStatus(
                                                         row.original.slug,
-                                                        status,
+                                                        status
                                                     )
                                                 }
                                                 key={status}
@@ -109,7 +109,7 @@ export default function InboundsTableShell<T>({
                 ),
             },
         ], //.filter(Boolean) as any,
-        [data, isPending],
+        [data, isPending]
     );
     return (
         <DataTable2

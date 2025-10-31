@@ -1,6 +1,6 @@
 import { SquarePaymentStatus } from "@/_v2/lib/square";
-import { composeQuery } from "@/app/(clean-code)/(sales)/_common/utils/db-utils";
-import { PaymentMethods } from "@/app/(clean-code)/(sales)/types";
+import { composeQuery } from "@/app-deps/(clean-code)/(sales)/_common/utils/db-utils";
+import { PaymentMethods } from "@/app-deps/(clean-code)/(sales)/types";
 import {
     FilterKeys,
     SearchParamsType,

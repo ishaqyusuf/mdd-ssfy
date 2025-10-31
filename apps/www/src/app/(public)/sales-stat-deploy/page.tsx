@@ -3,7 +3,7 @@
 import {
     loadSalesWithoutStats,
     updateSalesStats,
-} from "@/app/(clean-code)/(sales)/_backward-compat/sales-stat.action";
+} from "@/app-deps/(clean-code)/(sales)/_backward-compat/sales-stat.action";
 import Button from "@/components/common/button";
 import { chunker } from "@/lib/chunker";
 
