@@ -3,8 +3,7 @@ import { Prisma } from "@/db";
 import { addSpacesToCamelCase } from "@/lib/utils";
 import { PermissionScope } from "@/types/auth";
 
-import { composeQuery } from "../../app/(clean-code)/(sales)/_common/utils/db-utils";
-
+import { composeQuery } from "@/app-deps/(clean-code)/(sales)/_common/utils/db-utils";
 export function mergePermissionsQuery(...permissions: PermissionScope[]) {
     return permissions.join(",") as any;
 }
@@ -58,7 +57,7 @@ export function whereUsers(query: SearchParamsType) {
                                     permission: {
                                         name: {
                                             not: addSpacesToCamelCase(
-                                                p,
+                                                p
                                             ).toLocaleLowerCase(),
                                         },
                                     },

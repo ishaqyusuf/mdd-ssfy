@@ -41,24 +41,24 @@ import { Sortable, SortableItem } from "@gnd/ui/sortable";
 import {
     useFormDataStore,
     ZusComponent,
-} from "../../../app/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
-import { ComponentHelperClass } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
-import { zusDeleteComponents } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-step-helper";
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { ComponentHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
+import { zusDeleteComponents } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-step-helper";
 
-import { openComponentModal } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/component-form";
-import { openEditComponentPrice } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/component-price-modal";
-import { openSectionSettingOverride } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/component-section-setting-override";
-import { openComponentVariantModal } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/component-visibility-modal";
-import { openDoorPriceModal } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-price-modal";
-import DoorSizeModal from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-modal";
-import { openDoorSizeSelectModal } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/open-modal";
-import { openStepPricingModal } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-pricing-modal";
+import { openComponentModal } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/component-form";
+import { openEditComponentPrice } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/component-price-modal";
+import { openSectionSettingOverride } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/component-section-setting-override";
+import { openComponentVariantModal } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/component-visibility-modal";
+import { openDoorPriceModal } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-price-modal";
+import DoorSizeModal from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-modal";
+import { openDoorSizeSelectModal } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/open-modal";
+import { openStepPricingModal } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-pricing-modal";
 import {
     UseStepContext,
     useStepContext,
-} from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/components-section/ctx";
-import { CustomComponentAction } from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/components-section/custom-component.action";
-import SearchBar from "../../../app/(clean-code)/(sales)/sales-book/(form)/_components/components-section/search-bar";
+} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/ctx";
+import { CustomComponentAction } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/custom-component.action";
+import SearchBar from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/search-bar";
 import { Tabs } from "@gnd/ui/custom/tabs";
 import { DoorSuppliers } from "@/components/forms/sales-form/door-suppliers";
 import { DoorSupplierBadge } from "@/components/forms/sales-form/door-supplier-badge";
@@ -97,7 +97,7 @@ export function ComponentItemCard({
         const cls = new ComponentHelperClass(
             stepUid,
             component?.uid,
-            component,
+            component
         );
         return {
             cls,
@@ -148,7 +148,7 @@ export function ComponentItemCard({
                         ? "border-muted-foreground bg-muted"
                         : "hover:border-muted-foreground/50",
                     sortMode &&
-                        "border-dashed border-muted-foreground hover:border-muted-foreground",
+                        "border-dashed border-muted-foreground hover:border-muted-foreground"
                 )}
                 onClick={!sortMode ? selectComponent : undefined}
             >
@@ -204,7 +204,7 @@ export function ComponentItemCard({
                     <div
                         className={cn(
                             !component?.variations?.length && "hidden",
-                            "px-1",
+                            "px-1"
                         )}
                     >
                         <Filter className="size-4 text-muted-foreground/70" />
@@ -212,7 +212,7 @@ export function ComponentItemCard({
                     <div
                         className={cn(
                             !component?.sectionOverride?.overrideMode &&
-                                "hidden",
+                                "hidden"
                         )}
                     >
                         <LucideVariable className="size-4 text-muted-foreground/70" />
@@ -242,7 +242,7 @@ export function ComponentItemCard({
 
             <div
                 className={cn(
-                    "absolute  left-0 top-0 m-4 flexs hidden items-center gap-2",
+                    "absolute  left-0 top-0 m-4 flexs hidden items-center gap-2"
                 )}
             >
                 <div className={cn(selectState?.count ? "" : "hidden")}>
@@ -253,7 +253,7 @@ export function ComponentItemCard({
                 </div>
                 <div
                     className={cn(
-                        !component?.sectionOverride?.overrideMode && "hidden",
+                        !component?.sectionOverride?.overrideMode && "hidden"
                     )}
                 >
                     <LucideVariable className="size-4 text-muted-foreground/70" />
@@ -268,8 +268,8 @@ export function ComponentItemCard({
                     open
                         ? ""
                         : selectState?.count
-                          ? "hidden"
-                          : "hidden bg-muted dark:bg-muted-foreground group-hover:flex",
+                        ? "hidden"
+                        : "hidden bg-muted dark:bg-muted-foreground group-hover:flex"
                 )}
             >
                 <div>
@@ -282,7 +282,7 @@ export function ComponentItemCard({
                                         onClick={() => {
                                             openComponentModal(
                                                 ctx.cls,
-                                                component,
+                                                component
                                             );
                                         }}
                                         Icon={Info}

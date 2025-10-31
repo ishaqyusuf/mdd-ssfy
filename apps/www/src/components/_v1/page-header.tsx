@@ -7,7 +7,7 @@ import { Button } from "@gnd/ui/button";
 
 import AuthGuard, {
     AuthPermissions,
-} from "../../app/(v2)/(loggedIn)/_components/auth-guard";
+} from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 import { Icons } from "./icons";
 import LinkableNode from "./link-node";
 

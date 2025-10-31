@@ -22,7 +22,7 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { Input } from "@gnd/ui/input";
 
-import { ModelFormProps } from "../../../app/(v1)/(loggedIn)/settings/community/_components/model-form/model-form";
+import { ModelFormProps } from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/model-form/model-form";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { Command, CommandInput, CommandList } from "@gnd/ui/command";
 import { Label } from "@gnd/ui/label";

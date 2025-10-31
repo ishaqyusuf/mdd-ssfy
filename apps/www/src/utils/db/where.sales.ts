@@ -12,8 +12,8 @@ import { Prisma, prisma, SalesPriority } from "@/db";
 import { formatDate } from "@/lib/use-day";
 import dayjs from "dayjs";
 
-import { ftToIn } from "../../app/(clean-code)/(sales)/_common/utils/sales-utils";
-import { QtyControlType } from "../../app/(clean-code)/(sales)/types";
+import { ftToIn } from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-utils";
+import { QtyControlType } from "@/app-deps/(clean-code)/(sales)/types";
 import { transformDate } from "@/lib/db-utils";
 import { composeQuery } from "@/app-deps/(clean-code)/(sales)/_common/utils/db-utils";
 
