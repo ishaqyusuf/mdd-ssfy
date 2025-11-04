@@ -3,7 +3,6 @@
 import { prisma } from "@/db";
 import { inToFt, sum } from "@/lib/utils";
 import { getSalesOverview } from "../../overview/_actions/get-sales-overview";
-import { OrderLineItem } from "square";
 import { getOrderAction } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/sales";
 import { getSquareDevices } from "@/_v2/lib/square";
 import { sessionIsDealerMode } from "@/app-deps/(v1)/_actions/utils";
@@ -34,7 +33,7 @@ export async function getSalesPaymentData(id) {
     // const pendingAmount = sum(pendingCheckouts, "amount");
 
     function getLineItems() {
-        const lineItems: OrderLineItem[] = [];
+        const lineItems: any[] = [];
         order.items
             .filter((item) => item.qty && item.rate)
             .map((item) => {
@@ -66,7 +65,7 @@ export async function getSalesPaymentData(id) {
     };
 }
 async function getDykeLineItems(slug) {
-    const lineItems: OrderLineItem[] = [];
+    const lineItems: any[] = [];
     const overview = await getSalesOverview({
         type: "order",
         slug,
@@ -122,6 +121,6 @@ async function getDykeLineItems(slug) {
 }
 
 async function getLineItems(orderId) {
-    const lineItems: OrderLineItem[] = [];
+    const lineItems: any[] = [];
     const order = await getOrderAction(orderId);
 }

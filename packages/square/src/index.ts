@@ -82,6 +82,10 @@ export async function squareCreateRefund({
 export async function getSquareDevices() {
   try {
     // const devices = await squareClient.devicesApi.listDeviceCodes();
+    console.log({
+      devMode,
+      toks: [env.SQUARE_SANDBOX_ACCESS_TOKEN, env.SQUARE_SANDBOX_LOCATION_ID],
+    });
     const devices = await squareClient.devices.list();
 
     // const devicesList = await squareClient.devicesApi.listDevices();

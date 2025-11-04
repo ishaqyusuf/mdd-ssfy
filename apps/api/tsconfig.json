@@ -27,8 +27,8 @@
       "@notifications/*": ["../../packages/notifications/src/*"],
       "@sales/*": ["../../packages/sales/src/*"],
       "@square/*": ["../../packages/square/src/*"]
-    },
-    "types": ["bun-types"]
+    }
+    // "types": ["bun-types"]
   },
   "tsc-alias": {
     "resolveFullPaths": true
