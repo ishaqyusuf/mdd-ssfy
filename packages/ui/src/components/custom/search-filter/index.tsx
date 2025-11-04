@@ -55,10 +55,11 @@ export function SearchFilter({
   filterSchema,
   filters,
   setFilters,
+  trpQueryOptions = undefined,
   placeholder = "Search ...",
 }) {
   const { data: trpcFilterData } = useQuery({
-    ...trpcRoute.queryOptions(),
+    ...trpcRoute.queryOptions(trpQueryOptions),
   });
   return (
     <SearchFilterProvider

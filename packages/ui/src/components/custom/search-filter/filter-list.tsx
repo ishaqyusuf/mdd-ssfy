@@ -157,59 +157,62 @@ export function FilterList({ loading, filterList, filters, onRemove }: Props) {
     }
   };
   return (
-    <motion.ul
-      variants={listVariant}
-      initial="hidden"
-      animate="show" //@ts-ignore
-      className="flex space-x-2"
-    >
-      {loading && (
-        <div className="flex space-x-2">
-          <motion.li key="1" variants={itemVariant}>
-            <Skeleton className="h-8 w-[100px] rounded-full" />
-          </motion.li>
-          <motion.li key="2" variants={itemVariant}>
-            <Skeleton className="h-8 w-[100px] rounded-full" />
-          </motion.li>
-        </div>
-      )}
-      {/* {!loading && filterList.map(f => )} */}
+    <div className="flex items-center">
+      <div className="" id="filterSlot"></div>
+      <motion.ul
+        variants={listVariant}
+        initial="hidden"
+        animate="show" //@ts-ignore
+        className="flex space-x-2 items-center"
+      >
+        {loading && (
+          <div className="flex space-x-2">
+            <motion.li key="1" variants={itemVariant}>
+              <Skeleton className="h-8 w-[100px] rounded-full" />
+            </motion.li>
+            <motion.li key="2" variants={itemVariant}>
+              <Skeleton className="h-8 w-[100px] rounded-full" />
+            </motion.li>
+          </div>
+        )}
+        {/* {!loading && filterList.map(f => )} */}
 
-      {!loading &&
-        Object.entries(filters)
-          .filter(([key, value]) => value !== null && key !== "end")
-          .map(([key, value]) => {
-            const f = filterList.find((f) => f.value === key);
-            return (
-              <motion.li key={key} variants={itemVariant}>
-                <Button
-                  className="group flex h-8 items-center space-x-1 rounded-full bg-secondary px-3 font-normal text-[#878787] hover:bg-secondary"
-                  onClick={() => handleOnRemove(key)}
-                >
-                  <Icons.Clear className="w-0 scale-0 transition-all group-hover:w-4 group-hover:scale-100" />
-                  <span>
-                    {f?.type == "date-range" ? (
-                      <div className="inline-flex gap-1">
-                        {(value as any)
-                          // ?.split(",")
-                          .map((a, ai) => (
-                            <span key={ai} className="">
-                              {a}
-                              {ai == 0 ? " - " : ""}
-                            </span>
-                          ))}
-                      </div>
-                    ) : (
-                      renderFilter({
-                        key,
-                        value,
-                      })
-                    )}
-                  </span>
-                </Button>
-              </motion.li>
-            );
-          })}
-    </motion.ul>
+        {!loading &&
+          Object.entries(filters)
+            .filter(([key, value]) => value !== null && key !== "end")
+            .map(([key, value]) => {
+              const f = filterList.find((f) => f.value === key);
+              return (
+                <motion.li key={key} variants={itemVariant}>
+                  <Button
+                    className="group flex h-8 items-center space-x-1 rounded-full bg-secondary px-3 font-normal text-[#878787] hover:bg-secondary"
+                    onClick={() => handleOnRemove(key)}
+                  >
+                    <Icons.Clear className="w-0 scale-0 transition-all group-hover:w-4 group-hover:scale-100" />
+                    <span>
+                      {f?.type == "date-range" ? (
+                        <div className="inline-flex gap-1">
+                          {(value as any)
+                            // ?.split(",")
+                            .map((a, ai) => (
+                              <span key={ai} className="">
+                                {a}
+                                {ai == 0 ? " - " : ""}
+                              </span>
+                            ))}
+                        </div>
+                      ) : (
+                        renderFilter({
+                          key,
+                          value,
+                        })
+                      )}
+                    </span>
+                  </Button>
+                </motion.li>
+              );
+            })}
+      </motion.ul>
+    </div>
   );
 }

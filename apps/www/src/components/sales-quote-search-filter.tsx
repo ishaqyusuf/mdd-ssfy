@@ -4,19 +4,34 @@ import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 import { salesFilterParamsSchema } from "@/hooks/use-sales-filter-params";
+import { _trpc } from "./static-trpc";
+import { SearchFilter } from "@gnd/ui/custom/search-filter/index";
+import { useQueryStates } from "nuqs";
 
 export function SalesQuoteSearchFilter() {
+    const [filters, setFilters] = useQueryStates(salesFilterParamsSchema);
     return (
-        <SearchFilterProvider
-            args={[
-                {
-                    filterSchema: salesFilterParamsSchema,
-                },
-            ]}
-        >
-            <Content />
-        </SearchFilterProvider>
+        <SearchFilter
+            filterSchema={salesFilterParamsSchema}
+            placeholder="Search Order Information..."
+            trpcRoute={_trpc.filters.salesOrders}
+            // trpQueryOptions={{
+            //     salesManager: auth?.can?.viewSalesManager,
+            // }}
+            {...{ filters, setFilters }}
+        />
     );
+    // return (
+    //     <SearchFilterProvider
+    //         args={[
+    //             {
+    //                 filterSchema: salesFilterParamsSchema,
+    //             },
+    //         ]}
+    //     >
+    //         <Content />
+    //     </SearchFilterProvider>
+    // );
 }
 function Content({}) {
     const trpc = useTRPC();
