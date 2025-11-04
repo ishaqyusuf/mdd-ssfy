@@ -318,4 +318,24 @@ const Collapsible = Object.assign(CollapsibleBase, {
   Content: CollapsibleContent,
 });
 
-export { Collapsible, AlertDialog };
+export { Collapsible, AlertDialog, NavigationMenu };
+import {
+  NavigationMenu as NavigationMenuBase,
+  NavigationMenuList,
+  NavigationMenuItem,
+  NavigationMenuContent,
+  NavigationMenuTrigger,
+  NavigationMenuLink,
+  NavigationMenuIndicator,
+  NavigationMenuViewport,
+} from "./navigation-menu";
+
+const NavigationMenu = Object.assign(NavigationMenuBase, {
+  List: NavigationMenuList,
+  Item: NavigationMenuItem,
+  Content: NavigationMenuContent,
+  Trigger: NavigationMenuTrigger,
+  Link: NavigationMenuLink,
+  Indicator: NavigationMenuIndicator,
+  Viewport: NavigationMenuViewport,
+});

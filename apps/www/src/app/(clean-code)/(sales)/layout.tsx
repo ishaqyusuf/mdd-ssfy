@@ -8,6 +8,7 @@ import SalesOverviewSheet from "@/components/sheets/sales-overview-sheet";
 
 import BackwardCompat from "./_backward-compat";
 import NewSideBarLayout from "@/app-deps/(sidebar)/layout";
+import { SalesNav } from "@/components/sales-nav";
 
 export default async function Layout({ children, ...props }) {
     return <SideBarLayout1 {...props}>{children}</SideBarLayout1>;
@@ -22,7 +23,7 @@ function SideBarLayout1({ children }) {
             <BackwardCompat />
             {children}
             {/* </ContentLayout> */}
-
+            <SalesNav />
             <TransactionOverviewModal />
         </NewSideBarLayout>
     );
