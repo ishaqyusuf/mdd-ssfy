@@ -7,7 +7,15 @@ export function OpenBacklogSheet() {
 
   return (
     <div>
-      <Button variant="outline" size="icon" onClick={() => setParams({})}>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() =>
+          setParams({
+            openBacklogId: -1,
+          })
+        }
+      >
         <Icons.Add />
       </Button>
     </div>

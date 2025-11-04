@@ -7,6 +7,7 @@ import { cn } from "@gnd/ui/cn";
 import { GlobalModals } from "../components/modals/global-modals";
 import { TRPCReactProvider } from "@/trpc/client";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { StaticTrpc } from "@/components/static-trpc";
 const fontSans = FontSans({
   subsets: ["latin"],
   variable: "--font-sans",
@@ -37,6 +38,7 @@ export default function RootLayout({
           <TRPCReactProvider>
             {children}
             <GlobalModals />
+            <StaticTrpc />
           </TRPCReactProvider>
         </NuqsAdapter>
       </body>

@@ -1,68 +1,68 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { columns, ItemCard, mobileColumn } from "./columns";
-import { Table, TableBody } from "@gnd/ui/table";
-import { TableHeaderComponent } from "@gnd/ui/data-table/table-header";
-import { TableRow } from "@gnd/ui/data-table/table-row";
+import { columns, mobileColumn } from "./columns";
+import { Table, useTableData } from "@gnd/ui/data-table";
 import { useBacklogFilterParams } from "@/hooks/use-backlog-filter-params";
 import { useBacklogParams } from "@/hooks/use-backlog-params";
-import { LoadMoreTRPC } from "@gnd/ui/data-table/load-more";
-import { TableProvider, useTableData } from "@gnd/ui/data-table";
+import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 
+interface Props {
+  defaultFilters?: any;
+  singlePage?: boolean;
+}
 export function DataTable() {
   const trpc = useTRPC();
   // const { rowSelection, setRowSelection } = useBacklogStore();
   const { filters } = useBacklogFilterParams();
   const { data, ref, hasNextPage } = useTableData({
     filter: filters,
-    route: trpc.sales.index,
+    route: trpc.backlogs.getBacklogs,
   });
-  // const tableScroll = useTableScroll({
-  //     useColumnWidths: true,
-  //     startFromColumn: 2,
-  // });
+  const tableScroll = useTableScroll({
+    useColumnWidths: true,
+    startFromColumn: 2,
+  });
   const { setParams } = useBacklogParams();
   return (
-    <TableProvider
+    <Table.Provider
       args={[
         {
           columns,
-          // mobileColumn: mobileColumn,
+          mobileColumn: mobileColumn,
           data,
-          // checkbox: true,
-          // tableScroll,
-          // rowSelection,
-          // setRowSelection,
+          checkbox: true,
+          tableScroll,
+          //  rowSelection,
+          props: {
+            hasNextPage,
+            //  loadMoreRef: props.singlePage ? null : loadMoreRef,
+          },
+          //  setRowSelection,
           tableMeta: {
-            // rowClick(id, rowData) {
-            //   //   overviewQuery.open2(rowData.uuid, "sales");
-            //   setParams({
-            //     //
-            //   });
-            // },
+            //  rowClick(id, rowData) {
+            //      overviewQuery.open2(rowData.uuid, "sales");
+            //  },
           },
         },
       ]}
     >
       <div className="flex flex-col gap-4 w-full">
-        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {data?.map((data) => <ItemCard key={data.id} item={data} />)}
-        </div>
-        {/* <div
-          // ref={tableScroll.containerRef}
+        <Table.SummaryHeader />
+        <div
+          ref={tableScroll.containerRef}
           className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
         >
           <Table>
-            <TableHeaderComponent />
-            <TableBody>
-              <TableRow />
-            </TableBody>
+            <Table.TableHeader />
+            <Table.Body>
+              <Table.TableRow />
+            </Table.Body>
           </Table>
-        </div> */}
-        {hasNextPage && <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />}
+        </div>
+        <Table.LoadMore />
         {/* <BatchActions /> */}
       </div>
-    </TableProvider>
+    </Table.Provider>
   );
 }

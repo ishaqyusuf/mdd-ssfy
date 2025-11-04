@@ -26,7 +26,7 @@ export const productReportSchema = z
     dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
     reportCategory: z.string().optional().nullable(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type ProductReportSchema = z.infer<typeof productReportSchema>;
 
 export async function getProductReport(

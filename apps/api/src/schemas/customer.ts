@@ -7,5 +7,5 @@ export const searchCustomersSchema = z.object({
 
 export type SearchCustomersSchema = z.infer<typeof searchCustomersSchema>;
 
-export const getCustomersSchema = z.object({}).merge(paginationSchema);
+export const getCustomersSchema = z.object({}).extend(paginationSchema.shape);
 export type GetCustomers = z.infer<typeof getCustomersSchema>;

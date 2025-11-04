@@ -19,7 +19,7 @@ export const dispatchQueryParamsSchema = z
       .optional()
       .nullable(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type DispatchQueryParamsSchema = z.infer<
   typeof dispatchQueryParamsSchema
 >;
@@ -66,14 +66,14 @@ export const salesQueryParamsSchema = z
     production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),
     showing: z.enum(["all sales"]).optional().nullable(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type SalesQueryParamsSchema = z.infer<typeof salesQueryParamsSchema>;
 
 export const inboundQuerySchema = z
   .object({
     status: z.enum(inboundFilterStatus).optional().nullable(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type InboundQuerySchema = z.infer<typeof inboundQuerySchema>;
 
 export const startNewSalesSchema = z.object({
@@ -97,7 +97,7 @@ export const salesDispatchOverviewSchema = z
     driverId: z.number().nullable().optional(),
     dispatchId: z.number().nullable().optional(),
   })
-  .merge(getFullSalesDataSchema);
+  .extend(getFullSalesDataSchema.shape);
 export type SalesDispatchOverviewSchema = z.infer<
   typeof salesDispatchOverviewSchema
 >;

@@ -174,7 +174,7 @@ export const searchSchema = z
         roleId: z.number().optional(),
         employeeProfileId: z.number().optional(),
     })
-    .merge(noteSchema);
+    .extend(noteSchema.shape);
 export const searchParamsCache = createSearchParamsCache(searchParamsParser);
 export const searchParamsSerializer = createSerializer(searchParamsParser);
 export type SearchParamsType = Partial<

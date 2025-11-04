@@ -4,7 +4,9 @@ import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 import { z } from "zod";
 
-export const accountingIndexSchema = z.object({}).merge(paginationSchema);
+export const accountingIndexSchema = z
+  .object({})
+  .extend(paginationSchema.shape);
 export type AccountingIndex = z.infer<typeof accountingIndexSchema>;
 
 export async function accountingIndex(

@@ -1034,13 +1034,13 @@ export const updateVariantStatusSchema = z
   .object({
     status: z.enum(INVENTORY_STATUS),
   })
-  .merge(
+  .extend(
     updateVariantCostSchema.pick({
       attributes: true,
       variantId: true,
       inventoryId: true,
       uid: true,
-    })
+    }).shape
   );
 export type UpdateVariantStatus = z.infer<typeof updateVariantStatusSchema>;
 export async function updateVariantStatus(db: Db, data: UpdateVariantStatus) {

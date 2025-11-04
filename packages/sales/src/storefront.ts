@@ -33,7 +33,7 @@ export const productSearchSchema = z
     // page: z.number().min(1).default(1),
     // limit: z.number().min(1).max(100).default(20),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type ProductSearch = z.infer<typeof productSearchSchema>;
 
 export async function productSearch(db: Db, query: ProductSearch) {
@@ -106,7 +106,9 @@ export async function productSearch(db: Db, query: ProductSearch) {
       }));
 
       return {
-        url: `/product/${categorySlug}/${slugify(`${product.name} ${product.id}`)}?qty=1`,
+        url: `/product/${categorySlug}/${slugify(
+          `${product.name} ${product.id}`
+        )}?qty=1`,
         id: product.id,
         name: product.name,
         category: {

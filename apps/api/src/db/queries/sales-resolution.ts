@@ -16,7 +16,7 @@ export const getSalesResolutionsSchema = z
     salesNo: z.string().optional().nullable(),
     "customer.name": z.string().optional().nullable(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type GetSalesResolutions = z.infer<typeof getSalesResolutionsSchema>;
 
 export async function getSalesResolutions(

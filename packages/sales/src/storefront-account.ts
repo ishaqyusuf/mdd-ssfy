@@ -31,7 +31,7 @@ export const createBillingSchema = z
   .object({
     userId: z.number(),
   })
-  .merge(addressSchema);
+  .extend(addressSchema.shape);
 export type createBilling = z.infer<typeof createBillingSchema>;
 
 export async function createBilling(db: Db, data: createBilling) {

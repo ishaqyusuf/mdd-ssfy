@@ -89,7 +89,7 @@ export const createSubmissionSchema = z
     itemUid: z.string(),
     // unitWage: z.number().optional(),
   })
-  .merge(qtyFormSchema);
+  .extend(qtyFormSchema.shape);
 export function qtySuperRefine(data: any, ctx: any) {
   let totalQty = 0;
 

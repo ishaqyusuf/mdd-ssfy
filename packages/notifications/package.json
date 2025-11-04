@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "@gnd/db": "workspace:*",
-    "@gnd/utils": "workspace:*"
+    "@gnd/utils": "workspace:*",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@gnd/tsconfig": "workspace:*",

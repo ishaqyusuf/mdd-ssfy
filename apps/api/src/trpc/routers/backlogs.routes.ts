@@ -1,5 +1,9 @@
 // import { getBacklogs } from "../../db/queries/backlogs";
-import { getBacklogs, getBacklogsSchema } from "@api/db/queries/backlogs";
+import {
+  backlogForm,
+  getBacklogs,
+  getBacklogsSchema,
+} from "@api/db/queries/backlogs";
 import { createTRPCRouter, publicProcedure } from "../init";
 
 export const backlogRouters = createTRPCRouter({
@@ -20,4 +24,5 @@ export const backlogRouters = createTRPCRouter({
       };
       //   return await getClassroomSubjects(db, input);
     }),
+  backlogForm,
 });

@@ -15,7 +15,7 @@ export const getCommunityTemplatesSchema = z
     projectId: z.number().optional().nullable(),
     builderId: z.number().optional().nullable(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type GetCommunityTemplatesSchema = z.infer<
   typeof getCommunityTemplatesSchema
 >;

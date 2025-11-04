@@ -8,7 +8,8 @@ import {
   DialogTrigger,
   DialogClose,
 } from "./dialog";
-
+import { Input } from "./input";
+import { Textarea } from "./textarea";
 const Dialog = Object.assign(
   {},
   {
@@ -279,6 +280,8 @@ const Field = Object.assign(FieldRoot, {
   Set: FieldSet,
   Content: FieldContent,
   Title: FieldTitle,
+  Input,
+  Textarea,
 });
 import {
   Empty as EmptyBase,

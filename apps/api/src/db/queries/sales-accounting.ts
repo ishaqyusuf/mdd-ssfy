@@ -25,7 +25,7 @@ export const getSalesAccountingsSchema = z
     payments: z.enum(salesHaving).optional().nullable(),
     d: z.boolean().optional().nullable(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type GetSalesAccountingsSchema = z.infer<
   typeof getSalesAccountingsSchema
 >;

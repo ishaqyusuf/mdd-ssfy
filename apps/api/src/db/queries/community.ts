@@ -571,7 +571,7 @@ export const getCommunityProjectsSchema = z
   .object({
     builderId: z.number().optional().nullable(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type GetCommunityProjectsSchema = z.infer<
   typeof getCommunityProjectsSchema
 >;

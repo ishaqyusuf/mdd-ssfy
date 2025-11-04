@@ -37,7 +37,7 @@ export const getProjectUnitsSchema = z
     installation: z.enum(communityInstllationFilters).optional().nullable(),
     dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type GetProjectUnitsSchema = z.infer<typeof getProjectUnitsSchema>;
 
 export async function getProjectUnits(

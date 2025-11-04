@@ -166,7 +166,7 @@ export const salesQueryParamsSchema = z
     invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
     production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type SalesQueryParamsSchema = z.infer<typeof salesQueryParamsSchema>;
 
 export const deletePackingSchema = z.object({
@@ -181,7 +181,7 @@ export const inventoryImportSchema = z
   .object({
     // category: z.string(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type InventoryImport = z.infer<typeof inventoryImportSchema>;
 export const inventoryListSchema = z
   .object({
@@ -191,13 +191,13 @@ export const inventoryListSchema = z
     ids: z.array(z.number()).optional(),
     variantIds: z.array(z.number()).optional(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type InventoryList = z.infer<typeof inventoryListSchema>;
 export const inventoryCategoriesSchema = z
   .object({
     title: z.string().optional().nullable(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type InventoryCategories = z.infer<typeof inventoryCategoriesSchema>;
 export const inventoryFormSchema = z.object({
   mode: z.string().optional().nullable(),
@@ -291,7 +291,7 @@ export const salesProductionQueryParamsSchema = z
     salesNo: z.string().optional().nullable(),
     show: z.enum(["due-today", "past-due"]).optional().nullable(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type SalesProductionQueryParams = z.infer<
   typeof salesProductionQueryParamsSchema
 >;

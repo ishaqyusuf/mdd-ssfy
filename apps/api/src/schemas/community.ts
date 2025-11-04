@@ -26,7 +26,7 @@ export const communityTemplateQueryParamsSchema = z
     builderId: z.number().optional().nullable(),
     projectId: z.number().optional().nullable(),
   })
-  .merge(paginationSchema);
+  .extend(paginationSchema.shape);
 export type CommunityTemplateQueryParams = z.infer<
   typeof communityTemplateQueryParamsSchema
 >;

@@ -18,7 +18,7 @@ const schema = z
     .object({
         note: z.string().optional(),
     })
-    .merge(qtyFormSchema)
+    .extend(qtyFormSchema.shape)
     .superRefine(qtySuperRefine);
 
 export function PackingItemForm({}) {
@@ -65,7 +65,7 @@ export function PackingItemForm({}) {
             if (hasQty(qty)) {
                 const { pendingPick, picked, remainder } = pickQtyFrom(
                     qty,
-                    dispatchableQty,
+                    dispatchableQty
                 );
                 if (hasQty(picked)) {
                     packItems.packingList[0].submissions.push({
@@ -120,7 +120,9 @@ export function PackingItemForm({}) {
                                     numericProps={{
                                         allowNegative: false,
                                         suffix: `/${availableQty?.qty || 0}`,
-                                        placeholder: `0/${availableQty?.qty || "0"}`,
+                                        placeholder: `0/${
+                                            availableQty?.qty || "0"
+                                        }`,
                                         max: availableQty?.qty,
                                         disabled: !availableQty?.qty,
                                     }}
