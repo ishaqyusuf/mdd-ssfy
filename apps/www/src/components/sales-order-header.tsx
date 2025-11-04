@@ -16,7 +16,7 @@ export function OrderHeader({}) {
             <OrderSearchFilter />
             <SalesCustomTab />
             <div className="flex-1"></div>
-            <Table.SummarySlot />
+            {/* <Table.SummarySlot /> */}
             <SalesOrderExport />
             <CreateSalesBtn />
         </div>
