@@ -782,6 +782,8 @@
       "version": "1.0.0",
       "dependencies": {
         "jsonwebtoken": "^9.0.2",
+        "lodash": "^4.17.21",
+        "zod": "^4.1.12",
       },
       "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
