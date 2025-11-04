@@ -8,6 +8,7 @@ import { Table } from "@gnd/ui/data-table";
 import Portal from "@gnd/ui/custom/portal";
 import { Tabs } from "@gnd/ui/composite";
 import { SalesCustomTab } from "./sales-custom-tab";
+import { CreateSalesBtn } from "./create-sales-btn";
 
 export function OrderHeader({}) {
     return (
@@ -17,12 +18,7 @@ export function OrderHeader({}) {
             <div className="flex-1"></div>
             <Table.SummarySlot />
             <SalesOrderExport />
-            <Button asChild size="sm">
-                <Link href="/sales-book/create-order">
-                    <Icons.add className="mr-2 size-4" />
-                    <span>New</span>
-                </Link>
-            </Button>
+            <CreateSalesBtn />
         </div>
     );
 }

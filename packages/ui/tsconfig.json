@@ -8,6 +8,6 @@
     "strict": false,
     "noImplicitAny": false
   },
-  "include": ["src"],
+  "include": ["src", "../../apps/www/src/components/create-sales-btn.tsx"],
   "exclude": ["node_modules"]
 }
