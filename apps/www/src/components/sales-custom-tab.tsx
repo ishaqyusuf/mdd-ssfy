@@ -18,7 +18,10 @@ export function SalesCustomTab({}) {
                     <Fragment key={a}>
                         <Button
                             asChild
-                            className={cn("capitalize")}
+                            className={cn(
+                                "capitalize",
+                                path.includes(a) && "bg-green-600"
+                            )}
                             variant={path.includes(a) ? "default" : "outline"}
                         >
                             <Link href={`/sales-book/${a}`} key={a}>
