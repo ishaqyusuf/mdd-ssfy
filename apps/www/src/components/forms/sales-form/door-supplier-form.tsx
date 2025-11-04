@@ -9,6 +9,7 @@ import { FormInput } from "@gnd/ui/controls/form-input";
 import { Form } from "@gnd/ui/form";
 import { useMutation } from "@gnd/ui/tanstack";
 
+import { z } from "zod";
 interface Props {
     onCreate?;
     defaultValues?;
@@ -49,7 +50,7 @@ export function DoorSupplierForm({
             },
         })
     );
-    async function onSubmit(data: typeof saveSupplierSchema._type) {
+    async function onSubmit(data: z.infer<typeof saveSupplierSchema>) {
         mutate(data);
     }
     return (

@@ -14,7 +14,7 @@ export const salesPdfToken = z.object({
   mode: z.string(),
   dispatchId: z.number().optional().nullable(),
 });
-export type SalesPdfToken = typeof salesPdfToken._type;
+export type SalesPdfToken = z.infer<typeof salesPdfToken>;
 export const salesPaymentTokenSchema = z.object({
   salesIds: z.array(z.number()),
   percentage: z.number().optional().nullable(),
@@ -26,7 +26,7 @@ export const tokenSchemas = {
   salesPaymentTokenSchema,
 } as const;
 export type TokenSchemaNames = keyof typeof tokenSchemas;
-export type SalesPaymentTokenSchema = typeof salesPaymentTokenSchema._type;
+export type SalesPaymentTokenSchema = z.infer<typeof salesPaymentTokenSchema>;
 export function tokenize<T extends XOR<SalesPdfToken, SalesPaymentTokenSchema>>(
   data: T
 ) {

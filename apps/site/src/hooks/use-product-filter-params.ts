@@ -7,6 +7,7 @@ export const productFilterParamsSchema = {
   variantId: parseAsInteger,
   subComponent: parseAsJson(
     z.record(
+      z.string(),
       z.object({
         variantId: z.number().optional().nullable(),
         inventoryId: z.number().optional().nullable(),

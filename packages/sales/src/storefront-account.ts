@@ -132,7 +132,7 @@ export const createPasswordSchema = z
     message: "Passwords don't match",
     path: ["confirmPassword"], // This will show the error message under the confirmPassword field
   });
-export type CreatePasswordSchema = typeof createPasswordSchema._type;
+export type CreatePasswordSchema = z.infer<typeof createPasswordSchema>;
 export async function createPassword(db: Db, data: CreatePasswordSchema) {
   const u = await db.users.update({
     where: {
@@ -195,7 +195,7 @@ export const signupSchema = z
 //   path: ["name"],
 // });
 
-export type Signup = typeof signupSchema._type;
+export type Signup = z.infer<typeof signupSchema>;
 export async function signup(db: Db, data: Signup) {
   const e = await db.users.findFirst({
     where: {

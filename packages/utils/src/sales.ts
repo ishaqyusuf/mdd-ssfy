@@ -47,6 +47,7 @@ export const createSalesDispatchItemsSchema = z.object({
   deliveryId: z.number(),
   status: z.string().optional() as z.ZodType<SalesDispatchStatus>,
   items: z.record(
+    z.string(),
     z.object({
       orderItemId: z.number(),
       available: z.object({

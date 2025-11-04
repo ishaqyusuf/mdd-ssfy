@@ -46,7 +46,7 @@ type SpecialFilters =
     | "with.trashed"
     | "trashed.only"
     | "_q";
-export type FilterKeys = keyof typeof searchSchema._type;
+export type FilterKeys = keyof z.infer<typeof searchSchema>;
 export type SearchParamsKeys = SpecialFilters | FilterKeys;
 const commissionFilters = ["all", "earned", "pending"] as const;
 export const searchParamsParser: {

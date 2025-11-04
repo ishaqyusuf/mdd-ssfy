@@ -16,7 +16,7 @@ export const productSearchSchema = z
     priceMin: z.number().optional().nullable(),
     priceMax: z.number().optional().nullable(),
     tags: z.array(z.string()).optional().nullable(),
-    attributes: z.record(z.array(z.number())).optional(), // attributeId: [valueIds]
+    attributes: z.record(z.string(), z.array(z.number())).optional(), // attributeId: [valueIds]
     inStock: z.boolean().optional().nullable(),
     // sortBy: z
     //   .enum([

@@ -338,8 +338,8 @@ export const saveCommunityModelCostSchema = z.object({
   id: z.number().optional().nullable(),
   communityModelId: z.number(),
   pivotId: z.number().optional().nullable(),
-  costs: z.record(z.any().optional().nullable()),
-  tax: z.record(z.any().optional().nullable()),
+  costs: z.record(z.string(), z.any().optional().nullable()),
+  tax: z.record(z.string(), z.any().optional().nullable()),
   meta: z.any().optional().nullable(),
   model: z.string(),
 });

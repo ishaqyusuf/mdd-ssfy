@@ -25,6 +25,8 @@ import { FormDebugBtn } from "@gnd/ui/controls/form-debug-btn";
 import { AddressForm } from "@/components/address-form";
 import { CreateCheckout, createCheckoutSchema } from "@sales/storefront-order";
 import { FormCheckbox } from "@gnd/ui/controls/form-checkbox";
+
+import { z } from "zod";
 export function CheckoutPage() {
   return (
     <CartProvider>
@@ -245,7 +247,7 @@ function SetupBilling({}) {
       phone: billing?.phoneNo || "",
     },
   });
-  const handleSubmit = (data: typeof createBillingSchema._type) => {
+  const handleSubmit = (data: z.infer<typeof createBillingSchema>) => {
     m.mutate({
       ...data,
     });

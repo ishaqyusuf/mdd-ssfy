@@ -11,7 +11,7 @@ export const noteSchema = z.object({
     "note.salesItemId": z.string().optional(),
     "note.salesAssignment": z.string().optional(),
 });
-export type FilterKeys = keyof typeof noteSchema._type;
+export type FilterKeys = keyof z.infer<typeof noteSchema>;
 export const noteParamsParser: {
     [k in FilterKeys]: any;
 } = {

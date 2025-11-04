@@ -21,7 +21,7 @@ export const schema = z.object({
                 index: z.number(),
                 // globalIndex: z.number(),
                 // visibleLinkCount
-            }),
+            })
         )
         .default({}),
     activeLinkName: z.string(),
@@ -36,10 +36,11 @@ export const schema = z.object({
                 custom: z.boolean(),
                 index: z.number(),
                 globalIndex: z.number(),
-            }),
+            })
         )
         .default({}),
     links: z.record(
+        z.string(),
         z.object({
             moduleName: z.string(),
             visible: z.boolean(),
@@ -51,13 +52,13 @@ export const schema = z.object({
             paths: z.array(z.string()),
             index: z.number(),
             globalIndex: z.number(),
-        }),
+        })
     ),
 });
 const { useContext: useSidebar, Provider: SidebarContext } =
     createContextFactory(function (
         linkModules: ReturnType<typeof getLinkModules>,
-        user,
+        user
     ) {
         const store = useSidebarStore();
         const data = store;
@@ -71,7 +72,7 @@ const { useContext: useSidebar, Provider: SidebarContext } =
                     data.match == "part"
                         ? pathName?.toLocaleLowerCase()?.startsWith(href)
                         : href?.toLocaleLowerCase() ===
-                          pathName?.toLocaleLowerCase(),
+                          pathName?.toLocaleLowerCase()
             )?.["1"];
             setActiveLink(active || {});
         }, [pathName, linkModules]);
