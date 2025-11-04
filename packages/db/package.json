@@ -13,7 +13,7 @@
     "schema": "./src/schema"
   },
   "scripts": {
-    "build": "PRISMA_GENERATE_SKIP_AUTOINSTALL=true prisma generate && tsc",
+    "build": "prisma generate && tsc",
     "dev": "rm -rf dist .turbo tsc",
     "dev:prod": "rm -rf dist .turbo tsc",
     "clean": "rm -rf .turbo node_modules",
@@ -21,7 +21,7 @@
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
     "--db:generate": "bunx with-env prisma generate",
-    "db:generate": "PRISMA_GENERATE_SKIP_AUTOINSTALL=true prisma generate",
+    "db:generate": "prisma generate",
     "db-migrate": "bunx prisma migrate dev",
     "prisma-generate": "bunx prisma generate",
     "--postinstall": "bunx prisma generate",

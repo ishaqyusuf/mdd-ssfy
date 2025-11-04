@@ -5,15 +5,16 @@ import { useQuery } from "@gnd/ui/tanstack";
 import { CommunityTemplateForm } from "../forms/community-template-form";
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 import { CreateModelCostForm } from "../forms/create-model-cost-form";
+import { useCommunityProjectParams } from "@/hooks/use-community-project-params";
 
-export function CreateCommunityModelCostModal({}) {
-    const { createModelCost, setParams } = useCommunityModelCostParams();
-    const opened = createModelCost;
+export function CreateCommunityProjectModal({}) {
+    const { setParams, opened } = useCommunityProjectParams();
+    // const opened = createModelCost;
 
     return (
         <CustomModal
             size="md"
-            title="Model Form"
+            title="Project Form"
             open={opened}
             onOpenChange={(e) => {
                 setParams(null);

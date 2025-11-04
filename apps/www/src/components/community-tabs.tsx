@@ -12,7 +12,7 @@ export function CommunityTabs() {
         return (
             <Link href={link}>
                 <Tabs.Trigger
-                    className="text-lg border-r hover:bg-accent"
+                    className="text-lgs uppercase tracking-wide border-r hover:bg-accent"
                     value={link}
                 >
                     {children}

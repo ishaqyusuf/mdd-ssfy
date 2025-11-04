@@ -550,6 +550,7 @@
         "server-only": "^0.0.1",
       },
       "devDependencies": {
+        "@gnd/tsconfig": "workspace:*",
         "prisma": "^6.18.0",
         "typescript": "^5.9.3",
       },
