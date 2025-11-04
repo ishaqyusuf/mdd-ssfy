@@ -6,11 +6,23 @@ import { CommunityTemplateForm } from "../forms/community-template-form";
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 import { CreateModelCostForm } from "../forms/create-model-cost-form";
 import { useCommunityProjectParams } from "@/hooks/use-community-project-params";
+import { _trpc } from "../static-trpc";
 
 export function CreateCommunityProjectModal({}) {
-    const { setParams, opened } = useCommunityProjectParams();
+    const { setParams, opened, openCommunityProjectId } =
+        useCommunityProjectParams();
     // const opened = createModelCost;
 
+    const { data, isPending } = useQuery(
+        _trpc.community.getProjectForm.queryOptions(
+            {
+                projectId: openCommunityProjectId!,
+            },
+            {
+                enabled: opened,
+            }
+        )
+    );
     return (
         <CustomModal
             size="md"
@@ -20,9 +32,7 @@ export function CreateCommunityProjectModal({}) {
                 setParams(null);
             }}
         >
-            <CustomModalContent className="">
-                <CreateModelCostForm />
-            </CustomModalContent>
+            <CustomModalContent className=""></CustomModalContent>
         </CustomModal>
     );
 }

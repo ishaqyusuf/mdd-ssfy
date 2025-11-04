@@ -7,12 +7,13 @@ import { Icons } from "@gnd/ui/icons";
 import { ColumnDef } from "@tanstack/react-table";
 import { cn } from "@gnd/ui/cn";
 import { useCommunityProjectParams } from "@/hooks/use-community-project-params";
-import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { formatDate } from "@gnd/utils/dayjs";
 import { useMutation } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
-
+import ProjectModal from "@/app-deps/(v1)/(loggedIn)/community/projects/project-modal";
+import ConfirmBtn from "@/components/_v1/confirm-btn";
+import { useModal } from "@/components/common/modal/provider";
 export type Item =
     RouterOutputs["community"]["getCommunityProjects"]["data"][number];
 interface ItemProps {
@@ -114,6 +115,7 @@ function Actions({ item }: ItemProps) {
         })
     );
 
+    const modal = useModal();
     return (
         <div className="relative flex justify-end z-10">
             {/* <Menu
@@ -129,8 +131,17 @@ function Actions({ item }: ItemProps) {
             >
                 <Menu.Item SubMenu={<></>}>Mark as</Menu.Item>
             </Menu> */}
+            {/* <Button
+                disabled
+                onClick={(e) => {
+                    modal.openModal(<ProjectModal data={item as any} />);
+                }}
+            >
+                <Icons.Edit className="size-4" />
+            </Button> */}
             <ConfirmBtn
-                onClick={(e) => {}}
+                disabled
+                onClick={() => {}}
                 trash
                 variant="outline"
                 className="px-2"

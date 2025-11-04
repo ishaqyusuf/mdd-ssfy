@@ -17,6 +17,8 @@ import {
   getCommunityProjects,
   getCommunityProjectsSchema,
   getCommunityTemplateForm,
+  getProjectForm,
+  getProjectFormSchema,
   projectList,
   saveCommunityModelCost,
   saveCommunityModelCostSchema,
@@ -114,6 +116,11 @@ export const communityRouters = createTRPCRouter({
     .input(createCommunityModelCostSchema)
     .mutation(async (props) => {
       return createCommnunityModelCost(props.ctx, props.input);
+    }),
+  getProjectForm: publicProcedure
+    .input(getProjectFormSchema)
+    .query(async (props) => {
+      return getProjectForm(props.ctx, props.input);
     }),
   saveTemplateInputListing: publicProcedure
     .input(saveTemplateInputListingSchema)

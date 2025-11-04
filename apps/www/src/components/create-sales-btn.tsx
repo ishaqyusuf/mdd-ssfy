@@ -6,7 +6,7 @@ import { Separator } from "@gnd/ui/separator";
 import Link from "next/link";
 
 export function CreateSalesBtn({ quote = false }) {
-    const title = quote ? "order" : "quote";
+    const title = !quote ? "order" : "quote";
     const hrefs = quote ? ["order", "quote"] : ["quote", "order"];
     return (
         <ButtonGroup>

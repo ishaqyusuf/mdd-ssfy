@@ -2,7 +2,7 @@ import type {
   CommunityTemplateForm,
   CreateCommunityModelCost,
 } from "@api/schemas/community";
-import type { TRPCContext } from "@api/trpc/init";
+import { publicProcedure, type TRPCContext } from "@api/trpc/init";
 import slugify from "slugify";
 import {
   getPivotModel,
@@ -671,4 +671,16 @@ export async function deleteUnits(ctx: TRPCContext, query: DeleteUnitsSchema) {
       deletedAt: new Date(),
     },
   });
+}
+
+export const getProjectFormSchema = z.object({
+  projectId: z.number(),
+});
+export type GetProjectFormSchema = z.infer<typeof getProjectFormSchema>;
+
+export async function getProjectForm(
+  ctx: TRPCContext,
+  query: GetProjectFormSchema
+) {
+  const { db } = ctx;
 }
