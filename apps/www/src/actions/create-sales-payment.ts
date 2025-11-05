@@ -19,6 +19,7 @@ import { updateSalesDueAmount } from "./update-sales-due-amount";
 import { CustomerTransactionStatus } from "@/utils/constants";
 import { CustomerTransactionType } from "./get-customer-tx-action";
 import { getCustomerWallet } from "@sales/wallet";
+import { consoleLog } from "@gnd/utils";
 
 export const createSalesPaymentAction = actionClient
     .schema(createPaymentSchema)
@@ -38,6 +39,7 @@ export const createSalesPaymentAction = actionClient
                 const { error, resp: data } = await createTerminalPayment(
                     input
                 );
+
                 if (error) throw Error(error.message);
                 response.terminalPaymentSession = {
                     squarePaymentId: data.squarePaymentId,
@@ -148,6 +150,7 @@ async function createTerminalPayment(
             amount: props.amount,
             orderIds: props?.orderNos,
         });
+        consoleLog("CHECKING OUT>>>", checkout);
 
         const squarePayment = await prisma.squarePayments.create({
             data: {

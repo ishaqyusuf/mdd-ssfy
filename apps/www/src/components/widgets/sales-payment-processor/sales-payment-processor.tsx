@@ -276,6 +276,11 @@ function Content(props: Props & { setOpened }) {
             ...formData,
             amount: formData?.editPrice ? formData._amount : formData.amount,
             salesIds: formData.sales.filter((s) => s.selected).map((s) => s.id),
+            orderNos: data?.pendingSales
+                ?.filter(
+                    (s) => formData.sales.find((b) => b.id == s.id)?.selected
+                )
+                .map((s) => s.orderId),
         });
     };
     const percentageList = [25, 50, 75, 100];
