@@ -1,8 +1,10 @@
 import { cancelTerminaPaymentAction } from "@/actions/cancel-terminal-payment-action";
 import { createSalesPaymentAction } from "@/actions/create-sales-payment";
 import { createPaymentSchema } from "@/actions/schema";
+import { generateToken } from "@/actions/token-action";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useZodForm } from "@/hooks/use-zod-form";
+import { openLink } from "@/lib/open-link";
 import { paymentMethods, salesPaymentMethods } from "@/utils/constants";
 import { formatDate } from "@/utils/format";
 import { Button, ButtonProps } from "@gnd/ui/button";
@@ -25,7 +27,10 @@ import { Separator } from "@gnd/ui/separator";
 import { Spinner } from "@gnd/ui/spinner";
 import { toast } from "@gnd/ui/use-toast";
 import { sum } from "@gnd/utils";
+import { SalesPdfToken } from "@gnd/utils/tokenizer";
+import { SalesPrintModes } from "@sales/constants";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { addDays } from "date-fns";
 import { Calculator } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import React, { Suspense, useEffect, useState } from "react";
@@ -162,7 +167,24 @@ function Content(props: Props & { setOpened }) {
                 _qc.invalidateQueries({
                     queryKey: _trpc.sales.getOrders.infiniteQueryKey({}),
                 });
-                props.setOpened(false);
+                (async () => {
+                    const tok = await generateToken({
+                        salesIds: form.getValues("sales").map((s) => s.id),
+                        expiry: addDays(new Date(), 7).toISOString(),
+                        mode: "order" as SalesPrintModes,
+
+                        // mode: props.type
+                    } satisfies SalesPdfToken);
+                    openLink(
+                        `api/download/sales`,
+                        {
+                            token: tok,
+                            preview: true,
+                        },
+                        true
+                    );
+                    props.setOpened(false);
+                })();
 
                 break;
             case "failed":

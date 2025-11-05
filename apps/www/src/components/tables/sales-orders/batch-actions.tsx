@@ -12,6 +12,7 @@ import { DropdownMenu } from "@gnd/ui/composite";
 import { SuperAdminGuard } from "@/components/auth-guard";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { sum } from "@gnd/utils";
+import { Env } from "@/components/env";
 
 export function BatchActions({}) {
     const ctx = useTable();
@@ -34,23 +35,18 @@ export function BatchActions({}) {
                         icon="print"
                         menu={
                             <>
-                                <MenuItemPrintAction
-                                    slug={slugs.join(",")}
-                                    type="order"
-                                />
-
-                                <DropdownMenu.Separator />
-                                <DropdownMenu.Group>
+                                <Env isDev>
                                     <MenuItemPrintAction
                                         slug={slugs.join(",")}
                                         type="order"
-                                        pdf
                                     />
-                                    <MenuItemPrintAction
-                                        type="order"
-                                        salesIds={salesIds}
-                                    />
-                                </DropdownMenu.Group>
+                                    <DropdownMenu.Separator />
+                                </Env>
+
+                                <MenuItemPrintAction
+                                    type="order"
+                                    salesIds={salesIds}
+                                />
                             </>
                         }
                     >
