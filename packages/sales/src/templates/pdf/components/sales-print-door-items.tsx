@@ -58,7 +58,6 @@ export default function SalesPrintDoorItems({
             ))}
         </View>
       )}
-
       {doors.lines?.length ? (
         <View style={cn("flex-col border-t")}>
           <View style={cn("flex")}>
