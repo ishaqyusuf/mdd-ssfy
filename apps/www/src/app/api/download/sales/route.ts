@@ -7,6 +7,7 @@ import { PdfTemplate } from "@sales/templates/pdf";
 import { validateTokenAction } from "@/actions/token-action";
 import { notFound } from "next/navigation";
 import { db } from "@gnd/db";
+import sharp from "sharp";
 const paramsSchema = z.object({
     // id: z.string().uuid().optional(),
     // token: z.string().optional(),
@@ -36,10 +37,15 @@ export async function GET(req: NextRequest) {
     } = result.data;
 
     const pages = printData.map((a) => a.pageData);
+    const buffer = await sharp(`${process.env.NEXT_PUBLIC_APP_URL}/logo.png`)
+        .grayscale()
+        .toBuffer();
+    const watermark = `data:image/png;base64,${buffer.toString("base64")}`;
 
     const stream = await renderToStream(
         await PdfTemplate({
             pages,
+            watermark,
             title: safeTitle,
             template: {
                 size: "A4",

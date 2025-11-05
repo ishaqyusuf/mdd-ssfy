@@ -4,15 +4,15 @@
 
 // Solution for prisma edge: @link https://github.com/prisma/prisma/issues/22050#issuecomment-1821208388
 
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient, Prisma } from "../node_modules/.prisma/client/client.js";
 
 export {
   Prisma,
   PrismaClient,
   SalesPriority,
   PayoutStatus,
-} from "@prisma/client";
-export type { Roles, Users } from "@prisma/client";
+} from "../node_modules/.prisma/client/client.js";
+export type { Roles, Users } from "../node_modules/.prisma/client/client.js";
 
 // export { ShippingMethodType } from "@prisma/client";
 

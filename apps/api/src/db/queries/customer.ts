@@ -385,6 +385,9 @@ export async function getCustomerPendingSales(ctx: TRPCContext, accountNo) {
   const where = whereSales(query);
   const ls = await db.salesOrders.findMany({
     where,
+    orderBy: {
+      createdAt: "desc",
+    },
     select: {
       amountDue: true,
       orderId: true,

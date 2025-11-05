@@ -54,6 +54,7 @@ interface Props {
   pages: any[];
 
   // url;
+  watermark?;
   title?;
   template: {
     logoUrl?: string;

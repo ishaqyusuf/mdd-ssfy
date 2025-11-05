@@ -22,6 +22,8 @@ const tw: { [key in string]: Partial<any> } = {
   uppercase: { textTransform: "uppercase" },
   capitalize: { textTransform: "capitalize" },
   "font-bold": { fontWeight: "bold" },
+  "font-medium": { fontWeight: 500 },
+  "font-semibold": { fontWeight: 600 },
   italic: { fontStyle: "italic" },
   "flex-wrap": { flexWrap: "wrap" },
   // Layout

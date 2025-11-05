@@ -132,18 +132,15 @@ export default function SalesPrintHeader({
                   <View>
                     <Text
                       style={cn(
-                        "text-sm border-b bg-slate-200 text-gray-700 p-1 px-2",
-                        {
-                          fontWeight: 700,
-                        }
+                        "text-sm border-b bg-slate-200 text-gray-700 p-1 px-2 font-bold uppercase"
                       )}
                     >
                       {address?.title}
                     </Text>
                   </View>
-                  <View style={{ ...cn("p-2 flex-col") }}>
+                  <View style={{ ...cn("p-2 text-xs font-medium flex-col") }}>
                     {address?.lines?.map((line: string, idx: number) => (
-                      <Text key={idx} style={cn("text-sm")}>
+                      <Text key={idx} style={cn("")}>
                         {line}
                       </Text>
                     ))}

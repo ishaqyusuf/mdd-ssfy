@@ -30,7 +30,7 @@ export default function SalesPrintDoorItems({
       </Text>
 
       {!doors.details?.length || (
-        <View style={cn("flex uppercase flex-wrap")}>
+        <View style={cn("flex text-xs uppercase flex-wrap")}>
           {doors.details
             .filter(
               (d) => d.value && !["Height"].includes(d.step?.title as string)
@@ -46,13 +46,12 @@ export default function SalesPrintDoorItems({
               >
                 <View
                   style={{
-                    ...cn("col-span-3 p-1 w-1/3 border-r"),
-                    fontWeight: 700,
+                    ...cn("col-span-3 p-1 w-1/3 border-r font-bold"),
                   }}
                 >
                   <Text>{detail.step.title}</Text>
                 </View>
-                <View style={cn("p-1 w-2/3")}>
+                <View style={cn("p-1 w-2/3 font-medium")}>
                   <Text>{detail.value}</Text>
                 </View>
               </View>
@@ -67,8 +66,8 @@ export default function SalesPrintDoorItems({
                 key={i}
                 style={{
                   ...cn(
-                    "p-1 font-semibold uppercase ",
                     cell.cellStyle,
+                    "p-1 font-semibold uppercase ",
                     i == doors.itemCells.length - 1 ? "" : "border-r "
                   ),
                   // flex: cell.colSpan,
@@ -82,7 +81,11 @@ export default function SalesPrintDoorItems({
           </View>
 
           {doors.lines.map((line, i) => (
-            <View wrap={false} key={i} style={cn("flex border-b")}>
+            <View
+              wrap={false}
+              key={i}
+              style={cn("flex border-b font-medium text-xs")}
+            >
               {line.map((ld, ldi) => (
                 <View
                   key={ldi}

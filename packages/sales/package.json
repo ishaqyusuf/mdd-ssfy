@@ -30,8 +30,8 @@
     "./wallet": "./src/wallet.ts"
   },
   "dependencies": {
-    "@gnd/ui": "workspace:*",
     "@gnd/db": "workspace:*",
+    "@gnd/ui": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@react-pdf/renderer": "^4.3.0",
     "date-fns": "^4.1.0",
