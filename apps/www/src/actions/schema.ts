@@ -134,6 +134,7 @@ export const updateComponentPricingSchema = z.object({
 export const createPaymentSchema = z
     .object({
         salesIds: z.array(z.number()),
+        // salesIds: z.array(z.number()),
         orderNos: z.array(z.string()),
         accountNo: z.string().optional(),
         paymentMethod: z.enum(paymentMethods),

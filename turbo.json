@@ -98,6 +98,7 @@
       "persistent": true
     },
     "dev": {
+      "env": ["SQUARE_SANDBOX_ACCESS_TOKEN"],
       "dependsOn": ["^dev", "^generate"],
       "persistent": true,
       "cache": false

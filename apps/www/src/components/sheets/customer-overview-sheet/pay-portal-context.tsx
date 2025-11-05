@@ -17,9 +17,8 @@ import { ToastAction } from "@gnd/ui/toast";
 import { useToast } from "@gnd/ui/use-toast";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useZodForm } from "@/hooks/use-zod-form";
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
-import { useDebugToast } from "@/hooks/use-debug-console";
 
 export function usePayPortal() {
     const query = useCustomerOverviewQuery();

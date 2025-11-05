@@ -28,14 +28,12 @@ import {
 import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { usePayPortal } from "./pay-portal-context";
 import { useTRPC } from "@/trpc/client";
-import { useMutation, useSuspenseQuery } from "@gnd/ui/tanstack";
+import { useMutation } from "@gnd/ui/tanstack";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "@gnd/ui/use-toast";
 import { Suspense } from "react";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { _trpc } from "@/components/static-trpc";
-import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
-import { useDebugToast } from "@/hooks/use-debug-console";
 
 export function PayPortalTab({}) {
     return (

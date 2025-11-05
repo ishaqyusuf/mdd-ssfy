@@ -40,6 +40,8 @@ import { SalesPO } from "./inline-data-edit";
 import { GeneralActionBar } from "./general-action-bar";
 import { cn } from "@gnd/ui/cn";
 import { DeliveryOption } from "./delivery-option";
+import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
+import salesData from "@/app-deps/(v2)/(loggedIn)/sales/sales-data";
 
 export function GeneralTab({}) {
     const ctx = useSalesOverviewQuery();
@@ -90,7 +92,7 @@ export function GeneralTab({}) {
     };
 
     const getStatusVariant = (
-        status: string,
+        status: string
     ): "default" | "secondary" | "destructive" | "outline" => {
         switch (status) {
             case "completed":
@@ -134,7 +136,7 @@ export function GeneralTab({}) {
                                                 // href={saleData?.links?.customer}
                                                 onClick={(e) => {
                                                     customerQuery.open(
-                                                        saleData.accountNo,
+                                                        saleData.accountNo
                                                     );
                                                 }}
                                                 className="flex items-center gap-1 text-lg font-medium"
@@ -207,10 +209,10 @@ export function GeneralTab({}) {
                                                         salesFormUrl(
                                                             saleData.type,
                                                             saleData.orderId,
-                                                            saleData.isDyke,
+                                                            saleData.isDyke
                                                         ),
                                                         {},
-                                                        true,
+                                                        true
                                                     );
                                                 }}
                                                 className="flex items-center gap-1 font-medium"
@@ -333,7 +335,7 @@ export function GeneralTab({}) {
                                                 <p className="text-sm font-medium">
                                                     $
                                                     {saleData?.invoice?.paid?.toFixed(
-                                                        2,
+                                                        2
                                                     )}
                                                 </p>
                                             </DataSkeleton>
@@ -352,7 +354,7 @@ export function GeneralTab({}) {
                                                 <p className="text-sm font-medium">
                                                     $
                                                     {saleData.invoice.pending?.toFixed(
-                                                        2,
+                                                        2
                                                     )}
                                                 </p>
                                             </DataSkeleton>
@@ -392,19 +394,24 @@ export function GeneralTab({}) {
                             </div>
                         </div>
                         {!(saleData.due && !isQuote) || (
-                            <Button
-                                className="w-full"
-                                onClick={(e) => {
-                                    customerQuery.pay({
-                                        phoneNo: saleData.customerPhone,
-                                        orderId: saleData.id,
-                                        customerId: saleData.customerId,
-                                    });
-                                }}
-                            >
-                                <Icons.payment className="mr-2 size-4" />
-                                Pay
-                            </Button>
+                            <SalesPaymentProcessor
+                                selectedIds={[saleData.id]}
+                                phoneNo={saleData.customerPhone}
+                                customerId={saleData?.customerId}
+                            />
+                            // <Button
+                            //     className="w-full"
+                            //     onClick={(e) => {
+                            //         customerQuery.pay({
+                            //             phoneNo: saleData.customerPhone,
+                            //             orderId: saleData.id,
+                            //             customerId: saleData.customerId,
+                            //         });
+                            //     }}
+                            // >
+                            //     <Icons.payment className="mr-2 size-4" />
+                            //     Pay
+                            // </Button>
                         )}
                         <div>
                             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -558,7 +565,10 @@ export function GeneralTab({}) {
                                         </span>
                                         <div className="flex items-center gap-2">
                                             <div
-                                                className={`h-2 w-2 rounded-full ${getStatusColor(saleData?.status?.assignment?.color)}`}
+                                                className={`h-2 w-2 rounded-full ${getStatusColor(
+                                                    saleData?.status?.assignment
+                                                        ?.color
+                                                )}`}
                                             ></div>
                                             <DataSkeleton
                                                 className="text-xs font-medium"
@@ -604,7 +614,10 @@ export function GeneralTab({}) {
                                         </span>
                                         <div className="flex items-center gap-2">
                                             <div
-                                                className={`h-2 w-2 rounded-full ${getStatusColor(saleData?.status?.production?.color)}`}
+                                                className={`h-2 w-2 rounded-full ${getStatusColor(
+                                                    saleData?.status?.production
+                                                        ?.color
+                                                )}`}
                                             ></div>
                                             <DataSkeleton
                                                 className="text-xs font-medium"
@@ -662,7 +675,9 @@ export function GeneralTab({}) {
                                 <span className="text-sm">Delivery Status</span>
                                 <div className="flex items-center gap-2">
                                     <div
-                                        className={`h-2 w-2 rounded-full ${getStatusColor(saleData.status.delivery.color)}`}
+                                        className={`h-2 w-2 rounded-full ${getStatusColor(
+                                            saleData.status.delivery.color
+                                        )}`}
                                     ></div>
                                     <DataSkeleton
                                         className="text-xs font-medium"
@@ -670,7 +685,7 @@ export function GeneralTab({}) {
                                     >
                                         <Badge
                                             variant={getStatusVariant(
-                                                saleData.status.delivery.status,
+                                                saleData.status.delivery.status
                                             )}
                                         >
                                             <span className="capitalize">
