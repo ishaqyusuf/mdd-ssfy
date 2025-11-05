@@ -17,7 +17,8 @@ import {
 import { Button } from "@gnd/ui/button";
 import { useSalesQuickPay } from "@/hooks/use-sales-quick-pay";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 
 export function InvoiceColumn({ item }: { item: Item }) {
     const { pending, paid, total } = item.invoice;
@@ -26,21 +27,19 @@ export function InvoiceColumn({ item }: { item: Item }) {
     const qpCtx = useSalesQuickPay();
     const customerQuery = useCustomerOverviewQuery();
     function pay() {
-        // qpCtx.setParams({
-        //     quickPaySalesId: item.id,
-        // });
-        setOpened(true);
-        setTimeout(() => {
-            customerQuery.pay({
-                phoneNo: item.customerPhone,
-                orderId: item.id,
-                customerId: item.customerId,
-            });
-            setOpened(false);
-        }, 1000);
+        // trigger buttonRef Click.
+        buttonRef.current?.click();
     }
+    const buttonRef = useRef<HTMLButtonElement>(null);
     return (
         <div className="text-right relative z-10">
+            <SalesPaymentProcessor
+                phoneNo={item?.customerPhone}
+                selectedIds={[item?.id]}
+                customerId={item.customerId}
+            >
+                <button ref={buttonRef}></button>
+            </SalesPaymentProcessor>
             <TooltipProvider delayDuration={70}>
                 <Tooltip>
                     <TooltipTrigger>
@@ -51,8 +50,8 @@ export function InvoiceColumn({ item }: { item: Item }) {
                                 pending == total
                                     ? "text-red-600"
                                     : pending > 0
-                                      ? "text-purple-500"
-                                      : "text-green-600",
+                                    ? "text-purple-500"
+                                    : "text-green-600"
                             )}
                         />
                     </TooltipTrigger>
@@ -64,7 +63,7 @@ export function InvoiceColumn({ item }: { item: Item }) {
                         }}
                         className={cn(
                             "px-3 py-1.5 text-xs space-y-2 relative z-[999]",
-                            opened && "size-0",
+                            opened && "size-0"
                         )}
                         sideOffset={10}
                     >

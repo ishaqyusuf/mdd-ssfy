@@ -185,84 +185,8 @@ export function usePayPortal() {
         },
     };
 }
-type Status =
-    | "idle"
-    | "loading"
-    | "terminal-waiting"
-    | "terminal-long-waiting"
-    | "terminal-success"
-    | "terminal-cancelled"
-    | "failed"
-    | "payment-success";
+
 const staticPaymentData = {
     description: null,
     accept: null,
 };
-type Toast = Parameters<ReturnType<typeof useToast>["update"]>[1];
-function toastDetail(status: Status, description?): Partial<Toast> | null {
-    if (!description) description = staticPaymentData.description;
-    staticPaymentData.description = null;
-    switch (status) {
-        case "loading":
-            return {
-                // id: toastId,
-                title: `Generating payment...`,
-                duration: Number.POSITIVE_INFINITY,
-                variant: "spinner",
-                // action
-            };
-        case "terminal-waiting":
-            return {
-                // id: toastId,
-                title: `Waiting to accept payment...`,
-                description,
-                duration: Number.POSITIVE_INFINITY,
-                variant: "spinner",
-                action: null,
-            };
-        case "terminal-long-waiting":
-            return {
-                // id: toastId,
-                title: `Payment taking too long...`,
-                description: `This may be a network problem. Have you received payment?`,
-                duration: Number.POSITIVE_INFINITY,
-                variant: "spinner",
-
-                action: (
-                    <ToastAction
-                        altText="payment-received"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            staticPaymentData.accept?.();
-                        }}
-                    >
-                        <span>Yes</span>
-                    </ToastAction>
-                ),
-            };
-        case "terminal-cancelled":
-            return {
-                // id: toastId,
-                title: `Terminal payment cancelled...`,
-                duration: 1500,
-                variant: "error",
-            };
-        case "payment-success":
-            return {
-                // id: toastId,
-                title: `Payment successful`,
-                variant: "success",
-                duration: 3000,
-            };
-        case "failed":
-            return {
-                // id: toastId,
-                description,
-                title: `Payment Failed, try again`,
-                variant: "error",
-                duration: 3000,
-            };
-        default:
-            return null;
-    }
-}

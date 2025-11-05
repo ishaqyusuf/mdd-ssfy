@@ -1,16 +1,39 @@
+import { cancelTerminaPaymentAction } from "@/actions/cancel-terminal-payment-action";
+import { createSalesPaymentAction } from "@/actions/create-sales-payment";
 import { createPaymentSchema } from "@/actions/schema";
 import { _trpc } from "@/components/static-trpc";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { paymentMethods, salesPaymentMethods } from "@/utils/constants";
 import { formatDate } from "@/utils/format";
-import { Button } from "@gnd/ui/button";
+import { Button, ButtonProps } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
-import { Dialog, Field, Item, Popover, Select } from "@gnd/ui/composite";
+import {
+    AlertDialog,
+    Dialog,
+    Field,
+    InputGroup,
+    Item,
+    Popover,
+    Select,
+} from "@gnd/ui/composite";
 import { Icons } from "@gnd/ui/custom/icons";
+import { Menu } from "@gnd/ui/custom/menu";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
+import { Form } from "@gnd/ui/form";
+import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Separator } from "@gnd/ui/separator";
+import { Spinner } from "@gnd/ui/spinner";
+import { sum } from "@gnd/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import React, { Suspense, useEffect, useState } from "react";
+import { Calculator } from "lucide-react";
+import { useAction } from "next-safe-action/hooks";
+import React, {
+    startTransition,
+    Suspense,
+    useEffect,
+    useState,
+    useTransition,
+} from "react";
 import { useFieldArray } from "react-hook-form";
 import z from "zod";
 
@@ -19,6 +42,8 @@ interface Props {
     phoneNo: string;
     customerId?: number;
     children?;
+    buttonProps?: ButtonProps;
+    disabled?: boolean;
 }
 
 export function SalesPaymentProcessor(props: Props) {
@@ -28,11 +53,13 @@ export function SalesPaymentProcessor(props: Props) {
             <Dialog.Trigger asChild>
                 {props.children || (
                     <Button
+                        disabled={props.disabled}
                         onClick={(e) => {
                             e.preventDefault();
                             setOpened(!open);
                         }}
                         className="w-full"
+                        {...props?.buttonProps}
                     >
                         <Icons.payment className="mr-2 size-4" />
                         Pay
@@ -43,8 +70,10 @@ export function SalesPaymentProcessor(props: Props) {
                 <Suspense
                     fallback={
                         <>
-                            <Dialog.Title></Dialog.Title>
-                            <Dialog.Description></Dialog.Description>
+                            <Dialog.Header>
+                                <Dialog.Title></Dialog.Title>
+                                <Dialog.Description></Dialog.Description>
+                            </Dialog.Header>
                             <Skeletons.Card />
                         </>
                     }
@@ -66,6 +95,7 @@ function Content(props: Props) {
     const form = useZodForm(
         createPaymentSchema.merge(
             z.object({
+                editPrice: z.boolean().default(false),
                 sales: z.array(
                     z.object({
                         id: z.number(),
@@ -80,65 +110,181 @@ function Content(props: Props) {
     );
     useEffect(() => {
         form.reset({
+            deviceId: data?.lastTerminalId,
+            terminalPaymentSession: null,
             sales: data.pendingSales.map((s) => ({
                 id: s.id,
                 selected: props.selectedIds.includes(s.id),
             })),
         });
     }, [data]);
-    // const { fields, update } = useFieldArray({
-    //     control: form.control,
-    //     name: "sales",
-    //     keyName: "_id",
-    // });
-    const wSales = form.watch("sales");
-    const pm = form.watch("paymentMethod");
+    const {
+        sales: wSales,
+        paymentMethod: pm,
+        amount,
+        editPrice,
+        terminalPaymentSession,
+    } = form.watch();
+    useEffect(() => {
+        if (!wSales) return;
+        form.setValue(
+            "amount",
+            sum(
+                // wSales.filter(a => a.selected),
+                data?.pendingSales?.filter(
+                    (a) => wSales?.find((b) => b.id == a.id)?.selected
+                ),
+                "amountDue"
+            )
+        );
+    }, [wSales]);
+    const makePayment = useAction(createSalesPaymentAction, {
+        onSuccess: (args) => {
+            if (args.data?.terminalPaymentSession) {
+                form.setValue(
+                    "terminalPaymentSession",
+                    args.data.terminalPaymentSession
+                );
+                setTimeout(() => {
+                    setWaitSeconds(0);
+                }, 2000);
+            } else {
+                if (args.data.status) {
+                    form.setValue("terminalPaymentSession", null);
+
+                    // sq.invalidate.salesList();
+                    // query.setParams({
+                    //     "pay-selections": null,
+                    //     tab: "transactions",
+                    // });
+                    setTimeout(() => {
+                        // if (salesQ?.params?.["sales-overview-id"]) {
+                        //     salesQ.salesQuery.salesPaymentUpdated();
+                        //     query?.setParams(null);
+                        // }
+                        // printSalesData({
+                        //     mode: "order-packing",
+                        //     slugs: args.input.orderNos?.join(","),
+                        // });
+                    }, 1000);
+                }
+            }
+        },
+        onError(error) {
+            // staticPaymentData.description = error.error?.serverError;
+        },
+    });
+    const [waitSeconds, setWaitSeconds] = useState(null);
+    const cancelTerminalPayment = useAction(cancelTerminaPaymentAction, {
+        onSuccess: (args) => {
+            setWaitSeconds(null);
+            form.setValue("terminalPaymentSession", null);
+        },
+        onError(e) {
+            //toast.error("Unable to cancel payment");
+        },
+    });
+
+    const initPayment = async () => {};
+    const percentageList = [25, 50, 75, 100];
+
+    const disabled = false;
     return (
-        <>
-            <Dialog.Title>{data?.wallet?.accountNo}</Dialog.Title>
-            <Dialog.Description>
-                {data?.pendingSales?.[0]?.displayName}
-            </Dialog.Description>
+        <Form {...form}>
+            <Dialog.Header>
+                <Dialog.Title>
+                    {data?.pendingSales?.[0]?.customerName}
+                </Dialog.Title>
+                <Dialog.Description>
+                    {data?.wallet?.accountNo}
+                    {/* {data?.pendingSales?.[0]?.customerName} */}
+                </Dialog.Description>
+            </Dialog.Header>
             <div className="grid gap-4">
-                <Item.Group className="grid grid-cols-2 gap-2">
-                    {data?.pendingSales?.map((sale, index) => (
-                        <React.Fragment key={sale?.id}>
-                            <Item
-                                size="sm"
-                                variant="outline"
+                <ScrollArea className="max-h-[45vh]">
+                    <Item.Group className="grid grid-cols-2s gap-2">
+                        {data?.pendingSales?.map((sale, index) => (
+                            <React.Fragment key={sale?.id}>
+                                <Item
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => {
+                                        form.setValue(
+                                            `sales.${index}.selected`,
+                                            !wSales?.[index]?.selected
+                                        );
+                                    }}
+                                    className={cn(
+                                        !wSales?.[index]?.selected ||
+                                            "bg-green-100 border-green-500",
+                                        "cursor-pointer p-2"
+                                    )}
+                                >
+                                    <Item.Content className="flex-row justify-between">
+                                        <Item.Title
+                                            className={cn(
+                                                "text-accents inline-flex"
+                                            )}
+                                        >
+                                            {sale?.orderId}
+                                        </Item.Title>
+                                        <Item.Description
+                                            className={cn(
+                                                "text-secondary-foregrounds flex gap-2 items-center"
+                                            )}
+                                        >
+                                            <span>
+                                                {formatDate(sale?.createdAt)}
+                                            </span>
+                                            {/* <Separator orientation="vertical" /> */}
+                                            <>-</>
+                                            <span>${sale?.amountDue}</span>
+                                        </Item.Description>
+                                    </Item.Content>
+                                </Item>
+                            </React.Fragment>
+                        ))}
+                    </Item.Group>
+                </ScrollArea>
+                <Separator />
+                <div className="flex justify-end gap-2 items-center">
+                    {editPrice ? (
+                        <>
+                            <Menu Icon={Calculator}>
+                                {percentageList.map((p) => (
+                                    <Menu.Item onClick={(e) => {}} key={p}>
+                                        {p} %
+                                    </Menu.Item>
+                                ))}
+                            </Menu>
+                            <InputGroup className="w-48 pr-2">
+                                <InputGroup.Input
+                                    {...form.register("_amount")}
+                                    placeholder="Custom Price"
+                                />
+                                <InputGroup.Addon align="end">
+                                    <InputGroup.Text>
+                                        / ${amount}
+                                    </InputGroup.Text>
+                                </InputGroup.Addon>
+                            </InputGroup>
+                        </>
+                    ) : (
+                        <>
+                            <span className="font-bold">Total: ${amount}</span>
+                            <Button
                                 onClick={(e) => {
-                                    form.setValue(
-                                        `sales.${index}.selected`,
-                                        !wSales?.[index]?.selected
-                                    );
+                                    form.setValue("editPrice", true);
                                 }}
-                                className={cn(
-                                    !wSales?.[index]?.selected ||
-                                        "bg-green-300",
-                                    "cursor-pointer p-2"
-                                )}
+                                className=""
+                                size="icon"
+                                variant="ghost"
                             >
-                                <Item.Content className="">
-                                    <Item.Title className={cn("text-accents")}>
-                                        {sale?.orderId}
-                                    </Item.Title>
-                                    <Item.Description
-                                        className={cn(
-                                            "text-secondary-foregrounds flex gap-2 items-center"
-                                        )}
-                                    >
-                                        <span>
-                                            {formatDate(sale?.createdAt)}
-                                        </span>
-                                        {/* <Separator orientation="vertical" /> */}
-                                        <>-</>
-                                        <span>${sale?.amountDue}</span>
-                                    </Item.Description>
-                                </Item.Content>
-                            </Item>
-                        </React.Fragment>
-                    ))}
-                </Item.Group>
+                                <Icons.edit className="size-4" />
+                            </Button>
+                        </>
+                    )}
+                </div>
                 <Separator />
                 <div className="flex items-center gap-2">
                     <div className="flex-1 grid gap-2 grid-cols-2">
@@ -146,6 +292,12 @@ function Content(props: Props) {
                             <Field.Content>
                                 <Select.Root
                                     {...form.register("paymentMethod")}
+                                    onValueChange={(e) => {
+                                        form.setValue(
+                                            "paymentMethod",
+                                            e as any
+                                        );
+                                    }}
                                 >
                                     <Select.Trigger>
                                         <Select.Value placeholder="Payment Method" />
@@ -164,32 +316,67 @@ function Content(props: Props) {
                             </Field.Content>
                         </Field>
                         {pm == "check" ? (
-                            <Field>
-                                <Field.Content>
-                                    <Field.Input
-                                        {...form.register("checkNo")}
-                                        className=""
-                                    />
-                                </Field.Content>
-                            </Field>
+                            <InputGroup>
+                                <InputGroup.Addon align="inline-start">
+                                    <InputGroup.Text>Check No:</InputGroup.Text>
+                                </InputGroup.Addon>
+                                <InputGroup.Input
+                                    className="!pl-1"
+                                    {...form.register("checkNo")}
+                                    placeholder="eg., 12345"
+                                />
+                            </InputGroup>
                         ) : pm == "terminal" ? (
                             <Field>
                                 <Field.Content>
-                                    <Select.Root>
+                                    <Select.Root
+                                        {...form.register("deviceId")}
+                                        onValueChange={(e) => {
+                                            form.setValue("deviceId", e);
+                                        }}
+                                    >
                                         <Select.Trigger>
-                                            <Select.Value placeholder="" />
+                                            <Select.Value placeholder="Select Terminal" />
                                         </Select.Trigger>
+                                        <Select.Content>
+                                            {data?.terminals?.map(
+                                                (terminal, tIndex) => (
+                                                    <Select.Item
+                                                        disabled={
+                                                            terminal?.status !==
+                                                            "PAIRED"
+                                                        }
+                                                        key={tIndex}
+                                                        value={terminal?.value}
+                                                    >
+                                                        {terminal.label}
+                                                    </Select.Item>
+                                                )
+                                            )}
+                                        </Select.Content>
                                     </Select.Root>
                                 </Field.Content>
                             </Field>
                         ) : undefined}
                     </div>
-                    <Button className="rounded-full bg-green-500" size="icon">
-                        <Icons.arrowRight className="size-4" />
+                    <Button
+                        disabled={
+                            makePayment.isExecuting ||
+                            !form.formState.isValid ||
+                            !!terminalPaymentSession
+                        }
+                        className="rounded-full bg-green-500"
+                        size="icon"
+                    >
+                        {makePayment.isExecuting || !!terminalPaymentSession ? (
+                            <Spinner />
+                        ) : (
+                            <Icons.arrowRight className="size-4" />
+                        )}
                     </Button>
                 </div>
             </div>
-        </>
+        </Form>
     );
 }
 

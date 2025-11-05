@@ -44,7 +44,7 @@ export function BatchAction({ children = null }) {
         className="sgap-4 relative flex items-center divide-x divide-muted-foreground/50 overflow-hidden rounded-xl border border-muted-foreground/50 bg-white shadow-xl"
       >
         {/* <div className="border flex sgap-4 items-center rounded-xl bg-white overflow-hidden border-muted-foreground/50 divide-x divide-muted-foreground/50 shadow-xl  relative "> */}
-        <Label className="px-2 font-mono$">
+        <Label className="px-2 whitespace-nowrap font-mono$">
           <span className="font-bold">{selectCount}</span>
           {" of "}
           <span className="font-bold">{total}</span>
@@ -71,12 +71,14 @@ interface BatchBtnProps {
   children?;
   menu?;
   onClick?;
+  disabled?: boolean;
 }
 export function BatchBtn(props: BatchBtnProps) {
   const Icon = Icons[props.icon];
   if (props.menu)
     return (
       <Menu
+        disabled={props.disabled}
         Trigger={
           <Button className="rounded-none" variant="ghost">
             {Icon && <Icon className={cn("mr-2 size-3.5")} />}
@@ -87,7 +89,12 @@ export function BatchBtn(props: BatchBtnProps) {
         {props.menu}
       </Menu>
     );
-  return <Button>{props.children}</Button>;
+  return (
+    <Button variant="ghost" disabled={props.disabled}>
+      {Icon && <Icon className={cn("mr-2 size-3.5")} />}
+      {props.children}
+    </Button>
+  );
 }
 export function BatchDelete(props: BatchBtnProps) {
   let ctx = useTable();
