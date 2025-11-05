@@ -36,6 +36,7 @@ export default function SalesPrintDoorItems({
             )
             .map((detail, i) => (
               <View
+                wrap={false}
                 key={i}
                 style={cn(
                   "col-span-2 border-t w-1/2 flex",

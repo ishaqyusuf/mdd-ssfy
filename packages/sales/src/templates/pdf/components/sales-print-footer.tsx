@@ -34,7 +34,11 @@ export default function SalesPrintFooter({
             ))}
           </View>
         </View>
-        <View style={cn("relative text-sm w-1/3")}>
+        <View
+          style={cn("relative text-sm", {
+            width: "40%",
+          })}
+        >
           <View style={cn("w-full")}>
             {lines.map((line, index) => (
               <View

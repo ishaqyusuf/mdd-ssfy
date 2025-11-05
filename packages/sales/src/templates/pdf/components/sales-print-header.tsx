@@ -10,10 +10,15 @@ export default function SalesPrintHeader({
 }: SalesInvoiceTemplateProps) {
   return (
     <View style={cn("mb-2")}>
-      <View style={cn("flex")}>
+      <View
+        style={cn("flex", {
+          alignItems: "start",
+        })}
+      >
         <View
-          style={cn("", {
-            width: "37.5%",
+          style={cn("flex", {
+            width: "30%",
+            //
           })}
         >
           <Image
@@ -26,14 +31,25 @@ export default function SalesPrintHeader({
             })}
           />
         </View>
-        <View style={cn("w-1/4 font-bold flex-col")}>
+        <View
+          wrap={false}
+          style={cn(" font-bold flex-col", {
+            width: `${100 - 30 - 37.5}%`,
+          })}
+        >
           <Text style={cn("text-sm font-mono$")}>13285 SW 131 ST</Text>
           <Text style={cn("text-sm font-mono$")}>Miami, Fl 33186</Text>
           <Text style={cn("text-sm font-mono$")}>Phone: 305-278-6555</Text>
           {sale.isProd && (
             <Text style={cn("text-sm font-mono$")}>Fax: 305-278-2003</Text>
           )}
-          <Text style={cn("text-sm font-mono$")}>support@gndmillwork.com</Text>
+          <Text
+            style={cn("text-sm font-mono$", {
+              textWrap: "nowrap",
+            })}
+          >
+            support@gndmillwork.com
+          </Text>
         </View>
         <View
           style={cn("flex-col p-2 text-sm", {
