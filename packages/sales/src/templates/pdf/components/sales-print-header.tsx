@@ -16,40 +16,46 @@ export default function SalesPrintHeader({
         })}
       >
         <View
-          style={cn("flex", {
-            width: "30%",
-            //
-          })}
+          style={{
+            width: `${100 - 37.5}%`,
+          }}
         >
-          <Image
-            src={`${env.NEXT_PUBLIC_APP_URL}/logo.png`}
-            style={cn({
-              width: 150,
-              height: 150,
-              // display: "block",
-              objectFit: "contain",
-            })}
-          />
-        </View>
-        <View
-          wrap={false}
-          style={cn(" font-bold flex-col", {
-            width: `${100 - 30 - 37.5}%`,
-          })}
-        >
-          <Text style={cn("text-sm font-mono$")}>13285 SW 131 ST</Text>
-          <Text style={cn("text-sm font-mono$")}>Miami, Fl 33186</Text>
-          <Text style={cn("text-sm font-mono$")}>Phone: 305-278-6555</Text>
-          {sale.isProd && (
-            <Text style={cn("text-sm font-mono$")}>Fax: 305-278-2003</Text>
-          )}
-          <Text
-            style={cn("text-sm font-mono$", {
-              textWrap: "nowrap",
+          <View
+            style={cn("flex", {
+              // width: "30%",
+              //
             })}
           >
-            support@gndmillwork.com
-          </Text>
+            <Image
+              src={`${env.NEXT_PUBLIC_APP_URL}/logo.png`}
+              style={cn({
+                width: 150,
+                height: 80,
+                // display: "block",
+                objectFit: "contain",
+              })}
+            />
+          </View>
+          <View
+            style={cn("font-bold", {
+              marginBottom: 16,
+            })}
+            wrap={false}
+          >
+            <Text style={cn("text-sm font-mono$")}>13285 SW 131 ST</Text>
+            <Text style={cn("text-sm font-mono$")}>Miami, Fl 33186</Text>
+            <Text style={cn("text-sm font-mono$")}>Phone: 305-278-6555</Text>
+            {sale.isProd && (
+              <Text style={cn("text-sm font-mono$")}>Fax: 305-278-2003</Text>
+            )}
+            <Text
+              style={cn("text-sm font-mono$", {
+                textWrap: "nowrap",
+              })}
+            >
+              support@gndmillwork.com
+            </Text>
+          </View>
         </View>
         <View
           style={cn("flex-col p-2 text-sm", {
@@ -74,7 +80,7 @@ export default function SalesPrintHeader({
           ))}
         </View>
       </View>
-      <View style={cn("flex uppercase")}>
+      <View style={cn("flex")}>
         {[sale?.address?.[0], null, sale?.address?.[1]].map(
           (address: any, index: number) => (
             <View
@@ -84,7 +90,8 @@ export default function SalesPrintHeader({
                 index == 1
                   ? {}
                   : {
-                      width: "37.5%",
+                      width: "60%",
+                      // width: "37.5%",
                       ...cn("border"),
                     }
               )}
@@ -125,7 +132,7 @@ export default function SalesPrintHeader({
                   <View>
                     <Text
                       style={cn(
-                        "text-sm border-b bg-slate-200 text-gray-700  p-1 px-2",
+                        "text-sm border-b bg-slate-200 text-gray-700 p-1 px-2",
                         {
                           fontWeight: 700,
                         }

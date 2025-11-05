@@ -19,8 +19,9 @@ export default function SalesPrintDoorItems({
 
   // wm[String(span)];
   return (
-    <View style={cn("flex-col border-x border-t text-sm")}>
+    <View style={cn("flex-col border-x text-sm")}>
       <Text
+        wrap={false}
         style={cn("text-sm p-1 uppercase text-center bg-slate-200", {
           fontWeight: 700,
         })}
@@ -39,7 +40,7 @@ export default function SalesPrintDoorItems({
                 wrap={false}
                 key={i}
                 style={cn(
-                  "col-span-2 border-t w-1/2 flex",
+                  "col-span-2 border-b w-1/2 flex",
                   i % 2 == 1 ? "border-l" : ""
                 )}
               >
@@ -59,15 +60,16 @@ export default function SalesPrintDoorItems({
         </View>
       )}
       {doors.lines?.length ? (
-        <View style={cn("flex-col border-t")}>
-          <View style={cn("flex")}>
+        <View style={cn("flex-col")}>
+          <View style={cn("flex border-t")}>
             {doors.itemCells.map((cell, i) => (
               <View
                 key={i}
                 style={{
                   ...cn(
-                    "p-1 font-semibold",
-                    i == doors.itemCells.length - 1 ? "" : "border-r uppercase"
+                    "p-1 font-semibold uppercase ",
+                    cell.cellStyle,
+                    i == doors.itemCells.length - 1 ? "" : "border-r "
                   ),
                   // flex: cell.colSpan,
                   width: width(cell.colSpan, doors.itemCells),
@@ -80,13 +82,14 @@ export default function SalesPrintDoorItems({
           </View>
 
           {doors.lines.map((line, i) => (
-            <View wrap={false} key={i} style={cn("flex border-t")}>
+            <View wrap={false} key={i} style={cn("flex border-b")}>
               {line.map((ld, ldi) => (
                 <View
                   key={ldi}
                   style={{
                     ...cn(
                       "p-1",
+                      ld.style,
                       ldi == line.length - 1 ? "" : "border-r uppercase"
                     ),
 

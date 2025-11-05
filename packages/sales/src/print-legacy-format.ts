@@ -443,7 +443,7 @@ function getDoorsTable(
                     { position: "left" },
                     { position: "left" }
                   ),
-                  _cell("Qty", "qty", 1.5, "text-center", "text-center"),
+                  _cell("Qty", "qty", 1.2, "text-center", "text-center"),
                 ]
               : [
                   ...(is.service
@@ -469,7 +469,7 @@ function getDoorsTable(
                         _cell(
                           "Size",
                           "dimension",
-                          3,
+                          2.5,
                           { position: "left" },
                           { position: "left" }
                         ),
@@ -477,10 +477,10 @@ function getDoorsTable(
                   ...(is.garage ? [_cell("Swing", "swing", 2, {}, {})] : []),
                   ...// is.bifold || is.slab || is.service
                   (noHandle
-                    ? [_cell("Qty", "qty", 1.5, "text-center", "text-center")]
+                    ? [_cell("Qty", "qty", 1.2, "text-center", "text-center")]
                     : [
-                        _cell("LH", "lhQty", 1.5, "text-center", "text-center"),
-                        _cell("RH", "rhQty", 1.5, "text-center", "text-center"),
+                        _cell("LH", "lhQty", 1.2, "text-center", "text-center"),
+                        _cell("RH", "rhQty", 1.2, "text-center", "text-center"),
                       ]),
                 ]),
           ],
@@ -488,11 +488,11 @@ function getDoorsTable(
         if (price) {
           res.cells.push(
             ...[
-              _cell("Rate", "unitPrice", 3, "text-right", "text-right"),
+              _cell("Rate", "unitPrice", 2.5, "text-right", "text-right"),
               _cell(
                 "Total",
                 "lineTotal",
-                3,
+                2.5,
                 "text-right",
                 "text-right font-bold"
               ),
@@ -502,7 +502,7 @@ function getDoorsTable(
         if (isPacking)
           res.cells.push(
             _cell(
-              "Shipped Qty",
+              "Ship. Qty",
               "packing",
               3,
               "text-center",
@@ -928,11 +928,13 @@ function addressLine(
             `${address?.phoneNo || customer?.phoneNo} ${
               address?.phoneNo2 ? `(${address?.phoneNo2})` : ""
             }`,
-            address?.email || customer?.email,
+            (address?.email || customer?.email)?.toLowerCase(),
             address?.address1 || address?.address2 || customer?.address,
+            // ?.toLowerCase(),
             [address?.city, address?.state, address?.meta?.zip_code]
               ?.filter(Boolean)
               ?.join(" "),
+            // ?.toLowerCase(),
           ].filter(Boolean)
         : ["No Address"],
   };

@@ -9,9 +9,9 @@ export default function SalesPrintLineItems({
 }: SalesInvoiceTemplateProps) {
   if (sale.lineItems)
     return (
-      <View style={cn("uppercase ")}>
+      <View style={cn("uppercase")}>
         <View style={cn("w-full")}>
-          <View style={cn("flex", "border border-gray-400 bg-slate-100")}>
+          <View style={cn("flex", " border-gray-400 bg-slate-100")}>
             {sale.lineItems.heading.map((col) => (
               <View
                 key={col.title}
