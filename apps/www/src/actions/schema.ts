@@ -133,19 +133,19 @@ export const updateComponentPricingSchema = z.object({
 });
 export const createPaymentSchema = z
     .object({
-        salesIds: z.array(z.number()),
+        salesIds: z.array(z.number()).optional().nullable(),
         // salesIds: z.array(z.number()),
-        orderNos: z.array(z.string()),
+        orderNos: z.array(z.string()).optional().nullable(),
         accountNo: z.string().optional(),
         paymentMethod: z.enum(paymentMethods),
         amount: z.number(),
-        _amount: z.number(),
-        checkNo: z.string().optional(),
-        deviceId: z.string().optional(),
-        deviceName: z.string().optional(),
-        enableTip: z.boolean().optional(),
-        walletBalance: z.number().optional(),
-        useWallet: z.boolean().optional(),
+        _amount: z.number().optional().nullable(),
+        checkNo: z.string().optional().nullable(),
+        deviceId: z.string().optional().nullable(),
+        deviceName: z.string().optional().nullable(),
+        enableTip: z.boolean().optional().nullable(),
+        walletBalance: z.number().optional().nullable(),
+        useWallet: z.boolean().optional().nullable(),
         terminalPaymentSession: z
             .object({
                 status: z.string(),

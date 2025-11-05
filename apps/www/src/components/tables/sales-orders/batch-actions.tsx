@@ -46,12 +46,10 @@ export function BatchActions({}) {
                                         type="order"
                                         pdf
                                     />
-                                    {/* <SuperAdminGuard> */}
                                     <MenuItemPrintAction
                                         type="order"
                                         salesIds={salesIds}
                                     />
-                                    {/* </SuperAdminGuard> */}
                                 </DropdownMenu.Group>
                             </>
                         }
