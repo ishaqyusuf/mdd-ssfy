@@ -3,6 +3,8 @@ import {
   SquareClient as Client,
   SquareEnvironment as Environment,
   SquareError as ApiError,
+  DeviceStatus,
+  DeviceStatusCategory,
 } from "square";
 import { TransactionClient } from "@gnd/db";
 import crypto from "crypto";
@@ -79,59 +81,68 @@ export async function squareCreateRefund({
   }
 }
 
-export async function getSquareDevices() {
+interface Devices {
+  terminals: { label; status?: DeviceStatusCategory; value?: string }[];
+  errors?: ApiError["errors"] | null | undefined;
+}
+export async function getSquareDevices(): Promise<Devices> {
   try {
     const devices = await squareClient.devices.list();
-
-    // const devicesList = await squareClient.devicesApi.listDevices();
-    // const _ = devices?.result?.deviceCodes
-    //   ?.map((device) => ({
-    //     label: device?.name,
-    //     status: device.status as "PAIRED" | "OFFLINE",
-    //     value: device.deviceId,
-    //     // device,
-    //   }))
-    //   .sort((a, b) => a?.label?.localeCompare(b.label as any) as any);
     const _ = devices?.data
       ?.map((device) => ({
         label: device?.attributes.name,
-        // status: device?.status as "PAIRED" | "OFFLINE",
-        status: "PAIRED",
+        status: device?.status?.category, // as "PAIRED" | "OFFLINE",
         value: device.id,
-        // value: device.deviceId,
-        // value: device?.attributes?.
-        // device,
       }))
       .sort((a, b) => a?.label?.localeCompare(b.label as any) as any);
-
-    return (_ || [])!?.filter(
-      (a, b) => _!.findIndex((c) => c.value == a.value) == b
-    );
-  } catch (error) {}
-  return [];
+    return {
+      terminals: (_ || [])!?.filter(
+        (a, b) => _!.findIndex((c) => c.value == a.value) == b
+      ),
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        // error: error?.errors?.[0],
+        errors: error?.errors,
+        terminals: [],
+      };
+    }
+  }
+  return {} as any;
 }
 export async function fetchDevicesByLocations() {
-  const {
-    // result: { locations },
-    locations,
-  } = await squareClient.locations.list();
-  let allDevices: any[] = [];
+  try {
+    const {
+      // result: { locations },
+      locations,
+    } = await squareClient.locations.list();
+    let allDevices: any[] = [];
 
-  for (const loc of locations ?? []) {
-    const { data } = await squareClient.devices.list(
-      {
-        locationId: loc.id,
-      }
-      // undefined,
-      // undefined,
-      // undefined,
-      // loc.id
-    );
-    allDevices = allDevices.concat(data ?? []);
+    for (const loc of locations ?? []) {
+      const { data } = await squareClient.devices.list(
+        {
+          locationId: loc.id,
+        }
+        // undefined,
+        // undefined,
+        // undefined,
+        // loc.id
+      );
+      allDevices = allDevices.concat(data ?? []);
+    }
+
+    return {
+      allDevices,
+      locations,
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        error: error.errors?.[0],
+        allDevices: [],
+        locations: [],
+      };
+    }
   }
-
-  return {
-    allDevices,
-    locations,
-  };
 }

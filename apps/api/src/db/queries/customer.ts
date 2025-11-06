@@ -359,16 +359,19 @@ export async function getCustomerPayPortal(
       },
     })?.[0]
   )?.terminalId;
-  const terminals = await getSquareDevices();
-  const byLocations = await fetchDevicesByLocations();
+  const { terminals, errors: terminalError } = await getSquareDevices();
+  // const byLocations = await fetchDevicesByLocations();
   // return {};
   return {
     pendingSales,
     totalPayable,
     terminals,
+    error: {
+      terminal: terminalError,
+    },
     wallet,
     walletBalance: wallet.balance,
-    byLocations,
+    // byLocations,
     lastTerminalId,
   };
 }

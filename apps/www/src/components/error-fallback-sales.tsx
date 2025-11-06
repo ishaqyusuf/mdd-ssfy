@@ -10,13 +10,7 @@ import { generateRandomString } from "@gnd/utils";
 export function ErrorFallbackSales() {
     const router = useRouter();
     const { setFilters } = useOrderFilterParams();
-    useEffect(() => {
-        setTimeout(() => {
-            setFilters({
-                erf: generateRandomString(),
-            });
-        }, 2000);
-    }, []);
+
     return (
         <div className="flex h-full flex-col items-center justify-center space-y-4">
             <div>

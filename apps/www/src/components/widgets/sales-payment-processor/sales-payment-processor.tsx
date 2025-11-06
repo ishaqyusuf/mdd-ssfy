@@ -29,6 +29,7 @@ import { Label } from "@gnd/ui/label";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Separator } from "@gnd/ui/separator";
 import { Spinner } from "@gnd/ui/spinner";
+import { ToastAction } from "@gnd/ui/toast";
 import { toast } from "@gnd/ui/use-toast";
 import { sum } from "@gnd/utils";
 import { SalesPdfToken } from "@gnd/utils/tokenizer";
@@ -120,7 +121,7 @@ const formSchema = createPaymentSchema
     });
 function Content(props: Props & { setOpened }) {
     const accountNo = props.phoneNo ?? `cust-${props.customerId}`;
-    const { data, error, isPending } = useSuspenseQuery(
+    const { data, error, isPending, refetch } = useSuspenseQuery(
         _trpc.customers.getCustomerPayPortal.queryOptions({
             accountNo,
         })
@@ -129,6 +130,26 @@ function Content(props: Props & { setOpened }) {
         defaultValues: {},
     });
     useEffect(() => {
+        console.log(data);
+        if (data.error.terminal) {
+            toast({
+                title: "Unable to load PoS",
+                variant: "destructive",
+                footer: (
+                    <div className="">
+                        <ToastAction
+                            altText="Yes"
+                            onClick={(e) => {
+                                refetch();
+                            }}
+                            className=""
+                        >
+                            Retry
+                        </ToastAction>
+                    </div>
+                ),
+            });
+        }
         form.reset({
             deviceId: data?.lastTerminalId,
             terminalPaymentSession: null,
@@ -572,7 +593,9 @@ function Content(props: Props & { setOpened }) {
                                                                 <Select.Item
                                                                     disabled={
                                                                         terminal?.status !==
-                                                                        "PAIRED"
+                                                                            "PAIRED" ||
+                                                                        terminal?.status !==
+                                                                            "AVAILABLE"
                                                                     }
                                                                     key={tIndex}
                                                                     value={

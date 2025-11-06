@@ -25,7 +25,6 @@ export const salesFilterParamsSchema = {
   // "sales.type": parseAsString,
   // "dispatch.type": parseAsString,
   invoice: parseAsString,
-  erf: parseAsString,
   dateRange: parseAsArrayOf(parseAsString),
   showing: parseAsString,
 } satisfies Partial<Record<FilterKeys, any>>;

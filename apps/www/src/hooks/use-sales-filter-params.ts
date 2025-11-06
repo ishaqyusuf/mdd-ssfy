@@ -3,7 +3,6 @@ import { createLoader, parseAsArrayOf, parseAsString } from "nuqs/server";
 import { RouterInputs } from "@api/trpc/routers/_app";
 import { useAuth } from "./use-auth";
 type FilterKeys = keyof Exclude<RouterInputs["sales"]["index"], void>;
-
 export const salesFilterParamsSchema = {
     q: parseAsString,
     "customer.name": parseAsString,
@@ -18,7 +17,6 @@ export const salesFilterParamsSchema = {
     // "sales.type": parseAsString,
     // "dispatch.type": parseAsString,
     invoice: parseAsString,
-    erf: parseAsString,
     dateRange: parseAsArrayOf(parseAsString),
     showing: parseAsString,
 } satisfies Partial<Record<FilterKeys, any>>;
