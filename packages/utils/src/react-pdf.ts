@@ -30,6 +30,7 @@ const tw: { [key in string]: Partial<any> } = {
   flex: { display: "flex", flexDirection: "row" },
   "flex-col": { display: "flex", flexDirection: "column" },
   "justify-between": { justifyContent: "space-between" },
+  "items-end": { alignItems: "flex-end" },
   "gap-4": { gap: 16 },
   grid: {
     display: "flex",
@@ -51,6 +52,7 @@ const tw: { [key in string]: Partial<any> } = {
   relative: { position: "relative" },
   absolute: { position: "absolute" },
   // Margin
+  "mb-1": { marginBottom: 4 },
   "mb-2": { marginBottom: 8 },
   "mb-4": { marginBottom: 16 },
   // Padding

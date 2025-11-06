@@ -738,7 +738,12 @@ function Content(props: Props & { setOpened }) {
                                                                 tIndex
                                                             ) => (
                                                                 <Select.Item
-                                                                    // disabled={ terminal?.status !== "PAIRED" ||   terminal?.status !== "AVAILABLE" }
+                                                                    disabled={
+                                                                        terminal?.status !==
+                                                                            "PAIRED" ||
+                                                                        terminal?.status !==
+                                                                            "AVAILABLE"
+                                                                    }
                                                                     key={tIndex}
                                                                     value={
                                                                         terminal?.value

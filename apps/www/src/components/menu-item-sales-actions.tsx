@@ -25,7 +25,9 @@ export function MenuItemSalesActions(props: Props) {
     const sq = useSalesQueryClient();
     const loader = useLoadingToast();
     async function copyAs(as: SalesType) {
-        loader.loading("Copying...");
+        loader.display({
+            title: "Copying...",
+        } as any);
         // const orderId = slug;
         const result = await copySalesUseCase(props?.slug, as as any);
         try {

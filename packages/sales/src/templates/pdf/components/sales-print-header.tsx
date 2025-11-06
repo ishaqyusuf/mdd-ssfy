@@ -1,7 +1,7 @@
 import { env } from "process";
 import { Image, Text, View } from "@react-pdf/renderer";
 
-import { cn, cva } from "@gnd/utils/react-pdf";
+import { cn } from "@gnd/utils/react-pdf";
 
 type SalesInvoiceTemplateProps = any;
 
@@ -66,16 +66,21 @@ export default function SalesPrintHeader({
           <Text
             style={cn(
               { fontSize: 18, fontWeight: 700 },
-              "text-right capitalize"
+              "text-right capitalize mb-4"
             )}
           >
             {sale?.headerTitle}
           </Text>
 
           {sale?.heading?.lines?.map((h: any) => (
-            <View key={h.title} style={cn("flex justify-between")}>
+            <View
+              key={h.title}
+              style={cn("flex justify-between items-end", {
+                marginBottom: 2,
+              })}
+            >
               <Text style={{ fontWeight: 700 }}>{h.title}</Text>
-              <Text style={cn(cva(h.style))}>{h.value}</Text>
+              <Text style={cn(h.style)}>{h.value}</Text>
             </View>
           ))}
         </View>

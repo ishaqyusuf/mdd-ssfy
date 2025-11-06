@@ -21,7 +21,6 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
-import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { Button } from "@gnd/ui/button";
 
 // export async function generateMetadata({ params }) {

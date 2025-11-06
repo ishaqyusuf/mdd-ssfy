@@ -1,14 +1,15 @@
 "use client";
 
-import { useMutation, useSuspenseQuery } from "@gnd/ui/tanstack";
+import { useMutation, useQuery, useSuspenseQuery } from "@gnd/ui/tanstack";
 import { _trpc } from "./static-trpc";
 import { useDebugToast } from "@/hooks/use-debug-console";
 import { Card } from "@gnd/ui/card";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
 import { AlertCircle, CheckCircle2, Clock, Loader2 } from "lucide-react";
 import { Button } from "@gnd/ui/button";
-import { useTransition } from "react";
+import { useMemo, useTransition } from "react";
 import { timeout } from "@/lib/timeout";
+import { openLink } from "@/lib/open-link";
 
 interface Props {
     token: string;
@@ -24,9 +25,50 @@ export function SquareTokenCheckout(props: Props) {
             }
         )
     );
+    const paymentId = data?.payload?.paymentId;
+    const {
+        isPending: isVerifying,
+        data: verifyData,
+        error: verifyError,
+    } = useQuery(
+        _trpc.checkout.verifyPayment.queryOptions(
+            {
+                paymentId: data.payload.paymentId,
+            },
+            {
+                enabled: !!data?.payload?.paymentId,
+            }
+        )
+    );
+    const status = useMemo(() => {
+        if (!paymentId)
+            return {
+                title: "Payment Token Validated",
+                description: "You can proceed to complete your payment.",
+            };
+        return {
+            title:
+                "Payment " +
+                (verifyData?.status === "COMPLETED"
+                    ? "Successful"
+                    : verifyData?.status === "FAILED"
+                    ? "Failed"
+                    : "Pending"),
+            description:
+                verifyData?.status === "COMPLETED"
+                    ? "Your payment has been completed successfully."
+                    : verifyData?.status === "FAILED"
+                    ? "Your payment has failed. Please try again."
+                    : "Your payment is being processed. Please wait.",
+        };
+    }, [paymentId, verifyData, data, verifyError]);
     const { mutate: createCheckout, isPending: isProcessing } = useMutation(
         _trpc.checkout.createSalesCheckoutLink.mutationOptions({
-            onSuccess(data, variables, onMutateResult, context) {},
+            onSuccess(data, variables, onMutateResult, context) {
+                if (data.paymentLink) {
+                    openLink(data.paymentLink);
+                }
+            },
         })
     );
     useDebugToast("data", { data, error });
@@ -48,10 +90,11 @@ export function SquareTokenCheckout(props: Props) {
 
             <div className="text-center space-y-2">
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    Payment Ready
+                    {status?.title}
                 </h2>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Your payment token is valid and ready to process
+                    {/* Your payment token is valid and ready to process */}
+                    {status?.description}
                 </p>
             </div>
 
@@ -84,21 +127,24 @@ export function SquareTokenCheckout(props: Props) {
                 </div>
             </div>
 
-            <Button
-                onClick={handlePayment}
-                disabled={isProcessing}
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold py-3 rounded-lg transition-all duration-200 disabled:opacity-50"
-            >
-                {isProcessing ? (
-                    <span className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Processing...
-                    </span>
-                ) : (
-                    "Complete Payment"
-                )}
-            </Button>
-
+            {data?.payload?.paymentId ? (
+                <></>
+            ) : (
+                <Button
+                    onClick={handlePayment}
+                    disabled={isProcessing}
+                    className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold py-3 rounded-lg transition-all duration-200 disabled:opacity-50"
+                >
+                    {isProcessing ? (
+                        <span className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Processing...
+                        </span>
+                    ) : (
+                        "Complete Payment"
+                    )}
+                </Button>
+            )}
             <p className="text-xs text-center text-slate-500 dark:text-slate-400">
                 Your payment is secure and encrypted
             </p>

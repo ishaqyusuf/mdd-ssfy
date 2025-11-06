@@ -40,8 +40,6 @@ export function validateToken<T>(
   try {
     const result = jwtDecrypt(data);
     const parsed = schema.safeParse(result);
-    console.log({ parsed, result });
-
     if (!parsed.success) return null;
     return parsed.data;
   } catch {

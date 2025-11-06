@@ -836,13 +836,17 @@ function printFooter(data: PrintData, notPrintable) {
 }
 
 function heading({ mode, isOrder, order, isEstimate, isPacking }) {
+  const salesNo = order.orderId
+    ?.toUpperCase()
+    .replace(/(\d+)([A-Za-z]+)/, "$1-$2");
   let h = {
     title: mode,
     lines: [
       styled(
         isOrder ? "Invoice #" : "Quote #",
-        order.orderId?.toUpperCase(),
-        "font-bold size-lg"
+        salesNo,
+        // order.orderId?.toUpperCase(),
+        "font-bold text-base"
       ),
       styled(
         isOrder ? "Invoice Date" : "Quote Date",
@@ -859,18 +863,28 @@ function heading({ mode, isOrder, order, isEstimate, isPacking }) {
   // if (isOrder || isPacking)
   h.lines.push(styled("P.O No", order?.meta?.po, {}));
 
-  if (isOrder && order.amountDue > 1) {
+  if (
+    isOrder //&& order.amountDue > 1
+  ) {
+    // h.lines.push(
+    //   styled(
+    //     "Invoice Status",
+    //     (order.amountDue || 0) > 0 ? "Pending" : "Paid",
+    //     "text-base font-bold uppercase"
+    //   )
+    // );
+
+    // h.lines.push(
+    //   styled(
+    //     "Invoice Total",
+    //     formatCurrency(order?.grandTotal),
+    //     "text-base font-bold"
+    //   )
+    // );
     h.lines.push(
       styled(
-        "Invoice Status",
-        (order.amountDue || 0) > 0 ? "Pending" : "Paid",
-        "text-base font-bold uppercase"
-      )
-    );
-    h.lines.push(
-      styled(
-        "Invoice Total",
-        formatCurrency(order?.grandTotal),
+        "Balance Due",
+        formatCurrency(order?.amountDue),
         "text-base font-bold"
       )
     );
@@ -883,7 +897,7 @@ function heading({ mode, isOrder, order, isEstimate, isPacking }) {
         //             paymentTerm,
         //             createdAt,
         //         );
-        else goodUntil = order.paymentDueDate;
+        else goodUntil = order.paymentDueDate || createdAt;
       h.lines.push(styled("Due Date", goodUntil ? formatDate(goodUntil) : "-"));
     }
   }
@@ -924,7 +938,7 @@ function addressLine(
     lines:
       address || customer
         ? [
-            businessName || address?.name || customer?.name,
+            (businessName || address?.name || customer?.name)?.toUpperCase(),
             `${address?.phoneNo || customer?.phoneNo} ${
               address?.phoneNo2 ? `(${address?.phoneNo2})` : ""
             }`,
