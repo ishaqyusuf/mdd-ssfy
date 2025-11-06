@@ -1,3 +1,4 @@
+import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 
 import { renderToStream } from "@gnd/community";
@@ -36,8 +37,13 @@ export async function GET(req: NextRequest) {
         preview,
     } = result.data;
 
+    // Point to your local file (e.g., in public folder)
+    const logoPath = path.join(process.cwd(), "public", "logo.png");
     const pages = printData.map((a) => a.pageData);
-    const buffer = await sharp(`${process.env.NEXT_PUBLIC_APP_URL}/logo.png`)
+    const buffer = await sharp(
+        // `${process.env.NEXT_PUBLIC_APP_URL}/logo.png`
+        logoPath
+    )
         .grayscale()
         .toBuffer();
     const watermark = `data:image/png;base64,${buffer.toString("base64")}`;

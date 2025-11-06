@@ -148,6 +148,8 @@ function Content(props: Props & { setOpened }) {
         paymentStatus,
     } = form.watch();
     useEffect(() => {
+        console.log({ paymentStatus });
+
         if (!paymentStatus) return;
         switch (paymentStatus) {
             case "cancelled":
@@ -244,23 +246,7 @@ function Content(props: Props & { setOpened }) {
                 }, 2000);
             } else {
                 if (args.data.status) {
-                    // form.setValue("terminalPaymentSession", null);
                     form.setValue("paymentStatus", "completed");
-                    // sq.invalidate.salesList();
-                    // query.setParams({
-                    //     "pay-selections": null,
-                    //     tab: "transactions",
-                    // });
-                    setTimeout(() => {
-                        // if (salesQ?.params?.["sales-overview-id"]) {
-                        //     salesQ.salesQuery.salesPaymentUpdated();
-                        //     query?.setParams(null);
-                        // }
-                        // printSalesData({
-                        //     mode: "order-packing",
-                        //     slugs: args.input.orderNos?.join(","),
-                        // });
-                    }, 1000);
                 }
             }
         },
@@ -283,7 +269,7 @@ function Content(props: Props & { setOpened }) {
         onSuccess: (args) => {
             setWaitSeconds(null);
             form.setValue("paymentStatus", "cancelled");
-            form.setValue("terminalPaymentSession", null);
+            // form.setValue("terminalPaymentSession", null);
         },
         onError(e) {
             //toast.error("Unable to cancel payment");

@@ -84,6 +84,7 @@ export async function PdfTemplate(props: Props) {
           <WatermarkPage
             key={ui}
             wrap
+            watermarkSrc={props.watermark}
             size={template.size.toUpperCase() as "LETTER" | "A4"}
             style={{
               padding: 20,

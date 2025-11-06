@@ -10,6 +10,7 @@ type WatermarkedPageProps = PageProps & {
 export default function WatermarkPage({
   style,
   children,
+  watermarkSrc,
   ...pageProps
 }: WatermarkedPageProps) {
   return (
@@ -21,15 +22,15 @@ export default function WatermarkPage({
           top: "30%",
           left: "10%",
           width: "60%",
-          opacity: 0.1,
+          opacity: 0.2,
           transform: "rotate(-30deg)",
           zIndex: 0,
-          filter: "grayscale(100%)",
         }}
       >
         <View>
           <Image
-            src={`${env.NEXT_PUBLIC_APP_URL}/logo.png`}
+            // src={`${env.NEXT_PUBLIC_APP_URL}/logo.png`}
+            src={watermarkSrc}
             style={cn({
               width: 500,
               height: 500,
