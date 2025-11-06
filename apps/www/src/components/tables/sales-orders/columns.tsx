@@ -322,6 +322,8 @@ export const columns: ColumnDef<Item>[] = [
         meta: {
             actionCell: true,
             preventDefault: true,
+            className:
+                "text-right md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-30 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-border after:absolute after:left-[-24px] after:top-0 after:bottom-0 after:w-6 after:bg-gradient-to-r after:from-transparent after:to-background group-hover:after:to-muted after:z-[-1]",
         },
         cell: ({ row: { original: item } }) => (
             <>

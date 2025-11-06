@@ -63,7 +63,7 @@ export function DataTable(props: Props) {
             args={[
                 {
                     columns,
-                    mobileColumn: mobileColumn,
+                    // mobileColumn: mobileColumn,
                     data,
                     checkbox: true,
                     tableScroll,

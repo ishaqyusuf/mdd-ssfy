@@ -57,6 +57,8 @@ export function TableHeader({}) {
                     "whitespace-nowrap",
                     (header.column.columnDef.meta as any)?.className,
                     (header.column.columnDef.meta as any)?.className,
+                    (header.column.columnDef.meta as any)?.actionCell &&
+                      "w-[100px] md:sticky md:right-0 z-30",
                     "h-10 uppercase",
                     index == 0 && ""
                   )}
