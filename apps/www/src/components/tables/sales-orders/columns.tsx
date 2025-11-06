@@ -18,6 +18,8 @@ import { Icons } from "@gnd/ui/icons";
 import { StickyNote } from "lucide-react";
 import { InvoiceColumn } from "./column.invoice";
 import { cells } from "@gnd/ui/custom/data-table/cells";
+import { Card } from "@gnd/ui/composite";
+import { Separator } from "@gnd/ui/separator";
 export type Item = RouterOutputs["sales"]["index"]["data"][number];
 export const columns2: ColumnDef<Item>[] = [
     cells.selectColumn,
@@ -68,7 +70,7 @@ export const columns2: ColumnDef<Item>[] = [
             <TCell.Primary
                 className={cn(
                     item.isBusiness && "text-blue-700",
-                    "whitespace-nowrap uppercase",
+                    "whitespace-nowrap uppercase"
                 )}
             >
                 <TextWithTooltip
@@ -204,7 +206,7 @@ export const columns: ColumnDef<Item>[] = [
             <TCell.Primary
                 className={cn(
                     item.isBusiness && "text-blue-700",
-                    "whitespace-nowrap uppercase",
+                    "whitespace-nowrap uppercase"
                 )}
             >
                 <TextWithTooltip
@@ -353,7 +355,7 @@ function Actions({ item }: { item: Item }) {
                                 onClick={(e) => {
                                     e.preventDefault();
                                     batchSales.markAsProductionCompleted(
-                                        item.id,
+                                        item.id
                                     );
                                 }}
                             >
@@ -385,7 +387,7 @@ export const mobileColumn: ColumnDef<Item>[] = [
             // preventDefault: true,
         },
         cell: ({ row: { original: item } }) => {
-            return <ItemCard item={item} />;
+            return <ItemCard2 item={item} />;
         },
     },
 ];
@@ -437,7 +439,7 @@ function ItemCard({ item }: { item: Item }) {
                 <TCell.Primary
                     className={cn(
                         "font-semibold",
-                        item.isBusiness && "text-blue-700",
+                        item.isBusiness && "text-blue-700"
                     )}
                 >
                     <TextWithTooltip
@@ -467,8 +469,8 @@ function ItemCard({ item }: { item: Item }) {
                             item.invoice.pending == item.invoice.total
                                 ? "text-red-600"
                                 : item.invoice.pending > 0
-                                  ? "text-purple-500"
-                                  : "text-green-600",
+                                ? "text-purple-500"
+                                : "text-green-600"
                         )}
                     />
                     {item.invoice.pending > 0 && (
@@ -506,6 +508,131 @@ function ItemCard({ item }: { item: Item }) {
                 </div>
             </div>
         </div>
+    );
+}
+
+// 🆕 Redesigned ItemCard (sleek mobile ShadCN style)
+
+function ItemCard2({ item }: { item: Item }) {
+    const overviewQuery = useSalesOverviewQuery();
+
+    return (
+        <Card.Root
+            className="mb-3 rounded-2xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-md"
+            onClick={(e) => e.preventDefault()}
+        >
+            <Card.Header className="pb-2 flex flex-row items-start justify-between space-y-0">
+                <div className="flex flex-col space-y-1">
+                    <div className="flex items-center gap-2">
+                        <Badge
+                            variant="outline"
+                            className="font-mono text-xs px-2 py-0.5"
+                        >
+                            {item.orderId}
+                        </Badge>
+
+                        {!item.orderId
+                            ?.toUpperCase()
+                            .endsWith(item.salesRepInitial) && (
+                            <Badge variant="secondary" className="text-[10px]">
+                                {item.salesRepInitial}
+                            </Badge>
+                        )}
+
+                        {!!item.noteCount && (
+                            <Badge
+                                variant="secondary"
+                                className="flex items-center gap-1 text-[10px] px-2 py-0.5"
+                            >
+                                <StickyNote className="w-3 h-3" />
+                                {item.noteCount}
+                            </Badge>
+                        )}
+                    </div>
+                    <span className="text-xs text-muted-foreground font-mono">
+                        {item.salesDate}
+                    </span>
+                </div>
+
+                <Actions item={item} />
+            </Card.Header>
+
+            <Card.Content className="space-y-3 pt-1">
+                <div>
+                    <p
+                        className={cn(
+                            "font-semibold text-sm leading-tight",
+                            item.isBusiness && "text-primary"
+                        )}
+                    >
+                        <TextWithTooltip text={item.displayName || "-"} />
+                    </p>
+                    {item.poNo && (
+                        <p className="text-xs text-muted-foreground">
+                            P.O: {item.poNo}
+                        </p>
+                    )}
+                </div>
+
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                    <TextWithTooltip text={item.address} />
+                    <div>{item.customerPhone}</div>
+                </div>
+
+                <Separator className="my-1" />
+
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <p className="text-xs text-muted-foreground">Invoice</p>
+                        <TCell.Money
+                            value={item.invoice.total}
+                            className={cn(
+                                "font-mono text-sm font-bold",
+                                item.invoice.pending == item.invoice.total
+                                    ? "text-destructive"
+                                    : item.invoice.pending > 0
+                                    ? "text-purple-500"
+                                    : "text-green-600"
+                            )}
+                        />
+                        {item.invoice.pending > 0 && (
+                            <p className="text-[11px] text-muted-foreground">
+                                Pending:{" "}
+                                <TCell.Money
+                                    value={item.invoice.pending}
+                                    className="inline"
+                                />
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="text-right">
+                        <p className="text-xs text-muted-foreground">Method</p>
+                        <Progress.Status>
+                            {item.deliveryOption || "Not set"}
+                        </Progress.Status>
+                    </div>
+                </div>
+
+                <Separator className="my-1" />
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                        <p className="text-muted-foreground">Production</p>
+                        <Progress.Status>
+                            {item.status.production?.scoreStatus ||
+                                item.status.production?.status}
+                        </Progress.Status>
+                    </div>
+                    <div>
+                        <p className="text-muted-foreground">Fulfillment</p>
+                        <Progress.Status>
+                            {item.deliveryStatus || "-"}
+                        </Progress.Status>
+                    </div>
+                </div>
+            </Card.Content>
+        </Card.Root>
     );
 }
 

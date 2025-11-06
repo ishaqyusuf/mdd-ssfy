@@ -1,2 +1,3 @@
 index.ts
 schema.prisma
+prisma.config.example.ts
