@@ -2,7 +2,7 @@ import { cancelTerminaPaymentAction } from "@/actions/cancel-terminal-payment-ac
 import { createSalesPaymentAction } from "@/actions/create-sales-payment";
 import { terminalPaymentStatus } from "@/actions/get-terminal-payment-status";
 import { createPaymentSchema } from "@/actions/schema";
-import { generateToken } from "@/actions/token-action";
+import { generateToken, validateTokenAction } from "@/actions/token-action";
 import { Env } from "@/components/env";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
@@ -360,6 +360,7 @@ function Content(props: Props & { setOpened }) {
             await sendSalesEmail({
                 auth,
                 tokenGeneratorFn: generateToken,
+                validateTokenFn: validateTokenAction,
                 trigger,
                 data: [
                     {
@@ -737,12 +738,7 @@ function Content(props: Props & { setOpened }) {
                                                                 tIndex
                                                             ) => (
                                                                 <Select.Item
-                                                                    disabled={
-                                                                        terminal?.status !==
-                                                                            "PAIRED" ||
-                                                                        terminal?.status !==
-                                                                            "AVAILABLE"
-                                                                    }
+                                                                    // disabled={ terminal?.status !== "PAIRED" ||   terminal?.status !== "AVAILABLE" }
                                                                     key={tIndex}
                                                                     value={
                                                                         terminal?.value

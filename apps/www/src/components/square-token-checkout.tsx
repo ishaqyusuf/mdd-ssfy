@@ -1,6 +1,6 @@
 "use client";
 
-import { useSuspenseQuery } from "@gnd/ui/tanstack";
+import { useMutation, useSuspenseQuery } from "@gnd/ui/tanstack";
 import { _trpc } from "./static-trpc";
 import { useDebugToast } from "@/hooks/use-debug-console";
 import { Card } from "@gnd/ui/card";
@@ -24,13 +24,15 @@ export function SquareTokenCheckout(props: Props) {
             }
         )
     );
+    const { mutate: createCheckout, isPending: isProcessing } = useMutation(
+        _trpc.checkout.createSalesCheckoutLink.mutationOptions({
+            onSuccess(data, variables, onMutateResult, context) {},
+        })
+    );
     useDebugToast("data", { data, error });
     const payload = data?.payload;
-    const [isProcessing, startTransition] = useTransition();
     const handlePayment = () => {
-        startTransition(async () => {
-            await timeout(2000);
-        });
+        createCheckout({ token: props.token });
     };
     if (!data?.payload) return <InvalidToken />;
     if (!data?.sales?.length)

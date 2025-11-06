@@ -1,4 +1,6 @@
 import {
+  createSalesCheckoutLink,
+  createSalesCheckoutLinkSchema,
   initializeCheckout,
   initializeCheckoutSchema,
 } from "@api/db/queries/checkout";
@@ -9,5 +11,10 @@ export const checkoutRouter = createTRPCRouter({
     .input(initializeCheckoutSchema)
     .query(async (props) => {
       return initializeCheckout(props.ctx, props.input);
+    }),
+  createSalesCheckoutLink: publicProcedure
+    .input(createSalesCheckoutLinkSchema)
+    .mutation(async (props) => {
+      return createSalesCheckoutLink(props.ctx, props.input);
     }),
 });

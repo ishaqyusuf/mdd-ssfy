@@ -1,10 +1,16 @@
 import { timeout } from "@gnd/utils";
-import { SalesPaymentTokenSchema, SalesPdfToken } from "@gnd/utils/tokenizer";
+import {
+  SalesPaymentTokenSchema,
+  SalesPdfToken,
+  TokenSchemaNames,
+  tokenSchemas,
+} from "@gnd/utils/tokenizer";
 import { addDays } from "date-fns";
 import { SalesType } from "../types";
 import { SalesPrintModes } from "src/constants";
 interface Props {
   tokenGeneratorFn;
+  validateTokenFn?;
   trigger?;
   data: {
     type: SalesType;
@@ -19,7 +25,13 @@ interface Props {
   auth;
 }
 export async function sendSalesEmail(props: Props) {
-  const { auth, data, trigger, tokenGeneratorFn: generateToken } = props;
+  const {
+    auth,
+    data,
+    trigger,
+    validateTokenFn: validateToken,
+    tokenGeneratorFn: generateToken,
+  } = props;
   const payload: any = {
     salesRepEmail: auth.email,
     salesRep: auth.name,
@@ -40,6 +52,15 @@ export async function sendSalesEmail(props: Props) {
           expiry,
           amount: sale.amount!,
         } satisfies SalesPaymentTokenSchema);
+    if (paymentToken) {
+      console.log({
+        paymentToken,
+        v: await validateToken(
+          paymentToken,
+          "salesPaymentTokenSchema" as TokenSchemaNames
+        ),
+      });
+    }
     payload.sales.push({
       type: sale.type,
       salesIds: sale.ids,

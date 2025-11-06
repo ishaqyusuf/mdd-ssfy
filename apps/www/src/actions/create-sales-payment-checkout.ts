@@ -78,6 +78,7 @@ export async function createSalesCheckoutLinkAction(props: Props) {
                 },
             },
         });
+
         const redirectUrl = `${getBaseUrl()}/square-payment/${emailToken}/${orderIdsParam}/payment-response/${
             tx.squarePayment?.paymentId
         }`;

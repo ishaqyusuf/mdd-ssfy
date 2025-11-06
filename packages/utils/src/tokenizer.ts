@@ -17,9 +17,10 @@ export const salesPdfToken = z.object({
 export type SalesPdfToken = z.infer<typeof salesPdfToken>;
 export const salesPaymentTokenSchema = z.object({
   salesIds: z.array(z.number()),
+  expiry: z.string(),
   percentage: z.number().optional().nullable(),
   amount: z.number().optional().nullable(),
-  expiry: z.string(),
+  paymentId: z.string().optional().nullable(),
 });
 export const tokenSchemas = {
   salesPdfToken,

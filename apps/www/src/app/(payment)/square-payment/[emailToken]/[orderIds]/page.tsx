@@ -47,7 +47,6 @@ export default function Page(props) {
         load();
     }, [emailToken, orderIdsParam]);
     async function createPayment() {
-        console.log("Creating payment link...");
         try {
             // await timeout(1000);
             const resp = await createSalesCheckoutLinkAction({
