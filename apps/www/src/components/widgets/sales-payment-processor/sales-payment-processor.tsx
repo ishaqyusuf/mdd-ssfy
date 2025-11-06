@@ -284,6 +284,7 @@ function Content(props: Props & { setOpened }) {
 
     const initPayment = async (formData: z.infer<typeof formSchema>) => {
         form.setValue("paymentStatus", "processing");
+        setMockStatus(null);
         makePayment.execute({
             ...formData,
             amount: formData?.editPrice ? formData._amount : formData.amount,
@@ -298,13 +299,14 @@ function Content(props: Props & { setOpened }) {
     const [mockStatus, setMockStatus] = useState<TerminalCheckoutStatus>(null);
     useEffect(() => {
         if (!terminalPaymentSession) return;
+        console.log("CHECKING TERMINAL PAYMENT STATUS...", mockStatus);
         async function checkTerminalPaymentStatus() {
-            console.log("CHECKING TERMINAL PAYMENT STATUS...");
             const rep = mockStatus
                 ? { status: mockStatus }
                 : await terminalPaymentStatus(
                       terminalPaymentSession?.squareCheckoutId
                   );
+            console.log({ rep });
             switch (rep.status) {
                 case "COMPLETED":
                     form.setValue("terminalPaymentSession.status", "COMPLETED");
@@ -314,10 +316,11 @@ function Content(props: Props & { setOpened }) {
                     return null;
                 case "CANCELED":
                 case "CANCEL_REQUESTED":
-                    cancelTerminalPayment.execute({
-                        checkoutId: terminalPaymentSession.squareCheckoutId,
-                        squarePaymentId: terminalPaymentSession.squarePaymentId,
-                    });
+                    // cancelTerminalPayment.execute({
+                    //     checkoutId: terminalPaymentSession.squareCheckoutId,
+                    //     squarePaymentId: terminalPaymentSession.squarePaymentId,
+                    // });
+                    __cancel();
                     return null;
             }
             // return generateRandomString();
@@ -328,7 +331,20 @@ function Content(props: Props & { setOpened }) {
         if (waitSeconds != null) {
             checkTerminalPaymentStatus();
         }
-    }, [waitSeconds, terminalPaymentSession]);
+    }, [waitSeconds, terminalPaymentSession, mockStatus]);
+    function __cancel() {
+        const tps = {
+            ...(terminalPaymentSession || {}),
+        };
+        form.setValue("terminalPaymentSession", null);
+        form.setValue("paymentStatus", "cancelled");
+        setTimeout(() => {
+            cancelTerminalPayment.execute({
+                checkoutId: tps?.squareCheckoutId,
+                squarePaymentId: tps?.squarePaymentId,
+            });
+        }, 100);
+    }
     const percentageList = [25, 50, 75, 100];
 
     const disabled = false;
@@ -475,14 +491,7 @@ function Content(props: Props & { setOpened }) {
                                 </Env>
 
                                 <Button
-                                    onClick={(e) => {
-                                        cancelTerminalPayment.execute({
-                                            checkoutId:
-                                                terminalPaymentSession?.squareCheckoutId,
-                                            squarePaymentId:
-                                                terminalPaymentSession?.squarePaymentId,
-                                        });
-                                    }}
+                                    onClick={__cancel}
                                     className="rounded-full "
                                     size="icon"
                                     variant="destructive"
