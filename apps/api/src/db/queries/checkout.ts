@@ -1,5 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
-import { timeout } from "@gnd/utils";
+import { generateRandomString, timeout } from "@gnd/utils";
 import {
   tokenSchemas,
   validateToken,
@@ -7,6 +7,9 @@ import {
 } from "@gnd/utils/tokenizer";
 import z from "zod";
 import { getOrders } from "./sales";
+import type { SalesPaymentMethods } from "@sales/constants";
+import type { SquarePaymentStatus } from "./sales-accounting";
+import type { CustomerTransactionType } from "@sales/types";
 
 export const initializeCheckoutSchema = z.object({
   token: z.string(),
@@ -52,5 +55,65 @@ export async function createSalesCheckoutLink(
   });
   const payload = checkoutData.payload;
 
-  return db.$transaction(async (tx) => {});
+  return db.$transaction(async (tx) => {
+    const accountNo = checkoutData?.sales
+      ?.map((a) => a.customerPhone)
+      ?.filter(Boolean)?.[0]!;
+    let phoneNo = accountNo?.replaceAll("-", "");
+    if (!phoneNo?.startsWith("+")) phoneNo = `+1${phoneNo}`;
+
+    const ct = await tx.customerTransaction.create({
+      data: {
+        wallet: {
+          connectOrCreate: {
+            where: {
+              accountNo,
+            },
+            create: {
+              balance: 0,
+              accountNo,
+            },
+          },
+        },
+        amount: payload.amount!,
+        paymentMethod: "link" as SalesPaymentMethods,
+        squarePayment: {
+          create: {
+            status: "PENDING" as SquarePaymentStatus,
+            paymentId: generateRandomString(),
+            // amount: totalAmount,
+            orders: {
+              createMany: {
+                data: checkoutData.sales.map((order) => ({
+                  orderId: order.id,
+                })),
+              },
+            },
+            amount: payload?.amount!,
+            paymentMethod: "link" as SalesPaymentMethods,
+            tip: 0,
+            checkout: {
+              create: {
+                paymentType: "link" as SalesPaymentMethods,
+              },
+            },
+          },
+        },
+        type: "transaction" as CustomerTransactionType,
+        description: "",
+        status: "PENDING" as SquarePaymentStatus,
+      },
+      include: {
+        squarePayment: {
+          include: {
+            checkout: true,
+            orders: true,
+          },
+        },
+      },
+    });
+    // const redirectUrl = `${getBaseUrl()}/square-payment/${emailToken}/${orderIdsParam}/payment-response/${
+    //   tx.squarePayment?.paymentId
+    // }`;
+  });
 }

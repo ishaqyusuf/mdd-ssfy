@@ -8,7 +8,7 @@ import { PdfTemplate } from "@sales/templates/pdf";
 import { validateTokenAction } from "@/actions/token-action";
 import { notFound } from "next/navigation";
 import { db } from "@gnd/db";
-import sharp from "sharp";
+// import sharp from "sharp";
 const paramsSchema = z.object({
     // id: z.string().uuid().optional(),
     // token: z.string().optional(),
@@ -38,18 +38,13 @@ export async function GET(req: NextRequest) {
     } = result.data;
 
     // Point to your local file (e.g., in public folder)
-    const logoPath = path.join(process.cwd(), "public", "logo.png");
     const pages = printData.map((a) => a.pageData);
     const watermark = await (async () => {
-        try {
-            const buffer = await sharp(
-                // `${process.env.NEXT_PUBLIC_APP_URL}/logo.png`
-                logoPath
-            )
-                .grayscale()
-                .toBuffer();
-            return `data:image/png;base64,${buffer.toString("base64")}`;
-        } catch (error) {}
+        // try {
+        //     const logoPath = path.join(process.cwd(), "public", "logo.png");
+        //     const buffer = await sharp(logoPath).grayscale().toBuffer();
+        //     return `data:image/png;base64,${buffer.toString("base64")}`;
+        // } catch (error) {}
         return null;
     })();
 
