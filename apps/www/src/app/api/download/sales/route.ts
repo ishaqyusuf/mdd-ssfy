@@ -40,13 +40,18 @@ export async function GET(req: NextRequest) {
     // Point to your local file (e.g., in public folder)
     const logoPath = path.join(process.cwd(), "public", "logo.png");
     const pages = printData.map((a) => a.pageData);
-    const buffer = await sharp(
-        // `${process.env.NEXT_PUBLIC_APP_URL}/logo.png`
-        logoPath
-    )
-        .grayscale()
-        .toBuffer();
-    const watermark = `data:image/png;base64,${buffer.toString("base64")}`;
+    const watermark = await (async () => {
+        try {
+            const buffer = await sharp(
+                // `${process.env.NEXT_PUBLIC_APP_URL}/logo.png`
+                logoPath
+            )
+                .grayscale()
+                .toBuffer();
+            return `data:image/png;base64,${buffer.toString("base64")}`;
+        } catch (error) {}
+        return null;
+    });
 
     const stream = await renderToStream(
         await PdfTemplate({

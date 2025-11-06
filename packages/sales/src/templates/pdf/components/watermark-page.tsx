@@ -30,7 +30,7 @@ export default function WatermarkPage({
         <View>
           <Image
             // src={`${env.NEXT_PUBLIC_APP_URL}/logo.png`}
-            src={watermarkSrc}
+            src={watermarkSrc || `${env.NEXT_PUBLIC_APP_URL}/logo.png`}
             style={cn({
               width: 500,
               height: 500,
