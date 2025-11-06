@@ -90,7 +90,7 @@ export default function SalesPrintHeader({
                 index == 1
                   ? {}
                   : {
-                      width: "60%",
+                      width: "70%",
                       // width: "37.5%",
                       ...cn("border"),
                     }
@@ -110,6 +110,7 @@ export default function SalesPrintHeader({
                         fontWeight: 700,
                         color: "rgba(255, 0, 0, 0.3)",
                         textAlign: "center",
+                        zIndex: 10,
                       })}
                     >
                       <Text
