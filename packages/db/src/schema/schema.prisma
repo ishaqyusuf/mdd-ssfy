@@ -5,6 +5,7 @@ generator client {
     // output          = "../../node_modules/.prisma/client"
 }
 
+// 
 datasource db {
     provider     = "mysql"
     relationMode = "prisma"

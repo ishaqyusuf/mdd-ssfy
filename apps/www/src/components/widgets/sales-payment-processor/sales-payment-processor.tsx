@@ -1,10 +1,13 @@
 import { cancelTerminaPaymentAction } from "@/actions/cancel-terminal-payment-action";
 import { createSalesPaymentAction } from "@/actions/create-sales-payment";
+import { terminalPaymentStatus } from "@/actions/get-terminal-payment-status";
 import { createPaymentSchema } from "@/actions/schema";
 import { generateToken } from "@/actions/token-action";
+import { Env } from "@/components/env";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { openLink } from "@/lib/open-link";
+import { TerminalCheckoutStatus } from "@/modules/square";
 import { paymentMethods, salesPaymentMethods } from "@/utils/constants";
 import { formatDate } from "@/utils/format";
 import { Button, ButtonProps } from "@gnd/ui/button";
@@ -22,12 +25,14 @@ import { Icons } from "@gnd/ui/custom/icons";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { Form } from "@gnd/ui/form";
+import { Label } from "@gnd/ui/label";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Separator } from "@gnd/ui/separator";
 import { Spinner } from "@gnd/ui/spinner";
 import { toast } from "@gnd/ui/use-toast";
 import { sum } from "@gnd/utils";
 import { SalesPdfToken } from "@gnd/utils/tokenizer";
+import NumberFlow from "@number-flow/react";
 import { SalesPrintModes } from "@sales/constants";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { addDays } from "date-fns";
@@ -87,7 +92,13 @@ const formSchema = createPaymentSchema
     .merge(
         z.object({
             paymentStatus: z
-                .enum(["processing", "completed", "failed", "idle"])
+                .enum([
+                    "processing",
+                    "completed",
+                    "failed",
+                    "idle",
+                    "cancelled",
+                ])
                 .optional()
                 .nullable(),
             editPrice: z.boolean().default(false),
@@ -139,6 +150,15 @@ function Content(props: Props & { setOpened }) {
     useEffect(() => {
         if (!paymentStatus) return;
         switch (paymentStatus) {
+            case "cancelled":
+                toast({
+                    title: "Payment Cancelled",
+                    description: "The payment has been cancelled.",
+                    duration: 3000,
+                    variant: "destructive",
+                });
+                form.setValue("paymentStatus", null);
+                break;
             case "processing":
                 if (terminalPaymentSession)
                     toast({
@@ -213,6 +233,7 @@ function Content(props: Props & { setOpened }) {
     }, [wSales]);
     const makePayment = useAction(createSalesPaymentAction, {
         onSuccess: (args) => {
+            console.log(args);
             if (args.data?.terminalPaymentSession) {
                 form.setValue(
                     "terminalPaymentSession",
@@ -261,16 +282,21 @@ function Content(props: Props & { setOpened }) {
     const cancelTerminalPayment = useAction(cancelTerminaPaymentAction, {
         onSuccess: (args) => {
             setWaitSeconds(null);
+            form.setValue("paymentStatus", "cancelled");
             form.setValue("terminalPaymentSession", null);
         },
         onError(e) {
             //toast.error("Unable to cancel payment");
+            toast({
+                title: "Cancellation Failed",
+                description: "Unable to cancel payment. Please try again.",
+                duration: 5000,
+                variant: "destructive",
+            });
         },
     });
 
     const initPayment = async (formData: z.infer<typeof formSchema>) => {
-        console.log({ formData });
-
         form.setValue("paymentStatus", "processing");
         makePayment.execute({
             ...formData,
@@ -283,6 +309,40 @@ function Content(props: Props & { setOpened }) {
                 .map((s) => s.orderId),
         });
     };
+    const [mockStatus, setMockStatus] = useState<TerminalCheckoutStatus>(null);
+    useEffect(() => {
+        if (!terminalPaymentSession) return;
+        async function checkTerminalPaymentStatus() {
+            console.log("CHECKING TERMINAL PAYMENT STATUS...");
+            const rep = mockStatus
+                ? { status: mockStatus }
+                : await terminalPaymentStatus(
+                      terminalPaymentSession?.squareCheckoutId
+                  );
+            switch (rep.status) {
+                case "COMPLETED":
+                    form.setValue("terminalPaymentSession.status", "COMPLETED");
+                    makePayment.execute({
+                        ...form.getValues(),
+                    });
+                    return null;
+                case "CANCELED":
+                case "CANCEL_REQUESTED":
+                    cancelTerminalPayment.execute({
+                        checkoutId: terminalPaymentSession.squareCheckoutId,
+                        squarePaymentId: terminalPaymentSession.squarePaymentId,
+                    });
+                    return null;
+            }
+            // return generateRandomString();
+            setTimeout(() => {
+                setWaitSeconds(waitSeconds + 1);
+            }, 2000);
+        }
+        if (waitSeconds != null) {
+            checkTerminalPaymentStatus();
+        }
+    }, [waitSeconds, terminalPaymentSession]);
     const percentageList = [25, 50, 75, 100];
 
     const disabled = false;
@@ -395,97 +455,164 @@ function Content(props: Props & { setOpened }) {
                     </div>
                     <Separator />
                     <div className="flex items-center gap-2">
-                        <div className="flex-1 grid gap-2 grid-cols-2">
-                            <Field>
-                                <Field.Content>
-                                    <Select.Root
-                                        {...form.register("paymentMethod")}
-                                        onValueChange={(e) => {
-                                            form.setValue(
-                                                "paymentMethod",
-                                                e as any
-                                            );
-                                        }}
-                                    >
-                                        <Select.Trigger>
-                                            <Select.Value placeholder="Payment Method" />
-                                        </Select.Trigger>
-                                        <Select.Content>
-                                            {salesPaymentMethods.map((s) => (
-                                                <Select.Item
-                                                    key={s.value}
-                                                    value={s.value}
-                                                >
-                                                    {s.label}
-                                                </Select.Item>
-                                            ))}
-                                        </Select.Content>
-                                    </Select.Root>
-                                </Field.Content>
-                            </Field>
-                            {pm == "check" ? (
-                                <InputGroup>
-                                    <InputGroup.Addon align="inline-start">
-                                        <InputGroup.Text>
-                                            Check No:
-                                        </InputGroup.Text>
-                                    </InputGroup.Addon>
-                                    <InputGroup.Input
-                                        className="!pl-1"
-                                        {...form.register("checkNo")}
-                                        placeholder="eg., 12345"
-                                    />
-                                </InputGroup>
-                            ) : pm == "terminal" ? (
-                                <Field>
-                                    <Field.Content>
-                                        <Select.Root
-                                            {...form.register("deviceId")}
-                                            onValueChange={(e) => {
-                                                form.setValue("deviceId", e);
-                                            }}
-                                        >
-                                            <Select.Trigger>
-                                                <Select.Value placeholder="Select Terminal" />
-                                            </Select.Trigger>
-                                            <Select.Content>
-                                                {data?.terminals?.map(
-                                                    (terminal, tIndex) => (
-                                                        <Select.Item
-                                                            disabled={
-                                                                terminal?.status !==
-                                                                "PAIRED"
-                                                            }
-                                                            key={tIndex}
-                                                            value={
-                                                                terminal?.value
-                                                            }
-                                                        >
-                                                            {terminal.label}
-                                                        </Select.Item>
-                                                    )
-                                                )}
-                                            </Select.Content>
-                                        </Select.Root>
-                                    </Field.Content>
-                                </Field>
-                            ) : undefined}
-                        </div>
-                        <Button
-                            disabled={
-                                makePayment.isExecuting ||
-                                !!terminalPaymentSession
-                            }
-                            className="rounded-full bg-green-500"
-                            size="icon"
-                        >
-                            {makePayment.isExecuting ||
-                            !!terminalPaymentSession ? (
+                        {terminalPaymentSession ? (
+                            <>
                                 <Spinner />
-                            ) : (
-                                <Icons.arrowRight className="size-4" />
-                            )}
-                        </Button>
+                                <Label>
+                                    Waiting for payment...{" "}
+                                    <NumberFlow value={1} />
+                                </Label>
+                                <div className="flex-1"></div>
+
+                                <Env isDev>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={(e) =>
+                                                setMockStatus("CANCELED")
+                                            }
+                                            className="rounded-full "
+                                            size="icon"
+                                            variant="destructive"
+                                        >
+                                            <Icons.X className="size-4" />
+                                        </Button>
+                                        <Button
+                                            className="rounded-full "
+                                            size="icon"
+                                            onClick={(e) =>
+                                                setMockStatus("COMPLETED")
+                                            }
+                                        >
+                                            <Icons.check className="size-4" />
+                                        </Button>
+                                    </div>
+                                </Env>
+
+                                <Button
+                                    onClick={(e) => {
+                                        cancelTerminalPayment.execute({
+                                            checkoutId:
+                                                terminalPaymentSession?.squareCheckoutId,
+                                            squarePaymentId:
+                                                terminalPaymentSession?.squarePaymentId,
+                                        });
+                                    }}
+                                    className="rounded-full "
+                                    size="icon"
+                                    variant="destructive"
+                                >
+                                    <Icons.X className="size-4" />
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex-1 grid gap-2 grid-cols-2">
+                                    <Field>
+                                        <Field.Content>
+                                            <Select.Root
+                                                {...form.register(
+                                                    "paymentMethod"
+                                                )}
+                                                onValueChange={(e) => {
+                                                    form.setValue(
+                                                        "paymentMethod",
+                                                        e as any
+                                                    );
+                                                }}
+                                            >
+                                                <Select.Trigger>
+                                                    <Select.Value placeholder="Payment Method" />
+                                                </Select.Trigger>
+                                                <Select.Content>
+                                                    {salesPaymentMethods.map(
+                                                        (s) => (
+                                                            <Select.Item
+                                                                key={s.value}
+                                                                value={s.value}
+                                                            >
+                                                                {s.label}
+                                                            </Select.Item>
+                                                        )
+                                                    )}
+                                                </Select.Content>
+                                            </Select.Root>
+                                        </Field.Content>
+                                    </Field>
+                                    {pm == "check" ? (
+                                        <InputGroup>
+                                            <InputGroup.Addon align="inline-start">
+                                                <InputGroup.Text>
+                                                    Check No:
+                                                </InputGroup.Text>
+                                            </InputGroup.Addon>
+                                            <InputGroup.Input
+                                                className="!pl-1"
+                                                {...form.register("checkNo")}
+                                                placeholder="eg., 12345"
+                                            />
+                                        </InputGroup>
+                                    ) : pm == "terminal" ? (
+                                        <Field>
+                                            <Field.Content>
+                                                <Select.Root
+                                                    {...form.register(
+                                                        "deviceId"
+                                                    )}
+                                                    onValueChange={(e) => {
+                                                        form.setValue(
+                                                            "deviceId",
+                                                            e
+                                                        );
+                                                    }}
+                                                >
+                                                    <Select.Trigger>
+                                                        <Select.Value placeholder="Select Terminal" />
+                                                    </Select.Trigger>
+                                                    <Select.Content>
+                                                        {data?.terminals?.map(
+                                                            (
+                                                                terminal,
+                                                                tIndex
+                                                            ) => (
+                                                                <Select.Item
+                                                                    disabled={
+                                                                        terminal?.status !==
+                                                                        "PAIRED"
+                                                                    }
+                                                                    key={tIndex}
+                                                                    value={
+                                                                        terminal?.value
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        terminal.label
+                                                                    }
+                                                                </Select.Item>
+                                                            )
+                                                        )}
+                                                    </Select.Content>
+                                                </Select.Root>
+                                            </Field.Content>
+                                        </Field>
+                                    ) : undefined}
+                                </div>
+                                <Button
+                                    disabled={
+                                        makePayment.isExecuting ||
+                                        !!terminalPaymentSession
+                                    }
+                                    className="rounded-full bg-green-500"
+                                    size="icon"
+                                >
+                                    {makePayment.isExecuting ||
+                                    !!terminalPaymentSession ? (
+                                        <Spinner />
+                                    ) : (
+                                        <Icons.arrowRight className="size-4" />
+                                    )}
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </div>
             </form>
