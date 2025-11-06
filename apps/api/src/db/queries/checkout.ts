@@ -115,7 +115,7 @@ export async function createSalesCheckoutLink(
     });
     const token = tokenize({
       ...payload,
-      paymentId: ct?.squarePayment?.paymentId,
+      paymentId: ct?.squarePayment?.id,
     });
     const redirectUrl = `${getAppUrl()}/checkout/${token}`;
     try {
@@ -163,6 +163,7 @@ export async function createSalesCheckoutLink(
     }
   });
 }
+
 export function squareSalesNote(orderIds: string[]) {
   return `sales payment for order${
     orderIds.length > 1 ? "s" : ""
@@ -171,6 +172,7 @@ export function squareSalesNote(orderIds: string[]) {
 
 export const verifyPaymentSchema = z.object({
   paymentId: z.string(),
+  attempts: z.number().default(1).optional().nullable(),
 });
 export type VerifyPaymentSchema = z.infer<typeof verifyPaymentSchema>;
 
@@ -179,8 +181,111 @@ export async function verifyPayment(
   query: VerifyPaymentSchema
 ) {
   const { db } = ctx;
+  return db.$transaction(async (tx) => {
+    const squarePayment = await tx.squarePayments.findFirstOrThrow({
+      where: {
+        id: query.paymentId,
+      },
+      include: {
+        checkout: {
+          include: {
+            order: true,
+            tenders: true,
+          },
+        },
+      },
+    });
+    const checkout = squarePayment.checkout;
+    // const meta = checkout?.meta as any;
+    // const {
+    //     result: {
+    //         order: { id: orderId, tenders },
+    //     },
+    // } = await squareClient.ordersApi.retrieveOrder(meta.squareOrderId);
+    const { errors, order } = await squareClient.orders.get({
+      orderId: squarePayment.squareOrderId!,
+    });
+    const tenders = order!.tenders;
+    const resp: { amount; tip; status: SquarePaymentStatus } = {
+      amount: 0,
+      tip: null,
+      status: null as any,
+    };
 
-  return {
-    status: "",
-  };
+    await Promise.all(
+      tenders!.map(async (tender) => {
+        // const {
+        //     result: { payment },
+        // } = await squareClient.paymentsApi.getPayment(tender.paymentId);
+        const payment = (
+          await squareClient.payments.get({
+            paymentId: tender.paymentId!,
+          })
+        )?.payment!;
+        //   payment.payment.tim
+        const tip = payment.tipMoney?.amount;
+        resp.status = payment.status as any;
+        if (resp.status == "COMPLETED") {
+          resp.amount += Number(payment.amountMoney!.amount) / 100;
+          let t = Number(tip);
+          resp.tip = t > 0 ? t / 100 : 0;
+        }
+        await tx.checkoutTenders.create({
+          data: {
+            salesCheckoutId: checkout!.id,
+            // squareOrderId: orderId,
+
+            status: resp.status,
+            tenderId: tender.id!,
+            // squarePaymentId: payment.id,
+          },
+        });
+      })
+    );
+    // checkout?.amount
+    if (resp.amount > 0)
+      await paymentSuccess({ ...checkout, tip: resp.tip } as any, tx);
+    return resp;
+  });
+}
+export async function paymentSuccess(
+  p: {
+    amount;
+    orderId;
+    tip;
+    order: { customerId; amountDue };
+    id;
+  },
+  tx
+) {
+  const _p = await tx.salesPayments.create({
+    data: {
+      // transactionId: 1,
+      amount: p.amount,
+      orderId: p.orderId,
+      tip: p.tip,
+      meta: {},
+      status: "success",
+      // customerId: p.order.customerId,
+    },
+  });
+  await tx.salesCheckout.update({
+    where: {
+      id: p.id,
+    },
+    data: {
+      tip: p.tip,
+      status: "success" as any,
+      salesPaymentsId: _p.id,
+    },
+  });
+  let amountDue = p.order.amountDue - p.amount;
+  await tx.salesOrders.update({
+    where: {
+      id: p.orderId,
+    },
+    data: {
+      amountDue,
+    },
+  });
 }

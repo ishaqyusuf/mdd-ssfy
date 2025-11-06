@@ -21,7 +21,7 @@ export const checkoutRouter = createTRPCRouter({
     }),
   verifyPayment: publicProcedure
     .input(verifyPaymentSchema)
-    .query(async (props) => {
+    .mutation(async (props) => {
       return verifyPayment(props.ctx, props.input);
     }),
 });

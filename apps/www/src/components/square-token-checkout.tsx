@@ -7,9 +7,10 @@ import { Card } from "@gnd/ui/card";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
 import { AlertCircle, CheckCircle2, Clock, Loader2 } from "lucide-react";
 import { Button } from "@gnd/ui/button";
-import { useMemo, useTransition } from "react";
+import { useEffect, useMemo, useTransition } from "react";
 import { timeout } from "@/lib/timeout";
 import { openLink } from "@/lib/open-link";
+import { toast } from "@gnd/ui/use-toast";
 
 interface Props {
     token: string;
@@ -30,16 +31,46 @@ export function SquareTokenCheckout(props: Props) {
         isPending: isVerifying,
         data: verifyData,
         error: verifyError,
-    } = useQuery(
-        _trpc.checkout.verifyPayment.queryOptions(
-            {
-                paymentId: data.payload.paymentId,
+        mutate,
+    } = useMutation(
+        _trpc.checkout.verifyPayment.mutationOptions({
+            onSuccess(data, variables, onMutateResult, context) {
+                // Optional: Handle success (e.g., show a success message)
+                toast({
+                    title: "Payment Verified",
+                    description: "Your payment has been successfully verified.",
+                    status: "success",
+                });
             },
-            {
-                enabled: !!data?.payload?.paymentId,
-            }
-        )
+            onError(error, variables, context) {
+                // Optional: Handle error (e.g., show an error message)
+                // toast({
+                //     title: "Payment Verification Failed",
+                //     description: error.message,
+                //     status: "error",
+                // });
+                let v = variables as any;
+                if (v.attempts < 3) {
+                    setTimeout(() => {
+                        mutate({
+                            paymentId: v.paymentId,
+                            attempts: v.attempts + 1,
+                        });
+                    }, 3000);
+                }
+            },
+        })
     );
+    // const {
+    //     mutateAsync: verifyPayment,
+    //     data: verifyData,
+    //     error: verifyError,
+    //     isPending,
+    // } = useMutation(_trpc.checkout.verifyPayment.mutationOptions());
+    useEffect(() => {
+        if (paymentId) mutate({ paymentId, attempts: 1 }); // ✅ called once
+    }, [paymentId]);
+
     const status = useMemo(() => {
         if (!paymentId)
             return {

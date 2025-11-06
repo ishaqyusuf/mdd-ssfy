@@ -44,6 +44,11 @@ export function BatchActions({}) {
                                 </Env>
 
                                 <MenuItemPrintAction
+                                    pdf
+                                    type="order"
+                                    salesIds={salesIds}
+                                />
+                                <MenuItemPrintAction
                                     type="order"
                                     salesIds={salesIds}
                                 />

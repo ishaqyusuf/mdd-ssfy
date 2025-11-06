@@ -12,7 +12,7 @@ import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 
 import { Badge } from "@gnd/ui/badge";
-import { Button } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 
 import { StickyNote } from "lucide-react";
@@ -20,6 +20,7 @@ import { InvoiceColumn } from "./column.invoice";
 import { cells } from "@gnd/ui/custom/data-table/cells";
 import { Card } from "@gnd/ui/composite";
 import { Separator } from "@gnd/ui/separator";
+import Link from "next/link";
 export type Item = RouterOutputs["sales"]["index"]["data"][number];
 export const columns2: ColumnDef<Item>[] = [
     cells.selectColumn,
@@ -335,7 +336,20 @@ function Actions({ item }: { item: Item }) {
     const batchSales = useBatchSales();
     const isMobile = useIsMobile();
     return (
-        <div className="relative z-10">
+        <div className="relative flex items-center gap-2 z-10">
+            <Link
+                className={cn(
+                    buttonVariants({
+                        // variant: "ghost"
+                        size: "xs",
+                    }),
+                    "bg-green-600/70 hover:bg-green-600 text-accent"
+                )}
+                href={`/sales-book/edit-order/${item.slug}`}
+            >
+                <Icons.Edit className="size-4" />
+            </Link>
+
             <Menu
                 triggerSize={isMobile ? "default" : "xs"}
                 Trigger={

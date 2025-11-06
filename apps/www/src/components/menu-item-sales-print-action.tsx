@@ -36,7 +36,7 @@ export function MenuItemPrintAction(props: Props) {
                 `api/download/sales`,
                 {
                     token: tok,
-                    preview: true,
+                    preview: !props.pdf,
                 },
                 true
             );
