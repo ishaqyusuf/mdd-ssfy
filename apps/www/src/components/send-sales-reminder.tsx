@@ -81,7 +81,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                           amount: sale.amount,
                       } satisfies SalesPaymentTokenSchema)
                     : null;
-                console.log({ paymentToken });
+                // console.log({ paymentToken });
                 payload.sales.push({
                     type: sale.type,
                     salesIds: sale.ids,
@@ -91,7 +91,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                     paymentToken,
                 });
             }
-            return;
+            // return;
             trigger.trigger({
                 taskName: "send-sales-reminder",
                 payload,
@@ -119,7 +119,6 @@ export function SendSalesReminder({ children, salesIds }: Props) {
     } = form;
     // isSubmitting
     useEffect(() => {
-        console.log(data);
         if (!data || isPending) return;
         form.reset({
             sales: uniqueList(

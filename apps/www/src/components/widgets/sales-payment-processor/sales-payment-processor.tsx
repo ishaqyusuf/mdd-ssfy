@@ -5,12 +5,14 @@ import { createPaymentSchema } from "@/actions/schema";
 import { generateToken } from "@/actions/token-action";
 import { Env } from "@/components/env";
 import { _qc, _trpc } from "@/components/static-trpc";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { openLink } from "@/lib/open-link";
 import { TerminalCheckoutStatus } from "@/modules/square";
 import { paymentMethods, salesPaymentMethods } from "@/utils/constants";
 import { formatDate } from "@/utils/format";
 import { Button, ButtonProps } from "@gnd/ui/button";
+import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
 import {
     AlertDialog,
@@ -39,9 +41,10 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { addDays } from "date-fns";
 import { Calculator } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState, useTransition } from "react";
 import z from "zod";
-
+import { sendSalesEmail } from "@gnd/sales/utils/email";
+import { useAuth } from "@/hooks/use-auth";
 interface Props {
     selectedIds: number[];
     phoneNo: string;
@@ -92,6 +95,9 @@ export function SalesPaymentProcessor(props: Props) {
 const formSchema = createPaymentSchema
     .merge(
         z.object({
+            sendEmail: z.boolean().optional().nullable(),
+            linkProcessed: z.boolean().optional().nullable(),
+            print: z.boolean().optional().nullable(),
             paymentStatus: z
                 .enum([
                     "processing",
@@ -130,7 +136,6 @@ function Content(props: Props & { setOpened }) {
         defaultValues: {},
     });
     useEffect(() => {
-        console.log(data);
         if (data.error.terminal) {
             toast({
                 title: "Unable to load PoS",
@@ -150,6 +155,7 @@ function Content(props: Props & { setOpened }) {
                 ),
             });
         }
+
         form.reset({
             deviceId: data?.lastTerminalId,
             terminalPaymentSession: null,
@@ -167,10 +173,10 @@ function Content(props: Props & { setOpened }) {
         editPrice,
         terminalPaymentSession,
         paymentStatus,
+        linkProcessed,
     } = form.watch();
     useEffect(() => {
-        console.log({ paymentStatus });
-
+        // console.log({ paymentStatus });
         if (!paymentStatus) return;
         switch (paymentStatus) {
             case "cancelled":
@@ -210,24 +216,29 @@ function Content(props: Props & { setOpened }) {
                 _qc.invalidateQueries({
                     queryKey: _trpc.sales.getOrders.infiniteQueryKey({}),
                 });
-                (async () => {
-                    const tok = await generateToken({
-                        salesIds: form.getValues("sales").map((s) => s.id),
-                        expiry: addDays(new Date(), 7).toISOString(),
-                        mode: "order" as SalesPrintModes,
+                const { print, sendEmail } = form.getValues();
+                if (sendEmail) {
+                    // await sendSalesEmail();
+                }
+                if (print)
+                    (async () => {
+                        const tok = await generateToken({
+                            salesIds: form.getValues("sales").map((s) => s.id),
+                            expiry: addDays(new Date(), 7).toISOString(),
+                            mode: "order" as SalesPrintModes,
 
-                        // mode: props.type
-                    } satisfies SalesPdfToken);
-                    openLink(
-                        `api/download/sales`,
-                        {
-                            token: tok,
-                            preview: true,
-                        },
-                        true
-                    );
-                    props.setOpened(false);
-                })();
+                            // mode: props.type
+                        } satisfies SalesPdfToken);
+                        openLink(
+                            `api/download/sales`,
+                            {
+                                token: tok,
+                                preview: true,
+                            },
+                            true
+                        );
+                        props.setOpened(false);
+                    })();
 
                 break;
             case "failed":
@@ -256,7 +267,6 @@ function Content(props: Props & { setOpened }) {
     }, [wSales]);
     const makePayment = useAction(createSalesPaymentAction, {
         onSuccess: (args) => {
-            console.log(args);
             if (args.data?.terminalPaymentSession) {
                 form.setValue(
                     "terminalPaymentSession",
@@ -303,12 +313,30 @@ function Content(props: Props & { setOpened }) {
         },
     });
 
+    const trigger = useTaskTrigger({
+        onStarted() {
+            // setOpened(false);
+            // form.reset(defaultValues);
+        },
+    });
+    const getAmount = (formData: z.infer<typeof formSchema>) => {
+        if (formData?.editPrice && isNaN(+formData._amount)) {
+            toast({
+                title: "Invalid amount",
+                variant: "destructive",
+            });
+            return;
+        }
+        return formData?.editPrice ? +formData?._amount : formData?.amount;
+    };
     const initPayment = async (formData: z.infer<typeof formSchema>) => {
         form.setValue("paymentStatus", "processing");
         setMockStatus(null);
+        const amount = getAmount(formData);
+        if (!amount) return;
         makePayment.execute({
             ...formData,
-            amount: formData?.editPrice ? formData._amount : formData.amount,
+            amount,
             salesIds: formData.sales.filter((s) => s.selected).map((s) => s.id),
             orderNos: data?.pendingSales
                 ?.filter(
@@ -317,10 +345,40 @@ function Content(props: Props & { setOpened }) {
                 .map((s) => s.orderId),
         });
     };
+    const auth = useAuth();
+    const sendPaymentLink = (formData: z.infer<typeof formSchema>) => {
+        // const emails = formData?.
+        const amount = getAmount(formData);
+        if (!amount) return;
+        startTransition(async () => {
+            const sales = data?.pendingSales?.filter(
+                (s) => formData.sales.find((b) => b.id == s.id)?.selected
+            );
+            const cData = sales?.find(
+                (s) => !!s.customerName && !!s?.customerEmail
+            );
+            await sendSalesEmail({
+                auth,
+                tokenGeneratorFn: generateToken,
+                trigger,
+                data: [
+                    {
+                        customer: {
+                            name: cData?.customerName,
+                            email: cData?.customerEmail,
+                        },
+                        amount,
+                        type: "order",
+                        mode: "order",
+                        ids: sales.map((a) => a.id),
+                    },
+                ],
+            });
+        });
+    };
     const [mockStatus, setMockStatus] = useState<TerminalCheckoutStatus>(null);
     useEffect(() => {
         if (!terminalPaymentSession) return;
-        console.log("CHECKING TERMINAL PAYMENT STATUS...", mockStatus);
         async function checkTerminalPaymentStatus() {
             const rep = mockStatus
                 ? { status: mockStatus }
@@ -368,7 +426,9 @@ function Content(props: Props & { setOpened }) {
     }
     const percentageList = [25, 50, 75, 100];
 
-    const disabled = false;
+    const [sendingLink, startTransition] = useTransition();
+
+    const sendLink = pm == "link" && !linkProcessed;
     return (
         <Form {...form}>
             <Dialog.Header>
@@ -381,9 +441,12 @@ function Content(props: Props & { setOpened }) {
                 </Dialog.Description>
             </Dialog.Header>
             <form
-                onSubmit={form.handleSubmit(initPayment, (e) => {
-                    console.log("Form Errors: ", e);
-                })}
+                onSubmit={form.handleSubmit(
+                    sendLink ? sendPaymentLink : initPayment,
+                    (e) => {
+                        console.log("Form Errors: ", e);
+                    }
+                )}
             >
                 <div className="grid gap-4">
                     <ScrollArea className="max-h-[45vh]">
@@ -435,7 +498,7 @@ function Content(props: Props & { setOpened }) {
                     </ScrollArea>
                     <Separator />
                     <div className="flex  gap-2 items-center">
-                        <div className="">{}</div>
+                        <div className=""></div>
                         <div className="flex-1"></div>
                         {editPrice ? (
                             <>
@@ -457,6 +520,16 @@ function Content(props: Props & { setOpened }) {
                                         </InputGroup.Text>
                                     </InputGroup.Addon>
                                 </InputGroup>
+                                <Button
+                                    onClick={(e) => {
+                                        form.setValue("editPrice", null);
+                                        form.setValue("_amount", null);
+                                    }}
+                                    size="xs"
+                                    variant="ghost"
+                                >
+                                    <Icons.X className="size-4" />
+                                </Button>
                             </>
                         ) : (
                             <>
@@ -477,6 +550,81 @@ function Content(props: Props & { setOpened }) {
                         )}
                     </div>
                     <Separator />
+                    <div className="flex flex-col gap-4">
+                        <div className="flex gap-2">
+                            <Field orientation="horizontal">
+                                <Checkbox
+                                    checked={
+                                        form.getValues("sendEmail") ?? false
+                                    }
+                                    onCheckedChange={(checked) =>
+                                        form.setValue("sendEmail", !!checked)
+                                    }
+                                    id="send-email"
+                                />
+                                <Field.Content>
+                                    <Field.Label
+                                        htmlFor="send-email"
+                                        className="font-normal"
+                                    >
+                                        Notify Customer
+                                    </Field.Label>
+                                </Field.Content>
+                            </Field>
+
+                            <Field orientation="horizontal">
+                                <Checkbox
+                                    checked={form.getValues("print") ?? false}
+                                    onCheckedChange={(checked) =>
+                                        form.setValue("print", !!checked)
+                                    }
+                                    id="print-copy"
+                                    defaultChecked
+                                />
+                                <Field.Content>
+                                    <Field.Label
+                                        htmlFor="print-copy"
+                                        className="font-normal"
+                                    >
+                                        Print Copy
+                                    </Field.Label>
+                                </Field.Content>
+                            </Field>
+                        </div>
+                        {pm != "link" || (
+                            <div className="">
+                                <Field orientation="horizontal">
+                                    <Checkbox
+                                        checked={
+                                            form.getValues("linkProcessed") ??
+                                            false
+                                        }
+                                        onCheckedChange={(checked) =>
+                                            form.setValue(
+                                                "linkProcessed",
+                                                !!checked
+                                            )
+                                        }
+                                        id="paid"
+                                    />
+                                    <Field.Content>
+                                        <Field.Label
+                                            htmlFor="paid"
+                                            className="font-normal"
+                                        >
+                                            Payment already received.
+                                        </Field.Label>
+                                        <Field.Description className="font-normal">
+                                            This will mark payment as paid
+                                            successful. Customer will not
+                                            receive a payment link.
+                                        </Field.Description>
+                                    </Field.Content>
+                                </Field>
+                            </div>
+                        )}
+                    </div>
+                    <Separator />
                     <div className="flex items-center gap-2">
                         {terminalPaymentSession ? (
                             <>
@@ -486,7 +634,6 @@ function Content(props: Props & { setOpened }) {
                                     <NumberFlow value={1} />
                                 </Label>
                                 <div className="flex-1"></div>
-
                                 <Env isDev>
                                     <div className="flex gap-2">
                                         <Button
@@ -510,7 +657,6 @@ function Content(props: Props & { setOpened }) {
                                         </Button>
                                     </div>
                                 </Env>
-
                                 <Button
                                     onClick={__cancel}
                                     className="rounded-full "
@@ -614,21 +760,35 @@ function Content(props: Props & { setOpened }) {
                                         </Field>
                                     ) : undefined}
                                 </div>
-                                <Button
-                                    disabled={
-                                        makePayment.isExecuting ||
-                                        !!terminalPaymentSession
-                                    }
-                                    className="rounded-full bg-green-500"
-                                    size="icon"
-                                >
-                                    {makePayment.isExecuting ||
-                                    !!terminalPaymentSession ? (
-                                        <Spinner />
-                                    ) : (
-                                        <Icons.arrowRight className="size-4" />
-                                    )}
-                                </Button>
+                                {sendLink ? (
+                                    <Button
+                                        disabled={sendingLink}
+                                        className="rounded-full bg-green-500"
+                                        size="icon"
+                                    >
+                                        {sendingLink ? (
+                                            <Spinner />
+                                        ) : (
+                                            <Icons.Email className="size-4" />
+                                        )}
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        disabled={
+                                            makePayment.isExecuting ||
+                                            !!terminalPaymentSession
+                                        }
+                                        className="rounded-full bg-green-500"
+                                        size="icon"
+                                    >
+                                        {makePayment.isExecuting ||
+                                        !!terminalPaymentSession ? (
+                                            <Spinner />
+                                        ) : (
+                                            <Icons.arrowRight className="size-4" />
+                                        )}
+                                    </Button>
+                                )}
                             </>
                         )}
                     </div>

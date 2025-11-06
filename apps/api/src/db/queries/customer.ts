@@ -397,16 +397,24 @@ export async function getCustomerPendingSales(ctx: TRPCContext, accountNo) {
       id: true,
       grandTotal: true,
       createdAt: true,
+      billingAddress: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
       customer: {
         select: {
           name: true,
           businessName: true,
+          email: true,
         },
       },
     },
   });
-  return ls.map(({ customer, ...rest }) => ({
+  return ls.map(({ customer, billingAddress: bAddr, ...rest }) => ({
     ...rest,
-    customerName: customer?.businessName || customer?.name,
+    customerName: bAddr?.name || customer?.businessName || customer?.name,
+    customerEmail: bAddr?.email || customer?.email, // || customer?.name,
   }));
 }

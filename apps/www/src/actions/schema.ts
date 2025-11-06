@@ -139,7 +139,7 @@ export const createPaymentSchema = z
         accountNo: z.string().optional(),
         paymentMethod: z.enum(paymentMethods),
         amount: z.number(),
-        _amount: z.number().optional().nullable(),
+        _amount: z.any().optional().nullable(),
         checkNo: z.string().optional().nullable(),
         deviceId: z.string().optional().nullable(),
         deviceName: z.string().optional().nullable(),
