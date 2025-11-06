@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
             return `data:image/png;base64,${buffer.toString("base64")}`;
         } catch (error) {}
         return null;
-    });
+    })();
 
     const stream = await renderToStream(
         await PdfTemplate({
