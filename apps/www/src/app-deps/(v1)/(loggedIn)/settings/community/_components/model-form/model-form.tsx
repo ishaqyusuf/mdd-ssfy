@@ -36,6 +36,7 @@ import {
 import TemplateHistoryModal from "./version-history-modal";
 import Link from "next/link";
 import { cn } from "@gnd/ui/cn";
+import { ModelTemplateSetting } from "@/components/model-template-setting";
 
 interface Props {
     data: GetCommunityTemplate;
@@ -65,7 +66,7 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
         loadStaticList(
             "templateFormSuggestion",
             suggestions,
-            getHomeTemplateSuggestions,
+            getHomeTemplateSuggestions
         );
     }, []);
     async function save() {
@@ -74,9 +75,9 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                 ...((data?.meta || {}) as any),
                 design: form.getValues(),
             };
-            await (
-                community ? saveCommunityTemplateDesign : saveHomeTemplateDesign
-            )(data.slug, _meta);
+            await (community
+                ? saveCommunityTemplateDesign
+                : saveHomeTemplateDesign)(data.slug, _meta);
             toast.success("Saved successfully!");
             _revalidate("communityTemplate");
         });
@@ -89,10 +90,16 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                 subtitle={``}
                 Action={() => (
                     <>
+                        <Link
+                            className={cn(buttonVariants({}))}
+                            href={`/community/model-template/${data?.slug}`}
+                        >
+                            V2
+                        </Link>
                         <Button
                             onClick={() => {
                                 modal.openSheet(
-                                    <TemplateHistoryModal data={data} />,
+                                    <TemplateHistoryModal data={data} />
                                 );
                             }}
                             size="sm"
@@ -110,8 +117,15 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                             className={cn(buttonVariants({}))}
                             href={`/community/model-template/${data?.slug}`}
                         >
-                            New Template
+                            V2
                         </Link>
+                        <ModelTemplateSetting
+                            id={data?.id!}
+                            defaultValues={{
+                                version: data?.version,
+                            }}
+                            slug={data?.slug}
+                        />
                     </>
                 )}
             />

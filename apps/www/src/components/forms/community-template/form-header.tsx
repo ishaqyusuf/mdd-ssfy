@@ -2,13 +2,16 @@
 import { _trpc } from "@/components/static-trpc";
 import { useCommunityModelStore } from "@/store/community-model";
 import { extractCommunityFormValueData } from "@community/utils/template-form";
-import { Button } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import { useMutation } from "@gnd/ui/tanstack";
 import { useTemplateSchemaContext } from "./context";
 import { useDebugToast } from "@/hooks/use-debug-console";
 import { useAuth } from "@/hooks/use-auth";
 import { openLink } from "@/lib/open-link";
 import { ModelTemplateSetting } from "@/components/model-template-setting";
+import Link from "next/link";
+import { cn } from "@gnd/ui/cn";
+import Btn from "@/components/_v1/btn";
 
 export function FormHeader() {
     const store = useCommunityModelStore();
@@ -27,7 +30,6 @@ export function FormHeader() {
         })
     );
     useDebugToast("Error", error);
-    // useDebugToast("error", { data, error });
     const onSubmit = () => {
         const data = extractCommunityFormValueData(Object.values(store.blocks));
         mutate({
@@ -56,9 +58,19 @@ export function FormHeader() {
             >
                 Preview
             </Button>
-            <Button onClick={onSubmit} isSubmitting={isPending} type="button">
+            <Btn onClick={onSubmit} isLoading={isPending} type="button">
                 Save
-            </Button>
+            </Btn>
+            <Link
+                className={cn(
+                    buttonVariants({
+                        variant: "destructive",
+                    })
+                )}
+                href={`/community/model-template/${ctx?.modelSlug}`}
+            >
+                V1
+            </Link>
             <ModelTemplateSetting
                 id={ctx?.communityTemplate?.id!}
                 defaultValues={{
