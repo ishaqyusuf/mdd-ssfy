@@ -13,7 +13,7 @@ const paramsSchema = z.object({
     // slugs: z.array(z.number()),
     slugs: z.string(),
     templateSlug: z.string().optional().nullable(),
-
+    version: z.enum(["v1", "v2"]).optional().nullable(),
     preview: z.preprocess((val) => val === "true", z.boolean().default(false)),
 });
 export async function GET(req: NextRequest) {

@@ -50,6 +50,7 @@ export function FormHeader() {
                             preview: true,
                             // slugs: [item.id].join(","),
                             slugs: "",
+                            version: "v2",
                             templateSlug: ctx?.modelSlug,
                         },
                         true
@@ -58,9 +59,6 @@ export function FormHeader() {
             >
                 Preview
             </Button>
-            <Btn onClick={onSubmit} isLoading={isPending} type="button">
-                Save
-            </Btn>
             <Link
                 className={cn(
                     buttonVariants({
@@ -71,6 +69,9 @@ export function FormHeader() {
             >
                 V1
             </Link>
+            <Btn onClick={onSubmit} isLoading={isPending} type="button">
+                Save
+            </Btn>
             <ModelTemplateSetting
                 id={ctx?.communityTemplate?.id!}
                 defaultValues={{

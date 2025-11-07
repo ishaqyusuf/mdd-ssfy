@@ -37,6 +37,7 @@ import TemplateHistoryModal from "./version-history-modal";
 import Link from "next/link";
 import { cn } from "@gnd/ui/cn";
 import { ModelTemplateSetting } from "@/components/model-template-setting";
+import { openLink } from "@/lib/open-link";
 
 interface Props {
     data: GetCommunityTemplate;
@@ -90,6 +91,23 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                 subtitle={``}
                 Action={() => (
                     <>
+                        <Button
+                            onClick={(e) => {
+                                openLink(
+                                    "api/download/model-template",
+                                    {
+                                        version: "v2",
+                                        preview: true,
+                                        // slugs: [item.id].join(","),
+                                        slugs: "",
+                                        templateSlug: data?.slug,
+                                    },
+                                    true
+                                );
+                            }}
+                        >
+                            Preview
+                        </Button>
                         <Link
                             className={cn(buttonVariants({}))}
                             href={`/community/model-template/${data?.slug}`}
@@ -113,12 +131,7 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                         <Btn size="sm" isLoading={isSaving} onClick={save}>
                             Save
                         </Btn>
-                        <Link
-                            className={cn(buttonVariants({}))}
-                            href={`/community/model-template/${data?.slug}`}
-                        >
-                            V2
-                        </Link>
+
                         <ModelTemplateSetting
                             id={data?.id!}
                             defaultValues={{
