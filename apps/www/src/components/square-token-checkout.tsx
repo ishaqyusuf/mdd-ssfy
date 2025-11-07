@@ -39,7 +39,7 @@ export function SquareTokenCheckout(props: Props) {
                 toast({
                     title: "Payment Verified",
                     description: "Your payment has been successfully verified.",
-                    status: "success",
+                    variant: "success",
                 });
             },
             onError(error, variables, context) {
