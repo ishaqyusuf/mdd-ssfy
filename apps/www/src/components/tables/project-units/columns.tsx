@@ -20,6 +20,9 @@ import { _qc, _trpc } from "@/components/static-trpc";
 import { AuthGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";
 import Link from "next/link";
+import { updateCommunityVersion } from "@/actions/community/update-community-version";
+import { openLink } from "@/lib/open-link";
+import { toast } from "@gnd/ui/use-toast";
 export type Item =
     RouterOutputs["community"]["getProjectUnits"]["data"][number];
 interface ItemProps {
@@ -58,28 +61,34 @@ const lotBlock: Column = {
     cell: ({ row: { original: item } }) => {
         const route = useRouter();
         const path =
-            item.communityTemplate?.version === "v2"
+            item.template?.version === "v2"
                 ? "model-template"
                 : "community-template";
         return (
             <Link
                 href={
-                    item.communityTemplate
-                        ? `/community/${path}/${item.communityTemplate.slug?.toLowerCase()}`
+                    item.template
+                        ? `/community/${path}/${item.template.slug?.toLowerCase()}`
                         : ""
                 }
-                className="hover:underline"
+                className="hover:underline relative"
             >
-                <TCell.Primary>{item.lotBlock}</TCell.Primary>
-                <TCell.Secondary>
-                    {item.modelName}
-
-                    {item.communityTemplate?.version != "v2" || (
-                        <>
-                            <Badge>v2</Badge>
-                        </>
-                    )}
-                </TCell.Secondary>
+                <TCell.Primary>
+                    {item.lotBlock}
+                    <Badge
+                        variant={
+                            item?.template?.version == "v1"
+                                ? "secondary"
+                                : "success"
+                        }
+                        className={cn(
+                            "px-1 rounded-full text-xs font-semibold absolute -left-10 top-4 font-mono"
+                        )}
+                    >
+                        {item?.template?.version}
+                    </Badge>
+                </TCell.Primary>
+                <TCell.Secondary>{item.modelName}</TCell.Secondary>
             </Link>
         );
     },
@@ -162,6 +171,28 @@ function Actions({ item }: ItemProps) {
             },
         })
     );
+    const preview = (version) => {
+        openLink(
+            "api/download/model-template",
+            {
+                preview: true,
+                slugs: "",
+                version,
+                templateSlug: item.template.slug,
+            },
+            true
+        );
+    };
+    const updateVersion = async (version) => {
+        await updateCommunityVersion(item?.template.id, version);
+        toast({
+            title: "Updated",
+            variant: "success",
+        });
+        _qc.invalidateQueries({
+            queryKey: _trpc.community.getProjectUnits.infiniteQueryKey(),
+        });
+    };
     return (
         <div className="relative items-center gap-2 flex justify-end z-10">
             <AuthGuard rules={[_perm.is("editProject")]}>
@@ -177,35 +208,49 @@ function Actions({ item }: ItemProps) {
                     size="sm"
                 />
             </AuthGuard>
-            <Menu
-                triggerSize={isMobile ? "default" : "xs"}
-                Trigger={
-                    <Button
-                        className={cn(isMobile || "size-4 p-0", "")}
-                        variant="ghost"
-                    >
-                        <Icons.MoreHoriz className="" />
-                    </Button>
-                }
-            >
+            <Menu>
+                <Menu.Item
+                    Icon={"check"}
+                    SubMenu={
+                        <>
+                            {["v1", "v2"].map((v) => (
+                                <Menu.Item
+                                    onClick={(e) => updateVersion(v)}
+                                    key={v}
+                                >
+                                    {v}
+                                </Menu.Item>
+                            ))}
+                        </>
+                    }
+                >
+                    Update Version
+                </Menu.Item>
+                <Menu.Item
+                    Icon={"check"}
+                    SubMenu={
+                        <>
+                            {["v1", "v2"].map((v) => (
+                                <Menu.Item onClick={(e) => preview(v)} key={v}>
+                                    {v}
+                                </Menu.Item>
+                            ))}
+                        </>
+                    }
+                >
+                    Preview
+                </Menu.Item>
                 <Menu.Item
                     icon="print"
                     onClick={(e) => {
-                        setParams({
-                            mimeType: "application/pdf",
-                            filePath: `model-template?${QueryString.stringify({
-                                preview: true,
-                                slugs: [item.id].join(","),
-                            })}`,
-                        });
-                        // openLink(
-                        //     "api/download/model-template",
-                        //     {
+                        // setParams({
+                        //     mimeType: "application/pdf",
+                        //     filePath: `model-template?${QueryString.stringify({
                         //         preview: true,
                         //         slugs: [item.id].join(","),
-                        //     },
-                        //     true,
-                        // );
+                        //     })}`,
+                        // });
+                        preview(item.template.version);
                     }}
                 >
                     Print

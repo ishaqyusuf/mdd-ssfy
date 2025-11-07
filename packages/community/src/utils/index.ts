@@ -40,6 +40,7 @@ export const projectUnitsSelect = {
     select: {
       slug: true,
       version: true,
+      id: true,
     },
   },
   project: {

@@ -60,12 +60,17 @@ export async function getProjectUnits(
 
   return await response(
     data.map((d) => {
-      const { tasks, _count, ...unitData } = d;
+      const { tasks, _count, communityTemplate, ...unitData } = d;
       const production = getUnitProductionStatus(d);
+
       return {
         ...unitData,
         jobCount: _count?.jobs,
         production,
+        template: {
+          ...communityTemplate,
+          version: (communityTemplate?.version || "v1") as "v1" | "v2",
+        },
       };
     })
   );
