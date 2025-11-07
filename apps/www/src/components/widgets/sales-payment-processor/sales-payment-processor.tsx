@@ -45,6 +45,7 @@ import React, { Suspense, useEffect, useState, useTransition } from "react";
 import z from "zod";
 import { sendSalesEmail } from "@gnd/sales/utils/email";
 import { useAuth } from "@/hooks/use-auth";
+import { useFieldArray } from "react-hook-form";
 interface Props {
     selectedIds: number[];
     phoneNo: string;
@@ -164,8 +165,14 @@ function Content(props: Props & { setOpened }) {
                 selected: props.selectedIds.includes(s.id),
             })),
             accountNo,
+            paymentMethod: data?.lastPaymentMethod || "terminal",
         });
     }, [data]);
+    const { fields: salesFields, update: updateSalesField } = useFieldArray({
+        control: form.control,
+        name: "sales",
+        keyName: "fieldId",
+    });
     const {
         sales: wSales,
         paymentMethod: pm,
@@ -195,7 +202,7 @@ function Content(props: Props & { setOpened }) {
                         description:
                             "Please complete the payment on your terminal device.",
                         duration: 3000,
-                        variant: "loading",
+                        variant: "spinner",
                     });
                 else
                     toast({
@@ -203,7 +210,7 @@ function Content(props: Props & { setOpened }) {
                         description:
                             "Your payment is being processed. Please wait...",
                         duration: 3000,
-                        variant: "loading",
+                        variant: "spinner",
                     });
                 break;
             case "completed":
@@ -253,7 +260,7 @@ function Content(props: Props & { setOpened }) {
         }
     }, [paymentStatus, terminalPaymentSession]);
     useEffect(() => {
-        if (!wSales) return;
+        if (!salesFields?.length) return;
         form.setValue(
             "amount",
             sum(
@@ -264,7 +271,7 @@ function Content(props: Props & { setOpened }) {
                 "amountDue"
             )
         );
-    }, [wSales]);
+    }, [salesFields, data]);
     const makePayment = useAction(createSalesPaymentAction, {
         onSuccess: (args) => {
             if (args.data?.terminalPaymentSession) {
@@ -354,9 +361,27 @@ function Content(props: Props & { setOpened }) {
             const sales = data?.pendingSales?.filter(
                 (s) => formData.sales.find((b) => b.id == s.id)?.selected
             );
+            if (sales.length > 1) {
+                toast({
+                    title: "Feature not available",
+                    description:
+                        "Payment link can only be sent for single sale at the moment.",
+                    variant: "destructive",
+                });
+                return;
+            }
             const cData = sales?.find(
                 (s) => !!s.customerName && !!s?.customerEmail
             );
+            if (!cData?.customerEmail) {
+                toast({
+                    title: "No customer email",
+                    description:
+                        "Selected sales do not have a valid customer email.",
+                    variant: "destructive",
+                });
+                return;
+            }
             await sendSalesEmail({
                 auth,
                 tokenGeneratorFn: generateToken,
@@ -458,13 +483,19 @@ function Content(props: Props & { setOpened }) {
                                         size="sm"
                                         variant="outline"
                                         onClick={(e) => {
-                                            form.setValue(
-                                                `sales.${index}.selected`,
-                                                !wSales?.[index]?.selected
-                                            );
+                                            updateSalesField(index, {
+                                                ...salesFields?.[index],
+                                                selected:
+                                                    !salesFields?.[index]
+                                                        ?.selected,
+                                            });
+                                            // form.setValue(
+                                            //     `sales.${index}.selected`,
+                                            //     !salesFields?.[index]?.selected
+                                            // );
                                         }}
                                         className={cn(
-                                            !wSales?.[index]?.selected ||
+                                            !salesFields?.[index]?.selected ||
                                                 "bg-green-100 border-green-500",
                                             "cursor-pointer p-2"
                                         )}
@@ -515,7 +546,7 @@ function Content(props: Props & { setOpened }) {
                                         {...form.register("_amount")}
                                         placeholder="Custom Price"
                                     />
-                                    <InputGroup.Addon align="end">
+                                    <InputGroup.Addon align="inline-end">
                                         <InputGroup.Text>
                                             / ${amount}
                                         </InputGroup.Text>

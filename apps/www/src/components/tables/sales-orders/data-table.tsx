@@ -2,7 +2,7 @@
 
 import { useTRPC } from "@/trpc/client";
 import { Table, useTableData } from "@gnd/ui/data-table";
-import { columns, mobileColumn } from "./columns";
+import { columns } from "./columns";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";

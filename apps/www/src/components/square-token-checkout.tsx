@@ -36,6 +36,7 @@ export function SquareTokenCheckout(props: Props) {
         _trpc.checkout.verifyPayment.mutationOptions({
             onSuccess(data, variables, onMutateResult, context) {
                 // Optional: Handle success (e.g., show a success message)
+                console.log({ data, variables });
                 toast({
                     title: "Payment Verified",
                     description: "Your payment has been successfully verified.",
@@ -43,6 +44,7 @@ export function SquareTokenCheckout(props: Props) {
                 });
             },
             onError(error, variables, context) {
+                console.log({ error, variables });
                 // Optional: Handle error (e.g., show an error message)
                 // toast({
                 //     title: "Payment Verification Failed",
@@ -50,14 +52,14 @@ export function SquareTokenCheckout(props: Props) {
                 //     status: "error",
                 // });
                 let v = variables as any;
-                if (v.attempts < 3) {
-                    setTimeout(() => {
-                        mutate({
-                            paymentId: v.paymentId,
-                            attempts: v.attempts + 1,
-                        });
-                    }, 3000);
-                }
+                // if (v.attempts < 3) {
+                setTimeout(() => {
+                    mutate({
+                        paymentId: v.paymentId,
+                        attempts: v.attempts + 1,
+                    });
+                }, 3000);
+                // }
             },
         })
     );
@@ -77,6 +79,14 @@ export function SquareTokenCheckout(props: Props) {
                 title: "Payment Token Validated",
                 description: "You can proceed to complete your payment.",
             };
+        if (verifyData?.status === "error") {
+            return {
+                title: "Payment Verification Failed",
+                description:
+                    "Unable to verify payment after multiple attempts. Please contact support.",
+                status: "error",
+            };
+        }
         return {
             title:
                 "Payment " +
@@ -107,9 +117,44 @@ export function SquareTokenCheckout(props: Props) {
     const handlePayment = () => {
         createCheckout({ token: props.token });
     };
-    if (!data?.payload) return <InvalidToken />;
+    const handleRequestToken = () => {
+        toast({
+            title: "Request New Token",
+            description:
+                "A new payment token request has been initiated. Please check your email shortly.",
+            variant: "default",
+        });
+    };
+    const handleContactSupport = () => {
+        toast({
+            title: "Issue has been reported",
+            description:
+                "Our support team has been notified and will reach out to you shortly.",
+            variant: "default",
+        });
+    };
+
+    if (!data?.payload)
+        return <InvalidToken handleContactSupport={handleContactSupport} />;
     if (!data?.sales?.length)
-        return <ExpiredToken merchantName={data.customerName} />;
+        return (
+            <ExpiredToken
+                handleRequestToken={handleRequestToken}
+                merchantName={data.customerName}
+            />
+        );
+    if (status?.status === "error")
+        return (
+            <FailedVerification
+                handleContactSupport={handleContactSupport}
+                handleRetry={(e) => {
+                    mutate({
+                        paymentId,
+                        attempts: 1,
+                    });
+                }}
+            />
+        );
     return (
         <Card className="p-8 shadow-lg space-y-6">
             <div className="flex items-center justify-center">
@@ -182,7 +227,7 @@ export function SquareTokenCheckout(props: Props) {
         </Card>
     );
 }
-function ExpiredToken({ merchantName }) {
+function ExpiredToken({ merchantName, handleRequestToken }) {
     return (
         <Card className="p-8 shadow-lg space-y-6">
             <div className="flex items-center justify-center">
@@ -239,6 +284,7 @@ function ExpiredToken({ merchantName }) {
             </div>
 
             <Button
+                onClick={handleRequestToken}
                 // onClick={handleRetry}
                 className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold py-3 rounded-lg transition-all duration-200"
             >
@@ -251,7 +297,55 @@ function ExpiredToken({ merchantName }) {
         </Card>
     );
 }
-function InvalidToken() {
+function FailedVerification({ handleRetry, handleContactSupport }) {
+    return (
+        <Card className="p-8 shadow-lg space-y-6">
+            <div className="flex items-center justify-center">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-red-500 rounded-full opacity-20 scale-150 animate-pulse" />
+                    <AlertCircle className="w-16 h-16 text-red-600 dark:text-red-400 relative" />
+                </div>
+            </div>
+
+            <div className="text-center space-y-2">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    Payment Verification Failed
+                </h2>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Unable to verify your payment after multiple attempts.
+                    Please try again or contact support.
+                </p>
+            </div>
+
+            {/* <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                <p className="text-xs text-slate-600 dark:text-slate-400 font-mono break-all">
+                    Error: Invalid token format or signature mismatch
+                </p>
+            </div> */}
+
+            <div className="space-y-2">
+                <Button
+                    onClick={handleRetry}
+                    className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-semibold py-3 rounded-lg transition-all duration-200"
+                >
+                    Try Again
+                </Button>
+                <Button
+                    onClick={handleContactSupport}
+                    variant="outline"
+                    className="w-full border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold py-3 rounded-lg bg-transparent"
+                >
+                    Contact Support
+                </Button>
+            </div>
+
+            <p className="text-xs text-center text-slate-500 dark:text-slate-400">
+                Our support team is available 24/7
+            </p>
+        </Card>
+    );
+}
+function InvalidToken({ handleContactSupport }) {
     const handleRetry = () => {};
     return (
         <Card className="p-8 shadow-lg space-y-6">
@@ -293,6 +387,7 @@ function InvalidToken() {
                     Try Again
                 </Button>
                 <Button
+                    onClick={handleContactSupport}
                     variant="outline"
                     className="w-full border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold py-3 rounded-lg bg-transparent"
                 >

@@ -1,7 +1,7 @@
 import "@gnd/ui/globals.css";
 import "@/styles/globals.css";
 
-import { TailwindIndicator } from "@/components/_v1/tailwind-indicator";
+import { TailwindIndicator } from "@/components/tailwind-indicator";
 import Upgrader from "@/components/_v1/upgrader";
 import { env } from "@/env.mjs";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
@@ -47,7 +47,7 @@ export default async function RootLayout({
                         className={cn(
                             __isProd
                                 ? "fixed bottom-0 left-0 z-[9999] h-5 w-5 overflow-hidden opacity-0"
-                                : "fixed bottom-0 right-0 mb-2",
+                                : "fixed bottom-0 right-0 mb-2"
                         )}
                     >
                         <Upgrader />

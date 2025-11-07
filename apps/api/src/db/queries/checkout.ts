@@ -1,5 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
-import { generateRandomString, timeout } from "@gnd/utils";
+import { consoleLog, generateRandomString, timeout } from "@gnd/utils";
 import { tokenize, tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import z from "zod";
 import { getOrders } from "./sales";
@@ -95,7 +95,9 @@ export async function createSalesCheckoutLink(
             tip: 0,
             checkout: {
               create: {
+                orderId: checkoutData?.sales?.[0]?.id,
                 paymentType: "link" as SalesPaymentMethods,
+                amount: payload?.amount!,
               },
             },
           },
@@ -180,6 +182,10 @@ export async function verifyPayment(
   ctx: TRPCContext,
   query: VerifyPaymentSchema
 ) {
+  if (query.attempts! > 2)
+    return {
+      status: "error",
+    };
   const { db } = ctx;
   return db.$transaction(async (tx) => {
     const squarePayment = await tx.squarePayments.findFirstOrThrow({
@@ -187,9 +193,20 @@ export async function verifyPayment(
         id: query.paymentId,
       },
       include: {
+        orders: {
+          select: {
+            order: {
+              select: {
+                amountDue: true,
+                id: true,
+                customerId: true,
+              },
+            },
+          },
+        },
         checkout: {
           include: {
-            order: true,
+            // order: true,
             tenders: true,
           },
         },
@@ -243,17 +260,26 @@ export async function verifyPayment(
       })
     );
     // checkout?.amount
+    consoleLog("order", squarePayment?.orders?.[0]);
     if (resp.amount > 0)
-      await paymentSuccess({ ...checkout, tip: resp.tip } as any, tx);
+      await paymentSuccess(
+        {
+          ...checkout,
+          order: squarePayment?.orders?.[0]?.order,
+          tip: resp.tip,
+          amount: checkout?.amount || squarePayment.amount,
+        } as any,
+        tx
+      );
     return resp;
   });
 }
 export async function paymentSuccess(
   p: {
     amount;
-    orderId;
+
     tip;
-    order: { customerId; amountDue };
+    order: { id; customerId; amountDue };
     id;
   },
   tx
@@ -262,7 +288,12 @@ export async function paymentSuccess(
     data: {
       // transactionId: 1,
       amount: p.amount,
-      orderId: p.orderId,
+      // orderId: p.order.id,
+      order: {
+        connect: {
+          id: p.order.id,
+        },
+      },
       tip: p.tip,
       meta: {},
       status: "success",
@@ -282,7 +313,7 @@ export async function paymentSuccess(
   let amountDue = p.order.amountDue - p.amount;
   await tx.salesOrders.update({
     where: {
-      id: p.orderId,
+      id: p.order.id,
     },
     data: {
       amountDue,
