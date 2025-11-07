@@ -65,7 +65,7 @@ export function FormHeader() {
                         variant: "destructive",
                     })
                 )}
-                href={`/community/model-template/${ctx?.modelSlug}`}
+                href={`/community/community-template/${ctx?.modelSlug}`}
             >
                 V1
             </Link>

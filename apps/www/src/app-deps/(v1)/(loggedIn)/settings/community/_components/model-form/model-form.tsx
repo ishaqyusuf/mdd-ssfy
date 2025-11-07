@@ -96,7 +96,7 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                                 openLink(
                                     "api/download/model-template",
                                     {
-                                        version: "v2",
+                                        version: "v1",
                                         preview: true,
                                         // slugs: [item.id].join(","),
                                         slugs: "",
