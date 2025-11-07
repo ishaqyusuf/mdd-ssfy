@@ -45,7 +45,7 @@ export const sendSalesReminder = schemaTask({
             content: SalesEmail({
               isQuote,
               pdfLink: data.downloadToken
-                ? `${baseApiUrl}/pdf/sales?token=${data.downloadToken}&download=true`
+                ? `${baseApiUrl}/download/sales?token=${data.downloadToken}&download=true`
                 : undefined,
               paymentLink: data.paymentToken
                 ? `${baseAppUrl}/checkout/${data.paymentToken}`

@@ -34,7 +34,7 @@ import { ScrollArea } from "@gnd/ui/scroll-area";
 type MenuItemProps = {
   link?;
   href?;
-  Icon?;
+  Icon?: IconKeys | React.JSXElementConstructor<any>;
   SubMenu?;
   shortCut?;
   _blank?: boolean;
@@ -164,6 +164,8 @@ function Item({
 }: MenuItemProps) {
   const { disabled } = useMenuContext();
   if (!Icon && icon) Icon = Icons[icon];
+  if (typeof Icon === "string") Icon = Icons[Icon];
+  // Lucide.ALargeSmall
   if (SubMenu)
     return (
       <DropdownMenuSub {...props}>

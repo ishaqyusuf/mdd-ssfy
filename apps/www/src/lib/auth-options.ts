@@ -56,30 +56,6 @@ export const authOptions: NextAuthOptions = {
             }
             if (!token.sessionId) return null;
             return token;
-            if (token.sessionId && token.sessionId != env.NEXT_BACK_DOOR_TOK) {
-                const session = await prisma.session.findUnique({
-                    where: { id: token.sessionId as any },
-                });
-
-                if (!session) {
-                    // Session not found, sign out
-
-                    return {} as any;
-                }
-
-                // if (new Date(session.expires) < new Date()) {
-                //     // Session expired, create a new one
-                //     const newSession = await prisma.session.create({
-                //         data: {
-                //             userId: token.user.id,
-                //             sessionToken: crypto.randomUUID(),
-                //             expires: new Date(Date.now() + 60 * 60 * 1000), // Extend for another hour
-                //         },
-                //     });
-                //     token.sessionId = newSession.id;
-                // }
-            }
-            return token;
         },
         session({ session, user, token }) {
             if (session.user) {

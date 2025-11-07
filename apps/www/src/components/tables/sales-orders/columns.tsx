@@ -15,12 +15,13 @@ import { Badge } from "@gnd/ui/badge";
 import { Button, buttonVariants } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 
-import { StickyNote } from "lucide-react";
+import { Check, StickyNote } from "lucide-react";
 import { InvoiceColumn } from "./column.invoice";
 import { cells } from "@gnd/ui/custom/data-table/cells";
 import { Card } from "@gnd/ui/composite";
 import { Separator } from "@gnd/ui/separator";
 import Link from "next/link";
+import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
 export type Item = RouterOutputs["sales"]["index"]["data"][number];
 export const columns2: ColumnDef<Item>[] = [
     cells.selectColumn,
@@ -353,17 +354,20 @@ function Actions({ item }: { item: Item }) {
             </Link>
 
             <Menu
-                triggerSize={isMobile ? "default" : "xs"}
-                Trigger={
-                    <Button
-                        className={cn(isMobile || "size-4 p-0")}
-                        variant="ghost"
-                    >
-                        <Icons.MoreHoriz className="" />
-                    </Button>
-                }
+            // triggerSize={isMobile ? "default" : "sm"}
+            // Trigger={
+            //     <Button
+            //         className={cn(isMobile || "size-4 p-0")}
+            //         variant="ghost"
+            //     >
+            //         <Icons.MoreHoriz className="" />
+            //     </Button>
+            // }
             >
+                <MenuItemPrintAction pdf type="order" salesIds={[item.id]} />
+                <MenuItemPrintAction type="order" salesIds={[item.id]} />
                 <Menu.Item
+                    Icon={Check}
                     SubMenu={
                         <>
                             <Menu.Item
