@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
             .filter((a) => a > 0),
         templateSlug: result.data.templateSlug,
         printMode: true,
+        version: result.data.version,
     });
 
     const {
