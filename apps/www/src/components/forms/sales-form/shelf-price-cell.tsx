@@ -32,7 +32,7 @@ export function ShelfPriceCell({ product, prodUid }) {
                 shelf.costCls.shelfItemCostUpdated(
                     shelf.itemUid,
                     _salesPrice,
-                    productId,
+                    productId
                 );
                 // shelf.costCls.updateShelfCosts(shelf.itemUid);
             });
@@ -87,8 +87,9 @@ export function ShelfPriceCell({ product, prodUid }) {
                                         ctx.dotUpdateProduct(
                                             prodUid,
                                             "customPrice",
-                                            values.floatValue,
+                                            values.floatValue
                                         );
+                                        ctx.cls.updateShelfCosts();
                                     }}
                                     prefix={"$"}
                                 />

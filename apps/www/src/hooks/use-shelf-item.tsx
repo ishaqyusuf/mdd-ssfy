@@ -108,6 +108,7 @@ export function useShelfItemContext({ shelfUid }) {
     // shelf.products
 
     return {
+        cls,
         refreshProds() {
             setProductRefreshToken(generateRandomString());
         },

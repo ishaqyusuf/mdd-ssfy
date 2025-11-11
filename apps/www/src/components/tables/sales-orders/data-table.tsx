@@ -13,11 +13,11 @@ import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/custom/icons";
-import { SalesQueryParamsSchema } from "@sales/schema";
 import { _trpc } from "@/components/static-trpc";
+import { RouterInputs } from "@api/trpc/routers/_app";
 
 interface Props {
-    defaultFilters?: SalesQueryParamsSchema;
+    defaultFilters?: RouterInputs["sales"]["getOrders"];
     singlePage?: boolean;
 }
 export function DataTable(props: Props) {

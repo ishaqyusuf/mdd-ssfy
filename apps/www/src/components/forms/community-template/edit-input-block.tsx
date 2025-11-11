@@ -1,15 +1,12 @@
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { saveCommunityInputSchema } from "@community/community-template-schemas";
-import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { Form } from "@gnd/ui/form";
 import { useMutation } from "@gnd/ui/tanstack";
-import { Suspense } from "react";
 import { useTemplateSchemaBlock, useTemplateSchemaContext } from "./context";
 import { FormInput } from "@gnd/ui/controls/form-input";
 import { SubmitButton } from "@/components/submit-button";
 import { toast } from "@gnd/ui/use-toast";
-import { ConfirmBtn } from "@gnd/ui/confirm-button";
 
 interface Props {
     uid: string;
@@ -37,7 +34,7 @@ export function EditInputBlock(props: Props) {
                     queryKey: _trpc.community.getCommunitySchema.queryKey({}),
                 });
             },
-        }),
+        })
     );
     const submit = (data) => {
         if (!data.title) {
@@ -53,7 +50,7 @@ export function EditInputBlock(props: Props) {
         _trpc.community.deleteInputInventoryBlock.mutationOptions({
             onSuccess(data, variables, context) {},
             onError(error, variables, context) {},
-        }),
+        })
     );
     const _delete = () => {
         deleteInventoryInput({
