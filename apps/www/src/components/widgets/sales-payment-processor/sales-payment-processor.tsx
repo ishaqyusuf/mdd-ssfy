@@ -772,7 +772,7 @@ function Content(props: Props & { setOpened }) {
                                                                 <Select.Item
                                                                     disabled={
                                                                         terminal?.status !==
-                                                                            "PAIRED" ||
+                                                                            "PAIRED" &&
                                                                         terminal?.status !==
                                                                             "AVAILABLE"
                                                                     }
