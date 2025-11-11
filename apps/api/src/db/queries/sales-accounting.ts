@@ -203,6 +203,7 @@ function whereSalesAccountings(query: GetSalesAccountingsSchema) {
               "success",
               "cancelled",
               "canceled",
+              "COMPLETED",
             ] as any as SquarePaymentStatus[],
           },
           paymentMethod: {

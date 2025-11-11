@@ -19,6 +19,7 @@ export const salesPaymentTokenSchema = z.object({
   salesIds: z.array(z.number()),
   expiry: z.string(),
   percentage: z.number().optional().nullable(),
+  walletId: z.number(),
   amount: z.number().optional().nullable(),
   paymentId: z.string().optional().nullable(),
 });

@@ -27,8 +27,9 @@ import {
   itemItemControlUid,
   mouldingItemControlUid,
 } from "@api/utils/sales-control";
-import { formatCurrency } from "@gnd/utils";
+import { formatCurrency, formatMoney } from "@gnd/utils";
 import { calculateSalesDueAmount } from "@sales/sales-transaction";
+import { payrollUid } from "@sales/utils/utils";
 
 export async function getSales(
   ctx: TRPCContext,
@@ -427,4 +428,56 @@ export async function getSalesLifeCycle(
 }
 export async function updateSalesDueAmount(id, _tx) {
   await calculateSalesDueAmount(_tx, id);
+}
+interface Props {
+  userId: number;
+  orderId: number;
+  submissionId?: number;
+  salesPaymentId?: number;
+  salesAmount?: number;
+  wage?: number;
+  description?: string;
+  headline?: string;
+  itemUid?: string;
+}
+export async function createPayrollAction(data: Props, tx) {
+  // const userId = await authId();
+  const profile = await tx.employeeProfile.findFirst({
+    where: {
+      employees: {
+        some: {
+          id: data.userId,
+        },
+      },
+    },
+  });
+  const salesComissionPercentage = profile?.salesComissionPercentage || 0;
+  const commission = data?.salesAmount
+    ? formatMoney(data.salesAmount * (salesComissionPercentage / 100))
+    : data?.wage;
+  const uid = payrollUid(data.orderId, data.salesPaymentId, data.submissionId);
+  await tx.payroll.create({
+    data: {
+      uid,
+      amount: commission,
+      itemUid: data.itemUid,
+      status: "PENDING",
+      type: data?.submissionId ? "WAGE" : "COMMISSION",
+      orderId: data.orderId,
+      userId: data.userId,
+      description: data.description,
+      history: {
+        create: {
+          status: "PENDING",
+          note: "created",
+          user: {
+            connect: { id: data.userId },
+          },
+        },
+      },
+    },
+    // update: {
+    //     amount: commission,
+    // },
+  });
 }

@@ -139,7 +139,7 @@ export async function generatePrintData(db: Db, props: Props) {
     //   bifold: design?.bifoldDoor,
     // });
     const version = props.version || c?.version;
-    console.log(version);
+
     units.push({
       data: [
         info("Project", home.project.title, 2),

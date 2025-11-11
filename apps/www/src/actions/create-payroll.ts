@@ -67,4 +67,3 @@ export async function createPayrollAction(data: Props) {
         userId: data.userId,
     });
 }
-export async function createBackPayrolls(query: SearchParamsType) {}

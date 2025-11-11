@@ -5,7 +5,7 @@
     "scripts": {
         "dev": "TZ=UTC next dev --turbopack -p 3000",
         "clean": "git clean -xdf .next .turbo node_modules",
-        "dev:prod": "bunx env-cmd -f .env.production env TZ=UTC next dev -p 3300",
+        "dev:prod": "bunx env-cmd -f .env.production env TZ=UTC next dev -p 3005",
         "build": "NODE_ENV=production next build --turbopack",
         "start": "next start",
         "lint": "next lint",

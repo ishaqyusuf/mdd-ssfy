@@ -5,21 +5,12 @@ import { TaskNotification } from "@/components/task-notification";
 import { HydrateClient } from "@/trpc/server";
 import { Suspense } from "react";
 
-// export default
 export default async function Layout({ children }) {
     // return <>{children}</>;
     return (
         <HydrateClient>
             <div className="relative">
-                <SidebarContent>
-                    {children}
-                    {/* <Sidebar />
-
-                    <div className="md:ml-[70px] pb-8">
-                        <Header />
-                        <div className="px-6">{children}</div>
-                    </div> */}
-                </SidebarContent>
+                <SidebarContent>{children}</SidebarContent>
 
                 <Suspense>
                     <GlobalSheets />

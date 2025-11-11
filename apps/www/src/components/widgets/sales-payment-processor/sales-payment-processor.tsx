@@ -299,7 +299,6 @@ function Content(props: Props & { setOpened }) {
             setTimeout(() => {
                 form.setValue("paymentStatus", null);
             }, 3000);
-            console.log(error);
         },
     });
     const [waitSeconds, setWaitSeconds] = useState(null);

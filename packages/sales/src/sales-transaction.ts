@@ -42,7 +42,6 @@ export async function calculateSalesDueAmount(db: Db, salesId: number) {
         amountDue,
       },
     });
-    //    __salesPaymentUpdated();
     return true;
   }
   return false;

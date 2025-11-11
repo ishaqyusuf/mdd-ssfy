@@ -1,14 +1,14 @@
 "use client";
 
-import { useMutation, useQuery, useSuspenseQuery } from "@gnd/ui/tanstack";
+import { useMutation, useSuspenseQuery } from "@gnd/ui/tanstack";
 import { _trpc } from "./static-trpc";
 import { useDebugToast } from "@/hooks/use-debug-console";
 import { Card } from "@gnd/ui/card";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
 import { AlertCircle, CheckCircle2, Clock, Loader2 } from "lucide-react";
 import { Button } from "@gnd/ui/button";
-import { useEffect, useMemo, useTransition } from "react";
-import { timeout } from "@/lib/timeout";
+import { useEffect, useMemo } from "react";
+
 import { openLink } from "@/lib/open-link";
 import { toast } from "@gnd/ui/use-toast";
 
@@ -27,6 +27,7 @@ export function SquareTokenCheckout(props: Props) {
         )
     );
     const paymentId = data?.payload?.paymentId;
+    const walletId = data?.payload?.walletId;
     const {
         isPending: isVerifying,
         data: verifyData,
@@ -57,6 +58,7 @@ export function SquareTokenCheckout(props: Props) {
                     mutate({
                         paymentId: v.paymentId,
                         attempts: v.attempts + 1,
+                        walletId: v.walletId,
                     });
                 }, 3000);
                 // }
@@ -70,8 +72,8 @@ export function SquareTokenCheckout(props: Props) {
     //     isPending,
     // } = useMutation(_trpc.checkout.verifyPayment.mutationOptions());
     useEffect(() => {
-        if (paymentId) mutate({ paymentId, attempts: 1 }); // ✅ called once
-    }, [paymentId]);
+        if (paymentId && walletId) mutate({ paymentId, attempts: 1, walletId });
+    }, [paymentId, walletId]);
 
     const status = useMemo(() => {
         if (!paymentId)
@@ -151,6 +153,7 @@ export function SquareTokenCheckout(props: Props) {
                     mutate({
                         paymentId,
                         attempts: 1,
+                        walletId,
                     });
                 }}
             />

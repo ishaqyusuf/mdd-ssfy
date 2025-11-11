@@ -4,39 +4,6 @@ import { getLinkModules, validateLinks } from "@/components/sidebar/links";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-// interface Props {
-//     isExpanded: boolean;
-//     onSelect?: () => void;
-// }
-// export const { Provider: MainMenuProvider, useContext: useMainNav } =
-//     createContextFactory(({ isExpanded, onSelect }: Props) => {
-//         const user = useAuth();
-//         const linkModules = getLinkModules(
-//             validateLinks({
-//                 role: user.role,
-//                 can: user.can,
-//                 userId: user?.id,
-//             }),
-//         );
-//         const pathName = usePathname();
-//         const activeLink = useMemo(() => {
-//             const active = Object.entries(linkModules.linksNameMap || {}).find(
-//                 ([href, data]) =>
-//                     data.match == "part"
-//                         ? pathName?.toLocaleLowerCase()?.startsWith(href)
-//                         : href?.toLocaleLowerCase() ===
-//                           pathName?.toLocaleLowerCase(),
-//             )?.["1"];
-//             return active;
-//         }, [pathName, linkModules]);
-//         return {
-//             linkModules,
-//             activeLink,
-//             isExpanded,
-//             onSelect,
-//         };
-//     });
-
 export const { Provider: SidebarProvider, useContext: useSidebar } =
     createContextFactory(({ onSelect = null, mobile = false }) => {
         const [isExpanded, setIsExpanded] = useState(mobile ? true : false);
@@ -53,12 +20,12 @@ export const { Provider: SidebarProvider, useContext: useSidebar } =
         const pathName = usePathname();
         const { activeLink, modules, currentModule } = useMemo(() => {
             const activeLink = Object.entries(
-                linkModules.linksNameMap || {},
+                linkModules.linksNameMap || {}
             ).find(([href, data]) =>
                 data.match == "part"
                     ? pathName?.toLocaleLowerCase()?.startsWith(href)
                     : href?.toLocaleLowerCase() ===
-                      pathName?.toLocaleLowerCase(),
+                      pathName?.toLocaleLowerCase()
             )?.["1"];
             const modules = linkModules?.modules
                 ?.filter((a) => a.activeLinkCount && a?.name)
@@ -77,7 +44,7 @@ export const { Provider: SidebarProvider, useContext: useSidebar } =
                     };
                 });
             const currentModule = modules.find(
-                (m) => m.name == activeLink?.module,
+                (m) => m.name == activeLink?.module
             );
 
             return { activeLink, modules, currentModule };
@@ -106,7 +73,7 @@ export function useLinks() {
             role: user.role?.name,
             can: user.can,
             userId: user?.id,
-        }),
+        })
     );
     return linkModules;
 }

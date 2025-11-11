@@ -1,7 +1,7 @@
 {
   "name": "@gnd/api",
   "scripts": {
-    "dev": "TZ=UTC PORT=3300 bun run --hot src/index.ts",
+    "dev": "TZ=UTC PORT=3004 bun run --hot src/index.ts",
     "dev:node": "tsx src/node.ts",
     "--build": "bun-vercel ./src/bun.ts",
     "-build": "./bun-vercel/build.sh ./src/bun.ts",

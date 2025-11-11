@@ -2,8 +2,12 @@ import type { TRPCContext } from "@api/trpc/init";
 import { consoleLog, generateRandomString, timeout } from "@gnd/utils";
 import { tokenize, tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import z from "zod";
-import { getOrders } from "./sales";
-import type { SalesPaymentMethods } from "@sales/constants";
+import { createPayrollAction, getOrders, updateSalesDueAmount } from "./sales";
+import type {
+  CustomerTransanctionStatus,
+  SalesPaymentMethods,
+  SalesPaymentStatus,
+} from "@sales/constants";
 import type { SquarePaymentStatus } from "./sales-accounting";
 import type { CustomerTransactionType } from "@sales/types";
 import { getAppUrl } from "@gnd/utils/envs";
@@ -62,62 +66,84 @@ export async function createSalesCheckoutLink(
       ?.filter(Boolean)?.[0]!;
     let phoneNo = phone?.replaceAll("-", "");
     if (!phoneNo?.startsWith("+")) phoneNo = `+1${phoneNo}`;
-
-    const ct = await tx.customerTransaction.create({
+    const squarePayment = await tx.squarePayments.create({
       data: {
-        wallet: {
-          connectOrCreate: {
-            where: {
-              accountNo,
-            },
-            create: {
-              balance: 0,
-              accountNo,
-            },
-          },
-        },
-        amount: payload.amount!,
-        paymentMethod: "link" as SalesPaymentMethods,
-        squarePayment: {
-          create: {
-            status: "PENDING" as SquarePaymentStatus,
-            paymentId: generateRandomString(),
-            // amount: totalAmount,
-            orders: {
-              createMany: {
-                data: checkoutData.sales.map((order) => ({
-                  orderId: order.id,
-                })),
-              },
-            },
-            amount: payload?.amount!,
-            paymentMethod: "link" as SalesPaymentMethods,
-            tip: 0,
-            checkout: {
-              create: {
-                orderId: checkoutData?.sales?.[0]?.id,
-                paymentType: "link" as SalesPaymentMethods,
-                amount: payload?.amount!,
-              },
-            },
-          },
-        },
-        type: "transaction" as CustomerTransactionType,
-        description: "",
         status: "PENDING" as SquarePaymentStatus,
-      },
-      include: {
-        squarePayment: {
-          include: {
-            checkout: true,
-            orders: true,
+        paymentId: generateRandomString(),
+        orders: {
+          createMany: {
+            data: checkoutData.sales.map((order) => ({
+              orderId: order.id,
+            })),
+          },
+        },
+        amount: payload?.amount!,
+        paymentMethod: "link" as SalesPaymentMethods,
+        tip: 0,
+        checkout: {
+          create: {
+            orderId: checkoutData?.sales?.[0]?.id,
+            paymentType: "link" as SalesPaymentMethods,
+            amount: payload?.amount!,
           },
         },
       },
     });
+    // const ct = await tx.customerTransaction.create({
+    //   data: {
+    //     wallet: {
+    //       connectOrCreate: {
+    //         where: {
+    //           accountNo,
+    //         },
+    //         create: {
+    //           balance: 0,
+    //           accountNo,
+    //         },
+    //       },
+    //     },
+    //     amount: payload.amount!,
+    //     paymentMethod: "link" as SalesPaymentMethods,
+    //     squarePayment: {
+    //       create: {
+    //         status: "PENDING" as SquarePaymentStatus,
+    //         paymentId: generateRandomString(),
+    //         // amount: totalAmount,
+    //         orders: {
+    //           createMany: {
+    //             data: checkoutData.sales.map((order) => ({
+    //               orderId: order.id,
+    //             })),
+    //           },
+    //         },
+    //         amount: payload?.amount!,
+    //         paymentMethod: "link" as SalesPaymentMethods,
+    //         tip: 0,
+    //         checkout: {
+    //           create: {
+    //             orderId: checkoutData?.sales?.[0]?.id,
+    //             paymentType: "link" as SalesPaymentMethods,
+    //             amount: payload?.amount!,
+    //           },
+    //         },
+    //       },
+    //     },
+    //     type: "transaction" as CustomerTransactionType,
+    //     description: "",
+    //     status: "PENDING" as SquarePaymentStatus,
+    //   },
+    //   include: {
+    //     squarePayment: {
+    //       include: {
+    //         checkout: true,
+    //         orders: true,
+    //       },
+    //     },
+    //   },
+    // });
     const token = tokenize({
       ...payload,
-      paymentId: ct?.squarePayment?.id,
+      paymentId: squarePayment?.id,
     });
     const redirectUrl = `${getAppUrl()}/checkout/${token}`;
     try {
@@ -150,7 +176,7 @@ export async function createSalesCheckoutLink(
       const { paymentLink } = resp;
       await tx.squarePayments.update({
         where: {
-          id: ct?.squarePayment?.id,
+          id: squarePayment?.id,
         },
         data: {
           squareOrderId: paymentLink?.orderId,
@@ -174,6 +200,7 @@ export function squareSalesNote(orderIds: string[]) {
 
 export const verifyPaymentSchema = z.object({
   paymentId: z.string(),
+  walletId: z.number(),
   attempts: z.number().default(1).optional().nullable(),
 });
 export type VerifyPaymentSchema = z.infer<typeof verifyPaymentSchema>;
@@ -200,6 +227,7 @@ export async function verifyPayment(
                 amountDue: true,
                 id: true,
                 customerId: true,
+                salesRepId: true,
               },
             },
           },
@@ -251,7 +279,6 @@ export async function verifyPayment(
           data: {
             salesCheckoutId: checkout!.id,
             // squareOrderId: orderId,
-
             status: resp.status,
             tenderId: tender.id!,
             // squarePaymentId: payment.id,
@@ -259,16 +286,23 @@ export async function verifyPayment(
         });
       })
     );
-    // checkout?.amount
-    consoleLog("order", squarePayment?.orders?.[0]);
+
     if (resp.amount > 0)
       await paymentSuccess(
         {
-          ...checkout,
-          order: squarePayment?.orders?.[0]?.order,
+          // ...checkout,
+          walletId: query.walletId,
+          checkoutId: checkout!.id,
+          squarePaymentId: squarePayment.id,
+          orders: squarePayment?.orders
+            ?.map((a) => a.order!)
+            .map((a) => ({
+              ...a,
+            })), //.[0]?.order,
           tip: resp.tip,
-          amount: checkout?.amount || squarePayment.amount,
-        } as any,
+          // amount: checkout?.amount || squarePayment.amount,
+          amount: resp.amount,
+        },
         tx
       );
     return resp;
@@ -276,47 +310,91 @@ export async function verifyPayment(
 }
 export async function paymentSuccess(
   p: {
+    squarePaymentId;
+    walletId;
     amount;
-
     tip;
-    order: { id; customerId; amountDue };
-    id;
+    orders: { id; customerId; amountDue; salesRepId }[];
+    checkoutId;
   },
   tx
 ) {
-  const _p = await tx.salesPayments.create({
-    data: {
-      // transactionId: 1,
-      amount: p.amount,
-      // orderId: p.order.id,
-      order: {
-        connect: {
-          id: p.order.id,
+  let balance = p.amount;
+  for (const order of p.orders) {
+    let payAmount = balance > order.amountDue ? order.amountDue : balance;
+    balance -= payAmount;
+    const __tx = await tx.customerTransaction.create({
+      data: {
+        amount: payAmount,
+        wallet: {
+          connect: {
+            id: p.walletId,
+          },
+        },
+        paymentMethod: "link" as SalesPaymentMethods,
+        status: "success" as any as CustomerTransanctionStatus,
+        meta: {},
+        type: "transaction" as CustomerTransactionType,
+        // author: {
+        //   connect: {
+        //     id: await authId(),
+        //   },
+        // },
+        squarePayment: {
+          connect: {
+            id: p?.squarePaymentId,
+          },
+        },
+        salesPayments: {
+          create: {
+            meta: {
+              // checkNo: props.checkNo,
+            },
+            amount: payAmount,
+            status: "success" as SalesPaymentStatus,
+            orderId: order.id,
+            squarePaymentsId: p?.squarePaymentId,
+            // props.terminalPaymentSession?.squarePaymentId,
+          },
         },
       },
-      tip: p.tip,
-      meta: {},
-      status: "success",
-      // customerId: p.order.customerId,
-    },
-  });
+      select: {
+        salesPayments: {
+          select: {
+            id: true,
+            amount: true,
+            order: {
+              select: {
+                salesRepId: true,
+                id: true,
+                orderId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    const [sp] = __tx.salesPayments;
+    await updateSalesDueAmount(order.id, tx);
+    await createPayrollAction(
+      {
+        orderId: order.id,
+        userId: order.salesRepId,
+        salesPaymentId: sp.id,
+        salesAmount: sp.amount,
+      },
+      tx
+    );
+  }
+
   await tx.salesCheckout.update({
     where: {
-      id: p.id,
+      id: p.checkoutId,
     },
     data: {
       tip: p.tip,
       status: "success" as any,
-      salesPaymentsId: _p.id,
-    },
-  });
-  let amountDue = p.order.amountDue - p.amount;
-  await tx.salesOrders.update({
-    where: {
-      id: p.order.id,
-    },
-    data: {
-      amountDue,
+      // salesPaymentsId: _p.id,
     },
   });
 }

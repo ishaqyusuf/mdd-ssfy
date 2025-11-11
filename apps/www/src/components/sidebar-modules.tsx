@@ -1,8 +1,7 @@
 "use client";
 
-import { ChevronsUpDown, LogOut } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";
 import {
     DropdownMenu,
     DropdownMenuContent,

@@ -28,7 +28,7 @@ export function MenuItemPrintAction(props: Props) {
             const tok = await generateToken({
                 salesIds: props.salesIds,
                 expiry: addDays(new Date(), 7).toISOString(),
-                mode: "order" as SalesPrintModes,
+                mode: params?.mode || type, // "order" as SalesPrintModes,
 
                 // mode: props.type
             } satisfies SalesPdfToken);

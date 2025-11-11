@@ -14,13 +14,13 @@ import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/custom/icons";
 import { SalesQueryParamsSchema } from "@sales/schema";
+import { _trpc } from "@/components/static-trpc";
 
 interface Props {
     defaultFilters?: SalesQueryParamsSchema;
     singlePage?: boolean;
 }
 export function DataTable(props: Props) {
-    const trpc = useTRPC();
     const { rowSelection, setRowSelection } = useSalesOrdersStore();
     const { filters, hasFilters, setFilters } = useOrderFilterParams();
     const {
@@ -33,7 +33,7 @@ export function DataTable(props: Props) {
             ...filters,
             ...(props.defaultFilters || {}),
         },
-        route: trpc.sales.getOrders,
+        route: _trpc.sales.getOrders,
     });
     const tableScroll = useTableScroll({
         useColumnWidths: true,
