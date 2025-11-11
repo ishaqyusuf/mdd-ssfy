@@ -19,6 +19,7 @@ import FormSelect from "../common/controls/form-select";
 import { labelValueOptions } from "@gnd/utils";
 import FormDate from "../common/controls/form-date";
 import { FormDebugBtn } from "../form-debug-btn";
+import { useWorkOrderParams } from "@/hooks/use-work-order-params";
 
 interface Props {
     data?;
@@ -37,7 +38,7 @@ export function WorkOrderForm({ data }: Props) {
     const trpc = useTRPC();
     const qc = useQueryClient();
     const { data: projectList } = useQuery(
-        trpc.community.workOrder.projectsList.queryOptions(),
+        trpc.community.workOrder.projectsList.queryOptions()
     );
     const [block, lot, projectName, id] = form.watch([
         "block",
@@ -55,8 +56,8 @@ export function WorkOrderForm({ data }: Props) {
             },
             {
                 enabled: !!findHomeOwnerUid && !id,
-            },
-        ),
+            }
+        )
     );
     useEffect(() => {
         if (!homeOwner) return;
@@ -70,7 +71,7 @@ export function WorkOrderForm({ data }: Props) {
     }, [projectName, projectList]);
     // const
     // const units = useMemo(() => {},[projectList,])
-    const { setParams } = useCommunityModelCostParams();
+    const { setParams } = useWorkOrderParams();
     const saveTemplateMutate = useMutation(
         trpc.community.workOrder.saveWorkOrderForm.mutationOptions({
             onSuccess(data, variables, context) {
@@ -85,7 +86,7 @@ export function WorkOrderForm({ data }: Props) {
             onError(error, variables, context) {
                 debugToast("Work order", error);
             },
-        }),
+        })
     );
     const { options: buildersOptions } = useCommunityBuildersList(true);
 
@@ -131,7 +132,7 @@ export function WorkOrderForm({ data }: Props) {
                             form.setValue("block", item?.data?.block);
                             form.setValue(
                                 "meta.lotBlock",
-                                item?.data?.lotBlock,
+                                item?.data?.lotBlock
                             );
                             debugToast("Selected Project", item);
                         },
