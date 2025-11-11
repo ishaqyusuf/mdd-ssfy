@@ -137,6 +137,8 @@ function Content(props: Props & { setOpened }) {
         defaultValues: {},
     });
     useEffect(() => {
+        console.log(data.error);
+
         if (data.error.terminal) {
             toast({
                 title: "Unable to load PoS",
