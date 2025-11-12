@@ -9,7 +9,7 @@ import {
 import { TransactionClient } from "@gnd/db";
 import crypto from "crypto";
 import { consoleLog, formatMoney, RenturnTypeAsync } from "@gnd/utils";
-let devMode = env.NODE_ENV === "production";
+let devMode = env.NODE_ENV !== "production";
 export const squareClient = new Client({
   environment: devMode ? Environment.Sandbox : Environment.Production,
   token: devMode ? env.SQUARE_SANDBOX_ACCESS_TOKEN : env.SQUARE_ACCESS_TOKEN,
