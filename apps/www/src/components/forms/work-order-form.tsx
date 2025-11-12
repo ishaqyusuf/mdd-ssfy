@@ -19,7 +19,8 @@ import FormSelect from "../common/controls/form-select";
 import { labelValueOptions } from "@gnd/utils";
 import FormDate from "../common/controls/form-date";
 import { FormDebugBtn } from "../form-debug-btn";
-import { useWorkOrderParams } from "@/hooks/use-work-order-params";
+import { useCustomerServiceParams } from "@/hooks/use-customer-service-params";
+import { _trpc } from "../static-trpc";
 
 interface Props {
     data?;
@@ -71,12 +72,13 @@ export function WorkOrderForm({ data }: Props) {
     }, [projectName, projectList]);
     // const
     // const units = useMemo(() => {},[projectList,])
-    const { setParams } = useWorkOrderParams();
+    const { setParams } = useCustomerServiceParams();
     const saveTemplateMutate = useMutation(
         trpc.community.workOrder.saveWorkOrderForm.mutationOptions({
             onSuccess(data, variables, context) {
                 qc.invalidateQueries({
-                    //  queryKey: trpc..queryKey()
+                    queryKey:
+                        _trpc.customerService.getCustomerServices.infiniteQueryKey(),
                 });
                 setParams(null);
                 toast({

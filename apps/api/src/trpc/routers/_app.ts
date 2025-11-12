@@ -19,6 +19,7 @@ import { inventoriesRouter } from "./inventories.route";
 import { communityRouters } from "./community.route";
 import { storefrontRouter } from "./storefront.route";
 import { taskTriggerRouter } from "./task-trigger.route";
+import { customerServiceRouter } from "./customer-service.route";
 import { checkoutRouter } from "./checkout.route";
 import { orgs } from "./organization.route";
 // import { studentsRouter } from "./students";
@@ -28,6 +29,7 @@ export const appRouter = createTRPCRouter({
   backlogs: backlogRouters,
   checkout: checkoutRouter,
   community: communityRouters,
+  customerService: customerServiceRouter,
   customers: customerRouter,
   dispatch: dispatchRouters,
   emails: emailsRoute,

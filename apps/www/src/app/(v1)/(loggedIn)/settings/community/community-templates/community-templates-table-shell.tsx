@@ -34,7 +34,6 @@ import {
     _importModelCost,
 } from "@/app-deps/(v1)/_actions/community/community-template";
 import { toast } from "sonner";
-import { openModal } from "@/lib/modal";
 import {
     _importModelCostData,
     _synchronizeModelCost,

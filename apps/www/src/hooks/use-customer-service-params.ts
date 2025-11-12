@@ -1,9 +1,9 @@
 import { parseAsBoolean, parseAsInteger, useQueryStates } from "nuqs";
 
-export function useWorkOrderParams() {
+export function useCustomerServiceParams() {
     const [params, setParams] = useQueryStates({
         // createModelCost: parseAsBoolean,
-        editWorkOrderId: parseAsInteger,
+        openCustomerServiceId: parseAsInteger,
         // editModelCostId: parseAsInteger,
     });
 

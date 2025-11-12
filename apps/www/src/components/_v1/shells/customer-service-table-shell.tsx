@@ -33,7 +33,7 @@ import { TechEmployeeFilter } from "../filters/employee-filter";
 import WorkOrderTechCell, {
     WorkOrderStatusCell,
 } from "../work-order/tech-cell";
-import { useWorkOrderParams } from "@/hooks/use-work-order-params";
+import { useCustomerServiceParams } from "@/hooks/use-customer-service-params";
 
 export default function CustomerServiceTableShell<T>({
     data,
@@ -42,7 +42,7 @@ export default function CustomerServiceTableShell<T>({
 }: TableShellProps<IWorkOrder>) {
     const [isPending, startTransition] = useTransition();
 
-    const { setParams } = useWorkOrderParams();
+    const { setParams } = useCustomerServiceParams();
     const [selectedRowIds, setSelectedRowIds] = useState<number[]>([]);
 
     const techEmployees = useAppSelector((s) => s.slicers.staticTechEmployees);
@@ -100,7 +100,7 @@ export default function CustomerServiceTableShell<T>({
                         <EditRowAction
                             onClick={() =>
                                 setParams({
-                                    editWorkOrderId: row.original.id,
+                                    openCustomerServiceId: row.original.id,
                                 })
                             }
                         />

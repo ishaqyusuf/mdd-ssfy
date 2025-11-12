@@ -2,6 +2,7 @@ import {
   backlogFilters,
   communityProjectFilters,
   communityTemplateFilters,
+  customerServiceFilters,
   getCommunityTemplateFilters,
   getCustomerFilters,
   getDispatchFilters,
@@ -30,6 +31,9 @@ export const filterRouters = createTRPCRouter({
   ),
   customer: publicProcedure.query(async (props) => {
     return getCustomerFilters(props.ctx);
+  }),
+  customerService: publicProcedure.query(async (props) => {
+    return customerServiceFilters(props.ctx);
   }),
   dispatch: publicProcedure.query(async (props) =>
     getDispatchFilters(props.ctx)

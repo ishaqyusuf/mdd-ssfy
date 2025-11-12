@@ -38,6 +38,7 @@ import {
   invoiceFilter,
   type GetProjectUnitsSchema,
 } from "./project-units";
+import type { GetCustomerServicesSchema } from "./customer-service";
 
 export async function getDispatchFilters(ctx: TRPCContext) {
   type T = keyof DispatchQueryParamsSchema;
@@ -685,6 +686,29 @@ export async function salesAccountingFilters(ctx: TRPCContext) {
       "Order No.",
       salesIds.map((a) => a.orderId)
     ),
+  ] satisfies FilterData[];
+
+  return resp;
+}
+
+export async function customerServiceFilters(ctx: TRPCContext) {
+  type T = keyof GetCustomerServicesSchema;
+  type FilterData = PageFilterData<T>;
+  // const steps = labelValueOptions(
+  //   await ctx.db.WorkOrders.findMany({
+  //     where: {},
+  //     select: {
+  //       id: true,
+  //       title: true,
+  //     },
+  //   }),
+  //   "title",
+  //   "id"
+  // );
+  const resp = [
+    searchFilter,
+    // optionFilter<T>("categoryId", "Category", steps),
+    // dateRangeFilter<T>("dateRange", "Filter by date"),
   ] satisfies FilterData[];
 
   return resp;

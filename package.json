@@ -21,6 +21,8 @@
     "db:generate": "turbo -F @gnd/db prisma-generate",
     "db:auth-generate": "turbo -F @gnd/auth prisma-generate",
     "dev": "turbo dev --parallel  --filter !@gnd/site  --filter !@gnd/jobs --filter !@gnd/mobile",
+    "www": "turbo dev --parallel --filter @gnd/www --filter @gnd/api --filter @gnd/square-debug",
+    "www:jobs": "turbo dev --parallel --filter @gnd/www --filter @gnd/api --filter @gnd/jobs",
     "dev:with-job": "turbo dev --parallel --filter !@gnd/site --filter !@gnd/gnd-backlog --filter !@gnd/mobile",
     "dev:web": "turbo dev --parallel  --filter !@gnd/gnd-backlog --filter !@gnd/api",
     "dev:mobile": "turbo dev --parallel  --filter !@gnd/gnd-backlog --filter !@gnd/www  --filter !@gnd/jobs  --filter !@gnd/email  --filter !@gnd/site",

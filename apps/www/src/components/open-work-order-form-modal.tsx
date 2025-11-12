@@ -1,13 +1,13 @@
 "use client";
 
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
-import { useWorkOrderParams } from "@/hooks/use-work-order-params";
+import { useCustomerServiceParams } from "@/hooks/use-customer-service-params";
 
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 
 export function OpenWorkOrderFormModal() {
-    const { setParams } = useWorkOrderParams();
+    const { setParams } = useCustomerServiceParams();
 
     return (
         <>
@@ -15,7 +15,7 @@ export function OpenWorkOrderFormModal() {
                 <Button
                     onClick={(e) => {
                         setParams({
-                            editWorkOrderId: -1,
+                            openCustomerServiceId: -1,
                         });
                     }}
                 >

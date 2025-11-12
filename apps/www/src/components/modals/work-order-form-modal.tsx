@@ -1,19 +1,19 @@
 import { CustomModal, CustomModalContent } from "./custom-modal";
-import { useWorkOrderParams } from "@/hooks/use-work-order-params";
+import { useCustomerServiceParams } from "@/hooks/use-customer-service-params";
 import { WorkOrderForm } from "../forms/work-order-form";
 import { useQuery } from "@gnd/ui/tanstack";
 import { useTRPC } from "@/trpc/client";
 import { useDebugToast } from "@/hooks/use-debug-console";
 
 export function WorkOrderFormModal({}) {
-    const { editWorkOrderId, setParams } = useWorkOrderParams();
-    const opened = !!editWorkOrderId;
+    const { openCustomerServiceId, setParams } = useCustomerServiceParams();
+    const opened = !!openCustomerServiceId;
 
     const trpc = useTRPC();
     const { data } = useQuery(
-        trpc.community.workOrder.form.queryOptions(editWorkOrderId, {
-            enabled: editWorkOrderId > 0,
-        }),
+        trpc.community.workOrder.form.queryOptions(openCustomerServiceId, {
+            enabled: openCustomerServiceId > 0,
+        })
     );
     // useDebugToast("Work order form data", data);
     return (

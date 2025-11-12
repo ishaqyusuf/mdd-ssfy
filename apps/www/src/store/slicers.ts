@@ -164,7 +164,6 @@ export function transformReduxObject(data) {
     } catch (error) {}
     return data;
 }
-export default headerNavSlice.reducer;
 export const { updateSlice } = headerNavSlice.actions;
 export function dispatchSlice(key: keyof ISlicer, data: any = null) {
     // if (data) data = deepCopy(data);
@@ -190,3 +189,5 @@ export function navigateTo(href) {
         })
     );
 }
+
+export default headerNavSlice.reducer;
