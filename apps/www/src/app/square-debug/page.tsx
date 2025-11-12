@@ -4,7 +4,7 @@ import { Item } from "@gnd/ui/composite";
 import { Action } from "./client";
 
 export default async function Page({}) {
-    const devices = await getSquareDevices();
+    const devices = await getSquareDevicesAction();
 
     return (
         <div>
