@@ -58,8 +58,7 @@ export function labelIdOptions<T, L extends FieldPath<T>, I extends keyof T>(
     id: I
 ) {
     if (!list?.length) return [];
-
-    return list.map((l) => {
+    return list?.filter(Boolean).map((l) => {
         // if (typeof l == "string") return { label: l, id: String(l), data: l };
         const getValue = (path) => dotObject.pick(path, l);
         return {

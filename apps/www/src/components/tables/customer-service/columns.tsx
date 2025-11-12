@@ -11,7 +11,14 @@ import { cells } from "@gnd/ui/data-table/cells";
 import { formatDate } from "@gnd/utils/dayjs";
 import { Item } from "@gnd/ui/composite";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
-
+import { useQuery } from "@tanstack/react-query";
+import { _trpc } from "@/components/static-trpc";
+import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
+import { labelIdOptions } from "@/lib/utils";
+import { CheckIcon } from "lucide-react";
+import { useTable } from "@gnd/ui/data-table";
+import { useMemo } from "react";
+import { Progress } from "@gnd/ui/custom/progress";
 export type Item =
     RouterOutputs["customerService"]["getCustomerServices"]["data"][number];
 interface ItemProps {
@@ -44,7 +51,11 @@ export const columns: Column[] = [
         },
         cell: ({ row: { original: item } }) => (
             <>
-                <Item.Title>{item.homeOwner}</Item.Title>
+                <TextWithTooltip
+                    className="max-w-[150px] font-semibold"
+                    text={item.homeOwner}
+                />
+                {/* <Item.Title>{item.homeOwner}</Item.Title> */}
                 <Item.Description>{item.homePhone}</Item.Description>
             </>
         ),
@@ -71,12 +82,23 @@ export const columns: Column[] = [
         header: "Assigned To",
         accessorKey: "Assigned To",
         meta: {
-            // preventDefault: true,
+            preventDefault: true,
             className: "w-[150px]",
+        },
+        cell: ({ row: { original: item } }) => <AssignedTo item={item} />,
+    },
+    {
+        header: "Status",
+        accessorKey: "Status",
+        meta: {
+            // preventDefault: true,
+            className: "",
         },
         cell: ({ row: { original: item } }) => (
             <>
-                <Item.Title>{item.tech?.name}</Item.Title>
+                <Progress>
+                    <Progress.Status>{item.status}</Progress.Status>
+                </Progress>
             </>
         ),
     },
@@ -95,7 +117,50 @@ export const columns: Column[] = [
         ),
     },
 ];
+function AssignedTo({ item }: ItemProps) {
+    const ctx = useTable();
 
+    const list = ctx.tableMeta.employees;
+    const selected = useMemo(() => {
+        const _selected = list?.find?.((t) => t.id === item.tech?.id);
+        return labelIdOptions([_selected], "name", "id")?.[0];
+    }, [list, item?.tech]);
+
+    return (
+        <ComboboxDropdown
+            selectedItem={selected}
+            onSelect={(data) => {}}
+            items={labelIdOptions(list, "name", "id")}
+            popoverProps={{
+                className: cn("!w-auto"),
+            }}
+            listClassName="max-w-auto"
+            // disabled
+            // renderSelectedItem={(selectedItem) => (
+            //     <>
+            //         <Item.Title>{selectedItem?.label}</Item.Title>
+            //     </>
+            // )}
+            renderListItem={({ item, isChecked }) => (
+                <Item size="xs">
+                    <Item.Media>
+                        <CheckIcon
+                            className={cn(
+                                "size-4",
+                                item?.id !== selected?.id && "text-transparent"
+                            )}
+                        />
+                    </Item.Media>
+                    <Item.Content>
+                        <Item.Title className="whitespace-nowrap">
+                            {item?.label}
+                        </Item.Title>
+                    </Item.Content>
+                </Item>
+            )}
+        />
+    );
+}
 function Actions({ item }: ItemProps) {
     const isMobile = useIsMobile();
     return (

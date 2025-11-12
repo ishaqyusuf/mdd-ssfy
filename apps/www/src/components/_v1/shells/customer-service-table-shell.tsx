@@ -11,16 +11,10 @@ import { IWorkOrder } from "@/types/customer-service";
 import { TableShellProps } from "@/types/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 
-import { Badge } from "@gnd/ui/badge";
 import {
     _FilterColumn,
-    Cell,
     CheckColumn,
     ColumnHeader,
-    DateCellContent,
-    PrimaryCellContent,
-    SecondaryCellContent,
-    StatusCell,
 } from "../columns/base-columns";
 import { DataTable2 } from "../data-table/data-table-2";
 import {

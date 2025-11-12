@@ -77,7 +77,7 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
         fetcher,
         {
             revalidateOnFocus: false,
-        },
+        }
     );
     const data = fData?.data;
     const adrAddress = data?.adrAddress;
@@ -170,10 +170,10 @@ function AddressAutoCompleteInput(props: CommonProps) {
             },
             {
                 enabled: !!debouncedSearchInput,
-            },
-        ),
+            }
+        )
     );
-    
+
     const predictions: Prediction[] = data || [];
     return (
         <div>
@@ -181,7 +181,6 @@ function AddressAutoCompleteInput(props: CommonProps) {
                 placeholder="Search Address"
                 searchPlaceholder="Search Address"
                 onSelect={(item) => {
-                     
                     setSelectedPlaceId(item?.placePrediction?.placeId);
                 }}
                 items={predictions?.map((prediction) => ({

@@ -12,6 +12,8 @@ import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/custom/icons";
 import { GetCustomerServicesSchema } from "@api/db/queries/customer-service";
+import { useQuery } from "@tanstack/react-query";
+import { _trpc } from "@/components/static-trpc";
 interface Props {
     defaultFilters?: GetCustomerServicesSchema;
 }
@@ -40,7 +42,11 @@ export function DataTable(props: Props) {
     if (hasFilters && !data?.length) {
         return <NoResults setFilter={setFilters} />;
     }
-
+    const { data: employeesResp } = useQuery(
+        _trpc.hrm.getEmployees.queryOptions({
+            roles: ["Punchout"],
+        })
+    );
     if (!data?.length && !isFetching) {
         return (
             <EmptyState
@@ -72,6 +78,7 @@ export function DataTable(props: Props) {
                     // rowSelection,
                     // setRowSelection,
                     tableMeta: {
+                        employees: employeesResp?.data,
                         rowClick(id, rowData) {
                             setParams({
                                 openCustomerServiceId: rowData.id,

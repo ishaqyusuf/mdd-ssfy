@@ -56,6 +56,7 @@ export const ROLES = [
   "Admin",
   "1099 Contractor",
   "Super Admin",
+  "Punchout",
 ] as const;
 export type Roles = (typeof ROLES)[number];
 export const PERMISSIONS = [

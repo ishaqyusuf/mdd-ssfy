@@ -24,12 +24,17 @@ export async function getCustomerServices(
   const { db } = ctx;
   const model = db.workOrders;
 
-  const { response } = await composeQueryData(query, whereStat(query), model);
+  const { response, searchMeta } = await composeQueryData(
+    query,
+    whereCustomerServices(query),
+    model
+  );
 
   const data = await model.findMany({
-    where: whereStat(query),
+    where: whereCustomerServices(query),
     // select: {}
     // include: {}
+    ...searchMeta,
     include: {
       tech: true,
     },
@@ -44,7 +49,7 @@ export async function getCustomerServices(
   );
 }
 
-function whereStat(query: GetCustomerServicesSchema) {
+function whereCustomerServices(query: GetCustomerServicesSchema) {
   const where: Prisma.WorkOrdersWhereInput[] = [];
   for (const [k, v] of Object.entries(query)) {
     if (!v) continue;
