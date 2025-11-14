@@ -536,11 +536,14 @@ export function getDispatchControlType(
 }
 export function isComponentType(type: DykeDoorType) {
   let _type = type?.trim() as string;
+  const matches = (v) =>
+    type === v ||
+    type?.split(" ")?.filter(Boolean)?.[0]?.toLowerCase() === v?.toLowerCase();
   const resp = {
     slab: type == "Door Slabs Only",
     bifold: type == "Bifold",
     service: type == "Services",
-    garage: type == "Garage",
+    garage: matches("Garage"),
     shelf: type == "Shelf Items",
     exterior: type == "Exterior",
     interior: type == "Interior",

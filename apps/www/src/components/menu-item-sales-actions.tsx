@@ -13,6 +13,9 @@ import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { toast } from "@gnd/ui/use-toast";
 import { SuperAdminGuard } from "./auth-guard";
 
+import { Menu } from "@gnd/ui/custom/menu";
+import { View } from "lucide-react";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
 type Props = {
     slug: string;
     id: number;
@@ -62,17 +65,20 @@ export function MenuItemSalesActions(props: Props) {
                 : sq.invalidate.quoteList();
         }
     }
+
     return (
         <>
-            <SalesEmailMenuItem
+            {/* <SalesEmailMenuItem
                 salesId={props?.id}
                 salesType={props?.type as any}
                 menuRef={props?.menuRef}
-            />
+            /> */}
+
             <MenuItemPrintAction
                 slug={props?.slug}
                 onOpenMenu={props.setMenuOpen}
                 type={props?.type as any}
+                salesIds={[props.id]}
             />
             <SuperAdminGuard>
                 {!props.id || (

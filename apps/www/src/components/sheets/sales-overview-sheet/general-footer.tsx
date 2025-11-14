@@ -98,14 +98,6 @@ export function GeneralFooter({}) {
                     onClick={(e) => {
                         preview();
                         return;
-                        printer.setParams({
-                            ids: [data?.id],
-                            modal: true,
-                            type: data?.type,
-                            preview: true,
-                            access: "internal",
-                            mode: "invoice" as InvoicePrintModes,
-                        });
                     }}
                 >
                     Preview

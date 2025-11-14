@@ -20,7 +20,7 @@ import { CreateSalesHistorySchemaTask } from "@jobs/schema";
 import { debugToast } from "@/hooks/use-debug-console";
 
 interface Props {
-    type: "button" | "menu";
+    type?: "button" | "menu";
     and?: "default" | "close" | "new";
 }
 export function SalesFormSave({ type = "button", and }: Props) {

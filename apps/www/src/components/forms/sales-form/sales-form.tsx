@@ -9,10 +9,14 @@ import { FormWatcher } from "./form-watcher";
 import TakeOff from "./take-off";
 import { TakeoffSwitch } from "./take-off/takeoff-switch";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { Menu, X } from "lucide-react";
+import { Menu as MenuIcon, X } from "lucide-react";
 import { useState } from "react";
 import { SalesFormSidebar } from "./sales-form-sidebar";
 import { useSalesSummaryToggle } from "@/store/invoice-summary-toggle";
+import { SalesFormSave } from "./sales-form-save";
+import { Menu } from "@gnd/ui/custom/menu";
+import { MenuItemSalesActions } from "@/components/menu-item-sales-actions";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
 
 export function SalesFormClient({ data }) {
     const zus = useFormDataStore();
@@ -27,9 +31,12 @@ export function SalesFormClient({ data }) {
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const { hidden } = useSalesSummaryToggle();
+    const sPreview = useSalesPreview();
     const [takeOff, takeOffChanged] = useLocalStorage("take-off", false);
     if (!zus.formStatus || zus.currentTab != "invoice") return <></>;
-
+    function preview() {
+        sPreview.preview(zus.metaData?.salesId, zus?.metaData?.type);
+    }
     return (
         <div className="min-h-screen w-full bg-white dark:bg-primary-foreground  xl:gap-4">
             <div
@@ -42,14 +49,22 @@ export function SalesFormClient({ data }) {
                     {data?.order?.type} Builder
                 </h1>
                 <div className="flex-1"></div>
-
+                <SalesFormSave />
+                <Button
+                    size="sm"
+                    onClick={() => preview()}
+                    className="flex items-center gap-2"
+                >
+                    <MenuIcon className="h-4 w-4 mr-2" />
+                    Preview
+                </Button>
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setSidebarOpen(true)}
                     className="flex items-center gap-2"
                 >
-                    <Menu className="h-4 w-4" />
+                    <MenuIcon className="h-4 w-4" />
                     Invoice Details
                 </Button>
             </div>

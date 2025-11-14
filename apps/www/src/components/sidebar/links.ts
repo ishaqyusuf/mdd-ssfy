@@ -324,7 +324,8 @@ export const linkModules = [
             _link(
                 "Customer Service",
                 "customerService",
-                "/community/customer-services"
+                // "/community/customer-services"
+                "/customer-services"
             )
                 .access(_perm.is("viewCustomerService"))
                 .level(7).data,
