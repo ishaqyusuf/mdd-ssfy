@@ -9,14 +9,17 @@ import { Menu } from "@gnd/ui/custom/menu";
 import { SalesPdfToken } from "@gnd/utils/tokenizer";
 import { SalesPrintModes } from "@sales/constants";
 import { addDays } from "date-fns";
+import { MessageCircle } from "lucide-react";
 import QueryString from "qs";
-
+import { share } from "@gnd/utils/share";
+import { getBaseUrl } from "@/envs";
 interface Props {
     pdf?: boolean;
     type: SalesType;
     onOpenMenu?;
     // salesId;
     slug?;
+    share?: boolean;
     salesIds?: number[];
 }
 export function MenuItemPrintAction(props: Props) {
@@ -32,6 +35,16 @@ export function MenuItemPrintAction(props: Props) {
 
                 // mode: props.type
             } satisfies SalesPdfToken);
+            if (props.share) {
+                const baseUrl = getBaseUrl();
+                const url = `${baseUrl}/api/download/sales?token=${tok}&preview=false`;
+                await share({
+                    url,
+                    msg: `Hello! download your sales ${url}`,
+                    recipient: `+234 8186877306`,
+                });
+                return;
+            }
             openLink(
                 `api/download/sales`,
                 {
@@ -72,6 +85,18 @@ export function MenuItemPrintAction(props: Props) {
             link.click();
             onOpenMenu?.(false);
         }
+    }
+    if (props.share) {
+        return (
+            <Menu.Item
+                Icon={MessageCircle}
+                onClick={(e) => {
+                    print(e);
+                }}
+            >
+                Share
+            </Menu.Item>
+        );
     }
     if (type == "quote")
         return (

@@ -79,6 +79,13 @@ export function MenuItemSalesActions(props: Props) {
                 onOpenMenu={props.setMenuOpen}
                 type={props?.type as any}
                 salesIds={[props.id]}
+                share
+            />
+            <MenuItemPrintAction
+                slug={props?.slug}
+                onOpenMenu={props.setMenuOpen}
+                type={props?.type as any}
+                salesIds={[props.id]}
             />
             <SuperAdminGuard>
                 {!props.id || (
