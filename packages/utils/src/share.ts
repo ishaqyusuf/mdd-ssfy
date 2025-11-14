@@ -10,8 +10,6 @@ export async function share(props: Props) {
     file = new File([blob], "invoice.pdf", {
       type: "application/pdf",
     });
-
-    return;
   } catch (error) {}
   console.log("FILE>>>");
   if (navigator.share && file) {
