@@ -13,7 +13,7 @@ export async function share(props: Props) {
     if (navigator.share) {
       await navigator.share({
         title: "Invoice",
-        text: "Here’s your invoice PDF",
+        text: "Here’s your invoice",
         files: [file],
       });
     } else {
