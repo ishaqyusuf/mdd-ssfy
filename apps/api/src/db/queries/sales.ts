@@ -30,6 +30,7 @@ import {
 import { formatCurrency, formatMoney } from "@gnd/utils";
 import { calculateSalesDueAmount } from "@sales/sales-transaction";
 import { payrollUid } from "@sales/utils/utils";
+import z from "zod";
 
 export async function getSales(
   ctx: TRPCContext,
@@ -479,5 +480,55 @@ export async function createPayrollAction(data: Props, tx) {
     // update: {
     //     amount: commission,
     // },
+  });
+}
+
+/*
+salesOverview: publicProcedure
+      .input(salesOverviewSchema)
+      .query(async (props) => {
+        return salesOverview(props.ctx, props.input);
+      }),
+*/
+export const salesOverviewSchema = z.object({
+  slug: z.string(),
+});
+export type SalesOverviewSchema = z.infer<typeof salesOverviewSchema>;
+
+export async function salesOverview(
+  ctx: TRPCContext,
+  query: SalesOverviewSchema
+) {
+  const { db } = ctx;
+
+  const sale = await db.salesOrders.findFirstOrThrow({
+    where: {
+      slug: query.slug,
+    },
+    select: {
+      orderId: true,
+      id: true,
+      amountDue: true,
+      extraCosts: {
+        select: {
+          amount: true,
+          label: true,
+          id: true,
+        },
+      },
+      customer: {
+        select: {
+          businessName: true,
+          name: true,
+          email: true,
+        },
+      },
+      salesRep: {
+        select: {
+          name: true,
+          id: true,
+        },
+      },
+    },
   });
 }

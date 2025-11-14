@@ -13,11 +13,13 @@ export async function share(props: Props) {
   } catch (error) {}
   console.log("FILE>>>");
   if (navigator.share && file) {
-    await navigator.share({
-      title: "Invoice",
-      text: "Here’s your invoice",
-      files: [file],
-    });
+    try {
+      await navigator.share({
+        title: "Invoice",
+        text: "Here’s your invoice",
+        files: [file],
+      });
+    } catch (error) {}
   } else {
     //   alert("Sharing not supported on this device.");
     const msg = `Here's your invoice: ${props.url}`;
