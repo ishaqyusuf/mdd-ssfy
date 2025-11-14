@@ -2,7 +2,7 @@ export function getBaseUrl() {
     if (process.env.NODE_ENV === "development") {
         return "http://localhost:3000";
     }
-    return "https://gndprodesk.com";
+    return "https://www.gndprodesk.com";
 }
 export function getPdfDownloadUrl() {
     const url = getBaseUrl();
