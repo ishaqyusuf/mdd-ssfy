@@ -64,6 +64,7 @@ type TableProps = (WithTable | WithoutTable) & {
   };
   tableScroll?: ReturnType<typeof useTableScroll>;
   tableMeta?: {
+    extras?: any;
     deleteAction?: (id) => any;
     rowClick?: (id: string, rowData?) => any;
     loadMore?;

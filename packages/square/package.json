@@ -20,7 +20,7 @@
     "@react-pdf/renderer": "^4.3.0",
     "date-fns": "^4.1.0",
     "jose": "^6.0.11",
-    "square": "^43.1.1",
+    "square": "^43.2.0",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {

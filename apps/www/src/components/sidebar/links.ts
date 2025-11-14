@@ -321,7 +321,11 @@ export const linkModules = [
                 ).data,
         ]),
         _section("main", null, [
-            _link("Customer Service", "customerService", "/customer-services")
+            _link(
+                "Customer Service",
+                "customerService",
+                "/community/customer-services"
+            )
                 .access(_perm.is("viewCustomerService"))
                 .level(7).data,
         ]),

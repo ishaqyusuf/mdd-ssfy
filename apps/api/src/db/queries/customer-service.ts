@@ -71,3 +71,28 @@ function whereCustomerServices(query: GetCustomerServicesSchema) {
   }
   return composeQuery(where);
 }
+
+export const assignWorkOrderSchema = z.object({
+  userId: z.number(),
+  woId: z.number(),
+});
+export type AssignWorkOrderSchema = z.infer<typeof assignWorkOrderSchema>;
+
+export async function assignWorkOrder(
+  ctx: TRPCContext,
+  data: AssignWorkOrderSchema
+) {
+  const { db } = ctx;
+  await db.workOrders.update({
+    where: {
+      id: data.woId,
+    },
+    data: {
+      tech: {
+        connect: {
+          id: data.userId,
+        },
+      },
+    },
+  });
+}

@@ -5,6 +5,7 @@ import { Icons } from "@gnd/ui/icons";
 import { useTemplateSchemaBlock, useTemplateSchemaContext } from "./context";
 import { useMutation } from "@gnd/ui/tanstack";
 import { _invalidate, _qc, _trpc } from "@/components/static-trpc";
+
 import { selectOptions, uniqueList } from "@gnd/utils";
 import { labelIdOptions } from "@/lib/utils";
 import { useState } from "react";
@@ -32,7 +33,7 @@ export function AddInput() {
                     queryKey: _trpc.community.getBlockInputs.queryKey({}),
                 });
             },
-        }),
+        })
     );
     const create = (props: CreateProps) => {
         mutate({
@@ -45,7 +46,7 @@ export function AddInput() {
         blockInputs?.map((a) => ({
             ...a,
         })),
-        "uid",
+        "uid"
     );
     const onEdit = (uid) => {
         setEditUId(uid);

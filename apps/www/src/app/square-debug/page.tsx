@@ -2,10 +2,13 @@ import { Label } from "@gnd/ui/label";
 import { getSquareDevicesAction } from "./action";
 import { Item } from "@gnd/ui/composite";
 import { Action } from "./client";
+import { squareClient } from "@gnd/square";
+import { consoleLog } from "@gnd/utils";
 
 export default async function Page({}) {
     const devices = await getSquareDevicesAction();
-
+    const merchants = await squareClient.merchants.list({});
+    consoleLog("MERCHANTS", merchants.data);
     return (
         <div>
             <Label>Devices</Label>

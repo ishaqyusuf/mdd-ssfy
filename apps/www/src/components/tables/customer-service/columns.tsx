@@ -11,8 +11,8 @@ import { cells } from "@gnd/ui/data-table/cells";
 import { formatDate } from "@gnd/utils/dayjs";
 import { Item } from "@gnd/ui/composite";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
-import { useQuery } from "@tanstack/react-query";
-import { _trpc } from "@/components/static-trpc";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { _qc, _trpc } from "@/components/static-trpc";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { labelIdOptions } from "@/lib/utils";
 import { CheckIcon } from "lucide-react";
@@ -23,6 +23,9 @@ export type Item =
     RouterOutputs["customerService"]["getCustomerServices"]["data"][number];
 interface ItemProps {
     item: Item;
+}
+export interface TableExtra {
+    employees: RouterOutputs["hrm"]["getEmployees"]["data"];
 }
 type Column = ColumnDef<Item>;
 
@@ -119,21 +122,46 @@ export const columns: Column[] = [
 ];
 function AssignedTo({ item }: ItemProps) {
     const ctx = useTable();
-
-    const list = ctx.tableMeta.employees;
+    const extras: TableExtra = ctx.tableMeta.extras;
+    const list = extras.employees;
     const selected = useMemo(() => {
         const _selected = list?.find?.((t) => t.id === item.tech?.id);
         return labelIdOptions([_selected], "name", "id")?.[0];
     }, [list, item?.tech]);
 
+    const { mutate: assign, isPending: isAssigning } = useMutation(
+        _trpc.customerService.assignWorkOrder.mutationOptions({
+            onSuccess(data, variables, onMutateResult, context) {
+                _qc.invalidateQueries({
+                    queryKey:
+                        _trpc.customerService.getCustomerServices.infiniteQueryKey(),
+                });
+            },
+            onError(error, variables, onMutateResult, context) {},
+            meta: {
+                toastTitle: {
+                    error: "Unable to complete",
+                    loading: "Processing...",
+                    success: "Done!.",
+                },
+            },
+        })
+    );
+
     return (
         <ComboboxDropdown
             selectedItem={selected}
-            onSelect={(data) => {}}
+            onSelect={(data) => {
+                assign({
+                    userId: data.data.id,
+                    woId: item.id,
+                });
+            }}
             items={labelIdOptions(list, "name", "id")}
             popoverProps={{
                 className: cn("!w-auto"),
             }}
+            placeholder="Assign"
             listClassName="max-w-auto"
             // disabled
             // renderSelectedItem={(selectedItem) => (
@@ -165,7 +193,7 @@ function Actions({ item }: ItemProps) {
     const isMobile = useIsMobile();
     return (
         <div className="relative flex justify-end z-10">
-            <Menu
+            {/* <Menu
                 triggerSize={isMobile ? "default" : "xs"}
                 Trigger={
                     <Button
@@ -177,7 +205,7 @@ function Actions({ item }: ItemProps) {
                 }
             >
                 <Menu.Item SubMenu={<></>}>Mark as</Menu.Item>
-            </Menu>
+            </Menu> */}
         </div>
     );
 }

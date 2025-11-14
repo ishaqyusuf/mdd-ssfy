@@ -78,7 +78,9 @@ export function DataTable(props: Props) {
                     // rowSelection,
                     // setRowSelection,
                     tableMeta: {
-                        employees: employeesResp?.data,
+                        extras: {
+                            employees: employeesResp?.data,
+                        },
                         rowClick(id, rowData) {
                             setParams({
                                 openCustomerServiceId: rowData.id,

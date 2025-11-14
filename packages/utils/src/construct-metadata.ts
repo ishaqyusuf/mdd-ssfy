@@ -1,5 +1,3 @@
-import { Metadata } from "next";
-
 const prod = process.env.NODE_ENV == "production";
 export function constructMetadata({
   title = `${process.env.NEXT_PUBLIC_APP_NAME} - Enterprice Management System`,
@@ -29,9 +27,10 @@ export function constructMetadata({
   title?: string;
   description?: string;
   image?: string | null;
-  icons?: Metadata["icons"];
+  icons?; //: Metadata["icons"];
   noIndex?: boolean;
-} = {}): Metadata {
+} = {}): any {
+  // } = {}): Metadata {
   return {
     title,
     description,
