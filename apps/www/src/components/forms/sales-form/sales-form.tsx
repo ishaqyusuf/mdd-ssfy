@@ -14,8 +14,6 @@ import { useState } from "react";
 import { SalesFormSidebar } from "./sales-form-sidebar";
 import { useSalesSummaryToggle } from "@/store/invoice-summary-toggle";
 import { SalesFormSave } from "./sales-form-save";
-import { Menu } from "@gnd/ui/custom/menu";
-import { MenuItemSalesActions } from "@/components/menu-item-sales-actions";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 
 export function SalesFormClient({ data }) {

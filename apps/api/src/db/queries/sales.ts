@@ -31,6 +31,7 @@ import { formatCurrency, formatMoney } from "@gnd/utils";
 import { calculateSalesDueAmount } from "@sales/sales-transaction";
 import { payrollUid } from "@sales/utils/utils";
 import z from "zod";
+import type { SalesPaymentStatus } from "@sales/constants";
 
 export async function getSales(
   ctx: TRPCContext,
@@ -509,6 +510,24 @@ export async function salesOverview(
       orderId: true,
       id: true,
       amountDue: true,
+      grandTotal: true,
+      createdAt: true,
+      deliveryOption: true,
+      meta: true,
+      deliveries: {
+        where: {
+          deletedAt: null,
+        },
+      },
+      payments: {
+        where: {
+          status: "success" as SalesPaymentStatus,
+          deletedAt: null,
+        },
+        select: {
+          amount: true,
+        },
+      },
       extraCosts: {
         select: {
           amount: true,
