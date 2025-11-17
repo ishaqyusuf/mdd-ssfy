@@ -237,3 +237,101 @@ export async function resetSalesTask(db: Db, salesId) {
     }
   );
 }
+export async function deleteSubmissionsTask(db: Db, data: UpdateSalesControl) {
+  await db.$transaction(async (tx) => {
+    const args = data.deleteSubmissions;
+    if (args.submissionIds?.length)
+      await tx.orderProductionSubmissions.updateMany({
+        where: {
+          id: {
+            in: args.submissionIds,
+          },
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+    if (args.itemIds?.length)
+      await tx.orderProductionSubmissions.updateMany({
+        where: {
+          salesOrderItemId: {
+            in: args.itemIds,
+          },
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+    if (args.itemControlUids?.length)
+      await tx.orderProductionSubmissions.updateMany({
+        where: {
+          assignment: {
+            salesItemControlUid: {
+              in: args.itemControlUids,
+            },
+          },
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+    if (args.allBySalesId)
+      await tx.orderProductionSubmissions.updateMany({
+        where: {
+          salesOrderId: args.allBySalesId,
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+  });
+  await resetSalesTask(db, data.meta.salesId);
+}
+export async function deleteAssignmentsTasks(db: Db, data: UpdateSalesControl) {
+  await db.$transaction(async (tx) => {
+    const args = data.deleteAssignments;
+    if (args.assignmentIds?.length)
+      await tx.orderItemProductionAssignments.updateMany({
+        where: {
+          id: {
+            in: args.assignmentIds,
+          },
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+    if (args.itemIds?.length)
+      await tx.orderItemProductionAssignments.updateMany({
+        where: {
+          itemId: {
+            in: args.itemIds,
+          },
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+    if (args.itemControlUids?.length)
+      await tx.orderItemProductionAssignments.updateMany({
+        where: {
+          salesItemControlUid: {
+            in: args.itemControlUids,
+          },
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+    if (args.allBySalesId)
+      await tx.orderItemProductionAssignments.updateMany({
+        where: {
+          orderId: args.allBySalesId,
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+  });
+  await resetSalesTask(db, data.meta.salesId);
+}

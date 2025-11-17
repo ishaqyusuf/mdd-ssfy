@@ -3,6 +3,8 @@ import { schemaTask } from "@trigger.dev/sdk/v3";
 import {
   clearPackingTask,
   createAssignmentsTask,
+  deleteAssignmentsTasks,
+  deleteSubmissionsTask,
   packDispatchItemTask,
   submitAllTask,
   updateSalesControlSchema,
@@ -22,6 +24,8 @@ export const updateSalesControl = schemaTask({
       packItems: packDispatchItemTask,
       clearPackings: clearPackingTask,
       createAssignments: createAssignmentsTask,
+      deleteSubmissions: deleteSubmissionsTask,
+      deleteAssignments: deleteAssignmentsTasks,
     };
     const actionKey = Object.entries(input).find(
       ([k, v]) => !!v && !!(actionMaps as any)[k as any]

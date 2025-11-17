@@ -2,11 +2,6 @@ import { useMemo, useState } from "react";
 import { CheckCircle, MoreVertical, TimerOff, UserPlus } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
-
-import { BatchMenuAssignAll } from "./batch-menu-assign-all";
-import { BatchMenuDeleteAssignments } from "./batch-menu-delete-assignments";
-import { BatchMenuDeleteSubmissions } from "./batch-menu-delete-submissions";
-import { BatchMenuSubmit } from "./batch-menu-submit";
 import { useProduction } from "./context";
 import { useProductionItem } from "./production-tab";
 import { DropdownMenu, Tabs } from "@gnd/ui/composite";
@@ -21,12 +16,33 @@ import { Calendar } from "@gnd/ui/calendar";
 import { useAuth } from "@/hooks/use-auth";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { UpdateSalesControl } from "@sales/schema";
+import { Separator } from "@gnd/ui/separator";
+import { deleteSalesAssignmentAction } from "@/actions/delete-sales-assignment";
+import { useAction } from "next-safe-action/hooks";
+import { toast } from "@gnd/ui/use-toast";
 export function ProductionItemMenu({}) {
     const ctx = useProductionItem();
     const { queryCtx, item } = ctx;
     const prod = useProduction();
     const [opened, setOpened] = useState(false);
-
+    return (
+        <Menu
+            Trigger={
+                <Button
+                    disabled={queryCtx.dispatchMode}
+                    variant="ghost"
+                    size="icon"
+                >
+                    <MoreVertical className="h-4 w-4" />
+                </Button>
+            }
+        >
+            <ProductionItemMenuActions
+                itemUids={[item.controlUid]}
+                setOpened={setOpened}
+            />
+        </Menu>
+    );
     return (
         <DropdownMenu.Root open={opened} onOpenChange={setOpened}>
             <DropdownMenu.Trigger asChild>
@@ -65,7 +81,11 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
             total: submitTotal,
             pendingAssignments: submitPendingAssignments,
         },
-        deleteSubmit: { qty: deleteSubmitQty },
+        deleteSubmit: { qty: deleteSubmitQty, items: deleteSubmitItems },
+        deleteAssignment: {
+            qty: deleteAssignmentQty,
+            items: deleteAssignmentItems,
+        },
     } = useMemo(() => {
         const filtered = prod.data?.items?.filter((item) =>
             !itemIds ? true : itemIds?.includes(item.controlUid)
@@ -124,13 +144,32 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
             };
         })();
         const deleteSubmit = (() => {
-            const _items = filtered?.map((item) => ({
-                uid: item.controlUid,
-                assignmentIds: item.analytics.assignment.ids,
-                itemId: item.itemId,
-                qty: item.analytics.stats?.prodCompleted?.qty,
-                deliveredQty: item.analytics.deliveredQty,
-            }));
+            const _items = filtered?.map((item) => {
+                return {
+                    uid: item.controlUid,
+                    assignmentIds: item.analytics.assignment.ids,
+                    itemId: item.itemId,
+                    qty: item.analytics.stats?.prodCompleted?.qty,
+                    deliveredQty: item.analytics.deliveredQty,
+                };
+            });
+            return {
+                qty: sum(_items, "qty"),
+                items: _items,
+            };
+        })();
+        const deleteAssignment = (() => {
+            const _items = filtered?.map((item) => {
+                const stats = item.analytics.stats;
+                return {
+                    uid: item.controlUid,
+                    assignmentIds: item.analytics.assignment.ids,
+                    itemId: item.itemId,
+                    qty: stats?.prodAssigned?.qty,
+                    deliveredQty: item.analytics.deliveredQty,
+                    submitQty: item.analytics.submitQty,
+                };
+            });
             return {
                 qty: sum(_items, "qty"),
                 items: _items,
@@ -140,16 +179,23 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
             assign,
             submit,
             deleteSubmit,
+            deleteAssignment,
         };
     }, [prod.data, itemIds]);
+    const onSuccess = () => {
+        setOpened(false);
+        queryCtx.salesQuery.assignmentSubmissionUpdated();
+    };
     const tsk = useTaskTrigger({
         // silent: true,
-        onSucces() {
-            setOpened(false);
-            queryCtx.salesQuery.assignmentSubmissionUpdated();
-        },
+        onSucces: onSuccess,
     });
+
     const auth = useAuth();
+    const deleteAssignments = useAction(deleteSalesAssignmentAction, {
+        onSuccess,
+        onError(e) {},
+    });
     const submitAction = async () => {
         switch (action) {
             case "submit":
@@ -182,7 +228,55 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                     },
                 } as UpdateSalesControl);
                 break;
+            case "delete.assign":
+                const deliveredQty = sum(deleteAssignmentItems, "deliveredQty");
+                const submitQty = sum(deleteAssignmentItems, "submitQty");
+                if (deliveredQty) {
+                    toast({
+                        title: "Unable to complete",
+                        description:
+                            "Some assignments have been submitted and registered to dispatch.",
+                    });
+                    return;
+                }
+                if (submitQty) {
+                    toast({
+                        title: "Unable to complete",
+                        description: "Some assignments have been submitted.",
+                    });
+                    return;
+                }
+                tsk.triggerWithAuth("update-sales-control", {
+                    meta: {
+                        authorId: auth.id,
+                        salesId: prod.data.orderId,
+                        authorName: auth.name,
+                    },
+                    deleteAssignments: {
+                        itemIds: deleteAssignmentItems.map((a) => a.itemId),
+                    },
+                } as UpdateSalesControl);
+                break;
             case "delete.submit":
+                const _deliveredQty = sum(deleteSubmitItems, "deliveredQty");
+                if (_deliveredQty) {
+                    toast({
+                        title: "Unable to complete",
+                        description:
+                            "Some submissions have been registered to dispatch.",
+                    });
+                    return;
+                }
+                tsk.triggerWithAuth("update-sales-control", {
+                    meta: {
+                        authorId: auth.id,
+                        salesId: prod.data.orderId,
+                        authorName: auth.name,
+                    },
+                    deleteSubmissions: {
+                        itemIds: deleteSubmitItems.map((a) => a.itemId),
+                    },
+                } as UpdateSalesControl);
                 break;
         }
     };
@@ -226,15 +320,25 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                         onClick={(e) => {
                             setAction("delete.submit");
                         }}
-                        // disabled={!deleteSubmitQty}
-                        disabled
+                        disabled={!deleteSubmitQty}
+                        // disabled
                         shortCut={`QTY: ${deleteSubmitQty}`}
                     >
                         Delete Submissions
                     </Menu.Item>
+                    <Menu.Item
+                        Icon={Icons.Delete}
+                        onClick={(e) => {
+                            setAction("delete.assign");
+                        }}
+                        disabled={!deleteAssignmentQty}
+                        shortCut={`QTY: ${deleteAssignmentQty}`}
+                    >
+                        Delete Assignments
+                    </Menu.Item>
                 </Tabs.Content>
                 <Tabs.Content value="users">
-                    <div className="flex gap-4 items-center">
+                    <div className="flex gap-2 px-2 items-center">
                         <Button
                             size="xs"
                             onClick={(e) => {
@@ -246,6 +350,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                         </Button>
                         <Label>Select Production Worker</Label>
                     </div>
+                    <DropdownMenu.Separator />
                     {prod?.users?.map((user) => (
                         <Menu.Item
                             onClick={(e) => {
@@ -263,7 +368,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                     ))}
                 </Tabs.Content>
                 <Tabs.Content value="due-date">
-                    <div className="flex gap-4 items-center">
+                    <div className="flex gap-4 px-4 items-center">
                         <Button
                             size="xs"
                             onClick={(e) => {
@@ -277,6 +382,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                     </div>
                     <DropdownMenu.Separator />
                     <Calendar
+                        className=""
                         mode="single"
                         // toDate={new Date()}
                         selected={dueDate}
@@ -284,15 +390,17 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                             setDueDate(value);
                         }}
                     />
-                    <Menu.Item
-                        onClick={(e) => {
-                            e.preventDefault();
-                            submitAction();
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            setDueDate(null);
                         }}
-                        Icon={TimerOff}
+                        className="w-full"
                     >
+                        <TimerOff className="size-4 mr-4" />
                         No Due Date
-                    </Menu.Item>
+                    </Button>
+                    <Separator />
                     <div className="">
                         <Button
                             onClick={() => {
