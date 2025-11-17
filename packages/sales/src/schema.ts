@@ -76,18 +76,24 @@ export const updateSalesControlSchema = z.object({
     })
     .nullable()
     .optional(),
-  deleteSubmissions: z.object({
-    submissionIds: z.array(z.number()).optional().nullable(),
-    itemIds: z.array(z.number()).optional().nullable(),
-    itemControlUids: z.array(z.string()).optional().nullable(),
-    allBySalesId: z.number().optional().nullable(),
-  }),
-  deleteAssignments: z.object({
-    assignmentIds: z.array(z.number()).optional().nullable(),
-    itemIds: z.array(z.number()).optional().nullable(),
-    itemControlUids: z.array(z.string()).optional().nullable(),
-    allBySalesId: z.number().optional().nullable(),
-  }),
+  deleteSubmissions: z
+    .object({
+      submissionIds: z.array(z.number()).optional().nullable(),
+      itemIds: z.array(z.number()).optional().nullable(),
+      itemControlUids: z.array(z.string()).optional().nullable(),
+      allBySalesId: z.number().optional().nullable(),
+    })
+    .optional()
+    .nullable(),
+  deleteAssignments: z
+    .object({
+      assignmentIds: z.array(z.number()).optional().nullable(),
+      itemIds: z.array(z.number()).optional().nullable(),
+      itemControlUids: z.array(z.string()).optional().nullable(),
+      allBySalesId: z.number().optional().nullable(),
+    })
+    .optional()
+    .nullable(),
   createAssignments: z
     .object({
       retries: z.number().optional().nullable().default(0),

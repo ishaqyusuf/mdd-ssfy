@@ -197,88 +197,85 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
         onError(e) {},
     });
     const submitAction = async () => {
-        switch (action) {
-            case "submit":
-                tsk.triggerWithAuth("update-sales-control", {
-                    meta: {
-                        authorId: auth.id,
-                        salesId: prod.data.orderId,
-                        authorName: auth.name,
-                    },
-                    submitAll: {
+        console.log(action);
+        const payload = () => {
+            const pl = {
+                meta: {
+                    authorId: auth.id,
+                    salesId: prod.data.orderId,
+                    authorName: auth.name,
+                },
+            } as UpdateSalesControl;
+            switch (action) {
+                case "submit":
+                    pl.submitAll = {
                         assignedToId,
                         itemUids: items.map((a) => a.uid),
-                    },
-                } as UpdateSalesControl);
-                break;
-            case "assign":
-                tsk.triggerWithAuth("update-sales-control", {
-                    meta: {
-                        authorId: auth.id,
-                        salesId: prod.data.orderId,
-                        authorName: auth.name,
-                    },
-                    createAssignments: {
+                    };
+                    break;
+                case "assign":
+                    pl.createAssignments = {
+                        retries: 0,
                         assignedToId,
                         dueDate,
                         selections: items?.map((i) => ({
                             uid: i.uid,
                             qty: i.meta.qty,
                         })),
-                    },
-                } as UpdateSalesControl);
-                break;
-            case "delete.assign":
-                const deliveredQty = sum(deleteAssignmentItems, "deliveredQty");
-                const submitQty = sum(deleteAssignmentItems, "submitQty");
-                if (deliveredQty) {
-                    toast({
-                        title: "Unable to complete",
-                        description:
-                            "Some assignments have been submitted and registered to dispatch.",
-                    });
-                    return;
-                }
-                if (submitQty) {
-                    toast({
-                        title: "Unable to complete",
-                        description: "Some assignments have been submitted.",
-                    });
-                    return;
-                }
-                tsk.triggerWithAuth("update-sales-control", {
-                    meta: {
-                        authorId: auth.id,
-                        salesId: prod.data.orderId,
-                        authorName: auth.name,
-                    },
-                    deleteAssignments: {
+                    };
+                    break;
+                case "delete.assign":
+                    const deliveredQty = sum(
+                        deleteAssignmentItems,
+                        "deliveredQty"
+                    );
+                    const submitQty = sum(deleteAssignmentItems, "submitQty");
+                    if (deliveredQty) {
+                        toast({
+                            title: "Unable to complete",
+                            description:
+                                "Some assignments have been submitted and registered to dispatch.",
+                        });
+
+                        throw new Error();
+                    }
+                    if (submitQty) {
+                        toast({
+                            title: "Unable to complete",
+                            description:
+                                "Some assignments have been submitted.",
+                        });
+                        throw new Error();
+                    }
+                    pl.deleteAssignments = {
                         itemIds: deleteAssignmentItems.map((a) => a.itemId),
-                    },
-                } as UpdateSalesControl);
-                break;
-            case "delete.submit":
-                const _deliveredQty = sum(deleteSubmitItems, "deliveredQty");
-                if (_deliveredQty) {
-                    toast({
-                        title: "Unable to complete",
-                        description:
-                            "Some submissions have been registered to dispatch.",
-                    });
-                    return;
-                }
-                tsk.triggerWithAuth("update-sales-control", {
-                    meta: {
-                        authorId: auth.id,
-                        salesId: prod.data.orderId,
-                        authorName: auth.name,
-                    },
-                    deleteSubmissions: {
+                    };
+                    break;
+                case "delete.submit":
+                    const _deliveredQty = sum(
+                        deleteSubmitItems,
+                        "deliveredQty"
+                    );
+                    if (_deliveredQty) {
+                        toast({
+                            title: "Unable to complete",
+                            description:
+                                "Some submissions have been registered to dispatch.",
+                        });
+                        throw new Error();
+                    }
+                    pl.deleteSubmissions = {
                         itemIds: deleteSubmitItems.map((a) => a.itemId),
-                    },
-                } as UpdateSalesControl);
-                break;
-        }
+                    };
+                    break;
+            }
+            return pl;
+        };
+        try {
+            const pl = payload();
+            console.log(pl);
+            tsk.triggerWithAuth("update-sales-control", pl);
+        } catch (error) {}
     };
     return (
         <>
