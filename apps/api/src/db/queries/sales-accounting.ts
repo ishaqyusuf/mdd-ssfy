@@ -240,6 +240,11 @@ function whereSalesAccountings(query: GetSalesAccountingsSchema) {
           createdAt: transformFilterDateToQuery(query.dateRange),
         });
         break;
+      case "paymentType":
+        where.push({
+          paymentMethod: v,
+        });
+        break;
       case "q":
         where.push(whereSearch(v));
         break;
