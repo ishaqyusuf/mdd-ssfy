@@ -16,6 +16,7 @@ import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/custom/icons";
 import { GetSalesAccountingsSchema } from "@api/db/queries/sales-accounting";
+import { useSalesAccountingStore } from "@/store/saless-account-store";
 interface Props {
     defaultFilters?: GetSalesAccountingsSchema;
 }
@@ -24,6 +25,7 @@ export function DataTable(props: Props) {
     // const { rowSelection, setRowSelection } = useSalesAccountingStore();
     const { filters, hasFilters, setFilters } =
         useSalesAccountingFilterParams();
+    const { rowSelection, setRowSelection } = useSalesAccountingStore();
     const {
         data,
         ref: loadMoreRef,
@@ -73,8 +75,8 @@ export function DataTable(props: Props) {
                         hasNextPage,
                     },
                     tableScroll,
-                    // rowSelection,
-                    // setRowSelection,
+                    rowSelection,
+                    setRowSelection,
                     tableMeta: {
                         rowClick(id, rowData) {
                             setParams({

@@ -7,12 +7,13 @@ import Link from "next/link";
 import { cn } from "@gnd/ui/cn";
 import { buttonVariants } from "@gnd/ui/button";
 import { useQueryStates } from "nuqs";
+import { SalesAccountingExport } from "./sales-accounting-export";
 
 export function SalesAccountingHeader({}) {
     const trpc = useTRPC();
     const [filters, setFilters] = useQueryStates(salesAccountingFilterParams);
     return (
-        <div className="flex justify-between">
+        <div className="flex gap-4 justify-between">
             <SearchFilter
                 filterSchema={salesAccountingFilterParams}
                 placeholder="Search SalesAccountings..."
@@ -20,9 +21,14 @@ export function SalesAccountingHeader({}) {
                 {...{ filters, setFilters }}
             />
             <div className="flex-1"></div>
+            <SalesAccountingExport />
             <Link
                 href="/sales-book/accounting/resolution-center"
-                className={cn(buttonVariants({}))}
+                className={cn(
+                    buttonVariants({
+                        size: "sm",
+                    })
+                )}
             >
                 Resolution Center
             </Link>

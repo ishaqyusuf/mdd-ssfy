@@ -1,13 +1,13 @@
 import { RowSelectionState, Updater } from "@tanstack/react-table";
 import { create } from "zustand";
 
-interface SalesOrdersState {
+interface SalesAccountingState {
     setRowSelection: (updater: Updater<RowSelectionState>) => void;
     rowSelection: Record<string, boolean>;
     // records: RouterOutputs['sales']['index']['data']
 }
 
-export const useSalesOrdersStore = create<SalesOrdersState>((set) => ({
+export const useSalesAccountingStore = create<SalesAccountingState>((set) => ({
     rowSelection: {},
     setRowSelection: (updater: Updater<RowSelectionState>) =>
         set((state) => {

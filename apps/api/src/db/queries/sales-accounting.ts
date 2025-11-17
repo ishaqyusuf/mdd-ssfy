@@ -1,6 +1,6 @@
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
-import { formatMoney, sum } from "@gnd/utils";
+import { formatMoney, sum, transformFilterDateToQuery } from "@gnd/utils";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 import {
@@ -39,10 +39,10 @@ export async function getSalesAccountings(
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereSalesAccountings(query),
-    model
+    db.customerTransaction
   );
 
-  const data = await model.findMany({
+  const data = await db.customerTransaction.findMany({
     where,
     ...searchMeta,
     select: {
@@ -124,68 +124,64 @@ export async function getSalesAccountings(
       },
     },
   });
+  const transformedData = data.map((item) => {
+    const amount =
+      item.salesPayments?.length > 0
+        ? sum(item.salesPayments.map((a) => a.amount))
+        : formatMoney(Math.abs(item.amount));
+    const orderIds = item.salesPayments.map((a) => a.order.orderId);
+    const orderIdsString = orderIds.join(", ").replace(/,([^,]*)$/, " &$1");
 
-  return await response(
-    data.map((item) => {
-      const amount =
-        item.salesPayments?.length > 0
-          ? sum(item.salesPayments.map((a) => a.amount))
-          : formatMoney(Math.abs(item.amount));
-      const orderIds = item.salesPayments.map((a) => a.order.orderId);
-      const orderIdsString = orderIds.join(", ").replace(/,([^,]*)$/, " &$1");
-
-      const paymentMethod = item.paymentMethod as SalesPaymentMethods;
-      const description = item.description;
-      const salesReps = Array.from(
-        new Set(item.salesPayments?.map((s) => s.order?.salesRep?.name))
-      );
-      const meta = (item.meta || {}) as any as CustomerTransactionMeta;
-      const spMeta = item.salesPayments?.[0]?.meta as any as SalesPaymentMeta;
-      // meta.checkNo
-      const spStatus = item?.salesPayments?.[0]?.status;
-      let status = item.status;
-      if (paymentMethod == "link" && status?.toLocaleLowerCase() == "pending")
-        status = spStatus!;
-      const { history } = item;
-      const orderCount = orderIds?.length;
-      const order = item?.salesPayments?.[0]?.order;
-      const ordersCount = item?.salesPayments?.length;
-      const multiSales = ordersCount > 1;
-      const squarePaymentId =
-        item?.salesPayments?.[0]?.squarePayments?.paymentId;
-      const laborCost = order?.extraCosts?.find(
-        (a) => a.type == "Labor"
-      )?.amount;
-      const deliveryCost = order?.extraCosts?.find(
-        (a) => a.type == "Delivery"
-      )?.amount;
-      return {
-        checkNo: meta?.checkNo || spMeta?.checkNo,
-        reason: item?.history?.[0]?.reason,
-        uuid: item.id,
-        id: item.id,
-        paymentNo: padStart(item.id?.toString(), 5, "0"),
-        authorName: item.author?.name,
-        status,
-        // status: ,
-        createdAt: item.createdAt,
-        amount,
-        paymentMethod,
-        description,
-        ordersCount,
-        orderIds: orderIdsString,
-        salesReps,
-        sales: item.salesPayments,
-        meta,
-        history,
-        laborCost,
-        deliveryCost,
-        grandTotal: order?.grandTotal,
-        subTotal: order?.subTotal,
-        squarePaymentId,
-      };
-    })
-  );
+    const paymentMethod = item.paymentMethod as SalesPaymentMethods;
+    const description = item.description;
+    const salesReps = Array.from(
+      new Set(item.salesPayments?.map((s) => s.order?.salesRep?.name))
+    );
+    const meta = (item.meta || {}) as any as CustomerTransactionMeta;
+    const spMeta = item.salesPayments?.[0]?.meta as any as SalesPaymentMeta;
+    // meta.checkNo
+    const spStatus = item?.salesPayments?.[0]?.status;
+    let status = item.status;
+    if (paymentMethod == "link" && status?.toLocaleLowerCase() == "pending")
+      status = spStatus!;
+    const { history } = item;
+    const orderCount = orderIds?.length;
+    const order = item?.salesPayments?.[0]?.order;
+    const ordersCount = item?.salesPayments?.length;
+    const multiSales = ordersCount > 1;
+    const squarePaymentId = item?.salesPayments?.[0]?.squarePayments?.paymentId;
+    const laborCost = order?.extraCosts?.find((a) => a.type == "Labor")?.amount;
+    const deliveryCost = order?.extraCosts?.find(
+      (a) => a.type == "Delivery"
+    )?.amount;
+    return {
+      checkNo: meta?.checkNo || spMeta?.checkNo,
+      reason: item?.history?.[0]?.reason,
+      uuid: item.id,
+      id: item.id,
+      paymentNo: padStart(item.id?.toString(), 5, "0"),
+      authorName: item.author?.name,
+      status,
+      // status: ,
+      createdAt: item.createdAt,
+      amount,
+      paymentMethod,
+      description,
+      ordersCount,
+      orderIds: orderIdsString,
+      salesReps,
+      sales: item.salesPayments,
+      meta,
+      history,
+      laborCost,
+      deliveryCost,
+      grandTotal: order?.grandTotal,
+      subTotal: order?.subTotal,
+      squarePaymentId,
+    };
+  });
+  const result = await response(transformedData);
+  return result;
 }
 export type SquarePaymentStatus =
   | "APPROVED"
@@ -239,6 +235,11 @@ function whereSalesAccountings(query: GetSalesAccountingsSchema) {
     let v = _v as any;
     if (!v) continue;
     switch (k as keyof GetSalesAccountingsSchema) {
+      case "dateRange":
+        where.push({
+          createdAt: transformFilterDateToQuery(query.dateRange),
+        });
+        break;
       case "q":
         where.push(whereSearch(v));
         break;
