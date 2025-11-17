@@ -27,7 +27,22 @@ export async function generateLegacyPrintData(
       },
     },
   });
-  return sales?.map((s) => {
+  const printList = sales
+    .map((s) => {
+      if (tokenData.mode === "order-packing")
+        return (["order", "packing list"] as SalesPrintModes[]).map((mode) => ({
+          sale: s,
+          mode,
+        }));
+      return [
+        {
+          sale: s,
+          mode: tokenData.mode as SalesPrintModes,
+        },
+      ];
+    })
+    .flat();
+  return printList?.map(({ sale: s, mode }) => {
     const salesitems = composeSalesItems(s);
     const data = composePrint(
       {
@@ -35,7 +50,7 @@ export async function generateLegacyPrintData(
         order: s,
       },
       {
-        mode: tokenData.mode as any,
+        mode,
         mockup: "no",
         dispatchId: tokenData.dispatchId,
       }

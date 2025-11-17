@@ -318,6 +318,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                     <Menu.Item
                         Icon={Icons.Delete}
                         onClick={(e) => {
+                            e.preventDefault();
                             setAction("delete.submit");
                         }}
                         disabled={!deleteSubmitQty}
@@ -329,6 +330,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                     <Menu.Item
                         Icon={Icons.Delete}
                         onClick={(e) => {
+                            e.preventDefault();
                             setAction("delete.assign");
                         }}
                         disabled={!deleteAssignmentQty}

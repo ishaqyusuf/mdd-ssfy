@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
     );
 
     if (!payload) notFound();
+
     const printData = await generateLegacyPrintData(db, payload);
     const title = printData.map((a) => a.orderNo).join("-");
     const safeTitle = title.replace(/[^\w\-]+/g, "_");
