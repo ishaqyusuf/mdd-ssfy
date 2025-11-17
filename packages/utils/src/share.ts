@@ -12,23 +12,27 @@ export async function share(props: Props) {
     });
   } catch (error) {}
   console.log("FILE>>>");
-  if (navigator.share && file) {
-    try {
+  try {
+    if (navigator.share && file) {
       await navigator.share({
         title: "Invoice",
         text: "Here’s your invoice",
         files: [file],
       });
-    } catch (error) {}
-  } else {
-    //   alert("Sharing not supported on this device.");
-    const msg = `Here's your invoice: ${props.url}`;
-    const whatsappUrl = `https://wa.me?text=${encodeURIComponent(msg)}`;
-    const link = document.createElement("a");
-    link.target = "_blank";
-    link.href = whatsappUrl;
-    link.click();
+      return;
+    }
+  } catch (error) {
+    console.log("ERRROR");
   }
+
+  //   alert("Sharing not supported on this device.");
+  const msg = `Here's your invoice: ${props.url}`;
+  const whatsappUrl = `https://wa.me?text=${encodeURIComponent(msg)}`;
+  const link = document.createElement("a");
+  link.target = "_blank";
+  link.href = whatsappUrl;
+  link.click();
+
   //   const msg = `Here's your invoice: ${props.url}`;
   //   const whatsappUrl = `https://wa.me?text=${encodeURIComponent(msg)}`;
   //   const link = document.createElement("a");

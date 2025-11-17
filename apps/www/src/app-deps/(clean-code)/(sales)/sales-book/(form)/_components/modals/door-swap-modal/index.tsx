@@ -14,11 +14,11 @@ export type Door = HptContext["doors"][number];
 export const openDoorSwapModal = (door: Door, itemUid) => {
     const zus = getFormState();
     const itemStepUid = Object.entries(zus.kvStepForm)?.find(
-        ([k, v]) => v.title == "Door" && k?.startsWith(itemUid),
+        ([k, v]) => v.title == "Door" && k?.startsWith(itemUid)
     )?.[0];
     if (itemStepUid)
         _modal.openModal(
-            <DoorSwapModal itemStepUid={itemStepUid} door={door} />,
+            <DoorSwapModal itemStepUid={itemStepUid} door={door} />
         );
     else toast.error("Door step not found");
 };
