@@ -7,7 +7,7 @@ import { useProductionItem } from "./production-tab";
 import { DropdownMenu, Tabs } from "@gnd/ui/composite";
 import { Menu } from "@/components/(clean-code)/menu";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { sum } from "@gnd/utils";
+import { sum, timeout } from "@gnd/utils";
 import { createAssignmentSchema } from "@/actions/schema";
 import z from "zod";
 import { Icons } from "@gnd/ui/icons";
@@ -196,8 +196,12 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
         onSuccess,
         onError(e) {},
     });
-    const submitAction = async () => {
-        console.log(action);
+    const triggerAction = async (a: typeof action) => {
+        setAction(a);
+        submitAction(a);
+    };
+    const submitAction = async (_action?: typeof action) => {
+        if (!_action) _action = action;
         const payload = () => {
             const pl = {
                 meta: {
@@ -206,7 +210,8 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                     authorName: auth.name,
                 },
             } as UpdateSalesControl;
-            switch (action) {
+
+            switch (_action) {
                 case "submit":
                     pl.submitAll = {
                         assignedToId,
@@ -316,7 +321,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                         Icon={Icons.Delete}
                         onClick={(e) => {
                             e.preventDefault();
-                            setAction("delete.submit");
+                            triggerAction("delete.submit");
                         }}
                         disabled={!deleteSubmitQty}
                         // disabled
@@ -328,7 +333,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                         Icon={Icons.Delete}
                         onClick={(e) => {
                             e.preventDefault();
-                            setAction("delete.assign");
+                            triggerAction("delete.assign");
                         }}
                         disabled={!deleteAssignmentQty}
                         shortCut={`QTY: ${deleteAssignmentQty}`}
@@ -412,16 +417,6 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                     </div>
                 </Tabs.Content>
             </Tabs.Root>
-            {/* <BatchMenuAssignAll setOpened={setOpened} itemIds={itemUids} />
-            <BatchMenuSubmit setOpened={setOpened} itemIds={itemUids} />
-            <BatchMenuDeleteSubmissions
-                setOpened={setOpened}
-                itemIds={itemUids}
-            />
-            <BatchMenuDeleteAssignments
-                setOpened={setOpened}
-                itemIds={itemUids}
-            /> */}
         </>
     );
 }
