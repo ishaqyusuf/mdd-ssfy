@@ -17,7 +17,6 @@ import { Form } from "@gnd/ui/form";
 import { Label } from "@gnd/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 
-import { useSalesOverviewItemsTab } from "./items-tab-context";
 import { TabFloatingAction } from "./tab-floating-action";
 
 export function BatchAssignActionMenu() {

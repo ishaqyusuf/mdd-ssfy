@@ -6,7 +6,8 @@ import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import dayjs from "dayjs";
-import { utils, writeFile } from "xlsx";
+// import { utils, writeFile } from "xlsx";
+import { utils, writeFile } from "xlsx-js-style";
 import { formatDate } from "@gnd/utils/dayjs";
 import { formatMoney } from "@gnd/utils";
 import { env } from "@/env.mjs";
@@ -156,7 +157,102 @@ export function SalesAccountingExport() {
             //     }
             // }
             // Save the workbook as an Excel file
+
+            worksheet["!autofilter"] = { ref: worksheet["!ref"] }; // highlight Excel filter
+
+            // --- NEW: style header row (row 0) ---
+            const headerRange = utils.decode_range(worksheet["!ref"]);
+            for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
+                const cell = worksheet[utils.encode_cell({ r: 0, c: C })];
+                if (cell) {
+                    cell.s = {
+                        font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
+                        fill: { fgColor: { rgb: "4472C4" } }, // Blue header background
+                        alignment: { horizontal: "center", vertical: "center" },
+                        border: {
+                            top: { style: "thin", color: { rgb: "CCCCCC" } },
+                            bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+                            left: { style: "thin", color: { rgb: "CCCCCC" } },
+                            right: { style: "thin", color: { rgb: "CCCCCC" } },
+                        },
+                    };
+                }
+            }
+            // --- NEW: add border + center align for all body rows ---
+            for (let R = 1; R <= headerRange.e.r; ++R) {
+                for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
+                    const cell = worksheet[utils.encode_cell({ r: R, c: C })];
+                    if (cell) {
+                        cell.s = {
+                            alignment: { vertical: "center" },
+                            border: {
+                                top: {
+                                    style: "thin",
+                                    color: { rgb: "EEEEEE" },
+                                },
+                                bottom: {
+                                    style: "thin",
+                                    color: { rgb: "EEEEEE" },
+                                },
+                                left: {
+                                    style: "thin",
+                                    color: { rgb: "EEEEEE" },
+                                },
+                                right: {
+                                    style: "thin",
+                                    color: { rgb: "EEEEEE" },
+                                },
+                            },
+                        };
+                    }
+                }
+            }
+
             utils.book_append_sheet(workbook, worksheet, worksheetname);
+            // --- NEW: Summary breakdown sheet ---
+            const totals = {
+                TotalCount: data.length,
+                TotalInvoice: data.reduce((a, b) => a + b.amount, 0),
+                TotalSubTotal: data.reduce((a, b) => a + b.subTotal, 0),
+                TotalLabor: data.reduce((a, b) => a + b.laborCost, 0),
+                TotalDelivery: data.reduce((a, b) => a + b.deliveryCost, 0),
+            };
+
+            const breakdownSheet = utils.json_to_sheet([
+                { Metric: "Total Records", Value: totals.TotalCount },
+                {
+                    Metric: "Invoice Total",
+                    Value: formatMoney(totals.TotalInvoice),
+                },
+                {
+                    Metric: "Subtotal Total",
+                    Value: formatMoney(totals.TotalSubTotal),
+                },
+                {
+                    Metric: "Labor Cost Total",
+                    Value: formatMoney(totals.TotalLabor),
+                },
+                {
+                    Metric: "Delivery Cost Total",
+                    Value: formatMoney(totals.TotalDelivery),
+                },
+            ]);
+
+            // Add minimal styling for summary
+            breakdownSheet["!cols"] = [{ wch: 25 }, { wch: 25 }];
+            const bRange = utils.decode_range(breakdownSheet["!ref"]);
+            for (let C = bRange.s.c; C <= bRange.e.c; ++C) {
+                const cell = breakdownSheet[utils.encode_cell({ r: 0, c: C })];
+                if (cell) {
+                    cell.s = {
+                        font: { bold: true },
+                        fill: { fgColor: { rgb: "D9E1F2" } },
+                        alignment: { horizontal: "center", vertical: "center" },
+                    };
+                }
+            }
+
+            utils.book_append_sheet(workbook, breakdownSheet, "Report Summary");
             writeFile(workbook, `${title}.xlsx`);
         } catch (error) {
             toast({

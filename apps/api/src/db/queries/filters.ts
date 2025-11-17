@@ -669,7 +669,7 @@ export async function salesAccountingFilters(ctx: TRPCContext) {
   });
   const resp = [
     searchFilter,
-    optionFilter<T>("status", "Payment Status", ["Success", "Cancelled"]),
+    // optionFilter<T>("status", "Payment Status", ["Success", "Cancelled"]),
     optionFilter<T>("paymentType", "Payment Type", [...SALES_PAYMENT_METHODS]),
     optionFilter<T>(
       "salesRepId",

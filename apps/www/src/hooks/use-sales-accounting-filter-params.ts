@@ -33,6 +33,6 @@ export function useSalesAccountingFilterParams() {
     };
 }
 export const loadSalesAccountingFilterParams = createLoader(
-    salesAccountingFilterParams,
+    salesAccountingFilterParams
 );
 

@@ -16,7 +16,7 @@ export function SalesAccountingHeader({}) {
         <div className="flex gap-4 justify-between">
             <SearchFilter
                 filterSchema={salesAccountingFilterParams}
-                placeholder="Search SalesAccountings..."
+                placeholder="Search Sales Accountings..."
                 trpcRoute={trpc.filters.salesAccounting}
                 {...{ filters, setFilters }}
             />
