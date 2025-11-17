@@ -22,7 +22,9 @@ export async function share(props: Props) {
       return;
     }
   } catch (error) {
-    console.log("ERRROR");
+    console.log("ERRROR", error);
+    if (error instanceof Error) if (error.message === "Share canceled") return;
+    // console.log(error.message);
   }
 
   //   alert("Sharing not supported on this device.");
