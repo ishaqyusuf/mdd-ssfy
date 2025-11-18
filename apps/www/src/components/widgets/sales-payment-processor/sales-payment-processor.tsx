@@ -248,6 +248,7 @@ function Content(props: Props & { setOpened }) {
                         );
                         props.setOpened(false);
                     })();
+                else props.setOpened(false);
 
                 break;
             case "failed":

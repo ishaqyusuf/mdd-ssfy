@@ -26,10 +26,13 @@ import { searchParamsCache } from "./search-params";
 import { cn } from "@gnd/ui/cn";
 import { DataTable } from "@/components/tables/sales-orders/data-table";
 import { DataTable as RecentQuoteDataTable } from "@/components/tables/sales-quotes/data-table";
+import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 
-export const metadata: Metadata = {
-    title: `My Dashboard | GND`,
-};
+export async function generateMetadata(props) {
+    return constructMetadata({
+        title: "My Dashboard | GND",
+    });
+}
 export default async function SalesRepProfile(props: {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
