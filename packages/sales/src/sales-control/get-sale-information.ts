@@ -71,8 +71,8 @@ export function composeSalesItemControl(
   if (door) {
     unitLabor = doorMeta?.unitLabor || order?.meta?.laborConfig?.rate;
     title = `${
-      door?.stepProduct?.door?.title ||
       door?.stepProduct?.product?.title ||
+      door?.stepProduct?.door?.title ||
       door.stepProduct?.name
     }`;
     // controlUid = doorItemControlUid(door.id, door.dimension);
@@ -99,8 +99,8 @@ export function composeSalesItemControl(
   const itemControlUid = door
     ? doorItemControlUid(door.id, door.dimension)
     : hpt
-      ? mouldingItemControlUid(item.id, hpt?.id)
-      : itemItemControlUid(item.id);
+    ? mouldingItemControlUid(item.id, hpt?.id)
+    : itemItemControlUid(item.id);
   const deliverables = order.assignments
     .map((a) =>
       a.submissions
@@ -188,8 +188,8 @@ export function composeSalesItemControl(
     assignedToId
       ? null
       : composed.unitLabor
-        ? `$ ${formatCurrency(composed.unitLabor)}/qty labor`
-        : `no labor cost`,
+      ? `$ ${formatCurrency(composed.unitLabor)}/qty labor`
+      : `no labor cost`,
   ]
     ?.filter(Boolean)
     .join(" | ");
