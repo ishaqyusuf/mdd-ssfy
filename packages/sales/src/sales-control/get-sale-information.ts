@@ -71,9 +71,12 @@ export function composeSalesItemControl(
   if (door) {
     unitLabor = doorMeta?.unitLabor || order?.meta?.laborConfig?.rate;
     title = `${
-      door?.stepProduct?.product?.title ||
+      // door?.stepProduct?.product?.title ||
+      // door?.stepProduct?.door?.title ||
+      // door.stepProduct?.name
+      door?.stepProduct?.name ||
       door?.stepProduct?.door?.title ||
-      door.stepProduct?.name
+      door?.stepProduct?.product?.title
     }`;
     // controlUid = doorItemControlUid(door.id, door.dimension);
   } else {
