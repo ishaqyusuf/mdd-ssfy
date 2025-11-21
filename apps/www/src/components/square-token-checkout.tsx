@@ -36,8 +36,6 @@ export function SquareTokenCheckout(props: Props) {
     } = useMutation(
         _trpc.checkout.verifyPayment.mutationOptions({
             onSuccess(data, variables, onMutateResult, context) {
-                // Optional: Handle success (e.g., show a success message)
-                console.log({ data, variables });
                 toast({
                     title: "Payment Verified",
                     description: "Your payment has been successfully verified.",
@@ -45,13 +43,6 @@ export function SquareTokenCheckout(props: Props) {
                 });
             },
             onError(error, variables, context) {
-                console.log({ error, variables });
-                // Optional: Handle error (e.g., show an error message)
-                // toast({
-                //     title: "Payment Verification Failed",
-                //     description: error.message,
-                //     status: "error",
-                // });
                 let v = variables as any;
                 if (v.attempts < 3) {
                     setTimeout(() => {

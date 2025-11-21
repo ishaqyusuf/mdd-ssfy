@@ -8,7 +8,7 @@ import {
 import { TransactionClient } from "@gnd/db";
 import crypto from "crypto";
 const isProd = env.NODE_ENV === "production";
-const isDebugging = false;
+const isDebugging = true;
 let devMode = !isProd && !isDebugging;
 export const squareClient = new Client({
   environment: devMode ? Environment.Sandbox : Environment.Production,
@@ -87,6 +87,7 @@ interface Devices {
 }
 export async function getSquareDevices(): Promise<Devices> {
   try {
+    // const terminals = await squareClient.devices.codes
     const devices = await squareClient.devices.list();
     const _ = devices?.data
       ?.map((device) => ({

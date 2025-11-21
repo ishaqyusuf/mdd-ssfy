@@ -4,11 +4,19 @@ import { Item } from "@gnd/ui/composite";
 import { Action } from "./client";
 import { squareClient } from "@gnd/square";
 import { consoleLog } from "@gnd/utils";
+import { constructMetadata } from "@gnd/utils/construct-metadata";
 
+export async function generateMetadata(props) {
+    return constructMetadata({
+        title: "Square Debug | GND",
+    });
+}
 export default async function Page({}) {
     const devices = await getSquareDevicesAction();
     const merchants = await squareClient.merchants.list({});
+    const deviceCodes = await squareClient.devices.list({});
     consoleLog("MERCHANTS", merchants.data);
+    consoleLog("DEVICES:", deviceCodes.data);
     return (
         <div>
             <Label>Devices</Label>

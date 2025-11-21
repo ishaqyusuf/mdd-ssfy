@@ -171,12 +171,12 @@ function Actions({ item }: ItemProps) {
             },
         })
     );
-    const preview = (version) => {
+    const preview = (version, slugs: any = "") => {
         openLink(
             "api/download/model-template",
             {
                 preview: true,
-                slugs: "",
+                slugs,
                 version,
                 templateSlug: item.template.slug,
             },
@@ -250,7 +250,7 @@ function Actions({ item }: ItemProps) {
                         //         slugs: [item.id].join(","),
                         //     })}`,
                         // });
-                        preview(item.template.version);
+                        preview(item.template.version, String(item.id));
                     }}
                 >
                     Print
