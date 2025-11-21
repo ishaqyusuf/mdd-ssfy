@@ -26,6 +26,7 @@
     "dev:with-job": "turbo dev --parallel --filter !@gnd/site --filter !@gnd/gnd-backlog --filter !@gnd/mobile",
     "dev:web": "turbo dev --parallel  --filter !@gnd/gnd-backlog --filter !@gnd/api",
     "dev:mobile": "turbo dev --parallel  --filter @gnd/mobile --filter @gnd/api",
+    "dev:kitchen": "turbo dev --parallel  --filter @gnd/kitchen-sink --filter @gnd/api",
     "dev:mobile2": "turbo dev --parallel  --filter @gnd/mobile ",
     "dev:backlog": "turbo dev --parallel  --filter !@gnd/email --filter !@gnd/site --filter !@gnd/www  --filter !@gnd/jobs",
     "--dev:web": "turbo dev --parallel  --filter !@gnd/gnd-backlog --filter !@gnd/jobs",
