@@ -53,15 +53,15 @@ export function SquareTokenCheckout(props: Props) {
                 //     status: "error",
                 // });
                 let v = variables as any;
-                // if (v.attempts < 3) {
-                setTimeout(() => {
-                    mutate({
-                        paymentId: v.paymentId,
-                        attempts: v.attempts + 1,
-                        walletId: v.walletId,
-                    });
-                }, 3000);
-                // }
+                if (v.attempts < 3) {
+                    setTimeout(() => {
+                        mutate({
+                            paymentId: v.paymentId,
+                            attempts: v.attempts + 1,
+                            walletId: v.walletId,
+                        });
+                    }, 3000);
+                }
             },
         })
     );
