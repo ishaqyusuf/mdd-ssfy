@@ -363,6 +363,7 @@ function Content(props: Props & { setOpened }) {
             const sales = data?.pendingSales?.filter(
                 (s) => formData.sales.find((b) => b.id == s.id)?.selected
             );
+
             if (sales.length > 1) {
                 toast({
                     title: "Feature not available",
@@ -395,6 +396,7 @@ function Content(props: Props & { setOpened }) {
                             name: cData?.customerName,
                             email: cData?.customerEmail,
                         },
+                        walletId: data.wallet?.id,
                         amount,
                         type: "order",
                         mode: "order",

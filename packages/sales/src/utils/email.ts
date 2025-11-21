@@ -16,6 +16,7 @@ interface Props {
     type: SalesType;
     amount?: number;
     ids: number[];
+    walletId;
     mode?: SalesPrintModes;
     customer: {
       name: string;
@@ -40,6 +41,7 @@ export async function sendSalesEmail(props: Props) {
   const expiry = addDays(new Date(), 7).toISOString();
   for (const sale of data) {
     if (!sale.mode) sale.mode = "order";
+    console.log({ sale });
     const downloadToken = await generateToken({
       salesIds: sale.ids,
       expiry,
@@ -51,16 +53,17 @@ export async function sendSalesEmail(props: Props) {
           salesIds: sale.ids,
           expiry,
           amount: sale.amount!,
+          walletId: sale?.walletId,
         } satisfies SalesPaymentTokenSchema);
-    if (paymentToken) {
-      console.log({
-        paymentToken,
-        v: await validateToken(
-          paymentToken,
-          "salesPaymentTokenSchema" as TokenSchemaNames
-        ),
-      });
-    }
+    // if (paymentToken) {
+    //   console.log({
+    //     paymentToken,
+    //     v: await validateToken(
+    //       paymentToken,
+    //       "salesPaymentTokenSchema" as TokenSchemaNames
+    //     ),
+    //   });
+    // }
     payload.sales.push({
       type: sale.type,
       salesIds: sale.ids,

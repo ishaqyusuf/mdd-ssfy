@@ -21,6 +21,8 @@ import { generateToken } from "@/actions/token-action";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { addDays } from "date-fns";
 import { SalesPrintModes } from "@sales/constants";
+import { getCustomerWalletId } from "@/actions/get-customer-wallet-id";
+import { sendSalesEmail } from "@sales/utils/email";
 interface Props {
     children?;
     salesIds: number[];
@@ -40,6 +42,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                     includePaymentLink: z.boolean(),
                     email: z.string().min(1),
                     customerName: z.string().optional().nullable(),
+                    accountNo: z.string().optional().nullable(),
                     type: z.string().optional().nullable(),
                     amount: z.number(),
                     percentage: z.number().optional().nullable(),
@@ -60,42 +63,73 @@ export function SendSalesReminder({ children, salesIds }: Props) {
     });
     const [isTokenPending, startTransition] = useTransition();
     const submit = async (data) => {
+        // console.log(data);
+        // return;
         startTransition(async () => {
-            const payload: SendSalesReminderPayload = {
-                salesRepEmail: auth.email,
-                salesRep: auth.name,
-                sales: [],
-            };
-            for (const sale of data.sales) {
-                const mode = "order" as SalesPrintModes;
-                const downloadToken = await generateToken({
-                    salesIds: sale.ids,
-                    expiry: addDays(new Date(), 7).toISOString(),
-                    mode,
-                } satisfies SalesPdfToken);
-                const paymentToken = sale.includePaymentLink
-                    ? await generateToken({
-                          salesIds: sale.ids,
-                          expiry: addDays(new Date(), 7).toISOString(),
-                          percentage: sale.percentage,
-                          amount: sale.amount,
-                      } satisfies SalesPaymentTokenSchema)
-                    : null;
-                // console.log({ paymentToken });
-                payload.sales.push({
-                    type: sale.type,
-                    salesIds: sale.ids,
-                    customerEmail: sale.email,
-                    customerName: sale.customerName,
-                    downloadToken,
-                    paymentToken,
-                });
-            }
-            // return;
-            trigger.trigger({
-                taskName: "send-sales-reminder",
-                payload,
+            await sendSalesEmail({
+                auth,
+                trigger,
+                tokenGeneratorFn: generateToken,
+                data: await Promise.all(
+                    data.sales.map(async (sale) => {
+                        const walletId = await getCustomerWalletId(
+                            sale?.accountNo
+                        );
+                        const mode = "order" as SalesPrintModes;
+                        return {
+                            mode,
+                            walletId,
+                            ids: sale.ids,
+                            amount: sale.amount,
+                            type: sale.type,
+                            customer: {
+                                name: sale.customerName,
+                                email: sale.email,
+                            },
+                        };
+                    })
+                ),
             });
+            // const payload: SendSalesReminderPayload = {
+            //     salesRepEmail: auth.email,
+            //     salesRep: auth.name,
+            //     sales: [],
+            // };
+            // for (const sale of data.sales) {
+            //     console.log({ sale });
+            //     const walletId = await getCustomerWalletId(sale?.accountNo);
+            //     const mode = "order" as SalesPrintModes;
+            //     const downloadToken = await generateToken({
+            //         salesIds: sale.ids,
+            //         expiry: addDays(new Date(), 7).toISOString(),
+            //         mode,
+            //     } satisfies SalesPdfToken);
+            //     const paymentToken = sale.includePaymentLink
+            //         ? await generateToken({
+            //               salesIds: sale.ids,
+            //               expiry: addDays(new Date(), 7).toISOString(),
+            //               percentage: sale.percentage,
+            //               amount: sale.amount,
+            //               walletId,
+            //               //   walletId: sale?.
+            //           } satisfies SalesPaymentTokenSchema)
+            //         : null;
+
+            //     payload.sales.push({
+            //         type: sale.type,
+            //         salesIds: sale.ids,
+            //         customerEmail: sale.email,
+            //         customerName: sale.customerName,
+            //         downloadToken,
+            //         paymentToken,
+            //     });
+            // }
+
+            // // return;
+            // trigger.trigger({
+            //     taskName: "send-sales-reminder",
+            //     payload,
+            // });
         });
     };
     const { fields, append, update } = useFieldArray({
@@ -120,6 +154,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
     // isSubmitting
     useEffect(() => {
         if (!data || isPending) return;
+        console.log(data.data);
         form.reset({
             sales: uniqueList(
                 data?.data?.map((sale) => {
@@ -136,6 +171,8 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                         customerName: sale?.displayName,
                         includePaymentLink: true,
                         type: sale.type,
+                        accountNo: common.filter((a) => !!a.accountNo)?.[0]
+                            ?.accountNo,
                     };
                 }),
                 "email"

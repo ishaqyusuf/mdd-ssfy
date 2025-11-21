@@ -99,8 +99,8 @@ function commonListData(data: Item) {
   let accountNo = data.customer?.phoneNo
     ? data.customer?.phoneNo
     : !customerId
-      ? null
-      : `cust-${customerId}`;
+    ? null
+    : `cust-${customerId}`;
   const salesStat = composeSalesStat(data.stat);
   return {
     // noteCount: data.noteCount,
