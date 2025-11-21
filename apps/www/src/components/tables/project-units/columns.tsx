@@ -243,13 +243,6 @@ function Actions({ item }: ItemProps) {
                 <Menu.Item
                     icon="print"
                     onClick={(e) => {
-                        // setParams({
-                        //     mimeType: "application/pdf",
-                        //     filePath: `model-template?${QueryString.stringify({
-                        //         preview: true,
-                        //         slugs: [item.id].join(","),
-                        //     })}`,
-                        // });
                         preview(item.template.version, String(item.id));
                     }}
                 >

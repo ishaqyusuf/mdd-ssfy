@@ -22,12 +22,13 @@ export async function GET(req: NextRequest) {
     const result = paramsSchema.safeParse(
         Object.fromEntries(requestUrl.searchParams.entries())
     );
+    const homeIds = result.data.slugs
+        ?.split(",")
+        .map((a) => Number(a))
+        .filter((a) => a > 0);
     const printData = await generatePrintData(db, {
-        homeIds: result.data.slugs
-            ?.split(",")
-            .map((a) => Number(a))
-            .filter((a) => a > 0),
-        templateSlug: result.data.templateSlug,
+        homeIds,
+        templateSlug: homeIds?.length ? null : result.data.templateSlug,
         printMode: true,
         version: result.data.version,
     });
@@ -55,11 +56,9 @@ export async function GET(req: NextRequest) {
         "Content-Type": "application/pdf",
         "Cache-Control": "no-store, max-age=0",
     };
-
     if (!preview) {
         headers["Content-Disposition"] = `attachment; filename="${title}.pdf"`;
     }
-
     return new Response(blob, { headers });
 }
 
