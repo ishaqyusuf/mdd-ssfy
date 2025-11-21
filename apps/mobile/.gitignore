@@ -38,4 +38,6 @@ yarn-error.*
 
 app-example
 
-.cache
+# generated native folders
+/ios
+/android

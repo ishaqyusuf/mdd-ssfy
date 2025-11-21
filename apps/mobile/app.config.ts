@@ -1,37 +1,33 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "gnd-prodesk",
-  slug: "gnd-prodesk",
+  name: "gnd-app",
+  slug: "gnd-app",
   version: "1.0.0",
   orientation: "portrait",
-  icon: "./src/assets/images/icon.png",
-  scheme: "gndprodesk",
+  icon: "./assets/images/icon.png",
+  scheme: "gndapp",
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.ishaqyusuf.gndprodesk",
   },
   android: {
     adaptiveIcon: {
-      foregroundImage: "./src/assets/images/adaptive-icon.png",
-      backgroundColor: "#ffffff",
+      backgroundColor: "#E6F4FE",
+      foregroundImage: "./assets/images/android-icon-foreground.png",
+      backgroundImage: "./assets/images/android-icon-background.png",
+      monochromeImage: "./assets/images/android-icon-monochrome.png",
     },
     edgeToEdgeEnabled: true,
-    package: "com.ishaqyusuf.gndprodesk",
+    predictiveBackGestureEnabled: false,
   },
   web: {
-    bundler: "metro",
     output: "static",
-    favicon: "./src/assets/images/favicon.png",
+    favicon: "./assets/images/favicon.png",
   },
   plugins: [
     "expo-router",
-    "expo-secure-store",
-    "expo-web-browser",
-    "expo-localization",
-    // "expo-font",
     [
       "expo-splash-screen",
       {
@@ -40,16 +36,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         resizeMode: "contain",
         backgroundColor: "#ffffff",
         dark: {
-          backgroundColor: "#18181B",
-          image: "./assets/icon-dark.png",
+          backgroundColor: "#000000",
         },
       },
     ],
   ],
-  extra: {
-    API_URL: "http://localhost:4300",
-  },
   experiments: {
     typedRoutes: true,
+    reactCompiler: true,
   },
 });
