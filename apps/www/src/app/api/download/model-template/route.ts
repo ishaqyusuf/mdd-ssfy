@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     const printData = await generatePrintData(db, {
         homeIds,
         templateSlug: homeIds?.length ? null : result.data.templateSlug,
-        printMode: true,
+        // printMode: true,
         version: result.data.version,
     });
 

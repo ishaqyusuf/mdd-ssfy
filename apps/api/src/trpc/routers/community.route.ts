@@ -68,6 +68,8 @@ import {
 } from "@community/community-template-schemas";
 import {
   saveCommunityModel,
+  saveCommunityModelLegacy,
+  saveCommunityModelLegacySchema,
   saveCommunityModelSchema,
 } from "@community/community-model";
 import {
@@ -210,6 +212,11 @@ export const communityRouters = createTRPCRouter({
     .input(communityTemplateFormSchema)
     .mutation(async (props) => {
       return saveCommunityTemplateForm(props.ctx, props.input);
+    }),
+  saveCommunityModelLegacy: publicProcedure
+    .input(saveCommunityModelLegacySchema)
+    .mutation(async (props) => {
+      return saveCommunityModelLegacy(props.ctx.db, props.input);
     }),
   saveCommunityModel: publicProcedure
     .input(saveCommunityModelSchema)

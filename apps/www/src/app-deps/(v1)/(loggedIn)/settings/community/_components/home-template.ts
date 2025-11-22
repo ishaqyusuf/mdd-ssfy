@@ -8,6 +8,7 @@ import { HomeTemplateMeta, ICommunityTemplateMeta } from "@/types/community";
 
 import { getPageInfo, queryFilter } from "../../../../_actions/action-utils";
 import { userId } from "../../../../_actions/utils";
+import { consoleLog } from "@gnd/utils";
 
 export interface HomeTemplatesQueryParams extends BaseQuery {}
 export type GetHomeTemplates = Awaited<ReturnType<typeof getHomeTemplates>>;
@@ -185,28 +186,3 @@ export async function saveHomeTemplateDesign(slug, meta) {
         },
     });
 }
-export async function saveCommunityTemplateDesign(slug, _meta) {
-    let meta = removeEmptyValues(_meta) as ICommunityTemplateMeta;
-    // meta.design
-
-    await prisma.communityModels.update({
-        where: {
-            slug,
-        },
-        data: {
-            ...transformData({}, true),
-            meta: meta as any,
-            history: {
-                create: {
-                    createdAt: new Date(),
-                    meta: {
-                        design: meta.design,
-                    } as any,
-                    updatedAt: new Date(),
-                    userId: await userId(),
-                },
-            },
-        },
-    });
-}
-export async function deleteHomeTemplateAction(id) {}

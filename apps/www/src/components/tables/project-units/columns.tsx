@@ -171,12 +171,12 @@ function Actions({ item }: ItemProps) {
             },
         })
     );
-    const preview = (version, slugs: any = "") => {
+    const preview = (version, homeIds: any = "") => {
         openLink(
-            "api/download/model-template",
+            "p/model-template",
             {
                 preview: true,
-                slugs,
+                homeIds,
                 version,
                 templateSlug: item.template.slug,
             },

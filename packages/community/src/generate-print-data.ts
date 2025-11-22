@@ -10,38 +10,49 @@ import {
   TemplateFormService,
 } from "./services/template-form-service";
 import { consoleLog, dotObject } from "@gnd/utils";
+import z from "zod";
+import { formatDate } from "@gnd/utils/dayjs";
 
-interface Props {
-  homeIds: number[];
-  templateSlug?: string;
-  printMode?: boolean;
-  version?: "v1" | "v2";
-}
-export async function generatePrintData(db: Db, props: Props) {
-  const homes = await db.homes.findMany({
-    where: {
-      id: {
-        in: props.homeIds,
-      },
-    },
-    select: {
-      lot: true,
-      block: true,
-      builderId: true,
-      modelName: true,
-      projectId: true,
-      project: {
+export const modelPrintSchema = z.object({
+  // homeIds
+  homeIds: z.array(z.number()).optional().nullable(),
+  templateSlug: z.string().optional().nullable(),
+  version: z.enum(["v1", "v2"]).optional().nullable(),
+  preview: z.preprocess((val) => val === "true", z.boolean().default(false)),
+});
+
+export async function generatePrintData(
+  db: Db,
+  props: z.infer<typeof modelPrintSchema>
+) {
+  if (props.homeIds?.length) props.templateSlug = null;
+  const debug: any[] = [];
+  const homes = props.homeIds?.length
+    ? await db.homes.findMany({
+        where: {
+          id: {
+            in: props.homeIds,
+          },
+        },
         select: {
-          builder: {
+          lot: true,
+          block: true,
+          builderId: true,
+          modelName: true,
+          projectId: true,
+          project: {
             select: {
-              name: true,
+              builder: {
+                select: {
+                  name: true,
+                },
+              },
+              title: true,
             },
           },
-          title: true,
         },
-      },
-    },
-  });
+      })
+    : [];
   const homeTemplates = await db.homeTemplates.findMany({
     where: {
       OR: homes.map(({ builderId, modelName }) => {
@@ -69,6 +80,7 @@ export async function generatePrintData(db: Db, props: Props) {
       ],
     },
     select: {
+      slug: true,
       meta: true,
       modelName: true,
       id: true,
@@ -119,7 +131,9 @@ export async function generatePrintData(db: Db, props: Props) {
       projectId: communityPrints?.[0]?.project?.id!,
     });
   }
+  // [ { id: 1902, slug: "Rosette-Park-50'-N35E-GOLDEMMFL" } ]
   const units: { data: Info[] }[] = [];
+
   for (const home of homes) {
     const c = communityPrints.find(
       (ct) =>
@@ -127,6 +141,7 @@ export async function generatePrintData(db: Db, props: Props) {
         ct.modelName?.toLowerCase() == home.modelName?.toLowerCase()
     );
     let design = (c?.meta as any)?.design;
+    const version = props.version || c?.version;
 
     const homeDesign = (
       homeTemplates.find(
@@ -135,12 +150,8 @@ export async function generatePrintData(db: Db, props: Props) {
           home.modelName?.toLowerCase() == t.modelName?.toLowerCase()
       )?.meta as any
     )?.design;
-    // consoleLog("COMMUNITY DESIGN", {
-    //   bifold: design?.bifoldDoor,
-    // });
-    const version = props.version || c?.version;
 
-    units.push({
+    const u = {
       data: [
         info("Project", home.project.title, 2),
         info("Builder", home.project.builder?.name, 2),
@@ -149,10 +160,16 @@ export async function generatePrintData(db: Db, props: Props) {
         info("Block", home.block, 1),
         ...// c?.templateValues?.length
         ((version == "v2"
-          ? await transformBlock(db, c.templateValues, props.printMode)
+          ? await transformBlock(
+              db,
+              c?.templateValues!,
+              // props.printMode
+              true
+            )
           : legacyDesign(homeDesign, design)) as Info[]),
       ],
-    });
+    };
+    units.push(u);
   }
   return {
     title: homes
@@ -245,6 +262,7 @@ function legacyDesign(homeTemplate, communityDesign) {
     ? dotArray(transformCommunityTemplate(communityDesign))
     : homeTemplate;
   let design = designDotToObject(template);
+
   return [
     [info("Deadbolt", "=lockHardware.deadbolt", 4)],
     process.env.NODE_ENV === "production"
@@ -256,7 +274,7 @@ function legacyDesign(homeTemplate, communityDesign) {
             4
           ),
         ],
-    ...legacyDesignSystem,
+    ...JSON.parse(JSON.stringify(legacyDesignSystem)),
   ]
     .map((section, i) => {
       const isBifold = section?.[0]?.label == "Bifold Door";
@@ -265,7 +283,11 @@ function legacyDesign(homeTemplate, communityDesign) {
         // if (s.section) sectionTitle = s.label;
         if (!s.value) return s;
         const [e, k] = s.value?.split("=");
-        if (k) s.value = dotObject.pick(k, design);
+        if (k) {
+          const v = dotObject.pick(k, design) || "";
+
+          s.value = v;
+        }
         // s.value = s.value?.trim();
         s.label = addSpacesToCamelCase(s.label);
 
@@ -281,7 +303,7 @@ function legacyDesign(homeTemplate, communityDesign) {
           (a.row && t.some((ts) => (ts as any).row == a.row && ts.value))
       );
       const valuedCount = _.filter((a) => !a.section && !!a.value)?.length;
-      // if (isBifold) consoleLog("BIFOLD", _, i, valuedCount);
+
       if (!valuedCount && i) return [];
       return _;
     })

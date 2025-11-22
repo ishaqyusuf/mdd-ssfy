@@ -58,21 +58,23 @@ interface Props {
     size: "LETTER" | "A4";
   };
 }
-export async function PdfTemplate(props: Props) {
+export function PdfTemplate(props: Props) {
+  if (!props) return null;
+
+  console.log({ props });
   const { template } = props;
   let qrCode: any = null;
 
   //   if (template.includeQr) {
-  qrCode = await QRCodeUtil.toDataURL(
-    `https://gndprodesk.com/api/model-template?preview=true&slugs=`,
-    // props.url,
-    {
-      margin: 0,
-      width: 40 * 3,
-    }
-  );
+  // qrCode = await QRCodeUtil.toDataURL(
+  //   `https://gndprodesk.com/api/model-template?preview=true&slugs=`,
+  //   // props.url,
+  //   {
+  //     margin: 0,
+  //     width: 40 * 3,
   //   }
-
+  // );
+  //   }
   return (
     <Document title={props.title}>
       {props.units.map((unit, ui) => (

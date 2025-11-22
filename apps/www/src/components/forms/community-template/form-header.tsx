@@ -1,5 +1,5 @@
 "use client";
-import { _trpc } from "@/components/static-trpc";
+import { _qc, _trpc } from "@/components/static-trpc";
 import { useCommunityModelStore } from "@/store/community-model";
 import { extractCommunityFormValueData } from "@community/utils/template-form";
 import { Button, buttonVariants } from "@gnd/ui/button";
@@ -26,7 +26,11 @@ export function FormHeader() {
                     success: "Success",
                 },
             },
-            onSuccess(data, variables, context) {},
+            onSuccess(data, variables, context) {
+                _qc.invalidateQueries({
+                    queryKey: _trpc.print.modelTemplate.queryKey({}),
+                });
+            },
         })
     );
     useDebugToast("Error", error);
@@ -36,7 +40,7 @@ export function FormHeader() {
             ...data,
             modelId: ctx.communityTemplate.id!,
             authorName: auth?.name,
-        });
+        } as any);
     };
 
     return (
@@ -45,11 +49,11 @@ export function FormHeader() {
             <Button
                 onClick={(e) => {
                     openLink(
-                        "api/download/model-template",
+                        "p/model-template",
                         {
                             preview: true,
                             // slugs: [item.id].join(","),
-                            slugs: "",
+                            // slugs: "",
                             version: "v2",
                             templateSlug: ctx?.modelSlug,
                         },
@@ -57,7 +61,7 @@ export function FormHeader() {
                     );
                 }}
             >
-                Preview
+                Previews
             </Button>
             <Link
                 className={cn(

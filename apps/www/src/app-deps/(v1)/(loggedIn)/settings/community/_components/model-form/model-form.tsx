@@ -3,27 +3,22 @@
 import { useEffect } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
-import { getHomeTemplateSuggestions } from "@/app-deps/(v1)/_actions/community/home-template-suggestion";
+
 import Btn from "@/components/_v1/btn";
 import PageHeader from "@/components/_v1/page-header";
 import ImportModelTemplateSheet from "@/components/_v1/sheets/import-model-template-sheet";
 import { useModal } from "@/components/common/modal/provider";
 import { useDataPage } from "@/lib/data-page-context";
-import { removeEmptyValues } from "@/lib/utils";
 import { useAppSelector } from "@/store";
 import { loadStaticList } from "@/store/slicers";
-import { HomeTemplateDesign, IHomeTemplate } from "@/types/community";
-import { useForm, UseFormReturn } from "react-hook-form";
+import { HomeTemplateDesign } from "@/types/community";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button, buttonVariants } from "@gnd/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
-import {
-    GetCommunityTemplate,
-    saveCommunityTemplateDesign,
-    saveHomeTemplateDesign,
-} from "../home-template";
+import { GetCommunityTemplate, saveHomeTemplateDesign } from "../home-template";
 import {
     BifoldDoorForm,
     DecoForm,
@@ -38,6 +33,9 @@ import Link from "next/link";
 import { cn } from "@gnd/ui/cn";
 import { ModelTemplateSetting } from "@/components/model-template-setting";
 import { openLink } from "@/lib/open-link";
+import { _qc, _trpc } from "@/components/static-trpc";
+import { useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Props {
     data: GetCommunityTemplate;
@@ -62,26 +60,49 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
         },
     });
     const suggestions = useAppSelector((s) => s.slicers.templateFormSuggestion);
-    const [isSaving, startTransition] = useTransition();
-    useEffect(() => {
-        loadStaticList(
-            "templateFormSuggestion",
-            suggestions,
-            getHomeTemplateSuggestions
-        );
-    }, []);
+    // const [isSaving, startTransition] = useTransition();
+    const { mutate: saveTemplate, isPending: isSaving } = useMutation(
+        _trpc.community.saveCommunityModelLegacy.mutationOptions({
+            onSuccess(data, variables, onMutateResult, context) {
+                _qc.invalidateQueries({
+                    queryKey: _trpc.print.modelTemplate.queryKey({}),
+                });
+            },
+            onError(error, variables, onMutateResult, context) {},
+            meta: {
+                toastTitle: {
+                    error: "Unable to complete",
+                    loading: "Processing...",
+                    success: "Done!.",
+                },
+            },
+        })
+    );
+    const auth = useAuth();
     async function save() {
-        startTransition(async () => {
-            const _meta = {
+        saveTemplate({
+            meta: {
                 ...((data?.meta || {}) as any),
                 design: form.getValues(),
-            };
-            await (community
-                ? saveCommunityTemplateDesign
-                : saveHomeTemplateDesign)(data.slug, _meta);
-            toast.success("Saved successfully!");
-            _revalidate("communityTemplate");
+            },
+            slug: data.slug,
+            authorId: auth.id,
         });
+        // startTransition(async () => {
+        //     const _meta = {
+        //         ...((data?.meta || {}) as any),
+        //         design: form.getValues(),
+        //     };
+        //     console.log(_meta.design);
+        //     await (community
+        //         ? saveCommunityTemplateDesign
+        //         : saveHomeTemplateDesign)(data.slug, _meta);
+        //     toast.success("Saved successfully!");
+        //     _revalidate("communityTemplate");
+        //     _qc.invalidateQueries({
+        //         queryKey: _trpc.print.modelTemplate.queryKey({}),
+        //     });
+        // });
     }
     const modal = useModal();
     return (
@@ -94,12 +115,12 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                         <Button
                             onClick={(e) => {
                                 openLink(
-                                    "api/download/model-template",
+                                    "p/model-template",
                                     {
                                         version: "v1",
                                         preview: true,
                                         // slugs: [item.id].join(","),
-                                        slugs: "",
+                                        // homeIds: "",
                                         templateSlug: data?.slug,
                                     },
                                     true

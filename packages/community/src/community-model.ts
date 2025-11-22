@@ -1,7 +1,47 @@
 import { Db } from "@gnd/db";
-import { timeout } from "@gnd/utils";
+import { removeEmptyValues, timeout } from "@gnd/utils";
 import { z } from "zod";
 
+export const saveCommunityModelLegacySchema = z.object({
+  slug: z.string(),
+  meta: z.any(),
+  authorId: z.number(),
+});
+export type SaveCommunityModelLegacySchema = z.infer<
+  typeof saveCommunityModelLegacySchema
+>;
+
+export async function saveCommunityModelLegacy(
+  db: Db,
+  query: SaveCommunityModelLegacySchema
+) {
+  let meta = removeEmptyValues(query.meta);
+  // meta.design
+
+  const u = await db.communityModels.update({
+    where: {
+      slug: query.slug,
+    },
+    data: {
+      // ...transformData({}, true),
+      meta: meta as any,
+      history: {
+        create: {
+          createdAt: new Date(),
+          meta: {
+            design: meta.design,
+          } as any,
+          updatedAt: new Date(),
+          userId: query.authorId,
+        },
+      },
+    },
+    select: {
+      id: true,
+      slug: true,
+    },
+  });
+}
 export const saveCommunityModelSchema = z.object({
   modelId: z.number(),
   authorName: z.string(),

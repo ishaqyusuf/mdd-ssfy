@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import { deleteHomeTemplateAction } from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/home-template";
+
 import { openModal } from "@/lib/modal";
 import { cn } from "@/lib/utils";
 import { ICostChart, IHomeTemplate } from "@/types/community";
@@ -120,10 +120,6 @@ export default function ModelCostTableShell<T>({
                 enableSorting: false,
                 cell: ({ row }) => (
                     <RowActionCell>
-                        <DeleteRowAction
-                            action={deleteHomeTemplateAction}
-                            row={row.original}
-                        />
                         <RowActionMoreMenu>
                             <RowActionMenuItem
                                 SubMenu={

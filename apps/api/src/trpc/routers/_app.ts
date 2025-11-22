@@ -23,6 +23,7 @@ import { customerServiceRouter } from "./customer-service.route";
 import { checkoutRouter } from "./checkout.route";
 import { orgs } from "./organization.route";
 import { squareTestRouter } from "./square-test.route";
+import { printRouter } from "./print.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
@@ -40,6 +41,7 @@ export const appRouter = createTRPCRouter({
   hrm: hrmRoutes,
   orgs,
   notes: notesRouter,
+  print: printRouter,
   sales: salesRouter,
   salesDashboard: salesDashboardRouter,
   search: searchRouter,

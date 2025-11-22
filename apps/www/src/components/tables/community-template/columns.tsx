@@ -189,11 +189,11 @@ function Actions({ item }: ItemProps) {
                 <Menu.Item
                     onClick={(e) => {
                         openLink(
-                            "api/download/model-template",
+                            "p/model-template",
                             {
                                 preview: true,
                                 // slugs: [item.id].join(","),
-                                slugs: "",
+                                // slugs: "",
                                 templateSlug: item.slug,
                             },
                             true
