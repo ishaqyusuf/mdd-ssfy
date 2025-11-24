@@ -1,6 +1,8 @@
 import {
   createSalesCheckoutLink,
   createSalesCheckoutLinkSchema,
+  generateDeviceCode,
+  generateDeviceCodeSchema,
   initializeCheckout,
   initializeCheckoutSchema,
   verifyPayment,
@@ -23,5 +25,10 @@ export const checkoutRouter = createTRPCRouter({
     .input(verifyPaymentSchema)
     .mutation(async (props) => {
       return verifyPayment(props.ctx, props.input);
+    }),
+  generateDeviceCode: publicProcedure
+    .input(generateDeviceCodeSchema)
+    .mutation(async (props) => {
+      return generateDeviceCode(props.ctx, props.input);
     }),
 });

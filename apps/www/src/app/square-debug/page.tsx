@@ -5,6 +5,8 @@ import { Action } from "./client";
 import { squareClient } from "@gnd/square";
 import { consoleLog } from "@gnd/utils";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
+import { Separator } from "@gnd/ui/separator";
+import { DeviceCodes } from "./device-codes";
 
 export async function generateMetadata(props) {
     return constructMetadata({
@@ -13,10 +15,12 @@ export async function generateMetadata(props) {
 }
 export default async function Page({}) {
     const devices = await getSquareDevicesAction();
-    const merchants = await squareClient.merchants.list({});
-    const deviceCodes = await squareClient.devices.list({});
-    consoleLog("MERCHANTS", merchants.data);
-    consoleLog("DEVICES:", deviceCodes.data);
+    // const merchants = await squareClient.merchants.list({});
+    const deviceCodes = await squareClient.devices.codes.list({});
+
+    // consoleLog("MERCHANTS", merchants.data);
+    consoleLog("DEVICES CODES:", deviceCodes.data?.length);
+
     return (
         <div>
             <Label>Devices</Label>
@@ -39,7 +43,8 @@ export default async function Page({}) {
                     </Item>
                 ))}
             </div>
-            {JSON.stringify(devices.errors)}
+            <Separator />
+            <DeviceCodes />
         </div>
     );
 }

@@ -398,3 +398,26 @@ export async function paymentSuccess(
     },
   });
 }
+
+/*
+
+*/
+export const generateDeviceCodeSchema = z.object({
+  // : z.string(),
+});
+export type GenerateDeviceCodeSchema = z.infer<typeof generateDeviceCodeSchema>;
+
+export async function generateDeviceCode(
+  ctx: TRPCContext,
+  query: GenerateDeviceCodeSchema
+) {
+  const { db } = ctx;
+  const resp = await squareClient.devices.codes.create({
+    idempotencyKey: generateRandomString(),
+    deviceCode: {
+      productType: "TERMINAL_API",
+      name: "GND-PRODESK",
+    },
+  });
+  return resp?.deviceCode;
+}

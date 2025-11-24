@@ -32,9 +32,9 @@
   },
   "devDependencies": {
     "@gnd/tsconfig": "workspace:*",
-    "@types/react": "19.1.8",
+    "@types/react": "^19.1.12",
     "@types/qrcode": "^1.5.5",
-    "react": "19.1.0",
+    "react": "19.1.1",
     "react-dom": "19.1.0"
   }
 }
