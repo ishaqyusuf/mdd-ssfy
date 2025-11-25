@@ -20,6 +20,7 @@ import { useTable } from "@gnd/ui/data-table";
 import { useMemo } from "react";
 import { Progress } from "@gnd/ui/custom/progress";
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
+import { getColorFromName } from "@/lib/color";
 export type Item =
     RouterOutputs["customerService"]["getCustomerServices"]["data"][number];
 interface ItemProps {
@@ -95,16 +96,71 @@ export const columns: Column[] = [
         header: "Status",
         accessorKey: "Status",
         meta: {
-            // preventDefault: true,
+            preventDefault: true,
             className: "",
         },
-        cell: ({ row: { original: item } }) => (
-            <>
-                <Progress>
-                    <Progress.Status>{item.status}</Progress.Status>
-                </Progress>
-            </>
-        ),
+        cell: ({ row: { original: item } }) => {
+            const { mutate: updateStatus, isPending } = useMutation(
+                _trpc.customerService.updateWorkOrderStatus.mutationOptions({
+                    onSuccess(data, variables, onMutateResult, context) {
+                        _qc.invalidateQueries({
+                            queryKey:
+                                _trpc.customerService.getCustomerServices.infiniteQueryKey(),
+                        });
+                    },
+                    onError(error, variables, onMutateResult, context) {},
+                    meta: {
+                        toastTitle: {
+                            error: "Unable to complete",
+                            loading: "Processing...",
+                            success: "Done!.",
+                        },
+                    },
+                })
+            );
+
+            return (
+                <>
+                    <Menu
+                        Icon={null}
+                        label={
+                            <Progress>
+                                <Progress.Status>{item.status}</Progress.Status>
+                            </Progress>
+                        }
+                    >
+                        {[
+                            "Pending",
+                            "Scheduled",
+                            "Incomplete",
+                            "Completed",
+                        ]?.map((e) => (
+                            <Menu.Item
+                                Icon={() => (
+                                    <span
+                                        className="size-2"
+                                        style={{
+                                            backgroundColor:
+                                                getColorFromName(e),
+                                        }}
+                                    ></span>
+                                )}
+                                onClick={(_e) =>
+                                    updateStatus({
+                                        status: e,
+                                        id: item.id,
+                                    })
+                                }
+                                className="cursor-pointer hover:bg-accent"
+                                key={e}
+                            >
+                                {e}
+                            </Menu.Item>
+                        ))}
+                    </Menu>
+                </>
+            );
+        },
     },
     {
         header: "",

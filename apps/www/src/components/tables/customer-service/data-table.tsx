@@ -82,9 +82,9 @@ export function DataTable(props: Props) {
                             employees: employeesResp?.data,
                         },
                         rowClick(id, rowData) {
-                            setParams({
-                                openCustomerServiceId: rowData.id,
-                            });
+                            // setParams({
+                            //     openCustomerServiceId: rowData.id,
+                            // });
                         },
                     },
                 },

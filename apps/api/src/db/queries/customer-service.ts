@@ -57,11 +57,14 @@ function whereCustomerServices(query: GetCustomerServicesSchema) {
 
     switch (k as keyof GetCustomerServicesSchema) {
       case "q":
-        // where.push({
-        //   OR: [
-        //     { name: { contains: v, mode: 'insensitive' } },
-        //   ],
-        // });
+        where.push({
+          OR: [
+            { description: { contains: v as any } },
+            { homeOwner: { contains: v as any } },
+            { projectName: { contains: v as any } },
+            { homePhone: { contains: v as any } },
+          ],
+        });
         break;
       case "dateRange":
         where.push({
@@ -112,6 +115,27 @@ export async function deleteWorkOrder(
     where: { id: query.id },
     data: {
       deletedAt: new Date(),
+    },
+  });
+}
+
+export const updateWorkOrderStatusSchema = z.object({
+  status: z.string(),
+  id: z.number(),
+});
+export type UpdateWorkOrderStatusSchema = z.infer<
+  typeof updateWorkOrderStatusSchema
+>;
+
+export async function updateWorkOrderStatus(
+  ctx: TRPCContext,
+  query: UpdateWorkOrderStatusSchema
+) {
+  const { db } = ctx;
+  db.workOrders.update({
+    where: { id: query.id },
+    data: {
+      status: query.status,
     },
   });
 }
