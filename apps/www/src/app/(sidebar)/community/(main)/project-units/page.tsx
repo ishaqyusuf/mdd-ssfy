@@ -9,6 +9,7 @@ import { batchPrefetch, trpc } from "@/trpc/server";
 import { loadProjectUnitFilterParams } from "@/hooks/use-project-units-filter-params";
 import { SearchParams } from "nuqs";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+import { loadSortParams } from "@/hooks/use-sort-params";
 
 export async function generateMetadata(props) {
     return constructMetadata({
@@ -21,9 +22,11 @@ type Props = {
 export default async function Page(props: Props) {
     const searchParams = await props.searchParams;
     const filter = loadProjectUnitFilterParams(searchParams);
+    const { sort } = loadSortParams(searchParams);
     batchPrefetch([
         trpc.community.getProjectUnits.infiniteQueryOptions({
             ...(filter as any),
+            sort,
         }),
     ]);
     return (

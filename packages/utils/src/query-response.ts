@@ -1,3 +1,5 @@
+import { consoleLog } from ".";
+
 export type PageDataMeta = {
   count?;
   page?;
@@ -40,31 +42,46 @@ export async function queryResponse<T>(
     meta,
   };
 }
-export function queryMeta(query?: any) {
+export function queryMeta(query?: any, sortFn?) {
   const take = query.size ? Number(query.size) : 20;
   const { cursor = 0 } = query;
-  const [sort, sortOrder = "desc"] = (query.sort || "createdAt").split(".");
-  const multiSorts = query.sort?.split(",");
-  const orderBy =
+  // const [sort, sortOrder = "desc"] = (query.sort || "createdAt").split(".");
+  const multiSorts = query.sort;
+  const [sort, sortOrder = "desc"] = (query.sort?.[0] || "createdAt")?.split(
+    "."
+  );
+
+  //query.sort?.split(",");
+  let orderBy =
     multiSorts?.length > 1
       ? multiSorts.map((ms) => {
           const [sort, _sortOrder] = ms.split(".");
-          return {
-            [sort]: _sortOrder || "desc",
-          };
+
+          return (
+            sortFn?.(sort, _sortOrder) || {
+              [sort]: _sortOrder || "desc",
+            }
+          );
         })
-      : {
+      : sortFn?.(sort, sortOrder) || {
           [sort]: sortOrder,
         };
+  consoleLog("SORT", orderBy);
+  consoleLog("SORT", multiSorts);
   const skip = Number(cursor);
-
+  if (Array.isArray(orderBy))
+    orderBy = orderBy.map((a) => (Array.isArray(a) ? a : [a])).flat();
   return {
     skip,
     take,
     orderBy,
   };
 }
-export async function composeQueryData(query, where, model) {
+
+interface Props {
+  sortFn(sort: string, sortOrder: string);
+}
+export async function composeQueryData(query, where, model, props?: Props) {
   const md = await queryResponse([], {
     query,
     model,
@@ -79,7 +96,7 @@ export async function composeQueryData(query, where, model) {
       query: process.env.NODE_ENV == "production" ? undefined : query,
     };
   }
-  const searchMeta = queryMeta(query);
+  const searchMeta = queryMeta(query, props?.sortFn);
   return {
     model,
     response,

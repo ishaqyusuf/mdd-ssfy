@@ -1,4 +1,3 @@
-import { flexRender } from "@tanstack/react-table";
 import { cva } from "class-variance-authority";
 
 import { useTable } from ".";
@@ -10,6 +9,8 @@ import {
 import { cn } from "../../../utils";
 import { Checkbox } from "../../checkbox";
 import { useStickyColumns } from "../../../hooks/use-sticky-columns";
+import { Button } from "../../button";
+import { ArrowDown, ArrowUp } from "lucide-react";
 
 const tableHeaderVariants = cva("", {
   variants: {},
@@ -24,19 +25,42 @@ export function TableHeader({}) {
   const [column, value] = sort || [];
 
   const createSortQuery = (name: string) => {
-    const [currentColumn, currentValue] = sort || [];
-
-    if (name === currentColumn) {
-      if (currentValue === "asc") {
-        setParams({ sort: [name, "desc"] });
-      } else if (currentValue === "desc") {
-        setParams({ sort: null });
-      } else {
-        setParams({ sort: [name, "asc"] });
+    // const [currentColumn, currentValue] = sort?.[0]?.split(".") || [];
+    const currentValue = sortedDir(name);
+    let newSort = [...(sort || [])];
+    const __setParams = ({ sort: _sort }) => {
+      if (!_sort) newSort = newSort.filter((s) => !s.startsWith(`${name}.`));
+      else {
+        newSort.push(_sort);
       }
+    };
+    // if (name === currentColumn) {
+    if (currentValue === "asc") {
+      __setParams({ sort: [name, "desc"]?.join(".") });
+    } else if (currentValue === "desc") {
+      __setParams({ sort: null });
     } else {
-      setParams({ sort: [name, "asc"] });
+      __setParams({ sort: [name, "asc"]?.join(".") });
     }
+    console.log(newSort);
+    const revSort = JSON.parse(JSON.stringify(newSort)).reverse();
+    const ns = !newSort?.length
+      ? null
+      : newSort.filter(
+          (a, i) =>
+            revSort.find((b) => b.startsWith(a.split(".")[0] + ".")) === a
+        );
+    setParams({
+      sort: ns,
+    });
+    // } else {
+    // setParams({ sort: [name, "asc"]?.join(".") });
+    // }
+  };
+  const sortedDir = (columnName: string) => {
+    const [_, dir] =
+      sort?.find((s) => s.startsWith(`${columnName}.`))?.split(".") || [];
+    return dir as "asc" | "desc" | null;
   };
   return (
     <BaseTableHeader className={cn("border-l-0 border-r-0 bg-muted")}>
@@ -46,6 +70,8 @@ export function TableHeader({}) {
           className="h-[45px] hover:bg-transparent"
         >
           {headerGroup.headers.map((header, index) => {
+            const sortDir = sortedDir(header.id);
+
             if (header.id === "select")
               return (
                 <CheckboxHeader key={index} style={getStickyStyle(header.id)} />
@@ -64,12 +90,33 @@ export function TableHeader({}) {
                   )}
                   key={`${header.id}_${index}`}
                 >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
+                  <div className="flex items-center justify-between">
+                    {
+                      header.isPlaceholder ? null : (
+                        <Button
+                          className={cn(
+                            "p-0 hover:bg-transparent space-x-2",
+                            !header?.column?.columnDef?.meta?.sortable &&
+                              "cursor-default"
+                          )}
+                          variant="ghost"
+                          onClick={
+                            !header?.column?.columnDef?.meta?.sortable
+                              ? undefined
+                              : () => createSortQuery(String(header.id))
+                          }
+                        >
+                          <span>{header?.column?.columnDef?.header}</span>
+                          {sortDir === "asc" && <ArrowDown size={16} />}
+                          {sortDir === "desc" && <ArrowUp size={16} />}
+                        </Button>
+                      )
+                      // flexRender(
+                      //     header.column.columnDef.header,
+                      //     header.getContext()
+                      //   )
+                    }
+                  </div>
                 </TableHead>
               );
           })}

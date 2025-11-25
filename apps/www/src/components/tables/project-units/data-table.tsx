@@ -13,6 +13,7 @@ import Link from "next/link";
 import { Icons } from "@gnd/ui/custom/icons";
 import { GetProjectUnitsSchema } from "@api/db/queries/project-units";
 import { BatchActions } from "./batch-actions";
+import { useSortParams } from "@/hooks/use-sort-params";
 interface Props {
     defaultFilters?: GetProjectUnitsSchema;
 }
@@ -20,6 +21,7 @@ export function DataTable(props: Props) {
     const trpc = useTRPC();
     // const { rowSelection, setRowSelection } = useProjectUnitStore();
     const { filters, hasFilters, setFilters } = useProjectUnitFilterParams();
+    const { params, setParams } = useSortParams();
     const {
         data,
         ref: loadMoreRef,
@@ -29,6 +31,7 @@ export function DataTable(props: Props) {
         filter: {
             ...filters,
             ...(props.defaultFilters || {}),
+            sort: params.sort,
         },
         route: trpc.community.getProjectUnits,
     });
@@ -36,7 +39,7 @@ export function DataTable(props: Props) {
         useColumnWidths: true,
         startFromColumn: 2,
     });
-    const { setParams } = useProjectUnitParams();
+    const { setParams: setProjectUnitParams } = useProjectUnitParams();
     if (hasFilters && !data?.length) {
         return <NoResults setFilter={setFilters} />;
     }
@@ -63,6 +66,8 @@ export function DataTable(props: Props) {
                     columns,
                     // mobileColumn,
                     data,
+                    params,
+                    setParams,
                     props: {
                         loadMoreRef,
                         hasNextPage,
@@ -72,7 +77,7 @@ export function DataTable(props: Props) {
                     // setRowSelection,
                     tableMeta: {
                         rowClick(id, rowData) {
-                            setParams({
+                            setProjectUnitParams({
                                 openProjectUnitId: rowData.id,
                             });
                         },

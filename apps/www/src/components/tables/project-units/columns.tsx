@@ -30,9 +30,9 @@ interface ItemProps {
 }
 type Column = ColumnDef<Item>;
 const column1: Column = {
-    header: "date",
+    header: "Date",
     accessorKey: "header",
-    meta: {},
+    meta: { sortable: true },
     cell: ({ row: { original: item } }) => (
         <>
             {/* <TCell.Primary>#{item.id}</TCell.Primary> */}
@@ -44,7 +44,7 @@ const column1: Column = {
 const projectColumn: Column = {
     header: "Project",
     accessorKey: "project",
-    meta: {},
+    meta: { sortable: true },
     cell: ({ row: { original: item } }) => (
         <>
             <TCell.Primary>{item.project?.title}</TCell.Primary>
@@ -57,6 +57,7 @@ const lotBlock: Column = {
     accessorKey: "lotBlock",
     meta: {
         preventDefault: true,
+        sortable: true,
     },
     cell: ({ row: { original: item } }) => {
         const route = useRouter();

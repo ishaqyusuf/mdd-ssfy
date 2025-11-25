@@ -19,7 +19,7 @@ export default async function Page({}) {
     const deviceCodes = await squareClient.devices.codes.list({});
 
     // consoleLog("MERCHANTS", merchants.data);
-    consoleLog("DEVICES CODES:", deviceCodes.data?.length);
+    consoleLog("DEVICES CODES:", deviceCodes.data);
 
     return (
         <div>

@@ -37,16 +37,17 @@ export type DataTableProps = {
   filterDataPromise?;
 };
 type WithTable = {
-  table: ReturnType<typeof useReactTable<any>>;
+  // table: ReturnType<typeof useReactTable<any>>;
   data?: any;
 };
 
-type WithoutTable = {
-  table?: null;
-  data: any;
-};
+// type WithoutTable = {
+//   table?: null;
+//   data: any;
+// };
 
-type TableProps = (WithTable | WithoutTable) & {
+type TableProps = WithTable & {
+  // type TableProps = (WithTable | WithoutTable) & {
   setParams?;
   params?;
   loadMore?;
@@ -76,7 +77,7 @@ type TableProps = (WithTable | WithoutTable) & {
   defaultRowSelection?: RowSelectionState;
 };
 export function createTableContext({
-  table,
+  // table,
   setParams,
   params,
   data: initialData,
@@ -97,30 +98,9 @@ export function createTableContext({
   filter,
   props,
 }: TableProps) {
-  // const [data, setData] = useState(initialData);
-  // const [from, setFrom] = useState(pageSize);
   const { ref, inView } = useInView();
   const [nextMeta, setNextMeta] = useState(nextPageMeta);
   const isMobile = useMediaQuery(screens.xs);
-
-  // const {
-  //   data: data2,
-  //   ref: loadMoreRef,
-  //   hasNextPage,
-  //   isFetching,
-  // } = useTableData({
-  //   filter: {
-  //     ...filter,
-  //   },
-  //   route,
-  // });
-  // if (route) {
-  //   data = data2;
-  //   props = {
-  //     hasNextPage,
-  //     loadMoreRef,
-  //   };
-  // }
 
   const [__rowSelection, __setRowSelection] =
     useState<RowSelectionState>(defaultRowSelection);
@@ -129,7 +109,7 @@ export function createTableContext({
     storeSetRowSelection || __setRowSelection,
   ];
 
-  table = useReactTable({
+  const table = useReactTable({
     data,
     getRowId: ({ id }) => String(id),
     columns: isMobile && mobileColumn ? mobileColumn : columns,

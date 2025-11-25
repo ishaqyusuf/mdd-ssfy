@@ -49,12 +49,16 @@ export async function getProjectUnits(
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereProjectUnits(query),
-    model
+    model,
+    {
+      sortFn,
+    }
   );
 
   const data = await model.findMany({
     where,
     ...searchMeta,
+
     select: projectUnitsSelect,
   });
 
@@ -74,6 +78,37 @@ export async function getProjectUnits(
       };
     })
   );
+}
+function sortFn(
+  sort,
+  sortOrder
+):
+  | Prisma.HomesOrderByWithRelationInput
+  | Prisma.HomesOrderByWithRelationInput[]
+  | undefined {
+  switch (sort) {
+    case "project":
+      return {
+        project: {
+          title: sortOrder || "asc",
+        },
+      };
+    case "date":
+      return {
+        createdAt: sortOrder || "desc",
+      };
+    case "lotBlock":
+      return [
+        {
+          lot: sortOrder || "asc",
+        },
+        {
+          block: sortOrder || "asc",
+        },
+      ];
+  }
+
+  return undefined;
 }
 function whereProjectUnits(query: GetProjectUnitsSchema) {
   const where: Prisma.HomesWhereInput[] = [];
