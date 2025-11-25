@@ -139,3 +139,89 @@ export async function updateWorkOrderStatus(
     },
   });
 }
+
+/*
+workOrderAnalytic: publicProcedure
+      .input(workOrderAnalyticSchema)
+      .query(async (props) => {
+        return workOrderAnalytic(props.ctx, props.input);
+      }),
+*/
+export const workOrderAnalyticSchema = z.object({
+  type: z.enum(["total", "pending", "completed", "avg"]),
+});
+export type WorkOrderAnalyticSchema = z.infer<typeof workOrderAnalyticSchema>;
+
+export async function workOrderAnalytic(
+  ctx: TRPCContext,
+  query: WorkOrderAnalyticSchema
+) {
+  const { db } = ctx;
+  switch (query.type) {
+    case "completed":
+      break;
+  }
+}
+/*
+getWorkorderChartFilter: publicProcedure
+      .input(getWorkorderChartFilterSchema)
+      .query(async (props) => {
+        return getWorkorderChartFilter(props.ctx, props.input);
+      }),
+*/
+export const getWorkorderChartFilterSchema = z.object({
+  // date: z.string(),
+});
+export type GetWorkorderChartFilterSchema = z.infer<
+  typeof getWorkorderChartFilterSchema
+>;
+
+export async function getWorkorderChartFilter(
+  ctx: TRPCContext,
+  query: GetWorkorderChartFilterSchema
+) {
+  const { db } = ctx;
+  const model = db.workOrders;
+
+  const sixtyDaysAgo = new Date();
+  sixtyDaysAgo.setHours(0, 0, 0, 0);
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 59); // 60 days including today
+
+  const workOrders = await model.findMany({
+    where: {
+      createdAt: {
+        gte: sixtyDaysAgo,
+      },
+      deletedAt: null,
+    },
+    select: {
+      createdAt: true,
+    },
+  });
+
+  const dailyCounts = new Map<string, number>();
+  workOrders.forEach((wo) => {
+    const dateKey = wo.createdAt?.toISOString().split("T")[0]; // YYYY-MM-DD
+    dailyCounts.set(dateKey!, (dailyCounts.get(dateKey!) || 0) + 1);
+  });
+
+  const chartData: { date; total }[] = [];
+  for (let i = 59; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    date.setHours(0, 0, 0, 0);
+
+    const dateKey = date.toISOString().split("T")[0];
+    const month = date
+      .toLocaleString("default", { month: "short" })
+      .toUpperCase();
+    const day = date.getDate();
+
+    chartData.push({
+      date: i === 0 ? "TODAY" : `${month} ${day}`,
+      total: dailyCounts.get(dateKey!) || 0,
+    });
+  }
+
+  return chartData;
+}

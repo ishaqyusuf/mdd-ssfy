@@ -9,6 +9,8 @@ import { batchPrefetch, trpc } from "@/trpc/server";
 import { loadCustomerServiceFilterParams } from "@/hooks/use-customer-service-filter-params";
 import { SearchParams } from "nuqs";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+import { WorkOrderAnalytics } from "@/components/work-order-analytics";
+import { WorkOrderFilterChart } from "@/components/work-order-filter-chart";
 
 export async function generateMetadata(props) {
     return constructMetadata({
@@ -30,6 +32,8 @@ export default async function Page(props: Props) {
         <div className="flex flex-col gap-6 pt-6">
             <PageTitle>Customer Service</PageTitle>
             <CustomerServiceHeader />
+            <WorkOrderAnalytics />
+            <WorkOrderFilterChart />
             <ErrorBoundary errorComponent={ErrorFallback}>
                 <Suspense fallback={<TableSkeleton />}>
                     <DataTable />
