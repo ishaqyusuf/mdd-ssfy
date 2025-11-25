@@ -1,0 +1,47 @@
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css';
+
+@import 'nativewind/theme';
+
+@theme {
+  /* Primary Colors */
+  --color-primary-deep-blue: #1a1773;
+  --color-primary-medium-blue: #1e5cd9;
+  --color-primary-light-blue: #4384d9;
+  --color-primary: #1a1773;
+
+  /* Secondary Colors */
+  --color-secondary-turquoise: #04bf9d;
+  --color-secondary-turquoise-dark: #03a688;
+  --color-secondary: #04bf9d;
+
+  /* Background Colors */
+  --color-background-light: #f2f2f2;
+  --color-surface-white: #ffffff;
+  --color-background: #f2f2f2;
+  --color-surface: #ffffff;
+
+  /* Text Colors */
+  --color-text-primary: #1a1773;
+  --color-text-muted: #71717a;
+  --color-text-black: #000000;
+  --color-text: #1a1773;
+
+  /* Border Colors */
+  --color-border-light: #e4e4e7;
+  --color-border-gray: #a1a1aa;
+  --color-border: #e4e4e7;
+
+  /* Status Colors */
+  --color-success: #04bf9d;
+  --color-warning: #f59e0b;
+  --color-warning-dark: #b45309;
+  --color-danger: #f43f5e;
+  --color-danger-dark: #be123c;
+
+  /* Utility Colors */
+  --color-shadow: #000000;
+  --color-muted-gray: #a1a1aa;
+  --color-muted-dark: #52525b;
+}
