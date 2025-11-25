@@ -16,7 +16,6 @@ import logo from "../../../../../public/logo.png";
 import Link from "@/components/link";
 import Image from "next/image";
 import { timeout } from "@/lib/timeout";
-import "@/styles/sales.css";
 import { printSalesPdf } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/save-pdf";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";

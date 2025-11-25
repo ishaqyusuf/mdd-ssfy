@@ -15,7 +15,6 @@ import logo from "../../../../../public/logo.png";
 import Link from "@/components/link";
 import Image from "next/image";
 import { timeout } from "@/lib/timeout";
-import "@/styles/sales.css";
 import {
     ExtendedHome,
     HomeTemplateDesign,
