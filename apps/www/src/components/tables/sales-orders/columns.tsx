@@ -351,7 +351,6 @@ function Actions({ item }: { item: Item }) {
             >
                 <Icons.Edit className="size-4" />
             </Link>
-
             <Menu>
                 <MenuItemPrintAction pdf type="order" salesIds={[item.id]} />
                 <MenuItemPrintAction type="order" salesIds={[item.id]} />

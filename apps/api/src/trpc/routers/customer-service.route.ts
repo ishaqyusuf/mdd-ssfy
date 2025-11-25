@@ -1,6 +1,8 @@
 import {
   assignWorkOrder,
   assignWorkOrderSchema,
+  deleteWorkOrder,
+  deleteWorkOrderSchema,
   getCustomerServices,
   getCustomerServicesSchema,
 } from "@api/db/queries/customer-service";
@@ -16,5 +18,10 @@ export const customerServiceRouter = createTRPCRouter({
     .input(getCustomerServicesSchema)
     .query(async ({ ctx, input }) => {
       return await getCustomerServices(ctx, input);
+    }),
+  deleteWorkOrder: publicProcedure
+    .input(deleteWorkOrderSchema)
+    .mutation(async (props) => {
+      return deleteWorkOrder(props.ctx, props.input);
     }),
 });

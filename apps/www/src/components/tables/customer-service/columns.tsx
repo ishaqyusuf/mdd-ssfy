@@ -19,6 +19,7 @@ import { CheckIcon } from "lucide-react";
 import { useTable } from "@gnd/ui/data-table";
 import { useMemo } from "react";
 import { Progress } from "@gnd/ui/custom/progress";
+import { ConfirmBtn } from "@gnd/ui/confirm-button";
 export type Item =
     RouterOutputs["customerService"]["getCustomerServices"]["data"][number];
 interface ItemProps {
@@ -191,8 +192,52 @@ function AssignedTo({ item }: ItemProps) {
 }
 function Actions({ item }: ItemProps) {
     const isMobile = useIsMobile();
+    const { setParams } = useCustomerServiceParams();
+    const { mutateAsync: deleteWorkOrder, isPending: isDeleting } = useMutation(
+        _trpc.customerService.deleteWorkOrder.mutationOptions({
+            onSuccess(data, variables, onMutateResult, context) {
+                _qc.invalidateQueries({
+                    queryKey:
+                        _trpc.customerService.getCustomerServices.infiniteQueryKey(
+                            {}
+                        ),
+                });
+            },
+            onError(error, variables, onMutateResult, context) {},
+            meta: {
+                toastTitle: {
+                    error: "Unable to complete",
+                    loading: "Processing...",
+                    success: "Done!.",
+                },
+            },
+        })
+    );
     return (
-        <div className="relative flex justify-end z-10">
+        <div className="relative flex gap-2 justify-end z-10">
+            <Button
+                variant="outline"
+                className="flex h-8 w-8 p-0"
+                onClick={() => {
+                    setParams({
+                        openCustomerServiceId: item.id,
+                    });
+                }}
+            >
+                <Icons.Edit className="size-4" />
+                <span className="sr-only">Delete</span>
+            </Button>
+            <ConfirmBtn
+                onClick={async (e) => {
+                    await deleteWorkOrder({
+                        id: item.id,
+                    });
+                }}
+                trash
+                variant="outline"
+                className="px-2"
+                size="sm"
+            />
             {/* <Menu
                 triggerSize={isMobile ? "default" : "xs"}
                 Trigger={

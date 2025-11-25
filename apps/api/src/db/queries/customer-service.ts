@@ -4,6 +4,7 @@ import { composeQueryData, composeQuery } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 import type { Prisma } from "@gnd/db";
 import { transformFilterDateToQuery } from "@gnd/utils";
+import type { id } from "date-fns/locale";
 
 export const getCustomerServicesSchema = z
   .object({
@@ -93,6 +94,24 @@ export async function assignWorkOrder(
           id: data.userId,
         },
       },
+    },
+  });
+}
+
+export const deleteWorkOrderSchema = z.object({
+  id: z.number(),
+});
+export type DeleteWorkOrderSchema = z.infer<typeof deleteWorkOrderSchema>;
+
+export async function deleteWorkOrder(
+  ctx: TRPCContext,
+  query: DeleteWorkOrderSchema
+) {
+  const { db } = ctx;
+  await db.workOrders.update({
+    where: { id: query.id },
+    data: {
+      deletedAt: new Date(),
     },
   });
 }
