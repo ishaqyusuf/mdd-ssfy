@@ -1,4 +1,4 @@
-@tailwind base;
+@import "tailwindcss";
 /* @tailwind components; */
 /* @tailwind utilities; */
 @layer base {
@@ -204,11 +204,8 @@ table.styled td.action {
 }
 .text-stroke {
     color: red;
-    text-shadow:
-        -1px 1px 0 rgb(99, 45, 45),
-        1px 1px 0 rgb(99, 45, 45),
-        1px -1px 0 rgb(99, 45, 45),
-        -1px -1px 0 rgb(99, 45, 45);
+    text-shadow: -1px 1px 0 rgb(99, 45, 45), 1px 1px 0 rgb(99, 45, 45),
+        1px -1px 0 rgb(99, 45, 45), -1px -1px 0 rgb(99, 45, 45);
 }
 input {
     @apply outline-none focus:outline-none;

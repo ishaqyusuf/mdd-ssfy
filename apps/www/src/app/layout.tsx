@@ -1,5 +1,5 @@
 import "@gnd/ui/globals.css";
-import "@/styles/globals.css";
+// import "@/styles/globals.css";
 
 import { TailwindIndicator } from "@/components/tailwind-indicator";
 import Upgrader from "@/components/_v1/upgrader";
