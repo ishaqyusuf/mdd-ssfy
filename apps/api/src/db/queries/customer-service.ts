@@ -155,10 +155,21 @@ export type WorkOrderAnalyticSchema = z.infer<typeof workOrderAnalyticSchema>;
 export async function workOrderAnalytic(
   ctx: TRPCContext,
   query: WorkOrderAnalyticSchema
-) {
+): Promise<{
+  title: string;
+  value: string;
+  description: string;
+  icon: string;
+  query?;
+}> {
   const { db } = ctx;
   switch (query.type) {
     case "completed":
+      return {
+        query: {
+          status: "completed",
+        },
+      };
       break;
   }
 }

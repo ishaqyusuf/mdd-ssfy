@@ -16,7 +16,9 @@ const generateChartData = (count: number) => {
   for (let i = count - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(today.getDate() - i);
-    const month = date.toLocaleString("default", { month: "short" }).toUpperCase();
+    const month = date
+      .toLocaleString("default", { month: "short" })
+      .toUpperCase();
     const day = date.getDate();
     data.push({
       date: i === 0 ? "TODAY" : `${month} ${day}`,
@@ -29,25 +31,67 @@ const generateChartData = (count: number) => {
 const data = generateChartData(60);
 
 export function WorkOrderFilterChart() {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [selection, setSelection] = useState<{
+    startIndex: number | null;
+    endIndex: number | null;
+  }>({ startIndex: null, endIndex: null });
+  const [isDragging, setIsDragging] = useState(false);
 
-  const handleClick = (data: any, index: number) => {
-    console.log(`Filtering by date: ${data.date}`);
-    // Toggle selection
-    if (index === activeIndex) {
-      setActiveIndex(null);
-    } else {
-      setActiveIndex(index);
+  const handleMouseDown = (e: any) => {
+    if (e.activeTooltipIndex !== undefined) {
+      setIsDragging(true);
+      setSelection({
+        startIndex: e.activeTooltipIndex,
+        endIndex: e.activeTooltipIndex,
+      });
     }
   };
 
+  const handleMouseMove = (e: any) => {
+    if (isDragging && e.activeTooltipIndex !== undefined) {
+      setSelection((prev) => ({ ...prev, endIndex: e.activeTooltipIndex }));
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (isDragging) {
+      setIsDragging(false);
+      if (selection.startIndex !== null && selection.endIndex !== null) {
+        const start = Math.min(selection.startIndex, selection.endIndex);
+        const end = Math.max(selection.startIndex, selection.endIndex);
+        const selectedData = data.slice(start, end + 1);
+        console.log("Selected date range:", {
+          from: selectedData[0].date,
+          to: selectedData[selectedData.length - 1].date,
+        });
+        // To clear selection, you could add a button or another interaction
+        // For now, a new drag action will create a new selection.
+      }
+    }
+  };
+
+  const isSelected = (index: number) => {
+    if (selection.startIndex === null || selection.endIndex === null) {
+      return false;
+    }
+    const start = Math.min(selection.startIndex, selection.endIndex);
+    const end = Math.max(selection.startIndex, selection.endIndex);
+    return index >= start && index <= end;
+  };
+
   return (
-    <div className="h-[80px] w-full">
+    <div
+      className="h-[80px] w-full"
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+    >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
           margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
           barGap={1}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
         >
           <XAxis
             dataKey="date"
@@ -76,13 +120,13 @@ export function WorkOrderFilterChart() {
               ) : null
             }
           />
-          <Bar dataKey="total" radius={[2, 2, 0, 0]} onClick={handleClick}>
+          <Bar dataKey="total" radius={[2, 2, 0, 0]}>
             {data.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                cursor="pointer"
+                cursor="ew-resize"
                 fill={
-                  activeIndex === null || activeIndex === index
+                  selection.startIndex === null || isSelected(index)
                     ? "hsl(var(--primary))"
                     : "hsl(var(--primary) / 0.3)"
                 }
