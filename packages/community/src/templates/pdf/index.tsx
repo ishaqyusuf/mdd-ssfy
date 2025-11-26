@@ -61,7 +61,6 @@ interface Props {
 export function PdfTemplate(props: Props) {
   if (!props) return null;
 
-  console.log({ props });
   const { template } = props;
   let qrCode: any = null;
 

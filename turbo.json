@@ -8,6 +8,7 @@
     },
     "build": {
       "env": [
+        "NEXT_PUBLIC_APP_URL",
         "ALLOWED_API_ORIGINS",
         "DATABASE_URL",
         "DEFAULT_COMPANY_PASSWORD",

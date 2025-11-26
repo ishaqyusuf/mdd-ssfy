@@ -31,6 +31,7 @@
         "@gnd/sales": "workspace:*",
         "@gnd/square": "workspace:*",
         "@gnd/ui": "workspace:*",
+        "@gnd/pdf": "workspace:*",
         "@gnd/utils": "workspace:*",
         "@headlessui/react": "^1.7.19",
         "@hookform/resolvers": "^3.10.0",

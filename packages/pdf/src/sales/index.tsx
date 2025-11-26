@@ -1,12 +1,16 @@
 import { Document, Font, Page, Text, View } from "@react-pdf/renderer";
 import QRCodeUtil from "qrcode";
 import { cn } from "@gnd/utils/react-pdf";
-import SalesPrintHeader from "./components/sales-print-header";
-import SalesPrintDoorItems from "./components/sales-print-door-items";
-import SalesPrintShelfItems from "./components/sales-print-shelf-items";
-import SalesPrintLineItems from "./components/sales-print-line-items";
-import SalesPrintFooter from "./components/sales-print-footer";
-import WatermarkPage from "./components/watermark-page";
+import SalesPrintHeader from "../components/sales-print-header";
+import SalesPrintDoorItems from "../components/sales-print-door-items";
+import SalesPrintShelfItems from "../components/sales-print-shelf-items";
+import SalesPrintLineItems from "../components/sales-print-line-items";
+import SalesPrintFooter from "../components/sales-print-footer";
+import WatermarkPage from "../components/watermark-page";
+// import { QRCode } from "../components/qr-code";
+// import { Info } from ".../.../generate-print-data";
+// import { DataCell } from "../components/data-cell";
+// import { Header } from "../components/header";
 
 Font.register({
   family: "Inter",
@@ -60,22 +64,10 @@ interface Props {
     logoUrl?: string;
     size: "LETTER" | "A4";
   };
+  baseUrl?;
 }
-export function PdfTemplate(props: Props) {
+export function SalesPdfTemplate(props: Props) {
   const { template } = props;
-  let qrCode: any = null;
-
-  //   if (template.includeQr) {
-  // qrCode = await QRCodeUtil.toDataURL(
-  //   `https://gndprodesk.com/api/model-template?preview=true&slugs=`,
-  //   // props.url,
-  //   {
-  //     margin: 0,
-  //     width: 40 * 3,
-  //   }
-  // );
-  //   }
-
   return (
     <Document title={props.title}>
       {props.pages.map((printData, ui) => {
@@ -84,6 +76,7 @@ export function PdfTemplate(props: Props) {
           <WatermarkPage
             key={ui}
             wrap
+            baseUrl={props.baseUrl}
             watermarkSrc={props.watermark}
             size={template.size.toUpperCase() as "LETTER" | "A4"}
             style={{
@@ -95,7 +88,7 @@ export function PdfTemplate(props: Props) {
             }}
           >
             <View fixed style={cn("pb-2 flex-col border-b")}>
-              <SalesPrintHeader printData={printData} />
+              <SalesPrintHeader baseUrl={props.baseUrl} printData={printData} />
             </View>
             {order?.id && (
               <>

@@ -1,0 +1,33 @@
+{
+  "name": "@gnd/pdf",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "clean": "rm -rf .turbo node_modules",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    "./*": "./src/*",
+    ".": "./src/index.ts",
+    "./sales": "./src/sales/index.tsx"
+  },
+  "dependencies": {
+    "@gnd/sales": "workspace:*",
+    "@gnd/utils": "workspace:*",
+    "@react-pdf/renderer": "^4.3.1",
+    "date-fns": "^4.1.0",
+    "jose": "^6.0.11",
+    "lodash": "^4.17.21",
+    "qrcode": "^1.5.4",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@gnd/tsconfig": "workspace:*",
+    "@types/react": "~19.1.0",
+    "@types/qrcode": "^1.5.5",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  }
+}

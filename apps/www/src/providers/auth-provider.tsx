@@ -23,11 +23,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const isPublic = publicRoutes.some((p) => pathname.includes(p));
         if (isPending || isPublic) {
-            console.log("validation skipped", { isPending, isPublic });
             return;
         }
         if (!auth?.id) {
-            console.log("REDIRECTING>>>");
             router.replace(`/login?return_to=${pathname}`);
             return;
         }
@@ -39,12 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
             const validLinks = getLinkModules(links);
             const v = validatePath(pathname, validLinks.linksNameMap);
-            console.log({
-                v,
-                links,
-                auth,
-                linkNames: validLinks.linksNameMap,
-            });
+
             if (!v?.hasAccess && v?.name) router.replace("/");
         }
     }, [pathname, isPending, can, role, authId]);

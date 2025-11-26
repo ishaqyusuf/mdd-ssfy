@@ -46,7 +46,7 @@ export function MenuItemPrintAction(props: Props) {
                 return;
             }
             openLink(
-                `api/download/sales`,
+                props.pdf ? `api/download/sales` : `p/sales-invoice`,
                 {
                     token: tok,
                     preview: !props.pdf,
