@@ -296,6 +296,7 @@ export function ComponentItemCard({
                                         Visibility
                                     </Menu.Item>
                                     <Menu.Item
+                                        disabled={cls.isDoor()}
                                         onClick={
                                             cls.isDoor()
                                                 ? editDoorPrice
