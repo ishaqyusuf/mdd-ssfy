@@ -590,6 +590,9 @@ function searchSales(params): Prisma.SalesOrdersWhereInput | null {
   const inputQ = { contains: params || undefined } as any;
   const parsedQ = parseSearchparams(params);
   if (parsedQ) {
+    const _contains = {
+      contains: parsedQ.otherparams,
+    };
     return {
       items: {
         some: {
@@ -602,8 +605,20 @@ function searchSales(params): Prisma.SalesOrdersWhereInput | null {
                   OR: [
                     {
                       stepProduct: {
-                        name: {
-                          contains: parsedQ.otherparams,
+                        name: _contains,
+                      },
+                    },
+                    {
+                      stepProduct: {
+                        door: {
+                          title: _contains,
+                        },
+                      },
+                    },
+                    {
+                      stepProduct: {
+                        product: {
+                          title: _contains,
                         },
                       },
                     },
