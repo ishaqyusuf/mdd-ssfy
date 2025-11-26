@@ -10,6 +10,7 @@ export const getCustomerServicesSchema = z
   .object({
     q: z.string().optional(),
     dateRange: z.string().optional(),
+    status: z.string().optional().nullable(),
     // Add other filter properties here
   })
   .extend(paginationSchema.shape);
@@ -69,6 +70,11 @@ function whereCustomerServices(query: GetCustomerServicesSchema) {
       case "dateRange":
         where.push({
           createdAt: transformFilterDateToQuery(query.dateRange),
+        });
+        break;
+      case "status":
+        where.push({
+          status: v as any,
         });
         break;
     }
@@ -147,32 +153,7 @@ workOrderAnalytic: publicProcedure
         return workOrderAnalytic(props.ctx, props.input);
       }),
 */
-export const workOrderAnalyticSchema = z.object({
-  type: z.enum(["total", "pending", "completed", "avg"]),
-});
-export type WorkOrderAnalyticSchema = z.infer<typeof workOrderAnalyticSchema>;
 
-export async function workOrderAnalytic(
-  ctx: TRPCContext,
-  query: WorkOrderAnalyticSchema
-): Promise<{
-  title: string;
-  value: string;
-  description: string;
-  icon: string;
-  query?;
-}> {
-  const { db } = ctx;
-  switch (query.type) {
-    case "completed":
-      return {
-        query: {
-          status: "completed",
-        },
-      };
-      break;
-  }
-}
 /*
 getWorkorderChartFilter: publicProcedure
       .input(getWorkorderChartFilterSchema)

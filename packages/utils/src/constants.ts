@@ -268,3 +268,10 @@ export const daysFilters = [
   // "last year",
 ] as const;
 export type DaysFilters = (typeof daysFilters)[number];
+
+export const WORK_ORDER_STATUS = [
+  "Pending",
+  "Scheduled",
+  "Incomplete",
+  "Completed",
+] as const;

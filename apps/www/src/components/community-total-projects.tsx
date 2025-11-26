@@ -1,13 +1,9 @@
 "use client";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
-import { InventorySummary } from "./inventory-summary";
 import { Package } from "lucide-react";
 import NumberFlow from "@number-flow/react";
-import { cn } from "@gnd/ui/cn";
 import { _path, _pathIs } from "./static-trpc";
-import Link from "next/link";
-import { useMemo } from "react";
 import { SummaryCardLink } from "./summary-card-link";
 
 export function CommunityTotalProjects() {

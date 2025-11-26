@@ -12,6 +12,7 @@ import {
   RESOLUTION_FILTER_OPTIONS,
   SALES_DISPATCH_FILTER_OPTIONS,
   salesDispatchStatus,
+  WORK_ORDER_STATUS,
   type Roles,
 } from "@gnd/utils/constants";
 import {
@@ -707,6 +708,15 @@ export async function customerServiceFilters(ctx: TRPCContext) {
   // );
   const resp = [
     searchFilter,
+    optionFilter<T>(
+      "status",
+      "Status",
+      WORK_ORDER_STATUS.map((status) => ({
+        label: `${status}`,
+        value: status,
+      }))
+    ),
+
     // optionFilter<T>("categoryId", "Category", steps),
     // dateRangeFilter<T>("dateRange", "Filter by date"),
   ] satisfies FilterData[];

@@ -9,7 +9,7 @@ import { batchPrefetch, trpc } from "@/trpc/server";
 import { loadCustomerServiceFilterParams } from "@/hooks/use-customer-service-filter-params";
 import { SearchParams } from "nuqs";
 import { PageTitle } from "@gnd/ui/custom/page-title";
-import { WorkOrderAnalytics } from "@/components/work-order-analytics";
+import { WorkOrderSummaryWidgets } from "@/components/work-order-summary-widgets";
 import { WorkOrderFilterChart } from "@/components/work-order-filter-chart";
 
 export async function generateMetadata(props) {
@@ -27,12 +27,16 @@ export default async function Page(props: Props) {
         trpc.customerService.getCustomerServices.infiniteQueryOptions({
             ...filter,
         }),
+        trpc.workOrder.getWorkOrderAnalytic.queryOptions({ type: "total" }),
+        trpc.workOrder.getWorkOrderAnalytic.queryOptions({ type: "pending" }),
+        trpc.workOrder.getWorkOrderAnalytic.queryOptions({ type: "completed" }),
+        trpc.workOrder.getWorkOrderAnalytic.queryOptions({ type: "avg" }),
     ]);
     return (
         <div className="flex flex-col gap-6 pt-6">
             <PageTitle>Customer Service</PageTitle>
             <CustomerServiceHeader />
-            <WorkOrderAnalytics />
+            <WorkOrderSummaryWidgets />
             <WorkOrderFilterChart />
             <ErrorBoundary errorComponent={ErrorFallback}>
                 <Suspense fallback={<TableSkeleton />}>

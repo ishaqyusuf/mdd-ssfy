@@ -24,6 +24,7 @@ import { checkoutRouter } from "./checkout.route";
 import { orgs } from "./organization.route";
 import { squareTestRouter } from "./square-test.route";
 import { printRouter } from "./print.route";
+import { workOrderRouter } from "./work-order.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
@@ -51,6 +52,7 @@ export const appRouter = createTRPCRouter({
   squareTest: squareTestRouter,
   taskTrigger: taskTriggerRouter,
   user: userRoutes,
+  workOrder: workOrderRouter,
 });
 
 export type AppRouter = typeof appRouter;

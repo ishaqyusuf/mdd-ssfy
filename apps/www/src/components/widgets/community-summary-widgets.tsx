@@ -7,7 +7,6 @@ import { CommunitySummaryBuilders } from "../community-summary-builders";
 import { CommunitySummaryTemplates } from "../community-summary-templates";
 
 export default async function CommunitySummaryWidgets() {
-    batchPrefetch([]);
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pt-6">
             <Suspense fallback={<SummaryCardSkeleton />}>
