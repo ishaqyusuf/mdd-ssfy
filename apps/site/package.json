@@ -139,6 +139,6 @@
     "@types/qs": "^6.9.7",
     "@types/react": "~19.1.0",
     "@types/react-dom": "^19.1.9",
-    "tailwindcss": "^3.4.15"
+    "tailwindcss": "^4.1.14"
   }
 }
