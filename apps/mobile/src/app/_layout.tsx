@@ -10,6 +10,7 @@ import { ThemeProvider } from "@react-navigation/native";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import FlashMessage from "react-native-flash-message";
 import { StaticTrpc } from "@/components/static-trpc";
+import { AddJobSheet } from "@/components/installers/add-job/add-job-sheet";
 // import { authClient } from "@/lib/auth-client";
 const InitialLayout = () => {
   const { hasCompletedOnboarding } = useOnboardingStore();
@@ -25,6 +26,7 @@ const InitialLayout = () => {
     <>
       <TRPCReactProvider>
         <StatusBar style="auto" />
+
         <Stack>
           <Stack.Screen name="(installers)" options={{ headerShown: false }} />
           <Stack.Protected guard={!hasCompletedOnboarding && !isAuthenticated}>
@@ -57,6 +59,7 @@ export const RootLayout = () => {
     >
       <ThemeProvider value={theme}>
         <BottomSheetModalProvider>
+          <AddJobSheet />
           <FlashMessage position="top" />
           <InitialLayout />
         </BottomSheetModalProvider>

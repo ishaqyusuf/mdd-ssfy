@@ -293,6 +293,14 @@ const { response, searchMeta, meta, where } = await composeQueryData(
 - **Never use** `@acme/ui` inside mobile; the mobile app has its own component set.  
 - All component files must use **kebab-case** naming (e.g., `some-component.tsx`), never `someComponent`.
 
+### UI Data Model Standards
+
+- Always design UI components so they can **accept a data model**, not hard-coded values.  
+- Provide a **dummy data model** when building UI, making it easy to later replace it with any API response model.  
+- Dummy models must follow the **expected shape** of the final API data (fields, casing, optionality).  
+- Keep dummy model definitions inside a `/__mocks__/` folder or within the UI file under a clearly marked `// MOCK DATA MODEL` section.
+
+
 ---
 
 ## 4️⃣ AI Behavior Logic
