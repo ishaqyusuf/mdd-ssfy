@@ -59,7 +59,6 @@ export const RootLayout = () => {
     >
       <ThemeProvider value={theme}>
         <BottomSheetModalProvider>
-          <AddJobSheet />
           <FlashMessage position="top" />
           <InitialLayout />
         </BottomSheetModalProvider>

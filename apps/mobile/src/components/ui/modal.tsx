@@ -33,6 +33,7 @@ import type {
   BottomSheetModalProps,
 } from '@gorhom/bottom-sheet';
 import { BottomSheetModal, useBottomSheet } from '@gorhom/bottom-sheet';
+import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { Pressable, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -72,6 +73,7 @@ export const Modal = React.forwardRef(
     }: ModalProps,
     ref: ModalRef
   ) => {
+    const { colorScheme } = useColorScheme();
     const detachedProps = React.useMemo(
       () => getDetachedProps(detached),
       [detached]
@@ -82,6 +84,13 @@ export const Modal = React.forwardRef(
     React.useImperativeHandle(
       ref,
       () => (modal.ref.current as BottomSheetModal) || null
+    );
+
+    const backgroundStyle = React.useMemo(
+      () => ({
+        backgroundColor: colorScheme === 'dark' ? '#111827' : '#FFFFFF', // gray-900 vs white
+      }),
+      [colorScheme]
     );
 
     const renderHandleComponent = React.useCallback(
@@ -104,6 +113,7 @@ export const Modal = React.forwardRef(
         backdropComponent={props.backdropComponent || renderBackdrop}
         enableDynamicSizing={false}
         handleComponent={renderHandleComponent}
+        backgroundStyle={backgroundStyle}
       />
     );
   }
@@ -162,7 +172,7 @@ const ModalHeader = React.memo(({ title, dismiss }: ModalHeaderProps) => {
         <View className="flex-row px-2 py-4">
           <View className="size-[24px]" />
           <View className="flex-1">
-            <Text className="text-center text-[16px] font-bold text-[#26313D] dark:text-white">
+            <Text className="text-center text-[16px] font-bold text-gray-900 dark:text-white">
               {title}
             </Text>
           </View>
@@ -184,7 +194,7 @@ const CloseButton = ({ close }: { close: () => void }) => {
       accessibilityHint="closes the modal"
     >
       <Svg
-        className="fill-neutral-300 dark:fill-white"
+        className="fill-gray-500 dark:fill-gray-400"
         width={24}
         height={24}
         fill="none"
