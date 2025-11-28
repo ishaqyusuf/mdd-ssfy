@@ -1,15 +1,16 @@
 {
   "expo": {
-    "name": "e-shop",
-    "slug": "e-shop",
+    "name": "gndprodesk",
+    "slug": "gnd-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "eshop",
+    "scheme": "gndprodesk",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.duck009.eshop"
     },
     "android": {
       "adaptiveIcon": {

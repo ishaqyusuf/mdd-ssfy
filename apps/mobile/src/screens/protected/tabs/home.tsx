@@ -1,15 +1,15 @@
-import { ProductListItem } from '@/components/protected/ProductListItem'
-import { PRODUCTS } from '@data/products-data'
-import { LegendList } from '@legendapp/list'
-import { StyleSheet, View } from 'react-native'
+import { ProductListItem } from "@/components/protected/ProductListItem";
+import { PRODUCTS } from "@data/products-data";
+import { LegendList } from "@legendapp/list";
+import { StyleSheet, View } from "react-native";
 
-import { ListEmptyComponent } from '@/components/protected/ListEmptyComponent'
-import { ListHeader } from '@/components/protected/ListHeader'
-import { Product } from '@/types/product-types'
+import { ListEmptyComponent } from "@/components/protected/ListEmptyComponent";
+import { ListHeader } from "@/components/protected/ListHeader";
+import { Product } from "@/types/product-types";
 
 export default function Index() {
   return (
-    <View className='flex-1 bg-background'>
+    <View className="flex-1 bg-background">
       <LegendList
         data={PRODUCTS}
         renderItem={({ item }: { item: Product }) => (
@@ -25,7 +25,7 @@ export default function Index() {
         ListEmptyComponent={ListEmptyComponent}
       />
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -33,4 +33,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 120,
   },
-})
+});
