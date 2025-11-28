@@ -2,18 +2,11 @@ import { Text } from "@/components/ui/text";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import { FlatList, TouchableOpacity, View } from "react-native";
-import { Project, Task, Unit } from "../add-job/dummy-data";
-
-type Job = {
-  id: string;
-  task: Task;
-  unit: Unit;
-  project: Project;
-  status: "Completed" | "In Progress" | "Pending";
-};
+import { useJobOverviewStore } from "../../../stores/use-job-overview-store";
+import { DetailedJob } from "../job-overview/types";
 
 type RecentJobsProps = {
-  jobs: Job[];
+  jobs: DetailedJob[];
 };
 
 const statusStyles: { [key: string]: { container: string; text: string } } = {
@@ -25,7 +18,11 @@ const statusStyles: { [key: string]: { container: string; text: string } } = {
     container: "bg-yellow-100 dark:bg-yellow-900",
     text: "text-yellow-800 dark:text-yellow-200",
   },
-  Pending: {
+  Submitted: {
+    container: "bg-blue-100 dark:bg-blue-900",
+    text: "text-blue-800 dark:text-blue-200",
+  },
+  "Pending Submission": {
     container: "bg-red-100 dark:bg-red-900",
     text: "text-red-800 dark:text-red-200",
   },
@@ -33,20 +30,24 @@ const statusStyles: { [key: string]: { container: string; text: string } } = {
 
 export function RecentJobs({ jobs }: RecentJobsProps) {
   const { colorScheme } = useColorScheme();
+  const { openModal } = useJobOverviewStore((s) => s.actions);
 
-  const renderItem = ({ item }: { item: Job }) => {
-    const style = statusStyles[item.status] || {
+  const renderItem = ({ item }: { item: DetailedJob }) => {
+    const style = statusStyles[item.jobStatus] || {
       container: "bg-gray-100 dark:bg-gray-700",
       text: "text-gray-800 dark:text-gray-200",
     };
     return (
-      <TouchableOpacity className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm dark:border dark:border-gray-700 mb-3 flex-row items-center">
+      <TouchableOpacity
+        className="bg-white dark:bg-gray-800/50 p-4 rounded-lg shadow-sm dark:border dark:border-gray-700/80 mb-3 flex-row items-center"
+        onPress={() => openModal(item)}
+      >
         <View className="flex-1 pr-4">
           <Text
             className="text-base font-semibold text-gray-800 dark:text-gray-200"
             numberOfLines={1}
           >
-            {item.task.name}
+            {item.project.name}
           </Text>
           <View className="flex-row items-center mt-1.5">
             <MaterialIcons
@@ -58,13 +59,13 @@ export function RecentJobs({ jobs }: RecentJobsProps) {
               className="text-sm text-gray-600 dark:text-gray-400 ml-1 flex-shrink"
               numberOfLines={1}
             >
-              {`${item.unit.name}, ${item.project.name}`}
+              {item.unit.name}
             </Text>
           </View>
         </View>
         <View className={`px-3 py-1.5 rounded-full ${style.container}`}>
           <Text className={`text-xs font-medium ${style.text}`}>
-            {item.status}
+            {item.jobStatus}
           </Text>
         </View>
       </TouchableOpacity>

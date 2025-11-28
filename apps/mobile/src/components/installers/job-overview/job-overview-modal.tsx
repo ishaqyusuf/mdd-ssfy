@@ -1,0 +1,88 @@
+import React, { useMemo } from 'react';
+import { ScrollView, TouchableOpacity, View } from 'react-native';
+import BottomSheet from '@gorhom/bottom-sheet';
+import { useJobOverviewStore } from '../../../stores/use-job-overview-store';
+import { Text } from '@/components/ui/text';
+import { useColorScheme } from 'nativewind';
+
+export function JobOverviewModal() {
+  const { isModalOpen, job } = useJobOverviewStore();
+  const { closeModal } = useJobOverviewStore((s) => s.actions);
+  const { colorScheme } = useColorScheme();
+
+  const snapPoints = useMemo(() => ['85%'], []);
+
+  const backgroundStyle = useMemo(
+    () => ({
+      backgroundColor: colorScheme === 'dark' ? '#1F2937' : '#F9FAFB',
+    }),
+    [colorScheme]
+  );
+
+  if (!job) {
+    return null;
+  }
+
+  const renderJobDetail = (label: string, value: string | undefined) => (
+    <View className="flex-row mb-3">
+      <Text className="w-1/3 text-gray-500 dark:text-gray-400 text-sm">{label}</Text>
+      <Text className="w-2/3 text-gray-800 dark:text-gray-200 font-medium">{value}</Text>
+    </View>
+  );
+
+  return (
+    <BottomSheet
+      index={isModalOpen ? 0 : -1}
+      snapPoints={snapPoints}
+      onClose={closeModal}
+      enablePanDownToClose
+      backgroundStyle={backgroundStyle}
+    >
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+        <Text className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100 text-center">
+          Job Overview
+        </Text>
+
+        <View className="bg-white dark:bg-gray-800/50 p-4 rounded-lg mb-4">
+            {renderJobDetail('Project', job.project.name)}
+            {renderJobDetail('Unit', job.unit.name)}
+            {job.model && renderJobDetail('Model', job.model)}
+        </View>
+
+        <View className="bg-white dark:bg-gray-800/50 p-4 rounded-lg mb-4">
+            {renderJobDetail('Job Status', job.jobStatus)}
+            {renderJobDetail('Payment Status', job.paymentStatus)}
+            {job.submissionDate && renderJobDetail('Submitted On', job.submissionDate.toLocaleDateString())}
+        </View>
+
+
+        <View className="bg-white dark:bg-gray-800/50 p-4 rounded-lg">
+            <Text className="text-lg font-bold mb-3 text-gray-900 dark:text-gray-100">Tasks</Text>
+            {job.tasks.map((taskItem, index) => (
+            <View key={index} className="flex-row justify-between mb-2">
+                <Text className="text-gray-700 dark:text-gray-300 flex-1 pr-2">{taskItem.task.name} (x{taskItem.quantity})</Text>
+                <Text className="text-gray-700 dark:text-gray-300">${(taskItem.task.ratePerUnit * taskItem.quantity).toFixed(2)}</Text>
+            </View>
+            ))}
+            <View className="border-t border-gray-200 dark:border-gray-700 my-3" />
+            <View className="flex-row justify-between">
+                <Text className="text-base font-bold text-gray-900 dark:text-gray-100">Total Install Cost</Text>
+                <Text className="text-base font-bold text-gray-900 dark:text-gray-100">${job.totalInstallCost.toFixed(2)}</Text>
+            </View>
+        </View>
+
+
+        <View className="mt-8 space-y-3">
+          {job.jobStatus === 'Pending Submission' && (
+            <TouchableOpacity className="bg-primary-medium-blue p-4 rounded-lg items-center shadow-sm">
+              <Text className="text-white font-bold text-base">Submit Job</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity className="bg-red-600 p-4 rounded-lg items-center shadow-sm">
+            <Text className="text-white font-bold text-base">Delete Job</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </BottomSheet>
+  );
+}
