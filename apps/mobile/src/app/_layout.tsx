@@ -26,7 +26,7 @@ const InitialLayout = () => {
       <TRPCReactProvider>
         <StatusBar style="auto" />
         <Stack>
-          {/* <Stack.Screen name="(installers)" options={{ headerShown: false }} /> */}
+          <Stack.Screen name="(installers)" options={{ headerShown: false }} />
           <Stack.Protected guard={!hasCompletedOnboarding && !isAuthenticated}>
             <Stack.Screen
               name="(onboarding)"

@@ -287,6 +287,11 @@ const { response, searchMeta, meta, where } = await composeQueryData(
   model
 );
 ```
+###  Mobile App Standards
+
+- Mobile **must only import** from `@acme/api`.  
+- **Never use** `@acme/ui` inside mobile; the mobile app has its own component set.  
+- All component files must use **kebab-case** naming (e.g., `some-component.tsx`), never `someComponent`.
 
 ---
 
@@ -356,6 +361,8 @@ This includes:
 - Date math and comparisons (`addDays`, `isBefore`, `isAfter`, etc.)
 
 Do not use native JavaScript `Date` methods directly.
+
+
 
 
 ## 5️⃣ Frontend Data Query Logic (Next.js + Expo)
