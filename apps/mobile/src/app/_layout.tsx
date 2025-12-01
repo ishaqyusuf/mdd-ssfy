@@ -24,8 +24,8 @@ const InitialLayout = () => {
   return (
     <>
       <TRPCReactProvider>
+        <StaticTrpc />
         <StatusBar style="auto" />
-
         <Stack>
           <Stack.Screen name="(installers)" options={{ headerShown: false }} />
           <Stack.Protected guard={!hasCompletedOnboarding && !isAuthenticated}>
@@ -43,7 +43,6 @@ const InitialLayout = () => {
           <Stack.Screen name="+not-found" />
         </Stack>
         <Toast />
-        <StaticTrpc />
       </TRPCReactProvider>
     </>
   );

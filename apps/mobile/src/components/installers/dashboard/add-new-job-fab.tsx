@@ -7,7 +7,7 @@ import { useModal } from "@/components/ui/modal";
 export function AddNewJobFAB() {
   const { openSheet } = useAddJobStore((s) => s.actions);
 
-  const { ref, present, dismiss } = useModal();
+  const { ref, present } = useModal();
   return (
     <>
       <View className="absolute bottom-6 right-6">

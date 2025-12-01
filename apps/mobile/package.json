@@ -18,8 +18,8 @@
   "dependencies": {
     "@better-auth/expo": "^1.4.3",
     "@expo/vector-icons": "^15.0.3",
+    "@gnd/utils": "workspace:*",
     "@gorhom/bottom-sheet": "^5.0.5",
-    "@gnd/api": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
     "@legendapp/list": "^2.0.15",
     "@react-native-async-storage/async-storage": "^2.2.0",

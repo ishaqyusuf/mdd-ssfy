@@ -1,7 +1,6 @@
 import React from "react";
 import { View, FlatList, ActivityIndicator } from "react-native";
 import { Text } from "@/components/ui/text";
-import { JobsHeader } from "@/components/installers/jobs/jobs-header";
 import { useJobsStore } from "@/stores/use-jobs-store";
 import { RecentJobsItem } from "@/components/installers/jobs/recent-jobs-item";
 
