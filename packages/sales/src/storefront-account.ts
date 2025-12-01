@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { AddressBookMeta, Db } from "./types";
 import { nanoid } from "nanoid";
-import { devMode, hashPassword } from "@gnd/utils";
+import { devMode } from "@gnd/utils";
+import { hashPassword } from "@gnd/utils/crypto";
 
 /*
 createBilling: publicProcedure

@@ -1,13 +1,19 @@
-import { View, Text, FlatList, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { useAddJobStore } from "../../../stores/use-add-job-store";
 import { TASKS, Task } from "./dummy-data";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import { Input } from "@/components/ui/input-2"; // Import the new Input component
 import { Button } from "@/components/ui/button";
-
+import { LegendList } from "@legendapp/list";
+import {
+  KeyboardAwareScrollView,
+  KeyboardGestureArea,
+} from "react-native-keyboard-controller";
+import { useJobFormContext } from "@/hooks/use-job-form";
 export function Step3Tasks() {
   const { tasks, project, unit } = useAddJobStore();
+  const ctx = useJobFormContext();
   const { setTaskQty, prevStep, reset } = useAddJobStore((s) => s.actions);
   const { colorScheme } = useColorScheme();
 
@@ -64,7 +70,7 @@ export function Step3Tasks() {
           Tasks Information
         </Text>
       </View>
-      <FlatList
+      <LegendList
         data={TASKS}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}

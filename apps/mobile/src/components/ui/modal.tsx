@@ -31,15 +31,15 @@
 import type {
   BottomSheetBackdropProps,
   BottomSheetModalProps,
-} from '@gorhom/bottom-sheet';
-import { BottomSheetModal, useBottomSheet } from '@gorhom/bottom-sheet';
-import { useColorScheme } from 'nativewind';
-import * as React from 'react';
-import { Pressable, View } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import { Path, Svg } from 'react-native-svg';
+} from "@gorhom/bottom-sheet";
+import { BottomSheetModal, useBottomSheet } from "@gorhom/bottom-sheet";
+import { useColorScheme } from "nativewind";
+import * as React from "react";
+import { Pressable, View } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { Path, Svg } from "react-native-svg";
 
-import { Text } from './text';
+import { Text } from "./text";
 
 type ModalProps = BottomSheetModalProps & {
   title?: string;
@@ -54,6 +54,7 @@ type ModalHeaderProps = {
 
 export const useModal = () => {
   const ref = React.useRef<BottomSheetModal>(null);
+
   const present = React.useCallback((data?: any) => {
     ref.current?.present(data);
   }, []);
@@ -66,7 +67,7 @@ export const useModal = () => {
 export const Modal = React.forwardRef(
   (
     {
-      snapPoints: _snapPoints = ['60%'],
+      snapPoints: _snapPoints = ["60%"],
       title,
       detached = false,
       ...props
@@ -88,7 +89,7 @@ export const Modal = React.forwardRef(
 
     const backgroundStyle = React.useMemo(
       () => ({
-        backgroundColor: colorScheme === 'dark' ? '#111827' : '#FFFFFF', // gray-900 vs white
+        backgroundColor: colorScheme === "dark" ? "#111827" : "#FFFFFF", // gray-900 vs white
       }),
       [colorScheme]
     );
@@ -132,7 +133,7 @@ const CustomBackdrop = ({ style }: BottomSheetBackdropProps) => {
       onPress={() => close()}
       entering={FadeIn.duration(50)}
       exiting={FadeOut.duration(20)}
-      style={[style, { backgroundColor: 'rgba(0, 0, 0, 0.4)' }]}
+      style={[style, { backgroundColor: "rgba(0, 0, 0, 0.4)" }]}
     />
   );
 };
@@ -155,7 +156,7 @@ const getDetachedProps = (detached: boolean) => {
     return {
       detached: true,
       bottomInset: 46,
-      style: { marginHorizontal: 16, overflow: 'hidden' },
+      style: { marginHorizontal: 16, overflow: "hidden" },
     } as Partial<BottomSheetModalProps>;
   }
   return {} as Partial<BottomSheetModalProps>;

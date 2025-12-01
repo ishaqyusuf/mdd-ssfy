@@ -1,20 +1,17 @@
-import { create } from 'zustand';
-import type {
-  Project,
-  Unit,
-} from '../components/installers/add-job/dummy-data';
+import { create } from "zustand";
 
 type AddJobState = {
   step: number;
-  project: Project | null;
-  unit: Unit | null;
+  project: any | null;
+  unit: any | null;
   tasks: { taskId: string; qty: number }[];
   isSheetOpen: boolean;
+  homeCostList?: any;
   actions: {
     openSheet: () => void;
     closeSheet: () => void;
-    setProject: (project: Project | null) => void;
-    setUnit: (unit: Unit | null) => void;
+    setProject: (project: any | null) => void;
+    setUnit: (unit: any | null) => void;
     setTaskQty: (taskId: string, qty: number) => void;
     nextStep: () => void;
     prevStep: () => void;
@@ -30,7 +27,14 @@ export const useAddJobStore = create<AddJobState>((set, get) => ({
   isSheetOpen: false,
   actions: {
     openSheet: () => set({ isSheetOpen: true }),
-    closeSheet: () => set({ isSheetOpen: false, step: 1, project: null, unit: null, tasks: [] }),
+    closeSheet: () =>
+      set({
+        isSheetOpen: false,
+        step: 1,
+        project: null,
+        unit: null,
+        tasks: [],
+      }),
     setProject: (project) => set({ project, unit: null, tasks: [], step: 2 }),
     setUnit: (unit) => set({ unit, tasks: [], step: 3 }),
     setTaskQty: (taskId, qty) => {
@@ -42,6 +46,13 @@ export const useAddJobStore = create<AddJobState>((set, get) => ({
     },
     nextStep: () => set((state) => ({ step: state.step + 1 })),
     prevStep: () => set((state) => ({ step: state.step - 1 })),
-    reset: () => set({ step: 1, project: null, unit: null, tasks: [], isSheetOpen: false }),
+    reset: () =>
+      set({
+        step: 1,
+        project: null,
+        unit: null,
+        tasks: [],
+        isSheetOpen: false,
+      }),
   },
 }));

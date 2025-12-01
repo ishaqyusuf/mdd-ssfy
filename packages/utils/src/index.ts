@@ -16,9 +16,7 @@ export function dbConnect(id) {
     connect: { id },
   };
 }
-export async function hashPassword(pwrd) {
-  return await hash(pwrd, 10);
-}
+
 export function stripSpecialCharacters(inputString: string) {
   // Remove special characters and spaces, keep alphanumeric, hyphens/underscores, and dots
   return inputString

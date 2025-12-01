@@ -1,9 +1,10 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import { useColorScheme } from 'nativewind';
-import { TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text } from '../../ui/text';
+import { Image } from "expo-image";
+import { useColorScheme } from "nativewind";
+import { TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Text } from "../../ui/text";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { MenuIcon } from "lucide-react-native";
 
 type HeaderProps = {
   name: string;
@@ -11,13 +12,13 @@ type HeaderProps = {
 };
 
 export function Header({ name, avatarUrl }: HeaderProps) {
-  const { colorScheme, toggleColorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
   };
 
   const insets = useSafeAreaInsets();
@@ -44,21 +45,13 @@ export function Header({ name, avatarUrl }: HeaderProps) {
         </View>
 
         <View className="flex-row items-center space-x-1">
-          <TouchableOpacity
-            className="p-2.5 rounded-full active:bg-gray-200 dark:active:bg-gray-700"
-            onPress={toggleColorScheme}
-          >
-            <Ionicons
-              name={colorScheme === 'dark' ? 'sunny' : 'moon'}
-              size={24}
-              color={colorScheme === 'dark' ? '#FBBF24' : '#6B7280'}
-            />
-          </TouchableOpacity>
+          <ThemeToggle />
+
           <TouchableOpacity className="p-2.5 rounded-full active:bg-gray-200 dark:active:bg-gray-700">
-            <Ionicons
-              name="menu"
-              size={28}
-              color={colorScheme === 'dark' ? '#F9FAFB' : '#1F2937'}
+            <MenuIcon
+              // name="menu"
+              size={20}
+              color={colorScheme === "dark" ? "#F9FAFB" : "#1F2937"}
             />
           </TouchableOpacity>
         </View>

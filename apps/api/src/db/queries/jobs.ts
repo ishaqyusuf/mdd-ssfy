@@ -4,7 +4,7 @@ import type { Prisma } from "@gnd/db";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 import z from "zod";
-import { getSalesSetting, getSetting } from "./settings";
+import { getSetting } from "./settings";
 import { formatLargeNumber } from "@gnd/utils/format";
 export const getJobsSchema = z.object({}).extend(paginationSchema.shape);
 export type GetJobsSchema = z.infer<typeof getJobsSchema>;
@@ -148,4 +148,27 @@ export async function getJobAnalytics(
     paid,
     pendingPayments: formatLargeNumber(pendingPayments),
   };
+}
+
+/*
+createJob: publicProcedure
+      .input(createJobSchema)
+      .mutation(async (props) => {
+        return createJob(props.ctx, props.input);
+      }),
+*/
+export const createJobSchema = z.object({
+  projectId: z.number().optional().nullable(),
+  homeId: z.number().optional().nullable(),
+  tasks: z.record(
+    z.string(),
+    z.object({
+      qty: z.number().optional().nullable(),
+    })
+  ),
+});
+export type CreateJobSchema = z.infer<typeof createJobSchema>;
+
+export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
+  const { db } = ctx;
 }

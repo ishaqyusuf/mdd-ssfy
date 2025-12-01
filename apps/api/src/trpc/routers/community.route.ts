@@ -19,6 +19,8 @@ import {
   getCommunityTemplateForm,
   getProjectForm,
   getProjectFormSchema,
+  getUnitJobs,
+  getUnitJobsSchema,
   projectList,
   saveCommunityModelCost,
   saveCommunityModelCostSchema,
@@ -201,6 +203,9 @@ export const communityRouters = createTRPCRouter({
     }),
   projectsList: publicProcedure.query(async (q) => {
     return projectList(q.ctx);
+  }),
+  getUnitJobs: publicProcedure.input(getUnitJobsSchema).query(async (props) => {
+    return getUnitJobs(props.ctx, props.input);
   }),
   saveCommunityModelCostForm: publicProcedure
     .input(saveCommunityModelCostSchema)

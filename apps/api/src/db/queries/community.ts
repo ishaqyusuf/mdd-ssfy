@@ -24,6 +24,7 @@ import type {
   CommunityPivotMeta,
   CommunityTemplateMeta,
   IntallCostMeta,
+  JobType,
   ProjectMeta,
 } from "@community/types";
 
@@ -683,4 +684,153 @@ export async function getProjectForm(
   query: GetProjectFormSchema
 ) {
   const { db } = ctx;
+}
+
+/*
+
+*/
+export const getUnitJobsSchema = z.object({
+  projectId: z.number(),
+  jobType: z.enum(["punchout", "installation", "Deco-Shutter"]),
+  status: z.enum(["any", "available"]).default("any").optional().nullable(),
+});
+export type GetUnitJobsSchema = z.infer<typeof getUnitJobsSchema>;
+
+export async function getUnitJobs(ctx: TRPCContext, query: GetUnitJobsSchema) {
+  const { db } = ctx;
+  const { projectId, jobType } = query;
+  const byAvailability = query.status == "available";
+  if (!projectId)
+    return {
+      homeList: [],
+      addon: 0,
+    };
+  const project = await db.projects.findFirst({
+    where: {
+      id: projectId,
+    },
+    include: {
+      communityModels: {
+        include: {
+          pivot: true,
+        },
+      },
+      homes: {
+        // where: {},
+        include: {
+          homeTemplate: true,
+          jobs: {
+            select: {
+              id: true,
+              type: true,
+            },
+          },
+          // _count: {
+          //     select: {
+          //         jobs: {
+          //             // where: {
+          //             //     type: jobType,
+          //             // },
+          //         },
+          //     },
+          // },
+        },
+      },
+    },
+  });
+  const ls: any[] = [];
+  const proj: any = project as any;
+
+  project?.homes?.map((unit) => {
+    const isTestUnit = unit.lot == "1118";
+    const _count = unit.jobs.filter(
+      (j) => j.type?.toLowerCase() == jobType?.toLowerCase()
+    ).length;
+    if (_count > 0 && byAvailability) {
+      return;
+    }
+    if (
+      jobType == "punchout" &&
+      unit.jobs.filter(
+        (j) => j.type?.toLowerCase() == ("installation" as JobType)
+      ).length == 0
+    )
+      return;
+
+    // if (isTestUnit) console.log(unit);
+    let template: any = unit.homeTemplate as any;
+    let communityTemplate: any = project.communityModels.find(
+      (m) => m.modelName == unit.modelName
+    ) as any;
+    // if (isTestUnit) console.log(communityTemplate);
+    // if (jobType == "punchout") {
+    //     ls.push({
+    //         id: unit.id,
+    //         name: unitTaskName(unit),
+    //         disabled: unit._count.jobs > 0,
+    //     });
+    //     return;
+    // }
+    const pivotInstallCost = communityTemplate?.pivot?.meta?.installCost;
+    if (pivotInstallCost) {
+      _pushCost(initJobData(unit as any, proj, pivotInstallCost));
+      return;
+    }
+    if (communityTemplate?.meta?.overrideModelCost) {
+      const cost = communityTemplate?.meta?.installCosts?.[0]?.costings;
+
+      if (_pushCost(initJobData(unit as any, proj, cost))) return;
+    }
+    if (!template) {
+      const costings = proj.meta.installCosts?.[0]?.costings;
+      _pushCost(initJobData(unit as any, proj, costings));
+      return;
+    }
+    template.meta.installCosts?.map((cost) => {
+      _pushCost(initJobData(unit as any, proj, cost?.costings));
+    });
+  }); //.filter(Boolean)
+  function _pushCost(cdata) {
+    ls.push(cdata);
+    return cdata != null;
+  }
+  return {
+    homeList: ls
+      .filter(Boolean)
+      .sort((a, b) => a?.name?.localeCompare(b.name) as any) as any[],
+    addon: proj?.meta?.addon,
+  };
+}
+function initJobData(unit: any, project: any, cost: any | undefined) {
+  if (!cost || Object.values(cost)?.filter(Boolean).length < 3) {
+    return null;
+  }
+  const costing = JSON.parse(JSON.stringify(cost));
+  // deepCopy<InstallCosting>(cost);
+
+  const masterCosting = project?.meta?.installCosts?.[0]?.costings;
+
+  if (masterCosting) {
+    Object.entries(costing).map(([k, v]) => {
+      const mV = Number(masterCosting?.[k] || -1);
+
+      if (!v && mV > -1) {
+        costing[k] = mV;
+      }
+    });
+  }
+  let name = unitTaskName(unit);
+
+  // if (!unit.jobs.find(j => j.title?.toLowerCase() == name?.toLowerCase())) {
+  return {
+    id: unit.id,
+    name,
+    costing,
+    disabled: (unit as any)._count?.jobs > 0,
+  } as any;
+  // }
+  return null as any;
+}
+function unitTaskName(unit) {
+  return `BLK${unit.block} LOT${unit.lot} (${unit.modelName})`;
 }
