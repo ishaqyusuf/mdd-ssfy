@@ -1,14 +1,18 @@
-import { View, Text, TextInput, FlatList, TouchableOpacity, Button } from 'react-native';
-import { useAddJobStore } from '../../../stores/use-add-job-store';
-import { TASKS, Task } from './dummy-data';
-import { MaterialIcons } from '@expo/vector-icons';
+import { View, Text, FlatList, TouchableOpacity } from "react-native";
+import { useAddJobStore } from "../../../stores/use-add-job-store";
+import { TASKS, Task } from "./dummy-data";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useColorScheme } from "nativewind";
+import { Input } from "@/components/ui/input-2"; // Import the new Input component
+import { Button } from "@/components/ui/button";
 
 export function Step3Tasks() {
   const { tasks, project, unit } = useAddJobStore();
   const { setTaskQty, prevStep, reset } = useAddJobStore((s) => s.actions);
+  const { colorScheme } = useColorScheme();
 
   const handleSubmit = () => {
-    console.log('Submitting job:', {
+    console.log("Submitting job:", {
       project,
       unit,
       tasks,
@@ -18,42 +22,58 @@ export function Step3Tasks() {
   };
 
   const renderItem = ({ item }: { item: Task }) => {
-    const taskQty = tasks.find(t => t.taskId === item.id)?.qty ?? 0;
+    const taskQty = tasks.find((t) => t.taskId === item.id)?.qty ?? 0;
     return (
-      <View className="p-4 border-b border-gray-200 flex-row justify-between items-center">
+      <View className="p-4 border-b border-gray-200 dark:border-gray-700 flex-row justify-between items-center">
         <View>
-          <Text className="text-lg">{item.name}</Text>
-          <Text className="text-sm text-gray-500">
+          <Text className="text-lg text-gray-800 dark:text-gray-200">
+            {item.name}
+          </Text>
+          <Text className="text-sm text-gray-500 dark:text-gray-400">
             Rate: ${item.ratePerUnit}/unit
           </Text>
         </View>
-        <TextInput
-          className="border border-gray-300 rounded-md w-20 h-10 text-center"
-          keyboardType="numeric"
-          placeholder="Qty"
-          onChangeText={(text) => setTaskQty(item.id, Number(text))}
-          value={taskQty > 0 ? String(taskQty) : ''}
-        />
+        {/* <Input className="w-20 h-10 text-center" /> */}
+        <View className="w-20">
+          <Input // Use the new Input component
+            // className="w-20 h-10 text-center" // Keep specific sizing and alignment
+            keyboardType="numeric"
+            placeholder="Qty"
+            placeholderTextColor={
+              colorScheme === "dark" ? "#9CA3AF" : "#6B7280"
+            }
+            // onChangeText={(text) => setTaskQty(item.id, Number(text))}
+            // value={taskQty > 0 ? String(taskQty) : ''}
+          />
+        </View>
       </View>
     );
   };
 
   return (
-    <View className="flex-1">
-        <View className="p-4 flex-row items-center bg-gray-50 border-b border-gray-200">
-            <TouchableOpacity onPress={prevStep} className="p-2">
-                <MaterialIcons name="arrow-back" size={24} color="black" />
-            </TouchableOpacity>
-            <Text className="text-xl font-bold ml-4">Tasks Information</Text>
-        </View>
+    <View className="flex-1 bg-white dark:bg-gray-900">
+      <View className="p-4 flex-row items-center bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+        <TouchableOpacity onPress={prevStep} className="p-2">
+          <MaterialIcons
+            name="arrow-back"
+            size={24}
+            color={colorScheme === "dark" ? "#F9FAFB" : "black"}
+          />
+        </TouchableOpacity>
+        <Text className="text-xl font-bold ml-4 text-gray-900 dark:text-gray-100">
+          Tasks Information
+        </Text>
+      </View>
       <FlatList
         data={TASKS}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         ListFooterComponent={
-            <View className="p-4">
-                <Button title="Submit Job" onPress={handleSubmit} />
-            </View>
+          <View className="p-4 bg-white dark:bg-gray-900">
+            <Button onPress={handleSubmit}>
+              <Text>Submit Job</Text>
+            </Button>
+          </View>
         }
       />
     </View>

@@ -4,6 +4,7 @@ import { useColorScheme } from "nativewind";
 import { FlatList, TouchableOpacity, View } from "react-native";
 import { useJobOverviewStore } from "../../../stores/use-job-overview-store";
 import { DetailedJob } from "../job-overview/types";
+import { useNavigation } from '@react-navigation/native'; // Add this
 
 type RecentJobsProps = {
   jobs: DetailedJob[];
@@ -19,6 +20,7 @@ const statusColors: { [key: string]: string } = {
 export function RecentJobs({ jobs }: RecentJobsProps) {
   const { colorScheme } = useColorScheme();
   const { openModal } = useJobOverviewStore((s) => s.actions);
+  const navigation = useNavigation(); // Add this
 
   const renderItem = ({ item }: { item: DetailedJob }) => {
     const statusColor = statusColors[item.jobStatus] || "#6B7280";
@@ -77,7 +79,10 @@ export function RecentJobs({ jobs }: RecentJobsProps) {
             Recent Jobs
           </Text>
         </View>
-        <TouchableOpacity className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-lg">
+        <TouchableOpacity
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-lg"
+          onPress={() => navigation.navigate('jobs')} // Navigate to jobs page
+        >
           <Text className="text-sm font-medium text-primary-medium-blue dark:text-sky-400">
             View All
           </Text>

@@ -7,16 +7,16 @@ export function Step1Project() {
 
   const renderItem = ({ item }: { item: Project }) => (
     <TouchableOpacity
-      className="p-4 border-b border-gray-200"
+      className="p-4 border-b border-gray-200 dark:border-gray-700"
       onPress={() => setProject(item)}
     >
-      <Text className="text-lg">{item.name}</Text>
+      <Text className="text-lg text-gray-800 dark:text-gray-200">{item.name}</Text>
     </TouchableOpacity>
   );
 
   return (
     <View>
-      <Text className="text-xl font-bold p-4">Select Project</Text>
+      <Text className="text-xl font-bold p-4 text-gray-900 dark:text-gray-100">Select Project</Text>
       <FlatList
         data={PROJECTS}
         renderItem={renderItem}
