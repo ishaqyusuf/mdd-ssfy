@@ -43,8 +43,8 @@ export function DatePicker({
                     ? new Date(value)
                     : value
                 : range
-                  ? { form: null, to: null }
-                  : null,
+                ? { form: null, to: null }
+                : null
         );
     }, [value, range]);
 
@@ -72,7 +72,7 @@ export function DatePicker({
         (e) => {
             setOpen(e);
         },
-        [open],
+        [open]
     );
     return (
         <div className={cn("grid gap-2")}>
@@ -88,7 +88,7 @@ export function DatePicker({
                         className={cn(
                             "w-[260px] justify-start text-left font-normal",
                             !date && "text-muted-foreground",
-                            className,
+                            className
                         )}
                     >
                         {!hideIcon && <CalendarIcon className="mr-2 h-4 w-4" />}
@@ -120,6 +120,7 @@ export function DatePicker({
                 <div className="">
                     <Calendar
                         {...(calendarProps as any)}
+                        className="w-[250px]"
                         initialFocus
                         mode={(range ? "range" : "single") as any}
                         defaultMonth={range ? from() : date}

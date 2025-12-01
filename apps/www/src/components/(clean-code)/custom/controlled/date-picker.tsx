@@ -35,7 +35,7 @@ interface Props<T> {
 export function DatePicker<
     TFieldValues extends FieldValues = FieldValues,
     TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
-    TOptionType = any,
+    TOptionType = any
 >({
     label,
     placeholder,
@@ -66,7 +66,7 @@ export function DatePicker<
                                             "pl-3 text-left font-normal",
                                             !field.value &&
                                                 "text-muted-foreground",
-                                            size == "sm" && "h-8",
+                                            size == "sm" && "h-8"
                                         )}
                                     >
                                         {field.value ? (
@@ -81,9 +81,10 @@ export function DatePicker<
                                 )}
                             </FormControl>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                        <PopoverContent className="p-0" align="start">
                             <Calendar
                                 mode="single"
+                                className="w-full"
                                 selected={field.value}
                                 onSelect={(e) => {
                                     field.onChange(e);
