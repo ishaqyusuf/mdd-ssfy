@@ -302,3 +302,23 @@ export interface InstallCostLine {
 export interface IntallCostMeta {
   list: InstallCostLine[];
 }
+export type JobType = "punchout" | "installation" | "Deco-Shutter";
+export interface JobMeta {
+  additional_cost: number;
+  taskCost: number;
+  addon: number;
+  costData: InstallCostingTemplate<{ qty: number; cost: number }>;
+}
+
+export interface InstallCostMeta {
+  list: InstallCostLine[];
+}
+export interface InstallCostLine {
+  defaultQty;
+  id;
+  title;
+  cost;
+  contractor?: boolean;
+  punchout?: boolean;
+  uid?;
+}

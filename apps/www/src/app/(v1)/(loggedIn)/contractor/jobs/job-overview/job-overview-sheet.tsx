@@ -71,64 +71,6 @@ export default function JobOverviewSheet({ admin, job }: Props) {
             </ScrollArea>
         </Modal.Content>
     );
-    return (
-        <BaseSheet<IJobs>
-            className="w-full sm:max-w-[550px]"
-            onOpen={(data) => {
-                init(data);
-            }}
-            onClose={() => {}}
-            modalName="jobOverview"
-            Title={({ data }) => (
-                <div>
-                    <div className="">{data?.title}</div>
-                </div>
-            )}
-            Description={({ data }) => (
-                <div className="flex justify-between">
-                    <div>{data?.subtitle}</div>
-                    <div className="relative">
-                        <div className="">
-                            {admin && (
-                                <Button
-                                    onClick={() => {
-                                        openModal("submitJob", {
-                                            data: data,
-                                            defaultTab: "tasks",
-                                        });
-                                    }}
-                                    variant={"default"}
-                                    className="h-6 px-2"
-                                    size={"sm"}
-                                >
-                                    <span>Edit</span>
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-            Content={({ data }) => (
-                <div>
-                    <ScrollArea className="h-screen ">
-                        <div className="mb-28 mt-6 grid grid-cols-2 items-start gap-4 text-sm">
-                            <Content data={data as any} />
-                        </div>
-                    </ScrollArea>
-                </div>
-            )}
-            //   Footer={({ data }) => (
-            //     <Btn
-            //       isLoading={isSaving}
-            //       onClick={() => submit()}
-            //       size="sm"
-            //       type="submit"
-            //     >
-            //       Save
-            //     </Btn>
-            //   )}
-        />
-    );
 }
 function Content({ data }: { data: IJobs }) {
     const [job, setJob] = useState<IJobs>(data);

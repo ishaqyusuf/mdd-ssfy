@@ -1,14 +1,14 @@
-import { create } from 'zustand';
-import { DetailedJob } from '../components/installers/job-overview/types';
+import { create } from "zustand";
+import { RouterOutputs } from "@api/trpc/routers/_app";
 
 type JobOverviewState = {
   isModalOpen: boolean;
-  job: DetailedJob | null;
+  job: RouterOutputs["jobs"]["getJobs"]["data"][number] | null; //DetailedJob | null;
 };
 
 type JobOverviewActions = {
   actions: {
-    openModal: (job: DetailedJob) => void;
+    openModal: (job: RouterOutputs["jobs"]["getJobs"]["data"][number]) => void;
     closeModal: () => void;
   };
 };
@@ -18,7 +18,9 @@ const initialState: JobOverviewState = {
   job: null,
 };
 
-export const useJobOverviewStore = create<JobOverviewState & JobOverviewActions>()((set) => ({
+export const useJobOverviewStore = create<
+  JobOverviewState & JobOverviewActions
+>()((set) => ({
   ...initialState,
   actions: {
     openModal: (job) => set({ isModalOpen: true, job }),

@@ -17,12 +17,6 @@ type RecentJobsProps = {
   jobs: DetailedJob[];
 };
 type JobItem = RouterOutputs["jobs"]["getJobs"]["data"][number];
-const statusColors: { [key: string]: string } = {
-  Completed: "#10B981",
-  "In Progress": "#F59E0B",
-  Submitted: "#3B82F6",
-  "Pending Submission": "#EF4444",
-};
 
 export function RecentJobs({ jobs }: RecentJobsProps) {
   const { colorScheme } = useColorScheme();
@@ -53,7 +47,7 @@ export function RecentJobs({ jobs }: RecentJobsProps) {
                 {item.title}
               </Text>
               <Text
-                className="text-xs font-semibold"
+                className="text-xs uppercase font-semibold"
                 style={{ color: statusColor }}
               >
                 {item.status}
@@ -71,6 +65,21 @@ export function RecentJobs({ jobs }: RecentJobsProps) {
               >
                 {item.subtitle || item.description}
                 {/* {item.unit!.name} */}
+              </Text>
+            </View>
+            <View className="flex-row justify-between items-center mt-3 pt-3 border-t border-gray-200/80 dark:border-gray-700/60">
+              <View className="flex-row items-center">
+                <MaterialIcons
+                  name="date-range"
+                  size={14}
+                  color={colorScheme === "dark" ? "#9CA3AF" : "#6B7280"}
+                />
+                <Text className="text-sm  text-gray-500 dark:text-gray-400 ml-1.5">
+                  {date}
+                </Text>
+              </View>
+              <Text className="text-sm font-bold text-gray-800 dark:text-gray-100">
+                {amount}
               </Text>
             </View>
           </View>
