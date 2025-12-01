@@ -10,6 +10,7 @@ export function JobAnalytics() {
   const { data } = useQuery(_trpc.jobs.getJobAnalytics.queryOptions({}));
   // if(isPending || )
   const { completed, inProgress, paid, pendingPayments } = data || {};
+
   return (
     <View>
       <View className="flex-row items-center mb-4">

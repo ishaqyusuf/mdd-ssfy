@@ -5,7 +5,7 @@ import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 import z from "zod";
 import { getSalesSetting, getSetting } from "./settings";
-
+import { formatLargeNumber } from "@gnd/utils/format";
 export const getJobsSchema = z.object({}).extend(paginationSchema.shape);
 export type GetJobsSchema = z.infer<typeof getJobsSchema>;
 
@@ -146,6 +146,6 @@ export async function getJobAnalytics(
     completed,
     inProgress,
     paid,
-    pendingPayments,
+    pendingPayments: formatLargeNumber(pendingPayments),
   };
 }
