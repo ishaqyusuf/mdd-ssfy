@@ -1,30 +1,22 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from 'nativewind';
-import { View } from 'react-native';
-import { Text } from '../../ui/text';
+import { MaterialIcons } from "@expo/vector-icons";
+import { useColorScheme } from "nativewind";
+import { View } from "react-native";
+import { Text } from "../../ui/text";
+import { useQuery } from "@tanstack/react-query";
+import { _trpc } from "@/components/static-trpc";
 
-type JobAnalyticsProps = {
-  completed: number;
-  inProgress: number;
-  paid: number;
-  pendingPayments: number;
-};
-
-export function JobAnalytics({
-  completed,
-  inProgress,
-  paid,
-  pendingPayments,
-}: JobAnalyticsProps) {
+export function JobAnalytics() {
   const { colorScheme } = useColorScheme();
-
+  const { data } = useQuery(_trpc.jobs.getJobAnalytics.queryOptions({}));
+  // if(isPending || )
+  const { completed, inProgress, paid, pendingPayments } = data || {};
   return (
     <View>
       <View className="flex-row items-center mb-4">
         <MaterialIcons
           name="donut-large"
           size={22}
-          color={colorScheme === 'dark' ? '#9CA3AF' : '#6B7280'}
+          color={colorScheme === "dark" ? "#9CA3AF" : "#6B7280"}
         />
         <Text className="text-xl font-bold text-gray-800 dark:text-gray-100 ml-2">
           Job Analytics
@@ -62,11 +54,10 @@ export function JobAnalytics({
 
 type AnalyticsCardProps = {
   title: string;
-  value: number;
+  value: string | number | undefined;
   iconName: keyof typeof MaterialIcons.glyphMap;
   color: string;
 };
-
 const AnalyticsCard = ({
   title,
   value,

@@ -13,9 +13,7 @@ import { getColorFromName } from "@gnd/utils/colors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@gnd/utils/dayjs";
 
-type RecentJobsProps = {
-  jobs: DetailedJob[];
-};
+type RecentJobsProps = {};
 type JobItem = RouterOutputs["jobs"]["getJobs"]["data"][number];
 
 export function RecentJobs({ jobs }: RecentJobsProps) {

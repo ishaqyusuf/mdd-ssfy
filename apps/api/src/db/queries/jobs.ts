@@ -92,3 +92,60 @@ export async function getInstallCosts(
   const { db } = ctx;
   return await getSetting(ctx, "install-price-chart");
 }
+
+export const getJobAnalyticsSchema = z.object({});
+export type GetJobAnalyticsSchema = z.infer<typeof getJobAnalyticsSchema>;
+
+export async function getJobAnalytics(
+  ctx: TRPCContext,
+  query: GetJobAnalyticsSchema
+) {
+  const { db } = ctx;
+
+  const completedPromise = db.jobs.count({
+    where: { status: "Completed" },
+  });
+
+  const inProgressPromise = db.jobs.count({
+    where: { status: "In Progress" },
+  });
+
+  const paidPromise = db.jobs.count({
+    // _sum: {
+    //   amount: true,
+    // },
+    where: {
+      payment: null,
+    },
+  });
+
+  const pendingPaymentsPromise = db.jobs.count({
+    // _sum: {
+    //   amount: true,
+    // },
+    where: {
+      payment: {},
+    },
+  });
+
+  const [completed, inProgress, paidAggregation, pendingPaymentsAggregation] =
+    await Promise.all([
+      completedPromise,
+      inProgressPromise,
+      paidPromise,
+      pendingPaymentsPromise,
+    ]);
+
+  const paid =
+    paidAggregation ||
+    // _sum.amount
+    0;
+  const pendingPayments = pendingPaymentsAggregation || 0;
+
+  return {
+    completed,
+    inProgress,
+    paid,
+    pendingPayments,
+  };
+}
