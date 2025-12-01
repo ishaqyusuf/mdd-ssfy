@@ -1,15 +1,17 @@
+"use server";
 import { getSquareDevices, squareClient } from "@gnd/square";
 import { generateRandomString } from "@gnd/utils";
-
+import { randomUUID } from "crypto";
 export async function getSquareDevicesAction() {
     return getSquareDevices();
 }
 export async function createDeviceCode() {
     const resp = await squareClient.devices.codes.create({
-        idempotencyKey: generateRandomString(),
+        idempotencyKey: randomUUID(),
         deviceCode: {
             productType: "TERMINAL_API",
             name: "GND-PRODESK",
+            // deviceId:
         },
     });
     return resp?.deviceCode;
@@ -19,7 +21,7 @@ export async function testRun(deviceId) {
     // const resp = await client.terminalApi.createTerminalCheckout({
     // const resp = await client.terminalApi.createTerminalCheckout({
     const { checkout, errors } = await squareClient.terminal.checkouts.create({
-        idempotencyKey: new Date().toISOString(),
+        idempotencyKey: randomUUID(),
         checkout: {
             amountMoney: {
                 amount,
@@ -30,6 +32,10 @@ export async function testRun(deviceId) {
                 deviceId: deviceId,
             },
         },
+    });
+    console.log({
+        errors,
+        checkout,
     });
     return {
         errors,

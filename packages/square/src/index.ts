@@ -94,6 +94,7 @@ export async function getSquareDevices(): Promise<Devices> {
         label: device?.attributes.name,
         status: device?.status?.category, // as "PAIRED" | "OFFLINE",
         value: device.id,
+        _: device,
       }))
       .sort((a, b) => a?.label?.localeCompare(b.label as any) as any);
     return {

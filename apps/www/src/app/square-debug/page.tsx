@@ -20,6 +20,7 @@ export default async function Page({}) {
 
     // consoleLog("MERCHANTS", merchants.data);
     consoleLog("DEVICES CODES:", deviceCodes.data);
+    consoleLog("DEVICES:", devices);
 
     return (
         <div>
