@@ -8,7 +8,7 @@ export async function getSalesSetting(ctx: TRPCContext) {
 export async function getSetting<T>(ctx: TRPCContext, type: SettingType) {
   const s = await ctx.db.settings.findFirst({
     where: {
-      type: salesSettingsKey,
+      type,
     },
   });
   return {
