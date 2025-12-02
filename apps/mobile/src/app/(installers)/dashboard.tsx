@@ -3,6 +3,7 @@ import { JobAnalytics } from "@/components/installers/dashboard/job-analytics";
 import { RecentJobs } from "@/components/installers/dashboard/recent-jobs";
 import { ScrollView, View } from "react-native";
 import { JobOverviewModal } from "@/components/installers/job-overview/job-overview-modal";
+import { Redirect } from "expo-router";
 
 export default function Dashboard() {
   return (

@@ -2,7 +2,7 @@ import { useThemeConfig } from "@/hooks/use-theme-color";
 import { useOnboardingStore } from "@/store/onboardingStore";
 import { TRPCReactProvider } from "@/trpc/client";
 import "@root/global.css";
-import { Stack, useFocusEffect, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
@@ -27,19 +27,20 @@ const InitialLayout = () => {
         <StaticTrpc />
         <StatusBar style="auto" />
         <Stack>
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(installers)" options={{ headerShown: false }} />
-          <Stack.Protected guard={!hasCompletedOnboarding && !isAuthenticated}>
+          {/* <Stack.Protected guard={!hasCompletedOnboarding && !isAuthenticated}>
             <Stack.Screen
               name="(onboarding)"
               options={{ headerShown: false }}
             />
-          </Stack.Protected>
-          <Stack.Protected guard={hasCompletedOnboarding && !isAuthenticated}>
+          </Stack.Protected> */}
+          {/* <Stack.Protected guard={hasCompletedOnboarding && !isAuthenticated}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           </Stack.Protected>
           <Stack.Protected guard={isAuthenticated && hasCompletedOnboarding}>
             <Stack.Screen name="(protected)" options={{ headerShown: false }} />
-          </Stack.Protected>
+          </Stack.Protected> */}
           <Stack.Screen name="+not-found" />
         </Stack>
         <Toast />

@@ -1,6 +1,5 @@
 import { loginAction } from "@/app-deps/(v1)/_actions/auth";
 import { PrismaClient, Roles, Users } from "@/db";
-import { env } from "@/env.mjs";
 import { ICan } from "@/types/auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import type { DefaultSession, NextAuthOptions } from "next-auth";

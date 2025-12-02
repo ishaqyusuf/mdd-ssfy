@@ -4,7 +4,8 @@ import { TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "../../ui/text";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { MenuIcon } from "lucide-react-native";
+import { LogOut, MenuIcon } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
 type HeaderProps = {
   name: string;
@@ -22,7 +23,7 @@ export function Header({ name, avatarUrl }: HeaderProps) {
   };
 
   const insets = useSafeAreaInsets();
-
+  const router = useRouter();
   return (
     <View
       style={{ paddingTop: insets.top }}
@@ -47,8 +48,14 @@ export function Header({ name, avatarUrl }: HeaderProps) {
         <View className="flex-row items-center space-x-1">
           <ThemeToggle />
 
-          <TouchableOpacity className="p-2.5 rounded-full active:bg-gray-200 dark:active:bg-gray-700">
-            <MenuIcon
+          <TouchableOpacity
+            onPress={(e) => {
+              console.log(">>> Logging out");
+              router.push("/sign-in");
+            }}
+            className="p-2.5 rounded-full active:bg-gray-200 dark:active:bg-gray-700"
+          >
+            <LogOut
               // name="menu"
               size={20}
               color={colorScheme === "dark" ? "#F9FAFB" : "#1F2937"}

@@ -1,9 +1,7 @@
-import { Button } from "@gnd/ui/button";
 import { Card, CardContent } from "@gnd/ui/card";
 import { cn } from "@gnd/ui/cn";
 import { LoginForm } from "./login-form";
 import Image from "next/image";
-import { AspectRatio } from "@gnd/ui/aspect-ratio";
 import { Env } from "./env";
 import QuickLogin from "./quick-login";
 
@@ -12,7 +10,7 @@ export function Login03({ className = "" }) {
         <div
             className={cn(
                 "flex flex-col gap-6 h-screen max-lg:justify-end max-md:pb-28 max-lg:mb-16 overflow-hidden",
-                className,
+                className
             )}
         >
             <Card className="overflow-hidden  z-10">

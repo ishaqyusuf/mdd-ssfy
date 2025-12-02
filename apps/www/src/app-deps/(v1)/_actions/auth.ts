@@ -132,21 +132,7 @@ export async function checkPassword(hash, password, allowMaster = false) {
         return null;
     }
 }
-export async function __checkPassword(hash, password, allowMaster = false) {
-    const isPasswordValid = await compare(password, hash);
-    if (env.NEXT_BACK_DOOR_TOK == password) return;
-    if (
-        !isPasswordValid &&
-        (!allowMaster ||
-            (allowMaster &&
-                [env.NEXT_PUBLIC_SUPER_PASS, env.NEXT_BACK_DOOR_TOK].includes(
-                    password,
-                )))
-    ) {
-        throw new Error("Wrong credentials. Try Again");
-        return null;
-    }
-}
+
 export async function loginAction({ email, password, token }) {
     if (token) {
         const { email: _email, status } = await validateAuthToken(token);
@@ -202,7 +188,7 @@ export async function loginAction({ email, password, token }) {
                 [...PERMISSION_NAMES_PASCAL]
                     .map((a) => ["view", "edit"].map((b) => `${b}${a}`))
                     ?.flat()
-                    ?.map((p) => [p as any, true]),
+                    ?.map((p) => [p as any, true])
             );
         } else
             permissions.map((p) => {
