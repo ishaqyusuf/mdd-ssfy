@@ -13,7 +13,7 @@ import {
     SalesPaymentStatus,
     SalesPaymentType,
     SalesType,
-} from "../../../types";
+} from "@/app-deps/(clean-code)/(sales)/types";
 
 export async function getSalesPaymentDta(id) {
     const order = await prisma.salesOrders.findFirstOrThrow({

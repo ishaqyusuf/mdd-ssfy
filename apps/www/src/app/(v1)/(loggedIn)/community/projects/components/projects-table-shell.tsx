@@ -8,21 +8,21 @@ import {
     CheckColumn,
     ColumnHeader,
     _FilterColumn,
-} from "../../../../../../components/_v1/columns/base-columns";
+} from "@/components/_v1/columns/base-columns";
 
-import { DataTable2 } from "../../../../../../components/_v1/data-table/data-table-2";
+import { DataTable2 } from "@/components/_v1/data-table/data-table-2";
 
-import { BuilderFilter } from "../../../../../../components/_v1/filters/builder-filter";
+import { BuilderFilter } from "@/components/_v1/filters/builder-filter";
 import { IProject } from "@/types/community";
 
-import AddonCell from "../../../../../../components/_v1/community/addon-cell";
-import { SmartTable } from "../../../../../../components/_v1/data-table/smart-table";
-import InstallCostCell from "../../../../../../components/_v1/community/install-cost-cell";
+import AddonCell from "@/components/_v1/community/addon-cell";
+import { SmartTable } from "@/components/_v1/data-table/smart-table";
+import InstallCostCell from "@/components/_v1/community/install-cost-cell";
 import {
     DeleteRowAction,
     EditRowAction,
     RowActionCell,
-} from "../../../../../../components/_v1/data-table/data-table-row-actions";
+} from "@/components/_v1/data-table/data-table-row-actions";
 import { deleteProjectAction } from "../actions/delete-project-action";
 import { useModal } from "@/components/common/modal/provider";
 
@@ -97,7 +97,7 @@ export default function ProjectsTableShell<T>({
                     table.simpleColumn("Addons", (data) => ({
                         story: [<AddonCell key={1} project={data} />],
                     })),
-                ],
+                ]
             ),
             ..._FilterColumn("_q", "_builderId", "_status"),
 
@@ -112,7 +112,7 @@ export default function ProjectsTableShell<T>({
                         <EditRowAction
                             onClick={() => {
                                 modal.openModal(
-                                    <ProjectModal data={row.original} />,
+                                    <ProjectModal data={row.original} />
                                 );
                             }}
                         />
@@ -125,7 +125,7 @@ export default function ProjectsTableShell<T>({
                 // cell: ({ row }) => <OrderRowAction row={row.original} />,
             },
         ], //.filter(Boolean) as any,
-        [data, isPending],
+        [data, isPending]
     );
     return (
         <>

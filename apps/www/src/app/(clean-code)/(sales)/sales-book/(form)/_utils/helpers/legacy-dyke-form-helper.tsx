@@ -1,5 +1,5 @@
 import { LoadStepComponentsProps } from "@/app-deps/(clean-code)/(sales)/_common/data-access/step-components.dta";
-import { DykeDoorType } from "../../../../types";
+import { DykeDoorType } from "@/app-deps/types";
 import { IDykeComponentStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/data-store";
 import { LegacyDykeFormItemType } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy-hooks";
 import { LegacyDykeFormStepType } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";

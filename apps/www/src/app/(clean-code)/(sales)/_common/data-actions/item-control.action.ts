@@ -7,7 +7,7 @@ import { AsyncFnType } from "@/types";
 import { qtyControlsByType } from "@/utils/sales-utils";
 
 import { QtyControlType, SalesDispatchStatus, StepMeta } from "../../types";
-import { loadSalesSetting } from "../../../../../actions/sales-settings";
+import { loadSalesSetting } from "@/actions/sales-settings";
 import {
     composeControls,
     itemControlUidObject,
@@ -17,7 +17,7 @@ import { DispatchItemPackingStatus } from "@sales/types";
 export async function updateQtyControlAutoComplete(
     data,
     uid,
-    { produceableQty, shippableQty, produceableChanged, shippableChanged, qty },
+    { produceableQty, shippableQty, produceableChanged, shippableChanged, qty }
 ) {
     const { produceable, shippable } = data;
     await Promise.all(
@@ -58,16 +58,16 @@ export async function updateQtyControlAutoComplete(
                             ...qty,
                             reset: true,
                         });
-                    }),
+                    })
                 );
             }
-        }),
+        })
     );
 }
 export async function updateQtyControlAction(
     uid,
     type: QtyControlType,
-    { qty, lh, rh, totalQty, reset = false } = { reset: false } as any,
+    { qty, lh, rh, totalQty, reset = false } = { reset: false } as any
 ) {
     const qtyControl = await prisma.qtyControl.upsert({
         where: {
@@ -294,8 +294,8 @@ export async function getSalesItemControllablesInfoAction(salesId) {
                         itemDeliveries: s.itemDeliveries
                             .filter((s) =>
                                 order.deliveries.some(
-                                    (a) => a.id == s.orderDeliveryId,
-                                ),
+                                    (a) => a.id == s.orderDeliveryId
+                                )
                             )
                             .map((d) => {
                                 return {
@@ -344,7 +344,7 @@ export async function updateSalesItemControlAction(salesId) {
                         uid: c.uid,
                     },
                 });
-        }),
+        })
     );
     return { del, arr };
     // }) as any);

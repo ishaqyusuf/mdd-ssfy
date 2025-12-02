@@ -1,7 +1,5 @@
 import { chunker } from "@/lib/chunker";
-import { Menu } from "../../../../components/(clean-code)/menu";
-import { hptDoorsAction, performUpdate } from "./hpt-doors.action";
-import { salesStatisticsAction, salesStatUpgrade } from "./sales-stat.action";
+import { Menu } from "@/components/(clean-code)/menu";
 import {
     fixCustomerTaxProfilesAction,
     updateTaxProfilesAction,

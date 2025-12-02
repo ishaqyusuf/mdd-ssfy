@@ -8,7 +8,6 @@ import {
     useState,
     useTransition,
 } from "react";
-import { updateComponentsSortingAction } from "@/actions/update-components-sorting";
 import { DeleteRowAction } from "@/components/_v1/data-table/data-table-row-actions";
 import { Icons } from "@/components/_v1/icons";
 import { Menu } from "@/components/(clean-code)/menu";
@@ -17,41 +16,18 @@ import { CustomComponentForm } from "@/components/forms/sales-form/custom-compon
 import { useSortControl } from "@/hooks/use-sort-control";
 import { cn } from "@/lib/utils";
 import { closestCorners } from "@dnd-kit/core";
-import {
-    BoxSelect,
-    CheckCircle,
-    ExternalLink,
-    Filter,
-    Folder,
-    Info,
-    LineChart,
-    LucideVariable,
-    Variable,
-    VariableIcon,
-} from "lucide-react";
-
-import { Badge } from "@gnd/ui/badge";
+import { BoxSelect, Folder } from "lucide-react";
 import { Button } from "@gnd/ui/button";
-import { Checkbox } from "@gnd/ui/checkbox";
-import { Label } from "@gnd/ui/label";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Skeleton } from "@gnd/ui/skeleton";
-import { Sortable, SortableItem } from "@gnd/ui/sortable";
 
-import {
-    useFormDataStore,
-    ZusComponent,
-} from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
+import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { ComponentHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import { zusDeleteComponents } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-step-helper";
-import { ComponentImg } from "../../../../../../../components/forms/sales-form/component-img";
 import { openComponentModal } from "../modals/component-form";
-import { openEditComponentPrice } from "../modals/component-price-modal";
-import { openSectionSettingOverride } from "../modals/component-section-setting-override";
 import { openComponentVariantModal } from "../modals/component-visibility-modal";
-import { openDoorPriceModal } from "../modals/door-price-modal";
+
 import DoorSizeModal from "../modals/door-size-modal";
-import { openDoorSizeSelectModal } from "../modals/door-size-select-modal/open-modal";
 import { openStepPricingModal } from "../modals/step-pricing-modal";
 import { UseStepContext, useStepContext } from "./ctx";
 import { CustomComponentAction } from "./custom-component.action";
@@ -60,7 +36,7 @@ import { Tabs } from "@gnd/ui/custom/tabs";
 import { DoorSuppliers } from "@/components/forms/sales-form/door-suppliers";
 import { DoorSupplierBadge } from "@/components/forms/sales-form/door-supplier-badge";
 import { SuperAdminGuard } from "@/components/auth-guard";
-import { ComponentItemCard } from "../../../../../../../components/forms/sales-form/component-item-card";
+import { ComponentItemCard } from "@/components/forms/sales-form/component-item-card";
 
 interface Props {
     itemStepUid;

@@ -8,8 +8,11 @@ import { BaseQuery } from "@/types/action";
 import { IBuilder, IBuilderTasks, IHomeTask } from "@/types/community";
 import slugify from "slugify";
 
-import { _cache } from "../../../../_actions/_cache/load-data";
-import { getPageInfo, queryFilter } from "../../../../_actions/action-utils";
+import { _cache } from "@/app-deps/(v1)/_actions/_cache/load-data";
+import {
+    getPageInfo,
+    queryFilter,
+} from "@/app-deps/(v1)/_actions/action-utils";
 
 export interface BuildersQueryParams extends BaseQuery {}
 export async function getBuildersAction(query: BuildersQueryParams) {

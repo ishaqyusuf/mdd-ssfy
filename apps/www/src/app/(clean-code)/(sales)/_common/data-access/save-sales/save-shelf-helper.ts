@@ -1,4 +1,4 @@
-import { SalesFormItem } from "../../../types";
+import { SalesFormItem } from "@/app-deps/(clean-code)/(sales)/types";
 import { ItemHelperClass } from "./item-helper-class";
 import { SaveSalesClass } from "./save-sales-class";
 

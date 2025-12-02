@@ -11,8 +11,8 @@ import {
 import { sum } from "@/lib/utils";
 import { formatDate } from "@/lib/use-day";
 import { GetSalesDispatchListDta } from "../sales-dispatch-dta";
-import { SalesDispatchStatus } from "../../../types";
-import { calculateDeliveryBreakdownPercentage } from "../../utils/dispatch-utils";
+import { SalesDispatchStatus } from "@/app-deps/(clean-code)/(sales)/types";
+import { calculateDeliveryBreakdownPercentage } from "@/app-deps/(clean-code)/(sales)/_common/utils/dispatch-utils";
 
 export type SalesDispatchListItem = GetSalesDispatchListDta["data"][number];
 export type SalesDispatchListDto = ReturnType<typeof salesDispatchListDto>;
@@ -46,7 +46,7 @@ export function dispatchTitle(id, prefix = "#DISPATCH") {
 export type SalesShippingDto = ReturnType<typeof salesShippingDto>;
 export function salesShippingDto(
     overview: SalesOverviewDto,
-    data: GetFullSalesDataDta,
+    data: GetFullSalesDataDta
 ) {
     //    data.deliveries
     const dispatchStat = overview.stat.calculatedStats.dispatchCompleted;
@@ -76,7 +76,7 @@ export function salesShippingDto(
                                     .map((s) => {
                                         pendingDelivery = qtyDiff(
                                             pendingDelivery,
-                                            s.qty,
+                                            s.qty
                                         );
                                     });
                                 return {
@@ -92,7 +92,7 @@ export function salesShippingDto(
                     ? qtyDiff(
                           analytics.pending.delivery,
                           analytics.success.delivery,
-                          true,
+                          true
                       )
                     : deliverableSubmissions[0]?.qty || {};
 
@@ -155,7 +155,7 @@ export function salesShippingDto(
     };
 }
 export function deliveriesByStatus(
-    items: { qty; status: SalesDispatchStatus }[],
+    items: { qty; status: SalesDispatchStatus }[]
 ): DeliveryBreakdown {
     const resp: DeliveryBreakdown = {
         status: {
@@ -185,7 +185,7 @@ export function deliveriesByStatus(
 export function deliveryBreakdownDto(
     deliveries: FullSalesDeliveries,
     assignments?: Assignments,
-    totalDeliverables?,
+    totalDeliverables?
 ): DeliveryBreakdown {
     const deliveryItems = assignments
         ? assignments
@@ -200,10 +200,10 @@ export function deliveryBreakdownDto(
                 status,
                 qty: item.qty,
             };
-        }),
+        })
     );
     return calculateDeliveryBreakdownPercentage(
         deliveryByStat,
-        totalDeliverables,
+        totalDeliverables
     );
 }

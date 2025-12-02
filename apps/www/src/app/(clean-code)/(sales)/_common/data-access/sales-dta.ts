@@ -3,7 +3,10 @@ import { SearchParamsType } from "@/components/(clean-code)/data-table/search-pa
 import { prisma } from "@/db";
 import { whereSales } from "@/utils/db/where.sales";
 
-import { getPageInfo, pageQueryFilter } from "../../../_common/utils/db-utils";
+import {
+    getPageInfo,
+    pageQueryFilter,
+} from "@/app-deps/(clean-code)/_common/utils/db-utils";
 import {
     DykeDoorType,
     SalesItemMeta,

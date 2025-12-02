@@ -12,7 +12,7 @@ import { _updateBuilderMetaAction } from "@/app-deps/(v2)/(loggedIn)/community-s
 import FormInput from "@/components/common/controls/form-input";
 import Modal from "@/components/common/modal";
 import { useModal } from "@/components/common/modal/provider";
-import { closeModal } from "@/lib/modal";
+
 import { toastArrayAction } from "@/lib/toast-util";
 import { chunkArray, generateRandomString } from "@/lib/utils";
 import { IBuilder } from "@/types/community";
@@ -26,8 +26,6 @@ import { Form, FormField } from "@gnd/ui/form";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 
-import Btn from "../../../../../../components/_v1/btn";
-import BaseModal from "../../../../../../components/_v1/modals/base-modal";
 import { saveBuilder, saveBuilderInstallations } from "./action";
 
 export const useBuilderModal = () => {

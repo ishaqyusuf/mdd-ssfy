@@ -3,7 +3,7 @@
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { chunker } from "@/lib/chunker";
 
-import { Menu } from "../../../../components/(clean-code)/menu";
+import { Menu } from "@/components/(clean-code)/menu";
 import {
     getAssignmentCompleteDateList,
     performUpdate,

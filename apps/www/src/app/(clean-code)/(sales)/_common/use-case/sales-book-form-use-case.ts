@@ -12,7 +12,7 @@ import {
 import {
     loadSalesFormData,
     saveSalesSettingData,
-} from "../../../../../actions/sales-settings";
+} from "@/actions/sales-settings";
 import { getPricingListDta } from "../data-access/sales-pricing-dta";
 
 import { saveSalesFormDta } from "../data-access/save-sales/index.dta";

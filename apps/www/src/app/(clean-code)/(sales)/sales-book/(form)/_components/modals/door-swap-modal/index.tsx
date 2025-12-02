@@ -8,7 +8,7 @@ import { getFormState } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/
 import { useStepContext } from "../../components-section/ctx";
 import SearchBar from "../../components-section/search-bar";
 import { HptContext } from "@/components/forms/sales-form/context";
-import { ComponentItemCard } from "../../../../../../../../components/forms/sales-form/component-item-card";
+import { ComponentItemCard } from "@/components/forms/sales-form/component-item-card";
 
 export type Door = HptContext["doors"][number];
 export const openDoorSwapModal = (door: Door, itemUid) => {

@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { Form } from "@gnd/ui/form";
 
 import { _saveDykeShelfItemProduct } from "../../../_action/get-shelf-products.actions";
-import { IDykeShelfProducts } from "../../../../type";
+import { IDykeShelfProducts } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
 
 interface Props {
     categoryIds;

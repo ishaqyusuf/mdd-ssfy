@@ -8,10 +8,8 @@ import SubmitJobModal from "@/app-deps/(v2)/(loggedIn)/contractors/_modals/submi
 import Modal from "@/components/common/modal";
 import { useModal } from "@/components/common/modal/provider";
 import { useDebounce } from "@/hooks/use-debounce";
-import { openModal } from "@/lib/modal";
 import { IJobs } from "@/types/hrm";
 import { InstallCostLine, InstallCostSettings } from "@/types/settings";
-import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
@@ -29,10 +27,9 @@ import {
     DateCellContent,
     PrimaryCellContent,
     SecondaryCellContent,
-} from "../../../../../../components/_v1/columns/base-columns";
-import { Info } from "../../../../../../components/_v1/info";
-import Money from "../../../../../../components/_v1/money";
-import BaseSheet from "../../../../../../components/_v1/sheets/base-sheet";
+} from "@/components/_v1/columns/base-columns";
+import { Info } from "@/components/_v1/info";
+import Money from "@/components/_v1/money";
 
 interface Props {
     admin?: boolean;

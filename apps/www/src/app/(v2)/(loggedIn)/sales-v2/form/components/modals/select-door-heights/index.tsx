@@ -21,10 +21,10 @@ import {
 import { Form } from "@gnd/ui/form";
 import { Input } from "@gnd/ui/input";
 
-import { _addSize } from "../../../../dimension-variants/_actions/add-size";
-import { getDimensionSizeList } from "../../../../dimension-variants/_actions/get-size-list";
-import { DykeForm } from "../../../../type";
 import { IStepProducts } from "../../step-items-list/item-section/step-products";
+import { DykeForm } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
+import { getDimensionSizeList } from "@/app-deps/(v2)/(loggedIn)/sales-v2/dimension-variants/_actions/get-size-list";
+import { _addSize } from "@/app-deps/(v2)/(loggedIn)/sales-v2/dimension-variants/_actions/add-size";
 
 export type SizeForm = {
     [id in string]: {

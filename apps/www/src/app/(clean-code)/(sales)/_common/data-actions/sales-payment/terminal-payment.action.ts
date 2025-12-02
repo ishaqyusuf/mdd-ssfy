@@ -7,7 +7,7 @@ import {
     CreateTerminalCheckoutProps,
     getTerminalPaymentStatus,
 } from "@/modules/square";
-import { SquarePaymentMethods } from "../../../types";
+import { SquarePaymentMethods } from "@/app-deps/(clean-code)/(sales)/types";
 import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { __cancelTerminalPayment, SquarePaymentStatus } from "@/_v2/lib/square";
 import { AsyncFnType } from "@/types";

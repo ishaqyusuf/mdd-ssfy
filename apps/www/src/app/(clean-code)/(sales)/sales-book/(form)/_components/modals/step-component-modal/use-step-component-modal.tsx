@@ -15,8 +15,8 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { Label } from "@gnd/ui/label";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 
-import { IStepProducts } from "../../../../../../../(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products";
-import { ProductImage } from "../../../../../../../(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/product";
+import { IStepProducts } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products";
+import { ProductImage } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/product";
 
 type TabType = "general" | "price" | "deleted" | "restore" | "step";
 export function useStepComponentModal(

@@ -6,8 +6,11 @@ import { removeEmptyValues, transformData } from "@/lib/utils";
 import { BaseQuery } from "@/types/action";
 import { HomeTemplateMeta, ICommunityTemplateMeta } from "@/types/community";
 
-import { getPageInfo, queryFilter } from "../../../../_actions/action-utils";
-import { userId } from "../../../../_actions/utils";
+import {
+    getPageInfo,
+    queryFilter,
+} from "@/app-deps/(v1)/_actions/action-utils";
+import { userId } from "@/app-deps/(v1)/_actions/utils";
 
 export interface HomeTemplatesQueryParams extends BaseQuery {}
 export type GetHomeTemplates = Awaited<ReturnType<typeof getHomeTemplates>>;

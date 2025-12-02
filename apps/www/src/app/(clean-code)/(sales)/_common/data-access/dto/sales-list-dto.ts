@@ -4,7 +4,11 @@ import { toNumber } from "@/lib/utils";
 import { getNameInitials } from "@/utils/get-name-initials";
 import { composeSalesStat, salesAddressLines } from "@/utils/sales-utils";
 
-import { AddressBookMeta, SalesMeta, SalesType } from "../../../types";
+import {
+    AddressBookMeta,
+    SalesMeta,
+    SalesType,
+} from "@/app-deps/(clean-code)/(sales)/types";
 import { GetSalesListDta } from "../sales-dta";
 import { salesLinks } from "./links-dto";
 import { dispatchTitle } from "./sales-shipping-dto";
@@ -31,12 +35,12 @@ export function salesOrderDto(data: Item) {
             shipping: getAddressDto(
                 data.shippingAddress || data.billingAddress,
                 customer,
-                "Shipping Address",
+                "Shipping Address"
             ),
             billing: getAddressDto(
                 data.billingAddress,
                 customer,
-                "Billing Address",
+                "Billing Address"
             ),
         },
         statList: data.stat,
@@ -45,7 +49,7 @@ export function salesOrderDto(data: Item) {
 function getAddressDto(
     data: Item["shippingAddress"],
     customer: Item["customer"],
-    title,
+    title
 ) {
     if (!data) return { title, address: "No address set" };
     const meta: AddressBookMeta = data?.meta as any;
@@ -67,8 +71,8 @@ function commonListData(data: Item) {
     let accountNo = data.customer?.phoneNo
         ? data.customer?.phoneNo
         : !customerId
-          ? null
-          : `cust-${customerId}`;
+        ? null
+        : `cust-${customerId}`;
     const salesStat = composeSalesStat(data.stat);
     return {
         noteCount: data.noteCount,

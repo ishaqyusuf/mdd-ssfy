@@ -12,7 +12,7 @@ import {
     StepComponentMeta,
     StepMeta,
     TypedDykeSalesDoor,
-} from "../../../types";
+} from "@/app-deps/(clean-code)/(sales)/types";
 import { generateRandomString, inToFt, safeFormText, sum } from "@/lib/utils";
 import { transformSalesStepMeta } from "./sales-step-dto";
 

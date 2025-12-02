@@ -5,11 +5,11 @@ import {
     StepMeta,
 } from "../../types";
 import { transformSalesStepMeta } from "../data-access/dto/sales-step-dto";
-import { LoadSalesFormData } from "../../../../../actions/sales-settings";
+import { LoadSalesFormData } from "@/actions/sales-settings";
 
 export function composeStepRouting(fdata: LoadSalesFormData) {
     const sectionKeys = Object.keys(fdata.setting?.data?.route || [])?.map(
-        (uid) => ({ uid }),
+        (uid) => ({ uid })
     );
     const stepsByKey: {
         [uid in string]: {
@@ -85,7 +85,7 @@ const hiddenDisplaySteps = [
 ];
 export const composeStepFormDisplay = (
     stepForms: any[],
-    sectionTitle = null,
+    sectionTitle = null
 ) => {
     const configs = stepForms
         ?.map((stepForm) => {

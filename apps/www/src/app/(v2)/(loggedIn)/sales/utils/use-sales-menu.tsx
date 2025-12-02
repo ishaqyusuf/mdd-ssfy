@@ -27,7 +27,7 @@ import {
 import {
     copyOrderAction,
     deleteOrderAction,
-} from "../../../../(v1)/(loggedIn)/sales/_actions/sales";
+} from "@/app-deps/(v1)/(loggedIn)/sales/_actions/sales";
 
 type Mode = "dealer" | "internal";
 export function useSalesMenu(item: any, mode: Mode = "internal") {
@@ -76,15 +76,15 @@ export function useSalesMenu(item: any, mode: Mode = "internal") {
         }
     }
     const router = useRouter();
-    const copyAs = async (as: ISalesType) => {
+    const copyAs = async (_as: ISalesType) => {
         const resp = item.isDyke
-            ? await copySalesUseCase(item.orderId, as)
+            ? await copySalesUseCase(item.orderId, _as as any)
             : await copyOrderAction({
                   orderId: item.orderId,
-                  as,
+                  as: _as as any,
               });
         if (resp.link)
-            toast.message(`${as} copied successfully`, {
+            toast.message(`${_as} copied successfully`, {
                 action: {
                     label: "Open",
                     onClick: () => router.push(resp.link),

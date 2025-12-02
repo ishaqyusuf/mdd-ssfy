@@ -2,7 +2,6 @@
 
 import { prisma } from "@/db";
 
-import { findDoorSvg } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/find-door-svg";
 import { sortStepProducts, transformStepProducts } from "../../dyke-utils";
 import {
     DykeProductMeta,

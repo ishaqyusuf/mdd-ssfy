@@ -1,7 +1,7 @@
 import { authId, userId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
-import { SalesPaymentStatus } from "../../../types";
+import { SalesPaymentStatus } from "@/app-deps/(clean-code)/(sales)/types";
 import { getCustomerWallet } from "@gnd/sales/wallet";
 export async function getCustomerWalletDta(accountNo) {
     return await getCustomerWallet(prisma, accountNo);

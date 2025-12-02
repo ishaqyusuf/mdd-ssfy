@@ -1,5 +1,8 @@
 import { prisma } from "@/db";
-import { SalesPaymentStatus, SalesTransaction } from "../../../types";
+import {
+    SalesPaymentStatus,
+    SalesTransaction,
+} from "@/app-deps/(clean-code)/(sales)/types";
 import {
     applyPaymentDta,
     fundCustomerWalletDta,

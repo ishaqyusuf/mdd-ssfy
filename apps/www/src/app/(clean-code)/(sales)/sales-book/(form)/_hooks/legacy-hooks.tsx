@@ -1,29 +1,14 @@
-import {
-    createContext,
-    useContext,
-    useEffect,
-    useState,
-    useTransition,
-} from "react";
-import { useDykeComponentStore } from "./data-store";
+import { createContext, useContext, useTransition } from "react";
 import { useFieldArray, useForm, UseFormReturn } from "react-hook-form";
 import {
     DykeFormDataPath,
-    DykeFormItemData,
     DykeFormItemDataPath,
-    DykeFormStepData,
     ItemMultiComponentDataPath,
     ItemMultiComponentSizeDataPath,
     OldDykeFormData,
-} from "../../../types";
-import legacyDykeFormHelper from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/legacy-dyke-form-helper";
-
-import { IStepProducts } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products";
+} from "@/app-deps/(clean-code)/(sales)/types";
 
 import { generateRandomString } from "@/lib/utils";
-import stepHelpers from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/step-helper";
-import { toast } from "sonner";
-import { DykeStep } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
 
 export type LegacyDykeFormType = ReturnType<typeof useLegacyDykeFormContext>;
 export const LegacyDykeFormContext = createContext<LegacyDykeFormType>(null);

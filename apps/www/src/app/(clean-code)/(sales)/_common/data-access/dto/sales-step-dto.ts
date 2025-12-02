@@ -1,4 +1,4 @@
-import { StepMeta } from "../../../types";
+import { StepMeta } from "@/app-deps/(clean-code)/(sales)/types";
 
 export function transformSalesStepMeta<T>(step: T) {
     let stepMeta = (step as any).meta as StepMeta;
@@ -6,7 +6,7 @@ export function transformSalesStepMeta<T>(step: T) {
 
     if (!stepMeta.priceStepDeps) {
         stepMeta.priceStepDeps = Object.entries(
-            (stepMeta as any).priceDepencies || {},
+            (stepMeta as any).priceDepencies || {}
         )
             ?.map(([k, v]) => (v ? k : null))
             .filter(Boolean);

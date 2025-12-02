@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 import {
     DykeStep,
     DykeStepMeta,
-} from "../../../../../../../(v2)/(loggedIn)/sales-v2/type";
+} from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
 import { saveDykeMeta } from "./action";
 
 interface Props {

@@ -11,18 +11,18 @@ import {
     PrimaryCellContent,
     DateCellContent,
     SecondaryCellContent,
-} from "../../../../../../components/_v1/columns/base-columns";
+} from "@/components/_v1/columns/base-columns";
 
-import { DataTable2 } from "../../../../../../components/_v1/data-table/data-table-2";
+import { DataTable2 } from "@/components/_v1/data-table/data-table-2";
 
-import { BuilderFilter } from "../../../../../../components/_v1/filters/builder-filter";
+import { BuilderFilter } from "@/components/_v1/filters/builder-filter";
 import { openModal } from "@/lib/modal";
-import { IJobPayment, IUser } from "@/types/hrm";
-import Money from "../../../../../../components/_v1/money";
+import { IJobPayment } from "@/types/hrm";
+import Money from "@/components/_v1/money";
 import {
     DeleteRowAction,
     RowActionCell,
-} from "../../../../../../components/_v1/data-table/data-table-row-actions";
+} from "@/components/_v1/data-table/data-table-row-actions";
 import { _deleteJobPayment } from "@/app-deps/(v1)/_actions/hrm-jobs/payment.crud";
 
 export default function JobPaymentTableShell({

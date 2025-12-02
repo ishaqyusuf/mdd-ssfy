@@ -1,10 +1,9 @@
 import { SalesItemControl } from "@/db";
 import { formatCurrency, sum } from "@/lib/utils";
 
-import { SalesDispatchStatus } from "../../../types";
+import { SalesDispatchStatus } from "@/app-deps/(clean-code)/(sales)/types";
 import {
     doorItemControlUid,
-    itemControlUid,
     itemItemControlUid,
     mouldingItemControlUid,
 } from "../../utils/item-control-utils";
@@ -130,7 +129,7 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
     const filteredItems = data.items.filter(filter);
     function itemControl(
         uid,
-        def: { produceable: boolean; shippable: boolean },
+        def: { produceable: boolean; shippable: boolean }
     ) {
         let control = data.itemControls?.find((c) => c.uid == uid);
         if (!control)
@@ -144,10 +143,10 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
 
     const itemGroup = filteredItems.map((item, fItemIndex) => {
         const startPointIndex = data.items.findIndex(
-            (fi) => fi.id == filteredItems[fItemIndex]?.id,
+            (fi) => fi.id == filteredItems[fItemIndex]?.id
         );
         let breakPointIndex = data.items.findIndex(
-            (fi) => fi.id == filteredItems[fItemIndex + 1]?.id,
+            (fi) => fi.id == filteredItems[fItemIndex + 1]?.id
         );
         if (breakPointIndex < 0) breakPointIndex = data.items.length;
         //     -1;
@@ -188,7 +187,7 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
                         createTextPill(
                             inToFt(_door.dimension),
                             _door.dimension,
-                            "blue",
+                            "blue"
                         ),
                     ];
                     let _totalQty;
@@ -196,7 +195,7 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
                     const isBifold = doorType == "Bifold";
                     const controlUid = doorItemControlUid(
                         _door.id,
-                        _door.dimension,
+                        _door.dimension
                     );
                     const control = itemControl(controlUid, {
                         produceable: true,
@@ -216,14 +215,14 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
                                 createTextPill(
                                     `${_door.lhQty} LH`,
                                     _door.lhQty,
-                                    "blue",
+                                    "blue"
                                 ),
                                 createTextPill(
                                     `${_door.rhQty} RH`,
                                     _door.rhQty,
-                                    "orange",
+                                    "orange"
                                 ),
-                            ],
+                            ]
                         );
                         _totalQty = sum([_door.lhQty, _door.rhQty]);
                         totalQty = {
@@ -234,7 +233,7 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
                     }
                     if (_door.swing)
                         pills.push(
-                            createTextPill(_door.swing, _door.swing, "red"),
+                            createTextPill(_door.swing, _door.swing, "red")
                         );
 
                     if (_totalQty > 1)
@@ -242,8 +241,8 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
                             createTextPill(
                                 `${formatCurrency.format(_door.unitPrice)}/1`,
                                 _door.unitPrice,
-                                "blue",
-                            ),
+                                "blue"
+                            )
                         );
 
                     items.push(
@@ -266,8 +265,8 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
                                 control,
                                 deliveries: data.deliveries,
                                 isQuote,
-                            },
-                        ),
+                            }
+                        )
                     );
                 });
             } else if (stepProduct) {
@@ -276,7 +275,7 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
                     {
                         produceable: false,
                         shippable: true,
-                    },
+                    }
                 );
                 const pills = [
                     createTextPill(`qty x ${gItem.qty}`, gItem.qty, "purple"),
@@ -286,8 +285,8 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
                         createTextPill(
                             `${formatCurrency.format(gItem.rate)}/1`,
                             gItem.rate,
-                            "blue",
-                        ),
+                            "blue"
+                        )
                     );
                 }
                 items.push(
@@ -310,8 +309,8 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
                             control,
                             deliveries: data.deliveries,
                             isQuote,
-                        },
-                    ),
+                        }
+                    )
                 );
             } else {
                 const produceable =
@@ -340,12 +339,12 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
                                 createTextPill(
                                     gItem.swing,
                                     gItem.swing,
-                                    "purple",
+                                    "purple"
                                 ),
                                 createTextPill(
                                     `qty x ${gItem.qty}`,
                                     gItem.qty,
-                                    "purple",
+                                    "purple"
                                 ),
                             ],
                         },
@@ -354,8 +353,8 @@ export function salesItemGroupOverviewDto(data: GetFullSalesDataDta) {
                             control,
                             deliveries: data.deliveries,
                             isQuote,
-                        },
-                    ),
+                        }
+                    )
                 );
             }
         });
@@ -382,7 +381,7 @@ function itemAnalytics(
         control,
         deliveries,
         isQuote,
-    }: { control: SalesItemControl; deliveries?; isQuote?: boolean },
+    }: { control: SalesItemControl; deliveries?; isQuote?: boolean }
 ) {
     // produceable = true,
     // deliverable = true
@@ -395,7 +394,7 @@ function itemAnalytics(
         deliveryBreakdown: deliveryBreakdownDto(
             deliveries,
             assignments,
-            control.shippable ? data.totalQty.total : 0,
+            control.shippable ? data.totalQty.total : 0
         ),
     };
 
@@ -407,13 +406,13 @@ function itemAnalytics(
             const _assignmentsRh = sum(assignments, "rhQty");
             const totalAssignments = sum(assignments, "qtyAssigned");
             const prodCompleted = sum(
-                assignments.map((a) => sum(a.submissions, "qty")),
+                assignments.map((a) => sum(a.submissions, "qty"))
             );
             const prodCompletedLh = sum(
-                assignments.map((a) => sum(a.submissions, "lhQty")),
+                assignments.map((a) => sum(a.submissions, "lhQty"))
             );
             const prodCompletedRh = sum(
-                assignments.map((a) => sum(a.submissions, "rhQty")),
+                assignments.map((a) => sum(a.submissions, "rhQty"))
             );
             analytics.success.assignment = {
                 total: totalAssignments,

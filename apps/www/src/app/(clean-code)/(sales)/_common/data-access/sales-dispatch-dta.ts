@@ -8,7 +8,7 @@ import { SearchParamsType } from "@/components/(clean-code)/data-table/search-pa
 import { prisma, Prisma } from "@/db";
 import { sum } from "@/lib/utils";
 
-import { DispatchListInclude } from "../../../../../utils/db/dispatch";
+import { DispatchListInclude } from "@/utils/db/dispatch";
 import { SalesDispatchStatus } from "../../types";
 import { excludeDeleted, whereDispatch } from "../utils/db-utils";
 import { Qty, qtyDiff } from "./dto/sales-item-dto";

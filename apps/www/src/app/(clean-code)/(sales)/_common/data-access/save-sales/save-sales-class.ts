@@ -2,7 +2,10 @@ import { prisma, SalesOrders } from "@/db";
 import { nextId } from "@/lib/nextId";
 import { generateRandomString } from "@/lib/utils";
 
-import { SalesFormFields, SalesType } from "../../../types";
+import {
+    SalesFormFields,
+    SalesType,
+} from "@/app-deps/(clean-code)/(sales)/types";
 import { resetSalesStatAction } from "../../data-actions/sales-stat-control.action";
 import { composeSalesUrl } from "../../utils/sales-utils";
 import { SaveSalesHelper } from "./helper-class";
@@ -125,7 +128,7 @@ export class SaveSalesClass extends SaveSalesHelper {
     constructor(
         public form: SalesFormFields,
         public oldFormState?: SalesFormFields,
-        public query?: SaveQuery,
+        public query?: SaveQuery
     ) {
         super();
         this.ctx = this;
@@ -171,7 +174,7 @@ export class SaveSalesClass extends SaveSalesHelper {
                         data: {
                             deletedAt: new Date(),
                         },
-                    }),
+                    })
                 );
                 this.data.orderTxIndex++;
             });
@@ -197,7 +200,7 @@ export class SaveSalesClass extends SaveSalesHelper {
                                     ...u.data,
                                     deletedAt: null,
                                 },
-                            }),
+                            })
                         );
                     });
             }
@@ -215,7 +218,7 @@ export class SaveSalesClass extends SaveSalesHelper {
                           })
                         : table.createMany({
                               data: createManyData,
-                          }),
+                          })
                 );
             }
         });
@@ -232,7 +235,7 @@ export class SaveSalesClass extends SaveSalesHelper {
                             salesId = resp.id;
                         }
                         return resp;
-                    }),
+                    })
                 );
             }) as any);
             this.data.result = transactions;
@@ -300,11 +303,11 @@ export class SaveSalesClass extends SaveSalesHelper {
                     formItem.groupItem.groupUid = generateRandomString(4);
             }
             const formEntries = Object.entries(
-                formItem.groupItem.form || {},
+                formItem.groupItem.form || {}
             ).filter(([k, v]) => v.selected);
 
             const primaryForm = formEntries.find(
-                ([k, v], i) => v.primaryGroupItem,
+                ([k, v], i) => v.primaryGroupItem
             );
             if (!primaryForm && formEntries.length) {
                 formEntries[0][1].primaryGroupItem = true;
@@ -319,7 +322,7 @@ export class SaveSalesClass extends SaveSalesHelper {
                 } else {
                     itemCtx.generateNonDoorItem(
                         groupItemForm,
-                        groupItemForm.primaryGroupItem,
+                        groupItemForm.primaryGroupItem
                     );
                 }
             });

@@ -33,22 +33,21 @@ import {
     DateCellContent,
     PrimaryCellContent,
     SecondaryCellContent,
-} from "../../../../../components/_v1/columns/base-columns";
+} from "@/components/_v1/columns/base-columns";
 import {
     HomeInstallationStatus,
     HomeProductionStatus,
-} from "../../../../../components/_v1/columns/community-columns";
-import { HomeBatchAction } from "../../../../../components/_v1/community/home-selection-action";
+} from "@/components/_v1/columns/community-columns";
+import { HomeBatchAction } from "@/components/_v1/community/home-selection-action";
 
-import { DataTable2 } from "../../../../../components/_v1/data-table/data-table-2";
+import { DataTable2 } from "@/components/_v1/data-table/data-table-2";
 import {
     DeleteRowAction,
-    Menu,
     MenuItem,
-} from "../../../../../components/_v1/data-table/data-table-row-actions";
-import { ProjectsFilter } from "../../../../../components/_v1/filters/projects-filter";
-import { Icons } from "../../../../../components/_v1/icons";
-import HomePrinter from "../../../../../components/_v1/print/home/home-printer";
+} from "@/components/_v1/data-table/data-table-row-actions";
+import { ProjectsFilter } from "@/components/_v1/filters/projects-filter";
+import { Icons } from "@/components/_v1/icons";
+import HomePrinter from "@/components/_v1/print/home/home-printer";
 import { useHomeModal } from "./home-modal";
 
 export default function HomesTableShell<T>({

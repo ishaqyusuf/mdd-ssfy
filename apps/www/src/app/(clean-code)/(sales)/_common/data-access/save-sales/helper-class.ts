@@ -4,7 +4,10 @@ import { formatMoney } from "@/lib/use-number";
 import dayjs from "dayjs";
 import { isEqual, isNaN } from "lodash";
 
-import { SalesFormFields, SalesMeta } from "../../../types";
+import {
+    SalesFormFields,
+    SalesMeta,
+} from "@/app-deps/(clean-code)/(sales)/types";
 import { calculatePaymentDueDate } from "../../utils/sales-utils";
 import { generateSalesId } from "./sales-id-dta";
 import { SaveSalesClass } from "./save-sales-class";
@@ -83,7 +86,7 @@ export class SaveSalesHelper {
             else
                 updateData.paymentDueDate = calculatePaymentDueDate(
                     md.paymentTerm,
-                    md.createdAt,
+                    md.createdAt
                 );
         }
         if (md.id) {
@@ -169,7 +172,7 @@ export class SaveSalesHelper {
         return data.sequence;
     }
     public nextId<K extends keyof (typeof this)["ctx"]["nextIds"]>(
-        k: K,
+        k: K
     ): number {
         let id = this.ctx.nextIds[k as any];
         this.ctx.nextIds[k as any] += 1;

@@ -11,20 +11,20 @@ import {
     PrimaryCellContent,
     DateCellContent,
     SecondaryCellContent,
-} from "../../../../../../components/_v1/columns/base-columns";
+} from "@/components/_v1/columns/base-columns";
 
-import { DataTable2 } from "../../../../../../components/_v1/data-table/data-table-2";
+import { DataTable2 } from "@/components/_v1/data-table/data-table-2";
 
-import { BuilderFilter } from "../../../../../../components/_v1/filters/builder-filter";
+import { BuilderFilter } from "@/components/_v1/filters/builder-filter";
 import { IBuilder, IProject } from "@/types/community";
 import {
     DeleteRowAction,
     RowActionCell,
     RowActionMenuItem,
     RowActionMoreMenu,
-} from "../../../../../../components/_v1/data-table/data-table-row-actions";
+} from "@/components/_v1/data-table/data-table-row-actions";
 import { deleteBuilderAction } from "@/app-deps/(v1)/(loggedIn)/settings/community/builders/action";
-import { Icons } from "../../../../../../components/_v1/icons";
+import { Icons } from "@/components/_v1/icons";
 import { openModal } from "@/lib/modal";
 import PageHeader from "@/components/_v1/page-header";
 import { useBuilderModal } from "./builder-modal";

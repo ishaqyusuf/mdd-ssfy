@@ -25,8 +25,8 @@ import { toast } from "sonner";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 
-import ConfirmBtn from "../../../../../components/_v1/confirm-btn";
-import { DatePicker } from "../../../../../components/_v1/date-range-picker";
+import ConfirmBtn from "@/components/_v1/confirm-btn";
+import { DatePicker } from "@/components/_v1/date-range-picker";
 import { Label } from "@gnd/ui/label";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { FormCombobox } from "@/components/common/controls/form-combobox";

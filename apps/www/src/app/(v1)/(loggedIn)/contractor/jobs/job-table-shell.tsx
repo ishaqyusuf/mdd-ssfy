@@ -28,19 +28,19 @@ import {
     DateCellContent,
     PrimaryCellContent,
     SecondaryCellContent,
-} from "../../../../../components/_v1/columns/base-columns";
-import { DataTable2 } from "../../../../../components/_v1/data-table/data-table-2";
+} from "@/components/_v1/columns/base-columns";
+import { DataTable2 } from "@/components/_v1/data-table/data-table-2";
 import {
     DeleteRowAction,
     RowActionCell,
     RowActionMenuItem,
     RowActionMoreMenu,
-} from "../../../../../components/_v1/data-table/data-table-row-actions";
-import { PayableEmployees } from "../../../../../components/_v1/filters/employee-filter";
-import { ProjectsFilter } from "../../../../../components/_v1/filters/projects-filter";
-import JobType from "../../../../../components/_v1/hrm/job-type";
-import { Icons } from "../../../../../components/_v1/icons";
-import Money from "../../../../../components/_v1/money";
+} from "@/components/_v1/data-table/data-table-row-actions";
+import { PayableEmployees } from "@/components/_v1/filters/employee-filter";
+import { ProjectsFilter } from "@/components/_v1/filters/projects-filter";
+import JobType from "@/components/_v1/hrm/job-type";
+import { Icons } from "@/components/_v1/icons";
+import Money from "@/components/_v1/money";
 import JobOverviewSheet from "./job-overview/job-overview-sheet";
 
 export default function JobTableShell<T>({

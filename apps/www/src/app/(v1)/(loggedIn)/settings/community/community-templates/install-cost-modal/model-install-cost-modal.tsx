@@ -43,13 +43,13 @@ import {
 } from "@gnd/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
-import Btn from "../../../../../../../components/_v1/btn";
+import Btn from "@/components/_v1/btn";
 import {
     PrimaryCellContent,
     SecondaryCellContent,
-} from "../../../../../../../components/_v1/columns/base-columns";
-import BaseModal from "../../../../../../../components/_v1/modals/base-modal";
-import Money from "../../../../../../../components/_v1/money";
+} from "@/components/_v1/columns/base-columns";
+import BaseModal from "@/components/_v1/modals/base-modal";
+import Money from "@/components/_v1/money";
 
 export default function ModelInstallCostModal({ community = false }) {
     const route = useRouter();

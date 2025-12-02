@@ -1,9 +1,10 @@
 import { toSafeInteger } from "lodash";
-import { SalesDispatchStatus } from "../../../types";
-import { generateDispatchId } from "../../utils/dispatch-utils";
-import { LoadDispatchListAction } from "./dispatch-list-action";
+
 import { sum } from "@/lib/utils";
 import { formatDate } from "@/lib/use-day";
+import { SalesDispatchStatus } from "@/app-deps/(clean-code)/(sales)/types";
+import { generateDispatchId } from "@/app-deps/(clean-code)/(sales)/_common/utils/dispatch-utils";
+import { LoadDispatchListAction } from "@/app-deps/(clean-code)/(sales)/_common/data-actions/dispatch-actions/dispatch-list-action";
 export type DispatchItem = LoadDispatchListAction[number]["items"][number];
 
 export function transformDispatchList(dispatch: LoadDispatchListAction[0]) {

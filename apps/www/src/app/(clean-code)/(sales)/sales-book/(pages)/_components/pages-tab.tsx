@@ -1,5 +1,5 @@
+import { getSalesTabActionUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-tabs";
 import { FPageTabs } from "@/components/(clean-code)/fikr-ui/f-page-tabs";
-import { getSalesTabActionUseCase } from "../../../_common/use-case/sales-book-tabs";
 
 export default async function PagesTab() {
     const tabs = getSalesTabActionUseCase();

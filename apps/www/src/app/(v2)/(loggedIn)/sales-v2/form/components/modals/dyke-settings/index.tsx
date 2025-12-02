@@ -18,8 +18,8 @@ import {
     TooltipTrigger,
 } from "@gnd/ui/tooltip";
 
-import { getDykeSections } from "../../../../_actions/dyke-settings/get-dyke-sections";
-import { DykeForm } from "../../../../type";
+import { DykeForm } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
+import { getDykeSections } from "@/app-deps/(v2)/(loggedIn)/sales-v2/_actions/dyke-settings/get-dyke-sections";
 
 interface Props {
     // data?: DykeForm["data"]["settings"];
