@@ -7,15 +7,13 @@ import { useForm, UseFormReturn } from "react-hook-form";
 import { Button } from "@gnd/ui/button";
 import { Form } from "@gnd/ui/form";
 import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
-
-import { updateDykeStepProductMeta } from "../../_action/dyke-step-setting";
-import { DykeForm, DykeStep } from "../../../type";
-import { IStepProducts } from "../step-items-list/item-section/step-products";
-
+import { DykeForm, DykeStep } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
+import { IStepProducts } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products";
 import {
     getDykeStepState,
     getFormSteps,
-} from "../step-items-list/item-section/step-products/init-step-components";
+} from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/init-step-components";
+import { updateDykeStepProductMeta } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/_action/dyke-step-setting";
 
 interface Props {
     lineItemIndex: number;
@@ -45,7 +43,7 @@ export default function DeleteItemModal({
     >([]);
     useEffect(() => {
         const formArray = invoiceForm.getValues(
-            `itemArray.${lineItemIndex}.item.formStepArray`,
+            `itemArray.${lineItemIndex}.item.formStepArray`
         );
         const _depFormSteps = getFormSteps(formArray, stepIndex);
         const stateDeps = getDykeStepState(_depFormSteps, stepForm);
@@ -67,10 +65,10 @@ export default function DeleteItemModal({
                                 ([k, v]) => {
                                     if (k?.includes(a))
                                         delete stepItemMeta.show?.[k];
-                                },
+                                }
                             );
                         }
-                    },
+                    }
                 );
                 stepItemMeta.deleted = stateDeps;
                 await updateDykeStepProductMeta(stepItem.id, stepItemMeta);
@@ -78,7 +76,7 @@ export default function DeleteItemModal({
                 stepItem.meta = stepItemMeta;
 
                 return stepItem;
-            }),
+            })
         );
         onComplete && onComplete(_stepItems);
         modal.close();
@@ -90,7 +88,7 @@ export default function DeleteItemModal({
                 stepItems.map((s) => {
                     s.deletedAt = new Date();
                     return s;
-                }),
+                })
             );
         modal.close();
     }

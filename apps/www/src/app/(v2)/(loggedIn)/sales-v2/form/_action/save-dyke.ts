@@ -4,6 +4,8 @@ import { saveSalesComponentPricingDta } from "@/app-deps/(clean-code)/(sales)/_c
 import { saveSalesTaxDta } from "@/app-deps/(clean-code)/(sales)/_common/data-access/sales-tax.persistent";
 import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
 import { dealerSession } from "@/app-deps/(v1)/_actions/utils";
+import { DykeForm } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
+import { generateSalesIdDac } from "@/app-deps/(v2)/(loggedIn)/sales/_data-access/generate-sales-id.dac";
 import {
     ComponentPrice,
     DykeSalesDoors,
@@ -12,9 +14,6 @@ import {
     Prisma,
 } from "@/db";
 import { lastId } from "@/lib/nextId";
-
-import { generateSalesIdDac } from "../../../sales/_data-access/generate-sales-id.dac";
-import { DykeForm } from "../../type";
 
 export async function saveDykeSales(data: DykeForm) {
     const dealerMode = await dealerSession();

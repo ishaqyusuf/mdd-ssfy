@@ -2,7 +2,7 @@ import { HomeJobList, IJobs } from "@/types/hrm";
 import { SubmitJobTabs } from ".";
 import { useFieldArray } from "react-hook-form";
 import { usePathname } from "next/navigation";
-import { getUnitJobs } from "../../../_actions/get-unit-jobs";
+import { getUnitJobs } from "@/app-deps/(v2)/(loggedIn)/contractors/_actions/get-unit-jobs";
 import { useValidateTaskQty } from "./use-validate-task-qty";
 
 import {
@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
 import { createContext, useContext, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import { getJobCostList } from "../../../_actions/job-cost-list";
+import { getJobCostList } from "@/app-deps/(v2)/(loggedIn)/contractors/_actions/job-cost-list";
 import submitJobUtils from "./submit-job-utils";
 import { InstallCostLine } from "@/types/settings";
 import { deepCopy } from "@/lib/deep-copy";

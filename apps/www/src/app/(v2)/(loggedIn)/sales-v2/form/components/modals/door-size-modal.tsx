@@ -22,10 +22,12 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
-
-import { useDykeCtx } from "../../_hooks/form-context";
-import { useDoorSizes } from "../../_hooks/use-door-size";
-import { DykeDoorForm, DykeForm } from "../../../type";
+import {
+    DykeDoorForm,
+    DykeForm,
+} from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
+import { useDykeCtx } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/_hooks/form-context";
+import { useDoorSizes } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/_hooks/use-door-size";
 
 interface Props {
     rowIndex;

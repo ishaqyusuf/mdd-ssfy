@@ -7,8 +7,8 @@ import dayjs from "dayjs";
 import va from "@/lib/va";
 import { fixSalesPaymentAction } from "./sales-payment";
 import { transformData } from "@/lib/utils";
-import { saveProgress } from "../../../_actions/progress";
-import { user } from "../../../_actions/utils";
+import { saveProgress } from "@/app-deps/(v1)/_actions/progress";
+import { user } from "@/app-deps/(v1)/_actions/utils";
 import { revalidatePath } from "next/cache";
 import { _updateProdQty } from "@/app-deps/(v2)/(loggedIn)/sales/_data-access/update-prod-qty.dac";
 

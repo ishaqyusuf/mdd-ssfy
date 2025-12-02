@@ -2,8 +2,7 @@
 
 import Modal from "@/components/common/modal";
 import { AssignmentModalProps } from ".";
-
-import useAssignmentActionsBuilder from "../../../use-assignment-actions-builder";
+import useAssignmentActionsBuilder from "@/app-deps/(v2)/(loggedIn)/sales-v2/productions/use-assignment-actions-builder";
 
 export default function ModalHeader({ order }: AssignmentModalProps) {
     const assignmentActions = useAssignmentActionsBuilder(order);

@@ -7,12 +7,12 @@ import { toast } from "sonner";
 
 import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 
+import { AssignmentModalProps } from "../assignment-modal";
+import { useAssignment } from "../assignment-modal/use-assignment";
 import {
     assignAllAction,
     markAsSubmittedAction,
-} from "../../../_actions/production-batch-actions";
-import { AssignmentModalProps } from "../assignment-modal";
-import { useAssignment } from "../assignment-modal/use-assignment";
+} from "@/app-deps/(v2)/(loggedIn)/sales-v2/productions/_actions/production-batch-actions";
 
 interface Props {
     orderId;

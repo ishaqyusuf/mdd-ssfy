@@ -9,8 +9,8 @@ import { useFieldArray, useForm, useFormContext } from "react-hook-form";
 
 import { Form } from "@gnd/ui/form";
 
-import { _getShelfCategories } from "../../../form/_action/get-shelf-categories";
-import { IDykeShelfProducts, IDykeShelfProductsForm } from "../../../type";
+import { _getShelfCategories } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/_action/get-shelf-categories";
+import { IDykeShelfProductsForm } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
 
 interface Props {
     data?: IDykeShelfProductsForm;

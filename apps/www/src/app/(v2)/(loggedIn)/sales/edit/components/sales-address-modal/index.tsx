@@ -17,11 +17,10 @@ import { Form } from "@gnd/ui/form";
 import { Label } from "@gnd/ui/label";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
-
-import { saveSalesAddressAction } from "../../../_actions/save-sales-address";
-import { updateSalesAddress } from "../../../_actions/update-sales-address";
-import { _getCustomerSearchList } from "../../../_data-access/get-customer-search.dac";
-import salesData from "../../../sales-data";
+import { saveSalesAddressAction } from "@/app-deps/(v2)/(loggedIn)/sales/_actions/save-sales-address";
+import { updateSalesAddress } from "@/app-deps/(v2)/(loggedIn)/sales/_actions/update-sales-address";
+import salesData from "@/app-deps/(v2)/(loggedIn)/sales/sales-data";
+import { _getCustomerSearchList } from "@/app-deps/(v2)/(loggedIn)/sales/_data-access/get-customer-search.dac";
 
 export default function SalesAddressModal({ form: mainForm }) {
     // const mainForm = useFormContext();
@@ -120,7 +119,7 @@ export default function SalesAddressModal({ form: mainForm }) {
                         id,
                         customerId,
                         billingAddressId,
-                        shippingAddressId,
+                        shippingAddressId
                     );
                 }
                 // closeModal();

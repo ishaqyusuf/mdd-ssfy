@@ -8,8 +8,7 @@ import { formatDate } from "@/lib/use-day";
 import { sum } from "@/lib/utils";
 import { DeliveryOption, IAddressMeta, ISalesType } from "@/types/sales";
 import dayjs from "dayjs";
-
-import salesData from "../../../sales/sales-data";
+import salesData from "@/app-deps/(v2)/(loggedIn)/sales/sales-data";
 
 interface Props {
     production?: boolean;

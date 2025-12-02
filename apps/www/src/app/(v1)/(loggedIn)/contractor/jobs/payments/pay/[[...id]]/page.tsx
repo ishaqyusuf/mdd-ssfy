@@ -11,7 +11,8 @@ import { Metadata } from "next";
 import Link from "@/components/link";
 import TabbedLayout from "@/components/_v1/tab-layouts/tabbed-layout";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
-import JobTableShell from "../../../job-table-shell";
+import JobTableShell from "@/app-deps/(v1)/(loggedIn)/contractor/jobs/job-table-shell";
+
 export const metadata: Metadata = {
     title: "Payment Portal",
 };

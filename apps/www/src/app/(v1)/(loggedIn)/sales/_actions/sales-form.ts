@@ -7,7 +7,7 @@ import { ISalesSettingMeta, PostTypes } from "@/types/post";
 import { ISalesOrder, ISalesType } from "@/types/sales";
 import dayjs from "dayjs";
 
-import { user } from "../../../_actions/utils";
+import { user } from "@/app-deps/(v1)/_actions/utils";
 
 export interface ICreateOrderFormQuery {
     customerId?;
@@ -31,7 +31,7 @@ export interface SalesFormCtx {
     items: any[];
 }
 export async function salesFormAction(
-    query: ICreateOrderFormQuery,
+    query: ICreateOrderFormQuery
 ): Promise<SalesFormResponse> {
     const order = await prisma.salesOrders.findFirst({
         where: {
@@ -112,7 +112,7 @@ async function formCtx(): Promise<SalesFormCtx> {
     };
 }
 async function newSalesFormAction(
-    query: ICreateOrderFormQuery,
+    query: ICreateOrderFormQuery
 ): Promise<SalesFormResponse> {
     const ctx = await formCtx();
 

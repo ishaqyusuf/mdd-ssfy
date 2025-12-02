@@ -8,9 +8,9 @@ import { ISalesPayment } from "@/types/sales";
 import {
     creditTransaction,
     debitTransaction,
-} from "../../../_actions/customer-wallet/transaction";
-import { getCustomerWallet } from "../../../_actions/customer-wallet/wallet";
-import { getSettingAction } from "../../../_actions/settings";
+} from "@/app-deps/(v1)/_actions/customer-wallet/transaction";
+import { getCustomerWallet } from "@/app-deps/(v1)/_actions/customer-wallet/wallet";
+import { getSettingAction } from "@/app-deps/(v1)/_actions/settings";
 
 export interface PaymentOrderProps {
     id;
@@ -43,7 +43,7 @@ export async function applyPaymentAction({
     const transaction = await debitTransaction(
         wallet.id,
         debit,
-        `Payment for order: ${orders.map((o) => o.orderId)}`,
+        `Payment for order: ${orders.map((o) => o.orderId)}`
     );
     let commissionPercentage = settings?.meta?.commission?.percentage || 0;
     await Promise.all(
@@ -88,7 +88,7 @@ export async function applyPaymentAction({
                         : undefined,
                 },
             });
-        }),
+        })
     );
     await Promise.all(
         orders.map(async ({ id, amountDue }) => {
@@ -101,7 +101,7 @@ export async function applyPaymentAction({
                     updatedAt: new Date(),
                 },
             });
-        }),
+        })
     );
     return true;
 }
@@ -133,7 +133,7 @@ export async function deleteSalesPayment({
         refund ? amount : 0,
         refund
             ? `Sales Payment deleted and refunded (${sales.orderId})`
-            : `Sales Payment deleted with no refund (${sales.orderId}). $${amount}`,
+            : `Sales Payment deleted with no refund (${sales.orderId}). $${amount}`
     );
 }
 export async function fixPaymentAction({

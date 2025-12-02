@@ -2,9 +2,9 @@
 
 import { sendMessage } from "@/app-deps/(v1)/_actions/email";
 import { userId } from "@/app-deps/(v1)/_actions/utils";
+import { DykeForm } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
 import { prisma } from "@/db";
 import { generateRandomString } from "@/lib/utils";
-import { DykeForm } from "../../../type";
 
 export async function _saveDykeError(errorId, data) {
     await prisma.dykeSalesError.create({

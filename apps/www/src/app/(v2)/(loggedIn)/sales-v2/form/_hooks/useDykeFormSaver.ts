@@ -6,8 +6,8 @@ import { saveDykeSales } from "../_action/save-dyke";
 import { toast } from "sonner";
 import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
 import { _saveDykeError, errorRestored } from "../_action/error/save-error";
-import initDykeSaving from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/init-dyke-saving";
-import salesFormUtils from "../../../sales/edit/sales-form-utils";
+import initDykeSaving from "@/app-deps/(v2)/(loggedIn)/sales-v2/_utils/init-dyke-saving";
+import salesFormUtils from "@/app-deps/(v2)/(loggedIn)/sales/edit/sales-form-utils";
 
 export default function useDykeFormSaver(form) {
     const [saving, startTransition] = useTransition();

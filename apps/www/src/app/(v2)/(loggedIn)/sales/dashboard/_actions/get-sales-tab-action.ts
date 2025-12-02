@@ -2,7 +2,7 @@
 
 import { prisma } from "@/db";
 import { DeliveryOption, ISalesType } from "@/types/sales";
-import { PageTab } from "../../../sales-v2/dealers/type";
+import { PageTab } from "@/app-deps/(v2)/(loggedIn)/sales-v2/dealers/type";
 
 export type SalesTabs =
     | "Orders"

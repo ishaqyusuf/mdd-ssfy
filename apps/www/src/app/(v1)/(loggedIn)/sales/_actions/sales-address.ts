@@ -3,7 +3,7 @@
 import { _saveSalesAddress } from "@/app-deps/(v2)/(loggedIn)/sales/_data-access/save-sales-address.dac";
 import { prisma, Prisma } from "@/db";
 
-import { _email } from "../../../_actions/_email";
+import { _email } from "@/app-deps/(v1)/_actions/_email";
 
 export async function findAddressAction({ q }: { q: string }) {
     const _contains = {

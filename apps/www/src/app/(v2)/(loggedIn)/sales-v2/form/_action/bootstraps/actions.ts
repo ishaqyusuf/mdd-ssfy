@@ -1,7 +1,7 @@
 "use server";
 
+import { DykeDoorType } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
 import { prisma } from "@/db";
-import { DykeDoorType } from "../../../type";
 
 export async function bootstrapHousePackageTools() {
     const hpts = await prisma.housePackageTools.findMany({

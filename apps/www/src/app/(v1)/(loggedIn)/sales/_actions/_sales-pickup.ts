@@ -2,10 +2,13 @@
 
 import { SalesQueryParams } from "@/types/sales";
 import { prisma } from "@/db";
-import { _revalidate } from "../../../_actions/_revalidate";
-import { getPageInfo, queryFilter } from "../../../_actions/action-utils";
-import { userId } from "../../../_actions/utils";
-import { saveProgress } from "../../../_actions/progress";
+import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
+import {
+    getPageInfo,
+    queryFilter,
+} from "@/app-deps/(v1)/_actions/action-utils";
+import { userId } from "@/app-deps/(v1)/_actions/utils";
+import { saveProgress } from "@/app-deps/(v1)/_actions/progress";
 import { whereSales } from "@/data-access/sales";
 
 export async function _getSalesPickup(query: SalesQueryParams) {

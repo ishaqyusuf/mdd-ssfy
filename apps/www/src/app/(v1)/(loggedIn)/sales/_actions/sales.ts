@@ -17,9 +17,9 @@ import {
     SaveOrderActionProps,
 } from "@/types/sales";
 
-import { _revalidate } from "../../../_actions/_revalidate";
-import { getProgress, saveProgress } from "../../../_actions/progress";
-import { user, userId } from "../../../_actions/utils";
+import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
+import { getProgress, saveProgress } from "@/app-deps/(v1)/_actions/progress";
+import { user, userId } from "@/app-deps/(v1)/_actions/utils";
 import { fixSalesPaymentAction } from "./sales-payment";
 import { DispatchItemPackingStatus } from "@sales/types";
 

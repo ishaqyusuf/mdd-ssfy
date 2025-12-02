@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 
-import { useAssignment } from "../../../sales-v2/productions/_components/_modals/assignment-modal/use-assignment";
+import { useAssignment } from "@/app-deps/(v2)/(loggedIn)/sales-v2/productions/_components/_modals/assignment-modal/use-assignment";
 import { useSalesStatus } from "../../hooks/sales-hooks";
 import { useSalesMenu } from "../../utils/use-sales-menu";
 
