@@ -1,5 +1,10 @@
 import { createTRPCRouter, publicProcedure } from "../init";
-import { auth, getLoginByToken } from "@api/db/queries/user";
+import {
+  auth,
+  getLoginByToken,
+  login,
+  loginSchema,
+} from "@api/db/queries/user";
 import { loginByTokenSchema } from "@api/schemas/hrm";
 
 export const userRoutes = createTRPCRouter({
@@ -11,5 +16,8 @@ export const userRoutes = createTRPCRouter({
     }),
   auth: publicProcedure.query(async (props) => {
     return auth(props.ctx);
+  }),
+  login: publicProcedure.input(loginSchema).mutation(async (props) => {
+    return login(props.ctx, props.input);
   }),
 });

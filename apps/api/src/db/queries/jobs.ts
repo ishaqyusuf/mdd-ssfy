@@ -158,12 +158,19 @@ createJob: publicProcedure
       }),
 */
 export const createJobSchema = z.object({
+  id: z.number().optional().nullable(),
+  description: z.string().optional().nullable(),
+  title: z.string().optional().nullable(),
+  note: z.string().optional().nullable(),
   projectId: z.number().optional().nullable(),
   homeId: z.number().optional().nullable(),
+  coWorkerId: z.number().optional().nullable(),
   tasks: z.record(
     z.string(),
     z.object({
       qty: z.number().optional().nullable(),
+      maxQty: z.number().optional().nullable(),
+      rate: z.number(),
     })
   ),
 });

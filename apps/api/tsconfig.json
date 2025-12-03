@@ -21,6 +21,7 @@
     "jsxImportSource": "hono/jsx",
     "baseUrl": ".",
     "paths": {
+      "@auth/*": ["../../packages/auth/src/*"],
       "@api/*": ["src/*"],
       "@community/*": ["../../packages/community/src/*"],
       "@jobs/*": ["../../packages/jobs/src/*"],

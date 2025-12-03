@@ -4,9 +4,9 @@ import { JobsHeader } from "@/components/installers/jobs/jobs-header";
 
 export default function AuthLayout() {
   return (
-    <Stack initialRouteName="dashboard">
+    <Stack>
       <Stack.Screen
-        name="dashboard"
+        name="index"
         options={{
           header: () => (
             <Header

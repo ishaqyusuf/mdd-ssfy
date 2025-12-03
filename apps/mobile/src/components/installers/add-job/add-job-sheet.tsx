@@ -36,7 +36,7 @@ export function Content() {
     >
       <JobFormProvider value={ctx}>
         <BottomSheetScrollView contentContainerStyle={{ paddingBottom: 60 }}>
-          <Tabs value={ctx.tab}>
+          <Tabs onValueChange={(e) => {}} value={ctx.tab}>
             <Tabs.Content value="project" className="w-full">
               <Step1Project />
             </Tabs.Content>

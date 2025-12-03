@@ -1,8 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useColorScheme } from "nativewind";
 import React from "react";
-import { Controller, Form, useForm } from "react-hook-form";
+import { Controller } from "react-hook-form";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -12,7 +11,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
 import { z } from "zod";
 
@@ -21,6 +19,11 @@ import { Label } from "@/components/ui/label";
 import { useZodForm } from "@/components/use-zod-form";
 import { signInSchema, type SignInSchema } from "@/lib/schemas/auth";
 import { Input } from "@/components/ui/input-2";
+import { getWebUrl } from "@/lib/base-url";
+import { useMutation } from "@tanstack/react-query";
+import { _trpc } from "@/components/static-trpc";
+import { useRouter } from "expo-router";
+import { useAuthContext } from "@/hooks/use-auth";
 
 export default function SignIn() {
   const { colorScheme } = useColorScheme();
@@ -33,39 +36,30 @@ export default function SignIn() {
     },
   });
 
+  const router = useRouter();
+  const auth = useAuthContext();
+  const { mutate: loginMutation, isPending: isLoggingIn } = useMutation(
+    _trpc.user.login.mutationOptions({
+      onSuccess(data, variables, onMutateResult, context) {
+        auth.onLogin(data);
+        // (async () => {
+        //   await SecureStore.setItemAsync("token", data?.token);
+        // })();
+      },
+      onError(error, variables, onMutateResult, context) {
+        Alert.alert("Sign In Failed", error.message);
+      },
+      meta: {
+        toastTitle: {
+          error: "Unable to complete",
+          loading: "Processing...",
+          success: "Done!.",
+        },
+      },
+    })
+  );
   const signIn = async (data: SignInSchema) => {
-    if (isLoading) return;
-    setIsLoading(true);
-    try {
-      const res = await fetch(
-        `${process.env.EXPO_PUBLIC_WEB_URL}/api/auth/callback/credentials`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        }
-      );
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({
-          message: "Invalid credentials",
-        }));
-        throw new Error(errorData.message || "Invalid credentials");
-      }
-
-      const result = await res.json();
-
-      await SecureStore.setItemAsync(
-        "token",
-        result?.accessToken || result?.token
-      );
-
-      return true;
-    } catch (error: any) {
-      Alert.alert("Sign In Failed", error.message);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
+    loginMutation(data);
   };
 
   return (
@@ -115,6 +109,7 @@ export default function SignIn() {
                     autoCapitalize="none"
                     keyboardType="email-address"
                     textContentType="emailAddress"
+                    className="font-semibold"
                   />
                   {error && (
                     <Text className="text-red-500 mt-1">{error.message}</Text>
@@ -140,13 +135,7 @@ export default function SignIn() {
                     value={value}
                     secureTextEntry
                     textContentType="password"
-                    Icon={
-                      <MaterialIcons
-                        name="lock-outline"
-                        size={20}
-                        color={colorScheme === "dark" ? "#9CA3AF" : "#6B7280"}
-                      />
-                    }
+                    className="font-semibold"
                   />
                   {error && (
                     <Text className="text-red-500 mt-1">{error.message}</Text>

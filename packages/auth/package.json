@@ -4,9 +4,7 @@
   "private": true,
   "exports": {
     ".": "./src/index.ts",
-    "./middleware": "./src/middleware.ts",
-    "./client": "./src/client.ts",
-    "./env": "./env.ts"
+    "./utils": "./src/utils.ts"
   },
   "prisma": {
     "schema": "./src/schema"

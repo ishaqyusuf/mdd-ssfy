@@ -1,11 +1,13 @@
 import { Image } from "expo-image";
 import { useColorScheme } from "nativewind";
-import { TouchableOpacity, View } from "react-native";
+import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "../../ui/text";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { LogOut, MenuIcon } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { getToken } from "@/lib/session-store";
+import { useState } from "react";
+import { Logout } from "@/components/logout";
 
 type HeaderProps = {
   name: string;
@@ -13,8 +15,6 @@ type HeaderProps = {
 };
 
 export function Header({ name, avatarUrl }: HeaderProps) {
-  const { colorScheme } = useColorScheme();
-
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good Morning";
@@ -23,7 +23,7 @@ export function Header({ name, avatarUrl }: HeaderProps) {
   };
 
   const insets = useSafeAreaInsets();
-  const router = useRouter();
+
   return (
     <View
       style={{ paddingTop: insets.top }}
@@ -48,19 +48,7 @@ export function Header({ name, avatarUrl }: HeaderProps) {
         <View className="flex-row items-center space-x-1">
           <ThemeToggle />
 
-          <TouchableOpacity
-            onPress={(e) => {
-              console.log(">>> Logging out");
-              router.push("/sign-in");
-            }}
-            className="p-2.5 rounded-full active:bg-gray-200 dark:active:bg-gray-700"
-          >
-            <LogOut
-              // name="menu"
-              size={20}
-              color={colorScheme === "dark" ? "#F9FAFB" : "#1F2937"}
-            />
-          </TouchableOpacity>
+          <Logout />
         </View>
       </View>
     </View>

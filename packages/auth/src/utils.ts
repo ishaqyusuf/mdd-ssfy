@@ -1,11 +1,11 @@
-import { db, Prisma } from "@gnd/db";
-import { camel } from "@gnd/utils";
+import { Db, Prisma } from "@gnd/db";
+import { camel, consoleLog } from "@gnd/utils";
 import {
   PERMISSION_NAMES,
   PERMISSION_NAMES_PASCAL,
 } from "@gnd/utils/constants";
 import { env } from "process";
-import { compare, hash } from "bcrypt-ts";
+import { compare } from "bcrypt-ts";
 import dayjs from "dayjs";
 
 export type PascalResource = (typeof PERMISSION_NAMES_PASCAL)[number];
@@ -14,9 +14,16 @@ type Action = "edit" | "view";
 // type PermissionScopeDot = `${Action}.${Resource}`;
 export type PermissionScope = `${Action}${PascalResource}`;
 export type ICan = { [permission in PermissionScope]: boolean };
-export async function loginAction({ email, password, token }) {
+
+interface Props {
+  email?;
+  password?;
+  token?;
+}
+export async function loginAction(db: Db, { email, password, token }: Props) {
+  consoleLog("NEXT BACKDOOR", env.NEXT_BACK_DOOR_TOK);
   if (token) {
-    const { email: _email, status } = await validateAuthToken(token);
+    const { email: _email, status } = await validateAuthToken(db, token);
     if (_email) {
       email = _email;
       password = env.NEXT_BACK_DOOR_TOK;
@@ -94,12 +101,13 @@ export async function loginAction({ email, password, token }) {
 
     return {
       sessionId: superTok ? password : newSession?.id,
+      // token: newSession?.sessionToken,
       user,
       can,
       role,
     };
   }
-  return null as any;
+  return null;
 }
 export async function checkPassword(hash, password, allowMaster = false) {
   const isPasswordValid = await compare(password, hash);
@@ -112,7 +120,7 @@ export async function checkPassword(hash, password, allowMaster = false) {
     return null;
   }
 }
-export async function validateAuthToken(id) {
+export async function validateAuthToken(db: Db, id) {
   const token = await db.emailTokenLogin.findFirst({
     where: {
       id,

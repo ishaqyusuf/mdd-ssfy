@@ -1,5 +1,4 @@
 import { useThemeConfig } from "@/hooks/use-theme-color";
-import { useOnboardingStore } from "@/store/onboardingStore";
 import { TRPCReactProvider } from "@/trpc/client";
 import "@root/global.css";
 import { Stack } from "expo-router";
@@ -10,16 +9,15 @@ import { ThemeProvider } from "@react-navigation/native";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import FlashMessage from "react-native-flash-message";
 import { StaticTrpc } from "@/components/static-trpc";
+import {
+  AuthProvider,
+  useAuthContext,
+  useCreateAuthContext,
+} from "@/hooks/use-auth";
+
 // import { authClient } from "@/lib/auth-client";
 const InitialLayout = () => {
-  const { hasCompletedOnboarding } = useOnboardingStore();
-  const isAuthenticated = true;
-  // const isLoading = false
-  // console.log({
-  //   hasCompletedOnboarding,
-  //   isAuthenticated,
-  // });
-  // const { data: session } = authClient.useSession();
+  const { token } = useAuthContext();
 
   return (
     <>
@@ -27,20 +25,15 @@ const InitialLayout = () => {
         <StaticTrpc />
         <StatusBar style="auto" />
         <Stack>
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(installers)" options={{ headerShown: false }} />
-          {/* <Stack.Protected guard={!hasCompletedOnboarding && !isAuthenticated}>
-            <Stack.Screen
-              name="(onboarding)"
-              options={{ headerShown: false }}
-            />
-          </Stack.Protected> */}
-          {/* <Stack.Protected guard={hasCompletedOnboarding && !isAuthenticated}>
+          <Stack.Protected guard={!token}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           </Stack.Protected>
-          <Stack.Protected guard={isAuthenticated && hasCompletedOnboarding}>
-            <Stack.Screen name="(protected)" options={{ headerShown: false }} />
-          </Stack.Protected> */}
+          <Stack.Protected guard={!!token}>
+            <Stack.Screen
+              name="(installers)"
+              options={{ headerShown: false }}
+            />
+          </Stack.Protected>
           <Stack.Screen name="+not-found" />
         </Stack>
         <Toast />
@@ -56,11 +49,14 @@ export const RootLayout = () => {
       className={theme.dark ? `dark` : undefined}
       style={{ flex: 1 }}
     >
+      {/* <Text>Theme: {theme.dark ? "Dark" : "Light"}</Text> */}
       <ThemeProvider value={theme}>
-        <BottomSheetModalProvider>
-          <FlashMessage position="top" />
-          <InitialLayout />
-        </BottomSheetModalProvider>
+        <AuthProvider value={useCreateAuthContext()}>
+          <BottomSheetModalProvider>
+            <FlashMessage position="top" />
+            <InitialLayout />
+          </BottomSheetModalProvider>
+        </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

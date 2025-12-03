@@ -3,9 +3,10 @@ import type {
   UpdateUserProfileSchema,
 } from "@api/schemas/hrm";
 import type { TRPCContext } from "@api/trpc/init";
-import { camel } from "@gnd/utils";
+import { camel, consoleLog } from "@gnd/utils";
 import { allPermissions, type ICan } from "@gnd/utils/constants";
-
+import z, { email } from "zod";
+import { loginAction } from "@auth/utils";
 export async function getAuthUser(ctx: TRPCContext) {
   const user = await ctx.db.users.findFirstOrThrow({
     where: {
@@ -144,4 +145,22 @@ async function userPermissions(ctx: TRPCContext, roleId) {
       can[camel(p.name) as any] = true;
     });
   return can;
+}
+
+/*
+
+*/
+export const loginSchema = z.object({
+  email: z.string(),
+  password: z.string(),
+});
+export type LoginSchema = z.infer<typeof loginSchema>;
+
+export async function login(ctx: TRPCContext, query: LoginSchema) {
+  const { db } = ctx;
+  consoleLog("SIGNING IN>>>>>");
+  const data = await loginAction(db, {
+    ...query,
+  });
+  return data;
 }
