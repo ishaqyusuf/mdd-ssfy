@@ -1,7 +1,7 @@
 import { _trpc } from "@/components/static-trpc";
 import { useZodForm } from "@/components/use-zod-form";
 import { createJobSchema } from "@api/db/queries/jobs";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { createContext, useContext, useEffect, useState } from "react";
 
 type JobFormContextType = ReturnType<typeof useCreateJobFormContext>;
@@ -16,6 +16,7 @@ export const useCreateJobFormContext = (ref) => {
   const form = useZodForm(createJobSchema, {
     defaultValues: {},
   });
+
   const { data: projectList } = useQuery(
     _trpc.community.projectsList.queryOptions()
   );
@@ -34,6 +35,19 @@ export const useCreateJobFormContext = (ref) => {
         enabled: !!projectId,
       }
     )
+  );
+  const { mutate: saveJob, isPending: isSaving } = useMutation(
+    _trpc.jobs.createJob.mutationOptions({
+      onSuccess(data, variables, onMutateResult, context) {},
+      onError(error, variables, onMutateResult, context) {},
+      meta: {
+        toastTitle: {
+          error: "Unable to complete",
+          loading: "Processing...",
+          success: "Done!.",
+        },
+      },
+    })
   );
   //@ts-ignore
   const [, setOpened] = useState(false);
@@ -58,7 +72,7 @@ export const useCreateJobFormContext = (ref) => {
           {
             maxQty: +v,
             qty: null,
-            rate: costData?.list?.find((a) => a.uid === k)?.cost,
+            cost: costData?.data?.list?.find((a) => a.uid === k)?.cost,
           },
         ])
     );
@@ -71,9 +85,7 @@ export const useCreateJobFormContext = (ref) => {
     form.setValue("tasks", {});
     setTab("unit");
   };
-  useEffect(() => {
-    console.log({ jobsListData });
-  }, [jobsListData]);
+
   return {
     ref,
     form,
@@ -86,6 +98,7 @@ export const useCreateJobFormContext = (ref) => {
     setTab,
     selectProject,
     selectUnit,
+    saveJob,
   };
 };
 export const useJobFormContext = () => {

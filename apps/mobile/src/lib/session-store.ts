@@ -21,7 +21,7 @@ interface Profile {
   };
 }
 export const getSessionProfile = () =>
-  JSON.parse(SecureStore.getItem(profileKey) || "{}") as Profile;
+  JSON.parse(SecureStore.getItem(profileKey)!) as Profile;
 export const setSessionProfile = (data: Profile) =>
   SecureStore.setItem(profileKey, JSON.stringify(data));
 

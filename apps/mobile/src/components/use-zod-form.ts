@@ -4,7 +4,7 @@ import type { z } from "zod";
 
 export const useZodForm = <T extends z.ZodType<any, any>>(
   schema: T,
-  options?: Omit<UseFormProps<z.infer<T>>, "resolver">,
+  options?: Omit<UseFormProps<z.infer<T>>, "resolver">
 ) => {
   return useForm<z.infer<T>>({
     resolver: zodResolver(schema),

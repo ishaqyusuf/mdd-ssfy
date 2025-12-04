@@ -1,11 +1,12 @@
 import type { TRPCContext } from "@api/trpc/init";
-import type { JobMeta } from "@community/types";
+import type { InstallCost, InstallCostMeta, JobMeta } from "@community/types";
 import type { Prisma } from "@gnd/db";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 import z from "zod";
 import { getSetting } from "./settings";
 import { formatLargeNumber } from "@gnd/utils/format";
+import { sum } from "@gnd/utils";
 export const getJobsSchema = z.object({}).extend(paginationSchema.shape);
 export type GetJobsSchema = z.infer<typeof getJobsSchema>;
 
@@ -90,7 +91,9 @@ export async function getInstallCosts(
   query: GetInstallCostsSchema
 ) {
   const { db } = ctx;
-  return await getSetting(ctx, "install-price-chart");
+  const res = await getSetting<InstallCostMeta>(ctx, "install-price-chart");
+  // res.data.list[0].
+  return res;
 }
 
 export const getJobAnalyticsSchema = z.object({});
@@ -151,31 +154,83 @@ export async function getJobAnalytics(
 }
 
 /*
-createJob: publicProcedure
-      .input(createJobSchema)
-      .mutation(async (props) => {
-        return createJob(props.ctx, props.input);
-      }),
+
 */
 export const createJobSchema = z.object({
   id: z.number().optional().nullable(),
   description: z.string().optional().nullable(),
-  title: z.string().optional().nullable(),
+  title: z.string(),
+  subtitle: z.string().optional().nullable(),
+  type: z
+    .enum(["punchout", "installation", "Deco-Shutter"])
+    .optional()
+    .nullable(),
   note: z.string().optional().nullable(),
   projectId: z.number().optional().nullable(),
   homeId: z.number().optional().nullable(),
+  additionalCost: z.number().optional().nullable(),
+  addon: z.number().optional().nullable(),
   coWorkerId: z.number().optional().nullable(),
   tasks: z.record(
     z.string(),
-    z.object({
-      qty: z.number().optional().nullable(),
-      maxQty: z.number().optional().nullable(),
-      rate: z.number(),
-    })
+    z
+      .object({
+        qty: z.number().optional().nullable(),
+        maxQty: z.number().optional().nullable(),
+        cost: z.number(),
+      })
+      .refine(
+        (data) =>
+          data.qty == null || data.maxQty == null || data.qty <= data.maxQty,
+        { message: "qty cannot be greater than maxQty", path: ["qty"] }
+      )
   ),
 });
 export type CreateJobSchema = z.infer<typeof createJobSchema>;
 
 export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
+  return {};
   const { db } = ctx;
+  const taskCost = sum(
+    Object.entries(query.tasks).map(([k, v]) => sum([+v.qty! * +v.cost]))
+  );
+  const meta: JobMeta = {
+    taskCost,
+    additional_cost: query.additionalCost!,
+    addon: !query.homeId ? 0 : query.addon!,
+    costData: query.tasks as any,
+  };
+  const amount = sum([
+    sum([meta.addon, meta.taskCost, meta.additional_cost]) /
+      (query.coWorkerId ? 2 : 1),
+  ]);
+  if (!query.id) {
+    const data = {
+      status: "Submitted",
+      statusDate: new Date(),
+      userId: ctx.userId!,
+      amount,
+      type: query.type as any,
+      coWorkerId: query.coWorkerId,
+      description: query.description,
+      homeId: query.homeId!,
+      projectId: query.projectId!,
+      note: query.note,
+      meta,
+      title: query.title,
+      subtitle: query.subtitle,
+    };
+    await db.jobs.createMany({
+      data: !query.coWorkerId
+        ? [data]
+        : [
+            data,
+            {
+              ...data,
+              userId: query.coWorkerId!,
+              coWorkerId: ctx.userId!,
+            },
+          ],
+    });
+  }
 }

@@ -1,4 +1,6 @@
 import {
+  createJob,
+  createJobSchema,
   getInstallCosts,
   getInstallCostsSchema,
   getJobAnalytics,
@@ -22,4 +24,7 @@ export const jobRoutes = createTRPCRouter({
     .query(async (props) => {
       return getJobAnalytics(props.ctx, props.input);
     }),
+  createJob: publicProcedure.input(createJobSchema).mutation(async (props) => {
+    return createJob(props.ctx, props.input);
+  }),
 });

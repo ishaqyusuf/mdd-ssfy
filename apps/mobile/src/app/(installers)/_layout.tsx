@@ -8,12 +8,7 @@ export default function AuthLayout() {
       <Stack.Screen
         name="index"
         options={{
-          header: () => (
-            <Header
-              name="Ishaq"
-              avatarUrl="https://avatar.iran.liara.run/public/34"
-            />
-          ),
+          header: () => <Header />,
         }}
       />
       <Stack.Screen

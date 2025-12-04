@@ -4,7 +4,6 @@ import {
   getSessionProfile,
   getToken,
   setSessionProfile,
-  setToken,
 } from "@/lib/session-store";
 import { useRouter } from "expo-router";
 import { createContext, useContext, useState } from "react";

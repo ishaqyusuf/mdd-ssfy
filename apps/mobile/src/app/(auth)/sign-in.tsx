@@ -11,32 +11,24 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import * as SecureStore from "expo-secure-store";
-import { z } from "zod";
-
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useZodForm } from "@/components/use-zod-form";
 import { signInSchema, type SignInSchema } from "@/lib/schemas/auth";
 import { Input } from "@/components/ui/input-2";
-import { getWebUrl } from "@/lib/base-url";
 import { useMutation } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
-import { useRouter } from "expo-router";
 import { useAuthContext } from "@/hooks/use-auth";
-
 export default function SignIn() {
   const { colorScheme } = useColorScheme();
-  const [isLoading, setIsLoading] = React.useState(false);
 
   const form = useZodForm(signInSchema, {
     defaultValues: {
-      email: "",
-      password: "",
+      email: "pcruz321@gmail.com",
+      password: "lorem-ipsum",
     },
   });
 
-  const router = useRouter();
   const auth = useAuthContext();
   const { mutate: loginMutation, isPending: isLoggingIn } = useMutation(
     _trpc.user.login.mutationOptions({
@@ -157,6 +149,7 @@ export default function SignIn() {
           className="mt-8"
           size="lg"
           variant={"destructive"}
+
           // loading={isLoading}
         >
           <Text>Sign In</Text>

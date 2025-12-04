@@ -1,20 +1,12 @@
 import { Image } from "expo-image";
-import { useColorScheme } from "nativewind";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "../../ui/text";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useRouter } from "expo-router";
-import { getToken } from "@/lib/session-store";
-import { useState } from "react";
 import { Logout } from "@/components/logout";
+import { useAuthContext } from "@/hooks/use-auth";
 
-type HeaderProps = {
-  name: string;
-  avatarUrl: string;
-};
-
-export function Header({ name, avatarUrl }: HeaderProps) {
+export function Header() {
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good Morning";
@@ -23,7 +15,8 @@ export function Header({ name, avatarUrl }: HeaderProps) {
   };
 
   const insets = useSafeAreaInsets();
-
+  const auth = useAuthContext();
+  const avatarUrl = null;
   return (
     <View
       style={{ paddingTop: insets.top }}
@@ -41,7 +34,7 @@ export function Header({ name, avatarUrl }: HeaderProps) {
             {`${getGreeting()},`}
           </Text>
           <Text className="text-2xl font-bold text-gray-900 dark:text-white">
-            {name}!
+            {auth?.profile?.user?.name}!
           </Text>
         </View>
 

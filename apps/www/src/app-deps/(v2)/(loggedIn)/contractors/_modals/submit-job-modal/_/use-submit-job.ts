@@ -64,7 +64,6 @@ export default function useSubmitJob(form) {
             // try {
             const { job } = form.getValues();
             job.meta.taskCost = submitJobUtils.totalTaskCost(job.meta.costData);
-
             // if(!job.id)
             job.amount = 0;
             if (!job.homeId) job.meta.addon = 0;
