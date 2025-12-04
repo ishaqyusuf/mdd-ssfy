@@ -18,7 +18,7 @@ import {
 // import { authClient } from "@/lib/auth-client";
 const InitialLayout = () => {
   const { token } = useAuthContext();
-  console.log({ token });
+
   return (
     <>
       <TRPCReactProvider>

@@ -1,5 +1,4 @@
 import { View, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
-import { useColorScheme } from "nativewind";
 import { Input } from "@/components/ui/input-2";
 import { Button } from "@/components/ui/button";
 import { LegendList } from "@legendapp/list";
@@ -8,12 +7,14 @@ import { useMemo } from "react";
 import { Text } from "@/components/ui/text";
 import { consoleLog } from "@gnd/utils";
 import { Controller } from "react-hook-form";
+import { cn } from "@/lib/utils";
 
 export function Step3Tasks() {
   const ctx = useJobFormContext();
 
   const handleSubmit = () => {
     const values = form.getValues();
+    ctx.setTab("meta");
     consoleLog("Form value", values);
     Object.entries(values.tasks).map(([a, b]) => {
       if (b.qty) consoleLog(a, b);
@@ -49,16 +50,16 @@ export function Step3Tasks() {
                 <Input
                   placeholder="Qty"
                   onBlur={onBlur}
-                  onChangeText={onChange}
+                  onChangeText={(e) => {
+                    console.log(e);
+                    onChange(+e);
+                  }}
                   value={value}
                   autoCapitalize="none"
                   keyboardType="numeric"
                   // textContentType="emailAddress"
-                  className="font-semibold"
+                  className={cn("font-semibold", error && "border-red-500")}
                 />
-                {error && (
-                  <Text className="text-red-500 mt-1">{error.message}</Text>
-                )}
               </>
             )}
           />
@@ -88,6 +89,7 @@ export function Step3Tasks() {
       className="flex-1"
     >
       <ScrollView
+        className="mb-[100px]"
         contentContainerStyle={{
           flexGrow: 1,
         }}
@@ -100,7 +102,14 @@ export function Step3Tasks() {
           keyExtractor={(item) => item.id}
           ListFooterComponent={
             <View className="p-4  bg-white dark:bg-gray-900">
-              <Button onPress={handleSubmit}>
+              <Button
+                onPress={form.handleSubmit(handleSubmit, (errors) => {
+                  console.log(errors);
+                  if (!errors.tasks) {
+                    handleSubmit();
+                  }
+                })}
+              >
                 <Text>Submit Job</Text>
               </Button>
             </View>

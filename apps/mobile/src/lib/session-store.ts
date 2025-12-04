@@ -1,8 +1,15 @@
+import { consoleLog } from "@gnd/utils";
 import * as SecureStore from "expo-secure-store";
 
 const key = "session_token";
 
-export const getToken = () => SecureStore.getItem(key);
+export const getToken = () => {
+  try {
+    return SecureStore.getItem(key);
+  } catch (error) {
+    consoleLog("TOKEN LOAD ERROR", error);
+  }
+};
 export const deleteToken = () => SecureStore.deleteItemAsync(key);
 export const setToken = (v: string) => SecureStore.setItem(key, v);
 

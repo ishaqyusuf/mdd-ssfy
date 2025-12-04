@@ -24,8 +24,8 @@ export default function SignIn() {
 
   const form = useZodForm(signInSchema, {
     defaultValues: {
-      email: "pcruz321@gmail.com",
-      password: "lorem-ipsum",
+      email: process.env.EXPO_PUBLIC_EMAIL,
+      password: process.env.EXPO_PUBLIC_TOK,
     },
   });
 

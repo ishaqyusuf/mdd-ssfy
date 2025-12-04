@@ -5,7 +5,7 @@ import type {
 import type { TRPCContext } from "@api/trpc/init";
 import { camel, consoleLog } from "@gnd/utils";
 import { allPermissions, type ICan } from "@gnd/utils/constants";
-import z, { email } from "zod";
+import z from "zod";
 import { loginAction } from "@auth/utils";
 export async function getAuthUser(ctx: TRPCContext) {
   const user = await ctx.db.users.findFirstOrThrow({

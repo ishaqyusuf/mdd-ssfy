@@ -1,5 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
-import type { InstallCost, InstallCostMeta, JobMeta } from "@community/types";
+import type { InstallCostMeta, JobMeta } from "@community/types";
 import type { Prisma } from "@gnd/db";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";

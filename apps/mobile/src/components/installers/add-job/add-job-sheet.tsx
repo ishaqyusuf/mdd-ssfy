@@ -14,6 +14,7 @@ import {
   useJobFormContext,
 } from "@/hooks/use-job-form";
 import { Tabs } from "@/components/ui/composite";
+import { Step4Meta } from "./step-4-meta";
 
 export function AddJobSheet({ ref }) {
   return (
@@ -45,6 +46,9 @@ export function Content() {
             </Tabs.Content>
             <Tabs.Content value="tasks" className="w-full">
               <Step3Tasks />
+            </Tabs.Content>
+            <Tabs.Content value="meta" className="w-full">
+              <Step4Meta />
             </Tabs.Content>
           </Tabs>
         </BottomSheetScrollView>

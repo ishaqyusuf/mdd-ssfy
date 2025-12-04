@@ -2,7 +2,7 @@ import { _trpc } from "@/components/static-trpc";
 import { useZodForm } from "@/components/use-zod-form";
 import { createJobSchema } from "@api/db/queries/jobs";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState } from "react";
 
 type JobFormContextType = ReturnType<typeof useCreateJobFormContext>;
 export const JobFormContext = createContext<JobFormContextType>(
@@ -23,7 +23,8 @@ export const useCreateJobFormContext = (ref) => {
   const { data: costData } = useQuery(
     _trpc.jobs.getInstallCosts.queryOptions({})
   );
-  const [projectId] = form.watch(["projectId"]);
+  const [projectId, homeId] = form.watch(["projectId", "homeId"]);
+
   const [tab, setTab] = useState<"project" | "unit" | "tasks">("project");
   const { data: jobsListData } = useQuery(
     _trpc.community.getUnitJobs.queryOptions(
@@ -63,6 +64,7 @@ export const useCreateJobFormContext = (ref) => {
   // const [unit,setUnit] = useStat
   const selectUnit = (unit) => {
     form.setValue("homeId", unit.id);
+    form.setValue("subtitle", unit.name);
     setTab("tasks");
     const tasks = Object.fromEntries(
       Object.entries(unit.costing || {})
@@ -70,7 +72,7 @@ export const useCreateJobFormContext = (ref) => {
         .map(([k, v]) => [
           k,
           {
-            maxQty: +v,
+            maxQty: +(v as any),
             qty: null,
             cost: costData?.data?.list?.find((a) => a.uid === k)?.cost,
           },
@@ -80,9 +82,14 @@ export const useCreateJobFormContext = (ref) => {
     setTab("tasks");
   };
   const selectProject = (project) => {
+    const oldProjectId = form.getValues("projectId");
     form.setValue("projectId", project.id);
-    form.setValue("homeId", null);
-    form.setValue("tasks", {});
+    form.setValue("title", project.title);
+    if (oldProjectId !== project.id) {
+      form.setValue("homeId", null);
+      form.setValue("subtitle", null);
+      form.setValue("tasks", {});
+    }
     setTab("unit");
   };
 
@@ -99,6 +106,8 @@ export const useCreateJobFormContext = (ref) => {
     selectProject,
     selectUnit,
     saveJob,
+    projectId,
+    homeId,
   };
 };
 export const useJobFormContext = () => {
