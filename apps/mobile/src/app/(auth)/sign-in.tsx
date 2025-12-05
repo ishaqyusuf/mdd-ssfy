@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input-2";
 import { useMutation } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
 import { useAuthContext } from "@/hooks/use-auth";
+import { ThemeToggle } from "@/components/theme-toggle";
 export default function SignIn() {
   const { colorScheme } = useColorScheme();
 
@@ -57,7 +58,7 @@ export default function SignIn() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1"
+      className="flex-1 relative"
     >
       <ScrollView
         contentContainerStyle={{
@@ -67,6 +68,9 @@ export default function SignIn() {
         }}
         keyboardShouldPersistTaps="handled"
       >
+        <View className="flex justify-end flex-row">
+          <ThemeToggle />
+        </View>
         <View className="items-center mb-12">
           <View className="p-4 bg-blue-600/10 dark:bg-blue-500/20 rounded-full">
             <MaterialIcons
@@ -152,7 +156,7 @@ export default function SignIn() {
 
           // loading={isLoading}
         >
-          <Text>Sign In</Text>
+          <Text className="text-destructive-foreground">Sign In</Text>
         </Button>
 
         <View className="mt-12 items-center">

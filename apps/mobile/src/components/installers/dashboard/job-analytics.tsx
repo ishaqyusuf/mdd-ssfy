@@ -1,9 +1,9 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
-import { View } from "react-native";
 import { Text } from "../../ui/text";
 import { useQuery } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
+import { View } from "@/components/ui/view";
 
 export function JobAnalytics() {
   const { colorScheme } = useColorScheme();
@@ -19,9 +19,7 @@ export function JobAnalytics() {
           size={22}
           color={colorScheme === "dark" ? "#9CA3AF" : "#6B7280"}
         />
-        <Text className="text-xl font-bold text-gray-800 dark:text-gray-100 ml-2">
-          Job Analytics
-        </Text>
+        <Text className="text-xl font-bold ml-2">Job Analytics</Text>
       </View>
       <View className="flex-row flex-wrap -mx-2">
         <AnalyticsCard
@@ -68,9 +66,7 @@ const AnalyticsCard = ({
   <View className="w-1/2 p-2">
     <View className="bg-white dark:bg-gray-800/60 p-5 rounded-2xl shadow-lg shadow-gray-200/70 dark:shadow-none dark:border dark:border-gray-700/80">
       <View className="flex-row justify-between items-start">
-        <Text className="text-4xl font-extrabold stext-gray-800 dark:text-gray-100s text-foreground -tracking-tight">
-          {value}
-        </Text>
+        <Text className="text-4xl font-extrabold -tracking-tight">{value}</Text>
         <View
           className="w-10 h-10 rounded-full items-center justify-center"
           style={{ backgroundColor: `${color}25` }}
@@ -78,7 +74,7 @@ const AnalyticsCard = ({
           <MaterialIcons name={iconName} size={22} color={color} />
         </View>
       </View>
-      <Text className="text-base font-semibold text-gray-500 dark:text-gray-400 mt-2">
+      <Text className="text-base font-semibold mt-2" color="secondary">
         {title}
       </Text>
     </View>
