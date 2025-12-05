@@ -44,9 +44,10 @@ const InitialLayout = () => {
 
 export const RootLayout = () => {
   const theme = useThemeConfig();
+  console.log({ theme });
   return (
     <GestureHandlerRootView
-      className={theme.dark ? `dark` : undefined}
+      className={theme.dark ? `dark dark-theme` : "light light-theme"}
       style={{ flex: 1 }}
     >
       {/* <Text>Theme: {theme.dark ? "Dark" : "Light"}</Text> */}

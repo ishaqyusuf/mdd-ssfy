@@ -1,12 +1,9 @@
 import React, { useMemo } from "react";
 
-import { useAddJobStore } from "../../../stores/use-add-job-store";
-import { Step1Project } from "./step-1-project";
-import { Step2Unit } from "./step-2-unit";
+import { ProjectSelect } from "./step-1-project";
+import { UnitSelect } from "./step-2-unit";
 import { Step3Tasks } from "./step-3-tasks";
 import { Modal } from "@/components/ui/modal";
-import { _trpc } from "@/components/static-trpc";
-import { useQuery } from "@tanstack/react-query";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import {
   useCreateJobFormContext,
@@ -15,6 +12,7 @@ import {
 } from "@/hooks/use-job-form";
 import { Tabs } from "@/components/ui/composite";
 import { Step4Meta } from "./step-4-meta";
+// import { Step4Meta } from "./step-4-meta";
 
 export function AddJobSheet({ ref }) {
   return (
@@ -25,7 +23,7 @@ export function AddJobSheet({ ref }) {
 }
 export function Content() {
   const ctx = useJobFormContext();
-  const snapPoints = useMemo(() => ["50%", "90%"], []);
+  const snapPoints = useMemo(() => ["50%", "90%", "100%"], []);
 
   return (
     <Modal
@@ -39,10 +37,18 @@ export function Content() {
         <BottomSheetScrollView contentContainerStyle={{ paddingBottom: 60 }}>
           <Tabs onValueChange={(e) => {}} value={ctx.tab}>
             <Tabs.Content value="project" className="w-full">
-              <Step1Project />
+              <ProjectSelect
+                onSelect={(e) => {
+                  ctx.setTab("unit");
+                }}
+              />
             </Tabs.Content>
             <Tabs.Content value="unit" className="w-full">
-              <Step2Unit />
+              <UnitSelect
+                onSelect={(e) => {
+                  ctx.setTab("tasks");
+                }}
+              />
             </Tabs.Content>
             <Tabs.Content value="tasks" className="w-full">
               <Step3Tasks />

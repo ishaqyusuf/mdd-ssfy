@@ -68,7 +68,7 @@ const AnalyticsCard = ({
   <View className="w-1/2 p-2">
     <View className="bg-white dark:bg-gray-800/60 p-5 rounded-2xl shadow-lg shadow-gray-200/70 dark:shadow-none dark:border dark:border-gray-700/80">
       <View className="flex-row justify-between items-start">
-        <Text className="text-4xl font-extrabold text-gray-800 dark:text-gray-100 -tracking-tight">
+        <Text className="text-4xl font-extrabold stext-gray-800 dark:text-gray-100s text-foreground -tracking-tight">
           {value}
         </Text>
         <View

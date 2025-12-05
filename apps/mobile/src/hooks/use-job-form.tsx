@@ -62,10 +62,10 @@ export const useCreateJobFormContext = (ref) => {
     console.log("Job Form Changed: ", e);
   };
   // const [unit,setUnit] = useStat
-  const selectUnit = (unit) => {
+  const selectUnit = (unit, onSelect) => {
     form.setValue("homeId", unit.id);
     form.setValue("subtitle", unit.name);
-    setTab("tasks");
+    // setTab("tasks");
     const tasks = Object.fromEntries(
       Object.entries(unit.costing || {})
         ?.filter(([k, v]) => !!v)
@@ -79,9 +79,10 @@ export const useCreateJobFormContext = (ref) => {
         ])
     );
     form.setValue("tasks", tasks);
-    setTab("tasks");
+    onSelect();
+    // setTab("tasks");
   };
-  const selectProject = (project) => {
+  const selectProject = (project, onSelect) => {
     const oldProjectId = form.getValues("projectId");
     form.setValue("projectId", project.id);
     form.setValue("title", project.title);
@@ -90,7 +91,8 @@ export const useCreateJobFormContext = (ref) => {
       form.setValue("subtitle", null);
       form.setValue("tasks", {});
     }
-    setTab("unit");
+    onSelect();
+    // setTab("unit");
   };
 
   return {

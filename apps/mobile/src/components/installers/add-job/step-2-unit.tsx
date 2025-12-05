@@ -1,12 +1,11 @@
 import { View, Text, TouchableOpacity } from "react-native";
-import { Unit } from "./dummy-data";
 import { MaterialIcons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list";
 import { useColorScheme } from "nativewind";
 import { useJobFormContext } from "@/hooks/use-job-form";
 import { useMemo } from "react";
 
-export function Step2Unit({}) {
+export function UnitSelect({ onSelect }) {
   const { colorScheme } = useColorScheme();
   const ctx = useJobFormContext();
   const jobsList = ctx.jobsListData?.homeList;
@@ -20,7 +19,7 @@ export function Step2Unit({}) {
       onPress={() => {
         // console.log(item);
         // setUnit(item)
-        ctx.selectUnit(item);
+        ctx.selectUnit(item, onSelect);
       }}
     >
       <Text className="text-lg text-gray-800 dark:text-gray-200">

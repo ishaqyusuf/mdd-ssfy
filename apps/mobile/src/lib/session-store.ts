@@ -4,11 +4,12 @@ import * as SecureStore from "expo-secure-store";
 const key = "session_token";
 
 export const getToken = () => {
-  try {
-    return SecureStore.getItem(key);
-  } catch (error) {
-    consoleLog("TOKEN LOAD ERROR", error);
-  }
+  return SecureStore.getItem(key);
+  // try {
+  // } catch (error) {
+  //   consoleLog("TOKEN LOAD ERROR", error);
+  // }
+  // return null;
 };
 export const deleteToken = () => SecureStore.deleteItemAsync(key);
 export const setToken = (v: string) => SecureStore.setItem(key, v);
