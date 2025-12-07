@@ -87,6 +87,7 @@ export default function SignIn() {
           </Text>
         </View>
         <View className="gap-y-4">
+          <Text>{process.env.EXPO_PUBLIC_BASE_URL}</Text>
           <View>
             <Label>Email</Label>
             <Controller
