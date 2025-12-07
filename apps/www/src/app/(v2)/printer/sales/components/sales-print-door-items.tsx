@@ -1,10 +1,9 @@
 "use client";
 
 import React from "react";
-import { Icons } from "@/components/_v1/icons";
 
-import Text from "../../components/print-text";
 import { useSalesBlockCtx } from "../sales-print-block";
+import Text from "@/app-deps/(v2)/printer/components/print-text";
 
 export default function SalesPrintDoorItems({ index }) {
     const ctx = useSalesBlockCtx();
@@ -36,8 +35,8 @@ export default function SalesPrintDoorItems({ index }) {
                                         .filter(
                                             (d) =>
                                                 !["Height"].includes(
-                                                    d.step?.title as any,
-                                                ),
+                                                    d.step?.title as any
+                                                )
                                         )
                                         .map((detail, i) => (
                                             <div
@@ -76,7 +75,7 @@ export default function SalesPrintDoorItems({ index }) {
                                                                 {cell.title}
                                                             </Text>
                                                         </th>
-                                                    ),
+                                                    )
                                                 )}
                                             </tr>
                                         </thead>
@@ -99,12 +98,12 @@ export default function SalesPrintDoorItems({ index }) {
                                                                     {...ld.style}
                                                                 >
                                                                     {Array.isArray(
-                                                                        ld.value,
+                                                                        ld.value
                                                                     )
                                                                         ? ld.value.map(
                                                                               (
                                                                                   val,
-                                                                                  vi,
+                                                                                  vi
                                                                               ) => (
                                                                                   <div
                                                                                       key={
@@ -115,7 +114,7 @@ export default function SalesPrintDoorItems({ index }) {
                                                                                           val
                                                                                       }
                                                                                   </div>
-                                                                              ),
+                                                                              )
                                                                           )
                                                                         : ld.value}
                                                                 </Text>

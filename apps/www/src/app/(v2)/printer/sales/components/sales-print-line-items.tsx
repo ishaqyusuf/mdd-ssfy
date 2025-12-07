@@ -1,7 +1,7 @@
 "use client";
 
 import { useSalesBlockCtx } from "../sales-print-block";
-import Text from "../../components/print-text";
+import Text from "@/app-deps/(v2)/printer/components/print-text";
 import React from "react";
 import { cn } from "@/lib/utils";
 

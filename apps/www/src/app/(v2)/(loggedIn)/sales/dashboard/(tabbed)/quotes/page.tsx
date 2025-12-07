@@ -4,8 +4,8 @@ import {
     getSalesAction,
 } from "../../_actions/get-sales-action";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
-import PageClient from "../../_components/page-client";
-import ServerTab from "../../_components/server-tab";
+import PageClient from "@/app-deps/(v2)/(loggedIn)/sales/dashboard/_components/page-client";
+// import PageClient from "@/app-deps/(v2)/(loggedin)/sales/dashboard/(tabbed)/_components/page-client";
 
 export const metadata: Metadata = {
     title: "Sales | GND",
@@ -33,3 +33,4 @@ export default async function SalesPage(props: Props) {
         </FPage>
     );
 }
+

@@ -4,7 +4,7 @@ import React from "react";
 import { Icons } from "@/components/_v1/icons";
 import { cn } from "@/lib/utils";
 
-import Text from "../../components/print-text";
+import Text from "@/app-deps/(v2)/printer/components/print-text";
 import { useSalesBlockCtx } from "../sales-print-block";
 
 export default function SalesPrintHeader() {
@@ -82,7 +82,7 @@ export default function SalesPrintHeader() {
                                         <td colSpan={10} key={address?.title}>
                                             <div
                                                 className={cn(
-                                                    "my-4  mb-4 flex flex-col",
+                                                    "my-4  mb-4 flex flex-col"
                                                 )}
                                             >
                                                 <div>
@@ -101,7 +101,7 @@ export default function SalesPrintHeader() {
                                                                     {f}
                                                                 </p>
                                                             );
-                                                        },
+                                                        }
                                                     )}
                                                 </div>
                                             </div>

@@ -354,6 +354,7 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
           from: dateValue(filter, 0),
           to: dateValue(filter, 1),
         }}
+        className=""
         onSelect={(range) => {
           let value = [
             range?.from
@@ -367,7 +368,7 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
                 })
               : "-",
           ];
-          console.log([value, filter]);
+
           setFilters({
             [filter.value]: value, //.join(","),
           });
@@ -382,7 +383,7 @@ function SearchTip({ children }) {
       <HoverCardTrigger asChild>
         <button
           type="button"
-          className="absolute opacity-50 transition-opacity duration-300 hover:opacity-100 right-10 top-[10px] z-10"
+          className="absolute opacity-50 transition-opacity duration-300 hover:opacity-100 right-10 top-2.5 z-10"
         >
           <HelpCircle className="size-4" />
         </button>

@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import Text from "../../components/print-text";
+import Text from "@/app-deps/(v2)/printer/components/print-text";
 import { useSalesBlockCtx } from "../sales-print-block";
 
 export default function SalesPrintShelfItems({ index }) {

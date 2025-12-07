@@ -22,7 +22,6 @@ import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { useSaleOverview } from "./context";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
-import { salesFormUrl } from "@/utils/sales-utils";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { AuthGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";

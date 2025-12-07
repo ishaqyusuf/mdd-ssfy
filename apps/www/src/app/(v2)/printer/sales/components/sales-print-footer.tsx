@@ -2,7 +2,7 @@
 
 import { Icons } from "@/components/_v1/icons";
 import { useSalesBlockCtx } from "../sales-print-block";
-import Text from "../../components/print-text";
+import Text from "@/app-deps/(v2)/printer/components/print-text";
 import React from "react";
 
 export default function SalesPrintFooter() {

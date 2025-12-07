@@ -5,10 +5,11 @@ import { toast } from "sonner";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 
 import { getFormState } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
-import { useStepContext } from "../../components-section/ctx";
-import SearchBar from "../../components-section/search-bar";
+
 import { HptContext } from "@/components/forms/sales-form/context";
 import { ComponentItemCard } from "@/components/forms/sales-form/component-item-card";
+import { useStepContext } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/ctx";
+import SearchBar from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/search-bar";
 
 export type Door = HptContext["doors"][number];
 export const openDoorSwapModal = (door: Door, itemUid) => {

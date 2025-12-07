@@ -386,7 +386,6 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                     </div>
                     <DropdownMenu.Separator />
                     <Calendar
-                        className="w-[250px]"
                         mode="single"
                         // toDate={new Date()}
                         selected={dueDate}

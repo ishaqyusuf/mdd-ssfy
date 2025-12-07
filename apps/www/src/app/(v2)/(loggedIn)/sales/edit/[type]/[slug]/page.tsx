@@ -6,9 +6,9 @@ import {
     OrderViewCrumb,
     OrdersCrumb,
 } from "@/components/_v1/breadcrumbs/links";
-import EditSalesForm from "../../components/form";
 import { Metadata } from "next";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
+import EditSalesForm from "@/app-deps/(v2)/(loggedIn)/sales/edit/components/form";
 export const metadata: Metadata = {
     title: "Edit Sales | GND",
 };

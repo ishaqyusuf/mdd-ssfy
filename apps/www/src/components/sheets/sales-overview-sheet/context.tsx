@@ -29,9 +29,10 @@ const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
                 },
                 {
                     enabled: !!ctx.params["sales-overview-id"],
-                },
-            ),
+                }
+            )
         );
+        console.log({ data });
         return {
             data,
         };
@@ -42,7 +43,7 @@ const { useContext: useDispatch, Provider: DispatchProvider } =
         const ctx = useSalesOverviewQuery();
         const trpc = useTRPC();
         const { data: drivers } = useQuery(
-            trpc.hrm.getDrivers.queryOptions({}),
+            trpc.hrm.getDrivers.queryOptions({})
         );
         const { data, refetch } = useQuery(
             trpc.dispatch.orderDispatchOverview.queryOptions(
@@ -51,8 +52,8 @@ const { useContext: useDispatch, Provider: DispatchProvider } =
                 },
                 {
                     enabled: !!ctx.params["sales-overview-id"],
-                },
-            ),
+                }
+            )
         );
         const [openForm, setOpenForm] = useState(false);
         const bachWorker = useSalesControlAction({
@@ -111,8 +112,8 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
                 },
                 {
                     enabled: !!ctx.params["sales-overview-id"],
-                },
-            ),
+                }
+            )
         );
         const [selections, setSelections] = useState({});
 
