@@ -114,14 +114,22 @@ export async function getJobAnalytics(
   const { db } = ctx;
 
   const completedPromise = db.jobs.count({
-    where: { status: "Completed", userId: ctx.userId },
+    where: {
+      OR: [
+        { status: "Completed" },
+        {
+          payment: {},
+        },
+      ],
+      userId: ctx.userId,
+    },
   });
 
   const inProgressPromise = db.jobs.count({
-    where: { status: "In Progress", userId: ctx.userId },
+    where: { status: "Submitted", userId: ctx.userId },
   });
 
-  const paidPromise = db.jobs.count({
+  const pendingPaymentsPromise = db.jobs.count({
     // _sum: {
     //   amount: true,
     // },
@@ -131,7 +139,7 @@ export async function getJobAnalytics(
     },
   });
 
-  const pendingPaymentsPromise = db.jobs.count({
+  const paidPromise = db.jobs.count({
     // _sum: {
     //   amount: true,
     // },

@@ -1,26 +1,47 @@
-import { View, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { View } from "react-native";
 import { Input } from "@/components/ui/input-2";
 import { Button } from "@/components/ui/button";
 import { LegendList } from "@legendapp/list";
 import { useJobFormContext } from "@/hooks/use-job-form";
 import { useMemo } from "react";
 import { Text } from "@/components/ui/text";
-import { consoleLog } from "@gnd/utils";
-import { Controller } from "react-hook-form";
+// import { consoleLog } from "@gnd/utils";
+// import { Controller } from "react-hook-form";
 import { cn } from "@/lib/utils";
 import { useJobFormStore } from "@/stores/use-job-form-store";
-
+import { Controller } from "react-hook-form";
+import { consoleLog } from "@gnd/utils";
+import { getSessionProfile } from "@/lib/session-store";
 export function Step3Tasks() {
   const ctx = useJobFormContext();
 
   const handleSubmit = () => {
-    const values = form.getValues();
-    ctx.setTab("meta");
-    consoleLog("Form value", values);
-    Object.entries(values.tasks).map(([a, b]) => {
-      if (b.qty) consoleLog(a, b);
-    });
-    ctx.saveJob(values);
+    const values = store.form;
+    const profile = getSessionProfile();
+    const role = profile?.role?.name;
+    values.type = role == "1099 Contractor" ? "installation" : "punchout";
+    form.reset(values);
+    setTimeout(() => {
+      form.handleSubmit(
+        (e) => {
+          consoleLog("SUBMITTING>>", e);
+          ctx.saveJob(e);
+        },
+        (errs) => {
+          console.log(errs);
+          console.log(values);
+        }
+      )();
+      // form.trigger().then((e) => {
+      //   console.log({ e });
+      // });
+      // ctx.setTab("meta");
+      // consoleLog("Form value", values);
+      // Object.entries(values.tasks).map(([a, b]) => {
+      //   if (b.qty) consoleLog(a, b);
+      // });
+      // ctx.saveJob(values);
+    }, 250);
   };
   const store = useJobFormStore();
   const formTask = store.form.tasks; //ctx.form.watch("tasks");
@@ -51,12 +72,13 @@ export function Step3Tasks() {
               <>
                 <Input
                   placeholder="Qty"
-                  onBlur={onBlur}
+                  // onBlur={onBlur}
                   onChangeText={(e) => {
                     console.log(e);
-                    onChange(+e);
+                    // onChange(+e);
+                    store.update(`form.${qtyName}` as any, +e);
                   }}
-                  value={value}
+                  value={store.form.tasks?.[item.uid]?.qty}
                   autoCapitalize="none"
                   keyboardType="numeric"
                   // textContentType="emailAddress"
@@ -99,12 +121,13 @@ export function Step3Tasks() {
       ListFooterComponent={
         <View className="p-4 bg-white dark:bg-gray-900">
           <Button
-            onPress={form.handleSubmit(handleSubmit, (errors) => {
-              console.log(errors);
-              if (!errors.tasks) {
-                handleSubmit();
-              }
-            })}
+            onPress={handleSubmit}
+            // onPress={form.handleSubmit(handleSubmit, (errors) => {
+            //   console.log(errors);
+            //   if (!errors.tasks) {
+            //     handleSubmit();
+            //   }
+            // })}
           >
             <Text>Submit Job</Text>
           </Button>

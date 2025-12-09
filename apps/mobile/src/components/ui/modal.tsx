@@ -119,7 +119,7 @@ export const Modal = React.forwardRef(
     );
   }
 );
-
+Modal.displayName = "Modal";
 /**
  * Custom Backdrop
  */
@@ -171,7 +171,7 @@ const ModalHeader = React.memo(({ title, dismiss }: ModalHeaderProps) => {
     <>
       {title && (
         <View className="flex-row px-2 py-4">
-          <View className="size-[24px]" />
+          <View className="size-6" />
           <View className="flex-1">
             <Text className="text-center text-[16px] font-bold text-gray-900 dark:text-white">
               {title}
@@ -183,12 +183,12 @@ const ModalHeader = React.memo(({ title, dismiss }: ModalHeaderProps) => {
     </>
   );
 });
-
+ModalHeader.displayName = "ModalHeader";
 const CloseButton = ({ close }: { close: () => void }) => {
   return (
     <Pressable
       onPress={close}
-      className="absolute right-3 top-3 size-[24px] items-center justify-center "
+      className="absolute right-3 top-3 size-6 items-center justify-center "
       hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
       accessibilityLabel="close modal"
       accessibilityRole="button"

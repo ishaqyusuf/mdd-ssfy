@@ -3,6 +3,7 @@ import { useZodForm } from "@/components/use-zod-form";
 import { getSessionProfile } from "@/lib/session-store";
 import { useJobFormStore } from "@/stores/use-job-form-store";
 import { createJobSchema } from "@api/db/queries/jobs";
+import { consoleLog } from "@gnd/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
@@ -49,8 +50,13 @@ export const useCreateJobFormContext = (ref) => {
   //   "subtitle",
   //   "includeAdditionalCharges",
   // ]);
-  const formData = form.watch();
   const store = useJobFormStore();
+  useEffect(() => {
+    form.reset(store.form);
+    console.log("UPDATE>>>");
+  }, [store.form]);
+  // const formData = form.watch();
+  const formData = store.form;
   // const formData = useMemo(() => __formData, [__formData]);
   // useEffect(() => {
   //   console.log(formData);
@@ -61,7 +67,7 @@ export const useCreateJobFormContext = (ref) => {
     subtitle,
     title,
     includeAdditionalCharges: showCharges,
-  } = store.form;
+  } = formData;
   const { data: jobsListData } = useQuery(
     _trpc.community.getUnitJobs.queryOptions(
       {
@@ -75,8 +81,12 @@ export const useCreateJobFormContext = (ref) => {
   );
   const { mutate: saveJob, isPending: isSaving } = useMutation(
     _trpc.jobs.createJob.mutationOptions({
-      onSuccess(data, variables, onMutateResult, context) {},
-      onError(error, variables, onMutateResult, context) {},
+      onSuccess(data, variables, onMutateResult, context) {
+        consoleLog("SUCCESS", data);
+      },
+      onError(error, variables, onMutateResult, context) {
+        consoleLog("ERROR", error);
+      },
       meta: {
         toastTitle: {
           error: "Unable to complete",
@@ -99,8 +109,8 @@ export const useCreateJobFormContext = (ref) => {
   };
   // const [unit,setUnit] = useStat
   const selectUnit = (unit, onSelect) => {
-    form.setValue("homeId", unit.id);
-    form.setValue("subtitle", unit.name);
+    // form.setValue("homeId", unit.id);
+    // form.setValue("subtitle", unit.name);
     store.update("form.homeId", unit.id);
     store.update("form.subtitle", unit.name);
     // setTab("tasks");
@@ -116,26 +126,27 @@ export const useCreateJobFormContext = (ref) => {
           },
         ])
     );
-    form.setValue("tasks", tasks);
     store.update("form.tasks", tasks);
+    // form.reset(store.form)
+    // form.setValue("tasks", tasks);
     onSelect();
     // setTab("tasks");
   };
   const selectProject = (project, onSelect) => {
     // console.log(projectId);
-    const oldProjectId = form.getValues("projectId");
+    const oldProjectId = store.form.projectId; //form.getValues("projectId");
     store.update("form.projectId", project.id);
     store.update("form.title", project.title);
-    form.setValue("projectId", project.id);
-    form.setValue("title", project.title);
+    // form.setValue("projectId", project.id);
+    // form.setValue("title", project.title);
     // console.log({ project });
     if (oldProjectId !== project.id) {
-      form.setValue("homeId", null);
+      // form.setValue("homeId", null);
       store.update("form.homeId", null);
       store.update("form.subtitle", null);
       store.update("form.tasks", {});
-      form.setValue("subtitle", null);
-      form.setValue("tasks", {});
+      // form.setValue("subtitle", null);
+      // form.setValue("tasks", {});
     }
     onSelect(project);
     // setTab("unit");

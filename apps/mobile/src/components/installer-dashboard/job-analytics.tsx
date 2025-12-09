@@ -23,16 +23,16 @@ export function JobAnalytics() {
       </View>
       <View className="flex-row flex-wrap -mx-2">
         <AnalyticsCard
+          title="Submitted"
+          value={inProgress}
+          iconName="hourglass-empty"
+          color="#F59E0B"
+        />
+        <AnalyticsCard
           title="Completed"
           value={completed}
           iconName="check-circle-outline"
           color="#10B981"
-        />
-        <AnalyticsCard
-          title="In Progress"
-          value={inProgress}
-          iconName="hourglass-empty"
-          color="#F59E0B"
         />
         <AnalyticsCard
           title="Paid"

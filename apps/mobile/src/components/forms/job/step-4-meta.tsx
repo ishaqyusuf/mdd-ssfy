@@ -21,36 +21,33 @@ import {
   Home,
   Users,
 } from "lucide-react-native";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { ProjectSelect } from "./step-1-project";
 import { UnitSelect } from "./step-2-unit";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Step3Tasks } from "./step-3-tasks";
 import { useJobFormStore } from "@/stores/use-job-form-store";
-
-// const COWORKERS = [
-//   { id: "1", name: "John Doe" },
-//   { id: "2", name: "Jane Smith" },
-//   { id: "3", name: "Peter Jones" },
-//   { id: "4", name: "Mary Williams" },
-// ];
+import * as Haptics from "expo-haptics";
+import { consoleLog } from "@gnd/utils";
 
 export function Step4Meta() {
   const ctx = useJobFormContext();
   const form = ctx.form;
   const { showCharges, users, formData } = ctx;
   const store = useJobFormStore();
-  const { title, subtitle } = store.form;
+  const { title, subtitle } = formData;
   const {
     ref: coworkerModalRef,
     present: presentCoworkerModal,
     dismiss: dismissCoworkerModal,
   } = useModal();
+
   const {
     ref: projectModalRef,
     present: presentProjectModal,
     dismiss: dismissProjectModal,
   } = useModal();
+
   const {
     ref: unitsModalRef,
     present: presentUnitsModal,
@@ -62,7 +59,6 @@ export function Step4Meta() {
 
   const _dismissProjectModal = (project) => {
     dismissProjectModal();
-    if (project.id) presentUnitsModal();
   };
   const snapPoints = useMemo(
     () => [
@@ -72,14 +68,14 @@ export function Step4Meta() {
     []
   );
 
-  const { id: coWorkerId, name: coWorkerName } = store.form.coWorker || {};
+  const { id: coWorkerId, name: coWorkerName } = formData.coWorker || {};
   // const { id: coWorkerId, name: coWorkerName } = formData.coWorker || {};
-  const toggleCoworker = useCallback((coworker) => {
-    ctx.form.setValue("coWorker.id", coworker.id);
-    ctx.form.setValue("coWorker.name", coworker.name);
+  const toggleCoworker = (coworker) => {
     store.update("form.coWorker", coworker);
+    consoleLog("RESETTING>>>", { coworker, sf: store.form.coWorker });
+    ctx.form.reset(store.form);
     dismissCoworkerModal();
-  }, []);
+  };
 
   return (
     <>
@@ -148,25 +144,25 @@ export function Step4Meta() {
                 Job Description
               </Text>
               <View className="rounded-xl border border-border bg-card">
-                <Controller
+                {/* <Controller
                   control={form.control}
                   name={"description"}
                   render={({
                     field: { onChange, onBlur, value },
                     fieldState: { error },
-                  }) => (
-                    <Textarea
-                      placeholder="Enter a detailed description of the job, including any special instructions or materials used..."
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      value={value!}
-                      className={cn(
-                        "h-40 rounded-xl bg-card p-4 text-base text-foreground placeholder:text-muted-foreground",
-                        error && "border-destructive"
-                      )}
-                    />
+                  }) => ( */}
+                <Textarea
+                  placeholder="Enter a detailed description of the job, including any special instructions or materials used..."
+                  // onBlur={onBlur}
+                  onChangeText={(v) => store.update("form.description", v)}
+                  value={store.form.description}
+                  className={cn(
+                    "h-40 rounded-xl bg-card p-4 text-base text-foreground placeholder:text-muted-foreground"
+                    // error && "border-destructive"
                   )}
                 />
+                {/* )} */}
+                {/* /> */}
               </View>
             </View>
 
@@ -176,47 +172,64 @@ export function Step4Meta() {
                 <Text className="text-lg font-bold tracking-tight text-foreground">
                   Additional Charges
                 </Text>
+                {/* <Controller
+                  control={form.control}
+                  name={`includeAdditionalCharges`}
+                  render={({ field: { onChange, onBlur, value } }) => ( */}
                 <Switch
-                  checked={!!showCharges}
+                  checked={store.form.includeAdditionalCharges}
                   onCheckedChange={(state) => {
-                    ctx.form.setValue("includeAdditionalCharges", state);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    // onChange(state);
+                    store.update("form.includeAdditionalCharges", state);
+                    // ctx.form.setValue("includeAdditionalCharges", state);
                   }}
                 />
+                {/* )} */}
+                {/* /> */}
               </View>
               {showCharges && (
                 <View className="overflow-hidden rounded-xl border border-border bg-card">
                   <View className="divide-y divide-border">
                     <View className="p-4">
                       <View className="mt-2 gap-4">
-                        <Controller
+                        {/* <Controller
                           control={form.control}
                           name={`additionalReason`}
-                          render={({ field: { onChange, onBlur, value } }) => (
-                            <Textarea
-                              placeholder="Reason for charge (e.g., extra materials, extended labor)"
-                              onBlur={onBlur}
-                              onChangeText={onChange}
-                              value={value!}
-                              className="h-24 text-base"
-                            />
-                          )}
+                          render={({ field: { onChange, onBlur, value } }) => ( */}
+                        <Textarea
+                          placeholder="Reason for charge (e.g., extra materials, extended labor)"
+                          // onBlur={onBlur}
+                          // onChangeText={onChange}
+                          // value={value!}
+                          onChangeText={(v) =>
+                            store.update("form.additionalReason", v)
+                          }
+                          value={store.form.additionalReason}
+                          className="h-24 text-base"
                         />
-                        <Controller
+                        {/* )}
+                        /> */}
+                        {/* <Controller
                           control={form.control}
                           name={`additionalCost`}
-                          render={({ field: { onChange, onBlur, value } }) => (
-                            <Input
-                              placeholder="Amount ($)"
-                              onBlur={onBlur}
-                              onChangeText={(e) => {
-                                onChange(+e);
-                              }}
-                              value={value}
-                              keyboardType="numeric"
-                              className="text-base"
-                            />
-                          )}
+                          render={({ field: { onChange, onBlur, value } }) => ( */}
+                        <Input
+                          placeholder="Amount ($)"
+                          // onBlur={onBlur}
+                          // onChangeText={(e) => {
+                          //   onChange(+e);
+                          // }}
+                          // value={value}
+                          onChangeText={(v) =>
+                            store.update("form.additionalCost", +v)
+                          }
+                          value={store.form.additionalCost}
+                          keyboardType="numeric"
+                          className="text-base"
                         />
+                        {/* )}
+                        /> */}
                       </View>
                     </View>
                   </View>
@@ -227,7 +240,7 @@ export function Step4Meta() {
             {/* Co-worker */}
             <View className="gap-3">
               <Text className="px-1 text-lg font-bold tracking-tight text-foreground">
-                Assign Co-workers | {coWorkerId}
+                Assign Co-worker
               </Text>
               <View className="gap-4 rounded-xl border border-border bg-card p-4">
                 <Pressable

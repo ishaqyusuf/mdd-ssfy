@@ -1,3 +1,4 @@
+import { Roles } from "@gnd/utils/constants";
 import * as SecureStore from "expo-secure-store";
 
 export const SESSION_KEY = "session_token";
@@ -17,7 +18,7 @@ const profileKey = "session_profile";
 
 interface Profile {
   can?;
-  role?: { id; name };
+  role?: { id; name: Roles };
   sessionId;
   token;
   user: {

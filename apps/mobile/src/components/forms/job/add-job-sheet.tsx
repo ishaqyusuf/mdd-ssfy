@@ -1,28 +1,23 @@
-import React, { useEffect, useMemo } from "react";
+import React, {
+  // useEffect,
+  useMemo,
+} from "react";
 
-import { ProjectSelect } from "./step-1-project";
-import { UnitSelect } from "./step-2-unit";
-import { Step3Tasks } from "./step-3-tasks";
+// import { ProjectSelect } from "./step-1-project";
+// import { UnitSelect } from "./step-2-unit";
+// import { Step3Tasks } from "./step-3-tasks";
 import { Modal } from "@/components/ui/modal";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import {
   useCreateJobFormContext,
   JobFormProvider,
-  useJobFormContext,
+  // useJobFormContext,
 } from "@/hooks/use-job-form";
-import { Tabs } from "@/components/ui/composite";
+// import { Tabs } from "@/components/ui/composite";
 import { Step4Meta } from "./step-4-meta";
 // import { Step4Meta } from "./step-4-meta";
 
 export function AddJobSheet({ ref }) {
-  return (
-    <JobFormProvider value={useCreateJobFormContext(ref)}>
-      <Content />
-    </JobFormProvider>
-  );
-}
-export function Content() {
-  const ctx = useJobFormContext();
   const snapPoints = useMemo(
     () => [
       // "50%", "90%",
@@ -30,7 +25,7 @@ export function Content() {
     ],
     []
   );
-
+  const ctx = useCreateJobFormContext(ref);
   return (
     <Modal
       snapPoints={snapPoints}
