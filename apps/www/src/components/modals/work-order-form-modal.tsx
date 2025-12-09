@@ -3,7 +3,6 @@ import { useCustomerServiceParams } from "@/hooks/use-customer-service-params";
 import { WorkOrderForm } from "../forms/work-order-form";
 import { useQuery } from "@gnd/ui/tanstack";
 import { useTRPC } from "@/trpc/client";
-import { useDebugToast } from "@/hooks/use-debug-console";
 
 export function WorkOrderFormModal({}) {
     const { openCustomerServiceId, setParams } = useCustomerServiceParams();
@@ -15,7 +14,6 @@ export function WorkOrderFormModal({}) {
             enabled: openCustomerServiceId > 0,
         })
     );
-    // useDebugToast("Work order form data", data);
     return (
         <CustomModal
             className=" "
@@ -33,3 +31,4 @@ export function WorkOrderFormModal({}) {
         </CustomModal>
     );
 }
+

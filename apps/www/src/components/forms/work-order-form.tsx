@@ -14,7 +14,6 @@ import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-pa
 import { toast } from "@gnd/ui/use-toast";
 import { workOrderFormSchema } from "@api/db/queries/work-order";
 import { useEffect, useMemo, useState } from "react";
-import { debugToast } from "@/hooks/use-debug-console";
 import FormSelect from "../common/controls/form-select";
 import { labelValueOptions } from "@gnd/utils";
 import FormDate from "../common/controls/form-date";
@@ -85,9 +84,7 @@ export function WorkOrderForm({ data }: Props) {
                     title: "Saved",
                 });
             },
-            onError(error, variables, context) {
-                debugToast("Work order", error);
-            },
+            onError(error, variables, context) {},
         })
     );
     const { options: buildersOptions } = useCommunityBuildersList(true);
@@ -114,7 +111,6 @@ export function WorkOrderForm({ data }: Props) {
                             form.setValue("lot", null);
                             form.setValue("block", null);
                             form.setValue("meta.lotBlock", null);
-                            debugToast("Selected Project", item);
                         },
                         items: projectList?.map((a) => ({
                             label: a.title,
@@ -136,7 +132,6 @@ export function WorkOrderForm({ data }: Props) {
                                 "meta.lotBlock",
                                 item?.data?.lotBlock
                             );
-                            debugToast("Selected Project", item);
                         },
                         disabled: !project?.active,
                         items: project?.homes?.map((a) => ({

@@ -17,7 +17,6 @@ import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(fo
 import { ItemClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/item-class";
 import ItemSideView from "./item-side-view";
 import { StepSection } from "./step-section";
-import { useDebugToast } from "@/hooks/use-debug-console";
 
 interface Props {
     uid?: string;
@@ -27,7 +26,6 @@ export default function ItemSection({ uid }: Props) {
     const zItem = zus?.kvFormItem?.[uid];
 
     const sequence = zus.sequence?.stepComponent?.[uid];
-    useDebugToast("sequence", { sequence });
     return (
         <div className="mb-2 sm:rounded-lg bg-background sm:mb-4">
             <Collapsible

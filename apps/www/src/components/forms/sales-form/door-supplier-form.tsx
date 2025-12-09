@@ -1,6 +1,6 @@
 import { DykeStepMeta } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
 import { SubmitButton } from "@/components/submit-button";
-import { debugToast } from "@/hooks/use-debug-console";
+
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTRPC } from "@/trpc/client";
 import { saveSupplierSchema } from "@api/db/queries/sales-form";
@@ -39,7 +39,6 @@ export function DoorSupplierForm({
             },
             onError(error, variables, context) {
                 onError?.(error);
-                debugToast("Error", error);
             },
             meta: {
                 toastTitle: {

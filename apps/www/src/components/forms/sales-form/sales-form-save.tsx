@@ -17,7 +17,6 @@ import { parseAsBoolean, useQueryStates } from "nuqs";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { CreateSalesHistorySchemaTask } from "@jobs/schema";
-import { debugToast } from "@/hooks/use-debug-console";
 
 interface Props {
     type?: "button" | "menu";
@@ -51,7 +50,7 @@ export function SalesFormSave({ type = "button", and }: Props) {
                 allowRedirect: true,
             }
         );
-        debugToast("response", resp);
+
         const s = resp?.data?.sales;
         tsk.triggerWithAuth("create-sales-history", {
             salesNo: resp.salesNo,

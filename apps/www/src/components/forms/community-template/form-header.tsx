@@ -5,7 +5,6 @@ import { extractCommunityFormValueData } from "@community/utils/template-form";
 import { Button, buttonVariants } from "@gnd/ui/button";
 import { useMutation } from "@gnd/ui/tanstack";
 import { useTemplateSchemaContext } from "./context";
-import { useDebugToast } from "@/hooks/use-debug-console";
 import { useAuth } from "@/hooks/use-auth";
 import { openLink } from "@/lib/open-link";
 import { ModelTemplateSetting } from "@/components/model-template-setting";
@@ -33,7 +32,7 @@ export function FormHeader() {
             },
         })
     );
-    useDebugToast("Error", error);
+
     const onSubmit = () => {
         const data = extractCommunityFormValueData(Object.values(store.blocks));
         mutate({

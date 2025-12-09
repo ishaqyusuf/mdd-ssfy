@@ -7,7 +7,6 @@ import {
 import { Menu } from "./(clean-code)/menu";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { SendSalesEmailPayload, TaskName } from "@jobs/schema";
-import { debugToast } from "@/hooks/use-debug-console";
 
 export function SalesEmailMenuItem({
     salesId,
@@ -55,7 +54,7 @@ export function SalesEmailMenuItem({
                     salesIds: [salesId],
                 } as SendSalesEmailPayload,
             };
-            // debugToast("T", emailData);
+
             trig.trigger(emailData);
         };
         fn();

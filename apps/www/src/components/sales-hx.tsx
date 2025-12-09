@@ -3,7 +3,6 @@ import { Skeleton } from "@gnd/ui/skeleton";
 import { useInfiniteQuery, useSuspenseQuery } from "@gnd/ui/tanstack";
 import { Suspense } from "react";
 import { EmptyState } from "./empty-state";
-import { useDebugToast } from "@/hooks/use-debug-console";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { formatDate } from "@gnd/utils/dayjs";
 import { Label } from "@gnd/ui/label";
@@ -28,10 +27,10 @@ function Content({ salesId }) {
             },
             {
                 enabled: !!salesId,
-            },
-        ),
+            }
+        )
     );
-    useDebugToast("Hx", hx, { salesId });
+
     if (!hx?.length || !salesId)
         return (
             <EmptyState
@@ -51,7 +50,7 @@ function Content({ salesId }) {
                             <Label className="uppercase">
                                 {formatDate(
                                     line.createdAt,
-                                    "MMM, DD, YYYY, HH:mma",
+                                    "MMM, DD, YYYY, HH:mma"
                                 )}
                             </Label>
                             <div className="text-sm">

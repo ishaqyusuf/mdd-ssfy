@@ -2,7 +2,6 @@
 
 import { useMutation, useSuspenseQuery } from "@gnd/ui/tanstack";
 import { _trpc } from "./static-trpc";
-import { useDebugToast } from "@/hooks/use-debug-console";
 import { Card } from "@gnd/ui/card";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
 import { AlertCircle, CheckCircle2, Clock, Loader2 } from "lucide-react";
@@ -105,7 +104,7 @@ export function SquareTokenCheckout(props: Props) {
             },
         })
     );
-    useDebugToast("data", { data, error });
+
     const payload = data?.payload;
     const handlePayment = () => {
         createCheckout({ token: props.token });

@@ -17,7 +17,6 @@ import { useFormDataStore } from "../_common/_stores/form-data-store";
 import { ItemClass } from "../_utils/helpers/zus/item-class";
 import ItemSideView from "./item-side-view";
 import { StepSection } from "./step-section";
-import { useDebugToast } from "@/hooks/use-debug-console";
 
 interface Props {
     uid?: string;
@@ -27,7 +26,6 @@ export default function ItemSection({ uid }: Props) {
     const zItem = zus?.kvFormItem?.[uid];
 
     const sequence = zus.sequence?.stepComponent?.[uid];
-    useDebugToast("sequence", { sequence });
     return (
         <div className="mb-2 sm:rounded-lg bg-background sm:mb-4">
             <Collapsible
@@ -71,10 +69,10 @@ function ItemSectionHeader({ uid, ignoreCollapse = false }) {
         try {
             await restoreMissingComponentData(
                 cls.formItem.id,
-                cls.formItem.groupItem.hptId,
+                cls.formItem.groupItem.hptId
             );
             toast.success(
-                "Restore completed. Refresh and Save to get updated invoice.",
+                "Restore completed. Refresh and Save to get updated invoice."
             );
         } catch (error) {
             toast.error(error.message);
@@ -105,7 +103,7 @@ function ItemSectionHeader({ uid, ignoreCollapse = false }) {
                         zus.updateFormItem(
                             uid,
                             "collapsed",
-                            !formItem.collapsed,
+                            !formItem.collapsed
                         );
                     }}
                     className="h-8"

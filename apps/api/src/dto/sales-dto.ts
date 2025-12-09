@@ -100,10 +100,10 @@ function commonListData(data: Item) {
   const _cost = (label, amount) => costLines.push({ label, amount });
   const paid = sum([data.grandTotal! - data.amountDue!]);
   _cost("Sub total", data.subTotal);
-  data.taxes.map((t) => _cost(t.taxConfig?.title, t.tax));
   data.extraCosts.map((e) => {
     _cost(e.label, e.totalAmount || e.amount);
   });
+  data.taxes.map((t) => _cost(t.taxConfig?.title, t.tax));
   _cost("Total Invoice", data.grandTotal);
   _cost("Paid", paid);
   _cost("Due Amount", data.amountDue);
