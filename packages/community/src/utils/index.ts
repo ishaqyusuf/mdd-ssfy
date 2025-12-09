@@ -17,8 +17,11 @@ export const projectUnitsSelect = {
   id: true,
   createdAt: true,
   lotBlock: true,
+  lot: true,
+  block: true,
   modelName: true,
   slug: true,
+  communityTemplateId: true,
   tasks: {
     where: {
       deletedAt: null,

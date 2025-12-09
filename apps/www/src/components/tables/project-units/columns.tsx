@@ -23,6 +23,7 @@ import Link from "next/link";
 import { updateCommunityVersion } from "@/actions/community/update-community-version";
 import { openLink } from "@/lib/open-link";
 import { toast } from "@gnd/ui/use-toast";
+import { useHomeModal } from "@/app-deps/(v1)/(loggedIn)/community/units/home-modal";
 export type Item =
     RouterOutputs["community"]["getProjectUnits"]["data"][number];
 interface ItemProps {
@@ -158,6 +159,7 @@ export const columns: Column[] = [
 function Actions({ item }: ItemProps) {
     const isMobile = useIsMobile();
     const { setParams } = useFilePreviewParams();
+    const ctx = useHomeModal();
     const {
         isPending: isDeleting,
         mutate,
@@ -248,6 +250,15 @@ function Actions({ item }: ItemProps) {
                     }}
                 >
                     Print
+                </Menu.Item>
+                <Menu.Item
+                    icon="edit"
+                    onClick={(e) => {
+                        // item.id
+                        ctx.open(item);
+                    }}
+                >
+                    Edit
                 </Menu.Item>
             </Menu>
         </div>
