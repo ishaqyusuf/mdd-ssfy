@@ -144,8 +144,8 @@ export function getItemStatConfig({ setting, ...props }: ItemStatConfigProps) {
         production: isService
           ? props.dykeProduction
           : props?.prodOverride
-            ? props?.prodOverride?.production
-            : config?.production,
+          ? props?.prodOverride?.production
+          : config?.production,
         shipping: config?.shipping,
       }
     : {
@@ -189,6 +189,13 @@ export const SalesListInclude = {
   },
   stat: true,
   extraCosts: true,
+  taxes: {
+    select: {
+      tax: true,
+      taxCode: true,
+      taxConfig: true,
+    },
+  },
 } satisfies Prisma.SalesOrdersInclude;
 export const excludeDeleted = {
   where: { deletedAt: null },

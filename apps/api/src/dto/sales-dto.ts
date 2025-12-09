@@ -14,7 +14,7 @@ import {
   salesLinks,
 } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
-import { getNameInitials, toNumber } from "@gnd/utils";
+import { getNameInitials, sum, toNumber } from "@gnd/utils";
 
 import { timeAgo } from "@gnd/utils/dayjs";
 import type { DeliveryOption } from "@gnd/utils/sales";
@@ -93,8 +93,21 @@ function getAddressDto(
     lines: salesAddressLines(data as any, customer as any),
   };
 }
+
 function commonListData(data: Item) {
   const meta = (data.meta || {}) as any as SalesMeta;
+  const costLines: { label: string; amount }[] = [];
+  const _cost = (label, amount) => costLines.push({ label, amount });
+  const paid = sum([data.grandTotal! - data.amountDue!]);
+  _cost("Sub total", data.subTotal);
+  data.taxes.map((t) => _cost(t.taxConfig?.title, t.tax));
+  data.extraCosts.map((e) => {
+    _cost(e.label, e.totalAmount || e.amount);
+  });
+  _cost("Total Invoice", data.grandTotal);
+  _cost("Paid", paid);
+  _cost("Due Amount", data.amountDue);
+
   const customerId = data?.customer?.id;
   let accountNo = data.customer?.phoneNo
     ? data.customer?.phoneNo
@@ -130,7 +143,9 @@ function commonListData(data: Item) {
     salesRepInitial: getNameInitials(data.salesRep?.name!),
     poNo: meta?.po,
     deliveryOption: data?.deliveryOption,
-    costLines: data.extraCosts,
+    // taxes: data.taxes,
+    // costLines: data.extraCosts,
+    costLines,
     customerPhone:
       data.billingAddress?.phoneNo ||
       data.customer?.phoneNo ||
@@ -142,7 +157,7 @@ function commonListData(data: Item) {
     isQuote: (data.type as SalesType) == "quote",
     invoice: {
       total: data.grandTotal,
-      paid: data.grandTotal! - data.amountDue!,
+      paid,
       pending: data.amountDue,
     },
   };
