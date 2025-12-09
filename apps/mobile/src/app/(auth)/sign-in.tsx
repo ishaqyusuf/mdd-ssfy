@@ -14,30 +14,30 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useZodForm } from "@/components/use-zod-form";
-import { signInSchema, type SignInSchema } from "@/lib/schemas/auth";
+import { signInSchema } from "@/lib/schemas/auth";
 import { Input } from "@/components/ui/input-2";
 import { useMutation } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
 import { useAuthContext } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Icon } from "@/components/ui/icon";
+import { Loader2 } from "lucide-react-native";
+
 export default function SignIn() {
   const { colorScheme } = useColorScheme();
 
   const form = useZodForm(signInSchema, {
     defaultValues: {
-      email: process.env.EXPO_PUBLIC_EMAIL,
+      email: process.env.EXPO_PUBLIC_EMAIL?.split(",")?.[0]!,
       password: process.env.EXPO_PUBLIC_TOK,
     },
   });
-
+  const testEmails = process.env.EXPO_PUBLIC_EMAIL?.split(",");
   const auth = useAuthContext();
-  const { mutate: loginMutation, isPending: isLoggingIn } = useMutation(
+  const { mutate: loginMutation, isPending } = useMutation(
     _trpc.user.login.mutationOptions({
       onSuccess(data, variables, onMutateResult, context) {
         auth.onLogin(data);
-        // (async () => {
-        //   await SecureStore.setItemAsync("token", data?.token);
-        // })();
       },
       onError(error, variables, onMutateResult, context) {
         Alert.alert("Sign In Failed", error.message);
@@ -51,7 +51,7 @@ export default function SignIn() {
       },
     })
   );
-  const signIn = async (data: SignInSchema) => {
+  const signIn = async (data) => {
     loginMutation(data);
   };
 
@@ -148,7 +148,22 @@ export default function SignIn() {
             </Text>
           </TouchableOpacity>
         </View>
-
+        {!testEmails?.length || (
+          <View className="flex flex-wrap flex-row">
+            {testEmails.map((email, i) => (
+              <Button
+                key={i}
+                className="w-1/2"
+                variant={"outline"}
+                onPress={(e) => {
+                  form.setValue("email", email);
+                }}
+              >
+                <Text>{email}</Text>
+              </Button>
+            ))}
+          </View>
+        )}
         <Button
           onPress={form.handleSubmit(signIn)}
           className="mt-8"
@@ -157,6 +172,11 @@ export default function SignIn() {
 
           // loading={isLoading}
         >
+          {!isPending || (
+            <View className="pointer-events-none animate-spin">
+              <Icon as={Loader2} className="text-white" />
+            </View>
+          )}
           <Text className="text-destructive-foreground">Sign In</Text>
         </Button>
 

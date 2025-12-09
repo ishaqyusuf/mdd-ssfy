@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 
 import { ProjectSelect } from "./step-1-project";
 import { UnitSelect } from "./step-2-unit";
@@ -23,7 +23,13 @@ export function AddJobSheet({ ref }) {
 }
 export function Content() {
   const ctx = useJobFormContext();
-  const snapPoints = useMemo(() => ["50%", "90%", "100%"], []);
+  const snapPoints = useMemo(
+    () => [
+      // "50%", "90%",
+      "100%",
+    ],
+    []
+  );
 
   return (
     <Modal
@@ -35,7 +41,8 @@ export function Content() {
     >
       <JobFormProvider value={ctx}>
         <BottomSheetScrollView contentContainerStyle={{ paddingBottom: 60 }}>
-          <Tabs onValueChange={(e) => {}} value={ctx.tab}>
+          <Step4Meta />
+          {/* <Tabs onValueChange={(e) => {}} value={ctx.tab}>
             <Tabs.Content value="project" className="w-full">
               <ProjectSelect
                 onSelect={(e) => {
@@ -56,7 +63,7 @@ export function Content() {
             <Tabs.Content value="meta" className="w-full">
               <Step4Meta />
             </Tabs.Content>
-          </Tabs>
+          </Tabs> */}
         </BottomSheetScrollView>
       </JobFormProvider>
     </Modal>

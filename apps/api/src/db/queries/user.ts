@@ -7,6 +7,7 @@ import { camel, consoleLog } from "@gnd/utils";
 import { allPermissions, type ICan } from "@gnd/utils/constants";
 import z from "zod";
 import { loginAction } from "@gnd/auth/utils";
+import { sign } from "jsonwebtoken";
 export async function getAuthUser(ctx: TRPCContext) {
   const user = await ctx.db.users.findFirstOrThrow({
     where: {
@@ -162,5 +163,6 @@ export async function login(ctx: TRPCContext, query: LoginSchema) {
   const data = await loginAction(db, {
     ...query,
   });
+
   return data;
 }

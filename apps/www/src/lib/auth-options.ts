@@ -39,11 +39,11 @@ export const authOptions: NextAuthOptions = {
         error: "/login?error=login+failed",
     },
     jwt: {
-        secret: "super-secret",
+        secret: process.env.JWT_SECRET!,
         maxAge: 15 * 24 * 30 * 60,
     },
     adapter: PrismaAdapter(prisma),
-    secret: process.env.SECRET,
+    secret: process.env.NEXTAUTH_SECRET,
     callbacks: {
         jwt: async ({ token, user: cred }) => {
             if (cred) {

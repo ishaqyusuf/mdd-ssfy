@@ -2,7 +2,7 @@ import React from "react";
 import { View, FlatList, ActivityIndicator } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useJobsStore } from "@/stores/use-jobs-store";
-import { RecentJobsItem } from "@/components/installers/jobs/recent-jobs-item";
+import { RecentJobsItem } from "@/components/recent-jobs-item";
 
 export default function JobsPage() {
   const { jobs, loading, fetchJobs, hasMore, loadMoreJobs } = useJobsStore();

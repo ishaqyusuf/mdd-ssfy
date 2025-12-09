@@ -1,8 +1,9 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { TouchableOpacity, View } from "react-native";
-import { useAddJobStore } from "../../../stores/use-add-job-store";
-import { AddJobSheet } from "../add-job/add-job-sheet";
+
 import { useModal } from "@/components/ui/modal";
+import { AddJobSheet } from "../forms/job/add-job-sheet";
+import { useAddJobStore } from "@/stores/use-add-job-store";
 
 export function AddNewJobFAB() {
   const { openSheet } = useAddJobStore((s) => s.actions);

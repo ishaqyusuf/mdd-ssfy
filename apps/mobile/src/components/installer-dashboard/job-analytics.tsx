@@ -1,9 +1,9 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
-import { Text } from "../../ui/text";
 import { useQuery } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
 import { View } from "@/components/ui/view";
+import { Text } from "../ui/text";
 
 export function JobAnalytics() {
   const { colorScheme } = useColorScheme();

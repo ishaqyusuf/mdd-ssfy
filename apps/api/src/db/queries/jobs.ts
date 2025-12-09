@@ -7,7 +7,11 @@ import z from "zod";
 import { getSetting } from "./settings";
 import { formatLargeNumber } from "@gnd/utils/format";
 import { sum } from "@gnd/utils";
-export const getJobsSchema = z.object({}).extend(paginationSchema.shape);
+export const getJobsSchema = z
+  .object({
+    userId: z.number().optional().nullable(),
+  })
+  .extend(paginationSchema.shape);
 export type GetJobsSchema = z.infer<typeof getJobsSchema>;
 
 export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
@@ -78,6 +82,10 @@ function whereJobs(query: GetJobsSchema) {
           OR: [],
         });
         break;
+      case "userId":
+        where.push({
+          userId: value,
+        });
     }
   }
   return composeQuery(where);
@@ -106,11 +114,11 @@ export async function getJobAnalytics(
   const { db } = ctx;
 
   const completedPromise = db.jobs.count({
-    where: { status: "Completed" },
+    where: { status: "Completed", userId: ctx.userId },
   });
 
   const inProgressPromise = db.jobs.count({
-    where: { status: "In Progress" },
+    where: { status: "In Progress", userId: ctx.userId },
   });
 
   const paidPromise = db.jobs.count({
@@ -119,6 +127,7 @@ export async function getJobAnalytics(
     // },
     where: {
       payment: null,
+      userId: ctx.userId,
     },
   });
 
@@ -126,9 +135,7 @@ export async function getJobAnalytics(
     // _sum: {
     //   amount: true,
     // },
-    where: {
-      payment: {},
-    },
+    where: { userId: ctx.userId, payment: {} },
   });
 
   const [completed, inProgress, paidAggregation, pendingPaymentsAggregation] =
@@ -169,8 +176,17 @@ export const createJobSchema = z.object({
   projectId: z.number().optional().nullable(),
   homeId: z.number().optional().nullable(),
   additionalCost: z.number().optional().nullable(),
+  includeAdditionalCharges: z.boolean().optional().nullable(),
+  additionalReason: z.string().optional().nullable(),
   addon: z.number().optional().nullable(),
-  coWorkerId: z.number().optional().nullable(),
+  // coWorkerId: z.number().optional().nullable(),
+  coWorker: z
+    .object({
+      id: z.number().optional().nullable(),
+      name: z.string().optional().nullable(),
+    })
+    .optional()
+    .nullable(),
   tasks: z.record(
     z.string(),
     z
@@ -189,7 +205,7 @@ export const createJobSchema = z.object({
 export type CreateJobSchema = z.infer<typeof createJobSchema>;
 
 export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
-  return {};
+  // return {};
   const { db } = ctx;
   const taskCost = sum(
     Object.entries(query.tasks).map(([k, v]) => sum([+v.qty! * +v.cost]))
@@ -202,7 +218,7 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
   };
   const amount = sum([
     sum([meta.addon, meta.taskCost, meta.additional_cost]) /
-      (query.coWorkerId ? 2 : 1),
+      (query.coWorker?.id ? 2 : 1),
   ]);
   if (!query.id) {
     const data = {
@@ -211,7 +227,7 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
       userId: ctx.userId!,
       amount,
       type: query.type as any,
-      coWorkerId: query.coWorkerId,
+      coWorkerId: query.coWorker?.id,
       description: query.description,
       homeId: query.homeId!,
       projectId: query.projectId!,
@@ -221,14 +237,15 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
       subtitle: query.subtitle,
     };
     await db.jobs.createMany({
-      data: !query.coWorkerId
+      data: !query.coWorker?.id
         ? [data]
         : [
             data,
             {
               ...data,
-              userId: query.coWorkerId!,
+              userId: query.coWorker?.id!,
               coWorkerId: ctx.userId!,
+              note: query.additionalReason,
             },
           ],
     });

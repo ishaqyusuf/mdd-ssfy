@@ -1,6 +1,6 @@
-import { Header } from "@/components/installers/dashboard/installer-dashboard-header";
 import { Stack } from "expo-router";
-import { JobsHeader } from "@/components/installers/jobs/jobs-header";
+import { JobsHeader } from "@/components/jobs-header";
+import { Header } from "@/components/installer-dashboard/installer-dashboard-header";
 
 export default function AuthLayout() {
   return (

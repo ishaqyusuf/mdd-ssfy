@@ -22,9 +22,15 @@ export function ProjectSelect({ onSelect }) {
         Select Project
       </Text>
       <LegendList
-        data={projects || []}
+        data={[
+          {
+            id: null,
+            title: "None",
+          },
+          ...(projects || []),
+        ]}
         renderItem={renderItem}
-        keyExtractor={(item) => String(item.id)}
+        keyExtractor={(item) => String(item.id || "-1")}
       />
     </View>
   );

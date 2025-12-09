@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
-import { View } from "react-native";
+import { Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text } from "../../ui/text";
+
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logout } from "@/components/logout";
 import { useAuthContext } from "@/hooks/use-auth";

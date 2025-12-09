@@ -50,6 +50,7 @@ export function TRPCReactProvider(
                             const auth = await authUser();
                             const id = auth?.id;
                             // const s = await getServerSession(authOptions);
+                            // console.log
                             // const id = s?.user?.id;
                             // if (!id) {
                             //     return {};

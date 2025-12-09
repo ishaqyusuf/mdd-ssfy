@@ -1,10 +1,10 @@
-import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useColorScheme } from 'nativewind';
-import { Text } from '@/components/ui/text';
-import { DetailedJob } from '@/components/installers/job-overview/types';
-import { useJobOverviewStore } from '@/stores/use-job-overview-store';
+import React from "react";
+import { View, TouchableOpacity } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useColorScheme } from "nativewind";
+import { Text } from "@/components/ui/text";
+import { DetailedJob } from "@/components/job-overview/types";
+import { useJobOverviewStore } from "@/stores/use-job-overview-store";
 
 type RecentJobsItemProps = {
   job: DetailedJob;

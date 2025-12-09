@@ -1,8 +1,10 @@
 import { _trpc } from "@/components/static-trpc";
 import { useZodForm } from "@/components/use-zod-form";
+import { getSessionProfile } from "@/lib/session-store";
+import { useJobFormStore } from "@/stores/use-job-form-store";
 import { createJobSchema } from "@api/db/queries/jobs";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 type JobFormContextType = ReturnType<typeof useCreateJobFormContext>;
 export const JobFormContext = createContext<JobFormContextType>(
@@ -14,7 +16,18 @@ export const useCreateJobFormContext = (ref) => {
   //     console.log("Job Form Dismissed");
   //   };
   const form = useZodForm(createJobSchema, {
-    defaultValues: {},
+    defaultValues: {
+      // coWorkerId: undefined,
+      coWorker: {
+        id: undefined,
+        name: undefined,
+      },
+      projectId: null,
+      title: null,
+      description: null,
+      homeId: null,
+      subtitle: null,
+    },
   });
 
   const { data: projectList } = useQuery(
@@ -23,9 +36,32 @@ export const useCreateJobFormContext = (ref) => {
   const { data: costData } = useQuery(
     _trpc.jobs.getInstallCosts.queryOptions({})
   );
-  const [projectId, homeId] = form.watch(["projectId", "homeId"]);
-
-  const [tab, setTab] = useState<"project" | "unit" | "tasks">("project");
+  const profile = getSessionProfile();
+  const { data: users } = useQuery(
+    _trpc.hrm.getEmployees.queryOptions({
+      roles: [profile?.role?.name],
+    })
+  );
+  // const [projectId, homeId] = form.watch(["projectId", "homeId"]);
+  const [tab, setTab] = useState<"project" | "meta" | "unit" | "tasks">("meta");
+  // const [title, subtitle, showCharges] = form.watch([
+  //   "title",
+  //   "subtitle",
+  //   "includeAdditionalCharges",
+  // ]);
+  const formData = form.watch();
+  const store = useJobFormStore();
+  // const formData = useMemo(() => __formData, [__formData]);
+  // useEffect(() => {
+  //   console.log(formData);
+  // }, [formData]);
+  const {
+    projectId,
+    homeId,
+    subtitle,
+    title,
+    includeAdditionalCharges: showCharges,
+  } = store.form;
   const { data: jobsListData } = useQuery(
     _trpc.community.getUnitJobs.queryOptions(
       {
@@ -65,6 +101,8 @@ export const useCreateJobFormContext = (ref) => {
   const selectUnit = (unit, onSelect) => {
     form.setValue("homeId", unit.id);
     form.setValue("subtitle", unit.name);
+    store.update("form.homeId", unit.id);
+    store.update("form.subtitle", unit.name);
     // setTab("tasks");
     const tasks = Object.fromEntries(
       Object.entries(unit.costing || {})
@@ -79,19 +117,27 @@ export const useCreateJobFormContext = (ref) => {
         ])
     );
     form.setValue("tasks", tasks);
+    store.update("form.tasks", tasks);
     onSelect();
     // setTab("tasks");
   };
   const selectProject = (project, onSelect) => {
+    // console.log(projectId);
     const oldProjectId = form.getValues("projectId");
+    store.update("form.projectId", project.id);
+    store.update("form.title", project.title);
     form.setValue("projectId", project.id);
     form.setValue("title", project.title);
+    // console.log({ project });
     if (oldProjectId !== project.id) {
       form.setValue("homeId", null);
+      store.update("form.homeId", null);
+      store.update("form.subtitle", null);
+      store.update("form.tasks", {});
       form.setValue("subtitle", null);
       form.setValue("tasks", {});
     }
-    onSelect();
+    onSelect(project);
     // setTab("unit");
   };
 
@@ -110,6 +156,11 @@ export const useCreateJobFormContext = (ref) => {
     saveJob,
     projectId,
     homeId,
+    title,
+    subtitle,
+    showCharges,
+    users,
+    formData,
   };
 };
 export const useJobFormContext = () => {

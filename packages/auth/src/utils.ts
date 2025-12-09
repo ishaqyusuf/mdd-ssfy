@@ -1,5 +1,5 @@
 import { Db, Prisma } from "@gnd/db";
-import { camel, consoleLog } from "@gnd/utils";
+import { camel } from "@gnd/utils";
 import {
   PERMISSION_NAMES,
   PERMISSION_NAMES_PASCAL,
@@ -21,7 +21,6 @@ interface Props {
   token?;
 }
 export async function loginAction(db: Db, { email, password, token }: Props) {
-  consoleLog("NEXT BACKDOOR", env.NEXT_BACK_DOOR_TOK);
   if (token) {
     const { email: _email, status } = await validateAuthToken(db, token);
     if (_email) {

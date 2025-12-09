@@ -1,8 +1,8 @@
-import { AddNewJobFAB } from "@/components/installers/dashboard/add-new-job-fab";
-import { JobAnalytics } from "@/components/installers/dashboard/job-analytics";
-import { RecentJobs } from "@/components/installers/dashboard/recent-jobs";
 import { ScrollView, View } from "react-native";
-import { JobOverviewModal } from "@/components/installers/job-overview/job-overview-modal";
+import { JobOverviewModal } from "@/components/job-overview/job-overview-modal";
+import { JobAnalytics } from "@/components/installer-dashboard/job-analytics";
+import { RecentJobs } from "@/components/installer-dashboard/recent-jobs";
+import { AddNewJobFAB } from "@/components/installer-dashboard/add-new-job-fab";
 
 export default function Dashboard() {
   return (

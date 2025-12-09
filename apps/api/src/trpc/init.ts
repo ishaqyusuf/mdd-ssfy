@@ -3,7 +3,7 @@ import { db, type Database } from "@gnd/db";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { withAuthPermission } from "./middleware/auth-permission";
-
+import { verify } from "jsonwebtoken";
 export type TRPCContext = {
   //   session: Session | null;
   //   supabase: SupabaseClient;
@@ -19,8 +19,15 @@ export const createTRPCContext = async (
 ): Promise<TRPCContext> => {
   const header = c.req.header();
   const auth = header["authorization"] ?? "";
-  const accessToken = auth?.split(" ")[1];
-  const [tok, userId] = auth?.split("|");
+  let [token, userId] = auth?.split(" ")?.[1]?.split("|") || [];
+  if (!userId && token) {
+    // console.log({ token, jwt: process.env.JWT_SECRET });
+    const payload = verify(token, process.env.JWT_SECRET!);
+    // console.log({ payload });
+    userId = (payload as any).userId;
+  }
+  // console.log({ token, userId });
+  // const [tok, userId] = auth?.split("|");
   // const guestId = header["x-guest-id"];
 
   return {

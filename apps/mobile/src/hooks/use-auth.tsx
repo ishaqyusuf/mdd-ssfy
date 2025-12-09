@@ -4,6 +4,7 @@ import {
   getSessionProfile,
   getToken,
   setSessionProfile,
+  setToken,
 } from "@/lib/session-store";
 import { useRouter } from "expo-router";
 import { createContext, useContext, useState } from "react";
@@ -13,25 +14,27 @@ export const AuthContext = createContext<AuthContextProps>(undefined as any);
 export const AuthProvider = AuthContext.Provider;
 export const useCreateAuthContext = () => {
   const [profile, setProfile] = useState(getSessionProfile());
-  const [token, setToken] = useState(getToken());
+  const [token, _setToken] = useState(getToken());
   const router = useRouter();
   return {
     profile,
     token,
     onLogin(data) {
-      setToken(`${data.sessionId}|${data.user.id}`);
+      _setToken(data.token);
       const { can, ...rest } = data;
       setSessionProfile(rest);
-      router.push("/");
       setProfile(getSessionProfile());
+      setToken(data.token);
+      router.push("/");
     },
     onLogout() {
       deleteToken();
       deleteSessionProfile();
       setProfile(null as any);
-      setToken(null);
+
+      _setToken(null);
       // router.replace("/");
-      router.push("/");
+      router.replace("/");
     },
   };
 };

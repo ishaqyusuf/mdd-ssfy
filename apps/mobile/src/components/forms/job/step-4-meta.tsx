@@ -1,5 +1,5 @@
 import { JobFormProvider, useJobFormContext } from "@/hooks/use-job-form";
-import { Controller, useFieldArray } from "react-hook-form";
+import { Controller } from "react-hook-form";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,7 +8,6 @@ import {
   View,
 } from "react-native";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input-2";
 import { Modal, useModal } from "@/components/ui/modal";
 import { Switch } from "@/components/ui/switch";
@@ -20,26 +19,28 @@ import {
   Check,
   ChevronRight,
   Home,
-  PlusCircle,
-  Trash2,
   Users,
 } from "lucide-react-native";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { ProjectSelect } from "./step-1-project";
 import { UnitSelect } from "./step-2-unit";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { Step3Tasks } from "./step-3-tasks";
+import { useJobFormStore } from "@/stores/use-job-form-store";
 
-const COWORKERS = [
-  { id: "1", name: "John Doe" },
-  { id: "2", name: "Jane Smith" },
-  { id: "3", name: "Peter Jones" },
-  { id: "4", name: "Mary Williams" },
-];
+// const COWORKERS = [
+//   { id: "1", name: "John Doe" },
+//   { id: "2", name: "Jane Smith" },
+//   { id: "3", name: "Peter Jones" },
+//   { id: "4", name: "Mary Williams" },
+// ];
 
 export function Step4Meta() {
   const ctx = useJobFormContext();
   const form = ctx.form;
-
+  const { showCharges, users, formData } = ctx;
+  const store = useJobFormStore();
+  const { title, subtitle } = store.form;
   const {
     ref: coworkerModalRef,
     present: presentCoworkerModal,
@@ -56,27 +57,30 @@ export function Step4Meta() {
     dismiss: dismissUnitsModal,
   } = useModal();
 
-  const [selectedCoworkers, setSelectedCoworkers] = useState<typeof COWORKERS>(
-    []
-  );
-  const [showCharges, setShowCharges] = useState(false);
+  // const [showCharges, setShowCharges] = useState(false);
+  // const showCharges = ctx.form.watch("includeAdditionalCharges");
 
-  const _dismissProjectModal = () => {
+  const _dismissProjectModal = (project) => {
     dismissProjectModal();
-    presentUnitsModal();
+    if (project.id) presentUnitsModal();
   };
-  const snapPoints = useMemo(() => ["50%", "90%", "100%"], []);
-  const toggleCoworker = useCallback(
-    (coworker: { id: string; name: string }) => {
-      setSelectedCoworkers((prev) =>
-        prev.find((c) => c.id === coworker.id)
-          ? prev.filter((c) => c.id !== coworker.id)
-          : [...prev, coworker]
-      );
-    },
+  const snapPoints = useMemo(
+    () => [
+      // "50%", "90%",
+      "100%",
+    ],
     []
   );
-  const [title, subtitle] = ctx.form.watch(["title", "subtitle"]);
+
+  const { id: coWorkerId, name: coWorkerName } = store.form.coWorker || {};
+  // const { id: coWorkerId, name: coWorkerName } = formData.coWorker || {};
+  const toggleCoworker = useCallback((coworker) => {
+    ctx.form.setValue("coWorker.id", coworker.id);
+    ctx.form.setValue("coWorker.name", coworker.name);
+    store.update("form.coWorker", coworker);
+    dismissCoworkerModal();
+  }, []);
+
   return (
     <>
       <KeyboardAvoidingView
@@ -173,8 +177,10 @@ export function Step4Meta() {
                   Additional Charges
                 </Text>
                 <Switch
-                  checked={showCharges}
-                  onCheckedChange={setShowCharges}
+                  checked={!!showCharges}
+                  onCheckedChange={(state) => {
+                    ctx.form.setValue("includeAdditionalCharges", state);
+                  }}
                 />
               </View>
               {showCharges && (
@@ -184,7 +190,7 @@ export function Step4Meta() {
                       <View className="mt-2 gap-4">
                         <Controller
                           control={form.control}
-                          name={`description`}
+                          name={`additionalReason`}
                           render={({ field: { onChange, onBlur, value } }) => (
                             <Textarea
                               placeholder="Reason for charge (e.g., extra materials, extended labor)"
@@ -221,7 +227,7 @@ export function Step4Meta() {
             {/* Co-worker */}
             <View className="gap-3">
               <Text className="px-1 text-lg font-bold tracking-tight text-foreground">
-                Assign Co-workers
+                Assign Co-workers | {coWorkerId}
               </Text>
               <View className="gap-4 rounded-xl border border-border bg-card p-4">
                 <Pressable
@@ -229,27 +235,18 @@ export function Step4Meta() {
                   className="flex-row items-center justify-between rounded-lg border border-dashed border-primary p-4"
                 >
                   <Text className="font-semibold text-primary">
-                    {selectedCoworkers.length > 0
-                      ? `${selectedCoworkers.length} co-worker(s) assigned`
-                      : "Select Co-workers"}
+                    {coWorkerId ? `${coWorkerName}` : "Select Co-worker"}
                   </Text>
                   <Users className="text-primary" size={20} />
                 </Pressable>
-                {selectedCoworkers.length > 0 && (
-                  <View className="flex-row flex-wrap gap-2">
-                    {selectedCoworkers.map((c) => (
-                      <View
-                        key={c.id}
-                        className="flex-row items-center rounded-full bg-primary/10 px-3 py-1.5"
-                      >
-                        <Text className="font-semibold text-primary">
-                          {c.name}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
               </View>
+            </View>
+            {/* Co-worker */}
+            <View className="gap-3">
+              <Text className="px-1 text-lg font-bold tracking-tight text-foreground">
+                Tasks
+              </Text>
+              <Step3Tasks />
             </View>
           </View>
         </ScrollView>
@@ -258,47 +255,50 @@ export function Step4Meta() {
       <Modal
         ref={coworkerModalRef}
         title="Assign Co-workers"
-        snapPoints={["60%"]}
+        snapPoints={snapPoints}
       >
-        <ScrollView>
-          {COWORKERS.map((coworker) => {
-            const isSelected = selectedCoworkers.find(
-              (c) => c.id === coworker.id
-            );
-            const initials = coworker.name
-              .split(" ")
-              .map((n) => n[0])
-              .join("");
-            return (
-              <Pressable
-                key={coworker.id}
-                onPress={() => toggleCoworker(coworker)}
-                className="flex-row items-center justify-between p-4"
-              >
-                <View className="flex-row items-center space-x-4">
-                  <View className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                    <Text className="font-bold text-muted-foreground">
-                      {initials}
-                    </Text>
-                  </View>
-                  <Text className="text-lg text-foreground">
-                    {coworker.name}
-                  </Text>
-                </View>
-                {isSelected && (
-                  <View className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
-                    <Check className="text-primary-foreground" size={16} />
-                  </View>
-                )}
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-        <View className="border-t border-border p-4">
+        <JobFormProvider value={ctx}>
+          <ScrollView>
+            {[{ id: null, name: "None" }, ...(users?.data || [])]?.map(
+              (coworker) => {
+                const isSelected = coworker.id === coWorkerId;
+                const initials = coworker?.name
+                  ?.split(" ")
+                  .map((n) => n[0])
+                  ?.filter((a, i) => i < 2)
+                  .join("");
+                return (
+                  <Pressable
+                    key={coworker.id}
+                    onPress={() => toggleCoworker(coworker)}
+                    className="flex-row items-center justify-between p-4"
+                  >
+                    <View className="flex-row items-center space-x-4">
+                      <View className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                        <Text className="font-bold text-muted-foreground">
+                          {initials}
+                        </Text>
+                      </View>
+                      <Text className="text-lg text-foreground">
+                        {coworker.name}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <View className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
+                        <Check className="text-primary-foreground" size={16} />
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              }
+            )}
+          </ScrollView>
+          {/* <View className="border-t border-border p-4">
           <Button onPress={dismissCoworkerModal}>
             <Text>Done</Text>
           </Button>
-        </View>
+        </View> */}
+        </JobFormProvider>
       </Modal>
       <Modal
         ref={projectModalRef}

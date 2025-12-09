@@ -24,6 +24,7 @@ export async function user() {
     const data = await getServerSession(authOptions);
     if (!data) return null;
     // throw new Error();
+    // data.
     return data.user;
 }
 export const authUser = user;

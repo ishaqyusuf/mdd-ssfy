@@ -9,6 +9,9 @@ import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
 import { AppRouter } from "@api/trpc/routers/_app";
 import { getBaseUrl } from "@/lib/base-url";
+import { getSessionProfile, getToken } from "@/lib/session-store";
+import * as SecureStore from "expo-secure-store";
+import { consoleLog } from "@gnd/utils";
 // import { generateRandomString } from "@/lib/utils";
 // import { authUser } from "@/app/(v1)/_actions/utils";
 
@@ -51,12 +54,10 @@ export function TRPCReactProvider(
           transformer: superjson as any,
           async headers() {
             const headers = new Map<string, string>();
-            // headers.set("x-trpc-source", "expo-react");
-            // headers.set("content-type", "application/json");
-            //  const cookies = authClient.getCookie();
-            //  if (cookies) {
-            //  headers.set("Cookie", cookies);
-            //  }
+            const token = getToken();
+
+            if (token) headers.set("Authorization", `Bearer ${token}`);
+
             return headers;
           },
         }),

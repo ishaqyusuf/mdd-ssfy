@@ -8,6 +8,7 @@ import { Text } from "@/components/ui/text";
 import { consoleLog } from "@gnd/utils";
 import { Controller } from "react-hook-form";
 import { cn } from "@/lib/utils";
+import { useJobFormStore } from "@/stores/use-job-form-store";
 
 export function Step3Tasks() {
   const ctx = useJobFormContext();
@@ -21,7 +22,8 @@ export function Step3Tasks() {
     });
     ctx.saveJob(values);
   };
-  const formTask = ctx.form.watch("tasks");
+  const store = useJobFormStore();
+  const formTask = store.form.tasks; //ctx.form.watch("tasks");
   const form = ctx.form;
   const renderItem = ({ item }) => {
     // const taskQty = formTask?.[item.uid]?.qty ?? 0;
@@ -83,40 +85,31 @@ export function Step3Tasks() {
       ctx?.costData?.list?.filter((c) => !!formTask?.[c?.uid]?.maxQty) || [];
     return d;
   }, [ctx?.costData, formTask]);
+  if (!taskList?.length)
+    return (
+      <View>
+        <Text>No Task</Text>
+      </View>
+    );
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1"
-    >
-      <ScrollView
-        className="mb-[100px]"
-        contentContainerStyle={{
-          flexGrow: 1,
-        }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* <Form {...form}> */}
-        <LegendList
-          data={taskList}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          ListFooterComponent={
-            <View className="p-4  bg-white dark:bg-gray-900">
-              <Button
-                onPress={form.handleSubmit(handleSubmit, (errors) => {
-                  console.log(errors);
-                  if (!errors.tasks) {
-                    handleSubmit();
-                  }
-                })}
-              >
-                <Text>Submit Job</Text>
-              </Button>
-            </View>
-          }
-        />
-        {/* </Form> */}
-      </ScrollView>
-    </KeyboardAvoidingView>
+    <LegendList
+      data={taskList}
+      renderItem={renderItem}
+      keyExtractor={(item) => item.id}
+      ListFooterComponent={
+        <View className="p-4 bg-white dark:bg-gray-900">
+          <Button
+            onPress={form.handleSubmit(handleSubmit, (errors) => {
+              console.log(errors);
+              if (!errors.tasks) {
+                handleSubmit();
+              }
+            })}
+          >
+            <Text>Submit Job</Text>
+          </Button>
+        </View>
+      }
+    />
   );
 }

@@ -1,9 +1,7 @@
 import { Text } from "@/components/ui/text";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
-import { FlatList, TouchableOpacity, View } from "react-native";
-import { useJobOverviewStore } from "../../../stores/use-job-overview-store";
-import { DetailedJob } from "../job-overview/types";
+import { TouchableOpacity, View } from "react-native";
 import { useNavigation } from "@react-navigation/native"; // Add this
 import { LegendList } from "@legendapp/list";
 import { _trpc } from "@/components/static-trpc";
@@ -12,17 +10,22 @@ import { RouterOutputs } from "@api/trpc/routers/_app";
 import { getColorFromName } from "@gnd/utils/colors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@gnd/utils/dayjs";
+import { useJobOverviewStore } from "@/stores/use-job-overview-store";
+import { getSessionProfile } from "@/lib/session-store";
 
-type RecentJobsProps = {};
+// type RecentJobsProps = {};
 type JobItem = RouterOutputs["jobs"]["getJobs"]["data"][number];
 
-export function RecentJobs({ jobs }: RecentJobsProps) {
+export function RecentJobs() {
+  // { jobs }: RecentJobsProps
   const { colorScheme } = useColorScheme();
   const { openModal } = useJobOverviewStore((s) => s.actions);
+  const profile = getSessionProfile();
   const navigation = useNavigation(); // Add this
   const { data, isPending } = useQuery(
     _trpc.jobs.getJobs.queryOptions({
       size: 5,
+      userId: profile.user.id,
     })
   );
   const renderItem = ({ item }: { item: JobItem }) => {
