@@ -2,10 +2,11 @@
 
 import { _trpc } from "./static-trpc";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useSalesPrintFilter } from "@/hooks/use-sales-print-filter";
 import { PDFViewer } from "@gnd/pdf";
 import { SalesPdfTemplate } from "@gnd/pdf/sales";
+import { Button } from "@gnd/ui/button";
 
 export function PrintSales() {
     const { filters, setFilters } = useSalesPrintFilter();
@@ -19,32 +20,28 @@ export function PrintSales() {
             ...filters,
         })
     );
-    const viewerRef = useRef<HTMLIFrameElement>(null);
-    // useEffect(() => {
-    //     if (isPending) return;
-    //     if (printData)
-    //         setTimeout(() => {
-    //             window.print();
-    //         }, 2000);
-    // }, [printData, isPending]);
-    // const handleReady = () => {
-    //     // Wait for PDF to fully mount inside iframe
-    //     setTimeout(() => {
-    //         viewerRef.current?.contentWindow?.print();
-    //     }, 300);
-    // };
-    // if (isPending)
+    const viewerRef = useRef<any>(null);
 
+    useEffect(() => {
+        // viewerRef?.current?.print();
+        // console.log({ viewerRef });
+        setTimeout(() => {
+            viewerRef.current?.contentWindow?.print();
+        }, 3000);
+    }, [viewerRef]);
+    // const onRender = (e) => {
+    //     console.log(e);
+    // };
     return (
         <>
             <PDFViewer
-                // ref={viewerRef}
                 // width="100%"
                 // height="100%"
-                // onRenderSuccess={handleReady}
+                ref={viewerRef}
                 className="flex flex-col w-full h-screen"
             >
                 <SalesPdfTemplate
+                    // onRender={onRender}
                     baseUrl={process.env.NEXT_PUBLIC_APP_URL}
                     {...((printData as any) || {})}
                 />

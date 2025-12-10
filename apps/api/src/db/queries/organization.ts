@@ -15,9 +15,17 @@ export const getOrganizationProfile = publicProcedure.query(async (props) => {
 });
 
 export const createOrganizationProfile = publicProcedure
-  .input(z.object({}))
+  .input(
+    z.object({
+      name: z.string(),
+    })
+  )
   .mutation(async ({ ctx, input }) => {
     const { db } = ctx;
-
+    await db.organization.create({
+      data: {
+        name: input.name,
+      },
+    });
     return {};
   });

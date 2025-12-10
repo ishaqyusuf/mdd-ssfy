@@ -7,6 +7,7 @@ import SalesPrintShelfItems from "../components/sales-print-shelf-items";
 import SalesPrintLineItems from "../components/sales-print-line-items";
 import SalesPrintFooter from "../components/sales-print-footer";
 import WatermarkPage from "../components/watermark-page";
+import { ComponentProps } from "react";
 // import { QRCode } from "../components/qr-code";
 // import { Info } from ".../.../generate-print-data";
 // import { DataCell } from "../components/data-cell";
@@ -65,11 +66,12 @@ interface Props {
     size: "LETTER" | "A4";
   };
   baseUrl?;
+  onRender?: Document["props"]["onRender"];
 }
 export function SalesPdfTemplate(props: Props) {
   const { template } = props;
   return (
-    <Document title={props.title}>
+    <Document onRender={props.onRender} title={props.title}>
       {props.pages.map((printData, ui) => {
         const { orderedPrinting = [], order, isPacking } = printData || {};
         return (

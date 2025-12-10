@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
-import { _trpc } from "./static-trpc";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { _qc, _trpc } from "./static-trpc";
 import { DropdownMenu, Empty, InputGroup } from "@gnd/ui/composite";
 import { Separator } from "@gnd/ui/separator";
 import { Button } from "@gnd/ui/button";
@@ -10,6 +10,24 @@ export function Organization() {
     const auth = useAuth();
     const { data } = useQuery(
         _trpc.orgs.getOrganizationProfile.queryOptions(undefined, {})
+    );
+    const { mutate: createOrg, isPending } = useMutation(
+        _trpc.orgs.createOrganizationProfile.mutationOptions({
+            onSuccess(data, variables, onMutateResult, context) {
+                _qc.invalidateQueries({
+                    queryKey:
+                        _trpc.orgs.getOrganizationProfile.queryKey(undefined),
+                });
+            },
+            onError(error, variables, onMutateResult, context) {},
+            meta: {
+                toastTitle: {
+                    error: "Unable to complete",
+                    loading: "Processing...",
+                    success: "Done!.",
+                },
+            },
+        })
     );
     const isSuperAdmin = auth.roleTitle === "Super Admin";
     // return null;
