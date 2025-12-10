@@ -13,6 +13,7 @@ import { SuperAdminGuard } from "@/components/auth-guard";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { sum } from "@gnd/utils";
 import { Env } from "@/components/env";
+import { _qc, _trpc } from "@/components/static-trpc";
 
 export function BatchActions({}) {
     const ctx = useTable();
@@ -94,6 +95,10 @@ export function BatchActions({}) {
                     <BatchDelete
                         onClick={async () => {
                             await deleteSalesByOrderIds(slugs);
+                            _qc.invalidateQueries({
+                                queryKey:
+                                    _trpc.sales.getOrders.infiniteQueryKey(),
+                            });
                         }}
                     />
                 </BatchAction>
