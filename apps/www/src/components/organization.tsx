@@ -50,7 +50,9 @@ export function Organization() {
                             <InputGroup>
                                 <InputGroup.Input placeholder="Organization Name" />
                                 <InputGroup.Addon align="inline-end">
-                                    <Button>Create</Button>
+                                    <InputGroup.Button variant="default">
+                                        Create
+                                    </InputGroup.Button>
                                 </InputGroup.Addon>
                             </InputGroup>
                         </Empty.Content>

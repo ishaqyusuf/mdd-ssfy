@@ -18,14 +18,16 @@ export const createOrganizationProfile = publicProcedure
   .input(
     z.object({
       name: z.string(),
+      primary: z.boolean().optional().nullable(),
     })
   )
   .mutation(async ({ ctx, input }) => {
     const { db } = ctx;
-    await db.organization.create({
+    const org = await db.organization.create({
       data: {
         name: input.name,
       },
     });
+
     return {};
   });

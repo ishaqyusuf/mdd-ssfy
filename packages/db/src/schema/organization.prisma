@@ -8,6 +8,7 @@ model Organization {
     deletedAt DateTime? @db.Timestamp(0)
 
     projects     Projects[]
+    homes        Homes[]
     sales        SalesOrders[]
     userProfiles ModelHasRoles[]
     workOrders   WorkOrders[]

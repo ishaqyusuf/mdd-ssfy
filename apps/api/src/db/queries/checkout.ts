@@ -416,7 +416,7 @@ export async function generateDeviceCode(
     idempotencyKey: generateRandomString(),
     deviceCode: {
       productType: "TERMINAL_API",
-      name: "GND-PRODESK",
+      name: "GND-MILLWORK",
     },
   });
   return resp?.deviceCode;

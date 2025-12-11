@@ -11,7 +11,11 @@ export function DeviceCodes() {
             onSuccess(data, variables, onMutateResult, context) {
                 console.log([data]);
             },
-            onError(error, variables, onMutateResult, context) {},
+            onError(error, variables, onMutateResult, context) {
+                console.log({
+                    error,
+                });
+            },
             meta: {
                 toastTitle: {
                     error: "Unable to complete",

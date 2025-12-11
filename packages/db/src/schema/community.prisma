@@ -57,6 +57,8 @@ model Homes {
     jobs                Jobs[]
     invoices            Invoices[]
     analytics           CommunityHomeAnalytics[]
+    organization        Organization?            @relation(fields: [organizationId], references: [id])
+    organizationId      Int?
 
     @@index([createdAt, deletedAt, modelName, search, projectId])
     @@index([projectId])
