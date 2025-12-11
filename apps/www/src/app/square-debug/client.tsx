@@ -20,7 +20,7 @@ export function Action({ deviceId }) {
     //     })
     // );
     const [isRunning, startTransistion] = useTransition();
-    const startRunning = async () => {
+    const startRunning = () => {
         startTransistion(async () => {
             await testRun(deviceId);
         });
@@ -31,6 +31,9 @@ export function Action({ deviceId }) {
             type="button"
             onClick={(e) => {
                 startRunning();
+                // startRunning({
+                //     deviceId,
+                // });
             }}
         >
             TEST

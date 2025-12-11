@@ -18,10 +18,6 @@ export default async function Page({}) {
     // const merchants = await squareClient.merchants.list({});
     const deviceCodes = await squareClient.devices.codes.list({});
 
-    // consoleLog("MERCHANTS", merchants.data);
-    consoleLog("DEVICES CODES:", deviceCodes.data);
-    consoleLog("DEVICES:", devices);
-
     return (
         <div>
             <Label>Devices</Label>

@@ -1,6 +1,5 @@
 "use server";
 import { getSquareDevices, squareClient } from "@gnd/square";
-import { generateRandomString } from "@gnd/utils";
 import { randomUUID } from "crypto";
 export async function getSquareDevicesAction() {
     return getSquareDevices();
