@@ -22,6 +22,7 @@ import { useAuthContext } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Icon } from "@/components/ui/icon";
 import { Loader2 } from "lucide-react-native";
+import { Roles } from "@gnd/utils/constants";
 
 export default function SignIn() {
   const { colorScheme } = useColorScheme();
@@ -37,10 +38,21 @@ export default function SignIn() {
   const { mutate: loginMutation, isPending } = useMutation(
     _trpc.user.login.mutationOptions({
       onSuccess(data, variables, onMutateResult, context) {
-        auth.onLogin(data);
+        console.log({ data });
+        if (
+          (["1099 Contractor", "Punchout"] as Roles[]).includes(
+            data.role.name as any
+          )
+        )
+          auth.onLogin(data);
+        else
+          Alert.alert(
+            "Sign In Failed",
+            `App feature not available for ${data.role.name}`
+          );
       },
       onError(error, variables, onMutateResult, context) {
-        Alert.alert("Sign In Failed", error.message);
+        Alert.alert("Sign In Failed", "Unable to signin");
       },
       meta: {
         toastTitle: {

@@ -12,11 +12,11 @@ import { Icons } from "@/components/_v1/icons";
 import { Menu } from "@/components/(clean-code)/menu";
 import Button from "@/components/common/button";
 
-import { toast } from "sonner";
 import { parseAsBoolean, useQueryStates } from "nuqs";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { CreateSalesHistorySchemaTask } from "@jobs/schema";
+import { toast } from "@gnd/ui/use-toast";
 
 interface Props {
     type?: "button" | "menu";
@@ -35,6 +35,13 @@ export function SalesFormSave({ type = "button", and }: Props) {
     async function save(action: "new" | "close" | "default" = "default") {
         const { kvFormItem, kvStepForm, metaData, sequence } = zus;
         const restoreMode = params.restoreMode;
+        if (!metaData?.customer?.id) {
+            toast({
+                title: "Customer required.",
+                variant: "destructive",
+            });
+            return;
+        }
         const resp = await saveFormUseCase(
             {
                 kvFormItem,
@@ -78,14 +85,19 @@ export function SalesFormSave({ type = "button", and }: Props) {
         }
         if (!metaData.debugMode) {
             await refetchData();
-            if (resp.data?.error) toast.error(resp.data?.error);
+            if (resp.data?.error)
+                toast({
+                    variant: "destructive",
+                    title: resp?.data?.error,
+                });
+            // toast.error(resp.data?.error);
             else {
-                toast.success("Saved", {
-                    closeButton: true,
+                toast({
+                    variant: "success",
+                    title: "Saved",
                 });
             }
         } else {
-            toast.info("Debug mode");
         }
     }
     async function refetchData() {

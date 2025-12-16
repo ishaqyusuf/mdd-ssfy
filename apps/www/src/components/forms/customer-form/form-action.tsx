@@ -64,9 +64,8 @@ export function FormAction({ onCancel }) {
                 // if (resp) {
                 // }
             },
-        },
+        }
     );
-
     const onSubmit = async (data) => {
         mutate({
             ...data,
@@ -93,7 +92,7 @@ export function FormAction({ onCancel }) {
                 <form
                     // onSubmit={form.handleSubmit(onSubmit)}
                     onSubmit={form.handleSubmit(
-                        params?.address ? mutateAddress : mutate,
+                        params?.address ? mutateAddress : mutate
                     )}
                 >
                     <SubmitButton

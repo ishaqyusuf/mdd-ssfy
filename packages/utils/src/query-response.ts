@@ -66,8 +66,6 @@ export function queryMeta(query?: any, sortFn?) {
       : sortFn?.(sort, sortOrder) || {
           [sort]: sortOrder,
         };
-  consoleLog("SORT", orderBy);
-  consoleLog("SORT", multiSorts);
   const skip = Number(cursor);
   if (Array.isArray(orderBy))
     orderBy = orderBy.map((a) => (Array.isArray(a) ? a : [a])).flat();

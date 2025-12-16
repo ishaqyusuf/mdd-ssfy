@@ -5,7 +5,6 @@ import { FormProvider, useForm, useFormContext } from "react-hook-form";
 import { z } from "zod";
 import { CustomerFormData } from "./customer-form";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { createCustomerSchema } from "@/actions/schema";
 
 interface FormContextProps {
@@ -53,7 +52,7 @@ export function FormContext({ children, data }: FormContextProps) {
             let formData = {};
 
             Object.entries(data).map(
-                ([k, v]) => (formData[k] = v || undefined),
+                ([k, v]) => (formData[k] = v || undefined)
             );
             form.reset({
                 ...formData,
