@@ -533,7 +533,7 @@ function Content(props: Props & { setOpened }) {
                         </Item.Group>
                     </ScrollArea>
                     <Separator />
-                    <div className="flex  gap-2 items-center">
+                    <div className="flex gap-2 items-center">
                         <div className=""></div>
                         <div className="flex-1"></div>
                         {editPrice ? (

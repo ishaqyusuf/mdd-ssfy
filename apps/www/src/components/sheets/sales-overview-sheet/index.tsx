@@ -19,6 +19,7 @@ import { ProductionTab } from "./production-tab";
 import { TransactionsTab } from "../customer-overview-sheet/transactions-tab";
 import { cn } from "@gnd/ui/cn";
 import { PackingTab } from "./packing-tab";
+import { Badge } from "@gnd/ui/badge";
 
 export default function SalesOverviewSheet() {
     const query = useSalesOverviewQuery();
@@ -36,7 +37,16 @@ function Content() {
     const query = useSalesOverviewQuery();
     const customerQuery = useCustomerOverviewQuery();
     const { data } = useSaleOverview();
+    const prodQty = data?.salesStat?.prodAssigned?.total;
+    const ProdBadge = (
+        <>
+            <Badge className="ml-2" variant={prodQty ? "default" : "outline"}>
+                {prodQty || 0}
+            </Badge>
+        </>
+    );
     const isQuote = data?.type === "quote";
+    // const dispatchQty = data?.
     return (
         <CustomSheet
             sheetName="sales-overview-sheet"
@@ -64,7 +74,7 @@ function Content() {
                             <DataSkeleton pok="textLg">
                                 <span>
                                     {[data?.orderId, data?.displayName]?.join(
-                                        " | ",
+                                        " | "
                                     )}
                                 </span>
                             </DataSkeleton>
@@ -99,10 +109,12 @@ function Content() {
                                         General
                                     </TabsTrigger>
                                     <TabsTrigger
+                                        disabled={!prodQty}
                                         className={cn(!isQuote || "hidden")}
                                         value="production"
                                     >
-                                        Productions
+                                        <span>Productions</span>
+                                        {ProdBadge}
                                     </TabsTrigger>
                                     <TabsTrigger
                                         className={cn(!isQuote || "hidden")}

@@ -1,6 +1,7 @@
 model Organization {
-    id      Int     @unique @default(autoincrement())
+    id      Int      @unique @default(autoincrement())
     name    String
+    primary Boolean?
     address String?
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)

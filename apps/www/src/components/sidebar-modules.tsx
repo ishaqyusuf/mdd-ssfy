@@ -61,13 +61,13 @@ export function SidebarModules() {
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                    className="[--radix-dropdown-menu-trigger-width] min-w-56 flex rounded-lg w-auto"
+                    className="[--radix-dropdown-menu-trigger-width] min-w-56  sm:flex rounded-lg w-auto"
                     side={isMobile ? "bottom" : "right"}
                     align="end"
                     sideOffset={4}
                 >
                     <Organization />
-                    <div className="min-w-56 px-2">
+                    <div className="sm:w-xs px-2">
                         <DropdownMenuLabel className="text-xs text-muted-foreground">
                             Modules
                         </DropdownMenuLabel>

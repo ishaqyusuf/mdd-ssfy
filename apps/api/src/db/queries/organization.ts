@@ -26,6 +26,7 @@ export const createOrganizationProfile = publicProcedure
     const org = await db.organization.create({
       data: {
         name: input.name,
+        primary: input.primary || false,
       },
     });
 
