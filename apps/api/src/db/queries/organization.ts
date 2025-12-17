@@ -9,7 +9,10 @@ export const getOrganizationProfile = publicProcedure.query(async (props) => {
 
   const orgs = await db.organization.findMany({});
   return {
-    orgs,
+    orgs: orgs.map((o) => ({
+      ...o,
+      employeesCount: 0,
+    })),
   };
   //   const organizations = await
 });

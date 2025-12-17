@@ -1,0 +1,46 @@
+model Account {
+    id String @id @default(uuid())
+
+    accountId             String
+    providerId            String
+    accessToken           String?
+    refreshToken          String?
+    idToken               String?
+    accessTokenExpiresAt  DateTime?
+    refreshTokenExpiresAt DateTime?
+    scope                 String?
+    password              String?
+    userId                Int
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    deletedAt DateTime? @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    user Users? @relation(fields: [userId], references: [id])
+
+    @@unique([providerId, accountId]) // ensures unique per provider
+}
+
+model Verification {
+    id         String    @id @default(uuid())
+    identifier String
+    value      String
+    expiresAt  DateTime
+    createdAt  DateTime? @default(now()) @db.Timestamp(0)
+    deletedAt  DateTime? @db.Timestamp(0)
+    updatedAt  DateTime? @updatedAt
+}
+
+model Session {
+    id           String    @id @default(cuid())
+    sessionToken String    @unique @map("session_token")
+    token        String?
+    ipAddress    String?
+    userAgent    String?
+    userId       Int
+    expires      DateTime
+    deletedAt    DateTime? @db.Timestamp(0)
+    user         Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+}

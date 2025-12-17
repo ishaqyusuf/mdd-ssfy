@@ -18,6 +18,7 @@ model Users {
     type              UserTypes?
     verificationToken String?    @unique
 
+    accounts                    Account[]
     workOrders                  WorkOrders[]
     salesProductions            SalesOrders[]                    @relation(name: "producer")
     reppedProductions           SalesOrders[]                    @relation(name: "salesRep")
@@ -71,17 +72,6 @@ enum UserTypes {
     CUSTOMER
     EMPLOYEE
     MANAGER
-}
-
-model Session {
-    id           String    @id @default(cuid())
-    sessionToken String    @unique @map("session_token")
-    userId       Int
-    expires      DateTime
-    deletedAt    DateTime? @db.Timestamp(0)
-    user         Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    @@index([userId])
 }
 
 model EmailTokenLogin {

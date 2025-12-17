@@ -70,6 +70,7 @@ export const authOptions: NextAuthOptions = {
             name: "Sign in",
             credentials: {
                 token: {},
+
                 email: {
                     label: "Email",
                     type: "email",

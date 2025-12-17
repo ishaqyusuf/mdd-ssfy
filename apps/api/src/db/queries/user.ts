@@ -159,7 +159,6 @@ export type LoginSchema = z.infer<typeof loginSchema>;
 
 export async function login(ctx: TRPCContext, query: LoginSchema) {
   const { db } = ctx;
-  consoleLog("SIGNING IN>>>>>");
   const data = await loginAction(db, {
     ...query,
   });

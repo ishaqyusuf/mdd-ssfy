@@ -414,7 +414,9 @@ export async function generateDeviceCode(
   const { db } = ctx;
   const resp = await squareClient.devices.codes.create({
     idempotencyKey: generateRandomString(),
+
     deviceCode: {
+      locationId: process.env.SQUARE_LOCATION_ID,
       productType: "TERMINAL_API",
       name: "GND-MILLWORK",
     },
