@@ -8,7 +8,7 @@ export default function AuthLayout() {
       <Stack.Screen
         name="index"
         options={{
-          header: () => <Header />,
+          headerShown: false,
         }}
       />
       <Stack.Screen

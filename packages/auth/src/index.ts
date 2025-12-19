@@ -13,6 +13,7 @@ export function initAuth(options: {
   //   discordClientSecret: string;
 }) {
   const config = {
+    basePath: "/api/better-auth",
     database: prismaAdapter(db, {
       provider: "mysql",
     }),

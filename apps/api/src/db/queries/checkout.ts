@@ -418,7 +418,7 @@ export async function generateDeviceCode(
     deviceCode: {
       locationId: process.env.SQUARE_LOCATION_ID,
       productType: "TERMINAL_API",
-      name: "GND-MILLWORK",
+      name: "GND-MILLWORK-1451",
     },
   });
   return resp?.deviceCode;

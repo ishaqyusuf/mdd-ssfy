@@ -1,3 +1,4 @@
+import { useColors } from "@/hooks/use-color";
 import { cn } from "@/lib/utils";
 import { Platform, TextInput, type TextInputProps } from "react-native";
 
@@ -18,6 +19,7 @@ function Textarea({
         props.editable === false && "opacity-50",
         className
       )}
+      placeholderTextColor={useColors().mutedForeground}
       placeholderClassName={cn("text-muted-foreground", placeholderClassName)}
       multiline={multiline}
       numberOfLines={numberOfLines}

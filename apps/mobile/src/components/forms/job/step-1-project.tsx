@@ -17,7 +17,7 @@ export function ProjectSelect({ onSelect }) {
   );
 
   return (
-    <View>
+    <View className="bg-background">
       <Text className="text-xl font-bold p-4 text-gray-900 dark:text-gray-100">
         Select Project
       </Text>

@@ -91,15 +91,15 @@ export default function SignIn() {
               color={colorScheme === "dark" ? "#60A5FA" : "#2563EB"}
             />
           </View>
-          <Text className="text-gray-900 dark:text-white text-4xl font-bold mt-6">
+          <Text className="text-foreground text-4xl font-bold mt-6">
             Welcome Back
           </Text>
-          <Text className="text-gray-500 dark:text-gray-400 text-lg mt-2">
+          <Text className="text-muted-foreground text-lg mt-2">
             Sign in to continue
           </Text>
         </View>
         <View className="gap-y-4">
-          <Text>{process.env.EXPO_PUBLIC_BASE_URL}</Text>
+          {/* <Text>{process.env.EXPO_PUBLIC_BASE_URL}</Text> */}
           <View>
             <Label>Email</Label>
             <Controller
@@ -166,7 +166,7 @@ export default function SignIn() {
               <Button
                 key={i}
                 className="w-1/2"
-                variant={"outline"}
+                // variant={"outline"}
                 onPress={(e) => {
                   form.setValue("email", email);
                 }}

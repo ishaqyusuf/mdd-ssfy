@@ -40,6 +40,7 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { Path, Svg } from "react-native-svg";
 
 import { Text } from "./text";
+import { useColors } from "@/hooks/use-color";
 
 type ModalProps = BottomSheetModalProps & {
   title?: string;
@@ -86,18 +87,17 @@ export const Modal = React.forwardRef(
       ref,
       () => (modal.ref.current as BottomSheetModal) || null
     );
-
+    const colors = useColors();
     const backgroundStyle = React.useMemo(
       () => ({
-        backgroundColor: colorScheme === "dark" ? "#111827" : "#FFFFFF", // gray-900 vs white
+        backgroundColor: colors.background,
       }),
-      [colorScheme]
+      [colors]
     );
-
     const renderHandleComponent = React.useCallback(
       () => (
         <>
-          <View className="mb-8 mt-2 h-1 w-12 self-center rounded-lg bg-gray-400 dark:bg-gray-700" />
+          <View className="mb-8 mt-2 h-1 w-12 self-center rounded-lg bg-background" />
           <ModalHeader title={title} dismiss={modal.dismiss} />
         </>
       ),
@@ -170,10 +170,10 @@ const ModalHeader = React.memo(({ title, dismiss }: ModalHeaderProps) => {
   return (
     <>
       {title && (
-        <View className="flex-row px-2 py-4">
+        <View className="flex-row bg-background px-2 py-4">
           <View className="size-6" />
           <View className="flex-1">
-            <Text className="text-center text-[16px] font-bold text-gray-900 dark:text-white">
+            <Text className="text-center text-[16px] font-bold text-primary">
               {title}
             </Text>
           </View>

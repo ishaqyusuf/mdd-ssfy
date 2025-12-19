@@ -18,13 +18,10 @@ export function Header() {
   const auth = useAuthContext();
   const avatarUrl = null;
   return (
-    <View
-      style={{ paddingTop: insets.top }}
-      className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800"
-    >
+    <View style={{ paddingTop: insets.top }} className="">
       <View className="flex-row items-center justify-between px-4 py-4">
         <Image
-          source={{ uri: avatarUrl }}
+          source={{ uri: avatarUrl! }}
           className="w-14 h-14 rounded-full"
           transition={200}
         />
@@ -40,7 +37,6 @@ export function Header() {
 
         <View className="flex-row items-center space-x-1">
           <ThemeToggle />
-
           <Logout />
         </View>
       </View>

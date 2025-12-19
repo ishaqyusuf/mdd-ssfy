@@ -29,24 +29,7 @@ export function UnitSelect({ onSelect }) {
   );
 
   return (
-    <View>
-      <View className="p-4 flex-row items-center bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-        <TouchableOpacity
-          onPress={(e) => {
-            ctx.setTab("project");
-          }}
-          className="p-2"
-        >
-          <MaterialIcons
-            name="arrow-back"
-            size={24}
-            color={colorScheme === "dark" ? "#F9FAFB" : "black"}
-          />
-        </TouchableOpacity>
-        <Text className="text-xl font-bold ml-4 text-gray-900 dark:text-gray-100">
-          Select Unit | ({jobsLists?.length})
-        </Text>
-      </View>
+    <View className="bg-background">
       {!jobsLists?.length ? (
         <></>
       ) : (

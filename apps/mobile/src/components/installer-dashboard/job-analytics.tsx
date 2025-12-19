@@ -64,7 +64,7 @@ const AnalyticsCard = ({
   color,
 }: AnalyticsCardProps) => (
   <View className="w-1/2 p-2">
-    <View className="bg-white dark:bg-gray-800/60 p-5 rounded-2xl shadow-lg shadow-gray-200/70 dark:shadow-none dark:border dark:border-gray-700/80">
+    <View className="border p-5 rounded-2xl shadow-lg shadow-gray-200/70 dark:shadow-none border-muted-foreground bg-muted">
       <View className="flex-row justify-between items-start">
         <Text className="text-4xl font-extrabold -tracking-tight">{value}</Text>
         <View

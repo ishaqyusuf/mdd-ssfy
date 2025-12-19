@@ -3,18 +3,6 @@ import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { Platform, View as RNView } from "react-native";
 
-const viewVariants = cva(cn(), {
-  variants: {
-    variant: {
-      primary: "bg-white dark:bg-gray-800/60 ",
-      default: "",
-    },
-  },
-  defaultVariants: {
-    variant: "default",
-  },
-});
-
 type ViewVariantProps = VariantProps<typeof viewVariants>;
 
 type ViewVariant = NonNullable<ViewVariantProps["variant"]>;
@@ -36,7 +24,12 @@ function View({
   // const Component = RNView;
   return (
     <RNView
-      className={cn(viewVariants({ variant }), viewClass, className)}
+      className={cn(
+        // "bg-background",
+        // viewVariants({ variant }),
+        viewClass,
+        className
+      )}
       {...props}
     />
   );

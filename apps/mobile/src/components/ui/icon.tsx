@@ -1,24 +1,45 @@
 import { cn } from "@/lib/utils";
 import type { LucideIcon, LucideProps } from "lucide-react-native";
-// import { cssInterop } from 'nativewind';
-
+import { cssInterop } from "react-native-css-interop";
+import { icons } from "lucide-react-native";
+import { useColorScheme } from "nativewind";
+import { camel } from "@gnd/utils";
+import { THEME } from "@/lib/theme";
 type IconProps = LucideProps & {
-  as: LucideIcon;
+  as?: LucideIcon;
+  name?: keyof typeof icons;
 };
 
-function IconImpl({ as: IconComponent, ...props }: IconProps) {
+function IconImpl({ as: IconComponent, name, ...props }: IconProps) {
+  const { colorScheme } = useColorScheme();
+  const [, ...colorChunk] =
+    props.className
+      ?.split(" ")
+      ?.reverse()
+      ?.find((a) => a?.startsWith("text-"))
+      ?.split("-") || [];
+  const color = colorChunk?.length ? camel(colorChunk?.join(" ")) : undefined;
+  const _themColor =
+    colorScheme === "dark" ? THEME.dark[color!] : THEME.light[color!];
+
+  props.style = {
+    ...(props.style || ({} as any)),
+    color: _themColor || color,
+  };
+  if (!IconComponent) IconComponent = icons[name as any];
+  if (!IconComponent) throw new Error("Invalid icon");
   return <IconComponent {...props} />;
 }
 
-// cssInterop(IconImpl, {
-//   className: {
-//     target: 'style',
-//     nativeStyleToProp: {
-//       height: 'size',
-//       width: 'size',
-//     },
-//   },
-// });
+cssInterop(IconImpl, {
+  className: {
+    target: "style",
+    nativeStyleToProp: {
+      height: "size",
+      width: "size",
+    },
+  },
+});
 
 /**
  * A wrapper component for Lucide icons with Nativewind `className` support via `cssInterop`.

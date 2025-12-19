@@ -1,5 +1,5 @@
 import { JobFormProvider, useJobFormContext } from "@/hooks/use-job-form";
-import { Controller } from "react-hook-form";
+
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,13 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import {
-  Building2,
-  Check,
-  ChevronRight,
-  Home,
-  Users,
-} from "lucide-react-native";
+
 import { useMemo } from "react";
 import { ProjectSelect } from "./step-1-project";
 import { UnitSelect } from "./step-2-unit";
@@ -29,6 +23,9 @@ import { Step3Tasks } from "./step-3-tasks";
 import { useJobFormStore } from "@/stores/use-job-form-store";
 import * as Haptics from "expo-haptics";
 import { consoleLog } from "@gnd/utils";
+import { Icon } from "@/components/ui/icon";
+import { useThemeConfig } from "@/hooks/use-theme-color";
+import { useColors } from "@/hooks/use-color";
 
 export function Step4Meta() {
   const ctx = useJobFormContext();
@@ -79,18 +76,18 @@ export function Step4Meta() {
 
   return (
     <>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1 bg-background"
+      <ScrollView
+        className="mb-[100px]"
+        contentContainerStyle={{
+          paddingTop: 24,
+          paddingBottom: 100,
+          paddingHorizontal: 16,
+        }}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          className="mb-[100px]"
-          contentContainerStyle={{
-            paddingTop: 24,
-            paddingBottom: 100,
-            paddingHorizontal: 16,
-          }}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1 bg-background"
         >
           <View className="gap-10">
             {/* Project & Unit */}
@@ -106,7 +103,7 @@ export function Step4Meta() {
                   className="flex-row items-center justify-between border-b border-border p-4"
                 >
                   <View className="flex-row items-center gap-4">
-                    <Building2 className="text-muted-foreground" size={22} />
+                    <Icon name="Building2" size={22} className="" />
                     <View>
                       <Text className="text-sm font-medium text-muted-foreground">
                         Project
@@ -116,14 +113,15 @@ export function Step4Meta() {
                       </Text>
                     </View>
                   </View>
-                  <ChevronRight className="text-muted-foreground" size={20} />
+                  <Icon name="ChevronRight" size={20} className="" />
                 </Pressable>
                 <Pressable
                   onPress={presentUnitsModal}
                   className="flex-row items-center justify-between p-4"
                 >
                   <View className="flex-row items-center gap-4">
-                    <Home className="text-muted-foreground" size={22} />
+                    <Icon name="House" size={22} className="" />
+                    {/* <Home className="text-muted-foreground" size={22} /> */}
                     <View>
                       <Text className="text-sm font-medium text-muted-foreground">
                         Unit
@@ -133,7 +131,7 @@ export function Step4Meta() {
                       </Text>
                     </View>
                   </View>
-                  <ChevronRight className="text-muted-foreground" size={20} />
+                  <Icon name="ChevronRight" size={20} className="" />
                 </Pressable>
               </View>
             </View>
@@ -152,10 +150,12 @@ export function Step4Meta() {
                     fieldState: { error },
                   }) => ( */}
                 <Textarea
+                  // placeholderClassName="text-white"
+
                   placeholder="Enter a detailed description of the job, including any special instructions or materials used..."
                   // onBlur={onBlur}
                   onChangeText={(v) => store.update("form.description", v)}
-                  value={store.form.description}
+                  value={store.form.description!}
                   className={cn(
                     "h-40 rounded-xl bg-card p-4 text-base text-foreground placeholder:text-muted-foreground"
                     // error && "border-destructive"
@@ -177,7 +177,7 @@ export function Step4Meta() {
                   name={`includeAdditionalCharges`}
                   render={({ field: { onChange, onBlur, value } }) => ( */}
                 <Switch
-                  checked={store.form.includeAdditionalCharges}
+                  checked={store.form.includeAdditionalCharges!}
                   onCheckedChange={(state) => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     // onChange(state);
@@ -205,7 +205,7 @@ export function Step4Meta() {
                           onChangeText={(v) =>
                             store.update("form.additionalReason", v)
                           }
-                          value={store.form.additionalReason}
+                          value={store.form.additionalReason!}
                           className="h-24 text-base"
                         />
                         {/* )}
@@ -224,7 +224,7 @@ export function Step4Meta() {
                           onChangeText={(v) =>
                             store.update("form.additionalCost", +v)
                           }
-                          value={store.form.additionalCost}
+                          value={store.form.additionalCost as any}
                           keyboardType="numeric"
                           className="text-base"
                         />
@@ -250,7 +250,7 @@ export function Step4Meta() {
                   <Text className="font-semibold text-primary">
                     {coWorkerId ? `${coWorkerName}` : "Select Co-worker"}
                   </Text>
-                  <Users className="text-primary" size={20} />
+                  <Icon name="Users" size={22} className="" />
                 </Pressable>
               </View>
             </View>
@@ -262,16 +262,16 @@ export function Step4Meta() {
               <Step3Tasks />
             </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </ScrollView>
 
       <Modal
         ref={coworkerModalRef}
-        title="Assign Co-workers"
+        title="Assign Co-worker"
         snapPoints={snapPoints}
       >
         <JobFormProvider value={ctx}>
-          <ScrollView>
+          <ScrollView className="bg-background">
             {[{ id: null, name: "None" }, ...(users?.data || [])]?.map(
               (coworker) => {
                 const isSelected = coworker.id === coWorkerId;
@@ -286,7 +286,7 @@ export function Step4Meta() {
                     onPress={() => toggleCoworker(coworker)}
                     className="flex-row items-center justify-between p-4"
                   >
-                    <View className="flex-row items-center space-x-4">
+                    <View className="flex-row gap-4 items-center space-x-4">
                       <View className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
                         <Text className="font-bold text-muted-foreground">
                           {initials}
@@ -298,7 +298,11 @@ export function Step4Meta() {
                     </View>
                     {isSelected && (
                       <View className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
-                        <Check className="text-primary-foreground" size={16} />
+                        <Icon
+                          name="Check"
+                          className="text-primary-foreground"
+                          size={16}
+                        />
                       </View>
                     )}
                   </Pressable>

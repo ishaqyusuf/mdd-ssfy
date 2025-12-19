@@ -10,6 +10,7 @@ const publicRoutes = [
     "/api/pdf",
     "/checkout",
     "/login",
+    "/signin",
     "/printer/sales",
     "/signout",
     "/square-payment",

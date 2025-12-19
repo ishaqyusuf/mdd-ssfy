@@ -14,6 +14,7 @@ import {
   useAuthContext,
   useCreateAuthContext,
 } from "@/hooks/use-auth";
+import { ToastProviderWithViewport } from "@/components/ui/toast";
 
 // import { authClient } from "@/lib/auth-client";
 const InitialLayout = () => {
@@ -53,10 +54,12 @@ export const RootLayout = () => {
       {/* <Text>Theme: {theme.dark ? "Dark" : "Light"}</Text> */}
       <ThemeProvider value={theme}>
         <AuthProvider value={useCreateAuthContext()}>
-          <BottomSheetModalProvider>
-            <FlashMessage position="top" />
-            <InitialLayout />
-          </BottomSheetModalProvider>
+          <ToastProviderWithViewport>
+            <BottomSheetModalProvider>
+              <FlashMessage position="top" />
+              <InitialLayout />
+            </BottomSheetModalProvider>
+          </ToastProviderWithViewport>
         </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

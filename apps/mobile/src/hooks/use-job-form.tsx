@@ -24,7 +24,7 @@ export const useCreateJobFormContext = (ref) => {
         name: undefined,
       },
       projectId: null,
-      title: null,
+      title: "",
       description: null,
       homeId: null,
       subtitle: null,
@@ -53,7 +53,6 @@ export const useCreateJobFormContext = (ref) => {
   const store = useJobFormStore();
   useEffect(() => {
     form.reset(store.form);
-    console.log("UPDATE>>>");
   }, [store.form]);
   // const formData = form.watch();
   const formData = store.form;
