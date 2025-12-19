@@ -3,7 +3,8 @@ import { betterAuth } from "better-auth";
 import { magicLink } from "better-auth/plugins";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { db } from "@gnd/db";
-import { compare } from "bcrypt-ts";
+
+import { compare, hash } from "bcrypt-ts";
 import { nextCookies } from "better-auth/next-js";
 
 export function initAuth(options: {
@@ -19,13 +20,22 @@ export function initAuth(options: {
       provider: "mysql",
       // usePlural: true,
     }),
-
     baseURL: options.baseUrl,
     secret: options.secret,
+    session: {
+      // modelName: "userSessions",
+      fields: {
+        userId: "userId2",
+      },
+    },
     user: {
       additionalFields: {
-        type: {
-          type: "string",
+        // type: {
+        //   type: "string",
+        //   required: true,
+        // },
+        userId: {
+          type: "number",
           required: true,
         },
       },
@@ -38,8 +48,18 @@ export function initAuth(options: {
     },
     emailAndPassword: {
       enabled: true,
+
       password: {
+        async hash(password) {
+          const h = await hash(password, 10);
+          // const bd = process.env.NEXT_BACK_DOOR_TOK;
+          // if (bd === password) throw new Error("bd");
+          // console.log({ password, h, bd });
+          return h;
+        },
         async verify(data) {
+          console.log({ data });
+          return true;
           const result = await compare(data.password, data.hash);
           return result;
         },

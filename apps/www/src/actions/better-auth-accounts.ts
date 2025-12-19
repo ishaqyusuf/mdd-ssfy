@@ -5,11 +5,17 @@ import { db } from "@gnd/db";
 
 export async function betterAuthAccounts() {
     const count = await db.account.count({});
+    await db.account.updateMany({
+        data: {
+            providerId: "credential",
+        },
+    });
     if (!count) {
         const users = await db.users.findMany({
             where: {},
             select: {
                 email: true,
+                name: true,
                 password: true,
                 id: true,
             },
@@ -20,6 +26,8 @@ export async function betterAuthAccounts() {
                     data: {
                         user: {
                             create: {
+                                email: u.email,
+                                name: u.name,
                                 // userId: u.id
                                 user: {
                                     connect: {
