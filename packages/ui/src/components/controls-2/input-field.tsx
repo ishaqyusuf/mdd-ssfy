@@ -21,7 +21,7 @@ interface Props<T> {
 export function InputField<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
-  TOptionType = any,
+  TOptionType = any
 >(
   props: Pick<
     Partial<ControllerProps<TFieldValues, TName>>,
@@ -68,6 +68,7 @@ export function InputField<
               // className="min-h-[120px]"
               {...field}
               id={props.name}
+              name={props.name}
               placeholder={props.placeholder}
               aria-invalid={fieldState.invalid}
             />

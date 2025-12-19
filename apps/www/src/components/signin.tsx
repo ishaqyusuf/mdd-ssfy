@@ -16,8 +16,12 @@ import { SendLoginEmailPayload } from "@jobs/schema";
 import { Icons } from "@/components/_v1/icons";
 import { useEffect } from "react";
 import { parseAsString, useQueryStates } from "nuqs";
-import { FormInput } from "@gnd/ui/controls/form-input";
+import { InputField } from "@gnd/ui/controls-2/input-field";
 
+import { Key } from "lucide-react";
+import { betterAuthAccounts } from "@/actions/better-auth-accounts";
+
+import { authClient } from "@/auth/client";
 const loginSchema = z.object({
     email: z.string().email({ message: "Please enter a valid email address." }),
     password: z.string().optional(),
@@ -67,6 +71,16 @@ export function SigninComponent() {
     });
 
     const onSubmit = form.handleSubmit(async (data: LoginForm) => {
+        await betterAuthAccounts();
+        authClient.signIn
+            .email({
+                email: data.email,
+                password: data.password,
+            })
+            .then((resp) => {
+                console.log({ resp });
+            });
+        return;
         if (data.withEmail) {
             loginWithEmail.trigger({
                 taskName: "send-login-email",
@@ -112,19 +126,22 @@ export function SigninComponent() {
                     </div>
                     <Form {...form}>
                         <form onSubmit={onSubmit} className="grid gap-4">
-                            <FormInput
+                            <InputField
                                 name="email"
                                 type="email"
                                 label="Email"
+                                prefix={<Icons.Email className="size-4" />}
                                 control={form.control}
                                 placeholder="m@example.com"
                             />
                             {withEmail || (
                                 <>
-                                    <FormInput
+                                    <InputField
                                         name="password"
                                         type="password"
                                         label="Password"
+                                        placeholder="Password"
+                                        prefix={<Key className="size-4" />}
                                         control={form.control}
                                     />
                                     <div className="text-sm">

@@ -4,6 +4,7 @@ import { magicLink } from "better-auth/plugins";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { db } from "@gnd/db";
 import { compare } from "bcrypt-ts";
+import { nextCookies } from "better-auth/next-js";
 
 export function initAuth(options: {
   baseUrl: string;
@@ -16,11 +17,12 @@ export function initAuth(options: {
     basePath: "/api/better-auth",
     database: prismaAdapter(db, {
       provider: "mysql",
+      // usePlural: true,
     }),
+
     baseURL: options.baseUrl,
     secret: options.secret,
     user: {
-      //   fields: {},
       additionalFields: {
         type: {
           type: "string",
@@ -29,6 +31,9 @@ export function initAuth(options: {
       },
     },
     advanced: {
+      // database: {
+      //   useNumberId: true,
+      // },
       // cookies:
     },
     emailAndPassword: {
@@ -43,11 +48,16 @@ export function initAuth(options: {
       //   },
     },
     plugins: [
+      nextCookies(),
       magicLink({
         sendMagicLink: async ({ email, token, url }, ctx) => {
           // send email to user
         },
       }),
+      // organization({
+      //   schema: {
+      //   }
+      // })
       //   username({}),
       //   oAuthProxy({
       //     /**
@@ -67,12 +77,15 @@ export function initAuth(options: {
       // google: {}
     },
     hooks: {},
-    // trustedOrigins: [
-    //   "expo://",
-    //   "*.example.com", // Trust all subdomains of example.com (any protocol)
-    //   "https://*.example.com", // Trust only HTTPS subdomains of example.com
-    //   "http://*.dev.example.com", // Trust all HTTP subdomains of dev.example.com
-    // ],
+    trustedOrigins: [
+      "expo://",
+      "https://www.gndprodesk.com",
+      "https://gndprodesk.com",
+      "http://localhost:3000",
+      "*.example.com", // Trust all subdomains of example.com (any protocol)
+      "https://*.example.com", // Trust only HTTPS subdomains of example.com
+      "http://*.dev.example.com", // Trust all HTTP subdomains of dev.example.com
+    ],
     databaseHooks: {},
   } satisfies BetterAuthOptions;
 
@@ -81,3 +94,4 @@ export function initAuth(options: {
 
 export type Auth = ReturnType<typeof initAuth>;
 export type Session = Auth["$Infer"]["Session"];
+export type User = Omit<Session["user"], "id"> & { id: number };
