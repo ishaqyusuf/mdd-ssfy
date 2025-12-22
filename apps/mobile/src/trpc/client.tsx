@@ -9,9 +9,7 @@ import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
 import { AppRouter } from "@api/trpc/routers/_app";
 import { getBaseUrl } from "@/lib/base-url";
-import { getSessionProfile, getToken } from "@/lib/session-store";
-import * as SecureStore from "expo-secure-store";
-import { consoleLog } from "@gnd/utils";
+import { getToken } from "@/lib/session-store";
 // import { generateRandomString } from "@/lib/utils";
 // import { authUser } from "@/app/(v1)/_actions/utils";
 
@@ -61,7 +59,6 @@ export function TRPCReactProvider(
             return headers;
           },
         }),
-
         loggerLink({
           enabled: (opts) =>
             process.env.NODE_ENV === "development" ||
