@@ -23,7 +23,7 @@ const InitialLayout = () => {
   return (
     <>
       <TRPCReactProvider>
-        <StaticTrpc />
+        {/* <StaticTrpc /> */}
         <StatusBar style="auto" />
         <Stack>
           {/* <Stack.Protected guard={!token}>
@@ -54,14 +54,14 @@ export const RootLayout = () => {
     >
       {/* <Text>Theme: {theme.dark ? "Dark" : "Light"}</Text> */}
       <ThemeProvider value={theme}>
-        <AuthProvider value={useCreateAuthContext()}>
-          <ToastProviderWithViewport>
-            <BottomSheetModalProvider>
-              <FlashMessage position="top" />
-              <InitialLayout />
-            </BottomSheetModalProvider>
-          </ToastProviderWithViewport>
-        </AuthProvider>
+        {/* <AuthProvider value={useCreateAuthContext()}> */}
+        <ToastProviderWithViewport>
+          <BottomSheetModalProvider>
+            <FlashMessage position="top" />
+            <InitialLayout />
+          </BottomSheetModalProvider>
+        </ToastProviderWithViewport>
+        {/* </AuthProvider> */}
       </ThemeProvider>
     </GestureHandlerRootView>
   );
