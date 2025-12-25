@@ -13,6 +13,7 @@ export const getBaseUrl = () => {
    * **NOTE**: This is only for development. In production, you'll want to set the
    * baseUrl to your production API URL.
    */
+  return process.env.EXPO_PUBLIC_BASE_URL;
   if (process.env.APP_VARIANT === "preview")
     return process.env.EXPO_PUBLIC_BASE_URL;
 

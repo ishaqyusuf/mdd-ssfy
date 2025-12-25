@@ -15,9 +15,13 @@ import { useColorScheme } from "@/example/components/useColorScheme";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider, useCreateAuthContext } from "@/hooks/use-auth";
 
+import Toast from "react-native-toast-message";
 import { ToastProviderWithViewport } from "@/components/ui/toast";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import FlashMessage from "react-native-flash-message";
+import { TRPCReactProvider } from "@/trpc/client";
+import { StaticTrpc } from "@/components/static-trpc";
+import { StatusBar } from "expo-status-bar";
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
@@ -69,17 +73,25 @@ function RootLayoutNav() {
             <BottomSheetModalProvider>
               <FlashMessage position="top" />
               {/* <InitialLayout /> */}
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="modal"
-                  options={{ presentation: "modal" }}
-                />
-              </Stack>
+              <TRPCReactProvider>
+                <StaticTrpc />
+                <StatusBar style="auto" />
+                <Stack>
+                  <Stack.Screen
+                    name="(tabs)"
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="modal"
+                    options={{ presentation: "modal" }}
+                  />
+                </Stack>
+                <Toast />
+              </TRPCReactProvider>
             </BottomSheetModalProvider>
           </ToastProviderWithViewport>
         </AuthProvider>
-      </ThemeProvider>{" "}
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }
