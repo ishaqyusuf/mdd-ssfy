@@ -6,9 +6,7 @@ import { Text, View } from "@/example/components/Themed";
 export default function TabOneScreen() {
   return (
     <View style={styles.container}>
-      <Text className="bg-background text-red-600">
-        Alhamdulillah Robil Alamin
-      </Text>
+      <Text className="bg-background text-red-600">Maasha-Allah!</Text>
       <View
         style={styles.separator}
         lightColor="#eee"

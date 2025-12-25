@@ -2,7 +2,7 @@ import { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
   name: "gndprodesk",
-  slug: "gnd-prodesk",
+  slug: "prodesk",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
@@ -76,16 +76,18 @@ const config: ExpoConfig = {
   extra: {
     router: {},
     eas: {
-      projectId: "41f31ec0-9c44-4b41-af01-9a23d1b39d83",
+      projectId: "1914ffbf-8d95-482a-af7e-e4e30a6206eb",
+      // projectId: "41f31ec0-9c44-4b41-af01-9a23d1b39d83",
     },
   },
   updates: {
-    url: "https://u.expo.dev/41f31ec0-9c44-4b41-af01-9a23d1b39d83",
+    url: "https://u.expo.dev/1914ffbf-8d95-482a-af7e-e4e30a6206eb",
+    // url: "https://u.expo.dev/41f31ec0-9c44-4b41-af01-9a23d1b39d83",
   },
   runtimeVersion: {
     policy: "appVersion",
   },
-  owner: "ishaqyusuf",
+  owner: "ishaqyusuf2",
 };
 
 export default config;
