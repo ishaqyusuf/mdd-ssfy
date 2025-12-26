@@ -13,7 +13,11 @@ import "react-native-reanimated";
 import "@/styles/global.css";
 import { useColorScheme } from "@/example/components/useColorScheme";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { AuthProvider, useCreateAuthContext } from "@/hooks/use-auth";
+import {
+  AuthProvider,
+  useAuthContext,
+  useCreateAuthContext,
+} from "@/hooks/use-auth";
 
 import Toast from "react-native-toast-message";
 import { ToastProviderWithViewport } from "@/components/ui/toast";
@@ -58,10 +62,38 @@ export default function RootLayout() {
 
   return <RootLayoutNav />;
 }
+const InitialLayout = () => {
+  const { token } = useAuthContext();
 
+  return (
+    <>
+      <TRPCReactProvider>
+        <StaticTrpc />
+        <StatusBar style="auto" />
+        <Stack>
+          <Stack.Protected guard={!token}>
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          </Stack.Protected>
+          <Stack.Protected guard={!!token}>
+            {/* <Stack.Screen
+              name="(installers)"
+              options={{ headerShown: false }}
+            /> */}
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+          </Stack.Protected>
+
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <Toast />
+      </TRPCReactProvider>
+    </>
+  );
+};
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const theme = useThemeConfig();
+  // const { token } = useAuthContext();
   return (
     <GestureHandlerRootView
       className={theme.dark ? `dark` : "light"}
@@ -72,22 +104,7 @@ function RootLayoutNav() {
           <ToastProviderWithViewport>
             <BottomSheetModalProvider>
               <FlashMessage position="top" />
-              {/* <InitialLayout /> */}
-              <TRPCReactProvider>
-                <StaticTrpc />
-                <StatusBar style="auto" />
-                <Stack>
-                  <Stack.Screen
-                    name="(tabs)"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="modal"
-                    options={{ presentation: "modal" }}
-                  />
-                </Stack>
-                <Toast />
-              </TRPCReactProvider>
+              <InitialLayout />
             </BottomSheetModalProvider>
           </ToastProviderWithViewport>
         </AuthProvider>
