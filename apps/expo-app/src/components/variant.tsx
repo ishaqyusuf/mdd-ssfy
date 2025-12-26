@@ -4,7 +4,7 @@ export function Var() {
   return (
     <View>
       <Text className="text-foreground">
-        Variant: {process.env.APP_VARIANT}
+        Variant: {process.env.EXPO_PUBLIC_APP_VARIANT}
       </Text>
     </View>
   );

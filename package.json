@@ -18,7 +18,7 @@
     "db:migrate": "turbo -F @gnd/db db-migrate",
     "db:generate": "turbo -F @gnd/db prisma-generate",
     "backlog": "turbo dev --parallel  --filter @gnd/gnd-backlog",
-    "mobile": "turbo dev --parallel  --filter @gnd/mobile --filter @gnd/api --filter @gnd/www",
+    "mobile": "turbo dev --parallel  --filter @gnd/expo-app --filter @gnd/api --filter @gnd/www",
     "dev": "turbo dev --parallel",
     "www": "turbo dev --parallel --filter @gnd/www --filter @gnd/api",
     "www:jobs": "turbo dev --parallel --filter @gnd/www --filter @gnd/api --filter @gnd/jobs",
