@@ -7,7 +7,6 @@
   },
   "scripts": {
     "start": "npx expo start --clear",
-    "dev": "expo start -c --clear --port 8085 --go",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",

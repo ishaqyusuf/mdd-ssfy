@@ -75,10 +75,10 @@ const InitialLayout = () => {
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           </Stack.Protected>
           <Stack.Protected guard={!!token}>
-            {/* <Stack.Screen
+            <Stack.Screen
               name="(installers)"
               options={{ headerShown: false }}
-            /> */}
+            />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: "modal" }} />
           </Stack.Protected>
