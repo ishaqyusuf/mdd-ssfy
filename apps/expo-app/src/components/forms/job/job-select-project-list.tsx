@@ -28,15 +28,17 @@ ProjectListItemProps) {
   const isCustom = item.id === -1;
   const onPress = () => {
     // Logic to select the project
+    selectProject(item, (e) => {});
     console.log("Selected Project ID:", item.id);
     // Example: setProjectId(item.id);
+    console.log({ projectId });
   };
   return (
     <TouchableOpacity
       onPress={onPress}
       className={cn(
-        "group relative flex-row items-center gap-4 bg-card p-4 rounded-3xl border-2 transition-all",
-        isSelected ? "border-primary/50" : "border-transparent"
+        "group relative flex-row items-center gap-4 bg-card p-4 rounded-3xl border-2 transition-all my-1",
+        isSelected ? "border-primary/50" : "border-transparent bg-accent"
       )}
     >
       <View
@@ -88,12 +90,12 @@ export function JobSelectProjectList() {
   const { projectList, formData } = useJobFormContext();
   return (
     <View className="flex flex-col px-4 space-y-3">
+      <Text className="text-foreground">{formData.projectId}xxx</Text>
       <ProjectListItem
         item={{ id: -1, title: "Custom" } as any}
         // item={customProject}
         // isSelected={selectedProjectId === customProject.id}
         // onPress={() => onSelectProject(customProject.id)}
-        isCustom
       />
       <View className="h-4" />
       <Text className="px-4 text-xs font-bold text-muted-foreground/50 uppercase tracking-wider mb-1">

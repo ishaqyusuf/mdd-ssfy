@@ -40,7 +40,7 @@ export function SelectProjectStep() {
         </Text>
       </View>
       <JobSelectProjectSearch />
-      <ScrollView className="pb-[150px]" keyboardShouldPersistTaps="handled">
+      <ScrollView className="" keyboardShouldPersistTaps="handled">
         <JobSelectProjectList />
       </ScrollView>
       <JobSelectProjectFooter onContinue={handleContinue} />
