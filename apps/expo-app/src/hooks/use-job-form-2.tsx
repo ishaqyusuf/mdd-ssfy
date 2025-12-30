@@ -1,7 +1,6 @@
 import { _trpc } from "@/components/static-trpc";
 import { useZodForm } from "@/components/use-zod-form";
 import { getSessionProfile } from "@/lib/session-store";
-import { useJobFormStore } from "@/stores/use-job-form-store";
 import { createJobSchema } from "@api/db/queries/jobs";
 import { consoleLog } from "@gnd/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -50,12 +49,12 @@ export const useCreateJobFormContext = (ref) => {
   //   "subtitle",
   //   "includeAdditionalCharges",
   // ]);
-  const store = useJobFormStore();
-  useEffect(() => {
-    form.reset(store.form);
-  }, [store.form]);
-  // const formData = form.watch();
-  const formData = store.form;
+  // const store = useJobFormStore();
+  // useEffect(() => {
+  //   form.reset(store.form);
+  // }, [store.form]);
+  const formData = form.watch();
+  // const formData = store.form;
   // const formData = useMemo(() => __formData, [__formData]);
   // useEffect(() => {
   //   console.log(formData);
@@ -108,10 +107,10 @@ export const useCreateJobFormContext = (ref) => {
   };
   // const [unit,setUnit] = useStat
   const selectUnit = (unit, onSelect) => {
-    // form.setValue("homeId", unit.id);
-    // form.setValue("subtitle", unit.name);
-    store.update("form.homeId", unit.id);
-    store.update("form.subtitle", unit.name);
+    form.setValue("homeId", unit.id);
+    form.setValue("subtitle", unit.name);
+    // store.update("form.homeId", unit.id);
+    // store.update("form.subtitle", unit.name);
     // setTab("tasks");
     const tasks = Object.fromEntries(
       Object.entries(unit.costing || {})
@@ -125,27 +124,27 @@ export const useCreateJobFormContext = (ref) => {
           },
         ])
     );
-    store.update("form.tasks", tasks);
+    // store.update("form.tasks", tasks);
     // form.reset(store.form)
-    // form.setValue("tasks", tasks);
+    form.setValue("tasks", tasks);
     onSelect();
     // setTab("tasks");
   };
   const selectProject = (project, onSelect) => {
     // console.log(projectId);
-    const oldProjectId = store.form.projectId; //form.getValues("projectId");
-    store.update("form.projectId", project.id);
-    store.update("form.title", project.title);
-    // form.setValue("projectId", project.id);
-    // form.setValue("title", project.title);
+    const oldProjectId = form.getValues("projectId");
+    // store.update("form.projectId", project.id);
+    // store.update("form.title", project.title);
+    form.setValue("projectId", project.id);
+    form.setValue("title", project.title);
     // console.log({ project });
     if (oldProjectId !== project.id) {
-      // form.setValue("homeId", null);
-      store.update("form.homeId", null);
-      store.update("form.subtitle", null);
-      store.update("form.tasks", {});
-      // form.setValue("subtitle", null);
-      // form.setValue("tasks", {});
+      form.setValue("homeId", null);
+      // store.update("form.homeId", null);
+      // store.update("form.subtitle", null);
+      // store.update("form.tasks", {});
+      form.setValue("subtitle", null);
+      form.setValue("tasks", {});
     }
     onSelect(project);
     // setTab("unit");

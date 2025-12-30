@@ -1,31 +1,41 @@
 // apps/expo-app/src/components/forms/job/job-select-project-list.tsx
-import { Text } from "@/components/ui/text";
-
-import { View } from "@/components/ui/view";
+import { Text, View, TouchableOpacity } from "react-native";
 
 import { Icon } from "@/components/ui/icon";
-import type { Project } from "./select-project-step";
-import { TouchableOpacity } from "react-native";
 import { cn } from "@/lib/utils";
+import { useJobFormContext } from "@/hooks/use-job-form-2";
+import { RouterOutputs } from "@api/trpc/routers/_app";
+import { use } from "react";
 
 type ProjectListItemProps = {
-  item: Project;
-  isSelected: boolean;
-  onPress: () => void;
-  isCustom?: boolean;
+  item: RouterOutputs["community"]["projectsList"][number];
+  // isSelected: boolean;
+  // onPress: () => void;
+  // isCustom?: boolean;
 };
 
 function ProjectListItem({
   item,
-  isSelected,
-  onPress,
-  isCustom = false,
-}: ProjectListItemProps) {
+}: // isSelected,
+// onPress,
+// isCustom = false,
+ProjectListItemProps) {
+  const {
+    formData: { projectId },
+    selectProject,
+  } = useJobFormContext();
+  const isSelected = projectId === item.id;
+  const isCustom = item.id === -1;
+  const onPress = () => {
+    // Logic to select the project
+    console.log("Selected Project ID:", item.id);
+    // Example: setProjectId(item.id);
+  };
   return (
     <TouchableOpacity
       onPress={onPress}
       className={cn(
-        "group relative flex-row items-center gap-4 bg-card p-4 rounded-3xl border-2 transition-all active:scale-[0.99]",
+        "group relative flex-row items-center gap-4 bg-card p-4 rounded-3xl border-2 transition-all",
         isSelected ? "border-primary/50" : "border-transparent"
       )}
     >
@@ -36,13 +46,12 @@ function ProjectListItem({
         )}
       >
         <Icon
+          name={"Zap"}
           // name={item.icon as any}
-          name="Check"
           className={cn("text-muted-foreground", isCustom && "text-primary")}
-          // size={isCustom ? 28 : 24}
+          size={isCustom ? 28 : 24}
         />
       </View>
-
       <View className="flex-1 flex-col justify-center">
         <Text
           className={cn(
@@ -50,9 +59,11 @@ function ProjectListItem({
             isCustom && "text-lg font-bold"
           )}
         >
-          {item.name}BBBB
+          {item.title}
         </Text>
-        <Text className="text-sm text-muted-foreground">{item.location}</Text>
+        <Text className="text-sm text-muted-foreground">
+          {item.builderName}
+        </Text>
       </View>
       <View
         className={cn(
@@ -66,43 +77,35 @@ function ProjectListItem({
             "text-primary-foreground",
             isSelected ? "opacity-100" : "opacity-0"
           )}
+          size={16}
         />
       </View>
     </TouchableOpacity>
   );
 }
 
-type ProjectListProps = {
-  customProject: Project;
-  recentProjects: Project[];
-  selectedProjectId: string | null;
-  onSelectProject: (id: string) => void;
-};
-
-export function JobSelectProjectList({
-  customProject,
-  recentProjects,
-  selectedProjectId,
-  onSelectProject,
-}: ProjectListProps) {
+export function JobSelectProjectList() {
+  const { projectList, formData } = useJobFormContext();
   return (
-    <View className="flex-col gap-2 mt-4 px-4">
+    <View className="flex flex-col px-4 space-y-3">
       <ProjectListItem
-        item={customProject}
-        isSelected={selectedProjectId === customProject.id}
-        onPress={() => onSelectProject(customProject.id)}
+        item={{ id: -1, title: "Custom" } as any}
+        // item={customProject}
+        // isSelected={selectedProjectId === customProject.id}
+        // onPress={() => onSelectProject(customProject.id)}
         isCustom
       />
       <View className="h-4" />
       <Text className="px-4 text-xs font-bold text-muted-foreground/50 uppercase tracking-wider mb-1">
         Recent Projects
       </Text>
-      {recentProjects.map((project) => (
+
+      {projectList?.map((project) => (
         <ProjectListItem
           key={project.id}
           item={project}
-          isSelected={selectedProjectId === project.id}
-          onPress={() => onSelectProject(project.id)}
+          // isSelected={selectedProjectId === project.id}
+          // onPress={() => onSelectProject(project.id)}
         />
       ))}
     </View>

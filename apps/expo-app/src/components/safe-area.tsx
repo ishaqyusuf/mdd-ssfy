@@ -1,5 +1,4 @@
-import { ComponentProps } from "react";
-import { View } from "react-native";
+import { StyleProp, View, ViewProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export function SafeArea({
@@ -7,7 +6,7 @@ export function SafeArea({
   style,
 }: {
   children: React.ReactNode;
-  style?: ComponentProps<typeof View>["style"];
+  style?: StyleProp<ViewProps>;
 }) {
   const insets = useSafeAreaInsets();
   return (

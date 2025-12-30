@@ -10,9 +10,7 @@ export function ProjectSelect({ onSelect }) {
       className="p-4 border-b border-gray-200 dark:border-gray-700"
       onPress={() => ctx.selectProject(item, onSelect)}
     >
-      <Text className="text-lg text-gray-800 dark:text-gray-200">
-        {item.title}
-      </Text>
+      <Text className="text-lg">{item.title}</Text>
     </TouchableOpacity>
   );
 

@@ -7,8 +7,8 @@ import {
   JobFormContext,
   useCreateJobFormContext,
   useJobFormContext,
-} from "@/hooks/use-job-form";
-import { Text, View } from "react-native";
+} from "@/hooks/use-job-form-2";
+import { View } from "react-native";
 
 export default function CreateJob() {
   return (
@@ -20,11 +20,11 @@ export default function CreateJob() {
 function Content() {
   const { tab } = useJobFormContext();
   return (
-    <View>
+    <View className="flex-1 flex flex-col">
       <JobFormHeader />
 
       <Tabs onValueChange={(e) => {}} value={tab}>
-        <Tabs.Content value="0">
+        <Tabs.Content className="" value="0">
           <SelectProjectStep />
         </Tabs.Content>
         <Tabs.Content value="1">
