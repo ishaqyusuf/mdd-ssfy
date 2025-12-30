@@ -1,6 +1,5 @@
 import { Stack } from "expo-router";
 import { JobsHeader } from "@/components/jobs-header";
-import { Header } from "@/components/installer-dashboard/installer-dashboard-header";
 
 export default function AuthLayout() {
   return (
@@ -18,6 +17,15 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen name="sign-up" options={{ headerShown: false }} />
+      {/* create modal stack */}
+      <Stack.Screen
+        name="create"
+        options={{
+          presentation: "modal",
+          headerShown: false,
+          // header: () => <Header title="Create Installer Profile" />,
+        }}
+      />
     </Stack>
   );
 }

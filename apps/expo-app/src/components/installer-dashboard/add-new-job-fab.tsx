@@ -4,10 +4,11 @@ import { TouchableOpacity, View } from "react-native";
 import { useModal } from "@/components/ui/modal";
 import { AddJobSheet } from "../forms/job/add-job-sheet";
 import { useAddJobStore } from "@/stores/use-add-job-store";
+import { useRouter } from "expo-router";
 
 export function AddNewJobFAB() {
   const { openSheet } = useAddJobStore((s) => s.actions);
-
+  const router = useRouter();
   const { ref, present, dismiss } = useModal();
   return (
     <>
@@ -15,7 +16,8 @@ export function AddNewJobFAB() {
         <TouchableOpacity
           className=" bg-primary-deep-blue rounded-full w-16 h-16 items-center justify-center shadow-lg active:bg-primary-medium-blue"
           onPress={(e) => {
-            present();
+            // present();
+            router.push("/(installers)/create");
           }}
         >
           <MaterialIcons name="add" size={32} color="white" />

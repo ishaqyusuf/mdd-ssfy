@@ -44,7 +44,7 @@ export const useCreateJobFormContext = (ref) => {
     })
   );
   // const [projectId, homeId] = form.watch(["projectId", "homeId"]);
-  const [tab, setTab] = useState<"project" | "meta" | "unit" | "tasks">("meta");
+  const [tab, setTab] = useState<any>("0");
   // const [title, subtitle, showCharges] = form.watch([
   //   "title",
   //   "subtitle",

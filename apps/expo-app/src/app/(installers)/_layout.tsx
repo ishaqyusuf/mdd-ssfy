@@ -16,7 +16,15 @@ export default function AuthLayout() {
           header: () => <JobsHeader />,
         }}
       />
-      <Stack.Screen name="sign-up" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="create"
+        options={{
+          presentation: "modal",
+          headerShown: false,
+          // header: () => <Header title="Create Installer Profile" />,
+        }}
+      />
+      {/* <Stack.Screen name="sign-up" options={{ headerShown: false }} /> */}
     </Stack>
   );
 }

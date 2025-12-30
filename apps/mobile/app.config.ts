@@ -5,13 +5,18 @@ const config: ExpoConfig = {
   slug: "gnd-prodesk",
   version: "1.0.0",
   orientation: "portrait",
-  icon: "./assets/images/icon.png",
+  icon: "./assets/images/adaptive-icon.png",
   scheme: "gndprodesk",
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.gnd.prodesk",
+    icon: {
+      dark: "./assets/images/adaptive-icon.png",
+      light: "./assets/images/adaptive-icon.png",
+      tinted: "./assets/images/adaptive-icon.png",
+    },
   },
   // build: {
   //   preview: {
@@ -37,10 +42,10 @@ const config: ExpoConfig = {
     // buildType: "apk",
     // gradleCommand: ":app:assembleRelease",
     adaptiveIcon: {
-      backgroundColor: "#E6F4FE",
-      foregroundImage: "./assets/images/android-icon-foreground.png",
-      backgroundImage: "./assets/images/android-icon-background.png",
-      monochromeImage: "./assets/images/android-icon-monochrome.png",
+      backgroundColor: "#ffffff",
+      foregroundImage: "./assets/images/adaptive-icon.png",
+      backgroundImage: "./assets/images/adaptive-icon.png",
+      monochromeImage: "./assets/images/adaptive-icon.png",
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
@@ -57,11 +62,12 @@ const config: ExpoConfig = {
     [
       "expo-splash-screen",
       {
-        image: "./assets/images/splash-icon.png",
+        image: "./assets/images/splash-icon-light.png",
         imageWidth: 200,
         resizeMode: "contain",
         backgroundColor: "#ffffff",
         dark: {
+          image: "./assets/images/splash-icon-light.png",
           backgroundColor: "#000000",
         },
       },
