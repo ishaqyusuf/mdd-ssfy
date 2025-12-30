@@ -10,7 +10,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@better-auth/expo": "^1.4.3",
+    "@better-auth/expo": "^1.4.9",
     "@expo/vector-icons": "^15.0.3",
     "@gnd/utils": "workspace:*",
     "@gorhom/bottom-sheet": "^5.0.5",
