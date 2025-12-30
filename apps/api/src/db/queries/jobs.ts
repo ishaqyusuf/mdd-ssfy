@@ -113,6 +113,12 @@ export async function getJobAnalytics(
 ) {
   const { db } = ctx;
 
+  return {
+    completed: 0,
+    inProgress: 0,
+    paid: 0,
+    pendingPayments: 0, // formatLargeNumber(pendingPayments),
+  };
   const completedPromise = db.jobs.count({
     where: {
       OR: [
