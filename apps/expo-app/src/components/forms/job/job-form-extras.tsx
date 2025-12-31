@@ -102,7 +102,7 @@ export function JobFormExtras() {
               <Text className="absolute left-5 text-muted-foreground font-bold">
                 $
               </Text>
-              <TextInput
+              <Input
                 className="flex w-full rounded-xl border border-muted-foreground h-14 pl-9 pr-5 text-base text-foreground"
                 placeholder="0.00"
                 inputMode="decimal"
@@ -113,7 +113,7 @@ export function JobFormExtras() {
             <Text className="text-sm font-semibold text-muted-foreground ml-2">
               Reason
             </Text>
-            <TextInput
+            <Input
               className="flex w-full rounded-xl border border-muted-foreground bg-card h-14 px-5 text-base text-foreground"
               placeholder="e.g. Rush fee, Materials..."
             />

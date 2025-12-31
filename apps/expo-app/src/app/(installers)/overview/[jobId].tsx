@@ -1,3 +1,4 @@
+import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
 import { ScrollView, Text, View } from "react-native";
 
@@ -172,18 +173,14 @@ const TeamMember = ({
 const NotesCard = () => (
   // Using 'secondary' for the notes card to differentiate it semantically.
   <View className="bg-secondary p-5 rounded-4xl border border-border mb-8 relative">
-    <Icon
-      name="Pin"
-      className="absolute top-5 right-5 text-foreground/10 text-4xl -rotate-12"
-    />
+    <View className="absolute top-5 right-5 text-foreground -rotate-12">
+      <Icon name="Pin" className="size-20" size={20} />
+    </View>
     <Text className="text-sm font-bold text-secondary-foreground flex-row items-center gap-2 mb-2">
-      <Icon
-        name="StickyNote"
-        className="text-secondary-foreground text-[20px]"
-      />
+      <Icon name="StickyNote" size={20} className="text-secondary-foreground" />
       Notes
     </Text>
-    <Text className="text-sm text-secondary-foreground/80 italic leading-relaxed pr-6">
+    <Text className="text-sm text-secondary-foreground italic leading-relaxed pr-6">
       Please make sure to cover the floors in the hallway before bringing in
       tools. The client is very particular about scratches.
     </Text>
@@ -210,53 +207,55 @@ const ActionBar = () => (
 
 export default function JobOverviewScreen() {
   return (
-    <View className="flex-1 bg-background">
-      <Header />
-      <ScrollView contentContainerClassName="p-5 pt-4 gap-6 pb-32">
-        <View>
-          <StatusBadge />
-          <Text className="text-3xl font-bold leading-tight mb-1 text-foreground">
-            Kitchen Install
-          </Text>
-          <Text className="text-muted-foreground font-medium text-sm">
-            Created on Nov 15, 2023
-          </Text>
-        </View>
+    <SafeArea>
+      <View className="flex-1 bg-background">
+        <Header />
+        <ScrollView contentContainerClassName="p-5 pt-4 gap-6 pb-32">
+          <View>
+            <StatusBadge />
+            <Text className="text-3xl font-bold leading-tight mb-1 text-foreground">
+              Kitchen Install
+            </Text>
+            <Text className="text-muted-foreground font-medium text-sm">
+              Created on Nov 15, 2023
+            </Text>
+          </View>
 
-        <InfoCard />
+          <InfoCard />
 
-        <View>
-          <Text className="text-lg font-bold mb-3 text-foreground">
-            Description
-          </Text>
-          <Text className="text-muted-foreground leading-relaxed text-sm">
-            Complete installation of shaker-style cabinetry in kitchen area.
-            Includes mounting of upper and lower cabinets, hardware
-            installation, and final alignment adjustments. Ensure all surfaces
-            are level before securing.
-          </Text>
-        </View>
+          <View>
+            <Text className="text-lg font-bold mb-3 text-foreground">
+              Description
+            </Text>
+            <Text className="text-muted-foreground leading-relaxed text-sm">
+              Complete installation of shaker-style cabinetry in kitchen area.
+              Includes mounting of upper and lower cabinets, hardware
+              installation, and final alignment adjustments. Ensure all surfaces
+              are level before securing.
+            </Text>
+          </View>
 
-        <TasksAndChargesCard />
+          <TasksAndChargesCard />
 
-        <View>
-          <Text className="text-lg font-bold mb-3 text-foreground">
-            Assigned Team
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="flex-row -mx-5 px-5"
-            contentContainerClassName="gap-3 pb-2"
-          >
-            <TeamMember name="Admin" role="Lead" isLead />
-            <TeamMember name="Admin" role="Apprentice" />
-          </ScrollView>
-        </View>
+          <View>
+            <Text className="text-lg font-bold mb-3 text-foreground">
+              Assigned Team
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="flex-row -mx-5 px-5"
+              contentContainerClassName="gap-3 pb-2"
+            >
+              <TeamMember name="Admin" role="Lead" isLead />
+              <TeamMember name="Admin" role="Apprentice" />
+            </ScrollView>
+          </View>
 
-        <NotesCard />
-      </ScrollView>
-      <ActionBar />
-    </View>
+          <NotesCard />
+        </ScrollView>
+        <ActionBar />
+      </View>
+    </SafeArea>
   );
 }

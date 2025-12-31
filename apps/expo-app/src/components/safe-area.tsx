@@ -1,4 +1,4 @@
-import { StyleProp, View, ViewProps } from "react-native";
+import { Platform, StyleProp, View, ViewProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export function SafeArea({
@@ -13,7 +13,10 @@ export function SafeArea({
     <View
       style={{
         ...(style || {}),
-        paddingTop: insets.top,
+        paddingTop: Platform.select({
+          android: insets.top,
+        }),
+        flex: 1,
       }}
     >
       {children}

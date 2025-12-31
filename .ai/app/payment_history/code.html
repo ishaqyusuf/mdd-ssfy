@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Payment History</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2bee79",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#102217",
+                        "surface-dark": "#1A2C22",
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem", 
+                        "lg": "1.5rem", 
+                        "xl": "2rem", 
+                        "2xl": "2.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased selection:bg-primary selection:text-black">
+<div class="relative flex min-h-screen w-full flex-col overflow-hidden max-w-md mx-auto shadow-2xl">
+<!-- Header -->
+<header class="flex items-center justify-between p-6 pb-2 bg-background-light dark:bg-background-dark sticky top-0 z-10">
+<button class="flex h-10 w-10 items-center justify-center rounded-full text-slate-900 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight text-center flex-1">Payment History</h1>
+<button class="flex h-10 w-10 items-center justify-center rounded-full text-slate-900 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-2xl">ios_share</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col px-4 pb-6 space-y-6">
+<!-- Stats Card -->
+<div class="w-full">
+<div class="relative overflow-hidden rounded-xl bg-surface-dark border border-white/5 p-6">
+<!-- Subtle gradient background effect -->
+<div class="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/10 blur-3xl"></div>
+<div class="relative z-10 flex flex-col items-center justify-center gap-1 text-center">
+<span class="text-sm font-medium text-slate-400">Total Earnings (This Month)</span>
+<h2 class="text-4xl font-bold tracking-tight text-white mt-1">$4,250.00</h2>
+<div class="mt-2 flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1">
+<span class="material-symbols-outlined text-sm text-primary">trending_up</span>
+<span class="text-xs font-semibold text-primary">+12% vs last month</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Search Bar -->
+<div class="relative group">
+<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+<span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+</div>
+<input class="block w-full rounded-full border-0 bg-white dark:bg-surface-dark py-3.5 pl-11 pr-4 text-slate-900 dark:text-white ring-1 ring-inset ring-slate-200 dark:ring-white/10 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-primary focus:bg-background-light dark:focus:bg-black/20 transition-all sm:text-sm sm:leading-6" placeholder="Search jobs or invoice #..." type="text"/>
+</div>
+<!-- Filter Chips -->
+<div class="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4">
+<!-- Active Chip -->
+<button class="flex shrink-0 items-center gap-2 rounded-full bg-primary px-5 py-2.5 transition-transform active:scale-95">
+<span class="text-sm font-bold text-background-dark">All</span>
+</button>
+<!-- Inactive Chips -->
+<button class="flex shrink-0 items-center gap-2 rounded-full border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark px-5 py-2.5 transition-transform active:scale-95 hover:border-primary/50">
+<span class="text-sm font-medium text-slate-600 dark:text-slate-300">Paid</span>
+</button>
+<button class="flex shrink-0 items-center gap-2 rounded-full border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark px-5 py-2.5 transition-transform active:scale-95 hover:border-primary/50">
+<span class="text-sm font-medium text-slate-600 dark:text-slate-300">Pending</span>
+</button>
+<button class="flex shrink-0 items-center gap-2 rounded-full border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark px-5 py-2.5 transition-transform active:scale-95 hover:border-primary/50">
+<span class="text-sm font-medium text-slate-600 dark:text-slate-300">Overdue</span>
+</button>
+<button class="flex shrink-0 items-center gap-2 rounded-full border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark pl-4 pr-5 py-2.5 transition-transform active:scale-95 hover:border-primary/50">
+<span class="material-symbols-outlined text-[18px] text-slate-400">calendar_month</span>
+<span class="text-sm font-medium text-slate-600 dark:text-slate-300">Date</span>
+</button>
+</div>
+<!-- Transaction List -->
+<div class="flex flex-col gap-3">
+<h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Recent Transactions</h3>
+<!-- Item 1: Paid -->
+<div class="group flex flex-col gap-3 rounded-xl bg-white dark:bg-surface-dark p-4 shadow-sm ring-1 ring-slate-900/5 dark:ring-white/5 transition-all hover:bg-slate-50 dark:hover:bg-[#1f3529]">
+<div class="flex items-start justify-between gap-4">
+<div class="flex items-start gap-3">
+<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">construction</span>
+</div>
+<div class="flex flex-col">
+<p class="font-bold text-slate-900 dark:text-white leading-tight">Kitchen Reno - 124 Main St</p>
+<p class="text-xs text-slate-500 mt-1">Oct 24, 2023 • ID: #4492</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-bold text-primary tabular-nums tracking-tight">+ $1,200.00</p>
+<div class="mt-1 inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20">
+                                Paid
+                            </div>
+</div>
+</div>
+</div>
+<!-- Item 2: Pending -->
+<div class="group flex flex-col gap-3 rounded-xl bg-white dark:bg-surface-dark p-4 shadow-sm ring-1 ring-slate-900/5 dark:ring-white/5 transition-all hover:bg-slate-50 dark:hover:bg-[#1f3529]">
+<div class="flex items-start justify-between gap-4">
+<div class="flex items-start gap-3">
+<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">plumbing</span>
+</div>
+<div class="flex flex-col">
+<p class="font-bold text-slate-900 dark:text-white leading-tight">Master Bath Tile - 88 Oak</p>
+<p class="text-xs text-slate-500 mt-1">Oct 22, 2023 • ID: #4489</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-bold text-slate-900 dark:text-white tabular-nums tracking-tight">$850.00</p>
+<div class="mt-1 inline-flex items-center rounded-full bg-yellow-400/10 px-2 py-0.5 text-xs font-medium text-yellow-500 ring-1 ring-inset ring-yellow-400/20">
+                                Pending
+                            </div>
+</div>
+</div>
+</div>
+<!-- Item 3: Overdue -->
+<div class="group flex flex-col gap-3 rounded-xl bg-white dark:bg-surface-dark p-4 shadow-sm ring-1 ring-slate-900/5 dark:ring-white/5 transition-all hover:bg-slate-50 dark:hover:bg-[#1f3529]">
+<div class="flex items-start justify-between gap-4">
+<div class="flex items-start gap-3">
+<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">roofing</span>
+</div>
+<div class="flex flex-col">
+<p class="font-bold text-slate-900 dark:text-white leading-tight">Deck Repair - 42 Pine Ln</p>
+<p class="text-xs text-slate-500 mt-1">Sep 15, 2023 • ID: #4301</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-bold text-slate-900 dark:text-white tabular-nums tracking-tight">$2,100.00</p>
+<div class="mt-1 inline-flex items-center rounded-full bg-red-400/10 px-2 py-0.5 text-xs font-medium text-red-400 ring-1 ring-inset ring-red-400/20">
+                                Overdue
+                            </div>
+</div>
+</div>
+</div>
+<!-- Item 4: Paid -->
+<div class="group flex flex-col gap-3 rounded-xl bg-white dark:bg-surface-dark p-4 shadow-sm ring-1 ring-slate-900/5 dark:ring-white/5 transition-all hover:bg-slate-50 dark:hover:bg-[#1f3529]">
+<div class="flex items-start justify-between gap-4">
+<div class="flex items-start gap-3">
+<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">hvac</span>
+</div>
+<div class="flex flex-col">
+<p class="font-bold text-slate-900 dark:text-white leading-tight">HVAC Install - Commercial</p>
+<p class="text-xs text-slate-500 mt-1">Sep 10, 2023 • ID: #4298</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-bold text-primary tabular-nums tracking-tight">+ $4,500.00</p>
+<div class="mt-1 inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20">
+                                Paid
+                            </div>
+</div>
+</div>
+</div>
+<!-- Item 5: Paid -->
+<div class="group flex flex-col gap-3 rounded-xl bg-white dark:bg-surface-dark p-4 shadow-sm ring-1 ring-slate-900/5 dark:ring-white/5 transition-all hover:bg-slate-50 dark:hover:bg-[#1f3529]">
+<div class="flex items-start justify-between gap-4">
+<div class="flex items-start gap-3">
+<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">electrical_services</span>
+</div>
+<div class="flex flex-col">
+<p class="font-bold text-slate-900 dark:text-white leading-tight">Panel Upgrade - 55 Elm St</p>
+<p class="text-xs text-slate-500 mt-1">Aug 30, 2023 • ID: #4155</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-bold text-primary tabular-nums tracking-tight">+ $1,800.00</p>
+<div class="mt-1 inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20">
+                                Paid
+                            </div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom padding for scroll -->
+<div class="h-6 w-full"></div>
+</div>
+</body></html>

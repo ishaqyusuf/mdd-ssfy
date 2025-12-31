@@ -7,6 +7,7 @@ import { createJobSchema } from "@api/db/queries/jobs";
 import { consoleLog } from "@gnd/utils";
 import { toastStyles } from "@root/styles/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useFocusEffect } from "expo-router";
 import {
   createContext,
   useCallback,
@@ -15,7 +16,7 @@ import {
   useState,
 } from "react";
 import { useWatch } from "react-hook-form";
-import { Text, View } from "react-native";
+import { BackHandler, Text, View } from "react-native";
 
 type JobFormContextType = ReturnType<typeof useCreateJobFormContext>;
 export const JobFormContext = createContext<JobFormContextType>(
@@ -47,7 +48,23 @@ export const useCreateJobFormContext = (ref) => {
       subtitle: null,
     },
   });
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        // return true = block default behavior
+        // return false = allow system back
+        navigateBack();
+        return true;
+      };
 
+      const sub = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress
+      );
+
+      return () => sub.remove();
+    }, [])
+  );
   const { data: projectList } = useQuery(
     _trpc.community.projectsList.queryOptions()
   );

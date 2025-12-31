@@ -5,7 +5,7 @@ import { icons } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { camel } from "@gnd/utils";
 import { THEME } from "@/lib/theme";
-type IconProps = LucideProps & {
+export type IconProps = LucideProps & {
   as?: LucideIcon;
   name?: keyof typeof icons;
 };

@@ -17,6 +17,13 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen
+        name="home2"
+        options={{
+          // header: () => <JobsHeader />,
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="create"
         options={{
           presentation: "modal",
@@ -25,7 +32,7 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen
-        name="[jobId]"
+        name="overview/[jobId]"
         options={{
           presentation: "modal",
           headerShown: false,

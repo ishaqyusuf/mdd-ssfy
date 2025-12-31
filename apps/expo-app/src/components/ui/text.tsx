@@ -1,3 +1,4 @@
+import { useColors } from "@/hooks/use-color";
 import { cn } from "@/lib/utils";
 import * as Slot from "@rn-primitives/slot";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -87,7 +88,8 @@ function Text({
     asChild?: boolean;
   }) {
   const textClass = React.useContext(TextClassContext);
-  const Component = asChild ? Slot.Text : RNText;
+  const Component: any = asChild ? Slot.Text : RNText;
+  const colors = useColors();
   return (
     <Component
       className={cn(textVariants({ variant, color }), textClass, className)}
