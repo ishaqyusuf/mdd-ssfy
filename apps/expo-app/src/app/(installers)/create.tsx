@@ -1,5 +1,6 @@
 import { JobFormHeader } from "@/components/forms/job/header";
 import { JobFormStep } from "@/components/forms/job/job-form-step";
+import { JobSubmittedStep } from "@/components/forms/job/job-submitted-step";
 import { SelectCoWorkerStep } from "@/components/forms/job/select-coworker-step";
 import { SelectProjectStep } from "@/components/forms/job/select-project-step";
 import { SelectUnitStep } from "@/components/forms/job/select-unit-step";
@@ -10,7 +11,7 @@ import {
   useCreateJobFormContext,
   useJobFormContext,
 } from "@/hooks/use-job-form-2";
-import { KeyboardAvoidingView, Platform, View } from "react-native";
+import { View } from "react-native";
 
 export default function CreateJob() {
   return (
@@ -37,6 +38,10 @@ function Content() {
         </TabsContent>
         <TabsContent value="coworker">
           <SelectCoWorkerStep />
+        </TabsContent>
+        <TabsContent value="completed">
+          {/* <SelectCoWorkerStep /> */}
+          <JobSubmittedStep />
         </TabsContent>
       </Tabs>
     </View>

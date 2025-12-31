@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Job Submitted Successfully</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2bee79",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#102217",
+                        "surface-dark": "#1a2e22",
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "1.5rem", "xl": "2rem", "2xl": "2.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased selection:bg-primary selection:text-background-dark">
+<div class="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden">
+<!-- TopAppBar: Minimal with Close Action -->
+<div class="flex items-center p-4 pb-2 justify-between">
+<div class="flex size-12 shrink-0 items-center justify-center rounded-full active:bg-white/10 transition-colors cursor-pointer text-slate-900 dark:text-white">
+<span class="material-symbols-outlined text-[24px]">close</span>
+</div>
+<!-- Empty center/right for balance in a modal context -->
+<div class="size-12"></div>
+</div>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col items-center justify-center w-full max-w-md mx-auto px-6 -mt-10">
+<!-- Success Indicator -->
+<div class="mb-6 relative">
+<div class="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150"></div>
+<div class="relative flex items-center justify-center w-24 h-24 rounded-full bg-primary text-background-dark shadow-[0_0_40px_-10px_rgba(43,238,121,0.6)]">
+<span class="material-symbols-outlined text-[48px] font-bold">check</span>
+</div>
+</div>
+<!-- HeadlineText -->
+<h1 class="text-slate-900 dark:text-white tracking-tight text-[32px] font-bold leading-tight text-center pb-3">
+                Job Submitted!
+            </h1>
+<!-- BodyText -->
+<p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-relaxed text-center pb-8 max-w-[280px]">
+                The job details have been uploaded successfully and are pending review.
+            </p>
+<!-- Job Reference Card (Modified DescriptionList + ImageGrid) -->
+<div class="w-full bg-white dark:bg-surface-dark rounded-xl p-4 border border-slate-200 dark:border-white/5 shadow-sm">
+<!-- Header of card -->
+<div class="flex justify-between items-center mb-4 pb-4 border-b border-slate-100 dark:border-white/10">
+<div class="flex flex-col">
+<span class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-primary/80">Job ID</span>
+<span class="text-lg font-bold text-slate-900 dark:text-white">#8493-AB</span>
+</div>
+<div class="flex flex-col text-right">
+<span class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-primary/80">Date</span>
+<span class="text-sm font-medium text-slate-700 dark:text-slate-300">Oct 24, 2023</span>
+</div>
+</div>
+<!-- Embedded Image Preview (ImageGrid component usage) -->
+<div class="flex gap-4 items-center">
+<div class="w-16 h-16 shrink-0 bg-center bg-no-repeat bg-cover rounded-lg bg-slate-200 dark:bg-white/10" data-alt="Thumbnail showing the construction site entrance" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC_tQp9MWh8PMG0yECTwihHX058NDWPQcIhZCO-3wf2s5ZZXmGzusYWXkjodXih6HioHrts60jIVx5X6tC62P0AcX-rih3qmcfXRyKqHyKFo6qfKh0c6Vpjs5OiDQ_Mr2ar1hKyebLUa2z1kBiUl-2d_5w-nNhc44z7rYWTU1LmfKh_bxnvjO-pRtjKIZ5uZnmMPwTFZMpolKgkoSN0gKRTyjh1W7rYJzQ7QzxEghf-TeN_4VsiuRnFTmhLuISLQ572s3b_nv_vpk4");'>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-sm font-medium text-slate-900 dark:text-white">Renovation at 123 Maple</p>
+<div class="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+<span>Seattle, WA</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Stack (Footer) -->
+<div class="w-full max-w-md mx-auto p-6 pb-8 flex flex-col gap-3">
+<!-- Primary Action -->
+<button class="w-full bg-primary hover:bg-primary/90 text-background-dark font-bold text-lg h-14 rounded-full flex items-center justify-center gap-2 transition-transform active:scale-[0.98]">
+<span class="material-symbols-outlined">add</span>
+                Add Another Job
+            </button>
+<!-- Secondary Action -->
+<button class="w-full bg-transparent border border-slate-300 dark:border-primary/30 text-slate-900 dark:text-primary font-semibold text-lg h-14 rounded-full flex items-center justify-center gap-2 transition-colors hover:bg-slate-100 dark:hover:bg-primary/10 active:scale-[0.98]">
+                View Submitted Job
+            </button>
+<!-- Tertiary Action -->
+<button class="w-full mt-2 text-slate-500 dark:text-slate-400 font-medium text-sm py-2 hover:text-slate-900 dark:hover:text-white transition-colors">
+                Return to Dashboard
+            </button>
+</div>
+<!-- Spacer for safe area on mobile -->
+<div class="h-2"></div>
+</div>
+</body></html>

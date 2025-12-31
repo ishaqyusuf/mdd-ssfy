@@ -1,18 +1,33 @@
 import { _trpc } from "@/components/static-trpc";
+import { Icon } from "@/components/ui/icon";
 import { useZodForm } from "@/components/use-zod-form";
+import { useToast } from "@/context/toast-context";
 import { getSessionProfile } from "@/lib/session-store";
 import { createJobSchema } from "@api/db/queries/jobs";
 import { consoleLog } from "@gnd/utils";
+import { toastStyles } from "@root/styles/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { useWatch } from "react-hook-form";
+import { Text, View } from "react-native";
 
 type JobFormContextType = ReturnType<typeof useCreateJobFormContext>;
 export const JobFormContext = createContext<JobFormContextType>(
   undefined as any
 );
 
-export type JobFormTabs = "project" | "unit" | "main" | "coworker";
+export type JobFormTabs =
+  | "project"
+  | "unit"
+  | "main"
+  | "coworker"
+  | "completed";
 export const JobFormProvider = JobFormContext.Provider;
 export const useCreateJobFormContext = (ref) => {
   //   const onDismiss = () => {
@@ -162,7 +177,7 @@ export const useCreateJobFormContext = (ref) => {
       return;
     }
     setTabHistory((c) => {
-      const [rm, ...re] = c;
+      const [, ...re] = c;
       return [...re];
     });
   };
@@ -170,6 +185,125 @@ export const useCreateJobFormContext = (ref) => {
     setTabHistory((c) => [val, ...c]);
   };
   const tab = tabHistory?.[0];
+
+  const { show } = useToast();
+  const createToast = useCallback(
+    (type: string, task?: any) => {
+      const toastConfigs = {
+        task_created: {
+          icon: "plus.circle.fill",
+          color: "#10B981",
+          title: "Task Created",
+          description: "New task added to your board",
+        },
+        task_completed: {
+          icon: "checkmark.circle.fill",
+          color: "#10B981",
+          title: "Task Completed! 🎉",
+          description: task ? `${task.title} marked as done` : "Task completed",
+        },
+        task_assigned: {
+          icon: "person.badge.plus",
+          color: "#3B82F6",
+          title: "Task Assigned",
+          description: task ? `Assigned to ${task.assignee}` : "Task assigned",
+        },
+        deadline_reminder: {
+          icon: "clock.badge.exclamationmark",
+          color: "#F59E0B",
+          title: "Deadline Reminder",
+          description: "3 tasks due tomorrow",
+        },
+        sync_success: {
+          icon: "arrow.triangle.2.circlepath",
+          color: "#10B981",
+          title: "Sync Complete",
+          description: "All changes saved to cloud",
+        },
+        team_notification: {
+          icon: "bell.badge",
+          color: "#8B5CF6",
+          title: "Team Update",
+          description: "Sarah completed 3 tasks",
+        },
+        priority_changed: {
+          icon: "exclamationmark.triangle.fill",
+          color: "#EF4444",
+          title: "Priority Updated",
+          description: task
+            ? `Task marked as ${task.priority}`
+            : "Priority changed",
+        },
+      };
+
+      const config = toastConfigs[type as keyof typeof toastConfigs];
+      if (!config) return;
+
+      const toastContent = (
+        <View style={toastStyles.toastContent}>
+          <Icon name="Check" size={22} />
+          {/* <SymbolView
+               name={config.icon as SFSymbol}
+               size={20}
+               tintColor={config.color}
+             /> */}
+          <View style={toastStyles.toastTextContainer}>
+            <Text style={toastStyles.toastTitle}>{config.title}</Text>
+            <Text style={toastStyles.toastDescription}>
+              {config.description}
+            </Text>
+          </View>
+        </View>
+      );
+
+      const options: any = { position: "bottom", duration: 3000 };
+
+      if (
+        type === "task_completed"
+        // && task
+      ) {
+        options.action = {
+          label: "Undo",
+          // onPress: () => handleTaskAction("undo", task),
+        };
+        options.duration = 4000;
+      }
+
+      show(toastContent, options);
+    },
+    [show]
+  );
+  const handleSubmit = () => {
+    createToast("task_completed", {});
+    setTab("completed");
+    // return;
+    const values = formData;
+    const profile = getSessionProfile();
+    const role = profile?.role?.name;
+    values.type = role == "1099 Contractor" ? "installation" : "punchout";
+    // form.reset(values);
+    setTimeout(() => {
+      form.handleSubmit(
+        (e) => {
+          consoleLog("SUBMITTING>>", e);
+          saveJob(e);
+        },
+        (errs) => {
+          console.log(errs);
+          console.log(values);
+        }
+      )();
+      // form.trigger().then((e) => {
+      //   console.log({ e });
+      // });
+      // ctx.setTab("meta");
+      // consoleLog("Form value", values);
+      // Object.entries(values.tasks).map(([a, b]) => {
+      //   if (b.qty) consoleLog(a, b);
+      // });
+      // ctx.saveJob(values);
+    }, 250);
+  };
   return {
     ref,
     form,
@@ -182,6 +316,8 @@ export const useCreateJobFormContext = (ref) => {
     setTab,
     selectProject,
     selectUnit,
+    handleSubmit,
+    isSaving,
     saveJob,
     projectId,
     homeId,

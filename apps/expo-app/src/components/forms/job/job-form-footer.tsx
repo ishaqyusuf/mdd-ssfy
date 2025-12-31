@@ -3,11 +3,13 @@ import { View, Text, Pressable, useColorScheme } from "react-native";
 import { BlurView } from "expo-blur";
 import { Icon } from "@/components/ui/icon";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useJobFormContext } from "@/hooks/use-job-form-2";
+import { cn } from "@/lib/utils";
 
 export function JobFormFooter() {
   const { bottom } = useSafeAreaInsets();
   const tint = useColorScheme();
-
+  const ctx = useJobFormContext();
   return (
     <View className="absolute bottom-0 left-0 right-0">
       <BlurView intensity={30} tint={tint || "light"} className="w-full">
@@ -31,7 +33,15 @@ export function JobFormFooter() {
                 </Text>
               </View>
             </View>
-            <Pressable className="flex w-full flex-row items-center justify-center gap-2 rounded-xl bg-primary h-14">
+            <Pressable
+              disabled={ctx.isSaving}
+              onPress={(e) => {
+                ctx.handleSubmit();
+              }}
+              className={cn(
+                "flex w-full flex-row items-center justify-center gap-2 rounded-xl bg-primary h-14"
+              )}
+            >
               <Text className="text-primary-foreground text-lg font-bold">
                 Submit Job
               </Text>
