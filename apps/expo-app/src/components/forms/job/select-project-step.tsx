@@ -16,7 +16,7 @@ export function SelectProjectStep() {
   const { setTab } = useJobFormContext();
 
   const handleContinue = () => {
-    setTab("1");
+    setTab("unit");
   };
 
   return (

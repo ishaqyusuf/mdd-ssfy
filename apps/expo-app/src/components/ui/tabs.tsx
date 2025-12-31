@@ -1,7 +1,8 @@
 import { TextClassContext } from "./text";
 import { cn } from "@/lib/utils";
 import * as TabsPrimitive from "@rn-primitives/tabs";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 function Tabs({
   className,
@@ -68,7 +69,18 @@ function TabsContent({
     <TabsPrimitive.Content
       className={cn(Platform.select({ web: "flex-1 outline-none" }), className)}
       {...props}
-    />
+      asChild // Use asChild to pass styles to our animated view
+    >
+      <Animated.View
+        entering={FadeIn.duration(200)}
+        style={{
+          flex: 1,
+        }}
+      >
+        {/* We need a View here because Animated.View can't have text as a direct child */}
+        <View className="flex-1">{props.children}</View>
+      </Animated.View>
+    </TabsPrimitive.Content>
   );
 }
 

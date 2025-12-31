@@ -11,6 +11,8 @@ type JobFormContextType = ReturnType<typeof useCreateJobFormContext>;
 export const JobFormContext = createContext<JobFormContextType>(
   undefined as any
 );
+
+export type JobFormTabs = "project" | "unit" | "main" | "coworker";
 export const JobFormProvider = JobFormContext.Provider;
 export const useCreateJobFormContext = (ref) => {
   //   const onDismiss = () => {
@@ -40,11 +42,10 @@ export const useCreateJobFormContext = (ref) => {
   const profile = getSessionProfile();
   const { data: users } = useQuery(
     _trpc.hrm.getEmployees.queryOptions({
-      roles: [profile?.role?.name],
+      roles: [profile?.role?.name!],
     })
   );
   // const [projectId, homeId] = form.watch(["projectId", "homeId"]);
-  const [tab, setTab] = useState<any>("0");
   // const [title, subtitle, showCharges] = form.watch([
   //   "title",
   //   "subtitle",
@@ -153,16 +154,22 @@ export const useCreateJobFormContext = (ref) => {
     onSelect(project);
     // setTab("unit");
   };
+  const [tabHistory, setTabHistory] = useState<JobFormTabs[]>(["project"]);
   const navigateBack = () => {
-    switch (tab) {
-      case "1":
-        setTab("0");
-        break;
-      case "2":
-        setTab("1");
-        break;
+    const count = tabHistory?.length;
+    if (count == 1) {
+      ///close
+      return;
     }
+    setTabHistory((c) => {
+      const [rm, ...re] = c;
+      return [...re];
+    });
   };
+  const setTab = (val: JobFormTabs) => {
+    setTabHistory((c) => [val, ...c]);
+  };
+  const tab = tabHistory?.[0];
   return {
     ref,
     form,
@@ -184,6 +191,8 @@ export const useCreateJobFormContext = (ref) => {
     users,
     navigateBack,
     formData,
+    tabHistory,
+    setTabHistory,
   };
 };
 export const useJobFormContext = () => {

@@ -4,7 +4,7 @@ import { useJobFormContext } from "@/hooks/use-job-form-2";
 import { JobSelectProjectSearch } from "./job-select-project-search";
 import { JobSelectProjectList } from "./job-select-project-list";
 import { JobSelectProjectFooter } from "./job-select-project-footer";
-import { JobSelectUnitList } from "./job-select-unit-list";
+import { JobSelectCoWorkerList } from "./job-select-coworker-list";
 
 export type Project = {
   id: string;
@@ -13,11 +13,11 @@ export type Project = {
   icon: string; // Lucide icon name
 };
 
-export function SelectUnitStep() {
+export function SelectCoWorkerStep() {
   const { setTab } = useJobFormContext();
 
   const handleContinue = () => {
-    setTab("main");
+    setTab("unit");
   };
 
   return (
@@ -25,14 +25,13 @@ export function SelectUnitStep() {
       {/* <JobSelectProjectHeader onBack={handleBack} /> */}
       <View className="px-5 pt-2 pb-4">
         <Text className="text-3xl font-bold text-foreground leading-tight">
-          Select Unit
+          Select Co-Worker
         </Text>
       </View>
       <JobSelectProjectSearch />
       <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
-        <JobSelectUnitList />
+        <JobSelectCoWorkerList />
       </ScrollView>
-      <JobSelectProjectFooter onContinue={handleContinue} />
     </View>
   );
 }

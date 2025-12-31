@@ -46,40 +46,47 @@
   --color-muted-dark: #52525b;
 }
 .dark {
-  --background: hsl(0 0% 10%);
-  --foreground: hsl(0 0% 96%);
+  /* Core surfaces */
+  --background: hsl(24 10% 6%);
+  --foreground: hsl(40 15% 95%);
 
-  --card: hsl(0 0% 12%);
-  --card-foreground: hsl(0 0% 96%);
+  --card: hsl(220 15% 11%);
+  --card-foreground: hsl(210 20% 96%);
 
-  --popover: hsl(0 0% 11%);
-  --popover-foreground: hsl(0 0% 96%);
+  --popover: hsl(220 15% 12%);
+  --popover-foreground: hsl(210 20% 96%);
 
-  --primary: hsl(0 0% 96%);
-  --primary-foreground: hsl(0 0% 8%);
+  /* Brand / primary */
+  --primary: hsl(48 95% 55%);
+  --primary-foreground: hsl(26 85% 12%);
 
-  --secondary: hsl(0 0% 18%);
-  --secondary-foreground: hsl(0 0% 96%);
+  /* UI layers */
+  --secondary: hsl(220 12% 16%);
+  --secondary-foreground: hsl(210 20% 92%);
 
-  --muted: hsl(0 0% 18%);
-  --muted-foreground: hsl(0 0% 65%);
+  --muted: hsl(220 10% 18%);
+  --muted-foreground: hsl(215 10% 65%);
 
-  --accent: hsl(0 0% 22%);
-  --accent-foreground: hsl(0 0% 96%);
+  --accent: hsl(220 12% 20%);
+  --accent-foreground: hsl(210 20% 96%);
 
-  --destructive: hsl(0 60% 40%);
-  --destructive-foreground: hsl(0 0% 96%);
+  /* States */
+  --destructive: hsl(0 65% 42%);
+  --destructive-foreground: hsl(0 0% 98%);
 
-  --border: hsl(0 0% 18%);
-  --input: hsl(0 0% 20%);
-  --ring: hsl(220 80% 70%);
+  /* Borders & inputs */
+  --border: hsl(220 10% 20%);
+  --input: hsl(220 10% 22%);
 
-  /* Softer chart colors for dark mode */
+  /* Focus ring */
+  --ring: hsl(220 85% 65%);
+
+  /* Charts (dark-safe, not neon) */
   --chart-1: hsl(220 70% 60%);
-  --chart-2: hsl(160 55% 50%);
-  --chart-3: hsl(30 85% 60%);
-  --chart-4: hsl(280 60% 65%);
-  --chart-5: hsl(340 70% 60%);
+  --chart-2: hsl(160 60% 48%);
+  --chart-3: hsl(35 85% 62%);
+  --chart-4: hsl(280 65% 65%);
+  --chart-5: hsl(340 75% 62%);
 }
 
 :root {
