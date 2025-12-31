@@ -22,16 +22,15 @@ export function SelectUnitStep() {
 
   return (
     <View className="relative flex-1">
-      {/* <JobSelectProjectHeader onBack={handleBack} /> */}
       <View className="px-5 pt-2 pb-4">
         <Text className="text-3xl font-bold text-foreground leading-tight">
           Select Unit
         </Text>
       </View>
       <JobSelectProjectSearch />
-      <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
-        <JobSelectUnitList />
-      </ScrollView>
+
+      <JobSelectUnitList />
+
       <JobSelectProjectFooter onContinue={handleContinue} />
     </View>
   );

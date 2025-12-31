@@ -47,8 +47,10 @@
 }
 .dark {
   /* Core surfaces */
-  --background: hsl(24 10% 6%);
-  --foreground: hsl(40 15% 95%);
+  /* --background: hsl(24 10% 6%); */
+  --background: hsl(224 71.4% 4.1%);
+  /* --foreground: hsl(40 15% 95%); */
+  --foreground: hsl(210 20% 98%);
 
   --card: hsl(220 15% 11%);
   --card-foreground: hsl(210 20% 96%);

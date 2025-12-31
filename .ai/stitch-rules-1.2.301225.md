@@ -276,6 +276,7 @@ If any of the following appear, the solution must be rejected:
 - Inline color is **only allowed for rare, exceptional cases** (e.g., dynamic status indicators).
 
 ✅ Correct Usage:
+import {Icon} from "@/components/ui/icons";
 <Icon name="AudioLines" className="text-primary size-8" />
 <Icon name="BellDot" className="text-destructive size-6" />
 

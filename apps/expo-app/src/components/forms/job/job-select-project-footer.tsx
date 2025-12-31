@@ -12,7 +12,7 @@ export function JobSelectProjectFooter({
   const colors = useColors();
 
   return (
-    <View className="absolute left-0 pb-5 w-full bottom-0">
+    <View className="absolute left-0 w-full bottom-0">
       <LinearGradient
         colors={[
           `${colors.background}00`,
@@ -23,7 +23,7 @@ export function JobSelectProjectFooter({
         // style={{ width: "100%", height: 128 }}
       />
       <View style={{ backgroundColor: colors.background }}>
-        <View className="p-4 pt-0">
+        <View className="p-4 pt-0 my-8">
           <TouchableOpacity
             onPress={onContinue}
             className="w-full bg-primary h-14 rounded-full flex-row items-center justify-center gap-2"

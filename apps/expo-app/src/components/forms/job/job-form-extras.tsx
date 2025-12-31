@@ -10,6 +10,8 @@ import {
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
+import { useColors } from "@/hooks/use-color";
+import { Input } from "@/components/ui/input-2";
 
 const coworkers = [
   {
@@ -84,9 +86,10 @@ export function JobFormExtras() {
   const ctx = useJobFormContext();
   const coWorker = ctx?.formData?.coWorker;
   const coWorkers = ctx?.users;
+  const color = useColors();
   return (
     <>
-      <View className="gap-4 pt-4 border-t border-border/50">
+      <View className="gap-4  pt-4 border-t">
         <Text className="text-lg font-bold text-foreground px-2">
           Additional Charges
         </Text>
@@ -122,9 +125,11 @@ export function JobFormExtras() {
           <Text className="text-sm font-semibold text-muted-foreground ml-2">
             Note to Admin
           </Text>
-          <TextInput
-            className="flex w-full rounded-xl border border-muted-foreground h-14 px-5 text-base text-foreground"
+          <Input
+            // className="flex w-full rounded-xl border border-muted-foreground h-14 px-5 text-base text-foreground"
+            className="h-14"
             placeholder="Add a note..."
+            // placeholderTextColor={color.mutedForeground}
           />
         </View>
         <View className="flex-col gap-3">
@@ -133,7 +138,7 @@ export function JobFormExtras() {
           </Text>
           <Pressable
             className={cn(
-              "shrink-0 flex items-center gap-2 w-full flex-row border border-muted-foreground rounded-xl"
+              "shrink-0 flex items-center gap-2 w-full flex-row border border-muted-foreground rounded-xl p-2"
             )}
             onPress={(e) => {
               ctx.setTab("coworker");
@@ -146,54 +151,22 @@ export function JobFormExtras() {
                 className="text-muted-foreground"
               />
             </View>
-            <View>
-              <Text className="text-xs font-medium text-muted-foreground">
+            <View className="gap-1">
+              <Text
+                className={cn(
+                  "text-lg font-medium text-muted-foreground",
+                  coWorker?.id && "text-primary"
+                )}
+              >
                 {coWorker?.name || "Select Co-Worker"}
               </Text>
-              {!coWorker?.id || <Text>Assigned. Click to change</Text>}
+              {!coWorker?.id || (
+                <Text className="text-muted-foreground">
+                  Assigned. Click to change
+                </Text>
+              )}
             </View>
           </Pressable>
-          <View className="flex-row gap-4 pb-2">
-            {!coWorker?.id ? (
-              <>
-                <Pressable className="shrink-0 flex flex-col items-center gap-2">
-                  <View className="size-14 rounded-full bg-card border-2 border-dashed border-border flex items-center justify-center">
-                    <Icon name="UserPlus" className="text-muted-foreground" />
-                  </View>
-                  <Text className="text-xs font-medium text-muted-foreground">
-                    {coWorker?.name}
-                  </Text>
-                </Pressable>
-              </>
-            ) : (
-              <Pressable className="shrink-0 flex flex-col items-center gap-2">
-                <View className="size-14 rounded-full bg-card border-2 border-dashed border-border flex items-center justify-center">
-                  <Icon name="UserPlus" className="text-muted-foreground" />
-                </View>
-                <Text className="text-xs font-medium text-muted-foreground">
-                  {coWorker?.name}
-                </Text>
-              </Pressable>
-            )}
-            {/* {coWorkers?.data?.map((c) => {
-              const isSelected = c.id === coWorker?.id;
-              const initials = c?.name
-                ?.split(" ")
-                .map((n) => n[0])
-                ?.filter((a, i) => i < 2)
-                .join("");
-              return (
-                <CoworkerItem
-                  key={c.id}
-                  coworker={{
-                    ...c,
-                    initials,
-                    selected: isSelected,
-                  }}
-                />
-              );
-            })} */}
-          </View>
         </View>
       </View>
     </>
