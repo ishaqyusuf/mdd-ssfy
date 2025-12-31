@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@gnd/utils/dayjs";
 import { useJobOverviewStore } from "@/stores/use-job-overview-store";
 import { getSessionProfile } from "@/lib/session-store";
+import { useRouter } from "expo-router";
 
 // type RecentJobsProps = {};
 type JobItem = RouterOutputs["jobs"]["getJobs"]["data"][number];
@@ -28,6 +29,7 @@ export function RecentJobs() {
       userId: profile.user.id,
     })
   );
+  const router = useRouter();
   const renderItem = ({ item }: { item: JobItem }) => {
     const statusColor = getColorFromName(item.status) || "#6B7280";
     const date = formatDate(item.createdAt);
@@ -35,7 +37,10 @@ export function RecentJobs() {
     return (
       <TouchableOpacity
         className="bg-white dark:bg-gray-800/50 rounded-xl overflow-hidden shadow-md shadow-gray-200/50 dark:shadow-none border border-gray-200/80 dark:border-gray-700/60 mb-3"
-        onPress={() => openModal(item)}
+        onPress={() => {
+          // openModal(item);
+          router.push(`/(installers)/overview/${item.id}`);
+        }}
       >
         <View className="flex-row">
           <View style={{ backgroundColor: statusColor, width: 6 }} />
