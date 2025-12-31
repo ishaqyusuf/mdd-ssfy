@@ -12,8 +12,7 @@ export function JobSelectProjectFooter({
   const colors = useColors();
 
   return (
-    <View className="absolute bottom-0">
-      {/* <View className="absolute bottom-0 left-0 w-full"> */}
+    <View className="absolute left-0 pb-5 w-full bottom-0">
       <LinearGradient
         colors={[
           `${colors.background}00`,

@@ -5,6 +5,7 @@ import { createJobSchema } from "@api/db/queries/jobs";
 import { consoleLog } from "@gnd/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { createContext, useContext, useEffect, useState } from "react";
+import { useWatch } from "react-hook-form";
 
 type JobFormContextType = ReturnType<typeof useCreateJobFormContext>;
 export const JobFormContext = createContext<JobFormContextType>(
@@ -53,7 +54,10 @@ export const useCreateJobFormContext = (ref) => {
   // useEffect(() => {
   //   form.reset(store.form);
   // }, [store.form]);
-  const formData = form.watch();
+  // const formData = form.watch();
+  const formData = useWatch({
+    control: form.control,
+  });
   // const formData = store.form;
   // const formData = useMemo(() => __formData, [__formData]);
   // useEffect(() => {
@@ -149,7 +153,16 @@ export const useCreateJobFormContext = (ref) => {
     onSelect(project);
     // setTab("unit");
   };
-
+  const navigateBack = () => {
+    switch (tab) {
+      case "1":
+        setTab("0");
+        break;
+      case "2":
+        setTab("1");
+        break;
+    }
+  };
   return {
     ref,
     form,
@@ -169,6 +182,7 @@ export const useCreateJobFormContext = (ref) => {
     subtitle,
     showCharges,
     users,
+    navigateBack,
     formData,
   };
 };

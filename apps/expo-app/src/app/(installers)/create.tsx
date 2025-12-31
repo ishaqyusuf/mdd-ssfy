@@ -23,14 +23,14 @@ function Content() {
     <View className="flex-1 flex flex-col">
       <JobFormHeader />
 
-      <Tabs onValueChange={(e) => {}} value={tab}>
-        <Tabs.Content className="" value="0">
+      <Tabs className="flex-1" onValueChange={(e) => {}} value={tab}>
+        <Tabs.Content className="flex-1" value="0">
           <SelectProjectStep />
         </Tabs.Content>
-        <Tabs.Content value="1">
+        <Tabs.Content className="flex-1" value="1">
           <SelectUnitStep />
         </Tabs.Content>
-        <Tabs.Content value="1">
+        <Tabs.Content value="2" className="flex-1">
           <JobFormStep />
         </Tabs.Content>
       </Tabs>

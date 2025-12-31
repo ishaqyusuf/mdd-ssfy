@@ -35,6 +35,11 @@ export async function projectList(ctx: TRPCContext) {
       title: true,
       builderId: true,
       meta: true,
+      builder: {
+        select: {
+          name: true,
+        },
+      },
     },
     orderBy: {
       title: "asc",
