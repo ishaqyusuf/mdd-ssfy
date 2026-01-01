@@ -8,13 +8,7 @@ import { consoleLog } from "@gnd/utils";
 import { toastStyles } from "@root/styles/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useFocusEffect } from "expo-router";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 import { useWatch } from "react-hook-form";
 import { BackHandler, Text, View } from "react-native";
 
@@ -48,12 +42,24 @@ export const useCreateJobFormContext = (ref) => {
       subtitle: null,
     },
   });
+  const [tabHistory, setTabHistory] = useState<JobFormTabs[]>(["project"]);
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
         // return true = block default behavior
         // return false = allow system back
-        navigateBack();
+
+        const count = tabHistory?.length;
+        console.log(tabHistory);
+        if (count === 1) {
+          ///close
+          // router.
+          return false;
+        }
+        setTabHistory((c) => {
+          const [, ...re] = c;
+          return [...re];
+        });
         return true;
       };
 
@@ -61,9 +67,8 @@ export const useCreateJobFormContext = (ref) => {
         "hardwareBackPress",
         onBackPress
       );
-
       return () => sub.remove();
-    }, [])
+    }, [tabHistory])
   );
   const { data: projectList } = useQuery(
     _trpc.community.projectsList.queryOptions()
@@ -186,11 +191,12 @@ export const useCreateJobFormContext = (ref) => {
     onSelect(project);
     // setTab("unit");
   };
-  const [tabHistory, setTabHistory] = useState<JobFormTabs[]>(["project"]);
+
   const navigateBack = () => {
     const count = tabHistory?.length;
-    if (count == 1) {
+    if (count === 1) {
       ///close
+      // router.
       return;
     }
     setTabHistory((c) => {

@@ -54,6 +54,7 @@ Examples:
   * RGB/HSL values
   * Named colors
   * Utility colors (`bg-red-*`, `text-blue-*`, etc.)
+  * opacity eg bg-background/80 etc
 
 * ✅ If Stitch introduces a unique brand color:
 

@@ -1,6 +1,7 @@
 import { Logout } from "@/components/logout";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Icon, IconProps } from "@/components/ui/icon";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   Platform,
@@ -327,6 +328,7 @@ const BottomNavBar = () => (
 );
 
 export default function Home2() {
+  const router = useRouter();
   return (
     <View className="flex-1 bg-background">
       <HomeHeader />
@@ -388,7 +390,11 @@ export default function Home2() {
             <Text className="text-lg font-bold text-foreground">
               Recent Activity
             </Text>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={(e) => {
+                router.push("/jobs2");
+              }}
+            >
               <Text className="text-sm font-bold text-primary">View All</Text>
             </TouchableOpacity>
           </View>

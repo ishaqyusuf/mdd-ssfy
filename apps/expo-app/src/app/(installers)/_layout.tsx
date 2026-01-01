@@ -24,6 +24,13 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen
+        name="jobs2"
+        options={{
+          // header: () => <JobsHeader />,
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="create"
         options={{
           presentation: "modal",

@@ -5,6 +5,7 @@ import { icons } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { camel } from "@gnd/utils";
 import { THEME } from "@/lib/theme";
+import { View } from "react-native";
 export type IconProps = LucideProps & {
   as?: LucideIcon;
   name?: keyof typeof icons;
@@ -25,9 +26,23 @@ function IconImpl({ as: IconComponent, name, ...props }: IconProps) {
   props.style = {
     ...(props.style || ({} as any)),
     color: _themColor || color,
+    size:
+      +props?.className
+        ?.split(" ")
+        ?.find((a) => a.startsWith("size-"))
+        ?.split("-")?.[1]! || props.size,
   };
-  if (!IconComponent) IconComponent = icons[name as any];
-  if (!IconComponent) throw new Error("Invalid icon");
+  if (!IconComponent) IconComponent = icons![name!];
+  if (!IconComponent) IconComponent = icons!["LayoutGrid"];
+  const otherClasses = props.className
+    ?.split(" ")
+    .filter((a) => ["size-", "text-"].every((b) => !a?.startsWith(b)));
+  if (otherClasses?.length)
+    return (
+      <View className={cn(otherClasses.join(" "))}>
+        <IconComponent {...props} />
+      </View>
+    );
   return <IconComponent {...props} />;
 }
 
