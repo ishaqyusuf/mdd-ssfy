@@ -3,6 +3,8 @@ import { View, Text, Pressable, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Icon } from "@/components/ui/icon";
 import { useColors } from "@/hooks/use-color";
+import { useRouter } from "expo-router";
+import { useJobFormContext } from "@/hooks/use-job-form-2";
 
 // --- Mock Data ---
 const jobDetails = {
@@ -48,7 +50,8 @@ const RadialGradient = ({
 
 export function JobSubmittedStep() {
   const colors = useColors();
-
+  const router = useRouter();
+  const ctx = useJobFormContext();
   return (
     <View className="flex-1 bg-background">
       <View className="flex-1">
@@ -143,18 +146,33 @@ export function JobSubmittedStep() {
 
         {/* Action Footer */}
         <View className="w-full max-w-md mx-auto p-6 pb-8 flex flex-col gap-3">
-          <Pressable className="w-full bg-primary h-14 rounded-full flex-row items-center justify-center gap-2">
+          <Pressable
+            onPress={(e) => {
+              ctx.reset();
+            }}
+            className="w-full bg-primary h-14 rounded-full flex-row items-center justify-center gap-2"
+          >
             <Icon name="Plus" className="text-primary-foreground" />
             <Text className="text-primary-foreground font-bold text-lg">
               Add Another Job
             </Text>
           </Pressable>
-          <Pressable className="w-full bg-transparent border border-border dark:border-primary/30 h-14 rounded-full flex items-center justify-center">
+          <Pressable
+            onPress={(e) => {
+              router.push(`/(installers)/overview/${ctx.formData.id}`);
+            }}
+            className="w-full bg-transparent border border-border dark:border-primary/30 h-14 rounded-full flex items-center justify-center"
+          >
             <Text className="text-foreground dark:text-primary font-semibold text-lg">
               View Submitted Job
             </Text>
           </Pressable>
-          <Pressable className="w-full mt-2 py-2">
+          <Pressable
+            onPress={(e) => {
+              router.push("/(installers)/home2");
+            }}
+            className="w-full mt-2 py-2"
+          >
             <Text className="text-muted-foreground font-medium text-sm text-center">
               Return to Dashboard
             </Text>

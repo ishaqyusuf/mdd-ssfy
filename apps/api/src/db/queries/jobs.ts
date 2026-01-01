@@ -7,6 +7,14 @@ import z from "zod";
 import { getSetting } from "./settings";
 import { formatLargeNumber } from "@gnd/utils/format";
 import { sum } from "@gnd/utils";
+import {
+  startOfMonth,
+  endOfMonth,
+  subMonths,
+  eachDayOfInterval,
+  format,
+} from "date-fns";
+
 export const getJobsSchema = z
   .object({
     userId: z.number().optional().nullable(),
@@ -264,4 +272,65 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
           ],
     });
   }
+}
+
+export const earningAnalyticsSchema = z.object({
+  // : z.string(),
+});
+export type EarningAnalyticsSchema = z.infer<typeof earningAnalyticsSchema>;
+
+export async function earningAnalytics(
+  ctx: TRPCContext,
+  query: EarningAnalyticsSchema
+) {
+  const { db } = ctx;
+  const now = new Date();
+
+  const thisMonthStart = startOfMonth(now);
+  const thisMonthEnd = endOfMonth(now);
+
+  const lastMonthStart = startOfMonth(subMonths(now, 1));
+  const lastMonthEnd = endOfMonth(subMonths(now, 1));
+  const [thisMonthJobs, lastMonthJobs] = await Promise.all([
+    db.jobs.findMany({
+      where: {
+        userId: ctx.userId,
+        status: "PAID",
+        createdAt: { gte: thisMonthStart, lte: thisMonthEnd },
+      },
+      select: { amount: true, createdAt: true },
+    }),
+
+    db.jobs.findMany({
+      where: {
+        userId: ctx.userId,
+        status: "PAID",
+        createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
+      },
+      select: { amount: true },
+    }),
+  ]);
+  const earning = thisMonthJobs.reduce((s, j) => s + j.amount, 0);
+  const lastMonthEarning = lastMonthJobs.reduce((s, j) => s + j.amount, 0);
+  const percentageVsLastMonth =
+    lastMonthEarning === 0
+      ? 100
+      : Math.round(((earning - lastMonthEarning) / lastMonthEarning) * 100);
+  const days = eachDayOfInterval({
+    start: thisMonthStart,
+    end: thisMonthEnd,
+  });
+
+  const data = days.map((day) => {
+    return thisMonthJobs
+      .filter(
+        (j) => format(j.createdAt!, "yyyy-MM-dd") === format(day, "yyyy-MM-dd")
+      )
+      .reduce((s, j) => s + j.amount, 0);
+  });
+  return {
+    earning,
+    percentageVsLastMonth,
+    data,
+  };
 }

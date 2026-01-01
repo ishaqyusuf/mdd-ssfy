@@ -300,16 +300,18 @@ export const useCreateJobFormContext = (ref) => {
     createToast("task_completed", {});
     setTab("completed");
     // return;
-    const values = formData;
-    const profile = getSessionProfile();
-    const role = profile?.role?.name;
-    values.type = role == "1099 Contractor" ? "installation" : "punchout";
     // form.reset(values);
     setTimeout(() => {
       form.handleSubmit(
         (e) => {
-          consoleLog("SUBMITTING>>", e);
-          saveJob(e);
+          const values = formData;
+
+          const profile = getSessionProfile();
+          const role = profile?.role?.name;
+          values.type =
+            role === "1099 Contractor" ? "installation" : "punchout";
+          consoleLog("SUBMITTING>>", values);
+          saveJob(values as any);
         },
         (errs) => {
           console.log(errs);
@@ -326,6 +328,10 @@ export const useCreateJobFormContext = (ref) => {
       // });
       // ctx.saveJob(values);
     }, 250);
+  };
+  const reset = () => {
+    setTabHistory(["project"]);
+    form.reset({});
   };
   return {
     ref,
@@ -352,6 +358,7 @@ export const useCreateJobFormContext = (ref) => {
     formData,
     tabHistory,
     setTabHistory,
+    reset,
   };
 };
 export const useJobFormContext = () => {
