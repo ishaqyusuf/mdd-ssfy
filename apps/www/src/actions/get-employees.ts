@@ -31,6 +31,14 @@ export async function getEmployees(query: SearchParamsType) {
             },
             roles: {
                 select: {
+                    organization: {
+                        select: {
+                            id: true,
+                            name: true,
+
+                            // phone: true,
+                        },
+                    },
                     role: {
                         select: {
                             id: true,
@@ -54,6 +62,8 @@ export async function getEmployees(query: SearchParamsType) {
                 username: item.username,
                 profile: item.employeeProfile,
                 role: item.roles?.[0]?.role,
+                org: item.roles?.[0]?.organization,
+                // userRoleModelId: item.roles?.[0]?.id,
                 date: formatDate(item.createdAt),
             };
         })

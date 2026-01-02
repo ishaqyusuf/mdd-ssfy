@@ -16,8 +16,10 @@ import { Button } from "@gnd/ui/button";
 import { useEmployeesParams } from "@/hooks/use-employee-params";
 import { Icons } from "@gnd/ui/icons";
 import { useTRPC } from "@/trpc/client";
-import { useMutation } from "@gnd/ui/tanstack";
+import { useMutation, useQuery } from "@gnd/ui/tanstack";
 import { triggerTask } from "@/actions/trigger-task";
+import { Item } from "@gnd/ui/composite";
+import { _trpc } from "@/components/static-trpc";
 
 export type Item = PageItemData<typeof getEmployees>;
 export const columns: ColumnDef<Item>[] = [
@@ -57,6 +59,15 @@ export const columns: ColumnDef<Item>[] = [
         cell: ({ row: { original: item } }) => <Role item={item} />,
     },
     {
+        header: "Office",
+        accessorKey: "Office",
+        meta: {
+            // preventDefault: true,
+            className: "",
+        },
+        cell: ({ row: { original: item } }) => <Office item={item} />,
+    },
+    {
         header: "Profile",
         accessorKey: "profile",
         meta: {
@@ -75,6 +86,20 @@ export const columns: ColumnDef<Item>[] = [
         },
     },
 ];
+function Office({ item }: { item: Item }) {
+    const { data } = useQuery(_trpc.orgs.getOrganizationProfile.queryOptions());
+    return (
+        <Menu
+            Icon={null}
+            variant="secondary"
+            label={item?.org?.name || "Not Set"}
+        >
+            {data?.orgs?.map((org) => (
+                <Menu.Item key={org.id}>{org.name}</Menu.Item>
+            ))}
+        </Menu>
+    );
+}
 function Action({ item }: { item: Item }) {
     const { params, setParams } = useEmployeesParams();
     const trpc = useTRPC();
@@ -92,7 +117,7 @@ function Action({ item }: { item: Item }) {
             onError(error, variables, context) {
                 toast.error("Unable to complete");
             },
-        }),
+        })
     );
     function onSubmit() {
         submitAction.mutate({
@@ -139,7 +164,7 @@ function Action({ item }: { item: Item }) {
 function Profile({ item }: { item: Item }) {
     const ctx = useTable();
     const roles = ctx.tableMeta?.filterData?.find(
-        (a) => a.value == "employeeProfileId",
+        (a) => a.value == "employeeProfileId"
     )?.options;
     const loader = useLoadingToast();
     async function updateRole(roleId) {
@@ -178,7 +203,7 @@ function Profile({ item }: { item: Item }) {
 function Role({ item }: { item: Item }) {
     const ctx = useTable();
     const roles = ctx.tableMeta?.filterData?.find(
-        (a) => a.value == "roleId",
+        (a) => a.value == "roleId"
     )?.options;
     const loader = useLoadingToast();
     // const session = useAsyncMemo
@@ -198,6 +223,7 @@ function Role({ item }: { item: Item }) {
                 variant={item?.role?.id ? "secondary" : "destructive"}
                 hoverVariant="default"
                 triggerSize="xs"
+                className="h-[40vh] overflow-auto"
             >
                 {roles?.map((role) => (
                     <Menu.Item

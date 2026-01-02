@@ -4,6 +4,8 @@ model Organization {
     primary Boolean?
     address String?
 
+    phone String?
+
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
