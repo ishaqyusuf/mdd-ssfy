@@ -1,86 +1,10 @@
 // apps/expo-app/src/components/forms/job/job-form-extras.tsx
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  Pressable,
-  Image,
-} from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
 import { useColors } from "@/hooks/use-color";
 import { Input } from "@/components/ui/input-2";
-
-const coworkers = [
-  {
-    id: 1,
-    name: "You",
-    avatarUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCnsohTZeOi0VC8yrVw1_sxjrZrOp8HtrtmOzyhothcqgTEOnJzK-U6304C5-PV7M6ZsxOE9iDWa9aPOX5NFhQM1iGHVJKHjuOOSTyYEWYGCRmY4Mu7QILrQ9wS8AQIHxTU7zbnnKNlGHb487zuEVnW4cf1yug788SSnEkKfT-tbKM-ZJfzMirBRc909wJnFPGLNoKV6_4NWtPM4QugS_Q08vYJLQ8LsJy2HerPVlsmq7uB-K-pxCJ199MfbMW5KCcYaBkVQJgSCps",
-    selected: true,
-  },
-  {
-    id: 2,
-    name: "Mike",
-    avatarUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBoXWjTvJISVLs9SMiqxa4OE57gpYaAZgCk7T6jIil8WXqief6q0pCfAmCS-S0ruoAZbF6TkIyRhDF4ol63vTvx9OgaxZxCCR94sljvGZ1YFjQrEQYJK6IGi2WSjzUvoD1l3vFQJ6sNqRKALc9I-fxPBz3WTHcb5D43g2i6RAdjhXoBrriSnaIOdYATeyZL1_sJgVshH2SAd-48oxPY-YNCorK_G1Xk3N7ep89-VTfMmAGLcPY1BzQf_Q0Y2IUZW1QPhGmFa3smvBo",
-    selected: false,
-  },
-  {
-    id: 3,
-    name: "Sarah",
-    avatarUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAXv7kRd5MYLyBkKbhtA6zpCYAhmf0tjbfXzz_96G0Jq2yGQyNW0aZcHcV8lHQ70_uzy4_8Vo9FpIGyLUQq6gR7iXgLQmq8rDmL5I5BIPntayFK6GukqdPmRo6kNLTHn0qIKZXMIIJnjAZWWlF_21RpV6u2g_jqfA4ErGsgpjfSHsQ6lS9QQH0EwmzUmtRJddGci6BRe0f5s2_we9HgNJ9X-6PTvNiTZt-rf1oqFn9rplTmRO8NVPSk5hwkDZ2MQqo2q6vKQial108",
-    selected: false,
-  },
-];
-
-const CoworkerItem = ({ coworker }) => (
-  <Pressable
-    className={cn(
-      "shrink-0 flex flex-col items-center gap-2",
-      !coworker.selected && "opacity-60"
-    )}
-  >
-    <View className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-      <Text className="font-bold text-muted-foreground">
-        {coworker?.initials}
-      </Text>
-    </View>
-    {/* <View
-      className={cn(
-        "size-14 rounded-full border-2 p-0.5",
-        coworker.selected ? "border-primary" : "border-transparent"
-      )}
-    >
-      <Image
-        source={{ uri: coworker.avatarUrl }}
-        className="size-full rounded-full bg-muted"
-      />
-    </View> */}
-    <Text
-      className={cn(
-        "text-xs",
-        coworker.selected
-          ? "font-bold text-foreground"
-          : "font-medium text-muted-foreground"
-      )}
-    >
-      {coworker.name}
-    </Text>
-    {coworker.selected && (
-      <View className="absolute -top-1 -right-1 bg-primary rounded-full size-5 flex items-center justify-center">
-        <Icon
-          name="Check"
-          size={12}
-          className="text-primary-foreground font-bold"
-        />
-      </View>
-    )}
-  </Pressable>
-);
 
 export function JobFormExtras() {
   const ctx = useJobFormContext();
@@ -99,11 +23,12 @@ export function JobFormExtras() {
               Extra Charge
             </Text>
             <View className="relative justify-center">
-              <Text className="absolute left-5 text-muted-foreground font-bold">
-                $
+              <Text className="absolute z-10 left-5 text-muted-foreground font-bold">
+                USD
               </Text>
               <Input
-                className="flex w-full rounded-xl border border-muted-foreground h-14 pl-9 pr-5 text-base text-foreground"
+                {...ctx.form.register("additionalCost")}
+                className="flex w-full rounded-xl border border-muted-foreground h-14 pl-15 pr-5 text-base text-foreground"
                 placeholder="0.00"
                 inputMode="decimal"
               />
@@ -114,6 +39,7 @@ export function JobFormExtras() {
               Reason
             </Text>
             <Input
+              {...ctx.form.register("additionalReason")}
               className="flex w-full rounded-xl border border-muted-foreground bg-card h-14 px-5 text-base text-foreground"
               placeholder="e.g. Rush fee, Materials..."
             />
@@ -127,6 +53,7 @@ export function JobFormExtras() {
           </Text>
           <Input
             // className="flex w-full rounded-xl border border-muted-foreground h-14 px-5 text-base text-foreground"
+            {...ctx.form.register("note")}
             className="h-14"
             placeholder="Add a note..."
             // placeholderTextColor={color.mutedForeground}

@@ -1,18 +1,18 @@
 // apps/expo-app/src/components/forms/job/job-form-footer.tsx
-import { View, Text, Pressable, useColorScheme } from "react-native";
-import { BlurView } from "expo-blur";
+import { View, Text, Pressable } from "react-native";
+
 import { Icon } from "@/components/ui/icon";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
 import { cn } from "@/lib/utils";
+import { BlurView } from "@/components/blur-view";
 
 export function JobFormFooter() {
   const { bottom } = useSafeAreaInsets();
-  const tint = useColorScheme();
   const ctx = useJobFormContext();
   return (
     <View className="absolute bottom-0 left-0 right-0">
-      <BlurView intensity={30} tint={tint || "light"} className="w-full">
+      <BlurView intensity={90} className="w-full">
         <View
           className="p-4 border-t border-border"
           style={{ paddingBottom: bottom || 16 }}

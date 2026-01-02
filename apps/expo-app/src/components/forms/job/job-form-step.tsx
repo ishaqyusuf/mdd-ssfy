@@ -10,6 +10,7 @@ import { useMemo } from "react";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
 import { KeyboardAvoidingView } from "react-native";
 import { Platform } from "react-native";
+import { Textarea } from "@/components/ui/textarea";
 
 export function JobFormStep() {
   const ctx = useJobFormContext();
@@ -58,24 +59,24 @@ export function JobFormStep() {
                           ?.join(" - ")}
                       </Text>
                     </View>
-                    <View className="absolute right-4">
-                      <Icon
-                        name="Pencil"
-                        className="absolute right-4 text-primary"
-                        size={20}
-                      />
-                    </View>
+
+                    <Icon
+                      name="Pencil"
+                      className="absolute right-4 text-muted-foreground"
+                      size={20}
+                    />
                   </Pressable>
                 </View>
                 <View className="flex-col gap-2">
                   <Text className="text-sm font-semibold text-muted-foreground ml-2">
-                    Description{" "}
+                    Description
                     <Text className="text-xs font-normal opacity-70">
                       (Optional)
                     </Text>
                   </Text>
-                  <TextInput
+                  <Textarea
                     multiline
+                    {...ctx.form.register("description")}
                     className="flex w-full rounded-lg border border-muted-foreground bg-card min-h-[120px] px-5 py-4 text-base text-foreground align-text-top"
                     placeholder="Enter specific job details, access codes, or warnings..."
                     placeholderClassName="text-foreground"

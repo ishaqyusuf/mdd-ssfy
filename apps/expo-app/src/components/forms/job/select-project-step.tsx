@@ -20,7 +20,7 @@ export function SelectProjectStep() {
   };
 
   return (
-    <View className="relative flex-1">
+    <View className="relative flex-1 bg-background">
       {/* <JobSelectProjectHeader onBack={handleBack} /> */}
       <View className="px-5 pt-2 pb-4">
         <Text className="text-3xl font-bold text-foreground leading-tight">

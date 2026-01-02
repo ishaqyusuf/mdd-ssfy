@@ -18,6 +18,7 @@ import {
 export const getJobsSchema = z
   .object({
     userId: z.number().optional().nullable(),
+    jobId: z.number().optional().nullable(),
   })
   .extend(paginationSchema.shape);
 export type GetJobsSchema = z.infer<typeof getJobsSchema>;
@@ -60,6 +61,11 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
         select: {
           title: true,
           id: true,
+          builder: {
+            select: {
+              name: true,
+            },
+          },
         },
       },
       home: {
@@ -72,9 +78,9 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
     },
   });
   return await response(
-    data.map((d) => ({
+    data.map(({ meta, ...d }) => ({
       ...d,
-      meta: d.meta as any as JobMeta,
+      meta: meta as any as JobMeta,
     }))
   );
 }
@@ -94,6 +100,12 @@ function whereJobs(query: GetJobsSchema) {
         where.push({
           userId: value,
         });
+        break;
+      case "jobId":
+        where.push({
+          id: value,
+        });
+        break;
     }
   }
   return composeQuery(where);
@@ -295,7 +307,9 @@ export async function earningAnalytics(
     db.jobs.findMany({
       where: {
         userId: ctx.userId,
-        status: "PAID",
+        status: {
+          in: ["PAID", "SUBMITTED"],
+        },
         createdAt: { gte: thisMonthStart, lte: thisMonthEnd },
       },
       select: { amount: true, createdAt: true },
@@ -304,7 +318,9 @@ export async function earningAnalytics(
     db.jobs.findMany({
       where: {
         userId: ctx.userId,
-        status: "PAID",
+        status: {
+          in: ["PAID", "SUBMITTED"],
+        },
         createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
       },
       select: { amount: true },

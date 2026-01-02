@@ -159,7 +159,7 @@ export function JobSubmittedStep() {
           </Pressable>
           <Pressable
             onPress={(e) => {
-              router.push(`/(installers)/overview/${ctx.formData.id}`);
+              router.replace(`/(installers)/overview/${ctx.formData.id}`);
             }}
             className="w-full bg-transparent border border-border dark:border-primary/30 h-14 rounded-full flex items-center justify-center"
           >
@@ -169,7 +169,7 @@ export function JobSubmittedStep() {
           </Pressable>
           <Pressable
             onPress={(e) => {
-              router.push("/(installers)/home2");
+              router.replace("/(installers)/home2");
             }}
             className="w-full mt-2 py-2"
           >

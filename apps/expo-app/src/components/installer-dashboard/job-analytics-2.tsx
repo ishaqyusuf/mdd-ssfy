@@ -1,4 +1,3 @@
-import { MaterialIcons } from "@expo/vector-icons";
 import { useColorScheme } from "nativewind";
 import { useQuery } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
@@ -8,11 +7,10 @@ import { Text } from "../ui/text";
 import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
 import { formatMoney } from "@gnd/utils";
 export function JobAnalytics2() {
-  const { colorScheme } = useColorScheme();
   const { data } = useQuery(_trpc.jobs.earningAnalytics.queryOptions({}));
   // if(isPending || )
   const { data: graphData, earning, percentageVsLastMonth } = data || {};
-
+  if (!graphData) return <></>;
   return (
     <View>
       <View className="px-5 mt-2">
@@ -106,48 +104,48 @@ const EarningsChart = ({ data }) => {
     </View>
   );
 };
-const buildSmoothAreaPath = (
-  values: number[],
-  width: number,
-  height: number
-) => {
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const range = max - min || 1;
-  const stepX = width / (values.length - 1);
+// const buildSmoothAreaPath = (
+//   values: number[],
+//   width: number,
+//   height: number
+// ) => {
+//   const max = Math.max(...values);
+//   const min = Math.min(...values);
+//   const range = max - min || 1;
+//   const stepX = width / (values.length - 1);
 
-  const points = values.map((v, i) => ({
-    x: i * stepX,
-    y: height - ((v - min) / range) * height,
-  }));
+//   const points = values.map((v, i) => ({
+//     x: i * stepX,
+//     y: height - ((v - min) / range) * height,
+//   }));
 
-  let d = `M${points[0].x} ${height}`;
+//   let d = `M${points[0].x} ${height}`;
 
-  // curve up to first point
-  d += ` L${points[0].x} ${points[0].y}`;
+//   // curve up to first point
+//   d += ` L${points[0].x} ${points[0].y}`;
 
-  for (let i = 1; i < points.length; i++) {
-    const prev = points[i - 1];
-    const curr = points[i];
+//   for (let i = 1; i < points.length; i++) {
+//     const prev = points[i - 1];
+//     const curr = points[i];
 
-    const cx1 = prev.x + stepX / 2;
-    const cy1 = prev.y;
-    const cx2 = curr.x - stepX / 2;
-    const cy2 = curr.y;
+//     const cx1 = prev.x + stepX / 2;
+//     const cy1 = prev.y;
+//     const cx2 = curr.x - stepX / 2;
+//     const cy2 = curr.y;
 
-    d += ` C${cx1} ${cy1}, ${cx2} ${cy2}, ${curr.x} ${curr.y}`;
-  }
+//     d += ` C${cx1} ${cy1}, ${cx2} ${cy2}, ${curr.x} ${curr.y}`;
+//   }
 
-  // smooth curve back down to baseline
-  const last = points[points.length - 1];
-  d += ` C${last.x + stepX / 2} ${last.y}, ${last.x + stepX / 2} ${height}, ${
-    last.x
-  } ${height}`;
+//   // smooth curve back down to baseline
+//   const last = points[points.length - 1];
+//   d += ` C${last.x + stepX / 2} ${last.y}, ${last.x + stepX / 2} ${height}, ${
+//     last.x
+//   } ${height}`;
 
-  d += " Z";
+//   d += " Z";
 
-  return d;
-};
+//   return d;
+// };
 
 const buildSmoothStrokePath = (
   values: number[],

@@ -7,7 +7,7 @@ import { createJobSchema } from "@api/db/queries/jobs";
 import { consoleLog } from "@gnd/utils";
 import { toastStyles } from "@root/styles/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { createContext, useCallback, useContext, useState } from "react";
 import { useWatch } from "react-hook-form";
 import { BackHandler, Text, View } from "react-native";
@@ -191,12 +191,12 @@ export const useCreateJobFormContext = (ref) => {
     onSelect(project);
     // setTab("unit");
   };
-
+  const router = useRouter();
   const navigateBack = () => {
     const count = tabHistory?.length;
     if (count === 1) {
       ///close
-      // router.
+      router.back();
       return;
     }
     setTabHistory((c) => {
