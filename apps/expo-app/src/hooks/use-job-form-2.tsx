@@ -4,11 +4,17 @@ import { useZodForm } from "@/components/use-zod-form";
 import { useToast } from "@/context/toast-context";
 import { getSessionProfile } from "@/lib/session-store";
 import { createJobSchema } from "@api/db/queries/jobs";
-import { consoleLog } from "@gnd/utils";
+import { consoleLog, sum } from "@gnd/utils";
 import { toastStyles } from "@root/styles/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
-import { createContext, useCallback, useContext, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 import { useWatch } from "react-hook-form";
 import { BackHandler, Text, View } from "react-native";
 
@@ -40,6 +46,8 @@ export const useCreateJobFormContext = (ref) => {
       description: null,
       homeId: null,
       subtitle: null,
+      additionalCost: null,
+      additionalReason: "",
     },
   });
   const [tabHistory, setTabHistory] = useState<JobFormTabs[]>(["project"]);
@@ -50,7 +58,7 @@ export const useCreateJobFormContext = (ref) => {
         // return false = allow system back
 
         const count = tabHistory?.length;
-        console.log(tabHistory);
+
         if (count === 1) {
           ///close
           // router.
@@ -119,10 +127,20 @@ export const useCreateJobFormContext = (ref) => {
       }
     )
   );
+  const total = useMemo(() => {
+    const taskCost = sum(
+      Object.entries(formData?.tasks! || {}).map(([k, v]) =>
+        sum([+v?.qty! * +(v?.cost || 0)])
+      )
+    );
+    return sum([formData.addon, taskCost, formData.additionalCost]);
+  }, [formData]);
   const { mutate: saveJob, isPending: isSaving } = useMutation(
     _trpc.jobs.createJob.mutationOptions({
       onSuccess(data, variables, onMutateResult, context) {
         consoleLog("SUCCESS", data);
+        createToast("task_completed", {});
+        setTab("completed");
       },
       onError(error, variables, onMutateResult, context) {
         consoleLog("ERROR", error);
@@ -297,10 +315,10 @@ export const useCreateJobFormContext = (ref) => {
     [show]
   );
   const handleSubmit = () => {
-    createToast("task_completed", {});
-    setTab("completed");
     // return;
     // form.reset(values);
+    // consoleLog("DATA", formData);
+
     setTimeout(() => {
       form.handleSubmit(
         (e) => {
@@ -310,12 +328,11 @@ export const useCreateJobFormContext = (ref) => {
           const role = profile?.role?.name;
           values.type =
             role === "1099 Contractor" ? "installation" : "punchout";
-          consoleLog("SUBMITTING>>", values);
+          // consoleLog("SUBMITTING>>", values);
           saveJob(values as any);
         },
         (errs) => {
           console.log(errs);
-          console.log(values);
         }
       )();
       // form.trigger().then((e) => {
@@ -359,6 +376,7 @@ export const useCreateJobFormContext = (ref) => {
     tabHistory,
     setTabHistory,
     reset,
+    total,
   };
 };
 export const useJobFormContext = () => {

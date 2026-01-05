@@ -15,6 +15,7 @@ import { getSessionProfile } from "@/lib/session-store";
 import { useRouter } from "expo-router";
 import { JobItem } from "./recent-jobs";
 import { JobListItem2 } from "./job-list-item-2";
+import { Debug } from "../debug";
 
 export function RecentJobs2() {
   // { jobs }: RecentJobsProps
@@ -39,13 +40,15 @@ export function RecentJobs2() {
         <Text className="text-lg font-bold text-foreground">
           Recent Activity
         </Text>
-        <TouchableOpacity
-          onPress={(e) => {
-            router.push("/jobs2");
-          }}
-        >
-          <Text className="text-sm font-bold text-primary">View All</Text>
-        </TouchableOpacity>
+        <Debug>
+          <TouchableOpacity
+            onPress={(e) => {
+              router.push("/jobs2");
+            }}
+          >
+            <Text className="text-sm font-bold text-primary">View All</Text>
+          </TouchableOpacity>
+        </Debug>
       </View>
 
       {isPending ? (

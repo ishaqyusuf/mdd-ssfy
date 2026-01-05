@@ -38,6 +38,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
       meta: true,
       id: true,
       status: true,
+      note: true,
       statusDate: true,
       createdAt: true,
       title: true,
@@ -88,6 +89,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
       ({
         meta,
         adminNote,
+        note,
         amount,
         createdAt,
         description,
@@ -116,6 +118,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
           createdAt,
           description,
           home,
+          note,
           id,
           payment,
           project,

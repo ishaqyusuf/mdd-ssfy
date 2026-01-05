@@ -19,6 +19,7 @@ export function useJobTaskList(jobCostData) {
             title: c.title,
             qty,
             totalCost: qty * cost,
+            cost,
           };
         }) || []
     );

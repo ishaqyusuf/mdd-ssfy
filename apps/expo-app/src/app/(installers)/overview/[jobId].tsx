@@ -120,11 +120,11 @@ function TasksAndChargesCard() {
                 {task.title}
               </Text>
               <Text className="text-xs text-muted-foreground mt-1">
-                5 units × $120.00
+                {task.qty} units × ${task?.unitCost}
               </Text>
             </View>
             <Text className="font-bold text-foreground">
-              ${formatMoney(task?.totalCost)}
+              ${formatMoney(task?.cost)}
             </Text>
           </View>
         ))}
@@ -139,7 +139,7 @@ function TasksAndChargesCard() {
                     name="TriangleAlert"
                     className="text-destructive text-[18px]"
                   />
-                  <Text className="font-bold text-destructive text-sm">
+                  <Text className="font-bold text-destructive-foreground text-sm">
                     Additional Cost
                   </Text>
                 </View>
@@ -200,22 +200,28 @@ const TeamMember = ({
   );
 };
 
-const NotesCard = () => (
-  // Using 'secondary' for the notes card to differentiate it semantically.
-  <View className="bg-secondary p-5 rounded-4xl border border-border mb-8 relative">
-    <View className="absolute top-5 right-5 text-foreground -rotate-12">
-      <Icon name="Pin" className="size-20" size={20} />
+const NotesCard = () => {
+  const { job } = useJobContext();
+  return (
+    // Using 'secondary' for the notes card to differentiate it semantically.
+    <View className="bg-secondary p-5 rounded-4xl border border-border mb-8 relative">
+      <View className="absolute top-5 right-5 text-foreground -rotate-12">
+        <Icon name="Pin" className="size-20" size={20} />
+      </View>
+      <Text className="text-sm font-bold text-secondary-foreground flex-row items-center gap-2 mb-2">
+        <Icon
+          name="StickyNote"
+          size={20}
+          className="text-secondary-foreground"
+        />
+        Notes
+      </Text>
+      <Text className="text-sm text-secondary-foreground italic leading-relaxed pr-6">
+        {job?.note || "No Note"}
+      </Text>
     </View>
-    <Text className="text-sm font-bold text-secondary-foreground flex-row items-center gap-2 mb-2">
-      <Icon name="StickyNote" size={20} className="text-secondary-foreground" />
-      Notes
-    </Text>
-    <Text className="text-sm text-secondary-foreground italic leading-relaxed pr-6">
-      Please make sure to cover the floors in the hallway before bringing in
-      tools. The client is very particular about scratches.
-    </Text>
-  </View>
-);
+  );
+};
 
 const ActionBar = () => (
   <View className="absolute bottom-0 left-0 w-full bg-card/90 border-t border-border z-40">

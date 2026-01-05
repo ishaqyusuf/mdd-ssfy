@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
 import { cn } from "@/lib/utils";
 import { BlurView } from "@/components/blur-view";
+import { formatMoney } from "@gnd/utils";
 
 export function JobFormFooter() {
   const { bottom } = useSafeAreaInsets();
@@ -24,12 +25,13 @@ export function JobFormFooter() {
                   Total Estimate
                 </Text>
                 <Text className="text-xs text-muted-foreground">
-                  Includes 4 tasks
+                  {/* Includes 4 tasks */}
+                  --
                 </Text>
               </View>
               <View className="flex-row items-baseline gap-1">
                 <Text className="text-3xl font-bold text-primary tracking-tight">
-                  $1,850.00
+                  ${formatMoney(ctx.total)}
                 </Text>
               </View>
             </View>

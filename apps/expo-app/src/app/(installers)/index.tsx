@@ -5,10 +5,7 @@ import { RecentJobs } from "@/components/installer-dashboard/recent-jobs";
 import { AddNewJobFAB } from "@/components/installer-dashboard/add-new-job-fab";
 import { Debug } from "@/components/debug";
 import { Link } from "expo-router";
-import { InstallerDashboardHeader2 } from "@/components/installer-dashboard/installer-dashboard-header-2";
-import { JobAnalytics2 } from "@/components/installer-dashboard/job-analytics-2";
 import { Header } from "@/components/installer-dashboard/installer-dashboard-header";
-import { RecentJobs2 } from "@/components/installer-dashboard/recent-jobs2";
 
 export default function Dashboard() {
   return (
