@@ -305,6 +305,7 @@ export interface IntallCostMeta {
 export type JobType = "punchout" | "installation" | "Deco-Shutter";
 export interface JobMeta {
   additional_cost: number;
+  additionalCostReason: string;
   taskCost: number;
   addon: number;
   costData: InstallCostingTemplate<{ qty: number; cost: number }>;

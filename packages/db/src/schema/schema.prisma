@@ -150,13 +150,13 @@ model ModelHasRoles {
     roleId  Int
     modelId Int
 
-    role           Roles         @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "model_has_roles_role_id_foreign")
-    user           Users         @relation(fields: [modelId], references: [id])
-    deletedAt      DateTime?     @db.Timestamp(0)
-    organization   Organization? @relation(fields: [organizationId], references: [id])
-    organizationId Int?
+    role           Roles        @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "model_has_roles_role_id_foreign")
+    user           Users        @relation(fields: [modelId], references: [id])
+    deletedAt      DateTime?    @db.Timestamp(0)
+    organization   Organization @relation(fields: [organizationId], references: [id])
+    organizationId Int
 
-    @@id([roleId, modelId])
+    @@id([roleId, modelId, organizationId])
     @@index([modelId])
     @@index([organizationId])
 }

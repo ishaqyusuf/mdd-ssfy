@@ -43,6 +43,12 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
       title: true,
       subtitle: true,
       amount: true,
+      coWorker: {
+        select: {
+          name: true,
+          id: true,
+        },
+      },
       user: {
         select: {
           name: true,
@@ -78,10 +84,57 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
     },
   });
   return await response(
-    data.map(({ meta, ...d }) => ({
-      ...d,
-      meta: meta as any as JobMeta,
-    }))
+    data.map(
+      ({
+        meta,
+        adminNote,
+        amount,
+        createdAt,
+        description,
+        home,
+        id,
+        payment,
+        project,
+        status,
+        statusDate,
+        subtitle,
+        title,
+        user,
+        coWorker,
+      }) => {
+        const meta2 = meta as any as JobMeta;
+        const {
+          additional_cost,
+          additionalCostReason,
+          addon,
+          costData,
+          taskCost,
+        } = meta2 || {};
+        return {
+          adminNote,
+          amount,
+          createdAt,
+          description,
+          home,
+          id,
+          payment,
+          project,
+          status,
+          statusDate,
+          subtitle,
+          title,
+          user,
+          coWorker,
+          meta: {
+            additional_cost,
+            additionalCostReason,
+            addon,
+            costData,
+            taskCost,
+          },
+        };
+      }
+    )
   );
 }
 function whereJobs(query: GetJobsSchema) {
@@ -247,6 +300,7 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
   const meta: JobMeta = {
     taskCost,
     additional_cost: query.additionalCost!,
+    additionalCostReason: query.additionalReason!,
     addon: !query.homeId ? 0 : query.addon!,
     costData: query.tasks as any,
   };
@@ -279,7 +333,7 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
               ...data,
               userId: query.coWorker?.id!,
               coWorkerId: ctx.userId!,
-              note: query.additionalReason,
+              // note: query.note,
             },
           ],
     });

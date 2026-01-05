@@ -1,10 +1,12 @@
 import { BlurView } from "@/components/blur-view";
+import { Debug } from "@/components/debug";
 import { SafeArea } from "@/components/safe-area";
 import { _trpc } from "@/components/static-trpc";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useJobTaskList } from "@/hooks/use-job-task-list";
 import { formatMoney } from "@gnd/utils";
+import { getColorFromName } from "@gnd/utils/colors";
 import { formatDate } from "@gnd/utils/dayjs";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
@@ -31,14 +33,21 @@ function StatusBadge() {
   const { isPending, job } = useJobContext();
   return (
     <View className="flex-row items-center gap-2 mb-2">
-      <View className="flex-row items-center gap-1 px-3 py-1 rounded-full bg-accent/10 border border-accent/20">
-        <View className="h-1.5 w-1.5 rounded-full bg-accent" />
-        <Text className="text-accent text-xs font-bold uppercase tracking-wide">
-          {job?.status}
-        </Text>
+      <View
+        style={{
+          backgroundColor: getColorFromName(job?.status!),
+          borderRadius: 999,
+        }}
+      >
+        <View className="flex-row items-center gap-1 px-3 py-1 rounded-full border border-accent">
+          <View className="h-1.5 w-1.5 rounded-full bg-accent" />
+          <Text className="text-xs font-bold uppercase tracking-wide">
+            {job?.status}
+          </Text>
+        </View>
       </View>
       <Text className="text-xs text-muted-foreground font-medium">
-        #JB-{job.id}
+        #JB-{job!.id}
       </Text>
     </View>
   );
@@ -74,10 +83,10 @@ function InfoCard() {
             <Text className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">
               Unit
             </Text>
-            <Text className="text-lg font-bold text-foreground leading-tight">
+            <Text className="text-lg uppercase font-bold text-foreground leading-tight">
               {job?.subtitle}
             </Text>
-            <Text className="text-sm text-muted-foreground">
+            <Text className="text-sm uppercase text-muted-foreground">
               {/* Standard 2BR Layout */}
               {job?.home?.modelName}
             </Text>
@@ -121,32 +130,36 @@ function TasksAndChargesCard() {
         ))}
 
         {/* This section uses 'destructive' tokens to represent the warning state */}
-        <View className="bg-destructive -mx-2 p-3 rounded-xl border border-destructive/20">
-          <View className="flex-row justify-between items-start gap-4">
-            <View className="flex-1">
-              <View className="flex-row items-center gap-1.5 mb-1">
-                <Icon
-                  name="TriangleAlert"
-                  className="text-destructive text-[18px]"
-                />
-                <Text className="font-bold text-destructive text-sm">
-                  Extra: Wall Reinforcement
+        {!job?.meta?.additional_cost || (
+          <View className="bg-destructive -mx-2 p-3 rounded-xl border border-destructive/20">
+            <View className="flex-row justify-between items-start gap-4">
+              <View className="flex-1">
+                <View className="flex-row items-center gap-1.5 mb-1">
+                  <Icon
+                    name="TriangleAlert"
+                    className="text-destructive text-[18px]"
+                  />
+                  <Text className="font-bold text-destructive text-sm">
+                    Additional Cost
+                  </Text>
+                </View>
+                <Text className="text-xs text-destructive/70 leading-snug">
+                  {job?.meta?.additionalCostReason}
                 </Text>
               </View>
-              <Text className="text-xs text-destructive/70 leading-snug">
-                Found dry rot behind sink area, required extra backing.
+              <Text className="font-bold text-destructive">
+                ${job?.meta?.additional_cost}
               </Text>
             </View>
-            <Text className="font-bold text-destructive">$150.00</Text>
           </View>
-        </View>
+        )}
         <View className="h-px bg-border my-1" />
         <View className="flex-row justify-between items-end">
           <Text className="text-muted-foreground font-medium pb-2 text-sm">
             Total Amount
           </Text>
           <Text className="text-[32px] font-bold text-foreground tracking-tight leading-none">
-            $1,240.00
+            ${job?.amount}
           </Text>
         </View>
       </View>
@@ -162,27 +175,30 @@ const TeamMember = ({
   name: string;
   role: string;
   isLead?: boolean;
-}) => (
-  <View className="flex-row items-center gap-3 bg-card p-2 pr-5 rounded-full border border-border shrink-0">
-    <View className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-      <Text className="text-muted-foreground font-bold text-sm">
-        {name.charAt(0)}
-      </Text>
+}) => {
+  if (!name) return null;
+  return (
+    <View className="flex-row items-center gap-3 bg-card p-2 pr-5 rounded-full border border-border shrink-0">
+      <View className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+        <Text className="text-muted-foreground font-bold text-sm">
+          {name.charAt(0)}
+        </Text>
+      </View>
+      <View>
+        <Text className="text-sm font-bold leading-none text-foreground">
+          {name}
+        </Text>
+        <Text
+          className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${
+            isLead ? "text-primary" : "text-muted-foreground"
+          }`}
+        >
+          {role}
+        </Text>
+      </View>
     </View>
-    <View>
-      <Text className="text-sm font-bold leading-none text-foreground">
-        {name}
-      </Text>
-      <Text
-        className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${
-          isLead ? "text-primary" : "text-muted-foreground"
-        }`}
-      >
-        {role}
-      </Text>
-    </View>
-  </View>
-);
+  );
+};
 
 const NotesCard = () => (
   // Using 'secondary' for the notes card to differentiate it semantically.
@@ -272,14 +288,17 @@ function Content() {
               className="flex-row -mx-5 px-5"
               contentContainerClassName="gap-3 pb-2"
             >
-              <TeamMember name="Admin" role="Lead" isLead />
-              <TeamMember name="Admin" role="Apprentice" />
+              <TeamMember name={job?.user?.name!} role="Lead" isLead />
+              {!job?.coWorker || (
+                <TeamMember name={job?.coWorker?.name!} role="Co-Worker" />
+              )}
             </ScrollView>
           </View>
-
           <NotesCard />
         </ScrollView>
-        <ActionBar />
+        <Debug>
+          <ActionBar />
+        </Debug>
       </View>
     </SafeArea>
   );
