@@ -39,7 +39,6 @@ export default function SignIn() {
   const { mutate: loginMutation, isPending } = useMutation(
     _trpc.user.login.mutationOptions({
       onSuccess(data, variables, onMutateResult, context) {
-        console.log({ data });
         if (
           (["1099 Contractor", "Punchout"] as Roles[]).includes(
             data.role.name as any

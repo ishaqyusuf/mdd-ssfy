@@ -3,7 +3,7 @@ import { JobsHeader } from "@/components/jobs-header";
 
 export default function AuthLayout() {
   return (
-    <Stack initialRouteName="home2">
+    <Stack initialRouteName="index">
       <Stack.Screen
         name="index"
         options={{
@@ -17,7 +17,7 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen
-        name="home2"
+        name="home1"
         options={{
           // header: () => <JobsHeader />,
           headerShown: false,

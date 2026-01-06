@@ -5,13 +5,17 @@ const config: ExpoConfig = {
   slug: "prodesk",
   version: "1.0.0",
   orientation: "portrait",
-  icon: "./assets/images/icon.png",
+  // icon: "./assets/images/icon.png",
   scheme: "gndprodesk",
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.gnd.prodesk",
+    icon: {
+      dark: "./assets/icons/ios-dark.png",
+      light: "./assets/icons/ios-light.png",
+    },
   },
   // build: {
   //   preview: {
@@ -37,10 +41,10 @@ const config: ExpoConfig = {
     // buildType: "apk",
     // gradleCommand: ":app:assembleRelease",
     adaptiveIcon: {
-      backgroundColor: "#E6F4FE",
-      foregroundImage: "./assets/images/android-icon-foreground.png",
-      backgroundImage: "./assets/images/android-icon-background.png",
-      monochromeImage: "./assets/images/android-icon-monochrome.png",
+      backgroundColor: "#ffffff",
+      foregroundImage: "./assets/icons/adaptive-icon.png",
+      backgroundImage: "./assets/icons/adaptive-icon.png",
+      monochromeImage: "./assets/icons/adaptive-icon.png",
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
@@ -57,12 +61,13 @@ const config: ExpoConfig = {
     [
       "expo-splash-screen",
       {
-        image: "./assets/images/splash-icon.png",
+        image: "./assets/icons/splash-icon-dark.png",
         imageWidth: 200,
         resizeMode: "contain",
         backgroundColor: "#ffffff",
         dark: {
           backgroundColor: "#000000",
+          image: "./assets/icons/splash-icon-light.png",
         },
       },
     ],
@@ -82,7 +87,7 @@ const config: ExpoConfig = {
   },
   updates: {
     url: "https://u.expo.dev/1914ffbf-8d95-482a-af7e-e4e30a6206eb",
-    // url: "https://u.expo.dev/41f31ec0-9c44-4b41-af01-9a23d1b39d83",
+    // 41f31ec0-9c44-4b41-af01-9a23d1b39d83
   },
   runtimeVersion: {
     policy: "appVersion",

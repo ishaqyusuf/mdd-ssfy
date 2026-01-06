@@ -1,39 +1,255 @@
-import { ScrollView, View } from "react-native";
-import { JobOverviewModal } from "@/components/job-overview/job-overview-modal";
-import { JobAnalytics } from "@/components/installer-dashboard/job-analytics";
-import { RecentJobs } from "@/components/installer-dashboard/recent-jobs";
-import { AddNewJobFAB } from "@/components/installer-dashboard/add-new-job-fab";
 import { Debug } from "@/components/debug";
-import { Link } from "expo-router";
-import { Header } from "@/components/installer-dashboard/installer-dashboard-header";
+import { InstallerDashboardHeader2 } from "@/components/installer-dashboard/installer-dashboard-header-2";
+import { JobAnalytics2 } from "@/components/installer-dashboard/job-analytics-2";
+import { JobListItem2 } from "@/components/installer-dashboard/job-list-item-2";
+import { JobStatusCards } from "@/components/installer-dashboard/job-status-cards";
+import { RecentJobs2 } from "@/components/installer-dashboard/recent-jobs2";
+import { Logout } from "@/components/logout";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Icon, IconProps } from "@/components/ui/icon";
+import {
+  HomeContext,
+  HomeProvider,
+  useCreateHomeContext,
+} from "@/context/home-context";
+import { LegendList } from "@legendapp/list";
+import { Link, useRouter } from "expo-router";
+import React from "react";
+import {
+  Pressable,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from "react-native";
 
-export default function Dashboard() {
+// As per the rules, all components are defined in this single file.
+// The component is named Home2 to match the filename.
+
+const ActivityItem = ({
+  icon,
+  title,
+  subtitle,
+  value,
+  time,
+  valueColor = "text-primary",
+}: {
+  icon: IconProps["name"];
+  title: string;
+  subtitle: string;
+  value: string;
+  time: string;
+  valueColor?: string;
+}) => (
+  <View className="flex-row items-center gap-4 bg-card p-3 rounded-3xl border border-border">
+    <View className="h-14 w-14 rounded-2xl bg-background flex items-center justify-center shrink-0 border border-border">
+      <Icon
+        name={icon}
+        className={
+          valueColor === "text-primary" ? "text-primary" : "text-foreground"
+        }
+      />
+    </View>
+    <View className="flex-1 min-w-0">
+      <Text className="text-base font-bold text-foreground" numberOfLines={1}>
+        {title}
+      </Text>
+      <Text className="text-sm text-muted-foreground" numberOfLines={1}>
+        {subtitle}
+      </Text>
+    </View>
+    <View className="text-right px-2">
+      <Text className={`font-bold text-sm ${valueColor}`}>{value}</Text>
+      <Text className="text-xs text-muted-foreground">{time}</Text>
+    </View>
+  </View>
+);
+
+const NavItem = ({
+  icon,
+  label,
+  active = false,
+}: {
+  icon: IconProps["name"];
+  label: string;
+  active?: boolean;
+}) => (
+  <TouchableOpacity className="flex flex-col items-center gap-1">
+    <Icon
+      name={icon}
+      className={active ? "text-primary" : "text-muted-foreground"}
+    />
+    <Text
+      className={`text-[10px] font-bold ${
+        active ? "text-primary" : "text-muted-foreground"
+      }`}
+    >
+      {label}
+    </Text>
+  </TouchableOpacity>
+);
+
+const BottomNavBar = () => (
+  <View className="absolute bottom-0 left-0 w-full bg-card border-t border-border pb-6 pt-3 px-8 z-40">
+    <View className="flex-row justify-between items-center">
+      <NavItem icon="House" label="Home" active />
+      <NavItem icon="ClipboardList" label="Jobs" />
+      <NavItem icon="Wallet" label="Wallet" />
+      <NavItem icon="User" label="Profile" />
+    </View>
+  </View>
+);
+
+export default function Home2() {
+  const router = useRouter();
+  const ctx = useCreateHomeContext();
+  return (
+    <HomeProvider value={ctx}>
+      <InstallerDashboardHeader2 />
+      <LegendList
+        onRefresh={ctx.refresh}
+        ListHeaderComponent={
+          <>
+            <JobAnalytics2 />
+            <Debug>
+              <View className="">
+                <Pressable
+                  onPress={(e) => {
+                    router.push("/(installers)");
+                  }}
+                  className="text-foreground flex justify-center text-center items-center  p-2 bg-foreground"
+                  href={"/(installers)"}
+                >
+                  <Text>V1</Text>
+                </Pressable>
+              </View>
+            </Debug>
+            <View className="px-5 mt-6">
+              <TouchableOpacity
+                onPress={(e) => {
+                  router.push("/(installers)/create");
+                }}
+                className="w-full h-16 bg-primary rounded-full flex-row items-center justify-center gap-4"
+              >
+                <Icon
+                  name="CirclePlus"
+                  className="text-muted-foreground"
+                  size={28}
+                />
+                <Text className="text-primary-foreground text-lg font-bold">
+                  Add New Job
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View className="px-5 mt-4">
+              <View className="flex-row items-center justify-between mb-4">
+                <Text className="text-lg font-bold text-foreground">
+                  Recent Activity
+                </Text>
+                <Debug>
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      router.push("/jobs2");
+                    }}
+                  >
+                    <Text className="text-sm font-bold text-primary">
+                      View All
+                    </Text>
+                  </TouchableOpacity>
+                </Debug>
+              </View>
+            </View>
+          </>
+        }
+        refreshing={ctx.isRefreshing}
+        data={ctx?.recentJobs}
+        renderItem={({ item }) => <JobListItem2 item={item} />}
+      />
+    </HomeProvider>
+  );
+
   return (
     <View className="flex-1 bg-background">
-      <Dashboardv1 />
-      {/* <Dashboardv2 /> */}
-    </View>
-  );
-}
+      <InstallerDashboardHeader2 />
+      <ScrollView contentContainerClassName="">
+        <JobAnalytics2 />
 
-function Dashboardv1() {
-  return (
-    <>
-      <Header />
-      <ScrollView contentContainerStyle={{ paddingBottom: 80, paddingTop: 16 }}>
-        {/* <JobAnalytics /> */}
-        <View className="px-4 space-y-6">
-          <JobAnalytics />
+        <Debug>
+          <Link
+            className="text-foreground p-2 bg-foreground"
+            href={"/(installers)"}
+          >
+            v1!
+          </Link>
+        </Debug>
+        <View className="px-5 mt-6">
+          <TouchableOpacity
+            onPress={(e) => {
+              router.push("/(installers)/create");
+            }}
+            className="w-full h-16 bg-primary rounded-full flex-row items-center justify-center gap-4"
+          >
+            <Icon
+              name="CirclePlus"
+              className="text-muted-foreground"
+              size={28}
+            />
+            <Text className="text-primary-foreground text-lg font-bold">
+              Add New Job
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View className="mt-8">
+          <JobStatusCards />
+        </View>
+        <RecentJobs2 />
+        <View className="px-5 mt-4 mb-8">
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-lg font-bold text-foreground">
+              Recent Activity
+            </Text>
+            <TouchableOpacity
+              onPress={(e) => {
+                router.push("/jobs2");
+              }}
+            >
+              <Text className="text-sm font-bold text-primary">View All</Text>
+            </TouchableOpacity>
+          </View>
           <Debug>
-            <Link className="text-foreground p-2 bg-foreground" href={"/home2"}>
-              New Dashboard!
-            </Link>
+            <View className="flex flex-col gap-3">
+              <ActivityItem
+                icon="Wallet"
+                title="Payment Received"
+                subtitle="Bathroom Reno - 123 Main St"
+                value="+$850"
+                time="2h ago"
+                valueColor="text-primary"
+              />
+              <ActivityItem
+                icon="FileText"
+                title="Quote Sent"
+                subtitle="Kitchen Tile - 45 Elm St"
+                value="Pending"
+                time="5h ago"
+                valueColor="text-muted-foreground"
+              />
+              <ActivityItem
+                icon="Calendar"
+                title="Job Scheduled"
+                subtitle="Deck Repair - 88 Oak Ln"
+                value="Nov 14"
+                time="1d ago"
+                valueColor="text-accent"
+              />
+            </View>
           </Debug>
-          <RecentJobs />
         </View>
       </ScrollView>
-      <AddNewJobFAB />
-      <JobOverviewModal />
-    </>
+      {/* <BottomNavBar /> */}
+    </View>
   );
 }
