@@ -9,7 +9,12 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "preview"
+      },
+      "autoIncrement": true,
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true

@@ -118,7 +118,7 @@ export default function SignIn() {
                     autoCapitalize="none"
                     keyboardType="email-address"
                     textContentType="emailAddress"
-                    className="font-semibold"
+                    className="font-semibold h-12"
                   />
                   {error && (
                     <Text className="text-red-500 mt-1">{error.message}</Text>
@@ -144,7 +144,7 @@ export default function SignIn() {
                     value={value}
                     secureTextEntry
                     textContentType="password"
-                    className="font-semibold"
+                    className="font-semibold h-12"
                   />
                   {error && (
                     <Text className="text-red-500 mt-1">{error.message}</Text>

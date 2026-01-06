@@ -5,7 +5,7 @@ const config: ExpoConfig = {
   slug: "prodesk",
   version: "1.0.0",
   orientation: "portrait",
-  // icon: "./assets/images/icon.png",
+  icon: "./assets/icons/adaptive-icon.png",
   scheme: "gndprodesk",
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
@@ -17,25 +17,6 @@ const config: ExpoConfig = {
       light: "./assets/icons/ios-light.png",
     },
   },
-  // build: {
-  //   preview: {
-  //     android: {
-  //       buildType: "apk",
-  //     },
-  //   },
-  //   preview2: {
-  //     android: {
-  //       gradleCommand: ":app:assembleRelease",
-  //     },
-  //   },
-  //   preview3: {
-  //     developmentClient: true,
-  //   },
-  //   preview4: {
-  //     distribution: "internal",
-  //   },
-  //   production: {},
-  // },
 
   android: {
     // buildType: "apk",
@@ -81,18 +62,18 @@ const config: ExpoConfig = {
   extra: {
     router: {},
     eas: {
-      projectId: "1914ffbf-8d95-482a-af7e-e4e30a6206eb",
+      projectId: "8ea2eecb-4109-453c-827f-9b2de2e3a9aa",
       // projectId: "41f31ec0-9c44-4b41-af01-9a23d1b39d83",
     },
   },
+  owner: "pcruz321",
   updates: {
-    url: "https://u.expo.dev/1914ffbf-8d95-482a-af7e-e4e30a6206eb",
+    url: "https://u.expo.dev/8ea2eecb-4109-453c-827f-9b2de2e3a9aa",
     // 41f31ec0-9c44-4b41-af01-9a23d1b39d83
   },
   runtimeVersion: {
     policy: "appVersion",
   },
-  owner: "ishaqyusuf2",
 };
 
 export default config;

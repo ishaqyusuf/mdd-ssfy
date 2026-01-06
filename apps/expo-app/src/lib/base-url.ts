@@ -14,7 +14,7 @@ export const getBaseUrl = () => {
    * baseUrl to your production API URL.
    */
   // return process.env.EXPO_PUBLIC_BASE_URL;
-  if (process.env.EXPO_PUBLIC_APP_VARIANT === "preview")
+  if (process.env.APP_VARIANT === "preview")
     return process.env.EXPO_PUBLIC_BASE_URL;
 
   const debuggerHost = Constants.expoConfig?.hostUri;
