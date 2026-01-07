@@ -2,7 +2,7 @@ import { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
   name: "gndprodesk",
-  slug: "prodesk",
+  slug: "gnd-prodesk",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/icons/adaptive-icon.png",

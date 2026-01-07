@@ -113,19 +113,6 @@ export default function Home2() {
         ListHeaderComponent={
           <>
             <JobAnalytics2 />
-            <Debug>
-              <View className="">
-                <Pressable
-                  onPress={(e) => {
-                    router.push("/(installers)");
-                  }}
-                  className="text-foreground flex justify-center text-center items-center  p-2 bg-foreground"
-                  href={"/(installers)"}
-                >
-                  <Text>V1</Text>
-                </Pressable>
-              </View>
-            </Debug>
             <View className="px-5 mt-6">
               <TouchableOpacity
                 onPress={(e) => {

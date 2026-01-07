@@ -1,5 +1,6 @@
 import { _trpc } from "@/components/static-trpc";
 import { Icon } from "@/components/ui/icon";
+import { Toast } from "@/components/ui/toast";
 import { useZodForm } from "@/components/use-zod-form";
 import { useToast } from "@/context/toast-context";
 import { getSessionProfile } from "@/lib/session-store";
@@ -135,11 +136,12 @@ export const useCreateJobFormContext = (ref) => {
     );
     return sum([formData.addon, taskCost, formData.additionalCost]);
   }, [formData]);
+  const [errors, setErrors] = useState<any>(null);
   const { mutate: saveJob, isPending: isSaving } = useMutation(
     _trpc.jobs.createJob.mutationOptions({
       onSuccess(data, variables, onMutateResult, context) {
-        consoleLog("SUCCESS", data);
-        createToast("task_completed", {});
+        // consoleLog("SUCCESS", data);
+        // createToast("task_completed", {});
         setTab("completed");
       },
       onError(error, variables, onMutateResult, context) {
@@ -169,12 +171,10 @@ export const useCreateJobFormContext = (ref) => {
   const selectUnit = (unit, onSelect) => {
     form.setValue("homeId", unit.id);
     form.setValue("subtitle", unit.name);
-    // store.update("form.homeId", unit.id);
-    // store.update("form.subtitle", unit.name);
-    // setTab("tasks");
+
     const tasks = Object.fromEntries(
       Object.entries(unit.costing || {})
-        ?.filter(([k, v]) => !!v)
+        ?.filter(([k, v]) => !!v && !!k)
         .map(([k, v]) => [
           k,
           {
@@ -191,23 +191,18 @@ export const useCreateJobFormContext = (ref) => {
     // setTab("tasks");
   };
   const selectProject = (project, onSelect) => {
-    // console.log(projectId);
     const oldProjectId = form.getValues("projectId");
-    // store.update("form.projectId", project.id);
-    // store.update("form.title", project.title);
+
     form.setValue("projectId", project.id);
     form.setValue("title", project.title);
-    // console.log({ project });
+
     if (oldProjectId !== project.id) {
       form.setValue("homeId", null);
-      // store.update("form.homeId", null);
-      // store.update("form.subtitle", null);
-      // store.update("form.tasks", {});
+
       form.setValue("subtitle", null);
       form.setValue("tasks", {});
     }
     onSelect(project);
-    // setTab("unit");
   };
   const router = useRouter();
   const navigateBack = () => {
@@ -275,6 +270,12 @@ export const useCreateJobFormContext = (ref) => {
             ? `Task marked as ${task.priority}`
             : "Priority changed",
         },
+        invalid_task_qty: {
+          icon: "arrow.triangle.2.circlepath",
+          color: "#F59E0B",
+          title: "Task Qty Error",
+          description: "Some Information Filled are Invalid",
+        },
       };
 
       const config = toastConfigs[type as keyof typeof toastConfigs];
@@ -315,10 +316,6 @@ export const useCreateJobFormContext = (ref) => {
     [show]
   );
   const handleSubmit = () => {
-    // return;
-    // form.reset(values);
-    // consoleLog("DATA", formData);
-
     setTimeout(() => {
       form.handleSubmit(
         (e) => {
@@ -333,6 +330,10 @@ export const useCreateJobFormContext = (ref) => {
         },
         (errs) => {
           console.log(errs);
+          setErrors(errs);
+          Toast.show("Invalid task qty", {
+            type: "error",
+          });
         }
       )();
       // form.trigger().then((e) => {
@@ -377,6 +378,7 @@ export const useCreateJobFormContext = (ref) => {
     setTabHistory,
     reset,
     total,
+    errors,
   };
 };
 export const useJobFormContext = () => {

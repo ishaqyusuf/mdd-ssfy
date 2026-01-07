@@ -8,42 +8,7 @@ import { useMemo } from "react";
 import { LegendList } from "@legendapp/list";
 import { useColors } from "@/hooks/use-color";
 import { sum } from "@gnd/utils";
-
-const QuantityStepper = ({ control, name }) => (
-  <Controller
-    control={control}
-    name={name}
-    render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => (
-      <>
-        <View className="flex-row items-center bg-muted rounded-full p-1 border border-border">
-          <Pressable className="size-8 flex items-center justify-center rounded-full bg-card dark:bg-border">
-            <Icon
-              name="Minus"
-              size={14}
-              className="text-foreground font-bold"
-            />
-          </Pressable>
-          {/* <View className="w-10 flex flex-row">
-            <Text className="text-white font-bold">11</Text>
-          </View> */}
-          {/* <TextInput
-            className="w-10 bg-transparent text-center text-foreground font-bold text-base"
-            keyboardType="number-pad"
-            // defaultValue={String(value || "")}
-            value=""
-          /> */}
-          <Pressable className="size-8 flex items-center justify-center rounded-full bg-primary">
-            <Icon
-              name="Plus"
-              size={14}
-              className="text-primary-foreground font-bold"
-            />
-          </Pressable>
-        </View>
-      </>
-    )}
-  />
-);
+import { cn } from "@/lib/utils";
 
 function JobFormTaskItem(task: {
   fieldName: string;
@@ -51,10 +16,10 @@ function JobFormTaskItem(task: {
   cost: any;
   uid: string;
 }) {
-  const { form } = useJobFormContext();
+  const { form, errors } = useJobFormContext();
   const colors = useColors();
   return (
-    <View className="flex-row items-center justify-between p-4 rounded-lg bg-card border border-border">
+    <View className="flex-row items-center justify-between p-4 rounded-lg bg-card my-2 border-b border-border">
       <View className="flex-col flex-1 pr-4">
         <Text className="text-base font-semibold text-foreground">
           {task.title}
@@ -72,7 +37,12 @@ function JobFormTaskItem(task: {
           field: { onChange, onBlur, value },
           fieldState: { error },
         }) => (
-          <View className="flex-row items-center bg-muted rounded-full p-1 border border-border">
+          <View
+            className={cn(
+              "flex-row items-center bg-muted rounded-full p-1 border border-border",
+              errors?.tasks?.[task?.uid] && "border-destructive"
+            )}
+          >
             <Pressable
               disabled={!value}
               onPress={(e) => {

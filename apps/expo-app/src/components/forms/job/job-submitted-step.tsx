@@ -169,7 +169,7 @@ export function JobSubmittedStep() {
           </Pressable>
           <Pressable
             onPress={(e) => {
-              router.replace("/(installers)/home2");
+              router.replace("/(installers)");
             }}
             className="w-full mt-2 py-2"
           >

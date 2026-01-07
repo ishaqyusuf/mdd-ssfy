@@ -82,6 +82,7 @@ export async function generateLegacyPrintData(
         paymentDate,
         order: {
           id: data?.order?.id,
+          orderId: s?.orderId,
         },
       },
       orderNo: s?.orderId,

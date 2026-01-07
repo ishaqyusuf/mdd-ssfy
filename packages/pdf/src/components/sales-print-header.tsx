@@ -2,6 +2,7 @@ import { env } from "process";
 import { Image, Text, View } from "@react-pdf/renderer";
 
 import { cn } from "@gnd/utils/react-pdf";
+import { getAddress } from "../utils/get-address";
 
 type SalesInvoiceTemplateProps = {
   printData: any;
@@ -12,6 +13,7 @@ export default function SalesPrintHeader({
   printData: sale,
   baseUrl,
 }: SalesInvoiceTemplateProps) {
+  const address = getAddress(sale);
   return (
     <View style={cn("mb-2")}>
       <View
@@ -46,11 +48,14 @@ export default function SalesPrintHeader({
             })}
             wrap={false}
           >
-            <Text style={cn("text-sm font-mono$")}>13285 SW 131 ST</Text>
-            <Text style={cn("text-sm font-mono$")}>Miami, Fl 33186</Text>
-            <Text style={cn("text-sm font-mono$")}>Phone: 305-278-6555</Text>
-            {sale.isProd && (
-              <Text style={cn("text-sm font-mono$")}>Fax: 305-278-2003</Text>
+            <Text style={cn("text-sm font-mono$")}>{address?.address1}</Text>
+            <Text style={cn("text-sm font-mono$")}>{address?.address2}</Text>
+            <Text style={cn("text-sm font-mono$")}>
+              Phone:
+              {address?.phone}
+            </Text>
+            {sale.isProd && address?.fax && (
+              <Text style={cn("text-sm font-mono$")}>Fax: {address.fax}</Text>
             )}
             <Text
               style={cn("text-sm font-mono$", {
