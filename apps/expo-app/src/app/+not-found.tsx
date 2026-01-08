@@ -1,8 +1,8 @@
-import { Link, Stack, usePathname } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import { StyleSheet } from "react-native";
 
-import { Text, View } from "@/example/components/Themed";
 import { useAuthContext } from "@/hooks/use-auth";
+import NotFound from "@/screens/not-found";
 
 export default function NotFoundScreen() {
   const { token } = useAuthContext();
@@ -10,14 +10,7 @@ export default function NotFoundScreen() {
   return (
     <>
       <Stack.Screen options={{ title: "Oops!" }} />
-      <View style={styles.container}>
-        <Text style={styles.title}>This screen {"doesn't"} exist.</Text>
-        <Text>TOKEN:{token}</Text>
-        <Text>Route:{path}</Text>
-        <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go to home screen!</Text>
-        </Link>
-      </View>
+      <NotFound />
     </>
   );
 }

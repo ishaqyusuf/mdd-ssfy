@@ -24,8 +24,6 @@ import { useJobFormStore } from "@/stores/use-job-form-store";
 import * as Haptics from "expo-haptics";
 import { consoleLog } from "@gnd/utils";
 import { Icon } from "@/components/ui/icon";
-import { useThemeConfig } from "@/hooks/use-theme-color";
-import { useColors } from "@/hooks/use-color";
 
 export function Step4Meta() {
   const ctx = useJobFormContext();

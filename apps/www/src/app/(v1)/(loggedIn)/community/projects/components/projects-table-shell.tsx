@@ -15,7 +15,7 @@ import { DataTable2 } from "@/components/_v1/data-table/data-table-2";
 import { BuilderFilter } from "@/components/_v1/filters/builder-filter";
 import { IProject } from "@/types/community";
 
-import AddonCell from "@/components/_v1/community/addon-cell";
+import AddonCell from "@/components/tables/community-project/addon-cell";
 import { SmartTable } from "@/components/_v1/data-table/smart-table";
 import InstallCostCell from "@/components/_v1/community/install-cost-cell";
 import {

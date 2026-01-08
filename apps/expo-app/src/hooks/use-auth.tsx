@@ -16,12 +16,19 @@ export const useCreateAuthContext = () => {
   const [profile, setProfile] = useState(getSessionProfile());
   const [token, _setToken] = useState(getToken());
   const router = useRouter();
+  const isInstaller =
+    profile?.role?.name === "1099 Contractor" ||
+    profile?.role?.name === "Punchout";
+  const isAdmin = !isInstaller && profile?.can?.editJobs;
+
   return {
     profile,
     token,
+    isInstaller,
+    isAdmin,
     onLogin(data) {
       _setToken(data.token);
-      const { can, ...rest } = data;
+      const { ...rest } = data;
       setSessionProfile(rest);
       setProfile(getSessionProfile());
       setToken(data.token);

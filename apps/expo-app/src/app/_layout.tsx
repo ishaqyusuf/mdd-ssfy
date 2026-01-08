@@ -26,6 +26,7 @@ import FlashMessage from "react-native-flash-message";
 import { TRPCReactProvider } from "@/trpc/client";
 import { StaticTrpc } from "@/components/static-trpc";
 import { StatusBar } from "expo-status-bar";
+import { View } from "react-native";
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
@@ -63,7 +64,8 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 const InitialLayout = () => {
-  const { token } = useAuthContext();
+  const { token, isInstaller, isAdmin, profile } = useAuthContext();
+  // console.log({ isInstaller, isAdmin, can: profile?.can });
 
   return (
     <>
@@ -74,11 +76,17 @@ const InitialLayout = () => {
           <Stack.Protected guard={!token}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           </Stack.Protected>
-          <Stack.Protected guard={!!token}>
+          <Stack.Protected guard={isInstaller}>
             <Stack.Screen
               name="(installers)"
               options={{ headerShown: false }}
             />
+          </Stack.Protected>
+          <Stack.Protected guard={isAdmin}>
+            <Stack.Screen name="(job-admin)" options={{ headerShown: false }} />
+          </Stack.Protected>
+          <Stack.Protected guard={!isAdmin && !isInstaller}>
+            <Stack.Screen name="unavailable" options={{ headerShown: false }} />
           </Stack.Protected>
 
           <Stack.Screen name="+not-found" />
@@ -92,21 +100,26 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const theme = useThemeConfig();
   // const { token } = useAuthContext();
+  console.log({ theme });
   return (
-    <GestureHandlerRootView
-      className={theme.dark ? `dark` : "light"}
-      style={{ flex: 1 }}
-    >
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <AuthProvider value={useCreateAuthContext()}>
-          <ToastProviderWithViewport>
-            <BottomSheetModalProvider>
-              <FlashMessage position="top" />
-              <InitialLayout />
-            </BottomSheetModalProvider>
-          </ToastProviderWithViewport>
-        </AuthProvider>
-      </ThemeProvider>
-    </GestureHandlerRootView>
+    <View className={theme.dark ? `dark flex-1` : "light flex-1"}>
+      <GestureHandlerRootView
+        // className={theme.dark ? `dark flex-1` : "light flex-1"}
+        style={{ flex: 1 }}
+      >
+        <ThemeProvider
+          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        >
+          <AuthProvider value={useCreateAuthContext()}>
+            <ToastProviderWithViewport>
+              <BottomSheetModalProvider>
+                <FlashMessage position="top" />
+                <InitialLayout />
+              </BottomSheetModalProvider>
+            </ToastProviderWithViewport>
+          </AuthProvider>
+        </ThemeProvider>
+      </GestureHandlerRootView>
+    </View>
   );
 }

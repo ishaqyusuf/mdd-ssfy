@@ -207,7 +207,7 @@ export default function Jobs2() {
             status="Paid"
             date="Oct 20, 2023"
             amount="$850.00"
-            statusIcon="CheckCircle"
+            statusIcon="CircleCheck"
             statusColor="text-primary"
             iconBgColor="bg-primary/20"
           />

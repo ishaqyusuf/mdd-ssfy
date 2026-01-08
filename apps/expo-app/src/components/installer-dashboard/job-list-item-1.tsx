@@ -36,7 +36,7 @@ export function JobListItem1({ item }: { item: JobItem }) {
             </Text>
           </View>
           <View className="flex-row items-center mt-1">
-            <Icon name="Locate" className="size-14" />
+            <Icon name="LocateIcon" className="size-14" />
             {/* <MaterialIcons
                     name="location-on"
                     size={14}

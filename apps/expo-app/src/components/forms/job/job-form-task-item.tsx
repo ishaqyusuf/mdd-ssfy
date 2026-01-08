@@ -2,7 +2,7 @@
 import { View, Text, TextInput, Pressable } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
-import { useToast } from "@/context/toast-context";
+
 import { Controller } from "react-hook-form";
 import { useMemo } from "react";
 import { LegendList } from "@legendapp/list";

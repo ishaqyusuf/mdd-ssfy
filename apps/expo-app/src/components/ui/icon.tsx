@@ -1,17 +1,84 @@
 import { cn } from "@/lib/utils";
 import type { LucideIcon, LucideProps } from "lucide-react-native";
-import { cssInterop } from "react-native-css-interop";
-import { icons } from "lucide-react-native";
+import {
+  Activity,
+  ArrowLeft,
+  ArrowRight,
+  BarChart2,
+  BarChart3,
+  Bell,
+  Briefcase,
+  Building,
+  Building2,
+  Calendar,
+  CalendarCheck,
+  Check,
+  CheckSquare,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  CircleCheck,
+  CircleDollarSign,
+  ClipboardList,
+  Clock,
+  CreditCard,
+  DoorOpen,
+  Fence,
+  FilePenLine,
+  FileText,
+  Gavel,
+  GripHorizontal,
+  Hourglass,
+  House,
+  Info,
+  LayoutDashboard,
+  LayoutGrid,
+  List,
+  Loader2,
+  LocateIcon,
+  Lock,
+  LogOut,
+  MapPin,
+  Minus,
+  MoreHorizontal,
+  Pencil,
+  Pin,
+  Plus,
+  PlusCircle,
+  ReceiptText,
+  Search,
+  Settings,
+  Share,
+  ShieldCheck,
+  SlidersHorizontal,
+  StickyNote,
+  TrendingDown,
+  TrendingUp,
+  TriangleAlert,
+  User,
+  UserCog,
+  UserPlus,
+  Users,
+  UserX,
+  Wallet,
+  Wind,
+  Wrench,
+  X,
+  XCircle,
+  Zap,
+} from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { camel } from "@gnd/utils";
 import { THEME } from "@/lib/theme";
 import { View } from "react-native";
 export type IconProps = LucideProps & {
-  as?: LucideIcon;
-  name?: keyof typeof icons;
+  name?: IconKeys;
+  // strokeWidth?: number;
+  // absoluteStrokeWidth?: boolean;
 };
-
-function IconImpl({ as: IconComponent, name, ...props }: IconProps) {
+// type T = IconProps['strokeWidth']
+function IconImpl({ name, ...props }: IconProps) {
+  let IconComponent;
   const { colorScheme } = useColorScheme();
   const [, ...colorChunk] =
     props.className
@@ -26,14 +93,13 @@ function IconImpl({ as: IconComponent, name, ...props }: IconProps) {
   props.style = {
     ...(props.style || ({} as any)),
     color: _themColor || color,
-    size:
-      +props?.className
-        ?.split(" ")
-        ?.find((a) => a.startsWith("size-"))
-        ?.split("-")?.[1]! || props.size,
   };
-  if (!IconComponent) IconComponent = icons![name!];
-  if (!IconComponent) IconComponent = icons!["LayoutGrid"];
+  props.size =
+    +props?.className
+      ?.split(" ")
+      ?.find((a) => a.startsWith("size-"))
+      ?.split("-")?.[1]! || props.size;
+  if (!IconComponent) IconComponent = appIcons![name!] || appIcons.X;
   const otherClasses = props.className
     ?.split(" ")
     .filter((a) => ["size-", "text-"].every((b) => !a?.startsWith(b)));
@@ -46,50 +112,103 @@ function IconImpl({ as: IconComponent, name, ...props }: IconProps) {
   return <IconComponent {...props} />;
 }
 
-cssInterop(IconImpl, {
-  className: {
-    target: "style",
-    nativeStyleToProp: {
-      height: "size",
-      width: "size",
-    },
-  },
-});
-
-/**
- * A wrapper component for Lucide icons with Nativewind `className` support via `cssInterop`.
- *
- * This component allows you to render any Lucide icon while applying utility classes
- * using `nativewind`. It avoids the need to wrap or configure each icon individually.
- *
- * @component
- * @example
- * ```tsx
- * import { ArrowRight } from 'lucide-react-native';
- * import { Icon } from '@/registry/components/ui/icon';
- *
- * <Icon as={ArrowRight} className="text-red-500" size={16} />
- * ```
- *
- * @param {LucideIcon} as - The Lucide icon component to render.
- * @param {string} className - Utility classes to style the icon using Nativewind.
- * @param {number} size - Icon size (defaults to 14).
- * @param {...LucideProps} ...props - Additional Lucide icon props passed to the "as" icon.
- */
 function Icon({
-  as: IconComponent,
+  // as: IconComponent,
   className,
   size = 14,
   ...props
 }: IconProps) {
   return (
     <IconImpl
-      as={IconComponent}
+      // as={IconComponent}
       className={cn("text-foreground", className)}
       size={size}
       {...props}
     />
   );
 }
+// function camel(str?: string) {
+//   if (!str) return str;
+//   return str.replace(
+//     /^([A-Z])|\s(\w)/g,
+//     function (match: any, p1: any, p2: any, offset: any) {
+//       if (p2) return p2.toUpperCase();
+//       return p1.toLowerCase();
+//     }
+//   );
+// }
 
+const appIcons = {
+  Activity,
+  analytics: BarChart2,
+  ArrowLeft,
+  ArrowRight,
+  BarChart3,
+  Bell,
+  Briefcase,
+  Building,
+  Building2,
+
+  Calendar,
+  CalendarCheck,
+  Check,
+  CheckSquare,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Clock,
+  CircleCheck,
+  CircleDollarSign,
+  CreditCard,
+  DoorOpen,
+  Fence,
+  FilePenLine,
+  FileText,
+  Gavel,
+  GripHorizontal,
+  home: LayoutDashboard,
+  Hourglass,
+  House,
+
+  Info,
+  jobs: Briefcase,
+  LayoutDashboard,
+  LayoutGrid,
+  List,
+  LocateIcon,
+  Loader2,
+  Lock,
+  LogOut,
+  MapPin,
+  Minus,
+  more: MoreHorizontal,
+  Pencil,
+  Pin,
+  Plus,
+  PlusCircle,
+  ReceiptText,
+  Search,
+  settings: Settings,
+  Settings,
+  Share,
+  ShieldCheck,
+  SlidersHorizontal,
+  StickyNote,
+  TrendingUp,
+  TrendingDown,
+  TriangleAlert,
+  UserCog,
+  UserPlus,
+  Users,
+  User,
+  UserX,
+  Wallet,
+  Wind,
+  Wrench,
+  X,
+  XCircle,
+  Zap,
+};
+export type IconKeys = keyof typeof appIcons;
 export { Icon };

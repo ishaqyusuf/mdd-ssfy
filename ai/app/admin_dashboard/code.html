@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Admin Dashboard Redesign</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2563eb", 
+                        "background-light": "#f8fafc", 
+                        "background-dark": "#0f172a", 
+                        "surface-dark": "#1e293b", 
+                        "surface-light": "#ffffff",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem",
+                    },
+                    boxShadow: {
+                        "soft": "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
+                        "glow": "0 0 15px rgba(37, 99, 235, 0.3)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white overflow-x-hidden antialiased transition-colors duration-300">
+<div class="relative flex flex-col min-h-screen w-full pb-[90px]">
+<header class="sticky top-0 z-40 bg-white/90 dark:bg-background-dark/90 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-800 px-5 py-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="relative group cursor-pointer">
+<div class="size-11 rounded-full bg-slate-200 bg-cover bg-center ring-2 ring-white dark:ring-surface-dark shadow-sm group-hover:ring-primary transition-all" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDguClDkEq8NeuuQG2g1Nfdm5O6AntdkEz2UIDftc2h4ILDjKAs25SFr1ALMHk2NF3CzcC8I4jGHha_aEWBAsyoVD_gg_PnqDUlOQC8fxO3SIUX1dyuymtPTPK9qDDU9y2t3JZz2Z6lK9SIhcMdpxHKNTMtGCWCJ9mYjT7OQopmeIOJFnm5FyM3FackJaYwtFyRsTluNOn_jQQ8aOdaLH9EW-ZcB4fq0vf2o8VzznQCGHsw7mW1gLbYzB-tzbNDYF3XO5le-i_rfr8");'></div>
+<div class="absolute bottom-0 right-0 size-3.5 bg-green-500 rounded-full border-2 border-white dark:border-background-dark"></div>
+</div>
+<div class="flex flex-col">
+<h1 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Dashboard</h1>
+<p class="text-lg font-bold text-slate-900 dark:text-white leading-tight">Admin Overview</p>
+</div>
+</div>
+<button class="relative flex items-center justify-center size-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2.5 right-2.5 size-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-background-dark"></span>
+</button>
+</header>
+<main class="flex flex-col gap-6 p-5">
+<section>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800/50 flex flex-col justify-between h-32 relative overflow-hidden group">
+<div class="absolute right-0 top-0 w-24 h-24 bg-orange-500/5 rounded-full -mr-10 -mt-10 blur-xl group-hover:bg-orange-500/10 transition-colors"></div>
+<div class="flex items-center gap-2 z-10">
+<div class="size-8 rounded-lg bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
+<span class="material-symbols-outlined text-lg">hourglass_top</span>
+</div>
+<span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Pending</span>
+</div>
+<div class="z-10">
+<p class="text-3xl font-bold text-slate-900 dark:text-white">12</p>
+<p class="text-xs text-slate-400 mt-1">Jobs awaiting review</p>
+</div>
+</div>
+<div class="bg-white dark:bg-surface-dark p-4 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800/50 flex flex-col justify-between h-32 relative overflow-hidden group">
+<div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-10 -mt-10 blur-xl group-hover:bg-blue-500/10 transition-colors"></div>
+<div class="flex items-center gap-2 z-10">
+<div class="size-8 rounded-lg bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+<span class="material-symbols-outlined text-lg">fact_check</span>
+</div>
+<span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Approvals</span>
+</div>
+<div class="z-10">
+<p class="text-3xl font-bold text-slate-900 dark:text-white">5</p>
+<p class="text-xs text-slate-400 mt-1">Needs action</p>
+</div>
+</div>
+<div class="col-span-2 bg-gradient-to-r from-slate-900 to-slate-800 dark:from-primary dark:to-blue-700 rounded-2xl p-5 shadow-lg text-white flex items-center justify-between relative overflow-hidden">
+<div class="absolute -right-6 -bottom-6 bg-white/10 size-32 rounded-full blur-2xl"></div>
+<div class="relative z-10 flex flex-col">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-white/80">engineering</span>
+<p class="text-sm font-medium text-white/90">Active Jobs Summary</p>
+</div>
+<h3 class="text-4xl font-bold">34</h3>
+<p class="text-xs text-white/60 mt-1">Jobs currently in progress</p>
+</div>
+<div class="flex gap-1 items-end h-12">
+<div class="w-1.5 bg-white/20 h-[40%] rounded-t-sm"></div>
+<div class="w-1.5 bg-white/40 h-[70%] rounded-t-sm"></div>
+<div class="w-1.5 bg-white/30 h-[50%] rounded-t-sm"></div>
+<div class="w-1.5 bg-white/60 h-[85%] rounded-t-sm"></div>
+<div class="w-1.5 bg-white h-full rounded-t-sm shadow-[0_0_10px_rgba(255,255,255,0.5)]"></div>
+</div>
+</div>
+</div>
+</section>
+<section>
+<div class="flex justify-between items-end mb-4 px-1">
+<h2 class="text-lg font-bold text-slate-900 dark:text-white leading-none">Quick Actions</h2>
+</div>
+<div class="flex gap-3 overflow-x-auto pb-4 -mx-5 px-5 no-scrollbar snap-x">
+<button class="snap-start shrink-0 w-[45%] relative rounded-2xl overflow-hidden shadow-md group aspect-[1.4/1]">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCDfM-MpqCgmbzTPEfVtuMPWcVM7cPidZJXak8lnIFp2NLHaIBmalRQOPb9btJsSlu0WAhjqkweSdNgcBC5xTBDn8r1oLzOOlSpAQK9jBDzw-hlX_qASeYFJB9x5gTrXExX5NHR1i5gihAYoCtOxqrcEtuthr0aophy6ZXY1ndRhUfo_Ufifbjyrp1fasPJVwZkpEk4NkBlmORUyTxwvsR1DySrqCXOusp0_ONn5lxs2cphKCacZ-P3NrcQLcFOOcDaI7E0yyJPzQ8");'></div>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-slate-900/20"></div>
+<div class="absolute inset-0 p-4 flex flex-col justify-end">
+<div class="size-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-white text-sm">work</span>
+</div>
+<span class="text-white font-semibold text-sm leading-tight text-left">Manage<br/>Jobs</span>
+</div>
+</button>
+<button class="snap-start shrink-0 w-[45%] relative rounded-2xl overflow-hidden shadow-md group aspect-[1.4/1]">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAhRUD2Q0GGVoN7KK3QfdG37D-wqxivB2x1WZ1HiKZ4YQjwn5LLh4VUGLxaNaehvBM8DLxIpwvHZVSZRmFcCiOnFnmcoq94RU6p35NA_ECDnw9ggfpOqKZYfQRUAbF_xUaEIqYGIeSmzLbmcx1ADrBFuQ3n2jTHFKYR5tdm39ZH276BoabHXjfgVOtQCwH26BrmH6f2er6xWF31v7tqPQoPOt3a-5d02IvKbopUUpFR6YC8kQJromplSP5msClwIUpf7_Ao60KVgMc");'></div>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-slate-900/20"></div>
+<div class="absolute inset-0 p-4 flex flex-col justify-end">
+<div class="size-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-white text-sm">gavel</span>
+</div>
+<span class="text-white font-semibold text-sm leading-tight text-left">Approve/<br/>Reject Jobs</span>
+</div>
+</button>
+<button class="snap-start shrink-0 w-[45%] relative rounded-2xl overflow-hidden shadow-md group aspect-[1.4/1]">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAiZLcEGZ2Za-HHwP_KCsMWXDULzRWrU-oGqiKr35ESgBfNv1XuCmaHYs-kgLqx_XyyiwPFhbuYcxKWJCpOdu0vaehF1Pnq2lLLrUkg8hovVdzDyKJP-qqYZhFQ-kdIEgs5az2AkM41pd0LrT6oVLXt1FVXrpp-C4PeA25Ff1XiCkeW0OIw6yQibHratemZjS8h4VGkyq5XEoL5C-NZeNf8Lm0yMWWH-D-h6ep37MWlSBEfm2mSEFfY4e1iuNliBQjxiVznA1PDMXA");'></div>
+<div class="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-slate-900/20"></div>
+<div class="absolute inset-0 p-4 flex flex-col justify-end">
+<div class="size-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center mb-2">
+<span class="material-symbols-outlined text-white text-sm">manage_accounts</span>
+</div>
+<span class="text-white font-semibold text-sm leading-tight text-left">User<br/>Management</span>
+</div>
+</button>
+</div>
+</section>
+<section>
+<div class="flex justify-between items-center mb-4 px-1">
+<h2 class="text-lg font-bold text-slate-900 dark:text-white leading-none">Recent Jobs</h2>
+<button class="text-primary text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors">See All</button>
+</div>
+<div class="flex flex-col gap-3">
+<div class="group bg-white dark:bg-surface-dark p-4 rounded-xl shadow-soft border border-slate-100 dark:border-slate-800 flex items-center gap-4 active:scale-[0.98] transition-transform">
+<div class="size-10 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
+<span class="material-symbols-outlined text-xl">pending_actions</span>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-slate-900 dark:text-white font-semibold text-sm truncate">Kitchen Renovation</h4>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="size-1.5 rounded-full bg-amber-500"></span>
+<p class="text-slate-500 dark:text-slate-400 text-xs truncate">Approval Requested</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-600">chevron_right</span>
+</div>
+<div class="group bg-white dark:bg-surface-dark p-4 rounded-xl shadow-soft border border-slate-100 dark:border-slate-800 flex items-center gap-4 active:scale-[0.98] transition-transform">
+<div class="size-10 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center shrink-0 text-blue-600 dark:text-blue-400">
+<span class="material-symbols-outlined text-xl">assignment_ind</span>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-slate-900 dark:text-white font-semibold text-sm truncate">Plumbing Fix</h4>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="size-1.5 rounded-full bg-blue-500"></span>
+<p class="text-slate-500 dark:text-slate-400 text-xs truncate">Assigned to Mike S.</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-600">chevron_right</span>
+</div>
+<div class="group bg-white dark:bg-surface-dark p-4 rounded-xl shadow-soft border border-slate-100 dark:border-slate-800 flex items-center gap-4 active:scale-[0.98] transition-transform">
+<div class="size-10 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center shrink-0 text-red-600 dark:text-red-400">
+<span class="material-symbols-outlined text-xl">cancel</span>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-slate-900 dark:text-white font-semibold text-sm truncate">Electrical Wiring</h4>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="size-1.5 rounded-full bg-red-500"></span>
+<p class="text-slate-500 dark:text-slate-400 text-xs truncate">Rejected</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-600">chevron_right</span>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-background-dark/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 px-6 pb-safe pt-2 z-50">
+<div class="flex justify-between items-center h-[60px]">
+<button class="flex flex-col items-center gap-1 w-16 group text-primary">
+<span class="material-symbols-outlined text-[26px]">dashboard</span>
+<span class="text-[10px] font-medium">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 w-16 group text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+<span class="material-symbols-outlined text-[26px]">list_alt</span>
+<span class="text-[10px] font-medium">Jobs</span>
+</button>
+<button class="flex flex-col items-center gap-1 w-16 group text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+<span class="material-symbols-outlined text-[26px]">groups</span>
+<span class="text-[10px] font-medium">Teams</span>
+</button>
+<button class="flex flex-col items-center gap-1 w-16 group text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+<span class="material-symbols-outlined text-[26px]">settings</span>
+<span class="text-[10px] font-medium">Settings</span>
+</button>
+</div>
+</nav>
+</div>
+
+</body></html>

@@ -14,12 +14,12 @@ import {
 import { Input } from "@gnd/ui/input";
 
 import { Label } from "@gnd/ui/label";
-import Btn from "../btn";
-import { Cell } from "../columns/base-columns";
-import Money from "../money";
+import Btn from "../../_v1/btn";
+import { Cell } from "../../_v1/columns/base-columns";
+import Money from "../../_v1/money";
 
 interface Props {
-    project: IProject;
+    project: any;
 }
 export default function AddonCell({ project }: Props) {
     const [addon, setAddon] = useState({

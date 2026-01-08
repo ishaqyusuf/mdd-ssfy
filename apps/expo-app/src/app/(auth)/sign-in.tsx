@@ -39,17 +39,17 @@ export default function SignIn() {
   const { mutate: loginMutation, isPending } = useMutation(
     _trpc.user.login.mutationOptions({
       onSuccess(data, variables, onMutateResult, context) {
-        if (
-          (["1099 Contractor", "Punchout"] as Roles[]).includes(
-            data.role.name as any
-          )
-        )
-          auth.onLogin(data);
-        else
-          Alert.alert(
-            "Sign In Failed",
-            `App feature not available for ${data.role.name}`
-          );
+        // if (
+        //   (["1099 Contractor", "Punchout"] as Roles[]).includes(
+        //     data.role.name as any
+        //   )
+        // ) {
+        auth.onLogin(data);
+        // } else
+        //   Alert.alert(
+        //     "Sign In Failed",
+        //     `App feature not available for ${data.role.name}`
+        //   );
       },
       onError(error, variables, onMutateResult, context) {
         Alert.alert("Sign In Failed", "Unable to signin");
@@ -187,7 +187,7 @@ export default function SignIn() {
         >
           {!isPending || (
             <View className="pointer-events-none animate-spin">
-              <Icon as={Loader2} className="text-white" />
+              <Icon name="Loader2" className="text-white" />
             </View>
           )}
           <Text className="text-destructive-foreground">Sign In</Text>
@@ -213,7 +213,7 @@ export default function SignIn() {
 
         <View className="flex-row justify-center mt-8">
           <Text className="text-gray-500 dark:text-gray-400">
-            Don't have an account?{" "}
+            {"Don't"} have an account?{" "}
           </Text>
           <TouchableOpacity>
             <Text className="text-blue-600 dark:text-blue-400 font-bold">

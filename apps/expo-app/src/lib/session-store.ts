@@ -1,4 +1,4 @@
-import { Roles } from "@gnd/utils/constants";
+import { ICan, Roles } from "@gnd/utils/constants";
 import * as SecureStore from "expo-secure-store";
 
 export const SESSION_KEY = "session_token";
@@ -17,7 +17,7 @@ export const setToken = (v: string) => SecureStore.setItem(SESSION_KEY, v);
 const profileKey = "session_profile";
 
 interface Profile {
-  can?;
+  can?: ICan;
   role?: { id; name: Roles };
   sessionId;
   token;

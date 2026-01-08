@@ -1,6 +1,5 @@
 // apps/expo-app/src/components/forms/job/job-submitted-step.tsx
 import { View, Text, Pressable, Image } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Icon } from "@/components/ui/icon";
 import { useColors } from "@/hooks/use-color";
 import { useRouter } from "expo-router";

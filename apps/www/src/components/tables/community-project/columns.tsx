@@ -14,6 +14,7 @@ import { _trpc } from "@/components/static-trpc";
 import ProjectModal from "@/app-deps/(v1)/(loggedIn)/community/projects/project-modal";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { useModal } from "@/components/common/modal/provider";
+import AddonCell from "./addon-cell";
 export type Item =
     RouterOutputs["community"]["getCommunityProjects"]["data"][number];
 interface ItemProps {
@@ -73,15 +74,11 @@ const addons: Column = {
     accessorKey: "addons",
     meta: {
         className: "",
+        preventDefault: true,
     },
     cell: ({ row: { original: item } }) => (
         <>
-            <Button
-                hoverVariant="outline"
-                variant={item.meta?.addon ? "secondary" : "default"}
-            >
-                Add
-            </Button>
+            <AddonCell project={item} />
         </>
     ),
 };

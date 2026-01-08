@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Contractor Admin Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#30e87a",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#112117",
+                        "surface-dark": "#1a3224",
+                        "border-dark": "#346548",
+                        "text-subtle": "#93c8a8",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen font-display flex flex-col items-center justify-center p-4">
+<!-- Mobile Container mimicking iOS safe area and width -->
+<div class="w-full max-w-sm mx-auto flex flex-col h-full justify-between min-h-[600px] relative">
+<!-- Top Status Bar Area Spacer -->
+<div class="h-6 w-full"></div>
+<!-- Header / Branding Section -->
+<div class="flex flex-col items-center pt-8 pb-6">
+<div class="flex items-center justify-center size-16 rounded-xl bg-surface-dark border border-border-dark mb-6 shadow-[0_0_15px_rgba(48,232,122,0.15)]">
+<span class="material-symbols-outlined text-primary text-4xl">shield_person</span>
+</div>
+<h1 class="text-gray-900 dark:text-white text-2xl font-bold leading-tight tracking-[-0.015em] text-center mb-2">
+                Contractor Admin
+            </h1>
+<p class="text-gray-500 dark:text-text-subtle text-base font-normal leading-normal text-center max-w-[280px]">
+                Please sign in to manage assignments.
+            </p>
+</div>
+<!-- Login Form Section -->
+<div class="flex-1 w-full flex flex-col justify-center space-y-6">
+<!-- Email Field -->
+<div class="flex flex-col space-y-2">
+<label class="text-gray-900 dark:text-white text-sm font-medium leading-normal ml-1" for="email">
+                    Email or Username
+                </label>
+<div class="relative">
+<input autocomplete="username" class="form-input block w-full rounded-lg border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary h-14 pl-11 pr-4 text-base placeholder:text-gray-400 dark:placeholder:text-text-subtle/50 transition-colors" id="email" placeholder="admin@company.com" type="email"/>
+<div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+<span class="material-symbols-outlined text-gray-400 dark:text-text-subtle">mail</span>
+</div>
+</div>
+</div>
+<!-- Password Field -->
+<div class="flex flex-col space-y-2">
+<label class="text-gray-900 dark:text-white text-sm font-medium leading-normal ml-1" for="password">
+                    Password
+                </label>
+<div class="relative flex items-stretch">
+<input autocomplete="current-password" class="form-input block w-full rounded-lg rounded-r-none border-r-0 border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary h-14 pl-11 pr-4 text-base placeholder:text-gray-400 dark:placeholder:text-text-subtle/50 transition-colors z-10" id="password" placeholder="••••••••••••" type="password"/>
+<div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none z-20">
+<span class="material-symbols-outlined text-gray-400 dark:text-text-subtle">lock</span>
+</div>
+<button class="flex items-center justify-center px-4 rounded-r-lg border border-l-0 border-gray-300 dark:border-border-dark bg-white dark:bg-surface-dark text-gray-400 dark:text-text-subtle hover:text-gray-600 dark:hover:text-white transition-colors focus:outline-none focus:ring-1 focus:ring-primary z-10" type="button">
+<span class="material-symbols-outlined">visibility_off</span>
+</button>
+</div>
+</div>
+<!-- Forgot Password -->
+<div class="flex justify-end pt-1">
+<a class="text-sm font-medium text-primary hover:text-primary/80 transition-colors" href="#">
+                    Forgot Password?
+                </a>
+</div>
+<!-- Main Action Buttons -->
+<div class="flex flex-col gap-4 mt-6">
+<button class="w-full h-14 bg-primary hover:bg-primary/90 text-background-dark font-bold text-base rounded-lg shadow-lg shadow-primary/20 flex items-center justify-center transition-all active:scale-[0.98]">
+                    Login to Dashboard
+                </button>
+<button class="w-full h-14 bg-transparent border border-gray-300 dark:border-border-dark text-gray-900 dark:text-white font-medium text-base rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors active:scale-[0.98]">
+<span class="material-symbols-outlined">face</span>
+                    Login with Face ID
+                </button>
+</div>
+</div>
+<!-- Footer / Version Info -->
+<div class="mt-auto py-8 text-center">
+<p class="text-xs text-gray-400 dark:text-gray-600">
+                Secured by Enterprise Guard<br/>
+                v4.2.0 (Build 892)
+            </p>
+</div>
+</div>
+</body></html>

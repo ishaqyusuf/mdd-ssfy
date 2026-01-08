@@ -25,11 +25,7 @@ export function JobListItem2({ item }: { item: JobItem }) {
             <View
               className={`flex items-center justify-center rounded-2xl shrink-0 h-14 w-14 bg-muted`}
             >
-              <Icon
-                name={"Briefcase"}
-                className="text-muted-foreground"
-                size={28}
-              />
+              <Icon name={"jobs"} className="text-muted-foreground" size={28} />
             </View>
             <View className="flex flex-col justify-center">
               <Text className="text-foreground text-lg font-bold leading-tight mb-1">
@@ -65,7 +61,7 @@ export function JobListItem2({ item }: { item: JobItem }) {
         <View className="flex-row justify-between items-center">
           <View className="flex-row items-center gap-2 text-muted-foreground text-sm">
             <Icon
-              name={"Calendar1"}
+              name={"Calendar"}
               className="text-muted-foreground"
               size={18}
             />

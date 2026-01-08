@@ -121,7 +121,7 @@ export default function Home2() {
                 className="w-full h-16 bg-primary rounded-full flex-row items-center justify-center gap-4"
               >
                 <Icon
-                  name="CirclePlus"
+                  name="PlusCircle"
                   className="text-muted-foreground"
                   size={28}
                 />
@@ -179,7 +179,7 @@ export default function Home2() {
             className="w-full h-16 bg-primary rounded-full flex-row items-center justify-center gap-4"
           >
             <Icon
-              name="CirclePlus"
+              name="PlusCircle"
               className="text-muted-foreground"
               size={28}
             />
