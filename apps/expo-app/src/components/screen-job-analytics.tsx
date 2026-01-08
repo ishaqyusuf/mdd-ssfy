@@ -5,7 +5,7 @@ import { SafeArea } from "./safe-area";
 import { ThemeToggle } from "./theme-toggle";
 import { Icon, IconProps } from "./ui/icon";
 import { cn } from "@/lib/utils";
-import { JobAdminNavs } from "./job-admin-navs";
+import { JobAdminNavs } from "./examples/job-admin-navs";
 
 // --- Types & Interfaces ---
 

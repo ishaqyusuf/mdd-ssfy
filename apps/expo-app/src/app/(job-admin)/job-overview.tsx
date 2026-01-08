@@ -1,4 +1,4 @@
-import JobOverviewExampleScreen from "@/components/screen-example-job-overview";
+import JobOverviewExampleScreen from "@/components/examples/screen-example-job-overview";
 
 export default function Page({}) {
   return (

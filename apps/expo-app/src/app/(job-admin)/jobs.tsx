@@ -1,4 +1,4 @@
-import JobsExampleScreen from "@/components/screen-example-jobs";
+import JobsExampleScreen from "@/components/examples/screen-example-jobs";
 
 export default function JobsScreen({}) {
   return (

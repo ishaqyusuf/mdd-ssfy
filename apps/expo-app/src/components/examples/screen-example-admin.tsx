@@ -7,8 +7,8 @@ import {
   Image,
   StatusBar,
 } from "react-native";
-import { Icon, IconProps } from "./ui/icon";
-import { SafeArea } from "./safe-area";
+import { Icon, IconProps } from "../ui/icon";
+import { SafeArea } from "../safe-area";
 import { JobAdminNavs } from "./job-admin-navs";
 
 const Header = () => (

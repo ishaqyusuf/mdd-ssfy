@@ -16,12 +16,8 @@ import {
   User,
   MoreVertical,
   Sparkles,
-  Image as ImageIcon,
-  Mic,
-  X,
-  ChevronDown,
 } from "lucide-react-native";
-import { SafeArea } from "./safe-area";
+import { SafeArea } from "../safe-area";
 
 // --- Configuration & Initialization ---
 

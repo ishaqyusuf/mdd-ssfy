@@ -8,7 +8,7 @@ import {
   SafeAreaView,
   StatusBar,
 } from "react-native";
-import { Icon, IconProps } from "./ui/icon";
+import { Icon, IconProps } from "../ui/icon";
 import { JobAdminNavs } from "./job-admin-navs";
 
 import { usePathname, useRouter } from "expo-router";

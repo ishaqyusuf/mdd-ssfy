@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, Pressable } from "react-native";
 
-import { Icon, IconProps } from "./ui/icon";
+import { Icon, IconProps } from "../ui/icon";
 
 import { usePathname, useRouter } from "expo-router";
 export function JobAdminNavs() {
@@ -16,7 +16,7 @@ export function JobAdminNavs() {
           label="Analytics"
           active
         />
-        <NavItem icon={"settings"} label="Settings" />
+        <NavItem icon={"settings"} path="/settings" label="Settings" />
       </View>
     </View>
   );

@@ -7,9 +7,8 @@ import {
   TextInput,
   StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Icon } from "./ui/icon";
-import { SafeArea } from "./safe-area";
+import { Icon } from "../ui/icon";
+import { SafeArea } from "../safe-area";
 
 /**
  * Semantic Avatar Component (Initials Only)
