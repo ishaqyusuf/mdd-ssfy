@@ -27,6 +27,8 @@ import { TRPCReactProvider } from "@/trpc/client";
 import { StaticTrpc } from "@/components/static-trpc";
 import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
+import { cn } from "@/lib/utils";
+import { StaticRouter } from "@/components/static-router";
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
@@ -71,6 +73,7 @@ const InitialLayout = () => {
     <>
       <TRPCReactProvider>
         <StaticTrpc />
+        <StaticRouter />
         <StatusBar style="auto" />
         <Stack>
           <Stack.Protected guard={!token}>
@@ -99,16 +102,17 @@ const InitialLayout = () => {
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const theme = useThemeConfig();
-  // const { token } = useAuthContext();
-  console.log({ theme });
+
   return (
-    <View className={theme.dark ? `dark flex-1` : "light flex-1"}>
-      <GestureHandlerRootView
-        // className={theme.dark ? `dark flex-1` : "light flex-1"}
-        style={{ flex: 1 }}
-      >
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      {/* 
+        using  <View className={cn(theme.dark ? "dark" : "", "flex-1")}></View> somehow freezes scroll. the issue is mainly the dark className.
+      */}
+
+      <View className="flex-1">
         <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+          value={DefaultTheme}
+          // value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
         >
           <AuthProvider value={useCreateAuthContext()}>
             <ToastProviderWithViewport>
@@ -119,7 +123,8 @@ function RootLayoutNav() {
             </ToastProviderWithViewport>
           </AuthProvider>
         </ThemeProvider>
-      </GestureHandlerRootView>
-    </View>
+        {/* </View> */}
+      </View>
+    </GestureHandlerRootView>
   );
 }

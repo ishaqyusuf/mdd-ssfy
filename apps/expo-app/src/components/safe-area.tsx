@@ -10,9 +10,10 @@ export function SafeArea({
 }) {
   const insets = useSafeAreaInsets();
   return (
+    // <View className="flex-1">
     <View
       style={{
-        ...(style || {}),
+        ...(style || ({} as any)),
         paddingTop: Platform.select({
           android: insets.top,
         }),
@@ -21,5 +22,6 @@ export function SafeArea({
     >
       {children}
     </View>
+    // </View>
   );
 }

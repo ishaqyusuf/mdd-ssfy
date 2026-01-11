@@ -12,18 +12,7 @@ import { Controller } from "react-hook-form";
 
 export function JobFormStep() {
   const ctx = useJobFormContext();
-  // const formTask = ctx?.formData?.tasks;
-  // const taskList = useMemo(() => {
-  //   const d =
-  //     ctx?.costData?.list?.filter((c) => !!formTask?.[c?.uid]?.maxQty) || [];
-  //   return d;
-  // }, [ctx?.costData, formTask]);
-  // if (!taskList?.length)
-  //   return (
-  //     <View className="flex flex-row justify-center">
-  //       <Text className="text-muted-foreground">No Task</Text>
-  //     </View>
-  //   );
+
   return (
     <View className="flex-1 bg-background">
       <KeyboardAvoidingView
@@ -81,7 +70,7 @@ export function JobFormStep() {
                         value={field.value!}
                         onChangeText={field.onChange}
                         multiline
-                        className="flex w-full rounded-lg border border-muted-foreground bg-card min-h-[120px] px-5 py-4 text-base text-foreground align-text-top"
+                        className="flex w-full rounded-lg border border-muted-foreground bg-card min-h-30 px-5 py-4 text-base text-foreground align-text-top"
                         placeholder="Enter specific job details, access codes, or warnings..."
                         placeholderClassName="text-foreground"
                       />

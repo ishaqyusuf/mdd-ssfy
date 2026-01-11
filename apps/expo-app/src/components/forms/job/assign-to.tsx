@@ -2,8 +2,7 @@
 import { ScrollView, Text, View } from "react-native";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
 import { SearchInput } from "./search-input";
-import { JobSelectProjectList } from "./job-select-project-list";
-
+import { JobSelectCoWorkerList } from "./workers-select-list";
 import { Titles } from "@/components/titles";
 import { useSearch } from "@/hooks/use-search";
 
@@ -14,25 +13,19 @@ export type Project = {
   icon: string; // Lucide icon name
 };
 
-export function SelectProjectStep() {
-  const { setTab, ...ctx } = useJobFormContext();
+export function AssignTo() {
+  const { setTab, users } = useJobFormContext();
   const { clear, query, results } = useSearch({
-    items: ctx?.projectList!,
+    items: users?.data!,
   });
-  // const handleContinue = () => {
-  //   setTab("unit");
-  // };
-
   return (
-    <View className="relative flex-1 bg-background">
+    <View className="relative flex-1">
       {/* <JobSelectProjectHeader onBack={handleBack} /> */}
-      <Titles.BigTitle title={"Which project is this for?"} />
-
-      <SearchInput placeholder="Search projects" />
+      <Titles.BigTitle title="Assign To" />
+      <SearchInput placeholder="Search workers" />
       <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
-        <JobSelectProjectList items={results} />
+        <JobSelectCoWorkerList items={results} />
       </ScrollView>
-      {/* <JobSelectProjectFooter onContinue={handleContinue} /> */}
     </View>
   );
 }

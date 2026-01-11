@@ -16,11 +16,18 @@ function ProjectListItem({ item }: ProjectListItemProps) {
   const {
     selectProject,
     formData: { projectId: selectedProjectId },
+    setTab,
   } = useJobFormContext();
   const isSelected = selectedProjectId === item.id;
   return (
     <TouchableOpacity
-      onPress={(e) => selectProject(item, () => {})} // Use the passed-in onPress handler
+      onPress={(e) =>
+        selectProject(item, () => {
+          setTimeout(() => {
+            setTab(isCustom ? "main" : "unit");
+          }, 500);
+        })
+      } // Use the passed-in onPress handler
       className={cn(
         "group relative flex-row items-center gap-4 bg-card p-4 rounded-3xl border-2 transition-all my-1",
         isSelected ? "bg-primary" : "border-transparent bg-accent"
@@ -77,7 +84,7 @@ function ProjectListItem({ item }: ProjectListItemProps) {
 }
 
 // 2. Move the state management and logic to the parent component.
-export function JobSelectProjectList() {
+export function JobSelectProjectList({ items }) {
   const { projectList } = useJobFormContext();
 
   const customProjectItem = {
@@ -93,7 +100,7 @@ export function JobSelectProjectList() {
       <ProjectListItem item={customProjectItem} />
 
       <LegendList
-        data={projectList!}
+        data={items!}
         ListHeaderComponent={
           <View className="mt-4">
             <Text className="px-4 text-xs font-bold text-foreground uppercase tracking-wider mb-1">

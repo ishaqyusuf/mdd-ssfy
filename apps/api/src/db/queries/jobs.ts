@@ -1,5 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
-import type { InstallCostMeta, JobMeta } from "@community/types";
+import type { InstallCostMeta, JobMeta, JobStatus } from "@community/types";
 import type { Prisma } from "@gnd/db";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
@@ -122,7 +122,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
           id,
           payment,
           project,
-          status,
+          status: status as JobStatus,
           statusDate,
           subtitle,
           title,
@@ -253,11 +253,19 @@ export async function getJobAnalytics(
 /*
 
 */
+const worker = z
+  .object({
+    id: z.number().optional().nullable(),
+    name: z.string().optional().nullable(),
+  })
+  .optional()
+  .nullable();
 export const createJobSchema = z.object({
   id: z.number().optional().nullable(),
   description: z.string().optional().nullable(),
   title: z.string(),
   subtitle: z.string().optional().nullable(),
+  mode: z.enum(["assign", "submit"]).optional().nullable(),
   type: z
     .enum(["punchout", "installation", "Deco-Shutter"])
     .optional()
@@ -270,13 +278,8 @@ export const createJobSchema = z.object({
   additionalReason: z.string().optional().nullable(),
   addon: z.number().optional().nullable(),
   // coWorkerId: z.number().optional().nullable(),
-  coWorker: z
-    .object({
-      id: z.number().optional().nullable(),
-      name: z.string().optional().nullable(),
-    })
-    .optional()
-    .nullable(),
+  worker,
+  coWorker: worker,
   tasks: z.record(
     z.string(),
     z
@@ -405,5 +408,30 @@ export async function earningAnalytics(
     earning,
     percentageVsLastMonth,
     data,
+  };
+}
+
+/*
+adminAnalytics: publicProcedure
+      .input(adminAnalyticsSchema)
+      .query(async (props) => {
+        return adminAnalytics(props.ctx, props.input);
+      }),
+*/
+export const adminAnalyticsSchema = z.object({
+  // : z.string(),
+});
+export type AdminAnalyticsSchema = z.infer<typeof adminAnalyticsSchema>;
+
+export async function adminAnalytics(
+  ctx: TRPCContext,
+  query: AdminAnalyticsSchema
+) {
+  const { db } = ctx;
+
+  return {
+    jobsInProgress: 0,
+    jobsPendingApproval: 0,
+    approvedThisMonth: 0,
   };
 }

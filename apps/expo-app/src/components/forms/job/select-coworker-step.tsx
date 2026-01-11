@@ -1,10 +1,8 @@
 // apps/expo-app/src/components/forms/job/select-project-step.tsx
 import { ScrollView, Text, View } from "react-native";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
-import { JobSelectProjectSearch } from "./job-select-project-search";
-import { JobSelectProjectList } from "./job-select-project-list";
-import { JobSelectProjectFooter } from "./job-select-project-footer";
-import { JobSelectCoWorkerList } from "./job-select-coworker-list";
+import { JobSelectProjectSearch } from "./search-input";
+import { JobSelectCoWorkerList } from "./workers-select-list";
 
 export type Project = {
   id: string;

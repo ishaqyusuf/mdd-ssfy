@@ -18,18 +18,20 @@ export default {
       colors: {
         border: "var(--border)",
         input: "var(--input)",
-        // 'custom-color': 'var(--custom-color) / <alpha-value>)',
-        // customColor: withOpacity('custom-color'),
-        "custom-color": withOpacity("custom-color"),
-        "custom-color2": withOpacity("custom-color2"),
-        // destructive: withOpacity('destructive'),
-        destructive2: withOpacity("destructive2"),
         ring: "var(--ring)",
         background: "var(--background)",
         foreground: "var(--foreground)",
         primary: {
           DEFAULT: "var(--primary)",
           foreground: "var(--primary-foreground)",
+        },
+        success: {
+          DEFAULT: "var(--success)",
+          foreground: "var(--success-foreground)",
+        },
+        warn: {
+          DEFAULT: "var(--warn)",
+          foreground: "var(--warn-foreground)",
         },
         secondary: {
           DEFAULT: "var(--secondary)",

@@ -8,15 +8,50 @@ import { getColorFromName, hexToRgba } from "@gnd/utils/colors";
 
 // 1. Make ProjectListItem a "dumb" component that only receives props.
 
+// 2. Move the state management and logic to the parent component.
+export function JobSelectCoWorkerList({ items }) {
+  const { users } = useJobFormContext();
+
+  const customProjectItem = {
+    id: -1,
+    name: "None",
+    description: "No Co-worker applied",
+  } as any;
+
+  return (
+    <View className="flex flex-1 flex-col px-4 space-y-3">
+      <ListItem item={customProjectItem} />
+
+      <LegendList
+        // data={users?.data!}
+        data={items}
+        ListHeaderComponent={
+          <View className="mt-4">
+            <Text className="px-4 text-xs font-bold text-foreground uppercase tracking-wider mb-1">
+              Staffs
+            </Text>
+          </View>
+        }
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => <ListItem item={item} />}
+      />
+    </View>
+  );
+}
 function ListItem({ item }: any) {
   const isCustom = item.id === -1;
   const {
     // selec,
     form,
-    formData: { coWorker },
+    formData: { coWorker, worker },
     navigateBack,
+    setTab,
+    tabHistory,
+    tab,
   } = useJobFormContext();
-  const isSelected = coWorker?.id === item.id;
+  const isWorker = tab == "assign-to";
+  const w = isWorker ? worker : coWorker;
+  const isSelected = w?.id === item.id;
   const initials = item?.name
     ?.split(" ")
     .map((n) => n[0])
@@ -25,17 +60,19 @@ function ListItem({ item }: any) {
   return (
     <TouchableOpacity
       onPress={(e) => {
-        form.setValue(
-          "coWorker",
+        const value =
           item.id > 0
             ? item
             : {
                 id: null,
                 name: "",
-              }
-        );
+              };
+
+        form.setValue(isWorker ? "worker" : "coWorker", value);
         setTimeout(() => {
-          navigateBack();
+          if (isWorker && tabHistory?.length === 1) {
+            setTab("project");
+          } else navigateBack();
         }, 500);
       }} // Use the passed-in onPress handler
       className={cn(
@@ -58,18 +95,7 @@ function ListItem({ item }: any) {
           <Text className="font-bold text-foreground">{initials}</Text>
         </View>
       </View>
-      {/* <View
-        className={cn(
-          "flex items-center justify-center rounded-full bg-muted shrink-0",
-          isCustom ? "size-14" : "size-12"
-        )}
-      >
-        <Icon
-          name={"Zap"}
-          className={cn("text-muted-foreground", isCustom && "text-primary")}
-          size={isCustom ? 28 : 24}
-        />
-      </View> */}
+
       <View className="flex-1 flex-col justify-center">
         <Text
           className={cn(
@@ -105,35 +131,5 @@ function ListItem({ item }: any) {
         />
       </View>
     </TouchableOpacity>
-  );
-}
-
-// 2. Move the state management and logic to the parent component.
-export function JobSelectCoWorkerList() {
-  const { users } = useJobFormContext();
-
-  const customProjectItem = {
-    id: -1,
-    name: "None",
-    description: "No Co-worker applied",
-  } as any;
-
-  return (
-    <View className="flex flex-1 flex-col px-4 space-y-3">
-      <ListItem item={customProjectItem} />
-
-      <LegendList
-        data={users?.data!}
-        ListHeaderComponent={
-          <View className="mt-4">
-            <Text className="px-4 text-xs font-bold text-foreground uppercase tracking-wider mb-1">
-              Staffs
-            </Text>
-          </View>
-        }
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <ListItem item={item} />}
-      />
-    </View>
   );
 }

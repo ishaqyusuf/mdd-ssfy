@@ -1,4 +1,6 @@
 import {
+  adminAnalytics,
+  adminAnalyticsSchema,
   createJob,
   createJobSchema,
   earningAnalytics,
@@ -34,4 +36,9 @@ export const jobRoutes = createTRPCRouter({
   createJob: publicProcedure.input(createJobSchema).mutation(async (props) => {
     return createJob(props.ctx, props.input);
   }),
+  adminAnalytics: publicProcedure
+    .input(adminAnalyticsSchema)
+    .query(async (props) => {
+      return adminAnalytics(props.ctx, props.input);
+    }),
 });

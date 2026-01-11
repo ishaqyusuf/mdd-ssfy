@@ -1,9 +1,9 @@
 // apps/expo-app/src/components/forms/job/select-project-step.tsx
 import { Text, View } from "react-native";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
-import { JobSelectProjectSearch } from "./job-select-project-search";
-import { JobSelectProjectFooter } from "./job-select-project-footer";
 import { JobSelectUnitList } from "./job-select-unit-list";
+import { useSearch } from "@/hooks/use-search";
+import { SearchInput } from "./search-input";
 
 export type Project = {
   id: string;
@@ -13,12 +13,16 @@ export type Project = {
 };
 
 export function SelectUnitStep() {
-  const { setTab } = useJobFormContext();
+  const { setTab, jobsListData, ...ctx } = useJobFormContext();
 
   const handleContinue = () => {
     setTab("main");
   };
 
+  const jobsList = jobsListData?.homeList;
+  const { clear, query, results } = useSearch({
+    items: jobsList!,
+  });
   return (
     <View className="relative flex-1 bg-background">
       <View className="px-5 pt-2 pb-4">
@@ -26,11 +30,11 @@ export function SelectUnitStep() {
           Select Unit
         </Text>
       </View>
-      <JobSelectProjectSearch />
+      <SearchInput placeholder="Search units" />
 
-      <JobSelectUnitList />
+      <JobSelectUnitList items={results} />
 
-      <JobSelectProjectFooter onContinue={handleContinue} />
+      {/* <JobSelectProjectFooter onContinue={handleContinue} /> */}
     </View>
   );
 }

@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
 
 import { LegendList } from "@legendapp/list";
-import { useMemo } from "react";
 
 // 1. Make ProjectListItem a "dumb" component that only receives props.
 type ProjectListItemProps = {
@@ -17,11 +16,18 @@ function UnitListItem({ item }: ProjectListItemProps) {
   const {
     selectUnit,
     formData: { homeId },
+    setTab,
   } = useJobFormContext();
   const isSelected = homeId === item.id;
   return (
     <TouchableOpacity
-      onPress={(e) => selectUnit(item, () => {})} // Use the passed-in onPress handler
+      onPress={(e) =>
+        selectUnit(item, () => {
+          setTimeout(() => {
+            setTab("main");
+          }, 500);
+        })
+      } // Use the passed-in onPress handler
       className={cn(
         "group relative flex-row items-center gap-4 bg-card p-4 rounded-3xl border-2 transition-all my-1",
         isSelected ? "bg-primary" : "border-transparent bg-accent"
@@ -78,24 +84,17 @@ function UnitListItem({ item }: ProjectListItemProps) {
 }
 
 // 2. Move the state management and logic to the parent component.
-export function JobSelectUnitList() {
-  const { jobsListData } = useJobFormContext();
+export function JobSelectUnitList({ items }) {
+  // const { jobsListData } = useJobFormContext();
 
   const customProjectItem = {
     id: -1,
     name: "Custom",
   } as any;
-  const jobsList = jobsListData?.homeList;
-  const jobsLists = useMemo(() => {
-    if (!jobsList) return [];
-    return jobsList;
-  }, [jobsList]);
   return (
     <View className="flex flex-1 flex-col px-4 space-y-3">
-      <UnitListItem item={customProjectItem} />
-
       <LegendList
-        data={jobsLists}
+        data={items}
         ListEmptyComponent={
           <View className="h-[40vh] flex flex-col justify-center items-center gap-8">
             <Icon name="ListX" className="text-muted-foreground" size={88} />
@@ -105,11 +104,14 @@ export function JobSelectUnitList() {
           </View>
         }
         ListHeaderComponent={
-          <View className="mt-4">
-            <Text className="px-4 text-xs font-bold text-foreground uppercase tracking-wider mb-1">
-              Available Units
-            </Text>
-          </View>
+          <>
+            <UnitListItem item={customProjectItem} />
+            <View className="mt-4">
+              <Text className="px-4 text-xs font-bold text-foreground uppercase tracking-wider mb-1">
+                Available Units
+              </Text>
+            </View>
+          </>
         }
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <UnitListItem item={item} />}

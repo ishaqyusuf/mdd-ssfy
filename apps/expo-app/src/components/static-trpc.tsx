@@ -10,3 +10,14 @@ export function StaticTrpc() {
 
   return null; // nothing to render
 }
+// export {
+//   dehydrate,
+//   useMutation,
+//   useQueryClient,
+//   MutationCache,
+//   QueryClient,
+//   defaultShouldDehydrateQuery,
+//   useQuery,
+//   // useSuspenseInfiniteQuery,
+//   // useSuspenseQuery,
+// } from "@tanstack/react-query";

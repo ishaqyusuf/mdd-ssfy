@@ -64,6 +64,12 @@
     --primary: rgb(250, 204, 21);
     --primary-foreground: rgb(59, 28, 6);
 
+    --success: rgb(34, 197, 94);
+    --success-foreground: rgb(240, 253, 244);
+
+    --warn: rgb(245, 158, 11);
+    --warn-foreground: rgb(69, 26, 3);
+
     --secondary: rgb(245, 245, 244);
     --secondary-foreground: rgb(26, 22, 20);
 
@@ -85,5 +91,27 @@
     --chart-3: rgb(30, 64, 92);
     --chart-4: rgb(250, 204, 21);
     --chart-5: rgb(249, 115, 22);
+  }
+}
+@layer base {
+  .dark {
+    /* --primary: rgb(31, 96, 249);
+    --primary-foreground: rgb(5, 22, 57); */
+
+    --success: rgb(34, 197, 94);
+    --success-foreground: rgb(236, 253, 245);
+
+    --warn: rgb(245, 158, 11);
+    --warn-foreground: rgb(255, 251, 235);
+  }
+  :root {
+    /* --primary: rgb(21, 21, 250);
+    --primary-foreground: rgb(6, 8, 59); */
+
+    --success: rgb(34, 197, 94);
+    --success-foreground: rgb(240, 253, 244);
+
+    --warn: rgb(245, 158, 11);
+    --warn-foreground: rgb(69, 26, 3);
   }
 }

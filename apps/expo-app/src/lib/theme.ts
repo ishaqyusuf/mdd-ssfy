@@ -1,61 +1,96 @@
-import { DarkTheme, DefaultTheme, type Theme } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, type Theme } from "@react-navigation/native";
 
 export const THEME = {
   light: {
-    background: 'hsl(0 0% 100%)',
-    foreground: 'hsl(0 0% 3.9%)',
-    card: 'hsl(0 0% 100%)',
-    cardForeground: 'hsl(0 0% 3.9%)',
-    popover: 'hsl(0 0% 100%)',
-    popoverForeground: 'hsl(0 0% 3.9%)',
-    primary: 'hsl(0 0% 9%)',
-    primaryForeground: 'hsl(0 0% 98%)',
-    secondary: 'hsl(0 0% 96.1%)',
-    secondaryForeground: 'hsl(0 0% 9%)',
-    muted: 'hsl(0 0% 96.1%)',
-    mutedForeground: 'hsl(0 0% 45.1%)',
-    accent: 'hsl(0 0% 96.1%)',
-    accentForeground: 'hsl(0 0% 9%)',
-    destructive: 'hsl(0 84.2% 60.2%)',
-    border: 'hsl(0 0% 89.8%)',
-    input: 'hsl(0 0% 89.8%)',
-    ring: 'hsl(0 0% 63%)',
-    radius: '0.625rem',
-    chart1: 'hsl(12 76% 61%)',
-    chart2: 'hsl(173 58% 39%)',
-    chart3: 'hsl(197 37% 24%)',
-    chart4: 'hsl(43 74% 66%)',
-    chart5: 'hsl(27 87% 67%)',
+    background: "rgb(255, 255, 255)",
+    foreground: "rgb(10, 7, 5)",
+
+    card: "rgb(255, 255, 255)",
+    cardForeground: "rgb(10, 7, 5)",
+
+    popover: "rgb(255, 255, 255)",
+    popoverForeground: "rgb(10, 7, 5)",
+
+    primary: "rgb(21, 21, 250)",
+    primaryForeground: "rgb(6, 8, 59)",
+
+    success: "rgb(34, 197, 94)",
+    successForeground: "rgb(240, 253, 244)",
+
+    warn: "rgb(245, 158, 11)",
+    warnForeground: "rgb(69, 26, 3)",
+
+    secondary: "rgb(245, 245, 244)",
+    secondaryForeground: "rgb(26, 22, 20)",
+
+    muted: "rgb(245, 245, 244)",
+    mutedForeground: "rgb(120, 113, 108)",
+
+    accent: "rgb(245, 245, 244)",
+    accentForeground: "rgb(26, 22, 20)",
+
+    destructive: "rgb(239, 68, 68)",
+    destructiveForeground: "rgb(250, 250, 249)",
+
+    border: "rgb(229, 231, 235)",
+    input: "rgb(229, 231, 235)",
+    ring: "rgb(10, 7, 5)",
+
+    radius: "0.65rem",
+
+    chart1: "rgb(234, 88, 12)",
+    chart2: "rgb(22, 163, 151)",
+    chart3: "rgb(30, 64, 92)",
+    chart4: "rgb(250, 204, 21)",
+    chart5: "rgb(249, 115, 22)",
   },
+
   dark: {
-    background: 'hsl(0 0% 3.9%)',
-    foreground: 'hsl(0 0% 98%)',
-    card: 'hsl(0 0% 3.9%)',
-    cardForeground: 'hsl(0 0% 98%)',
-    popover: 'hsl(0 0% 3.9%)',
-    popoverForeground: 'hsl(0 0% 98%)',
-    primary: 'hsl(0 0% 98%)',
-    primaryForeground: 'hsl(0 0% 9%)',
-    secondary: 'hsl(0 0% 14.9%)',
-    secondaryForeground: 'hsl(0 0% 98%)',
-    muted: 'hsl(0 0% 14.9%)',
-    mutedForeground: 'hsl(0 0% 63.9%)',
-    accent: 'hsl(0 0% 14.9%)',
-    accentForeground: 'hsl(0 0% 98%)',
-    destructive: 'hsl(0 70.9% 59.4%)',
-    border: 'hsl(0 0% 14.9%)',
-    input: 'hsl(0 0% 14.9%)',
-    ring: 'hsl(300 0% 45%)',
-    radius: '0.625rem',
-    chart1: 'hsl(220 70% 50%)',
-    chart2: 'hsl(160 60% 45%)',
-    chart3: 'hsl(30 80% 55%)',
-    chart4: 'hsl(280 65% 60%)',
-    chart5: 'hsl(340 75% 55%)',
+    background: "rgb(2, 6, 23)",
+    foreground: "rgb(248, 250, 252)",
+
+    card: "rgb(22, 28, 36)",
+    cardForeground: "rgb(241, 245, 249)",
+
+    popover: "rgb(24, 30, 38)",
+    popoverForeground: "rgb(241, 245, 249)",
+
+    primary: "rgb(249, 206, 31)",
+    primaryForeground: "rgb(57, 27, 5)",
+
+    success: "rgb(34, 197, 94)",
+    successForeground: "rgb(236, 253, 245)",
+
+    warn: "rgb(245, 158, 11)",
+    warnForeground: "rgb(255, 251, 235)",
+
+    secondary: "rgb(34, 40, 48)",
+    secondaryForeground: "rgb(226, 232, 240)",
+
+    muted: "rgb(40, 46, 54)",
+    mutedForeground: "rgb(148, 163, 184)",
+
+    accent: "rgb(45, 52, 61)",
+    accentForeground: "rgb(241, 245, 249)",
+
+    destructive: "rgb(178, 38, 38)",
+    destructiveForeground: "rgb(250, 250, 250)",
+
+    border: "rgb(45, 51, 59)",
+    input: "rgb(51, 57, 65)",
+    ring: "rgb(96, 165, 250)",
+
+    radius: "0.65rem",
+
+    chart1: "rgb(96, 165, 250)",
+    chart2: "rgb(52, 211, 153)",
+    chart3: "rgb(251, 191, 36)",
+    chart4: "rgb(192, 132, 252)",
+    chart5: "rgb(244, 63, 94)",
   },
 };
 
-export const NAV_THEME: Record<'light' | 'dark', Theme> = {
+export const NAV_THEME: Record<"light" | "dark", Theme> = {
   light: {
     ...DefaultTheme,
     colors: {

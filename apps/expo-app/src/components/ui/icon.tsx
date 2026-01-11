@@ -38,6 +38,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   List,
+  ListX,
   Loader2,
   LocateIcon,
   Lock,
@@ -51,6 +52,7 @@ import {
   Pin,
   Plus,
   PlusCircle,
+  Receipt,
   ReceiptText,
   Search,
   Settings,
@@ -93,13 +95,15 @@ function IconImpl({ name, ...props }: IconProps) {
       ?.find((a) => a?.startsWith("text-"))
       ?.split("-") || [];
   const color = colorChunk?.length ? camel(colorChunk?.join(" ")) : undefined;
-  const _themColor =
-    colorScheme === "dark" ? THEME.dark[color!] : THEME.light[color!];
+
+  const _themColor = THEME.light[color!];
+  // colorScheme === "dark" ? THEME.dark[color!] : THEME.light[color!];
 
   props.style = {
     ...(props.style || ({} as any)),
     color: _themColor || color,
   };
+
   props.size =
     +props?.className
       ?.split(" ")
@@ -186,6 +190,7 @@ const appIcons = {
   LayoutDashboard,
   LayoutGrid,
   List,
+  ListX,
   LocateIcon,
   Loader2,
   Lock,
@@ -199,6 +204,7 @@ const appIcons = {
   Pin,
   Plus,
   PlusCircle,
+  Receipt,
   ReceiptText,
   Search,
   settings: Settings,

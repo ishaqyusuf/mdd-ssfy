@@ -45,7 +45,7 @@ export function JobFormFooter() {
               )}
             >
               <Text className="text-primary-foreground text-lg font-bold">
-                Submit Job
+                {ctx?.admin ? "Assign" : "Submit Job"}
               </Text>
               <Icon name="ArrowRight" className="text-primary-foreground" />
             </Pressable>

@@ -3,8 +3,9 @@ import dayjs from "./dayjs";
 import { hash } from "bcrypt-ts";
 // import * as util from "util";
 import _ from "lodash";
-
+export { padStart } from "lodash";
 import dotObject from "dot-object";
+import JsonSearch from "./json-search";
 export { dotObject };
 export function insertAt<T>(array: T[], index: number, item: T) {
   return _.concat(_.slice(array, 0, index), [item], _.slice(array, index));
@@ -568,3 +569,32 @@ export function removeEmptyValues(obj) {
   }
   return obj;
 }
+export function listFilter<T>(items: T[], query, fuzzy?: boolean): T[] {
+  if (fuzzy) {
+    // const jsEarch = require("search-array");
+    const s = new JsonSearch(items || [], {
+      sort: true,
+    });
+    let res = s.queryWithScore(query || "");
+    return res;
+  }
+  const escapedText = !query
+    ? ""
+    : query?.toString().replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+
+  const pattern = new RegExp(escapedText, "i");
+  let filteredOptions = items?.filter((option) =>
+    pattern.test((option as any).title)
+  );
+  return uniqueBy(filteredOptions, "title");
+}
+export const uniqueBy = (data, key) => {
+  const unique = [...new Set(data.map((item) => item[key]?.toLowerCase()))];
+
+  return unique.map((s) => {
+    const d = data.find((h) => h[key]?.toLowerCase() == s);
+    return {
+      ...d,
+    };
+  });
+};

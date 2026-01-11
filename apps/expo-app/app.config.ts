@@ -1,9 +1,9 @@
 import { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
-  name: "gndprodesk",
+  name: "GND Millwork",
   slug: "gnd-prodesk",
-  version: "1.0.0",
+  version: "1.0.108",
   orientation: "portrait",
   icon: "./assets/icons/adaptive-icon.png",
   scheme: "gndprodesk",

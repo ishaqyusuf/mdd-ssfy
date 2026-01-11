@@ -24,11 +24,7 @@ function Dashboardv1() {
         {/* <JobAnalytics /> */}
         <View className="px-4 space-y-6">
           <JobAnalytics />
-          <Debug>
-            <Link className="text-foreground p-2 bg-foreground" href={"/home2"}>
-              New Dashboard!
-            </Link>
-          </Debug>
+
           <RecentJobs />
         </View>
       </ScrollView>

@@ -2,9 +2,15 @@ import { Stack } from "expo-router";
 
 export default function AuthLayout() {
   return (
-    <Stack initialRouteName="index">
-      <Stack.Screen
+    <Stack>
+      {/* <Stack.Screen
         name="index"
+        options={{
+          headerShown: false,
+        }}
+      /> */}
+      <Stack.Screen
+        name="(tabs)"
         options={{
           headerShown: false,
         }}
@@ -37,6 +43,22 @@ export default function AuthLayout() {
         name="edit-profile"
         options={{
           headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="assign"
+        options={{
+          presentation: "modal",
+          headerShown: false,
+          // header: () => <Header title="Create Installer Profile" />,
+        }}
+      />
+      <Stack.Screen
+        name="overview/[jobId]"
+        options={{
+          presentation: "modal",
+          headerShown: false,
+          // header: () => <Header title="Create Installer Profile" />,
         }}
       />
     </Stack>

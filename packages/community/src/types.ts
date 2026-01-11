@@ -311,6 +311,12 @@ export interface JobMeta {
   costData: InstallCostingTemplate<{ qty: number; cost: number }>;
 }
 
+export type JobStatus =
+  | "Submitted"
+  | "Assigned"
+  | "Rejected"
+  | "Approved"
+  | "In Progress";
 export interface InstallCostMeta {
   list: InstallCostLine[];
 }
