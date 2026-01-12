@@ -25,12 +25,14 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
     // const where = {}
     const where: Prisma.SalesOrdersWhereInput = {
         isDyke: true,
+        type: data?.type,
     };
     if (data.id) where.id = data.id;
     else if (data.slug) where.slug = data.slug;
     else {
         throw new Error("Invalid operation");
     }
+
     if (data.restoreMode) where.deletedAt = whereTrashed.where.deletedAt;
 
     const order = await prisma.salesOrders.findFirst({
@@ -40,7 +42,7 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
                 ? {
                       deletedAt: {},
                   }
-                : {},
+                : {}
         ),
     });
 
@@ -77,7 +79,7 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
     // return typedSalesBookForm(order)
 }
 export async function createSalesBookFormDataDta(
-    props: GetSalesBookFormDataProps,
+    props: GetSalesBookFormDataProps
 ) {
     const session = await user();
     const ctx = await salesFormData(true);
@@ -145,7 +147,7 @@ async function formatForm(data: GetSalesBookFormDataDta) {
     const _taxForm = await salesTaxForm(
         data.order.taxes as any,
         data.order?.id,
-        ctx?.defaultProfile?.meta?.taxCode,
+        ctx?.defaultProfile?.meta?.taxCode
     );
     return {
         ...result,
@@ -162,7 +164,7 @@ async function formatForm(data: GetSalesBookFormDataDta) {
     };
 }
 export async function getTransformedSalesBookFormDataDta(
-    data: GetSalesBookFormDataProps,
+    data: GetSalesBookFormDataProps
 ) {
     const sbf = await getSalesBookFormDataDta(data);
     return await formatForm(sbf);
@@ -180,7 +182,7 @@ export async function getFormStepComponentsDta(uids) {
 }
 export async function saveSalesComponentPricingDta(
     prices: Partial<ComponentPrice>[],
-    orderId,
+    orderId
 ) {
     return;
     const ids = [];
@@ -203,7 +205,7 @@ export async function saveSalesComponentPricingDta(
                     },
                 });
                 ids.push(s.id);
-            }),
+            })
     );
     const res = await prisma.componentPrice.updateMany({
         where: {
