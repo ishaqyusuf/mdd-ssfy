@@ -64,7 +64,7 @@
         "snakecase-keys": "^8.0.1",
         "superjson": "^2.2.2",
         "uuid": "^11.1.0",
-        "zod": "^4.1.12",
+        "zod": "^4.3.5",
         "zod-openapi": "^4.2.4",
       },
       "devDependencies": {
@@ -143,7 +143,7 @@
         "react-native-worklets": "0.5.1",
         "tailwind-merge": "^3.3.1",
         "tailwindcss-animate": "^1.0.7",
-        "zod": "^4.1.12",
+        "zod": "^4.3.5",
         "zustand": "^5.0.8",
       },
       "devDependencies": {
@@ -171,7 +171,7 @@
         "@gnd/printer": "workspace:*",
         "@gnd/ui": "workspace:*",
         "@gnd/utils": "workspace:*",
-        "@hookform/resolvers": "^3.10.0",
+        "@hookform/resolvers": "^5.2.2",
         "@next/mdx": "15.3.2",
         "@t3-oss/env-nextjs": "0.8.0",
         "@tanstack/react-query": "^5.59.20",
@@ -204,7 +204,7 @@
         "superjson": "2.2.1",
         "tailwindcss-animate": "^1.0.7",
         "vaul": "0.9.0",
-        "zod": "^4.1.12",
+        "zod": "^4.3.5",
         "zustand": "^5.0.0-rc.2",
       },
       "devDependencies": {
@@ -311,7 +311,7 @@
         "next-auth": "^4.24.4",
         "next-cloudinary": "^5.6.0",
         "next-mdx-remote": "^4.4.1",
-        "next-safe-action": "^7.10.3",
+        "next-safe-action": "^8.0.11",
         "next-themes": "^0.4.3",
         "npm": "^10.2.1",
         "nuqs": "^2.4.3",
@@ -352,7 +352,7 @@
         "usehooks-ts": "^3.1.1",
         "uuid": "^9.0.0",
         "xlsx": "^0.18.5",
-        "zod": "^4.1.12",
+        "zod": "^4.3.5",
         "zustand": "^5.0.5",
       },
       "devDependencies": {
@@ -452,7 +452,7 @@
         "next-auth": "^4.24.11",
         "next-cloudinary": "^5.20.0",
         "next-mdx-remote": "^4.4.1",
-        "next-safe-action": "^7.10.8",
+        "next-safe-action": "^8.0.11",
         "next-themes": "^0.4.6",
         "npm": "^10.9.4",
         "nuqs": "^2.7.1",
@@ -496,7 +496,7 @@
         "uuid": "^9.0.1",
         "xlsx": "^0.18.5",
         "xlsx-js-style": "^1.2.0",
-        "zod": "^4.1.12",
+        "zod": "^4.3.5",
         "zustand": "^5.0.8",
       },
       "devDependencies": {
@@ -543,7 +543,7 @@
         "jose": "^6.0.11",
         "lodash": "^4.17.21",
         "qrcode": "^1.5.4",
-        "zod": "^4.1.12",
+        "zod": "^4.3.5",
       },
       "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
@@ -624,7 +624,7 @@
         "node-xlsx": "^0.24.0",
         "qs": "^6.14.0",
         "resend": "^4.8.0",
-        "zod": "^4.1.12",
+        "zod": "^4.3.5",
       },
       "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
@@ -638,7 +638,7 @@
       "dependencies": {
         "@gnd/db": "workspace:*",
         "@gnd/utils": "workspace:*",
-        "zod": "^4.1.12",
+        "zod": "^4.3.5",
       },
       "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
@@ -655,7 +655,7 @@
         "jose": "^6.0.11",
         "lodash": "^4.17.21",
         "qrcode": "^1.5.4",
-        "zod": "^4.1.12",
+        "zod": "^4.3.5",
       },
       "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
@@ -687,7 +687,7 @@
         "jose": "^6.0.11",
         "lodash": "^4.17.21",
         "qrcode": "^1.5.4",
-        "zod": "^4.1.12",
+        "zod": "^4.3.5",
       },
       "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
@@ -809,7 +809,7 @@
         "tw-animate-css": "^1.4.0",
         "use-async-memo": "^1.2.5",
         "vaul": "^1.1.2",
-        "zod": "^4.1.12",
+        "zod": "^4.3.5",
       },
       "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
@@ -829,7 +829,7 @@
       "dependencies": {
         "jsonwebtoken": "^9.0.2",
         "lodash": "^4.17.21",
-        "zod": "^4.1.12",
+        "zod": "^4.3.5",
       },
       "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
@@ -4781,7 +4781,7 @@
 
     "next-mdx-remote": ["next-mdx-remote@4.4.1", "", { "dependencies": { "@mdx-js/mdx": "^2.2.1", "@mdx-js/react": "^2.2.1", "vfile": "^5.3.0", "vfile-matter": "^3.0.1" }, "peerDependencies": { "react": ">=16.x <=18.x", "react-dom": ">=16.x <=18.x" } }, "sha512-1BvyXaIou6xy3XoNF4yaMZUCb6vD2GTAa5ciOa6WoO+gAUTYsb1K4rI/HSC2ogAWLrb/7VSV52skz07vOzmqIQ=="],
 
-    "next-safe-action": ["next-safe-action@7.10.8", "", { "peerDependencies": { "@sinclair/typebox": ">= 0.33.3", "next": ">= 14.0.0", "react": ">= 18.2.0", "react-dom": ">= 18.2.0", "valibot": ">= 0.36.0", "yup": ">= 1.0.0", "zod": ">= 3.0.0" }, "optionalPeers": ["@sinclair/typebox", "valibot", "yup", "zod"] }, "sha512-cTBoPWtvQ0t83N0a5zaveOh9vP2g3//d0hgzPJ4ch1EXCyt9+bavbVNgyOYbzWUwFerppHeFXPYsg7pbRulLQw=="],
+    "next-safe-action": ["next-safe-action@8.0.11", "", { "peerDependencies": { "next": ">= 14.0.0", "react": ">= 18.2.0", "react-dom": ">= 18.2.0" } }, "sha512-gqJLmnQLAoFCq1kRBopN46New+vx1n9J9Y/qDQLXpv/VqU40AWxDakvshwwnWAt8R0kLvlakNYNLX5PqlXWSMg=="],
 
     "next-themes": ["next-themes@0.4.6", "", { "peerDependencies": { "react": "^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc", "react-dom": "^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc" } }, "sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA=="],
 
@@ -6342,8 +6342,6 @@
     "@expo/xcpretty/chalk": ["chalk@4.1.2", "", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA=="],
 
     "@gnd/api/superjson": ["superjson@2.2.6", "", { "dependencies": { "copy-anything": "^4" } }, "sha512-H+ue8Zo4vJmV2nRjpx86P35lzwDT3nItnIsocgumgr0hHMQ+ZGq5vrERg9kJBo5AWGmxZDhzDo+WVIJqkB0cGA=="],
-
-    "@gnd/gnd-backlog/@hookform/resolvers": ["@hookform/resolvers@3.10.0", "", { "peerDependencies": { "react-hook-form": "^7.0.0" } }, "sha512-79Dv+3mDF7i+2ajj7SkypSKHhl1cbln1OGavqrsF7p6mbUv11xpqpacPsGDCTRvCSjEEIez2ef1NveSVL3b0Ag=="],
 
     "@gnd/gnd-backlog/@types/node": ["@types/node@20.12.12", "", { "dependencies": { "undici-types": "~5.26.4" } }, "sha512-eWLDGF/FOSPtAvEqeRAQ4C8LSA7M1I7i0ky1I8U7kD1J5ITyW3AsRhQrKVoWf5pFKZ2kILsEGJhsI9r93PYnOw=="],
 

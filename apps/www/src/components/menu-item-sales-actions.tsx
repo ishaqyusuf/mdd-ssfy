@@ -75,14 +75,15 @@ export function MenuItemSalesActions(props: Props) {
             /> */}
 
             <MenuItemPrintAction
-                slug={props?.slug}
+                // slug={props?.slug}
                 onOpenMenu={props.setMenuOpen}
                 type={props?.type as any}
                 salesIds={[props.id]}
                 share
             />
             <MenuItemPrintAction
-                slug={props?.slug}
+                // slug={props?.slug}
+                pdf
                 onOpenMenu={props.setMenuOpen}
                 type={props?.type as any}
                 salesIds={[props.id]}

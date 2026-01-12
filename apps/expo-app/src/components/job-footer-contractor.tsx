@@ -26,7 +26,7 @@ export function JobFooterContractor() {
               <>
                 <Pressable
                   onPress={(e) => {
-                    _push(`submit/${ctx?.job?.id!}`);
+                    _push(`submit/${ctx?.job?.controlId!}`);
                   }}
                   className={cn(
                     "flex w-full flex-row items-center justify-center gap-2 rounded-xl bg-success h-14"

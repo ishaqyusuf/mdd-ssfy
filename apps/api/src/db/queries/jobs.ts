@@ -46,6 +46,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
       title: true,
       subtitle: true,
       amount: true,
+      controlId: true,
       coWorker: {
         select: {
           name: true,
@@ -105,6 +106,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
         title,
         user,
         coWorker,
+        controlId,
       }) => {
         const meta2 = meta as any as JobMeta;
         const {
@@ -115,6 +117,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
           taskCost,
         } = meta2 || {};
         return {
+          controlId,
           adminNote,
           amount,
           createdAt,

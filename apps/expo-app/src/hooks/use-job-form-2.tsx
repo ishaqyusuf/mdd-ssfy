@@ -33,14 +33,14 @@ export type JobFormTabs =
 export const JobFormProvider = JobFormContext.Provider;
 export interface JobFormProps {
   admin?: boolean;
-  jobId?: number;
+  controlId?: string;
   action?: "submit" | "create" | "update" | "re-assign";
 }
 export const useCreateJobFormContext = (props: JobFormProps) => {
   const form = useZodForm(createJobSchema, {
     defaultValues: {
       // coWorkerId: undefined,
-      id: props.jobId || undefined,
+      controlId: props.controlId || undefined,
       coWorker: {
         id: undefined,
         name: undefined,
@@ -133,10 +133,10 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
   const { data: jobData } = useQuery(
     _trpc.jobs.getJobForm.queryOptions(
       {
-        access: props.jobId,
+        controlId: props.controlId!,
       },
       {
-        enabled: !!props.jobId,
+        enabled: !!props.controlId,
       }
     )
   );
