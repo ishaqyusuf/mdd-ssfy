@@ -23,6 +23,8 @@ export const noteTagNames = [
   "attachment",
   "signature",
   "activity",
+  "jobControlId",
+  "jobId",
 ] as const;
 export type NoteTagNames = (typeof noteTagNames)[number];
 export const noteTypes = [

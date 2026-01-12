@@ -74,5 +74,6 @@ export async function createNoteAction(props: CreateNoteData) {
       events: true,
     },
   });
+
   return note;
 }

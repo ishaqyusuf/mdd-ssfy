@@ -6,14 +6,16 @@ import { paginationSchema } from "@gnd/utils/schema";
 import z from "zod";
 import { getSetting } from "./settings";
 import { formatLargeNumber } from "@gnd/utils/format";
-import { nextId, sum } from "@gnd/utils";
+import { generateRandomString, nextId, sum } from "@gnd/utils";
 import {
   startOfMonth,
   endOfMonth,
   subMonths,
   eachDayOfInterval,
   format,
+  formatDate,
 } from "date-fns";
+import { saveNote } from "@gnd/utils/note";
 
 export const getJobsSchema = z
   .object({
@@ -265,6 +267,7 @@ export const createJobSchema = z.object({
   description: z.string().optional().nullable(),
   title: z.string(),
   subtitle: z.string().optional().nullable(),
+  controlId: z.string().optional().nullable(),
   mode: z.enum(["assign", "submit"]).optional().nullable(),
   type: z
     .enum(["punchout", "installation", "Deco-Shutter"])
@@ -273,6 +276,7 @@ export const createJobSchema = z.object({
   status: z.string().optional().nullable(),
   note: z.string().optional().nullable(),
   projectId: z.number().optional().nullable(),
+  coWorkerJobId: z.number().optional().nullable(),
   homeId: z.number().optional().nullable(),
   additionalCost: z.number().optional().nullable(),
   includeAdditionalCharges: z.boolean().optional().nullable(),
@@ -315,26 +319,31 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
     sum([meta.addon, meta.taskCost, meta.additional_cost]) /
       (query.coWorker?.id ? 2 : 1),
   ]);
+  const controlId = `${generateRandomString(10)}-${formatDate(
+    new Date(),
+    "yymmdd"
+  )}`;
+  const data = {
+    // id: jobId,
+    // status: query?.status || "Submitted",
+    status: query.status!,
+    statusDate: new Date(),
+    userId: query?.worker?.id || ctx.userId!,
+    amount,
+    type: query.type as any,
+    coWorkerId: query.coWorker?.id,
+    description: query.description,
+    homeId: query.homeId!,
+    projectId: query.projectId!,
+    note: query.note,
+    meta: meta as any,
+    title: query.title,
+    subtitle: query.subtitle,
+    controlId,
+  } as Prisma.JobsCreateManyInput;
   if (!query.id) {
     const jobId = (query.id = await nextId(db.jobs));
-    const data = {
-      id: jobId,
-      // status: query?.status || "Submitted",
-      status: query.status!,
-      statusDate: new Date(),
-      userId: query?.worker?.id || ctx.userId!,
-      amount,
-      type: query.type as any,
-      coWorkerId: query.coWorker?.id,
-      description: query.description,
-      homeId: query.homeId!,
-      projectId: query.projectId!,
-      note: query.note,
-      meta,
-      title: query.title,
-      subtitle: query.subtitle,
-    };
-
+    data.id = jobId;
     const result = await db.jobs.createMany({
       data: !query.coWorker?.id
         ? [data]
@@ -349,20 +358,75 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
             },
           ],
     });
+    await saveNote(
+      ctx.db,
+      {
+        headline: query?.mode == "assign" ? "Job Assigned" : "Job Submitted",
+        note: `#J${jobId}`,
+        subject:
+          query?.mode == "assign" ? `New job assignment` : `New job submission`,
+        tags: [
+          {
+            tagName: "jobControlId",
+            tagValue: controlId,
+          },
+          {
+            tagName: "jobId",
+            tagValue: String(jobId),
+          },
+        ],
+      },
+      ctx.userId!
+    );
   }
-  return (
-    await getJobs(ctx, {
-      jobId: query.id!,
-    })
-  )?.data?.[0];
+  return await getJobForm(ctx, {
+    controlId,
+  });
 }
 export const getJobFormSchema = z.object({
-  jobId: z.number(),
+  controlId: z.string(),
 });
 export type GetJobFormSchema = z.infer<typeof getJobFormSchema>;
 
 export async function getJobForm(ctx: TRPCContext, query: GetJobFormSchema) {
   const { db } = ctx;
+  const [main, co] = await db.jobs.findMany({
+    where: {
+      controlId: query.controlId,
+    },
+    include: {
+      user: true,
+    },
+  });
+  if (!main) throw new Error("Job not found");
+  const mainMeta: JobMeta = main.meta as any;
+  return {
+    id: main.id,
+    description: main.description,
+    title: main.title!,
+    subtitle: main.subtitle,
+    status: main.status,
+    controlId: main.controlId,
+    worker: {
+      id: main.userId,
+      name: main.user?.name,
+    },
+    coWorkerJobId: co?.id,
+    type: main.type as any,
+    homeId: main.homeId,
+    additionalCost: mainMeta?.additional_cost,
+    note: main?.note,
+    additionalReason: mainMeta?.additionalCostReason,
+    addon: mainMeta?.addon,
+    coWorker: co
+      ? {
+          id: co?.user?.id,
+          name: co?.user?.name,
+        }
+      : null,
+    projectId: main.projectId,
+    tasks: mainMeta?.costData,
+  } satisfies CreateJobSchema;
 }
 export const earningAnalyticsSchema = z.object({
   // : z.string(),

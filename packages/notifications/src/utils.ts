@@ -47,8 +47,8 @@ export function noteTokenToObject(tok: any): TagFilters[] {
 export function transformActivityTags(
   // <T extends { tagName: string; tagValue: string }[],>
   ...tags: Array<Pick<Prisma.NoteTagsGetPayload<{}>, "tagName" | "tagValue">>
-  // ...tags: T
-): { [K in NoteTagNames]?: TagValueMap[K] } {
+): // ...tags: T
+{ [K in NoteTagNames]?: TagValueMap[K] } {
   const result = {} as { [K in NoteTagNames]?: TagValueMap[K] };
   tags.forEach((t) => {
     result[t.tagName] = t.tagValue as any;
@@ -70,6 +70,8 @@ export const noteTagNames = [
   "attachment",
   "signature",
   "activity",
+  "jobId",
+  "jobControlId",
 ] as const;
 export type NoteTagNames = (typeof noteTagNames)[number];
 export const noteTypes = [
