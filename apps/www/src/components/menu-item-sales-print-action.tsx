@@ -103,7 +103,9 @@ export function MenuItemPrintAction(props: Props) {
             <Menu.Item
                 icon={pdf ? "pdf" : "print"}
                 onClick={(e) => {
-                    print(e);
+                    print(e, {
+                        mode: "quote",
+                    });
                 }}
             >
                 {pdf ? "PDF" : "Print"}
