@@ -11,7 +11,7 @@ import { createContext, useContext, useState } from "react";
 
 type AuthContextProps = ReturnType<typeof useCreateAuthContext>;
 export const AuthContext = createContext<AuthContextProps>(undefined as any);
-export const AuthProvider = AuthContext.Provider;
+export const AuthProvider = AuthContext.Provider as any;
 export const useCreateAuthContext = () => {
   const [profile, setProfile] = useState(getSessionProfile());
   const [token, _setToken] = useState(getToken());

@@ -4,6 +4,8 @@ import { Icon } from "@/components/ui/icon";
 import { useColors } from "@/hooks/use-color";
 import { useRouter } from "expo-router";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
+import { _push, _replace } from "@/components/static-router";
+import { PressableLink } from "@/components/pressable-link";
 
 // --- Mock Data ---
 const jobDetails = {
@@ -92,11 +94,11 @@ export function JobSubmittedStep() {
 
           {/* Headline & Body Text */}
           <Text className="text-foreground tracking-tight text-[32px] font-bold leading-tight text-center pb-3">
-            Job Submitted!
+            {/* Job {ctx?.admin ? "Assigned" : "Submitted"}! */}
+            Job Assigned!
           </Text>
-          <Text className="text-muted-foreground text-base font-normal leading-relaxed text-center pb-8 max-w-[280px]">
-            The job details have been uploaded successfully and are pending
-            review.
+          <Text className="text-muted-foreground text-base font-normal leading-relaxed text-center pb-8 max-w-70">
+            The job details have been uploaded successfully.
           </Text>
 
           {/* Job Reference Card */}
@@ -158,17 +160,17 @@ export function JobSubmittedStep() {
           </Pressable>
           <Pressable
             onPress={(e) => {
-              router.replace(`/(installers)/overview/${ctx.formData.id}`);
+              _replace(`/job/${ctx.savedData?.id}`);
             }}
             className="w-full bg-transparent border border-border dark:border-primary/30 h-14 rounded-full flex items-center justify-center"
           >
             <Text className="text-foreground dark:text-primary font-semibold text-lg">
-              View Submitted Job
+              View Job
             </Text>
           </Pressable>
           <Pressable
             onPress={(e) => {
-              router.replace("/(installers)");
+              _replace("/");
             }}
             className="w-full mt-2 py-2"
           >

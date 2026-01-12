@@ -29,7 +29,7 @@ export function JobFormHeader() {
             onPress={(e) => {
               router.back();
             }}
-            className="flex h-10 items-center justify-center px-2 rounded-full"
+            className="flex h-10 items-center justify-center px-4 rounded-full"
           >
             <Text className="text-destructive  text-sm font-bold tracking-wide">
               Cancel

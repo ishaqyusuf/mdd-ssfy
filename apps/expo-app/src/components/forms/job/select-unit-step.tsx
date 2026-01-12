@@ -24,7 +24,7 @@ export function SelectUnitStep() {
     items: jobsList!,
   });
   return (
-    <View className="relative flex-1 bg-background">
+    <View className="relative flex-1">
       <View className="px-5 pt-2 pb-4">
         <Text className="text-3xl font-bold text-foreground leading-tight">
           Select Unit

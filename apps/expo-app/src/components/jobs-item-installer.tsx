@@ -14,8 +14,8 @@ export function JobListItem2({ item }: { item: JobItem }) {
   // return <></>;
   return (
     <PressableLink
-      className="group relative flex flex-col gap-3 bg-card p-5 rounded-4xl border border-border active:scale-[0.98] transition-all mb-4"
-      href={`/(installers)/overview/${item.id}`}
+      className="group relative flex flex-col gap-3 bg-card p-5 rounded-4xl border border-border active:scale-[0.98] transition-all mb-4 mx-4"
+      href={`/job/${item.id}`}
     >
       <View className="flex-row justify-between items-start">
         <View className="flex-row gap-4">

@@ -30,7 +30,9 @@ function UnitListItem({ item }: ProjectListItemProps) {
       } // Use the passed-in onPress handler
       className={cn(
         "group relative flex-row items-center gap-4 bg-card p-4 rounded-3xl border-2 transition-all my-1",
-        isSelected ? "bg-primary" : "border-transparent bg-accent"
+        isSelected
+          ? "bg-primary/30 border-primary"
+          : "border-transparent bg-card"
       )}
     >
       <View

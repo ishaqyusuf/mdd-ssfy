@@ -24,7 +24,7 @@ export function SelectProjectStep() {
   // };
 
   return (
-    <View className="relative flex-1 bg-background">
+    <View className="relative flex-1">
       {/* <JobSelectProjectHeader onBack={handleBack} /> */}
       <Titles.BigTitle title={"Which project is this for?"} />
 

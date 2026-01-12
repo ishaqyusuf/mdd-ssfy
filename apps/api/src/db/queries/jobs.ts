@@ -6,7 +6,7 @@ import { paginationSchema } from "@gnd/utils/schema";
 import z from "zod";
 import { getSetting } from "./settings";
 import { formatLargeNumber } from "@gnd/utils/format";
-import { sum } from "@gnd/utils";
+import { nextId, sum } from "@gnd/utils";
 import {
   startOfMonth,
   endOfMonth,
@@ -270,6 +270,7 @@ export const createJobSchema = z.object({
     .enum(["punchout", "installation", "Deco-Shutter"])
     .optional()
     .nullable(),
+  status: z.string().optional().nullable(),
   note: z.string().optional().nullable(),
   projectId: z.number().optional().nullable(),
   homeId: z.number().optional().nullable(),
@@ -315,10 +316,13 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
       (query.coWorker?.id ? 2 : 1),
   ]);
   if (!query.id) {
+    const jobId = (query.id = await nextId(db.jobs));
     const data = {
-      status: "Submitted",
+      id: jobId,
+      // status: query?.status || "Submitted",
+      status: query.status!,
       statusDate: new Date(),
-      userId: ctx.userId!,
+      userId: query?.worker?.id || ctx.userId!,
       amount,
       type: query.type as any,
       coWorkerId: query.coWorker?.id,
@@ -330,13 +334,15 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
       title: query.title,
       subtitle: query.subtitle,
     };
-    await db.jobs.createMany({
+
+    const result = await db.jobs.createMany({
       data: !query.coWorker?.id
         ? [data]
         : [
             data,
             {
               ...data,
+              id: undefined,
               userId: query.coWorker?.id!,
               coWorkerId: ctx.userId!,
               // note: query.note,
@@ -344,6 +350,11 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
           ],
     });
   }
+  return (
+    await getJobs(ctx, {
+      jobId: query.id!,
+    })
+  )?.data?.[0];
 }
 
 export const earningAnalyticsSchema = z.object({

@@ -4,6 +4,7 @@ import { formatDate } from "@gnd/utils/dayjs";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Icon } from "../ui/icon";
+import { _push } from "../static-router";
 
 export function JobListItem1({ item }: { item: JobItem }) {
   const router = useRouter();
@@ -15,7 +16,8 @@ export function JobListItem1({ item }: { item: JobItem }) {
       className="bg-white dark:bg-gray-800/50 rounded-xl overflow-hidden shadow-md shadow-gray-200/50 dark:shadow-none border border-gray-200/80 dark:border-gray-700/60 mb-3"
       onPress={() => {
         // openModal(item);
-        router.push(`/(installers)/overview/${item.id}`);
+        // _push(`/job-ov`)
+        router.push(`/job-overview/${item.id}`);
       }}
     >
       <View className="flex-row">

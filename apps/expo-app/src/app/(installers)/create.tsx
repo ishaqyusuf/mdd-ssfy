@@ -15,7 +15,7 @@ import { View } from "react-native";
 
 export default function CreateJob() {
   return (
-    <JobFormContext.Provider value={useCreateJobFormContext(null)}>
+    <JobFormContext.Provider value={useCreateJobFormContext({})}>
       <Content />
     </JobFormContext.Provider>
   );

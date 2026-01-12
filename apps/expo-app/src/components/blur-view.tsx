@@ -1,8 +1,7 @@
 import { cn } from "@/lib/utils";
 import { BlurView as ExpoBlurView } from "expo-blur";
-import { useColorScheme } from "react-native";
 export function BlurView({ children, className = "", intensity = 90 }) {
-  const tint = useColorScheme();
+  const tint = "light"; //useColorScheme();
   return (
     <ExpoBlurView
       tint={tint || "light"}

@@ -39,14 +39,12 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen
-        name="overview/[jobId]"
+        name="job/[id]"
         options={{
           presentation: "modal",
           headerShown: false,
-          // header: () => <Header title="Create Installer Profile" />,
         }}
       />
-      {/* <Stack.Screen name="sign-up" options={{ headerShown: false }} /> */}
     </Stack>
   );
 }

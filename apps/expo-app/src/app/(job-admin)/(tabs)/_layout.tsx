@@ -1,5 +1,5 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { Tabs } from "expo-router";
+import { Tabs, Stack } from "expo-router";
 import {
   BottomTabBarButtonProps,
   useBottomTabBarHeight,
@@ -32,82 +32,98 @@ export default function TabLayout() {
   const theme = useColors();
 
   const translateY = useRef(new Animated.Value(0)).current;
+  // return (
+  //   <NativeTabs  minimizeBehavior="onScrollDown">
+  //     <NativeTabs.Trigger name="index" disablePopToTop>
+  //       <Label>Home</Label>
+  //       <NtIcon sf="house.fill" drawable="custom_android_drawable" />
+  //     </NativeTabs.Trigger>
+  //     <NativeTabs.Trigger name="settings">
+  //       <Label>Settings</Label>
+  //     </NativeTabs.Trigger>
+  //   </NativeTabs>
+  // );
   return (
-    <NativeTabs minimizeBehavior="onScrollDown">
-      <NativeTabs.Trigger name="index" disablePopToTop>
-        <Label>Home</Label>
-        <NtIcon sf="house.fill" drawable="custom_android_drawable" />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="settings">
-        <Label>Settings</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: "#3b82f6", // primary
-        tabBarInactiveTintColor: "#9ca3af", // muted
-        tabBarStyle: {
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: theme.background, // card bg
-          borderTopColor: theme.border, // border
-          borderTopWidth: 1,
-          height: 70,
-          paddingBottom: 6,
-          paddingTop: 8,
-          zIndex: 50,
-          transform: [{ translateY }],
-        },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: "500",
-        },
-        headerShown: false,
-      }}
-    >
-      <Tabs.Screen
+    <Stack>
+      <Stack.Screen
         name="index"
-        initialParams={{ scrollAnimatedValue: translateY }}
         options={{
-          tabBarLabel: () => null,
-          tabBarIcon: (props) => (
-            <TabBarIcon icon="home" label="Home" {...props} />
-          ),
+          headerShown: false,
         }}
       />
-      <Tabs.Screen
-        name="jobs"
-        options={{
-          tabBarLabel: () => null,
-          tabBarIcon: (props) => (
-            <TabBarIcon icon="jobs" label="Jobs" {...props} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="analytics"
-        options={{
-          tabBarLabel: () => null,
-          tabBarIcon: (props) => (
-            <TabBarIcon icon="analytics" label="Analytics" {...props} />
-          ),
-        }}
-      />
-      <Tabs.Screen
+      <Stack.Screen
         name="settings"
         options={{
-          tabBarLabel: () => null,
-          tabBarIcon: (props) => (
-            <TabBarIcon icon="settings" label="Settings" {...props} />
-          ),
+          headerShown: false,
         }}
       />
-    </Tabs>
+    </Stack>
   );
+  // return (
+  //   <Tabs
+  //     screenOptions={{
+  //       tabBarActiveTintColor: "#3b82f6", // primary
+  //       tabBarInactiveTintColor: "#9ca3af", // muted
+  //       tabBarStyle: {
+  //         position: "absolute",
+  //         bottom: 0,
+  //         left: 0,
+  //         right: 0,
+  //         backgroundColor: theme.background, // card bg
+  //         borderTopColor: theme.border, // border
+  //         borderTopWidth: 1,
+  //         height: 70,
+  //         paddingBottom: 6,
+  //         paddingTop: 8,
+  //         zIndex: 50,
+  //         transform: [{ translateY }],
+  //       },
+  //       tabBarLabelStyle: {
+  //         fontSize: 10,
+  //         fontWeight: "500",
+  //       },
+  //       headerShown: false,
+  //     }}
+  //   >
+  //     <Tabs.Screen
+  //       name="index"
+  //       initialParams={{ scrollAnimatedValue: translateY }}
+  //       options={{
+  //         tabBarLabel: () => null,
+  //         tabBarIcon: (props) => (
+  //           <TabBarIcon icon="home" label="Home" {...props} />
+  //         ),
+  //       }}
+  //     />
+  //     <Tabs.Screen
+  //       name="jobs"
+  //       options={{
+  //         tabBarLabel: () => null,
+  //         tabBarIcon: (props) => (
+  //           <TabBarIcon icon="jobs" label="Jobs" {...props} />
+  //         ),
+  //       }}
+  //     />
+  //     <Tabs.Screen
+  //       name="analytics"
+  //       options={{
+  //         tabBarLabel: () => null,
+  //         tabBarIcon: (props) => (
+  //           <TabBarIcon icon="analytics" label="Analytics" {...props} />
+  //         ),
+  //       }}
+  //     />
+  //     <Tabs.Screen
+  //       name="settings"
+  //       options={{
+  //         tabBarLabel: () => null,
+  //         tabBarIcon: (props) => (
+  //           <TabBarIcon icon="settings" label="Settings" {...props} />
+  //         ),
+  //       }}
+  //     />
+  //   </Tabs>
+  // );
   // return (
   //   <Tabs
   //     screenOptions={{

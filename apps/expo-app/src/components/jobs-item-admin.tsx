@@ -12,14 +12,10 @@ export function AdminJobsItem({ item }: { item: JobItem }) {
   return (
     // <View className="px-5">
     <PressableLink
-      href={`/overview/${item.id}`}
+      href={`/job/${item.id}`}
       className={`bg-card rounded-2xl p-5 border ${
         isUrgent ? "border-destructive" : "border-border"
       } shadow-sm mb-4 mx-4`}
-      // onPress={() => {
-      //   // openModal(item);
-      //   _router.push(`/(installers)/overview/${item.id}`);
-      // }}
     >
       {/* Header Row */}
       <View className="flex-row justify-between items-start mb-4">

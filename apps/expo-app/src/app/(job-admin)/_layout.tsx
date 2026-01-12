@@ -27,9 +27,11 @@ export default function AuthLayout() {
           headerShown: false,
         }}
       />
+
       <Stack.Screen
-        name="job-overview"
+        name="job/[id]"
         options={{
+          presentation: "modal",
           headerShown: false,
         }}
       />
@@ -47,14 +49,6 @@ export default function AuthLayout() {
       />
       <Stack.Screen
         name="assign"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-          // header: () => <Header title="Create Installer Profile" />,
-        }}
-      />
-      <Stack.Screen
-        name="overview/[jobId]"
         options={{
           presentation: "modal",
           headerShown: false,

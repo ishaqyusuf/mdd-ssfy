@@ -5,12 +5,13 @@ import { cn } from "@/lib/utils";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
 import { LegendList } from "@legendapp/list";
 import { getColorFromName, hexToRgba } from "@gnd/utils/colors";
+import { getJobType } from "@/lib/job";
 
 // 1. Make ProjectListItem a "dumb" component that only receives props.
 
 // 2. Move the state management and logic to the parent component.
 export function JobSelectCoWorkerList({ items }) {
-  const { users } = useJobFormContext();
+  const { users, admin, tab } = useJobFormContext();
 
   const customProjectItem = {
     id: -1,
@@ -20,7 +21,7 @@ export function JobSelectCoWorkerList({ items }) {
 
   return (
     <View className="flex flex-1 flex-col px-4 space-y-3">
-      <ListItem item={customProjectItem} />
+      {tab !== "assign-to" && <ListItem item={customProjectItem} />}
 
       <LegendList
         // data={users?.data!}
@@ -69,6 +70,9 @@ function ListItem({ item }: any) {
               };
 
         form.setValue(isWorker ? "worker" : "coWorker", value);
+        if (isWorker) {
+          form.setValue("type", getJobType(item?.role));
+        }
         setTimeout(() => {
           if (isWorker && tabHistory?.length === 1) {
             setTab("project");
@@ -76,8 +80,10 @@ function ListItem({ item }: any) {
         }, 500);
       }} // Use the passed-in onPress handler
       className={cn(
-        "group relative flex-row items-center gap-4 bg-card p-4 rounded-3xl border-2 transition-all my-1",
-        isSelected ? "bg-primary" : "border-transparent bg-accent"
+        "group relative flex-row items-center gap-4  p-4 rounded-3xl border-2 transition-all my-1 ",
+        isSelected
+          ? "bg-primary/30 border-primary"
+          : "border-transparent bg-card"
       )}
     >
       <View

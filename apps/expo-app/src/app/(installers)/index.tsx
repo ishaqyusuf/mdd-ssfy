@@ -64,6 +64,7 @@ export default function Home2() {
         refreshing={ctx.isRefreshing}
         data={ctx?.recentJobs}
         renderItem={({ item }) => <JobListItem2 item={item} />}
+        ListFooterComponent={<View className="mb-48"></View>}
       />
     </HomeProvider>
   );

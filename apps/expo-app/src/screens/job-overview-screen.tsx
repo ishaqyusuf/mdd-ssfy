@@ -1,10 +1,8 @@
 import { AdminJobReviewCard } from "@/components/admin-job-review-card";
 import { BackBtn } from "@/components/back-btn";
 import { BlurView } from "@/components/blur-view";
-import { Debug } from "@/components/debug";
+import { JobFooterContractor } from "@/components/job-footer-contractor";
 import { SafeArea } from "@/components/safe-area";
-import { _goBack } from "@/components/static-router";
-import { _trpc } from "@/components/static-trpc";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -18,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@gnd/utils";
 import { getColorFromName } from "@gnd/utils/colors";
 import { formatDate } from "@gnd/utils/dayjs";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 
 // All components are in this file as per the instructions.
@@ -308,6 +306,7 @@ function Content() {
         <NotesCard />
         <AdminJobReviewCard />
       </ScrollView>
+      <JobFooterContractor />
       {/* <Debug>
         <ActionBar />
       </Debug> */}

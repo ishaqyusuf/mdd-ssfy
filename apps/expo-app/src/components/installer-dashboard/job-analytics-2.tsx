@@ -41,7 +41,8 @@ export function JobAnalytics2() {
 const EarningsChart = ({ data }) => {
   const WIDTH = 478;
   const HEIGHT = 150;
-  const isDark = useColorScheme().colorScheme === "dark";
+  const isDark = false; // useColorScheme().colorScheme === "dark";
+  // const isDark = useColorScheme().colorScheme === "dark";
   const strokeColor = "#2bee79"; // chart exception: fixed brand color
   const bgColor = isDark ? "#0a0a0a" : "#ffffff";
   const fillOpacityTop = isDark ? 0.35 : 0.25;

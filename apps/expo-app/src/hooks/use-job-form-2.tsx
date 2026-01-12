@@ -1,6 +1,7 @@
 import { _trpc } from "@/components/static-trpc";
 import { Toast } from "@/components/ui/toast";
 import { useZodForm } from "@/components/use-zod-form";
+import { getJobType } from "@/lib/job";
 import { getSessionProfile } from "@/lib/session-store";
 import { createJobSchema } from "@api/db/queries/jobs";
 import { consoleLog, sum } from "@gnd/utils";
@@ -47,6 +48,7 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
       subtitle: null,
       additionalCost: null,
       additionalReason: "",
+      status: props.admin ? "Assigned" : "Started",
     },
   });
   const rootTab = useCallback(() => {
@@ -140,7 +142,11 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
     return sum([formData.addon, taskCost, formData.additionalCost]);
   }, [formData]);
   const [errors, setErrors] = useState<any>(null);
-  const { mutate: saveJob, isPending: isSaving } = useMutation(
+  const {
+    mutate: saveJob,
+    data: savedData,
+    isPending: isSaving,
+  } = useMutation(
     _trpc.jobs.createJob.mutationOptions({
       onSuccess(data, variables, onMutateResult, context) {
         // consoleLog("SUCCESS", data);
@@ -322,11 +328,11 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
         (e) => {
           const values = formData;
 
-          const profile = getSessionProfile();
-          const role = profile?.role?.name;
-          values.type =
-            role === "1099 Contractor" ? "installation" : "punchout";
-          // consoleLog("SUBMITTING>>", values);
+          if (!props.admin) {
+            const profile = getSessionProfile();
+            const role = profile?.role?.name;
+            values.type = getJobType(role);
+          }
           saveJob(values as any);
         },
         (errs) => {
@@ -379,6 +385,7 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
     // setTabHistory,
     reset,
     total,
+    savedData,
     errors,
   };
 };
