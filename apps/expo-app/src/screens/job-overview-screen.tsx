@@ -1,6 +1,5 @@
 import { AdminJobReviewCard } from "@/components/admin-job-review-card";
 import { BackBtn } from "@/components/back-btn";
-import { BlurView } from "@/components/blur-view";
 import { JobFooterContractor } from "@/components/job-footer-contractor";
 import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
@@ -22,7 +21,7 @@ import { ScrollView } from "react-native-gesture-handler";
 // All components are in this file as per the instructions.
 
 function Header() {
-  const { isPending, job } = useJobContext();
+  // const { isPending, job } = useJobContext();
   return (
     <View className="sticky top-0 z-30 bg-background px-5 py-4 flex-row items-center gap-4">
       <BackBtn />
@@ -34,7 +33,7 @@ function Header() {
 }
 
 function StatusBadge() {
-  const { isPending, job } = useJobContext();
+  const { job } = useJobContext();
   return (
     <View className="flex-row items-center gap-2 mb-2">
       <View
@@ -58,7 +57,7 @@ function StatusBadge() {
 }
 
 function InfoCard() {
-  const { isPending, job } = useJobContext();
+  const { job } = useJobContext();
   return (
     <View className="bg-card p-5 rounded-4xl border border-border relative overflow-hidden">
       <View className="relative z-10 flex flex-col gap-5">
@@ -103,7 +102,7 @@ function InfoCard() {
 
 function TasksAndChargesCard() {
   const { job } = useJobContext();
-  const { taskCost, addon, costData } = job?.meta || {};
+  const { costData } = job?.meta || {};
   const { tasks } = useJobTaskList(costData);
   return (
     <View className="bg-card rounded-4xl overflow-hidden border border-border">
@@ -124,9 +123,10 @@ function TasksAndChargesCard() {
           },
         ]
           ?.filter(Boolean)
-          .map((task) => (
+          ?.filter((a) => a?.qty)
+          .map((task, tId) => (
             <View
-              key={task.uid}
+              key={tId}
               className="flex-row justify-between items-start gap-4"
             >
               <View className="flex-1">
@@ -224,30 +224,6 @@ const NotesCard = () => {
     </View>
   );
 };
-
-const ActionBar = () => (
-  <View className="absolute bottom-0 left-0 w-full bg-card/90 border-t border-border z-40">
-    <BlurView className="">
-      <View className="px-5 pb-8 pt-4">
-        <View className="flex-row gap-4">
-          <View className="flex-1 h-14 rounded-full border border-border flex items-center justify-center flex-row gap-2">
-            <Icon name="FilePenLine" className="text-foreground text-[20px]" />
-            <Text className="font-bold text-foreground">Edit Job</Text>
-          </View>
-          <View className="flex-[1.5] h-14 rounded-full bg-primary flex items-center justify-center flex-row gap-2">
-            <Icon
-              name="CircleCheck"
-              className="text-primary-foreground text-[20px]"
-            />
-            <Text className="font-bold text-primary-foreground">
-              Mark Complete
-            </Text>
-          </View>
-        </View>
-      </View>
-    </BlurView>
-  </View>
-);
 
 export default function JobOverviewScreen(props: JobOverviewProps) {
   return (

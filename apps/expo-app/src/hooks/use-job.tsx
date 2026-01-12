@@ -4,7 +4,7 @@ import { createContext, useContext } from "react";
 
 export type JobContextProps = ReturnType<typeof useCreateJobContext>;
 export const JobContext = createContext<JobContextProps>(undefined as any);
-export const JobProvider = JobContext.Provider;
+export const JobProvider = JobContext.Provider as any;
 export interface JobOverviewProps {
   jobId;
   adminMode?: boolean;

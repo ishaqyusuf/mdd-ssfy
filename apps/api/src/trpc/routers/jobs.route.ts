@@ -9,12 +9,17 @@ import {
   getInstallCostsSchema,
   getJobAnalytics,
   getJobAnalyticsSchema,
+  getJobForm,
+  getJobFormSchema,
   getJobs,
   getJobsSchema,
 } from "@api/db/queries/jobs";
 import { createTRPCRouter, publicProcedure } from "../init";
 
 export const jobRoutes = createTRPCRouter({
+  getJobForm: publicProcedure.input(getJobFormSchema).query(async (props) => {
+    return getJobForm(props.ctx, props.input);
+  }),
   getJobs: publicProcedure.input(getJobsSchema).query(async (props) => {
     return getJobs(props.ctx, props.input);
   }),

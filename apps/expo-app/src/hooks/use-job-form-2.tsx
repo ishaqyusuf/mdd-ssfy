@@ -11,6 +11,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -54,10 +55,17 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
       status: props.admin ? "Assigned" : "Started",
     },
   });
-  const rootTab = useCallback(() => {
+  const rootTab = useCallback<() => JobFormTabs>(() => {
+    switch (props.action) {
+      case "re-assign":
+        return "assign-to";
+      case "submit":
+        return "main";
+    }
     return props.admin ? "assign-to" : "project";
   }, [props]);
   const [tabHistory, setTabHistory] = useState<JobFormTabs[]>([rootTab()]);
+
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
@@ -122,6 +130,19 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
       }
     )
   );
+  const { data: jobData } = useQuery(
+    _trpc.jobs.getJobs.queryOptions(
+      {
+        jobId: props.jobId,
+      },
+      {
+        enabled: !!props.jobId,
+      }
+    )
+  );
+  useEffect(() => {
+    if (jobData) form.reset(jobData);
+  }, [jobData]);
   const total = useMemo(() => {
     const taskCost = sum(
       Object.entries(formData?.tasks! || {}).map(([k, v]) =>

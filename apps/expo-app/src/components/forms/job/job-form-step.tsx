@@ -14,7 +14,7 @@ export function JobFormStep() {
   const ctx = useJobFormContext();
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={160 + 47}

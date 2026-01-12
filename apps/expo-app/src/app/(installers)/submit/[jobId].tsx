@@ -3,5 +3,5 @@ import { useLocalSearchParams } from "expo-router";
 
 export default function SubmitJob() {
   const { jobId } = useLocalSearchParams();
-  return <JobFormScreen jobId={+jobId} />;
+  return <JobFormScreen action="submit" jobId={+jobId} />;
 }

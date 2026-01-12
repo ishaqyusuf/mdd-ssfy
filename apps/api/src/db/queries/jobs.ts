@@ -356,7 +356,14 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
     })
   )?.data?.[0];
 }
+export const getJobFormSchema = z.object({
+  jobId: z.number(),
+});
+export type GetJobFormSchema = z.infer<typeof getJobFormSchema>;
 
+export async function getJobForm(ctx: TRPCContext, query: GetJobFormSchema) {
+  const { db } = ctx;
+}
 export const earningAnalyticsSchema = z.object({
   // : z.string(),
 });

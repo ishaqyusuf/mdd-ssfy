@@ -14,7 +14,7 @@ export function JobFormExtras() {
   const color = useColors();
   return (
     <>
-      <View className="gap-4  pt-4 border-t">
+      <View className="gap-4  pt-4 border-t border-border">
         <Text className="text-lg font-bold text-foreground px-2">
           Additional Charges
         </Text>

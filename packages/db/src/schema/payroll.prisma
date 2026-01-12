@@ -103,6 +103,7 @@ enum PayoutStatus {
 
 model Jobs {
     id          Int       @unique @default(autoincrement())
+    controlId   String?
     userId      Int
     coWorkerId  Int?
     type        String    @db.VarChar(255)

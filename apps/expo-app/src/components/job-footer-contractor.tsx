@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cn } from "@/lib/utils";
 import { BlurView } from "@/components/blur-view";
 import { useJobContext } from "@/hooks/use-job";
+import { _push } from "./static-router";
 
 export function JobFooterContractor() {
   const { bottom } = useSafeAreaInsets();
@@ -24,7 +25,9 @@ export function JobFooterContractor() {
             {isAssigned ? (
               <>
                 <Pressable
-                  onPress={(e) => {}}
+                  onPress={(e) => {
+                    _push(`submit/${ctx?.job?.id!}`);
+                  }}
                   className={cn(
                     "flex w-full flex-row items-center justify-center gap-2 rounded-xl bg-success h-14"
                   )}
