@@ -131,9 +131,9 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
     )
   );
   const { data: jobData } = useQuery(
-    _trpc.jobs.getJobs.queryOptions(
+    _trpc.jobs.getJobForm.queryOptions(
       {
-        jobId: props.jobId,
+        access: props.jobId,
       },
       {
         enabled: !!props.jobId,
@@ -141,6 +141,7 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
     )
   );
   useEffect(() => {
+    console.log({ jobData });
     if (jobData) form.reset(jobData);
   }, [jobData]);
   const total = useMemo(() => {

@@ -20,7 +20,7 @@ export function SelectUnitStep() {
   };
 
   const jobsList = jobsListData?.homeList;
-  const { clear, query, results } = useSearch({
+  const { setQuery, query, results } = useSearch({
     items: jobsList!,
   });
   return (
@@ -30,7 +30,11 @@ export function SelectUnitStep() {
           Select Unit
         </Text>
       </View>
-      <SearchInput placeholder="Search units" />
+      <SearchInput
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search units"
+      />
 
       <JobSelectUnitList items={results} />
 

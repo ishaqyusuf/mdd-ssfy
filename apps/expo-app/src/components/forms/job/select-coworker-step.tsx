@@ -17,13 +17,17 @@ export type Project = {
 export function SelectCoWorkerStep() {
   const { setTab, users } = useJobFormContext();
 
-  const { clear, query, results } = useSearch({
+  const { clear, setQuery, query, results } = useSearch({
     items: users?.data!,
   });
   return (
     <View className="relative flex-1">
       <Titles.BigTitle title="Select Co-Worker" />
-      <SearchInput placeholder="Search workers" />
+      <SearchInput
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search workers"
+      />
       <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
         <JobSelectCoWorkerList items={results} />
       </ScrollView>

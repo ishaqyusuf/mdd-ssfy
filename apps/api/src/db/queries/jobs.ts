@@ -319,7 +319,7 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
     sum([meta.addon, meta.taskCost, meta.additional_cost]) /
       (query.coWorker?.id ? 2 : 1),
   ]);
-  const controlId = `${generateRandomString(10)}-${formatDate(
+  const controlId = `${generateRandomString(10)?.toLowerCase()}-${formatDate(
     new Date(),
     "yymmdd"
   )}`;

@@ -16,7 +16,7 @@ export type Project = {
 
 export function SelectProjectStep() {
   const { setTab, ...ctx } = useJobFormContext();
-  const { clear, query, results } = useSearch({
+  const { clear, setQuery, query, results } = useSearch({
     items: ctx?.projectList!,
   });
   // const handleContinue = () => {
@@ -28,7 +28,11 @@ export function SelectProjectStep() {
       {/* <JobSelectProjectHeader onBack={handleBack} /> */}
       <Titles.BigTitle title={"Which project is this for?"} />
 
-      <SearchInput placeholder="Search projects" />
+      <SearchInput
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search projects"
+      />
       <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
         <JobSelectProjectList items={results} />
       </ScrollView>

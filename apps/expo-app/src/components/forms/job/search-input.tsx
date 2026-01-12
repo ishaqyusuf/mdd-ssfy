@@ -16,7 +16,7 @@ export function SearchInput(props: Props) {
         <Icon name="Search" className="text-muted-foreground" size={24} />
         <TextInput
           value={props.value}
-          onChangeText={(e) => props.onChangeText}
+          onChangeText={props.onChangeText}
           className="flex-1 bg-transparent text-base text-foreground h-full"
           placeholder={props.placeholder}
           placeholderTextColor={colors.mutedForeground}
