@@ -21,7 +21,7 @@ type JobFormContextType = ReturnType<typeof useCreateJobFormContext>;
 export const JobFormContext = createContext<JobFormContextType>(
   undefined as any
 );
-
+export const JobFormContextProvider = JobFormContext.Provider as any;
 export type JobFormTabs =
   | "project"
   | "unit"
@@ -32,11 +32,14 @@ export type JobFormTabs =
 export const JobFormProvider = JobFormContext.Provider;
 export interface JobFormProps {
   admin?: boolean;
+  jobId?: number;
+  action?: "submit" | "create" | "update" | "re-assign";
 }
 export const useCreateJobFormContext = (props: JobFormProps) => {
   const form = useZodForm(createJobSchema, {
     defaultValues: {
       // coWorkerId: undefined,
+      id: props.jobId || undefined,
       coWorker: {
         id: undefined,
         name: undefined,
@@ -96,25 +99,11 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
         : [profile?.role?.name!],
     })
   );
-  // const [projectId, homeId] = form.watch(["projectId", "homeId"]);
-  // const [title, subtitle, showCharges] = form.watch([
-  //   "title",
-  //   "subtitle",
-  //   "includeAdditionalCharges",
-  // ]);
-  // const store = useJobFormStore();
-  // useEffect(() => {
-  //   form.reset(store.form);
-  // }, [store.form]);
-  // const formData = form.watch();
+
   const formData = useWatch({
     control: form.control,
   });
-  // const formData = store.form;
-  // const formData = useMemo(() => __formData, [__formData]);
-  // useEffect(() => {
-  //   console.log(formData);
-  // }, [formData]);
+
   const {
     projectId,
     homeId,
@@ -231,97 +220,6 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
   };
   const tab = tabHistory?.[0];
 
-  //   (type: string, task?: any) => {
-  //     const toastConfigs = {
-  //       task_created: {
-  //         icon: "plus.circle.fill",
-  //         color: "#10B981",
-  //         title: "Task Created",
-  //         description: "New task added to your board",
-  //       },
-  //       task_completed: {
-  //         icon: "checkmark.circle.fill",
-  //         color: "#10B981",
-  //         title: "Task Completed! 🎉",
-  //         description: task ? `${task.title} marked as done` : "Task completed",
-  //       },
-  //       task_assigned: {
-  //         icon: "person.badge.plus",
-  //         color: "#3B82F6",
-  //         title: "Task Assigned",
-  //         description: task ? `Assigned to ${task.assignee}` : "Task assigned",
-  //       },
-  //       deadline_reminder: {
-  //         icon: "clock.badge.exclamationmark",
-  //         color: "#F59E0B",
-  //         title: "Deadline Reminder",
-  //         description: "3 tasks due tomorrow",
-  //       },
-  //       sync_success: {
-  //         icon: "arrow.triangle.2.circlepath",
-  //         color: "#10B981",
-  //         title: "Sync Complete",
-  //         description: "All changes saved to cloud",
-  //       },
-  //       team_notification: {
-  //         icon: "bell.badge",
-  //         color: "#8B5CF6",
-  //         title: "Team Update",
-  //         description: "Sarah completed 3 tasks",
-  //       },
-  //       priority_changed: {
-  //         icon: "exclamationmark.triangle.fill",
-  //         color: "#EF4444",
-  //         title: "Priority Updated",
-  //         description: task
-  //           ? `Task marked as ${task.priority}`
-  //           : "Priority changed",
-  //       },
-  //       invalid_task_qty: {
-  //         icon: "arrow.triangle.2.circlepath",
-  //         color: "#F59E0B",
-  //         title: "Task Qty Error",
-  //         description: "Some Information Filled are Invalid",
-  //       },
-  //     };
-
-  //     const config = toastConfigs[type as keyof typeof toastConfigs];
-  //     if (!config) return;
-
-  //     const toastContent = (
-  //       <View style={toastStyles.toastContent}>
-  //         <Icon name="Check" size={22} />
-  //         {/* <SymbolView
-  //              name={config.icon as SFSymbol}
-  //              size={20}
-  //              tintColor={config.color}
-  //            /> */}
-  //         <View style={toastStyles.toastTextContainer}>
-  //           <Text style={toastStyles.toastTitle}>{config.title}</Text>
-  //           <Text style={toastStyles.toastDescription}>
-  //             {config.description}
-  //           </Text>
-  //         </View>
-  //       </View>
-  //     );
-
-  //     const options: any = { position: "bottom", duration: 3000 };
-
-  //     if (
-  //       type === "task_completed"
-  //       // && task
-  //     ) {
-  //       options.action = {
-  //         label: "Undo",
-  //         // onPress: () => handleTaskAction("undo", task),
-  //       };
-  //       options.duration = 4000;
-  //     }
-
-  //     show(toastContent, options);
-  //   },
-  //   [show]
-  // );
   const handleSubmit = () => {
     setTimeout(() => {
       form.handleSubmit(
@@ -343,15 +241,6 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
           });
         }
       )();
-      // form.trigger().then((e) => {
-      //   console.log({ e });
-      // });
-      // ctx.setTab("meta");
-      // consoleLog("Form value", values);
-      // Object.entries(values.tasks).map(([a, b]) => {
-      //   if (b.qty) consoleLog(a, b);
-      // });
-      // ctx.saveJob(values);
     }, 250);
   };
   const reset = () => {

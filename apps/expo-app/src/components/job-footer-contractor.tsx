@@ -11,7 +11,8 @@ export function JobFooterContractor() {
   const { bottom } = useSafeAreaInsets();
   const ctx = useJobContext();
   if (ctx.adminMode) return null;
-  return null;
+  const isAssigned = ctx.job?.status === "Assigned";
+  if (!["Submitted", "Assigned"].includes(ctx.job?.status)) return null;
   return (
     <View className="absolute bottom-0 left-0 right-0">
       <BlurView intensity={90} className="w-full">
@@ -20,20 +21,38 @@ export function JobFooterContractor() {
           style={{ paddingBottom: bottom || 16 }}
         >
           <View className="flex-col w-full px-5 py-1 gap-4 max-w-lg mx-auto">
-            <Pressable
-              //   disabled={ctx.isSaving}
-              onPress={(e) => {
-                // ctx.handleSubmit();
-              }}
-              className={cn(
-                "flex w-full flex-row items-center justify-center gap-2 rounded-xl bg-primary h-14"
-              )}
-            >
-              <Text className="text-primary-foreground text-lg font-bold">
-                Submit
-              </Text>
-              <Icon name="ArrowRight" className="text-primary-foreground" />
-            </Pressable>
+            {isAssigned ? (
+              <>
+                <Pressable
+                  onPress={(e) => {}}
+                  className={cn(
+                    "flex w-full flex-row items-center justify-center gap-2 rounded-xl bg-success h-14"
+                  )}
+                >
+                  <Text className="text-success-foreground text-lg font-bold">
+                    Submit
+                  </Text>
+                  {/* <Icon name="X" className="text-destructive-foreground" /> */}
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Pressable
+                  //   disabled={ctx.isSaving}
+                  onPress={(e) => {
+                    // ctx.handleSubmit();
+                  }}
+                  className={cn(
+                    "flex w-full flex-row items-center justify-center gap-2 rounded-xl bg-destructive h-14"
+                  )}
+                >
+                  <Text className="text-destructive-foreground text-lg font-bold">
+                    Cancel Submission
+                  </Text>
+                  <Icon name="X" className="text-destructive-foreground" />
+                </Pressable>
+              </>
+            )}
           </View>
         </View>
       </BlurView>

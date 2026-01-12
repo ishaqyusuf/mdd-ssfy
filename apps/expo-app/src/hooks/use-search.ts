@@ -23,5 +23,6 @@ export function useSearch<T>(props: Props<T>) {
     clear() {
       setQuery(null);
     },
+    setQuery,
   };
 }

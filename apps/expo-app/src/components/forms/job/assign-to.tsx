@@ -15,14 +15,18 @@ export type Project = {
 
 export function AssignTo() {
   const { setTab, users } = useJobFormContext();
-  const { clear, query, results } = useSearch({
+  const { clear, query, setQuery, results } = useSearch({
     items: users?.data!,
   });
   return (
     <View className="relative flex-1">
       {/* <JobSelectProjectHeader onBack={handleBack} /> */}
       <Titles.BigTitle title="Assign To" />
-      <SearchInput placeholder="Search workers" />
+      <SearchInput
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search workers"
+      />
       <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
         <JobSelectCoWorkerList items={results} />
       </ScrollView>

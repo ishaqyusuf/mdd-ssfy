@@ -8,7 +8,7 @@ import { SelectUnitStep } from "@/components/forms/job/select-unit-step";
 
 import { Tabs } from "@/components/ui/composite";
 import {
-  JobFormContext,
+  JobFormContextProvider,
   JobFormProps,
   JobFormTabs,
   useCreateJobFormContext,
@@ -18,9 +18,9 @@ import { View } from "react-native";
 
 export function JobFormScreen(props: JobFormProps) {
   return (
-    <JobFormContext.Provider value={useCreateJobFormContext(props)}>
+    <JobFormContextProvider value={useCreateJobFormContext(props)}>
       <Content />
-    </JobFormContext.Provider>
+    </JobFormContextProvider>
   );
 }
 function Content() {

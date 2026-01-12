@@ -39,6 +39,14 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen
+        name="settings"
+        options={{
+          presentation: "modal",
+          headerShown: false,
+          // header: () => <Header title="Create Installer Profile" />,
+        }}
+      />
+      <Stack.Screen
         name="job/[id]"
         options={{
           presentation: "modal",

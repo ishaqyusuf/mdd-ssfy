@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logout } from "@/components/logout";
 import { useAuthContext } from "@/hooks/use-auth";
+import { PressableLink } from "../pressable-link";
+import { Icon } from "../ui/icon";
 
 export function InstallerDashboardHeader2() {
   const getGreeting = () => {
@@ -44,8 +46,11 @@ export function InstallerDashboardHeader2() {
             <Icon name="Bell" className="text-foreground" size={24} />
             <View className="absolute top-3 right-3 h-2 w-2 bg-primary rounded-full border border-card" />
           </TouchableOpacity> */}
-        <ThemeToggle />
-        <Logout />
+        {/* <ThemeToggle /> */}
+        {/* <Logout /> */}
+        <PressableLink href={"/settings"}>
+          <Icon name="Settings" className="size-20" />
+        </PressableLink>
       </View>
     </View>
   );
