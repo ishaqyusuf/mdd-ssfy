@@ -7,7 +7,7 @@ import {
   SalesIncludeAll,
 } from "./utils/utils";
 import { formatDate } from "@gnd/utils/dayjs";
-import { consoleLog, formatCurrency as _formatCurrency, sum } from "@gnd/utils";
+import { formatCurrency as _formatCurrency, sum } from "@gnd/utils";
 import { AddressBookMeta, CustomerMeta } from "./types";
 import { SalesPrintModes } from "./constants";
 
@@ -442,7 +442,7 @@ function getDoorsTable(
           ? item.configs?.noHandle
           : is.bifold || is.service || is.slab;
         const hasSwing = item.configs?.hasSwing;
-        consoleLog(".....", { noHandle, doorType, is, configs: item.configs });
+
         const res = {
           cells: [
             _cell("#", null, 1, "text-center", "text-center"),
@@ -682,7 +682,7 @@ function lineItems(data: PrintData, { isProd, isPacking }) {
   const uids = lineItems
     .map((item) => {
       let uid = item.meta.uid;
-      consoleLog("META: ", item.meta);
+
       return uid;
     })
     .filter((d) => d > -1);
@@ -690,7 +690,6 @@ function lineItems(data: PrintData, { isProd, isPacking }) {
   const maxIndex = Math.max(...uids);
   const totalLines = maxIndex ? maxIndex + 1 : lineItems?.length;
 
-  consoleLog("COMPOSING LINES", { totalLines, uids, maxIndex });
   if (totalLines < 0) return null;
   const heading = [
     header("#", 1),
@@ -748,7 +747,6 @@ function lineItems(data: PrintData, { isProd, isPacking }) {
       };
     });
 
-  consoleLog("LINE ITEMS::", { lines });
   if (lines.length)
     return {
       lines,

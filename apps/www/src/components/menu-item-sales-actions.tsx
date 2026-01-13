@@ -32,7 +32,11 @@ export function MenuItemSalesActions(props: Props) {
             title: "Copying...",
         } as any);
         // const orderId = slug;
-        const result = await copySalesUseCase(props?.slug, as as any);
+        const result = await copySalesUseCase(
+            props?.slug,
+            as as any,
+            props.type
+        );
         try {
             if (as == "order")
                 await resetSalesStatAction(result.id, props.slug);

@@ -24,6 +24,7 @@ import { copySales } from "@sales/copy-sales";
 import { authUser } from "@/app/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { createNoteAction } from "@/modules/notes/actions/create-note-action";
+import { consoleLog } from "@gnd/utils";
 export type GetSalesBookForm = AsyncFnType<typeof getSalesBookFormUseCase>;
 export async function getSalesBookFormUseCase(data: GetSalesBookFormDataProps) {
     const result = await getTransformedSalesBookFormDataDta(data);
@@ -69,17 +70,22 @@ export async function saveFormUseCase(
 
     return await saveSalesFormDta(data, oldFormState, query);
 }
-export async function moveOrderUseCase(orderId, to) {
-    const resp = await copySalesUseCase(orderId, to);
+export async function moveOrderUseCase(orderId, to: SalesType) {
+    const resp = await copySalesUseCase(
+        orderId,
+        to,
+        to == "order" ? "quote" : "order"
+    );
     if (!resp?.error) await deleteSalesByOrderId(orderId);
     return resp;
 }
-export async function copySalesUseCase(orderId, as: SalesType) {
+export async function copySalesUseCase(orderId, as: any, type: any) {
     const resp2 = await copySales({
         db: prisma,
         as,
         salesUid: orderId,
         author: await authUser(),
+        type,
     });
     await createNoteAction({
         note: `Copied from ${orderId}`,

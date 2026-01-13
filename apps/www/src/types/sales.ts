@@ -222,7 +222,8 @@ export interface UpdateOrderPriorityProps {
 }
 export interface CopyOrderActionProps {
     orderId;
-    as: "quote" | "order";
+    as: ISalesType;
+    type: ISalesType;
 }
 export interface SaveOrderActionProps {
     order: SalesOrders;

@@ -414,6 +414,7 @@ export function timeLog(...data) {
   console.log("---");
 }
 export function consoleLog(title = "Log", ...data) {
+  // if(process.env)
   const now = new Date().toISOString();
   const divider = "═".repeat(40);
 

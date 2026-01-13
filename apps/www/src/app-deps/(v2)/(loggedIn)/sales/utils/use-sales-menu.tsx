@@ -59,7 +59,7 @@ export function useSalesMenu(item: any, mode: Mode = "internal") {
                     path: "sales",
                 }}
                 subtitle={`Sales Order | ${item.orderId}`}
-            />,
+            />
         );
     }
     function prodAction() {
@@ -70,7 +70,7 @@ export function useSalesMenu(item: any, mode: Mode = "internal") {
             await updateDeliveryModeDac(
                 item.id,
                 delivery,
-                !isEstimate ? "orders" : "quotes",
+                !isEstimate ? "orders" : "quotes"
             );
             toast.success("Updated");
         }
@@ -78,10 +78,11 @@ export function useSalesMenu(item: any, mode: Mode = "internal") {
     const router = useRouter();
     const copyAs = async (as: ISalesType) => {
         const resp = item.isDyke
-            ? await copySalesUseCase(item.orderId, as)
+            ? await copySalesUseCase(item.orderId, as, item.type)
             : await copyOrderAction({
                   orderId: item.orderId,
                   as,
+                  type: item.type,
               });
         if (resp.link)
             toast.message(`${as} copied successfully`, {
@@ -132,7 +133,7 @@ export function useSalesMenu(item: any, mode: Mode = "internal") {
                   _option(
                       "Print Mockup",
                       () => print("quote", "Print Mockup"),
-                      "box",
+                      "box"
                   ),
                   _option("Pdf", () => print("quote", "Pdf"), "pdf"),
               ]
@@ -142,25 +143,25 @@ export function useSalesMenu(item: any, mode: Mode = "internal") {
                       _option(
                           "Order & Packing",
                           () => print("order-packing", groupTitle),
-                          "box",
+                          "box"
                       ),
                       _option(
                           "Order",
                           () => print("order", groupTitle),
-                          "orders",
+                          "orders"
                       ),
                       _option(
                           "Packing List",
                           () => print("packing list", groupTitle),
-                          "packingList",
+                          "packingList"
                       ),
                       _option(
                           "Production",
                           () => print("production", groupTitle),
-                          "production",
+                          "production"
                       ),
                   ])
-                  .flat(),
+                  .flat()
     );
     const _actions = {
         view: _option("View", _viewHref, "view"),
@@ -175,9 +176,9 @@ export function useSalesMenu(item: any, mode: Mode = "internal") {
                 _option(
                     d.text,
                     () => updateDeliveryMode(d.text),
-                    i == 0 ? "pickup" : "delivery2",
-                ),
-            ),
+                    i == 0 ? "pickup" : "delivery2"
+                )
+            )
         ),
         moveToQuote: _option("Move to Quote", moveToQuote, "estimates"),
         moveToSales: _option("Move to Sales", moveToSales, "orders"),
@@ -196,7 +197,7 @@ export function useSalesMenu(item: any, mode: Mode = "internal") {
             ...truthy(
                 !isEstimate,
                 [_actions.production, _actions.delivery, _actions.moveToQuote],
-                [_actions.moveToSales],
+                [_actions.moveToSales]
             ),
             _actions.copy,
             _actions.fullPrint,

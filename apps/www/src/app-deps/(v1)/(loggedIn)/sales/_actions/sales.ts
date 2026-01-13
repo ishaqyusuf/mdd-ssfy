@@ -1,7 +1,5 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { isNewSales } from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-utils";
 import { _saveSales } from "@/app-deps/(v2)/(loggedIn)/sales/_data-access/save-sales.persistence";
 import { _updateProdQty } from "@/app-deps/(v2)/(loggedIn)/sales/_data-access/update-prod-qty.dac";
 import { getSales } from "@/data-access/sales";
@@ -128,11 +126,16 @@ export async function deleteOrderAction(id) {
     });
     return;
 }
-export async function copyOrderAction({ orderId, as }: CopyOrderActionProps) {
+export async function copyOrderAction({
+    orderId,
+    as,
+    type,
+}: CopyOrderActionProps) {
     const items = [];
     const _cloneData: ISalesOrder = (await prisma.salesOrders.findFirst({
         where: {
             orderId,
+            type,
         },
         include: {
             items: true,
@@ -199,7 +202,7 @@ export async function salesPrintAction({
         await Promise.all(
             ids.map(async (id) => {
                 await fixSalesPaymentAction(Number(id));
-            }),
+            })
         );
     const where: Prisma.SalesOrdersWhereInput = {
         deletedAt: null,

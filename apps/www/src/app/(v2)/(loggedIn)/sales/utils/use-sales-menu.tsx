@@ -78,10 +78,11 @@ export function useSalesMenu(item: any, mode: Mode = "internal") {
     const router = useRouter();
     const copyAs = async (_as: ISalesType) => {
         const resp = item.isDyke
-            ? await copySalesUseCase(item.orderId, _as as any)
+            ? await copySalesUseCase(item.orderId, _as as any, item.type)
             : await copyOrderAction({
                   orderId: item.orderId,
                   as: _as as any,
+                  type: item.type,
               });
         if (resp.link)
             toast.message(`${_as} copied successfully`, {

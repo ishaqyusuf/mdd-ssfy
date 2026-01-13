@@ -10,6 +10,7 @@ interface Props {
   db: Db;
   salesUid: string;
   as: SalesType;
+  type: SalesType;
   author?: {
     name: string;
     id: number;
@@ -20,6 +21,7 @@ export async function copySales(props: Props) {
   const sale = await db.salesOrders.findFirstOrThrow({
     where: {
       orderId: salesUid,
+      type: props.type,
     },
     include: SalesIncludeAll,
   });
