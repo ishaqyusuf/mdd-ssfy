@@ -590,6 +590,7 @@ function Content(props: Props & { setOpened }) {
                         <div className="flex gap-2">
                             <Field orientation="horizontal">
                                 <Checkbox
+                                    disabled
                                     checked={
                                         form.getValues("sendEmail") ?? false
                                     }
