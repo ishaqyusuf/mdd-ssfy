@@ -7,14 +7,14 @@ export const getOrganizationProfile = publicProcedure.query(async (props) => {
     input,
   } = props;
   const orgs = await db.organization.findMany({});
-  await db.modelHasRoles.updateMany({
-    where: {
-      organizationId: null,
-    },
-    data: {
-      organizationId: orgs?.[0]?.id,
-    },
-  });
+  // await db.modelHasRoles.updateMany({
+  //   where: {
+  //     organizationId: null,
+  //   },
+  //   data: {
+  //     organizationId: orgs?.[0]?.id,
+  //   },
+  // });
   return {
     orgs: orgs.map((o) => ({
       ...o,

@@ -295,7 +295,7 @@ export async function updateInstallCost(
       where: {
         id: pivotId,
       },
-      data: { meta: meta.pivot },
+      data: { meta: meta.pivot as CommunityPivotMeta },
     });
 }
 export async function getInstallPriceConfiguration(ctx: TRPCContext) {

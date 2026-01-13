@@ -46,8 +46,6 @@ export function CommunityInstallCostForm({ model }: Props) {
     const trpc = useTRPC();
     const { editModelCostId, setParams } = useCommunityModelCostParams();
 
-    console.log({ model });
-
     const qc = useQueryClient();
     const save = useMutation(
         trpc.community.updateInstallCost.mutationOptions({
@@ -56,11 +54,12 @@ export function CommunityInstallCostForm({ model }: Props) {
                     title: "Saved",
                     variant: "success",
                 });
-                revalidatePathAction("/settings/community/community-templates");
+                // revalidatePathAction("/settings/community/community-templates");
                 qc.invalidateQueries({
                     queryKey:
                         trpc.community.communityInstallCostForm.queryKey(),
                 });
+                setParams(null);
             },
             onError(error, variables, context) {
                 toast({
@@ -70,17 +69,28 @@ export function CommunityInstallCostForm({ model }: Props) {
             },
         })
     );
-
     const form = useZodForm(updateInstallCostSchema, {
         defaultValues: {
             // projectId: model?.projectId,
             pivotId: model?.pivotId,
-            communitModelId: model?.communitModelId,
+            communityModelId: model?.communityModelId,
             meta: model?.meta,
             installCost: model?.installCost,
             // costIndex: model?.costIndex,
         },
     });
+    useEffect(() => {
+        console.log({ model });
+        form.reset({
+            // projectId: model?.projectId,
+            pivotId: model?.pivotId,
+            communityModelId: model?.communityModelId,
+            meta: model?.meta,
+            installCost: model?.installCost,
+            // costIndex: model?.costIndex,
+        });
+    }, [model]);
+
     // const { append, fields } = useFieldArray({
     //     control: form.control,
     //     name: "installCosts",
@@ -89,7 +99,19 @@ export function CommunityInstallCostForm({ model }: Props) {
     // const costIndex = form.watch("costIndex");
     const onSubmit = async (formData) => {
         save.mutate({
-            ...formData,
+            // ...formData,
+            pivotId: model?.pivotId,
+            communitModelId: model?.communitModelId,
+            meta: {
+                communityModel: {
+                    ...(model?.meta?.communityModel || {}),
+                    installCosts: [formData.installCost],
+                },
+                pivot: {
+                    ...(model?.meta?.pivot || {}),
+                    installCost: formData.installCost,
+                },
+            },
         });
     };
     // const [costs, tax] = form.watch(["costs", "tax"]);
@@ -101,39 +123,6 @@ export function CommunityInstallCostForm({ model }: Props) {
     return (
         <Form {...form}>
             <form className="grid grid-cols-2 gap-4">
-                {/* <Portal noDelay nodeId="installCostModalAction">
-                    <Select.Root
-                        value={String(costIndex)}
-                        onValueChange={(e) => {
-                            setParams({
-                                editModelCostId: Number(e),
-                            });
-                        }}
-                    >
-                        <Select.Trigger className="h-8">
-                            <Select.Value placeholder="Install Costs" />
-                        </Select.Trigger>
-                        <Select.Content>
-                            <Select.Item value="-1">New Cost</Select.Item>
-                            {fields?.map((r) => (
-                                <Select.Item
-                                    className=""
-                                    value={String(r.uid)}
-                                    key={r.uid}
-                                >
-                                    <div className="flex gap-4">
-                                        <span>{r.title}</span>
-                                        <span className="font-semibold">
-                                            <Money
-                                                value={r?.meta?.grandTotal}
-                                            />
-                                        </span>
-                                    </div>
-                                </Select.Item>
-                            ))}
-                        </Select.Content>
-                    </Select.Root>
-                </Portal> */}
                 <div className="col-span-2">
                     <Table className="table-sm w-full">
                         <TableHeader>
@@ -148,7 +137,7 @@ export function CommunityInstallCostForm({ model }: Props) {
                                 <TableRow
                                     className={cn(
                                         form.getValues(
-                                            `installCost.costings.${task.uid}` as any
+                                            `installCost.${task.uid}` as any
                                         ) > 0
                                             ? "bg-teal-50"
                                             : ""
@@ -169,7 +158,7 @@ export function CommunityInstallCostForm({ model }: Props) {
                                     <TableCell>
                                         <FormInput
                                             control={form.control}
-                                            name={`installCost.costings.${task.uid}`}
+                                            name={`installCost.${task.uid}`}
                                             numericProps={{
                                                 // prefix: "$",
                                                 placeholder: "0",
@@ -190,7 +179,11 @@ export function CommunityInstallCostForm({ model }: Props) {
                         </div>
 
                         <FormDebugBtn />
-                        <form onSubmit={form.handleSubmit(onSubmit)}>
+                        <form
+                            onSubmit={form.handleSubmit(onSubmit, (e) => {
+                                console.log(e);
+                            })}
+                        >
                             <SubmitButton isSubmitting={save.isPending}>
                                 Save
                             </SubmitButton>
