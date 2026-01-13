@@ -17,27 +17,18 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
-import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { useEffect } from "react";
 import { TCell } from "../(clean-code)/data-table/table-cells";
 import { CustomModalPortal } from "../modals/custom-modal";
 import { DialogFooter } from "@gnd/ui/dialog";
 import { SubmitButton } from "../submit-button";
 import FormInput from "../common/controls/form-input";
-import { sum } from "@gnd/utils";
 import Money from "../_v1/money";
 import { toast } from "@gnd/ui/use-toast";
 import { FormDebugBtn } from "../form-debug-btn";
-import FormDate from "../common/controls/form-date";
-import { revalidatePathAction } from "@/actions/revalidate-path";
-import { useQueryState } from "nuqs";
-import Portal from "../_v1/portal";
-import { Menu } from "../(clean-code)/menu";
-import { deepCopy } from "@/lib/deep-copy";
-import { useDebugConsole } from "@/hooks/use-debug-console";
-import { useFieldArray } from "react-hook-form";
 import { cn } from "@gnd/ui/cn";
-import { Select } from "@gnd/ui/composite";
+import z4 from "zod/v4";
 
 interface Props {
     model: RouterOutputs["community"]["communityInstallCostForm"];
@@ -62,6 +53,7 @@ export function CommunityInstallCostForm({ model }: Props) {
                 setParams(null);
             },
             onError(error, variables, context) {
+                console.log({ error, variables, model });
                 toast({
                     title: "Unable to complete",
                     variant: "destructive",
@@ -69,18 +61,21 @@ export function CommunityInstallCostForm({ model }: Props) {
             },
         })
     );
-    const form = useZodForm(updateInstallCostSchema, {
-        defaultValues: {
-            // projectId: model?.projectId,
-            pivotId: model?.pivotId,
-            communityModelId: model?.communityModelId,
-            meta: model?.meta,
-            installCost: model?.installCost,
-            // costIndex: model?.costIndex,
-        },
-    });
+    const form = useZodForm(
+        updateInstallCostSchema.extend({
+            installCost: z4.any().optional().nullable(),
+        }),
+        {
+            defaultValues: {
+                pivotId: model?.pivotId,
+                communityModelId: model?.communityModelId,
+                meta: model?.meta,
+                installCost: model?.installCost,
+            },
+        }
+    );
     useEffect(() => {
-        console.log({ model });
+        // console.log({ model });
         form.reset({
             // projectId: model?.projectId,
             pivotId: model?.pivotId,
@@ -90,26 +85,23 @@ export function CommunityInstallCostForm({ model }: Props) {
             // costIndex: model?.costIndex,
         });
     }, [model]);
-
-    // const { append, fields } = useFieldArray({
-    //     control: form.control,
-    //     name: "installCosts",
-    //     keyName: "_id",
-    // });
-    // const costIndex = form.watch("costIndex");
     const onSubmit = async (formData) => {
+        const installCost = Object.fromEntries(
+            Object.entries(formData?.installCost || {})?.filter(([a, b]) => !!b)
+        );
+
         save.mutate({
             // ...formData,
             pivotId: model?.pivotId,
-            communitModelId: model?.communitModelId,
+            communityModelId: model?.communityModelId,
             meta: {
                 communityModel: {
                     ...(model?.meta?.communityModel || {}),
-                    installCosts: [formData.installCost],
+                    installCosts: [installCost],
                 },
                 pivot: {
                     ...(model?.meta?.pivot || {}),
-                    installCost: formData.installCost,
+                    installCost,
                 },
             },
         });

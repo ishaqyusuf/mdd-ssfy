@@ -13,8 +13,11 @@ export function InventorySummary(props: SummaryProps) {
     return (
         <Card
             className={cn(
-                props.selected ? "bg-primary text-secondary" : "",
+                props.selected
+                    ? "bg-primary text-secondary hover:bg-primary/80"
+                    : "",
                 props.selectable &&
+                    !props.selected &&
                     "hover:border-secondary-foreground hover:bg-secondary"
             )}
         >
