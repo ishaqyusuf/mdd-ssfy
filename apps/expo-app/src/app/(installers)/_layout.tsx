@@ -54,7 +54,7 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen
-        name="submit/[jobId]"
+        name="submit/[controlId]"
         options={{
           presentation: "modal",
           headerShown: false,

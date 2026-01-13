@@ -17,21 +17,22 @@ interface Props {
     row: ICommunityTemplate;
 }
 export default function InstallCostCell({ modal, row }: Props) {
+    const hasCost =
+        row.meta?.installCosts?.length || row?.pivot?.meta?.installCost;
     return (
         <Cell className="cursor-pointer" onClick={() => openModal(modal, row)}>
             <Badge
                 className={cn(
-                    row.meta?.installCosts?.length > 0 &&
-                        !row?.pivot?.meta?.installCost
-                        ? "bg-orange-200 text-orange-700 hover:bg-orange-200"
-                        : row?.pivot?.meta?.installCost
-                          ? "bg-green-200 text-green-700 hover:bg-green-200"
-                          : "bg-slate-200 text-slate-700 hover:bg-slate-200",
+                    // row.meta?.installCosts?.length > 0 &&
+                    // !row?.pivot?.meta?.installCost
+                    // ? "bg-orange-200 text-orange-700 hover:bg-orange-200"
+                    // :
+                    hasCost
+                        ? "bg-green-200 text-green-700 hover:bg-green-200"
+                        : "bg-slate-200 text-slate-700 hover:bg-slate-200"
                 )}
             >
-                {row.meta?.installCosts?.length || row?.pivot?.meta?.installCost
-                    ? "Edit Cost"
-                    : "Set Cost"}
+                {hasCost ? "Edit Cost" : "Set Cost"}
             </Badge>
         </Cell>
     );
