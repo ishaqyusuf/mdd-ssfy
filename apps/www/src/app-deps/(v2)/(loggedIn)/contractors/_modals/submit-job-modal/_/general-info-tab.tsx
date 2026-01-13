@@ -26,6 +26,7 @@ export default function GeneralInfoTab() {
                 disabled={ctx.getValues("job.homeId") != null}
             />
             <CustomInput
+                disabled
                 label="Additional Cost ($)"
                 name="job.meta.additional_cost"
                 type="number"
@@ -77,7 +78,7 @@ function CustomInput({ label, name, disabled, type, textarea }: Props) {
                                 {...field}
                                 className={cn(
                                     "h-8",
-                                    fieldState.error && "border-red-400",
+                                    fieldState.error && "border-red-400"
                                 )}
                             />
                         )}
