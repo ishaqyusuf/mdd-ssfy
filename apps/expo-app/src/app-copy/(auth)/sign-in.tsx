@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { useZodForm } from "@/components/use-zod-form";
 import { signInSchema } from "@/lib/schemas/auth";
 import { Input } from "@/components/ui/input-2";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
 import { useAuthContext } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -55,7 +55,7 @@ export default function SignIn() {
       },
     })
   );
-  const { data } = useQuery(_trpc.jobs.adminAnalytics.queryOptions({}));
+
   const signIn = async (data) => {
     loginMutation(data);
   };

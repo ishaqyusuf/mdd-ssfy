@@ -9,9 +9,9 @@ import { prisma } from "@/db";
 
 export async function getSalesPrintData(
     slug,
-    query: SalesPrintProps["searchParams"],
+    query: SalesPrintProps["searchParams"]
 ) {
-    const order = await viewSale(null, slug, query.deletedAt);
+    const order = await viewSale(query?.mode, slug, query.deletedAt);
 
     const salesitems = composeSalesItems(order);
     const dispatchId = query?.dispatchId;
@@ -23,6 +23,6 @@ export async function getSalesPrintData(
                 ? await getDispatchCompletetionNotes(prisma, dispatchId)
                 : null,
         },
-        query,
+        query
     );
 }
