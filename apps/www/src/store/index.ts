@@ -14,7 +14,7 @@ export const store = configureStore({
         //CustomerTypes,
         orderItemComponent: orderItemComponentSlice,
         // headerSlice,
-        // slicers: slicers,
+        slicers: slicers,
         staticData: staticDataSlice,
     },
     middleware(getDefaultMiddleware) {
