@@ -103,6 +103,8 @@ export function JobSubmittedStep() {
             {/* Job {ctx?.admin ? "Assigned" : "Submitted"}! */}
             {ctx?.formData?.isCustom
               ? "Submitted for review!"
+              : ctx?.formData?.id
+              ? "Job Submitted"
               : "Job Assigned!"}
           </Text>
           <Text className="text-muted-foreground text-base font-normal leading-relaxed text-center pb-8 max-w-70">

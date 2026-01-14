@@ -363,36 +363,46 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
     sum([meta.addon, meta.taskCost, meta.additional_cost]) /
       (query.coWorker?.id ? 2 : 1),
   ]);
-  const controlId = generateControlId();
+  const controlId = query.id ? query.controlId : generateControlId();
+  if (!controlId) throw new Error("Unable to proceed");
   const data = {
     // id: jobId,
     // status: query?.status || "Submitted",
     status: query.status!,
     statusDate: new Date(),
-    userId: query?.worker?.id || ctx.userId!,
+
     amount,
-    type: query.type as any,
-    coWorkerId: query.coWorker?.id,
+
     description: query.description,
-    homeId: query.homeId!,
-    projectId: query.projectId!,
+
     note: query.note,
     meta: meta as any,
     title: query.title,
     subtitle: query.subtitle,
+  } as Prisma.JobsCreateManyInput;
+  const createData = {
+    userId: query?.worker?.id || ctx.userId!,
+    type: query.type as any,
+    coWorkerId: query.coWorker?.id,
+    homeId: query.homeId!,
+    projectId: query.projectId!,
     controlId,
     isCustom: query.isCustom,
   } as Prisma.JobsCreateManyInput;
   if (!query.id) {
+    let _data = {
+      ...data,
+      ...createData,
+    };
     const jobId = (query.id = await nextId(db.jobs));
-    data.id = jobId;
+    _data.id = jobId;
     const result = await db.jobs.createMany({
       data: !query.coWorker?.id
-        ? [data]
+        ? [_data]
         : [
-            data,
+            _data,
             {
-              ...data,
+              ..._data,
               id: undefined,
               userId: query.coWorker?.id!,
               coWorkerId: ctx.userId!,
@@ -420,6 +430,17 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
       },
       ctx.userId!
     );
+  } else {
+    const result = await db.jobs.updateMany({
+      where: {
+        id: {
+          in: [query.id!, query.coWorkerJobId!]?.filter(Boolean),
+        },
+      },
+      data: {
+        ...data,
+      },
+    });
   }
   return await getJobForm(ctx, {
     controlId,
