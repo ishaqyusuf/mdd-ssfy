@@ -71,7 +71,7 @@ export function JobFormExtras() {
       <View className="gap-8 pt-4">
         <View className="flex-col gap-2">
           <Text className="text-sm font-semibold text-muted-foreground ml-2">
-            Note to Admin
+            Note (optional)
           </Text>
           <Controller
             control={ctx.form.control}
@@ -89,28 +89,28 @@ export function JobFormExtras() {
         </View>
         <View className="flex-col gap-3">
           <Text className="text-sm font-semibold text-muted-foreground ml-2">
-            Select Co-Worker
+            Assign Co-Worker
           </Text>
           <Pressable
             className={cn(
-              "shrink-0 flex items-center gap-2 w-full flex-row border border-muted-foreground rounded-xl p-2"
+              "shrink-0 flex items-center gap-2 w-full flex-row border border-border bg-card rounded-xl p-2"
             )}
             onPress={(e) => {
               ctx.setTab("coworker");
             }}
           >
-            <View className="size-14 rounded-full bg-card border-2 border-dashed border-border flex items-center justify-center">
+            <View className="size-14 rounded-full bg-card border-2  border-border flex items-center justify-center">
               <Icon
                 size={16}
                 name={coWorker?.id ? "User" : "UserPlus"}
                 className="text-muted-foreground"
               />
             </View>
-            <View className="gap-1">
+            <View className="">
               <Text
                 className={cn(
-                  "text-lg font-medium text-muted-foreground",
-                  coWorker?.id && "text-primary"
+                  "text-base font-medium text-muted-foreground",
+                  coWorker?.id && "text-foreground"
                 )}
               >
                 {coWorker?.name || "Select Co-Worker"}
