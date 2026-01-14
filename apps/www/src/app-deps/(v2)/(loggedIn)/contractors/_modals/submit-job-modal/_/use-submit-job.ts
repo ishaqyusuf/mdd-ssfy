@@ -9,7 +9,7 @@ import {
     createJobAction,
     updateJobAction,
 } from "@/app-deps/(v1)/_actions/hrm-jobs/create-job";
-import { toast } from "sonner";
+
 import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
 import { createContext, useContext, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
@@ -22,6 +22,7 @@ import {
     useStaticContractors,
     useStaticProjects,
 } from "@/_v2/hooks/use-static-data";
+import { toast } from "@gnd/ui/use-toast";
 
 export const JobSubmitContext = createContext<ReturnType<typeof useSubmitJob>>(
     {} as any
@@ -30,12 +31,13 @@ export const useJobSubmitCtx = () => useContext(JobSubmitContext);
 export default function useSubmitJob(form) {
     const modal = useModal();
     // const form = useSubmitJobForm();
-    const [id, type, data, tab, action] = form.watch([
+    const [id, type, data, tab, action, isCustom] = form.watch([
         "job.id",
         "job.type",
         "data",
         "tab",
         "action",
+        "job.isCustom",
     ]);
     const [projectId, homeId, homes] = form.watch([
         "job.projectId",
@@ -63,6 +65,16 @@ export default function useSubmitJob(form) {
         startTransition(async () => {
             // try {
             const { job } = form.getValues();
+            if (isCustom) {
+                if (!job?.description || !job?.meta?.additional_cost) {
+                    toast({
+                        title: "Description and Cost required",
+                        variant: "destructive",
+                    });
+                    return;
+                }
+                job.meta.costData = {};
+            }
             job.meta.taskCost = submitJobUtils.totalTaskCost(job.meta.costData);
             // if(!job.id)
             job.amount = 0;
@@ -73,8 +85,11 @@ export default function useSubmitJob(form) {
             if (job.coWorkerId) job.amount /= 2;
             if (!job.id) await createJobAction(job as any);
             else await updateJobAction(job as any);
-            toast.message("Success!");
-            // closeModal();
+            toast({
+                title: "Success",
+                variant: "success",
+            });
+
             modal?.close();
             await _revalidate("jobs");
             await _revalidate("contractorJobs");
@@ -177,6 +192,7 @@ export default function useSubmitJob(form) {
         setValue: form.setValue,
         homes,
         type,
+        isCustom,
         async initialize(_data: IJobs, action) {
             await _initialize(_data, { isAdmin, action });
         },

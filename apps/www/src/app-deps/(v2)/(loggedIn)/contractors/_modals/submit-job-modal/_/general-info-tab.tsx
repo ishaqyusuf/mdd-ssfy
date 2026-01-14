@@ -11,7 +11,7 @@ import useSubmitJob, { useJobSubmitCtx } from "./use-submit-job";
 
 export default function GeneralInfoTab() {
     const ctx = useJobSubmitCtx();
-
+    const { isCustom } = ctx;
     const contractors = useStaticContractors();
     return (
         <div className="grid gap-4 md:grid-cols-2">
@@ -26,14 +26,14 @@ export default function GeneralInfoTab() {
                 disabled={ctx.getValues("job.homeId") != null}
             />
             <CustomInput
-                disabled
-                label="Additional Cost ($)"
+                disabled={!isCustom}
+                label="Job Cost ($)"
                 name="job.meta.additional_cost"
                 type="number"
             />
-            <CustomInput label="Reason" name="job.description" />
+            {/* <CustomInput label="Reason" name="job.description" /> */}
             <div className="col-span-2">
-                <CustomInput label="Report" name="job.note" textarea />
+                <CustomInput label="Report" name="job.description" textarea />
             </div>
             <SelectControl
                 name="job.coWorkerId"

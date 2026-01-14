@@ -1,4 +1,4 @@
-import { _trpc } from "@/components/static-trpc";
+import { _qc, _trpc } from "@/components/static-trpc";
 import { Toast } from "@/components/ui/toast";
 import { useZodForm } from "@/components/use-zod-form";
 import { getJobType } from "@/lib/job";
@@ -162,11 +162,12 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
       onSuccess(data, variables, onMutateResult, context) {
         // consoleLog("SUCCESS", data);
         // createToast("task_completed", {});
+        _qc.invalidateQueries({
+          queryKey: _trpc.jobs.getJobs.queryKey(),
+        });
         setTab("completed");
       },
-      onError(error, variables, onMutateResult, context) {
-        consoleLog("ERROR", error);
-      },
+      onError(error, variables, onMutateResult, context) {},
       meta: {
         toastTitle: {
           error: "Unable to complete",
@@ -247,20 +248,17 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
       form.handleSubmit(
         (e) => {
           const values = formData;
-
           if (!props.admin) {
             const profile = getSessionProfile();
             const role = profile?.role?.name;
             values.type = getJobType(role);
           }
+          if (values.isCustom) values.status = "Submitted";
           saveJob(values as any);
         },
         (errs) => {
           setErrors(errs);
-          consoleLog("ERROR", {
-            d: errs?.description,
-            a: errs?.additionalCost,
-          });
+          consoleLog("ERROR", errs);
           Toast.show("Error. Invalid form data.", {
             type: "error",
           });

@@ -20,17 +20,52 @@ import {
 
 import ProjectFormSection from "./project-form-section";
 import { useJobSubmitCtx } from "./use-submit-job";
+import { Field } from "@gnd/ui/composite";
+import { Switch } from "@gnd/ui/switch";
+import { Controller } from "react-hook-form";
 
 export default function TaskDetailsTab({}) {
     const ctx = useJobSubmitCtx();
-    const [homeCosting, type] = ctx.form.watch(["home.costing", "job.type"]);
+    const [homeCosting, isCustom] = ctx.form.watch([
+        "home.costing",
+        "job.isCustom",
+    ]);
     // const cost = useJobCostList(ctx.type);
     // const form = useFormContext();
     // useEffect(() => {},[])
     return (
-        <ScrollArea className="grid h-[400px] gap-2 pr-4">
+        <ScrollArea className="grid h-[400px] gap-4 grid pr-4">
             <ProjectFormSection />
-            {/* {ctx.costList?.fields?.length} */}
+            <div className="py-8">
+                <Field.Group>
+                    <Controller
+                        control={ctx?.form?.control}
+                        name="job.isCustom"
+                        render={({ field, fieldState }) => (
+                            <Field
+                                data-invalid={fieldState.invalid}
+                                orientation="horizontal"
+                            >
+                                <Field.Content>
+                                    <Field.Label htmlFor="form-rhf-switch-isCustom">
+                                        Custom Job
+                                    </Field.Label>
+                                    <Field.Description>
+                                        Enter custom job details manually
+                                    </Field.Description>
+                                </Field.Content>
+                                <Switch
+                                    id="form-rhf-switch-isCustom"
+                                    name={field.name}
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    aria-invalid={fieldState.invalid}
+                                />
+                            </Field>
+                        )}
+                    />
+                </Field.Group>
+            </div>
             <div className={cn(!ctx.costList?.fields?.length && "hidden")}>
                 <Table className="">
                     <TableHeader>
@@ -60,11 +95,12 @@ export default function TaskDetailsTab({}) {
                                                 <FormItem>
                                                     <FormControl>
                                                         <Input
+                                                            disabled={isCustom}
                                                             {...field}
                                                             className={cn(
                                                                 "hiddens h-8 w-16",
                                                                 fieldState.error &&
-                                                                    "border-red-400",
+                                                                    "border-red-400"
                                                             )}
                                                             type="number"
                                                             min={0}

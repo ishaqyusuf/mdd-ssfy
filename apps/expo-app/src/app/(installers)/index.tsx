@@ -8,7 +8,7 @@ import { HomeProvider, useCreateHomeContext } from "@/context/home-context";
 import { LegendList } from "@legendapp/list";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Pressable, Text, TouchableOpacity, View } from "react-native";
 
 // As per the rules, all components are defined in this single file.
 // The component is named Home2 to match the filename.
@@ -58,6 +58,23 @@ export default function Home2() {
                   </TouchableOpacity>
                 </Debug>
               </View>
+            </View>
+            <View className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl bg-surface-dark/40 border border-dashed border-white/10 p-8 text-center">
+              <View className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-white/5 text-slate-500">
+                <Text className="material-symbols-outlined text-5xl opacity-50">
+                  assignment_late
+                </Text>
+              </View>
+              <Text className="text-xl font-bold text-white">
+                No recent activity
+              </Text>
+              <Text className="mt-2 text-sm text-slate-400 max-w-[220px]">
+                Submit your first job to see it here.
+              </Text>
+              <Pressable className="mt-8 flex items-center gap-2 rounded-full bg-primary/10 px-6 py-3 text-sm font-bold text-primary transition-all active:scale-95 hover:bg-primary/20">
+                <Text className="material-symbols-outlined text-xl">add</Text>
+                <Text> Create Job</Text>
+              </Pressable>
             </View>
           </>
         }

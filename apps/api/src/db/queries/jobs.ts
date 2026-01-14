@@ -16,7 +16,7 @@ import {
   formatDate,
 } from "date-fns";
 import { saveNote } from "@gnd/utils/note";
-
+import { generateControlId } from "@gnd/community/utils/job";
 export const getJobsSchema = z
   .object({
     userId: z.number().optional().nullable(),
@@ -268,7 +268,7 @@ const worker = z
 export const createJobSchema = z
   .object({
     id: z.number().optional().nullable(),
-    description: z.string(), //.optional().nullable(),
+    description: z.string().optional().nullable(),
     title: z.string(),
     subtitle: z.string().optional().nullable(),
     controlId: z.string().optional().nullable(),
@@ -284,7 +284,7 @@ export const createJobSchema = z
     projectId: z.number().optional().nullable(),
     coWorkerJobId: z.number().optional().nullable(),
     homeId: z.number().optional().nullable(),
-    additionalCost: z.number(), //.optional().nullable(),
+    additionalCost: z.number().optional().nullable(),
     includeAdditionalCharges: z.boolean().optional().nullable(),
     additionalReason: z.string().optional().nullable(),
     addon: z.number().optional().nullable(),
@@ -346,10 +346,7 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
     sum([meta.addon, meta.taskCost, meta.additional_cost]) /
       (query.coWorker?.id ? 2 : 1),
   ]);
-  const controlId = `${generateRandomString(10)?.toLowerCase()}-${formatDate(
-    new Date(),
-    "yymmdd"
-  )}`;
+  const controlId = generateControlId();
   const data = {
     // id: jobId,
     // status: query?.status || "Submitted",

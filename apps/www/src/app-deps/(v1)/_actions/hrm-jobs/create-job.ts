@@ -3,7 +3,7 @@
 import { Jobs, prisma, Prisma } from "@/db";
 import { transformData } from "@/lib/utils";
 import { IJobs, IJobType } from "@/types/hrm";
-
+import { generateControlId } from "@gnd/community/utils/job";
 import { _notifyAdminJobSubmitted } from "../notifications";
 import { userId } from "../utils";
 
@@ -11,6 +11,7 @@ export async function createJobAction(data: IJobs) {
     data.status = "Submitted";
     data.statusDate = new Date();
     if (!data.userId) data.userId = await userId();
+    data.controlId = generateControlId();
     // let amount = data.amount;
     // if (data.coWorkerId) amount /= 2;
     // const unitJobs = await prisma

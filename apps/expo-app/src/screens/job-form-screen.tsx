@@ -28,7 +28,7 @@ function Content() {
   const { tab } = useJobFormContext();
   return (
     <View className="flex-1 flex flex-col">
-      {tab == "completed" || <JobFormHeader />}
+      {tab === "completed" || <JobFormHeader />}
 
       <Tabs className="flex-1" onValueChange={(e) => {}} value={tab}>
         <TabsContent value="project">
