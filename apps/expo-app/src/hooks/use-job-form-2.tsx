@@ -247,6 +247,7 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
     setTimeout(() => {
       form.handleSubmit(
         (e) => {
+          console.log("SAVING>>>");
           const values = formData;
           if (!props.admin) {
             const profile = getSessionProfile();
@@ -254,6 +255,9 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
             values.type = getJobType(role);
           }
           if (values.isCustom) values.status = "Submitted";
+          if (values.id && values.status === "Assigned") {
+            values.status = "Submitted";
+          }
           saveJob(values as any);
         },
         (errs) => {

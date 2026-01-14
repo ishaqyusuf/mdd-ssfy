@@ -16,7 +16,7 @@ import {
   formatDate,
 } from "date-fns";
 import { saveNote } from "@gnd/utils/note";
-import { generateControlId } from "@gnd/community/utils/job";
+import { generateControlId, generateJobId } from "@gnd/community/utils/job";
 export const getJobsSchema = z
   .object({
     userId: z.number().optional().nullable(),
@@ -293,17 +293,16 @@ export const createJobSchema = z
     coWorker: worker,
     tasks: z.record(
       z.string(),
-      z
-        .object({
-          qty: z.number().optional().nullable(),
-          maxQty: z.number().optional().nullable(),
-          cost: z.number(),
-        })
-        .refine(
-          (data) =>
-            data.qty == null || data.maxQty == null || data.qty <= data.maxQty,
-          { message: "qty cannot be greater than maxQty", path: ["qty"] }
-        )
+      z.object({
+        qty: z.number().optional().nullable(),
+        maxQty: z.number().optional().nullable(),
+        cost: z.number(),
+      })
+      // .refine(
+      //   (data) =>
+      //     data.qty == null || data.maxQty == null || data.qty <= data.maxQty,
+      //   { message: "qty cannot be greater than maxQty", path: ["qty"] }
+      // )
     ),
   })
   .superRefine((data, ctx) => {
@@ -319,6 +318,16 @@ export const createJobSchema = z
         path: ["additionalCost"],
         code: "custom",
       });
+    if (!data?.isCustom && data.mode != "assign") {
+      Object.entries(data?.tasks).map(([k, data]) => {
+        if (data.qty == null || data.maxQty == null || data.qty <= data.maxQty)
+          ctx.addIssue({
+            message: "qty cannot be greater than maxQty",
+            path: [`tasks.${k}.qty`],
+            code: "custom",
+          });
+      });
+    }
   });
 
 export type CreateJobSchema = z.infer<typeof createJobSchema>;
@@ -387,7 +396,7 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
       ctx.db,
       {
         headline: query?.mode == "assign" ? "Job Assigned" : "Job Submitted",
-        note: `#J${jobId}`,
+        note: generateJobId(jobId),
         subject:
           query?.mode == "assign" ? `New job assignment` : `New job submission`,
         tags: [

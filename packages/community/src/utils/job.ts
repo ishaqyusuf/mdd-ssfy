@@ -8,3 +8,6 @@ export function generateControlId() {
   )}`;
   return controlId;
 }
+export function generateJobId(jobId) {
+  return `#J${jobId}`;
+}

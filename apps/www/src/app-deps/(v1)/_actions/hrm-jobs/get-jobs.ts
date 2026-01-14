@@ -16,11 +16,10 @@ export async function getMyJobs(query: JobsQueryParamsProps) {
     query._userId = await userId();
     return await getJobs(query);
 }
-export async function getMyPunchoutJobs(query: JobsQueryParamsProps) {}
 export async function getJobs(query: JobsQueryParamsProps) {
     const builder = await queryBuilder<Prisma.JobsWhereInput>(
         query,
-        prisma.jobs,
+        prisma.jobs
     );
     builder.searchQuery("description", "subtitle", "title");
     builder.orWhere("projectId", Number(query._projectId));
@@ -46,6 +45,6 @@ export async function getJobs(query: JobsQueryParamsProps) {
                 user: true,
                 homeTasks: true,
             },
-        }),
+        })
     );
 }

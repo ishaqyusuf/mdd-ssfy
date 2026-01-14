@@ -149,7 +149,7 @@ model Jobs {
 }
 
 model JobPayments {
-    id            Int       @unique @default(autoincrement())
+    id            Int                     @unique @default(autoincrement())
     amount        Int
     charges       Int?
     subTotal      Int?
@@ -157,14 +157,34 @@ model JobPayments {
     paidBy        Int
     checkNo       String?
     paymentMethod String?
-    meta          Json?     @db.Json
-    createdAt     DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt     DateTime? @updatedAt
-    deletedAt     DateTime? @db.Timestamp(0)
+    meta          Json?                   @db.Json
+    createdAt     DateTime?               @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?               @updatedAt
+    deletedAt     DateTime?               @db.Timestamp(0)
     jobs          Jobs[]
-    user          Users?    @relation(name: "worker", fields: [userId], references: [id])
-    payer         Users?    @relation(name: "payer", fields: [paidBy], references: [id])
+    adjustments   JobPaymentAdjustments[]
+    user          Users?                  @relation(name: "worker", fields: [userId], references: [id])
+    payer         Users?                  @relation(name: "payer", fields: [paidBy], references: [id])
 
     @@index([userId])
     @@index([paidBy])
+}
+
+model JobPaymentAdjustments {
+    id          Int             @unique @default(autoincrement())
+    amount      Int
+    type        AdjustmentTypes
+    description String?
+
+    createdAt     DateTime?    @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?    @updatedAt
+    deletedAt     DateTime?    @db.Timestamp(0)
+    jobPayments   JobPayments? @relation(fields: [jobPaymentsId], references: [id])
+    jobPaymentsId Int?
+}
+
+enum AdjustmentTypes {
+    BONUS
+    EXPENSE
+    DEDUCTION
 }

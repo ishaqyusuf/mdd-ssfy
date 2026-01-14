@@ -59,28 +59,37 @@ export default function Home2() {
                 </Debug>
               </View>
             </View>
-            <View className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl bg-surface-dark/40 border border-dashed border-white/10 p-8 text-center">
-              <View className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-white/5 text-slate-500">
-                <Text className="material-symbols-outlined text-5xl opacity-50">
-                  assignment_late
-                </Text>
-              </View>
-              <Text className="text-xl font-bold text-white">
-                No recent activity
-              </Text>
-              <Text className="mt-2 text-sm text-slate-400 max-w-[220px]">
-                Submit your first job to see it here.
-              </Text>
-              <Pressable className="mt-8 flex items-center gap-2 rounded-full bg-primary/10 px-6 py-3 text-sm font-bold text-primary transition-all active:scale-95 hover:bg-primary/20">
-                <Text className="material-symbols-outlined text-xl">add</Text>
-                <Text> Create Job</Text>
-              </Pressable>
-            </View>
           </>
         }
         refreshing={ctx.isRefreshing}
         data={ctx?.recentJobs}
         renderItem={({ item }) => <JobListItem2 item={item} />}
+        ListEmptyComponent={
+          <View className="px-4 mb-32">
+            <View className="min-h-75 items-center justify-center rounded-2xl bg-card/40 border-2 border-dashed border-muted/20 p-8">
+              <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-muted/10">
+                <Icon
+                  name="AlertCircle"
+                  className="text-muted-foreground size-40"
+                />
+              </View>
+
+              <Text className="text-xl font-bold text-foreground text-center">
+                No recent jobs found
+              </Text>
+              <Text className="mt-2 text-sm text-muted-foreground text-center max-w-62.5">
+                Submit your first job to see it here.
+              </Text>
+
+              <Pressable className="mt-8 flex-row items-center gap-2 rounded-full bg-accent/10 px-6 py-3 active:scale-95">
+                <Icon name="Plus" className="text-accent size-18" />
+                <Text className="text-sm font-bold text-accent">
+                  Create Job
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        }
         ListFooterComponent={<View className="mb-48"></View>}
       />
     </HomeProvider>

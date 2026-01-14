@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import type { LucideIcon, LucideProps } from "lucide-react-native";
 import {
   Activity,
+  AlertCircle,
   ArrowLeft,
   ArrowRight,
   BarChart2,
@@ -151,6 +152,7 @@ function Icon({
 const appIcons = {
   Activity,
   analytics: BarChart2,
+  AlertCircle,
   ArrowLeft,
   ArrowRight,
   BarChart3,

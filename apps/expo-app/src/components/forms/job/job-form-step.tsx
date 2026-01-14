@@ -12,6 +12,7 @@ import { Controller } from "react-hook-form";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input-2";
 import { cn } from "@/lib/utils";
+import { Toast } from "@/components/ui/toast";
 
 export function JobFormStep() {
   const ctx = useJobFormContext();
@@ -132,6 +133,15 @@ export function JobFormStep() {
               render={({ field, fieldState }) => (
                 <Pressable
                   onPress={(e) => {
+                    if (
+                      ctx.formData?.id &&
+                      ctx.formData?.status == "Assigned"
+                    ) {
+                      Toast.show("Error. Action not applicable", {
+                        type: "error",
+                      });
+                      return;
+                    }
                     field?.onChange(!field?.value);
                   }}
                   className="flex-row bg-card p-4 rounded-lg shadow"

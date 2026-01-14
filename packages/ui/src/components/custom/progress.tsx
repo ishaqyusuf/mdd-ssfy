@@ -1,4 +1,4 @@
-import { Colors, getColorFromName } from "@gnd/utils/colors";
+import { Colors, getColorFromName, hexToRgba } from "@gnd/utils/colors";
 import { cn } from "../../utils";
 
 import { Progress as BaseProgress } from "@gnd/ui/progress";
@@ -14,10 +14,11 @@ function ProgressBase({ children, className }: ProgressBaseProps) {
 }
 interface StatusProps {
   noDot?: boolean;
+  badge?: boolean;
   children;
   color?: Colors;
 }
-function Status({ children, noDot }: StatusProps) {
+function Status({ children, noDot, badge }: StatusProps) {
   const _color = getColorFromName(children);
   return (
     <div className="inline-flex items-center gap-2 font-semibold">
@@ -32,8 +33,13 @@ function Status({ children, noDot }: StatusProps) {
       <div
         style={{
           color: _color,
+          backgroundColor: badge ? hexToRgba(_color, 0.15) : undefined,
+          borderColor: badge ? hexToRgba(_color, 0.2) : undefined,
         }}
-        className={cn("text-xs uppercase")}
+        className={cn(
+          "text-xs uppercase",
+          badge && "p-0.5 px-1 shadow rounded-md border"
+        )}
       >
         {children}
       </div>
