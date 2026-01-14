@@ -250,6 +250,7 @@ export async function communityInstallCostForm(
   // installCosts?.[0]?.costings?.
   return {
     config,
+    pivotId: model?.pivot?.id,
     communityModelId: model.id,
     // projectId: model.id,
     title: model.modelName,

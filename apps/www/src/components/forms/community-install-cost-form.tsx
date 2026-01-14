@@ -29,6 +29,10 @@ import { toast } from "@gnd/ui/use-toast";
 import { FormDebugBtn } from "../form-debug-btn";
 import { cn } from "@gnd/ui/cn";
 import z4 from "zod/v4";
+import { Env } from "../env";
+import { Field } from "@gnd/ui/composite";
+import { Controller } from "react-hook-form";
+import { Input } from "@gnd/ui/input";
 
 interface Props {
     model: RouterOutputs["community"]["communityInstallCostForm"];
@@ -75,7 +79,7 @@ export function CommunityInstallCostForm({ model }: Props) {
         }
     );
     useEffect(() => {
-        // console.log({ model });
+        console.log({ model });
         form.reset({
             // projectId: model?.projectId,
             pivotId: model?.pivotId,
@@ -89,21 +93,22 @@ export function CommunityInstallCostForm({ model }: Props) {
         const installCost = Object.fromEntries(
             Object.entries(formData?.installCost || {})?.filter(([a, b]) => !!b)
         );
-
+        const meta = {
+            communityModel: {
+                ...(model?.meta?.communityModel || {}),
+                installCosts: [installCost],
+            },
+            pivot: {
+                ...(model?.meta?.pivot || {}),
+                installCost,
+            },
+        };
+        console.log({ meta, model });
         save.mutate({
             // ...formData,
             pivotId: model?.pivotId,
             communityModelId: model?.communityModelId,
-            meta: {
-                communityModel: {
-                    ...(model?.meta?.communityModel || {}),
-                    installCosts: [installCost],
-                },
-                pivot: {
-                    ...(model?.meta?.pivot || {}),
-                    installCost,
-                },
-            },
+            meta,
         });
     };
     // const [costs, tax] = form.watch(["costs", "tax"]);
@@ -139,6 +144,7 @@ export function CommunityInstallCostForm({ model }: Props) {
                                     <TableCell>
                                         <TCell.Primary>
                                             {task?.title}
+                                            <Env isDev>{task?.uid}</Env>
                                         </TCell.Primary>
                                         <TCell.Secondary>
                                             <Money value={task.cost} />
@@ -148,7 +154,27 @@ export function CommunityInstallCostForm({ model }: Props) {
 
                                     <TableCell></TableCell>
                                     <TableCell>
-                                        <FormInput
+                                        <Field.Group>
+                                            <Controller
+                                                control={form.control}
+                                                name={`installCost.${task.uid}`}
+                                                render={(props) => (
+                                                    <Input
+                                                        placeholder="0"
+                                                        className="h-8 w-16"
+                                                        // type="tel"
+                                                        {...props.field}
+                                                        value={String(
+                                                            props.field?.value
+                                                                ? props.field
+                                                                      ?.value
+                                                                : ""
+                                                        )}
+                                                    />
+                                                )}
+                                            />
+                                        </Field.Group>
+                                        {/* <FormInput
                                             control={form.control}
                                             name={`installCost.${task.uid}`}
                                             numericProps={{
@@ -157,7 +183,7 @@ export function CommunityInstallCostForm({ model }: Props) {
                                                 className: "h-8 w-16",
                                                 type: "tel",
                                             }}
-                                        />
+                                        /> */}
                                     </TableCell>
                                 </TableRow>
                             ))}

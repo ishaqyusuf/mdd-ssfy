@@ -57,10 +57,6 @@ export default function ModelInstallCostModal({ community = false }) {
     const form = useForm<{ costs: InstallCost[]; enable: Boolean }>({
         defaultValues: {},
     });
-    const { append, fields } = useFieldArray({
-        control: form.control,
-        name: "costs",
-    });
 
     // const installCostSetting = useAppSelector(
     // (s) => s.slicers.installCostSetting
@@ -75,6 +71,8 @@ export default function ModelInstallCostModal({ community = false }) {
                 // const isValid = emailSchema.parse(form.getValues());
                 const costs = deepCopy<InstallCost[]>(form.getValues(`costs`));
                 const cost = costs[index];
+                console.log(cost);
+
                 if (!cost) return;
                 if (!community)
                     await updateModelInstallCost(data.id, {

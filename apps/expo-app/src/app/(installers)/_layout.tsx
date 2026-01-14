@@ -10,12 +10,7 @@ export default function AuthLayout() {
           headerShown: false,
         }}
       />
-      <Stack.Screen
-        name="jobs"
-        options={{
-          header: () => <JobsHeader />,
-        }}
-      />
+
       <Stack.Screen
         name="home1"
         options={{
@@ -24,9 +19,8 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen
-        name="jobs2"
+        name="jobs"
         options={{
-          // header: () => <JobsHeader />,
           headerShown: false,
         }}
       />

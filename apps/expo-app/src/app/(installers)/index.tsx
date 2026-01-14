@@ -2,11 +2,11 @@ import { Debug } from "@/components/debug";
 import { InstallerDashboardHeader2 } from "@/components/installer-dashboard/installer-dashboard-header-2";
 import { JobAnalytics2 } from "@/components/installer-dashboard/job-analytics-2";
 import { JobListItem2 } from "@/components/jobs-item-installer";
+import { _push } from "@/components/static-router";
 
 import { Icon } from "@/components/ui/icon";
 import { HomeProvider, useCreateHomeContext } from "@/context/home-context";
 import { LegendList } from "@legendapp/list";
-import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
 
@@ -14,7 +14,6 @@ import { Pressable, Text, TouchableOpacity, View } from "react-native";
 // The component is named Home2 to match the filename.
 
 export default function Home2() {
-  const router = useRouter();
   const ctx = useCreateHomeContext();
   return (
     <HomeProvider value={ctx}>
@@ -49,7 +48,7 @@ export default function Home2() {
                 <Debug>
                   <TouchableOpacity
                     onPress={(e) => {
-                      router.push("/jobs2");
+                      _push("/jobs");
                     }}
                   >
                     <Text className="text-sm font-bold text-primary">

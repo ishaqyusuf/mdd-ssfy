@@ -1,11 +1,8 @@
 // apps/expo-app/src/components/forms/job/job-submitted-step.tsx
 import { View, Text, Pressable, Image } from "react-native";
 import { Icon } from "@/components/ui/icon";
-import { useColors } from "@/hooks/use-color";
-import { useRouter } from "expo-router";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
-import { _push, _replace } from "@/components/static-router";
-import { PressableLink } from "@/components/pressable-link";
+import { _replace } from "@/components/static-router";
 import { formatDate } from "@gnd/utils/dayjs";
 
 // --- Mock Data ---
@@ -18,41 +15,7 @@ const jobDetails = {
     "https://lh3.googleusercontent.com/aida-public/AB6AXuC_tQp9MWh8PMG0yECTwihHX058NDWPQcIhZCO-3wf2s5ZZXmGzusYWXkjodXih6HioHrts60jIVx5X6tC62P0AcX-rih3qmcfXRyKqHyKFo6qfKh0c6Vpjs5OiDQ_Mr2ar1hKyebLUa2z1kBiUl-2d_5w-nNhc44z7rYWTU1LmfKh_bxnvjO-pRtjKIZ5uZnmMPwTFZMpolKgkoSN0gKRTyjh1W7rYJzQ7QzxEghf-TeN_4VsiuRnFTmhLuISLQ572s3b_nv_vpk4",
 };
 
-/**
- * Placeholder for a radial gradient component used to create the glow effect.
- * In a real app, this would be implemented with a library like 'react-native-radial-gradient'.
- * @param {object} props - Component props.
- * @param {string[]} props.colors - Array of colors for the gradient.
- * @param {number[]} props.stops - Array of stop positions for the colors.
- * @param {number} props.radius - The radius of the gradient.
- * @param {string} props.className - Tailwind classes.
- */
-const RadialGradient = ({
-  colors,
-  stops,
-  radius,
-  className,
-}: {
-  colors: string[];
-  stops: number[];
-  radius: number;
-  className: string;
-}) => (
-  <View
-    className={className}
-    style={{
-      // This is a visual stand-in. A real implementation would draw a gradient.
-      backgroundColor: colors[0] || "transparent",
-      width: radius * 2,
-      height: radius * 2,
-      borderRadius: radius,
-    }}
-  />
-);
-
 export function JobSubmittedStep() {
-  const colors = useColors();
-  const router = useRouter();
   const ctx = useJobFormContext();
   return (
     <View className="flex-1 bg-background">
