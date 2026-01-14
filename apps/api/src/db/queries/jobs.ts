@@ -6,7 +6,7 @@ import { paginationSchema } from "@gnd/utils/schema";
 import z from "zod";
 import { getSetting } from "./settings";
 import { formatLargeNumber } from "@gnd/utils/format";
-import { generateRandomString, nextId, sum } from "@gnd/utils";
+import { consoleLog, generateRandomString, nextId, sum } from "@gnd/utils";
 import {
   startOfMonth,
   endOfMonth,
@@ -265,49 +265,72 @@ const worker = z
   })
   .optional()
   .nullable();
-export const createJobSchema = z.object({
-  id: z.number().optional().nullable(),
-  description: z.string().optional().nullable(),
-  title: z.string(),
-  subtitle: z.string().optional().nullable(),
-  controlId: z.string().optional().nullable(),
-  mode: z.enum(["assign", "submit"]).optional().nullable(),
-  type: z
-    .enum(["punchout", "installation", "Deco-Shutter"])
-    .optional()
-    .nullable(),
-  status: z.string().optional().nullable(),
-  note: z.string().optional().nullable(),
-  projectId: z.number().optional().nullable(),
-  coWorkerJobId: z.number().optional().nullable(),
-  homeId: z.number().optional().nullable(),
-  additionalCost: z.number().optional().nullable(),
-  includeAdditionalCharges: z.boolean().optional().nullable(),
-  additionalReason: z.string().optional().nullable(),
-  addon: z.number().optional().nullable(),
-  // coWorkerId: z.number().optional().nullable(),
-  worker,
-  coWorker: worker,
-  tasks: z.record(
-    z.string(),
-    z
-      .object({
-        qty: z.number().optional().nullable(),
-        maxQty: z.number().optional().nullable(),
-        cost: z.number(),
-      })
-      .refine(
-        (data) =>
-          data.qty == null || data.maxQty == null || data.qty <= data.maxQty,
-        { message: "qty cannot be greater than maxQty", path: ["qty"] }
-      )
-  ),
-});
+export const createJobSchema = z
+  .object({
+    id: z.number().optional().nullable(),
+    description: z.string(), //.optional().nullable(),
+    title: z.string(),
+    subtitle: z.string().optional().nullable(),
+    controlId: z.string().optional().nullable(),
+    isCustom: z.boolean().optional().nullable(),
+    mode: z.enum(["assign", "submit"]).optional().nullable(),
+    type: z
+      .enum(["punchout", "installation", "Deco-Shutter"])
+      .optional()
+      .nullable(),
+    status: z.string().optional().nullable(),
+    note: z.string().optional().nullable(),
+    projectId: z.number().optional().nullable(),
+    coWorkerJobId: z.number().optional().nullable(),
+    homeId: z.number().optional().nullable(),
+    additionalCost: z.number(), //.optional().nullable(),
+    includeAdditionalCharges: z.boolean().optional().nullable(),
+    additionalReason: z.string().optional().nullable(),
+    addon: z.number().optional().nullable(),
+    // coWorkerId: z.number().optional().nullable(),
+    worker,
+    coWorker: worker,
+    tasks: z.record(
+      z.string(),
+      z
+        .object({
+          qty: z.number().optional().nullable(),
+          maxQty: z.number().optional().nullable(),
+          cost: z.number(),
+        })
+        .refine(
+          (data) =>
+            data.qty == null || data.maxQty == null || data.qty <= data.maxQty,
+          { message: "qty cannot be greater than maxQty", path: ["qty"] }
+        )
+    ),
+  })
+  .superRefine((data, ctx) => {
+    if (data?.isCustom && !data?.description)
+      ctx.addIssue({
+        message: "Description is required",
+        path: ["description"],
+        code: "custom",
+      });
+    if (data?.isCustom && !data?.additionalCost)
+      ctx.addIssue({
+        message: "Amount required",
+        path: ["additionalCost"],
+        code: "custom",
+      });
+  });
+
 export type CreateJobSchema = z.infer<typeof createJobSchema>;
 
 export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
   // return {};
   const { db } = ctx;
+  if (query.isCustom) {
+    query.tasks = {};
+    query.addon = 0;
+    // query.status = ''
+  }
+
   const taskCost = sum(
     Object.entries(query.tasks).map(([k, v]) => sum([+v.qty! * +v.cost]))
   );
@@ -343,6 +366,7 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
     title: query.title,
     subtitle: query.subtitle,
     controlId,
+    isCustom: query.isCustom,
   } as Prisma.JobsCreateManyInput;
   if (!query.id) {
     const jobId = (query.id = await nextId(db.jobs));
@@ -405,7 +429,7 @@ export async function getJobForm(ctx: TRPCContext, query: GetJobFormSchema) {
   const mainMeta: JobMeta = main.meta as any;
   return {
     id: main.id,
-    description: main.description,
+    description: main.description!,
     title: main.title!,
     subtitle: main.subtitle,
     status: main.status,

@@ -141,7 +141,6 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
     )
   );
   useEffect(() => {
-    console.log({ jobData });
     if (jobData) form.reset(jobData);
   }, [jobData]);
   const total = useMemo(() => {
@@ -150,6 +149,7 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
         sum([+v?.qty! * +(v?.cost || 0)])
       )
     );
+    if (formData?.isCustom) return formData.additionalCost;
     return sum([formData.addon, taskCost, formData.additionalCost]);
   }, [formData]);
   const [errors, setErrors] = useState<any>(null);
@@ -253,12 +253,15 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
             const role = profile?.role?.name;
             values.type = getJobType(role);
           }
-          saveJob(values as any);
+          // saveJob(values as any);
         },
         (errs) => {
-          console.log(errs);
           setErrors(errs);
-          Toast.show("Invalid task qty", {
+          consoleLog("ERROR", {
+            d: errs?.description,
+            a: errs?.additionalCost,
+          });
+          Toast.show("Error. Invalid form data.", {
             type: "error",
           });
         }

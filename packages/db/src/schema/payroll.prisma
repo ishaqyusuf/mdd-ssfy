@@ -112,6 +112,7 @@ model Jobs {
     projectId   Int?
     // taskId      Int?
     amount      Float
+    isCustom    Boolean?
     title       String?   @db.VarChar(255)
     subtitle    String?   @db.VarChar(255)
     description String?   @db.LongText

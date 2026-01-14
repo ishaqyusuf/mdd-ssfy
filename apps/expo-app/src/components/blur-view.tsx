@@ -1,14 +1,14 @@
 import { cn } from "@/lib/utils";
-import { BlurView as ExpoBlurView } from "expo-blur";
+import { View } from "react-native";
 export function BlurView({ children, className = "", intensity = 90 }) {
   const tint = "light"; //useColorScheme();
   return (
-    <ExpoBlurView
-      tint={tint || "light"}
-      className={cn(className)}
-      intensity={intensity}
+    <View
+      // tint={tint || "light"}
+      className={cn("bg-foreground/30", className)}
+      // intensity={intensity}
     >
       {children}
-    </ExpoBlurView>
+    </View>
   );
 }

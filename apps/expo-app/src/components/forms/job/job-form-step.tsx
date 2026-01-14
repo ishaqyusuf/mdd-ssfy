@@ -9,6 +9,9 @@ import { useJobFormContext } from "@/hooks/use-job-form-2";
 import { KeyboardAvoidingView, Platform } from "react-native";
 import { Textarea } from "@/components/ui/textarea";
 import { Controller } from "react-hook-form";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input-2";
+import { cn } from "@/lib/utils";
 
 export function JobFormStep() {
   const ctx = useJobFormContext();
@@ -57,9 +60,13 @@ export function JobFormStep() {
                 <View className="flex-col gap-2">
                   <Text className="text-sm font-semibold text-muted-foreground ml-2">
                     Description
-                    <Text className="text-xs font-normal opacity-70">
-                      (Optional)
-                    </Text>
+                    {ctx?.formData?.isCustom ? (
+                      <Text>*</Text>
+                    ) : (
+                      <Text className="text-xs font-normal opacity-70">
+                        (Optional)
+                      </Text>
+                    )}
                   </Text>
                   <Controller
                     control={ctx.form.control}
@@ -70,7 +77,10 @@ export function JobFormStep() {
                         value={field.value!}
                         onChangeText={field.onChange}
                         multiline
-                        className="flex w-full rounded-lg border border-muted-foreground bg-card min-h-30 px-5 py-4 text-base text-foreground align-text-top"
+                        className={cn(
+                          "flex w-full rounded-lg border border-muted-foreground bg-card min-h-30 px-5 py-4 text-base text-foreground align-text-top",
+                          fieldState?.error && "border-destructive"
+                        )}
                         placeholder="Enter specific job details, access codes, or warnings..."
                         placeholderClassName="text-foreground"
                       />
@@ -79,23 +89,102 @@ export function JobFormStep() {
                 </View>
               </View>
             </View>
+            {!ctx?.formData?.isCustom || (
+              <View className="">
+                <View className="gap-4">
+                  <View className="flex-col gap-2">
+                    <Text className="text-sm font-semibold text-muted-foreground ml-2">
+                      Amount
+                    </Text>
+                    <View className="relative justify-center">
+                      <Text className="absolute z-10 left-5 text-muted-foreground font-bold">
+                        USD
+                      </Text>
+                      <Controller
+                        control={ctx.form.control}
+                        name="additionalCost"
+                        render={({ field, fieldState }) => (
+                          <Input
+                            // defaultValue={ctx.form.getValues('additionalCost')}
+                            value={field.value as any}
+                            onChangeText={(t) => {
+                              if (t?.length) field.onChange(+t);
+                              else field.onChange(null);
+                              // ctx.form.setValue("additionalCost", +t);
+                            }}
+                            className={cn(
+                              "flex w-full rounded-xl border border-muted-foreground h-14 pl-15 pr-5 text-base text-foreground",
+                              fieldState?.error && "border-destructive"
+                            )}
+                            placeholder="0.00"
+                            inputMode="decimal"
+                          />
+                        )}
+                      />
+                    </View>
+                  </View>
+                  {/* <View className="flex-col gap-2">
+                          <Text className="text-sm font-semibold text-muted-foreground ml-2">
+                            Reason
+                          </Text>
+                          <Controller
+                            control={ctx.form.control}
+                            name="additionalReason"
+                            render={({ field, fieldState }) => (
+                              <Input
+                                value={field.value!}
+                                onChangeText={field.onChange}
+                                className="h-14"
+                                placeholder="e.g. Rush fee, Materials..."
+                              />
+                            )}
+                          />
+                        </View> */}
+                </View>
+              </View>
+            )}
+            <Controller
+              control={ctx.form.control}
+              name="isCustom"
+              render={({ field, fieldState }) => (
+                <Pressable
+                  onPress={(e) => {
+                    field?.onChange(!field?.value);
+                  }}
+                  className="flex-row bg-card p-4 rounded-lg shadow"
+                >
+                  <View>
+                    <Text className="text-lg font-bold">Custom Job</Text>
+                    <Text>Enter custom job details manually</Text>
+                  </View>
+                  <View className="flex-1"></View>
+                  <Switch
+                    checked={!!field?.value}
+                    onCheckedChange={(e) => {}}
+                    className=""
+                  />
+                </Pressable>
+              )}
+            />
 
             {/* Unit Tasks List */}
-            <View>
-              <View className="flex-row items-center justify-between mb-4 px-2">
-                <Text className="text-lg font-bold text-foreground">
-                  Unit Tasks List
-                </Text>
-                {/* <Pressable>
+            {ctx?.formData?.isCustom || (
+              <View>
+                <View className="flex-row items-center justify-between mb-4 px-2">
+                  <Text className="text-lg font-bold text-foreground">
+                    Unit Tasks List
+                  </Text>
+                  {/* <Pressable>
                 <Text className="text-primary text-sm font-bold">
                   + Add Custom
                 </Text>
               </Pressable> */}
+                </View>
+                <View className="space-y-3">
+                  <JobFormTaskItems />
+                </View>
               </View>
-              <View className="space-y-3">
-                <JobFormTaskItems />
-              </View>
-            </View>
+            )}
 
             {/* Extras Section */}
             <JobFormExtras />

@@ -13,7 +13,7 @@ export function JobFormFooter() {
   const ctx = useJobFormContext();
   return (
     <View className="absolute bottom-0 left-0 right-0">
-      <BlurView intensity={90} className="w-full">
+      <BlurView intensity={90} className="w-full pt-4">
         <View
           className="p-4 border-t border-border"
           style={{ paddingBottom: bottom || 16 }}

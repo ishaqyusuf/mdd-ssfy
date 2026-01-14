@@ -10,63 +10,64 @@ import { Controller } from "react-hook-form";
 export function JobFormExtras() {
   const ctx = useJobFormContext();
   const coWorker = ctx?.formData?.coWorker;
-  const coWorkers = ctx?.users;
-  const color = useColors();
+  // const coWorkers = ctx?.users;
+  // const color = useColors();
   return (
     <>
-      <View className="gap-4  pt-4 border-t border-border">
-        <Text className="text-lg font-bold text-foreground px-2">
-          Additional Charges
-        </Text>
-        <View className="gap-4">
-          <View className="flex-col gap-2">
-            <Text className="text-sm font-semibold text-muted-foreground ml-2">
-              Extra Charge
-            </Text>
-            <View className="relative justify-center">
-              <Text className="absolute z-10 left-5 text-muted-foreground font-bold">
-                USD
+      {/* {!ctx?.formData?.isCustom || (
+        <View className="gap-4  pt-4 border-t border-border">
+          <Text className="text-lg font-bold text-foreground px-2">
+            Custom Charge
+          </Text>
+          <View className="gap-4">
+            <View className="flex-col gap-2">
+              <Text className="text-sm font-semibold text-muted-foreground ml-2">
+                Amount
+              </Text>
+              <View className="relative justify-center">
+                <Text className="absolute z-10 left-5 text-muted-foreground font-bold">
+                  USD
+                </Text>
+                <Controller
+                  control={ctx.form.control}
+                  name="additionalCost"
+                  render={({ field, fieldState }) => (
+                    <Input
+                      // defaultValue={ctx.form.getValues('additionalCost')}
+                      value={field.value as any}
+                      onChangeText={(t) => {
+                        if (t?.length) field.onChange(+t);
+                        else field.onChange(null);
+                        // ctx.form.setValue("additionalCost", +t);
+                      }}
+                      className="flex w-full rounded-xl border border-muted-foreground h-14 pl-15 pr-5 text-base text-foreground"
+                      placeholder="0.00"
+                      inputMode="decimal"
+                    />
+                  )}
+                />
+              </View>
+            </View>
+            <View className="flex-col gap-2">
+              <Text className="text-sm font-semibold text-muted-foreground ml-2">
+                Reason
               </Text>
               <Controller
                 control={ctx.form.control}
-                name="additionalCost"
+                name="additionalReason"
                 render={({ field, fieldState }) => (
                   <Input
-                    // defaultValue={ctx.form.getValues('additionalCost')}
-                    value={field.value as any}
-                    onChangeText={(t) => {
-                      if (t?.length) field.onChange(+t);
-                      else field.onChange(null);
-                      // ctx.form.setValue("additionalCost", +t);
-                    }}
-                    className="flex w-full rounded-xl border border-muted-foreground h-14 pl-15 pr-5 text-base text-foreground"
-                    placeholder="0.00"
-                    inputMode="decimal"
+                    value={field.value!}
+                    onChangeText={field.onChange}
+                    className="h-14"
+                    placeholder="e.g. Rush fee, Materials..."
                   />
                 )}
               />
             </View>
           </View>
-          <View className="flex-col gap-2">
-            <Text className="text-sm font-semibold text-muted-foreground ml-2">
-              Reason
-            </Text>
-            <Controller
-              control={ctx.form.control}
-              name="additionalReason"
-              render={({ field, fieldState }) => (
-                <Input
-                  // defaultValue={ctx.form.getValues('additionalCost')}
-                  value={field.value!}
-                  onChangeText={field.onChange}
-                  className="h-14"
-                  placeholder="e.g. Rush fee, Materials..."
-                />
-              )}
-            />
-          </View>
         </View>
-      </View>
+      )} */}
       <View className="gap-8 pt-4">
         <View className="flex-col gap-2">
           <Text className="text-sm font-semibold text-muted-foreground ml-2">
