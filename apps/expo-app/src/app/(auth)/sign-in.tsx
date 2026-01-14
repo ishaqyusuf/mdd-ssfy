@@ -41,9 +41,11 @@ export default function SignIn() {
   const { mutate: loginMutation, isPending } = useMutation(
     _trpc.user.login.mutationOptions({
       onSuccess(data) {
+        console.log({ data });
         auth.onLogin(data);
       },
-      onError() {
+      onError(error) {
+        console.log(error);
         Alert.alert("Sign In Failed", "Unable to signin");
       },
       meta: {
@@ -55,7 +57,6 @@ export default function SignIn() {
       },
     })
   );
-  const { data } = useQuery(_trpc.jobs.adminAnalytics.queryOptions({}));
   const signIn = async (data) => {
     loginMutation(data);
   };

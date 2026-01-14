@@ -18,6 +18,9 @@ export const userRoutes = createTRPCRouter({
   auth: publicProcedure.query(async (props) => {
     return auth(props.ctx);
   }),
+  loginExample: publicProcedure.input(loginSchema).mutation(async (props) => {
+    return {};
+  }),
   login: publicProcedure.input(loginSchema).mutation(async (props) => {
     const data = await login(props.ctx, props.input);
     if (!data) throw Error("Invalid credential");
