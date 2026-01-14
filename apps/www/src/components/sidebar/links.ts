@@ -228,7 +228,7 @@ const profileSection = _section("settings", null, [
     ).access(_role.is("Super Admin")).data,
 ]);
 
-const canEditProject = _perm.is("editProject");
+const canEditProject = _perm.in("editProject", "editCommunity");
 export const linkModules = [
     _module("HRM", "hrm", "GND HRM", [
         _section("", null, [
@@ -291,7 +291,7 @@ export const linkModules = [
                         "/community/unit-productions"
                     ).access(
                         // canEditProject,
-                        _perm.is("editProduction")
+                        _perm.in("editCommunity", "editProduction")
                     ).data,
                     _subLink("Templates", "/community/templates")
                         .access(canEditProject)
@@ -308,7 +308,7 @@ export const linkModules = [
                     ).data,
                     _subLink("Builders", "/community/builders").access(
                         // canEditProject,
-                        _perm.is("viewBuilders")
+                        _perm.in("editCommunity", "viewBuilders")
                     ).data,
                 ]
             )
