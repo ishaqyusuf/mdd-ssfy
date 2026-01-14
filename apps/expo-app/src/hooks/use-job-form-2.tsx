@@ -167,7 +167,9 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
         });
         setTab("completed");
       },
-      onError(error, variables, onMutateResult, context) {},
+      onError(error, variables, onMutateResult, context) {
+        console.log({ error, variables });
+      },
       meta: {
         toastTitle: {
           error: "Unable to complete",

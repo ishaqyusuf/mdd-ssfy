@@ -319,8 +319,16 @@ export const createJobSchema = z
         code: "custom",
       });
     if (!data?.isCustom && data.mode != "assign") {
+      console.log({ data });
       Object.entries(data?.tasks).map(([k, data]) => {
-        if (data.qty == null || data.maxQty == null || data.qty <= data.maxQty)
+        if (data.qty && !data.maxQty) {
+          ctx.addIssue({
+            message: "qty cannot be greater than maxQty",
+            path: [`tasks.${k}.qty`],
+            code: "custom",
+          });
+        }
+        if (data.qty && data.maxQty && data.qty > data.maxQty)
           ctx.addIssue({
             message: "qty cannot be greater than maxQty",
             path: [`tasks.${k}.qty`],

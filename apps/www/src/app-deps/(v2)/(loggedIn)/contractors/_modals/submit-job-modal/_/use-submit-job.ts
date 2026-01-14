@@ -74,6 +74,7 @@ export default function useSubmitJob(form) {
                     return;
                 }
                 job.meta.costData = {};
+                job.meta.addon = 0;
             }
             job.meta.taskCost = submitJobUtils.totalTaskCost(job.meta.costData);
             // if(!job.id)
