@@ -5,6 +5,7 @@ import { JobSubmittedStep } from "@/components/forms/job/job-submitted-step";
 import { SelectCoWorkerStep } from "@/components/forms/job/select-coworker-step";
 import { SelectProjectStep } from "@/components/forms/job/select-project-step";
 import { SelectUnitStep } from "@/components/forms/job/select-unit-step";
+import { SafeArea } from "@/components/safe-area";
 
 import { Tabs } from "@/components/ui/composite";
 import {
@@ -27,7 +28,7 @@ function Content() {
   const { tab } = useJobFormContext();
   return (
     <View className="flex-1 flex flex-col">
-      <JobFormHeader />
+      {tab == "completed" || <JobFormHeader />}
 
       <Tabs className="flex-1" onValueChange={(e) => {}} value={tab}>
         <TabsContent value="project">
@@ -47,7 +48,9 @@ function Content() {
         </TabsContent>
         <TabsContent value="completed">
           {/* <SelectCoWorkerStep /> */}
-          <JobSubmittedStep />
+          <SafeArea>
+            <JobSubmittedStep />
+          </SafeArea>
         </TabsContent>
       </Tabs>
     </View>

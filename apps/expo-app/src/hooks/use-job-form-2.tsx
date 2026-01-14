@@ -47,10 +47,10 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
       },
       projectId: null,
       title: "",
-      description: null,
+      description: "",
       homeId: null,
       subtitle: null,
-      additionalCost: null,
+      additionalCost: undefined as any,
       additionalReason: "",
       status: props.admin ? "Assigned" : "Started",
     },
@@ -253,7 +253,7 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
             const role = profile?.role?.name;
             values.type = getJobType(role);
           }
-          // saveJob(values as any);
+          saveJob(values as any);
         },
         (errs) => {
           setErrors(errs);

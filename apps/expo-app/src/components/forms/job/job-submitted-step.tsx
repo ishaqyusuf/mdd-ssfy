@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
 import { _push, _replace } from "@/components/static-router";
 import { PressableLink } from "@/components/pressable-link";
+import { formatDate } from "@gnd/utils/dayjs";
 
 // --- Mock Data ---
 const jobDetails = {
@@ -58,7 +59,12 @@ export function JobSubmittedStep() {
       <View className="flex-1">
         {/* Top Close Button */}
         <View className="flex-row items-center p-4 pb-2 justify-between">
-          <Pressable className="flex size-12 items-center justify-center rounded-full">
+          <Pressable
+            onPress={(e) => {
+              _replace("/");
+            }}
+            className="flex size-12 items-center justify-center rounded-full"
+          >
             <Icon name="X" size={24} className="text-foreground" />
           </Pressable>
           <View className="size-12" />
@@ -68,21 +74,21 @@ export function JobSubmittedStep() {
         <View className="flex-1 items-center justify-center w-full max-w-md mx-auto px-6 -mt-10">
           {/* Success Indicator */}
           <View className="mb-6 items-center justify-center">
-            <RadialGradient
+            {/* <RadialGradient
               colors={[`${colors.primary}33`, `${colors.primary}00`]}
               stops={[0, 1]}
               radius={96}
               className="absolute scale-150"
-            />
+            /> */}
             <View
+              // style={{
+              //   shadowColor: colors.primary,
+              //   shadowOffset: { width: 0, height: 0 },
+              //   shadowOpacity: 0.6,
+              //   shadowRadius: 20,
+              //   elevation: 10, // for Android
+              // }}
               className="relative flex items-center justify-center w-24 h-24 rounded-full bg-primary"
-              style={{
-                shadowColor: colors.primary,
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.6,
-                shadowRadius: 20,
-                elevation: 10, // for Android
-              }}
             >
               <Icon
                 name="Check"
@@ -95,7 +101,9 @@ export function JobSubmittedStep() {
           {/* Headline & Body Text */}
           <Text className="text-foreground tracking-tight text-[32px] font-bold leading-tight text-center pb-3">
             {/* Job {ctx?.admin ? "Assigned" : "Submitted"}! */}
-            Job Assigned!
+            {ctx?.formData?.isCustom
+              ? "Submitted for review!"
+              : "Job Assigned!"}
           </Text>
           <Text className="text-muted-foreground text-base font-normal leading-relaxed text-center pb-8 max-w-70">
             The job details have been uploaded successfully.
@@ -109,7 +117,7 @@ export function JobSubmittedStep() {
                   Job ID
                 </Text>
                 <Text className="text-lg font-bold text-foreground">
-                  {jobDetails.id}
+                  #{ctx?.savedData?.id}
                 </Text>
               </View>
               <View className="flex-col text-right">
@@ -117,7 +125,7 @@ export function JobSubmittedStep() {
                   Date
                 </Text>
                 <Text className="text-sm font-medium text-muted-foreground">
-                  {jobDetails.date}
+                  {formatDate(ctx?.savedData?.date)}
                 </Text>
               </View>
             </View>
@@ -128,7 +136,7 @@ export function JobSubmittedStep() {
               />
               <View className="flex-col gap-1">
                 <Text className="text-sm font-medium text-foreground">
-                  {jobDetails.title}
+                  {ctx?.savedData?.title || "custom"}
                 </Text>
                 <View className="flex-row items-center gap-1">
                   <Icon
@@ -137,7 +145,7 @@ export function JobSubmittedStep() {
                     className="text-muted-foreground"
                   />
                   <Text className="text-xs text-muted-foreground">
-                    {jobDetails.location}
+                    {ctx?.savedData?.subtitle || "custom"}
                   </Text>
                 </View>
               </View>

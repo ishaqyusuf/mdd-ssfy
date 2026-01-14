@@ -280,6 +280,7 @@ export const createJobSchema = z
       .nullable(),
     status: z.string().optional().nullable(),
     note: z.string().optional().nullable(),
+    date: z.date().optional().nullable(),
     projectId: z.number().optional().nullable(),
     coWorkerJobId: z.number().optional().nullable(),
     homeId: z.number().optional().nullable(),
@@ -445,6 +446,7 @@ export async function getJobForm(ctx: TRPCContext, query: GetJobFormSchema) {
     note: main?.note,
     additionalReason: mainMeta?.additionalCostReason,
     addon: mainMeta?.addon,
+    date: main?.createdAt,
     coWorker: co
       ? {
           id: co?.user?.id,

@@ -32,9 +32,9 @@ export default function Home2() {
                 className="w-full h-16 bg-primary rounded-full flex-row items-center justify-center gap-4"
               >
                 <Icon
-                  name="PlusCircle"
-                  className="text-muted-foreground"
-                  size={28}
+                  name="Plus"
+                  className="text-primary-foreground"
+                  size={24}
                 />
                 <Text className="text-primary-foreground text-lg font-bold">
                   Add New Job

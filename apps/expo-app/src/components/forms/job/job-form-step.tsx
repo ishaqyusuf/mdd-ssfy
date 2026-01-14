@@ -39,7 +39,7 @@ export function JobFormStep() {
                     className="relative justify-center"
                   >
                     <View
-                      className="flex w-full rounded-xl border border-borders border-muted-foreground bg-card h-14 px-5 flex-row items-center text-base text-foreground"
+                      className="flex w-full rounded-xl border border-border bg-card h-14 px-5 flex-row items-center text-base text-foreground"
                       // placeholder="e.g. Smith Residence Renovation"
                       // defaultValue="Project Alpha (Default)"
                     >
@@ -78,7 +78,7 @@ export function JobFormStep() {
                         onChangeText={field.onChange}
                         multiline
                         className={cn(
-                          "flex w-full rounded-lg border border-muted-foreground bg-card min-h-30 px-5 py-4 text-base text-foreground align-text-top",
+                          "flex w-full rounded-lg  bg-card min-h-30 px-5 py-4 text-base text-foreground align-text-top",
                           fieldState?.error && "border-destructive"
                         )}
                         placeholder="Enter specific job details, access codes, or warnings..."
@@ -106,14 +106,14 @@ export function JobFormStep() {
                         render={({ field, fieldState }) => (
                           <Input
                             // defaultValue={ctx.form.getValues('additionalCost')}
-                            value={field.value as any}
+                            value={String(field.value ? field.value : "")}
                             onChangeText={(t) => {
                               if (t?.length) field.onChange(+t);
-                              else field.onChange(null);
+                              // else field.onChange(null);
                               // ctx.form.setValue("additionalCost", +t);
                             }}
                             className={cn(
-                              "flex w-full rounded-xl border border-muted-foreground h-14 pl-15 pr-5 text-base text-foreground",
+                              "flex w-full rounded-xl border h-14 pl-15 pr-5 text-base text-foreground",
                               fieldState?.error && "border-destructive"
                             )}
                             placeholder="0.00"
@@ -123,23 +123,6 @@ export function JobFormStep() {
                       />
                     </View>
                   </View>
-                  {/* <View className="flex-col gap-2">
-                          <Text className="text-sm font-semibold text-muted-foreground ml-2">
-                            Reason
-                          </Text>
-                          <Controller
-                            control={ctx.form.control}
-                            name="additionalReason"
-                            render={({ field, fieldState }) => (
-                              <Input
-                                value={field.value!}
-                                onChangeText={field.onChange}
-                                className="h-14"
-                                placeholder="e.g. Rush fee, Materials..."
-                              />
-                            )}
-                          />
-                        </View> */}
                 </View>
               </View>
             )}

@@ -38,14 +38,14 @@ export async function getSenderId(db, authId) {
         name_email_phoneNo: {
           email: email,
           name: name as any,
-          phoneNo: phoneNo as any,
+          phoneNo: phoneNo || ("" as any),
         },
       },
       update: {},
       create: {
         email: email,
         name: name as any,
-        phoneNo: phoneNo,
+        phoneNo: phoneNo || "",
       },
     })
   ).id;
