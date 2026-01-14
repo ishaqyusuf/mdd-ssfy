@@ -19,7 +19,7 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@gnd/ui/tanstack";
 import { triggerTask } from "@/actions/trigger-task";
 import { Item } from "@gnd/ui/composite";
-import { _trpc } from "@/components/static-trpc";
+import { _qc, _trpc } from "@/components/static-trpc";
 
 export type Item = PageItemData<typeof getEmployees>;
 export const columns: ColumnDef<Item>[] = [
@@ -211,6 +211,9 @@ function Role({ item }: { item: Item }) {
         loader.loading("Updating...");
         await updateEmployeeRole(item.id, roleId);
         loader.success("Updated.");
+        // _qc.invalidateQueries({
+        //     queryKey: _trpc.hrm.getEmployees.
+        // })
     }
     return (
         <AuthGuard

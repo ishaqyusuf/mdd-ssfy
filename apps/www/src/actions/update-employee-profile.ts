@@ -1,7 +1,6 @@
 "use server";
 
 import { prisma } from "@/db";
-import { revalidateTag } from "next/cache";
 import { createSiteActionTicket } from "./create-site-action-ticket";
 
 export async function updateEmployeeProfile(id, profileId) {
@@ -32,7 +31,4 @@ export async function updateEmployeeProfile(id, profileId) {
             description: `${user.name} profile updated to ${user?.employeeProfile?.name}`,
         },
     });
-    revalidateTag("employee-profiles");
-    revalidateTag("employees");
-    revalidateTag(`user_${id}`);
 }

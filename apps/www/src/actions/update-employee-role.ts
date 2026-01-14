@@ -20,6 +20,9 @@ export async function updateEmployeeRole(id, roleId) {
             // customerTypeId: profileId,
             roles: {
                 create: {
+                    organization: {
+                        connect: { id: 1 },
+                    },
                     role: {
                         connect: {
                             id: roleId,
@@ -49,7 +52,4 @@ export async function updateEmployeeRole(id, roleId) {
             // description,
         },
     });
-    revalidateTag("roles");
-    revalidateTag("employees");
-    revalidateTag(`user_${id}`);
 }
