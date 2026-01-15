@@ -1,7 +1,7 @@
 // apps/expo-app/src/components/forms/job/select-project-step.tsx
 import { ScrollView, Text, View } from "react-native";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
-import { SearchInput } from "./search-input";
+import { SearchInput } from "../../search-input";
 import { JobSelectCoWorkerList } from "./workers-select-list";
 import { Titles } from "@/components/titles";
 import { useSearch } from "@/hooks/use-search";

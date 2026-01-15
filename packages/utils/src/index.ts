@@ -3,12 +3,15 @@ import dayjs from "./dayjs";
 import { hash } from "bcrypt-ts";
 // import * as util from "util";
 import _ from "lodash";
-export { padStart } from "lodash";
+
 import dotObject from "dot-object";
 import JsonSearch from "./json-search";
 export { dotObject };
 export function insertAt<T>(array: T[], index: number, item: T) {
   return _.concat(_.slice(array, 0, index), [item], _.slice(array, index));
+}
+export function padStart(value, len: number, padding: string) {
+  return _.padStart(String(value), len, padding);
 }
 export const devMode = process.env.NODE_ENV != "production";
 export function dbConnect(id) {

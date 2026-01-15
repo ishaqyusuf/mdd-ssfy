@@ -12,6 +12,8 @@ import { Icon, IconProps } from "../ui/icon";
 import { JobAdminNavs } from "./job-admin-navs";
 
 import { usePathname, useRouter } from "expo-router";
+import { SafeArea } from "../safe-area";
+import { Debug } from "../debug";
 /**
  * MOCK DATA
  */
@@ -64,12 +66,12 @@ const JOBS = [
 
 export default function JobQueueScreen() {
   return (
-    <SafeAreaView className="flex-1 bg-background pt-8">
+    <SafeArea>
       {/* HEADER */}
-      <View className="px-6 pb-6 flex-row justify-between items-center bg-background z-10">
+      <View className="pt-8 px-6 pb-6 flex-row justify-between items-center z-10">
         <View>
           <Text className="text-foreground text-2xl font-bold tracking-tight">
-            Job Queue
+            Jobs
           </Text>
           <Text className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
             Admin Dashboard
@@ -146,8 +148,10 @@ export default function JobQueueScreen() {
       </Pressable>
 
       {/* BOTTOM NAVIGATION */}
-      <JobAdminNavs />
-    </SafeAreaView>
+      <Debug>
+        <JobAdminNavs />
+      </Debug>
+    </SafeArea>
   );
 }
 

@@ -1,19 +1,27 @@
 import { HeaderContainer } from "@/components/header-container";
-import { AdminJobsItem } from "@/components/jobs-item-admin";
+import { JobsItem } from "@/components/jobs-item";
+import { LoggedInAvatar } from "@/components/logged-in-avatar";
 import { PressableLink } from "@/components/pressable-link";
 import { _trpc } from "@/components/static-trpc";
 import { Titles } from "@/components/titles";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { useAuthContext } from "@/hooks/use-auth";
+import {
+  HomeProvider,
+  useCreateHomeContext,
+  useHomeContext,
+} from "@/context/home-context";
 import { LegendList } from "@legendapp/list";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useRef } from "react";
-import { Animated, View } from "react-native";
+import { View } from "react-native";
 export function JobsAdminHome() {
   return (
-    <>
+    <HomeProvider
+      value={useCreateHomeContext({
+        jobsProps: { admin: true, recent: true },
+      })}
+    >
       <Header />
       {/* <ScrollView
         className="flex-1"
@@ -22,38 +30,12 @@ export function JobsAdminHome() {
 
       <Content />
       {/* </ScrollView> */}
-    </>
+    </HomeProvider>
   );
 }
 function Content() {
-  const { data, isPending } = useQuery(
-    _trpc.jobs.getJobs.queryOptions({
-      size: 5,
-      //   userId: profile.user.id,
-    })
-  );
+  const { jobsCtx } = useHomeContext();
   const params = useLocalSearchParams();
-  console.log({ params });
-  const translateY = params.scrollAnimatedValue as unknown as Animated.Value;
-
-  const onScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: translateY } } }],
-    { useNativeDriver: true }
-  );
-
-  const hideTab = translateY?.interpolate?.({
-    inputRange: [0, 50],
-    outputRange: [0, 70], // tab height
-    extrapolate: "clamp",
-  });
-
-  const scrollY = useRef(new Animated.Value(0)).current;
-
-  const tabTranslate = scrollY.interpolate({
-    inputRange: [0, 50],
-    outputRange: [0, 70], // hide tab bar
-    extrapolate: "clamp",
-  });
 
   return (
     <View className="gap-4 flex-1">
@@ -62,7 +44,7 @@ function Content() {
         //   [{ nativeEvent: { contentOffset: { y: translateY } } }],
         //   { useNativeDriver: true }
         // )}
-        scrollEventThrottle={16}
+        // scrollEventThrottle={16}
         ListHeaderComponent={
           <View className="gap-4 px-4 my-4">
             <StatsGrid />
@@ -81,10 +63,10 @@ function Content() {
             </View>
           </View>
         }
-        data={data?.data || []}
+        data={jobsCtx?.items || []}
         renderItem={({ item }) => (
           <>
-            <AdminJobsItem item={item} />
+            <JobsItem item={item} />
           </>
         )}
         keyExtractor={(item) => String(item.id)}
@@ -205,14 +187,10 @@ function AssignButton() {
   );
 }
 function Header() {
+  // const auth = useAuthContext();
   return (
     <HeaderContainer>
-      <View className="relative">
-        <View className="h-11 w-11 rounded-full bg-muted items-center justify-center border-2 border-card shadow-sm overflow-hidden">
-          <Text className="text-lg font-bold text-muted-foreground">AO</Text>
-        </View>
-        <View className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-primary border-2 border-background" />
-      </View>
+      <LoggedInAvatar />
       <Titles.HeaderTitle headline="Dashboard" title="Admin Overview" />
 
       <View className="flex-1" />

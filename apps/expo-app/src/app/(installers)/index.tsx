@@ -1,9 +1,8 @@
 import { Debug } from "@/components/debug";
 import { InstallerDashboardHeader2 } from "@/components/installer-dashboard/installer-dashboard-header-2";
 import { JobAnalytics2 } from "@/components/installer-dashboard/job-analytics-2";
-import { JobListItem2 } from "@/components/jobs-item-installer";
+import { JobsItem } from "@/components/jobs-item";
 import { _push } from "@/components/static-router";
-
 import { Icon } from "@/components/ui/icon";
 import { HomeProvider, useCreateHomeContext } from "@/context/home-context";
 import { LegendList } from "@legendapp/list";
@@ -14,7 +13,11 @@ import { Pressable, Text, TouchableOpacity, View } from "react-native";
 // The component is named Home2 to match the filename.
 
 export default function Home2() {
-  const ctx = useCreateHomeContext();
+  const ctx = useCreateHomeContext({
+    jobsProps: {
+      recent: true,
+    },
+  });
   return (
     <HomeProvider value={ctx}>
       <InstallerDashboardHeader2 />
@@ -26,7 +29,7 @@ export default function Home2() {
             <View className="px-5 mt-6">
               <TouchableOpacity
                 onPress={(e) => {
-                  router.push("/(installers)/create");
+                  _push("/(installers)/create");
                 }}
                 className="w-full h-16 bg-primary rounded-full flex-row items-center justify-center gap-4"
               >
@@ -61,8 +64,8 @@ export default function Home2() {
           </>
         }
         refreshing={ctx.isRefreshing}
-        data={ctx?.recentJobs}
-        renderItem={({ item }) => <JobListItem2 item={item} />}
+        data={ctx?.jobsCtx?.items}
+        renderItem={({ item }) => <JobsItem item={item} />}
         ListEmptyComponent={
           <View className="px-4 mb-32">
             <View className="min-h-75 items-center justify-center rounded-2xl bg-card/40 border-2 border-dashed border-muted/20 p-8">

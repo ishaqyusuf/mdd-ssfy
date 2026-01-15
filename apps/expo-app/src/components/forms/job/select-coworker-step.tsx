@@ -4,7 +4,7 @@ import { useJobFormContext } from "@/hooks/use-job-form-2";
 
 import { JobSelectCoWorkerList } from "./workers-select-list";
 import { Titles } from "@/components/titles";
-import { SearchInput } from "./search-input";
+import { SearchInput } from "../../search-input";
 import { useSearch } from "@/hooks/use-search";
 
 export type Project = {

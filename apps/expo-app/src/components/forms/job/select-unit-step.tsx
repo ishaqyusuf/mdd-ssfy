@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
 import { JobSelectUnitList } from "./job-select-unit-list";
 import { useSearch } from "@/hooks/use-search";
-import { SearchInput } from "./search-input";
+import { SearchInput } from "../../search-input";
 
 export type Project = {
   id: string;

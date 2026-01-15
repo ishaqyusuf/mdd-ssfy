@@ -5,6 +5,7 @@ export let _router: Router;
 export let _goBack: Router["back"];
 export let _push: Router["push"];
 export let _replace: Router["replace"];
+export let _setRouteParams: Router["setParams"];
 
 export function StaticRouter() {
   _router = useRouter();
@@ -12,6 +13,7 @@ export function StaticRouter() {
   _goBack = _router?.back;
   _push = _router?.push;
   _replace = _router?.replace;
+  _setRouteParams = _router?.setParams;
 
   return null; // nothing to render
 }

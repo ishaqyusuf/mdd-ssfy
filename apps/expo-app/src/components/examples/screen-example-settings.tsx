@@ -3,6 +3,9 @@ import { View, Text, Pressable, ScrollView } from "react-native";
 import { Icon } from "../ui/icon";
 import { useRouter } from "expo-router";
 import { useAuthContext } from "@/hooks/use-auth";
+import { padStart } from "@gnd/utils";
+import { Debug } from "../debug";
+import { BackBtn } from "../back-btn";
 export default function SettingsExampleScreen() {
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(false);
@@ -13,9 +16,8 @@ export default function SettingsExampleScreen() {
     <View className="flex-1 bg-background">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 pt-14 pb-4 border-b border-border bg-background">
-        <Pressable className="h-10 w-10 items-center justify-center rounded-full active:bg-secondary">
-          <Icon name="ChevronLeft" className="text-foreground" size={24} />
-        </Pressable>
+        <BackBtn />
+
         <Text className="text-lg font-bold text-foreground">Settings</Text>
         <View className="h-10 w-10" />
       </View>
@@ -33,10 +35,10 @@ export default function SettingsExampleScreen() {
               </View>
               <View>
                 <Text className="text-base font-bold text-foreground">
-                  Alex Morgan
+                  {auth?.profile?.user?.name}
                 </Text>
                 <Text className="text-sm text-muted-foreground">
-                  Contractor ID: #8821
+                  Contractor ID: #{padStart(auth?.profile?.user?.id, 4, "0")}
                 </Text>
               </View>
             </View>
@@ -49,115 +51,118 @@ export default function SettingsExampleScreen() {
               <Icon name="Pencil" className="text-primary" size={18} />
             </Pressable>
           </View>
+          <Debug>
+            {/* Preferences Section */}
+            <Section title="PREFERENCES">
+              <SettingsItem
+                icon="Bell"
+                label="Push Notifications"
+                isLast={false}
+                rightElement={
+                  <Toggle
+                    value={pushEnabled}
+                    onValueChange={() => setPushEnabled(!pushEnabled)}
+                  />
+                }
+              />
+              <SettingsItem
+                icon="Mail"
+                label="Email Notifications"
+                isLast={false}
+                rightElement={
+                  <Toggle
+                    value={emailEnabled}
+                    onValueChange={() => setEmailEnabled(!emailEnabled)}
+                  />
+                }
+              />
+              <SettingsItem
+                icon="Globe"
+                label="Language"
+                isLast={true}
+                rightElement={
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-sm text-muted-foreground">
+                      English
+                    </Text>
+                    <Icon
+                      name="ChevronRight"
+                      className="text-muted-foreground"
+                      size={20}
+                    />
+                  </View>
+                }
+              />
+            </Section>
 
-          {/* Preferences Section */}
-          <Section title="PREFERENCES">
-            <SettingsItem
-              icon="Bell"
-              label="Push Notifications"
-              isLast={false}
-              rightElement={
-                <Toggle
-                  value={pushEnabled}
-                  onValueChange={() => setPushEnabled(!pushEnabled)}
-                />
-              }
-            />
-            <SettingsItem
-              icon="Mail"
-              label="Email Notifications"
-              isLast={false}
-              rightElement={
-                <Toggle
-                  value={emailEnabled}
-                  onValueChange={() => setEmailEnabled(!emailEnabled)}
-                />
-              }
-            />
-            <SettingsItem
-              icon="Globe"
-              label="Language"
-              isLast={true}
-              rightElement={
-                <View className="flex-row items-center gap-2">
-                  <Text className="text-sm text-muted-foreground">English</Text>
+            {/* Privacy & Data Section */}
+            <Section title="PRIVACY & DATA">
+              <SettingsItem
+                icon="MapPin"
+                label="Location Access"
+                subLabel="For job tracking accuracy"
+                isLast={false}
+                rightElement={
+                  <Toggle
+                    value={locationEnabled}
+                    onValueChange={() => setLocationEnabled(!locationEnabled)}
+                  />
+                }
+              />
+              <SettingsItem
+                icon="Lock"
+                label="Privacy Settings"
+                isLast={false}
+                rightElement={
                   <Icon
                     name="ChevronRight"
                     className="text-muted-foreground"
                     size={20}
                   />
-                </View>
-              }
-            />
-          </Section>
+                }
+              />
+              <SettingsItem
+                icon="PieChart"
+                label="Data Usage"
+                isLast={true}
+                rightElement={
+                  <Icon
+                    name="ChevronRight"
+                    className="text-muted-foreground"
+                    size={20}
+                  />
+                }
+              />
+            </Section>
 
-          {/* Privacy & Data Section */}
-          <Section title="PRIVACY & DATA">
-            <SettingsItem
-              icon="MapPin"
-              label="Location Access"
-              subLabel="For job tracking accuracy"
-              isLast={false}
-              rightElement={
-                <Toggle
-                  value={locationEnabled}
-                  onValueChange={() => setLocationEnabled(!locationEnabled)}
-                />
-              }
-            />
-            <SettingsItem
-              icon="Lock"
-              label="Privacy Settings"
-              isLast={false}
-              rightElement={
-                <Icon
-                  name="ChevronRight"
-                  className="text-muted-foreground"
-                  size={20}
-                />
-              }
-            />
-            <SettingsItem
-              icon="PieChart"
-              label="Data Usage"
-              isLast={true}
-              rightElement={
-                <Icon
-                  name="ChevronRight"
-                  className="text-muted-foreground"
-                  size={20}
-                />
-              }
-            />
-          </Section>
-
-          {/* Support Section */}
-          <Section title="SUPPORT">
-            <SettingsItem
-              icon="HelpCircle"
-              label="Help & Support"
-              isLast={false}
-              rightElement={
-                <Icon
-                  name="ChevronRight"
-                  className="text-muted-foreground"
-                  size={20}
-                />
-              }
-            />
-            <SettingsItem
-              icon="Info"
-              label="About App"
-              isLast={true}
-              rightElement={
-                <Icon
-                  name="ChevronRight"
-                  className="text-muted-foreground"
-                  size={20}
-                />
-              }
-            />
-          </Section>
+            {/* Support Section */}
+            <Section title="SUPPORT">
+              <SettingsItem
+                icon="HelpCircle"
+                label="Help & Support"
+                isLast={false}
+                rightElement={
+                  <Icon
+                    name="ChevronRight"
+                    className="text-muted-foreground"
+                    size={20}
+                  />
+                }
+              />
+              <SettingsItem
+                icon="Info"
+                label="About App"
+                isLast={true}
+                rightElement={
+                  <Icon
+                    name="ChevronRight"
+                    className="text-muted-foreground"
+                    size={20}
+                  />
+                }
+              />
+            </Section>
+          </Debug>
 
           {/* Logout & Version */}
           <View className="items-center gap-4 pt-2 pb-6">
@@ -180,12 +185,12 @@ export default function SettingsExampleScreen() {
       </ScrollView>
 
       {/* Bottom Tab Bar */}
-      <View className="flex-row justify-around border-t border-border bg-background/95 py-3 pb-8">
+      {/* <View className="flex-row justify-around border-t border-border bg-background/95 py-3 pb-8">
         <TabItem icon="Home" label="Home" />
         <TabItem icon="ClipboardList" label="Jobs" />
         <TabItem icon="Wallet" label="Payments" />
         <TabItem icon="Settings" label="Settings" active />
-      </View>
+      </View> */}
     </View>
   );
 }

@@ -1,5 +1,3 @@
-import { MaterialIcons } from "@expo/vector-icons";
-import { useColorScheme } from "nativewind";
 import React from "react";
 import { Controller } from "react-hook-form";
 import {
@@ -16,18 +14,15 @@ import { Label } from "@/components/ui/label";
 import { useZodForm } from "@/components/use-zod-form";
 import { signInSchema } from "@/lib/schemas/auth";
 import { Input } from "@/components/ui/input-2";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
 import { useAuthContext } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Icon } from "@/components/ui/icon";
 
-import { Var } from "@/components/variant";
 import { SafeArea } from "@/components/safe-area";
 
 export default function SignIn() {
-  const { colorScheme } = useColorScheme();
-
   const form = useZodForm(signInSchema, {
     defaultValues: {
       email: process.env.EXPO_PUBLIC_EMAIL?.split(",")?.[0]!,
@@ -155,8 +150,6 @@ export default function SignIn() {
               <Text className="text-primary font-medium">Forgot Password?</Text>
             </TouchableOpacity>
           </View>
-
-          <Var />
 
           {!testEmails?.length || (
             <View className="flex flex-wrap flex-row">

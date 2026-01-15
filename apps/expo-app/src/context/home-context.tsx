@@ -2,12 +2,27 @@ import { _trpc } from "@/components/static-trpc";
 import { getSessionProfile } from "@/lib/session-store";
 import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext } from "react";
+import { JobsContext, JobsProps, useCreateJobsContext } from "./jobs-context";
 
 type HomeContextProps = ReturnType<typeof useCreateHomeContext>;
 export const HomeContext = createContext<HomeContextProps>(undefined as any);
-export const HomeProvider = HomeContext.Provider;
-export const useCreateHomeContext = () => {
+export const HomeProvider = ({
+  value,
+  children,
+}: {
+  value: HomeContextProps;
+  children;
+}) => (
+  <HomeContext.Provider value={value}>
+    <JobsContext value={value.jobsCtx}>{children}</JobsContext>
+  </HomeContext.Provider>
+);
+interface Props {
+  jobsProps: JobsProps;
+}
+export const useCreateHomeContext = (props: Props) => {
   const profile = getSessionProfile();
+  const jobsCtx = useCreateJobsContext(props.jobsProps);
   const { data, isPending, isRefetching, refetch } = useQuery(
     _trpc.jobs.getJobs.queryOptions({
       size: 5,
@@ -15,7 +30,8 @@ export const useCreateHomeContext = () => {
     })
   );
   return {
-    recentJobs: data?.data || [],
+    // recentJobs: data?.data || [],
+    jobsCtx,
     isRefreshing: isRefetching,
     refresh() {
       refetch();
