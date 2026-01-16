@@ -2,6 +2,7 @@ import { AdminJobReviewCard } from "@/components/admin-job-review-card";
 import { BackBtn } from "@/components/back-btn";
 import { JobFooterContractor } from "@/components/job-footer-contractor";
 import { SafeArea } from "@/components/safe-area";
+import { Status } from "@/components/status";
 import { Icon } from "@/components/ui/icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -23,7 +24,7 @@ import { ScrollView } from "react-native-gesture-handler";
 function Header() {
   // const { isPending, job } = useJobContext();
   return (
-    <View className="sticky top-0 z-30 bg-background px-5 py-4 flex-row items-center gap-4">
+    <View className="sticky top-0 z-30  px-5 py-4 flex-row items-center gap-4">
       <BackBtn />
       <Text className="text-lg font-bold flex-1 text-center text-foreground pr-11">
         Job Overview
@@ -36,7 +37,8 @@ function StatusBadge() {
   const { job } = useJobContext();
   return (
     <View className="flex-row items-center gap-2 mb-2">
-      <View
+      <Status value={job?.status} />
+      {/* <View
         style={{
           backgroundColor: getColorFromName(job?.status!),
           borderRadius: 999,
@@ -48,10 +50,12 @@ function StatusBadge() {
             {job?.status}
           </Text>
         </View>
-      </View>
+      </View> */}
       <Text className="text-xs text-muted-foreground font-medium">
         #JB-{job!.id}
       </Text>
+      <View className="flex-1" />
+      {job?.isCustom && <Status value={"Custom"} />}
     </View>
   );
 }

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { BlurView } from "@/components/blur-view";
 import { useJobContext } from "@/hooks/use-job";
 import { _push } from "./static-router";
+import { Debug } from "./debug";
 
 export function JobFooterContractor() {
   const { bottom } = useSafeAreaInsets();
@@ -39,7 +40,7 @@ export function JobFooterContractor() {
                 </Pressable>
               </>
             ) : (
-              <>
+              <Debug>
                 <Pressable
                   //   disabled={ctx.isSaving}
                   onPress={(e) => {
@@ -54,7 +55,7 @@ export function JobFooterContractor() {
                   </Text>
                   <Icon name="X" className="text-destructive-foreground" />
                 </Pressable>
-              </>
+              </Debug>
             )}
           </View>
         </View>

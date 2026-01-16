@@ -2,8 +2,8 @@ import { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
   name: "GND Millwork",
-  // slug: "gnd-prodesk",
-  slug: "prodesk",
+  slug: "gnd-prodesk",
+  // slug: "prodesk",
   version: "1.0.108",
   orientation: "portrait",
   icon: "./assets/icons/adaptive-icon.png",
@@ -64,17 +64,17 @@ const config: ExpoConfig = {
   extra: {
     router: {},
     eas: {
-      // projectId: "8ea2eecb-4109-453c-827f-9b2de2e3a9aa", //pcruz321
-      projectId: "1914ffbf-8d95-482a-af7e-e4e30a6206eb", //ishaqyusuf2
+      projectId: "8ea2eecb-4109-453c-827f-9b2de2e3a9aa", //pcruz321
+      // projectId: "1914ffbf-8d95-482a-af7e-e4e30a6206eb", //ishaqyusuf2
       // projectId: "41f31ec0-9c44-4b41-af01-9a23d1b39d83", //ishaqyusuf
     },
   },
   // owner: "pcruz321",
   owner: "ishaqyusuf2",
   updates: {
-    // url: "https://u.expo.dev/8ea2eecb-4109-453c-827f-9b2de2e3a9aa", //pcruz321
+    url: "https://u.expo.dev/8ea2eecb-4109-453c-827f-9b2de2e3a9aa", //pcruz321
     // url: "https://u.expo.dev/41f31ec0-9c44-4b41-af01-9a23d1b39d83", //ishaqyusuf
-    url: "https://u.expo.dev/1914ffbf-8d95-482a-af7e-e4e30a6206eb", //ishaqyusuf2
+    // url: "https://u.expo.dev/1914ffbf-8d95-482a-af7e-e4e30a6206eb", //ishaqyusuf2
   },
   runtimeVersion: {
     policy: "appVersion",

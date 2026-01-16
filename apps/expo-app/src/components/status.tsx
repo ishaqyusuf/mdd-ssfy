@@ -190,6 +190,7 @@ export type StatusVariantProps = StatusVariants["variant"];
 interface Props {
   children?;
   value?;
+  light?: boolean;
   style?: StatusVariants["style"];
 }
 export function Status(props: Props) {
@@ -200,6 +201,7 @@ export function Status(props: Props) {
         "",
         statusVariant({
           variant,
+          style: props.style,
         })
       )}
     >
@@ -207,6 +209,7 @@ export function Status(props: Props) {
         className={cn(
           statusTextVariant({
             variant,
+            style: props.style,
           })
         )}
       >

@@ -18,7 +18,7 @@ export function JobsItem({ item }: { item: JobItem }) {
     // <View className="px-5">
     <PressableLink
       href={`/job/${item.id}`}
-      className={`bg-card rounded-2xl p-5 border ${
+      className={`group bg-card rounded-2xl p-5 border active:scale-[0.98] transition-all ${
         isUrgent ? "border-destructive" : "border-border"
       } shadow-sm mb-4 mx-4`}
     >
@@ -79,11 +79,11 @@ export function JobsItem({ item }: { item: JobItem }) {
             </>
           )}
         </View>
-        <Status value={item?.status} />
+        <Status value={item?.status} style={"light"} />
       </View>
-      {item?.isCustom || (
+      {item?.isCustom && (
         <View className="flex-row">
-          <Status value={"Custom"}></Status>
+          <Status style={"light"} value={"Custom"}></Status>
         </View>
       )}
       {/* Contractor Row */}

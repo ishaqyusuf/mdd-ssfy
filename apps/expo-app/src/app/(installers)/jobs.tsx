@@ -1,4 +1,6 @@
 import { Icon, IconProps } from "@/components/ui/icon";
+import { JobsProvider, useCreateJobsContext } from "@/context/jobs-context";
+import { JobsScreen } from "@/screens/jobs-screen";
 import React from "react";
 import {
   ScrollView,
@@ -100,7 +102,7 @@ const JobCard = ({
   opacityClass?: string;
 }) => (
   <TouchableOpacity
-    className={`group relative flex flex-col gap-3 bg-card p-5 rounded-[2rem] border border-border active:scale-[0.98] transition-all ${opacityClass}`}
+    className={`group relative flex flex-col gap-3 bg-card p-5 rounded-4xl border border-border active:scale-[0.98] transition-all ${opacityClass}`}
   >
     <View className="flex-row justify-between items-start">
       <View className="flex-row gap-4">
@@ -181,6 +183,17 @@ const BottomNav = () => (
 );
 
 export default function Jobs2() {
+  return (
+    <>
+      <JobsProvider
+        value={useCreateJobsContext({
+          admin: false,
+        })}
+      >
+        <JobsScreen />
+      </JobsProvider>
+    </>
+  );
   return (
     <View className="flex-1 bg-background">
       <JobsHeader />

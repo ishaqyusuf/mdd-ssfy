@@ -47,6 +47,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
       subtitle: true,
       amount: true,
       controlId: true,
+      isCustom: true,
       coWorker: {
         select: {
           name: true,
@@ -107,6 +108,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
         user,
         coWorker,
         controlId,
+        isCustom,
       }) => {
         const meta2 = meta as any as JobMeta;
         const {
@@ -118,6 +120,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
         } = meta2 || {};
         return {
           controlId,
+          isCustom,
           adminNote,
           amount,
           createdAt,
@@ -370,11 +373,8 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
     // status: query?.status || "Submitted",
     status: query.status!,
     statusDate: new Date(),
-
     amount,
-
     description: query.description,
-
     note: query.note,
     meta: meta as any,
     title: query.title,

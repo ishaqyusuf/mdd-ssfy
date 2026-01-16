@@ -249,7 +249,6 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
     setTimeout(() => {
       form.handleSubmit(
         (e) => {
-          console.log("SAVING>>>");
           const values = formData;
           if (!props.admin) {
             const profile = getSessionProfile();
