@@ -48,6 +48,13 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen
+        name="re-assign/[controlId]"
+        options={{
+          presentation: "modal",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="assign"
         options={{
           presentation: "modal",

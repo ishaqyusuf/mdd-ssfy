@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { _qc, _trpc } from "./static-trpc";
 import { Toast } from "./ui/toast";
 import { Controller, useForm } from "react-hook-form";
+import { _push } from "./static-router";
 
 export function AdminJobReviewCard() {
   const ctx = useJobContext();
@@ -79,7 +80,9 @@ export function AdminJobReviewCard() {
     return (
       <>
         <Pressable
-          onPress={(e) => {}}
+          onPress={(e) => {
+            _push(`/re-assign/${ctx?.job?.controlId}`);
+          }}
           className="w-full py-4 px-4 bg-secondary-foreground rounded-xl flex-row items-center justify-center gap-2 border border-border"
         >
           <Icon name="UserPlus" className="text-secondary size-16" />

@@ -55,6 +55,50 @@ export const jobRoutes = createTRPCRouter({
       });
       // return restoreJob(props.ctx, props.input);
     }),
+  reAssignJob: publicProcedure
+    .input(
+      z.object({
+        jobId: z.number(),
+        oldUserId: z.number(),
+        newUserId: z.number(),
+      })
+    )
+    .mutation(async (props) => {
+      const { ctx, input } = props;
+      const db = ctx.db;
+      // return reAssignJob(props.ctx, props.input);
+      const job = await db.jobs.update({
+        where: {
+          id: input.jobId,
+        },
+        data: {
+          user: {
+            connect: {
+              id: input.newUserId,
+            },
+          },
+        },
+      });
+      await saveNote(
+        ctx.db,
+        {
+          headline: `Job Reassigned`,
+          note: generateJobId(input.jobId),
+          subject: `Re-assignment`,
+          tags: [
+            {
+              tagName: "jobControlId",
+              tagValue: job?.controlId!,
+            },
+            {
+              tagName: "jobId",
+              tagValue: String(input.jobId),
+            },
+          ],
+        },
+        ctx.userId!
+      );
+    }),
   jobReview: publicProcedure
     .input(
       z.object({

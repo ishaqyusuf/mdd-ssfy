@@ -175,6 +175,7 @@ function PriceEstimateCell({}) {
                                 name="pricing.customPrice"
                                 lineUid={lineUid}
                                 type="number"
+                                allowZero
                                 valueChanged={ctx.valueChanged}
                             />
                         }

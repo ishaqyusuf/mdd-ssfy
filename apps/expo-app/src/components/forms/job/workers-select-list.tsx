@@ -6,6 +6,8 @@ import { useJobFormContext } from "@/hooks/use-job-form-2";
 import { LegendList } from "@legendapp/list";
 import { getColorFromName, hexToRgba } from "@gnd/utils/colors";
 import { getJobType } from "@/lib/job";
+import { useMutation } from "@tanstack/react-query";
+import { _trpc } from "@/components/static-trpc";
 
 // 1. Make ProjectListItem a "dumb" component that only receives props.
 
@@ -49,6 +51,7 @@ function ListItem({ item }: any) {
     setTab,
     tabHistory,
     tab,
+    action,
   } = useJobFormContext();
   const isWorker = tab == "assign-to";
   const w = isWorker ? worker : coWorker;
@@ -58,9 +61,28 @@ function ListItem({ item }: any) {
     .map((n) => n[0])
     ?.filter((a, i) => i < 2)
     .join("");
+  const { mutate: reAssignMutation, isPending: isReAssigning } = useMutation(
+    _trpc.jobs.reAssignJob.mutationOptions({
+      onSuccess(data, variables, onMutateResult, context) {},
+      onError(error, variables, onMutateResult, context) {},
+      meta: {
+        toastTitle: {
+          error: "Unable to complete",
+          loading: "Processing...",
+          success: "Done!.",
+        },
+      },
+    })
+  );
   return (
     <TouchableOpacity
       onPress={(e) => {
+        if (action === "re-assign") {
+          reAssignMutation({
+            jobId: form,
+          });
+          return;
+        }
         const value =
           item.id > 0
             ? item

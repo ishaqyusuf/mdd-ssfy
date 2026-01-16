@@ -149,6 +149,7 @@ function MouldingRow({
                                         name="pricing.customPrice"
                                         lineUid={lineUid}
                                         type="number"
+                                        allowZero
                                         valueChanged={valueChanged}
                                     />
                                 }
