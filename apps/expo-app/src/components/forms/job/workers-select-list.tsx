@@ -76,6 +76,7 @@ function ListItem({ item }: any) {
       onError(error, variables, onMutateResult, context) {},
       meta: {
         toastTitle: {
+          show: true,
           error: "Unable to complete",
           loading: "Processing...",
           success: "Done!.",
