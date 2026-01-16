@@ -7,13 +7,14 @@ import { LegendList } from "@legendapp/list";
 import { getColorFromName, hexToRgba } from "@gnd/utils/colors";
 import { getJobType } from "@/lib/job";
 import { useMutation } from "@tanstack/react-query";
-import { _trpc } from "@/components/static-trpc";
+import { _qc, _trpc } from "@/components/static-trpc";
+import { _router } from "@/components/static-router";
 
 // 1. Make ProjectListItem a "dumb" component that only receives props.
 
 // 2. Move the state management and logic to the parent component.
 export function JobSelectCoWorkerList({ items }) {
-  const { users, admin, tab } = useJobFormContext();
+  const { tab } = useJobFormContext();
 
   const customProjectItem = {
     id: -1,
@@ -35,7 +36,7 @@ export function JobSelectCoWorkerList({ items }) {
             </Text>
           </View>
         }
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item!.id.toString()}
         renderItem={({ item }) => <ListItem item={item} />}
       />
     </View>
@@ -46,14 +47,14 @@ function ListItem({ item }: any) {
   const {
     // selec,
     form,
-    formData: { coWorker, worker },
+    formData: { coWorker, worker, id },
     navigateBack,
     setTab,
     tabHistory,
     tab,
     action,
   } = useJobFormContext();
-  const isWorker = tab == "assign-to";
+  const isWorker = tab === "assign-to";
   const w = isWorker ? worker : coWorker;
   const isSelected = w?.id === item.id;
   const initials = item?.name
@@ -63,7 +64,15 @@ function ListItem({ item }: any) {
     .join("");
   const { mutate: reAssignMutation, isPending: isReAssigning } = useMutation(
     _trpc.jobs.reAssignJob.mutationOptions({
-      onSuccess(data, variables, onMutateResult, context) {},
+      onSuccess(data, variables, onMutateResult, context) {
+        _router.back();
+        _qc.invalidateQueries({
+          queryKey: _trpc.jobs.getJobs.queryKey(),
+        });
+        _qc.invalidateQueries({
+          queryKey: _trpc.jobs.getJobs.infiniteQueryKey(),
+        });
+      },
       onError(error, variables, onMutateResult, context) {},
       meta: {
         toastTitle: {
@@ -77,9 +86,12 @@ function ListItem({ item }: any) {
   return (
     <TouchableOpacity
       onPress={(e) => {
+        if (isReAssigning) return;
         if (action === "re-assign") {
           reAssignMutation({
-            jobId: form,
+            jobId: id!,
+            newUserId: item.id,
+            oldUserId: worker?.id!,
           });
           return;
         }

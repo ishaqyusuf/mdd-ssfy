@@ -4,9 +4,12 @@
     // "strict": true,
     // "module": "ESNext",
     // "forceConsistentCasingInFileNames": true,
+
     "baseUrl": ".",
+
     "strict": true,
     "noImplicitAny": false,
+
     "paths": {
       "@/*": ["./src/*"],
       "@api/*": ["../api/src/*"],

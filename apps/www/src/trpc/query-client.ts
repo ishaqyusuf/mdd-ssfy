@@ -6,6 +6,7 @@ import {
     defaultShouldDehydrateQuery,
 } from "@gnd/ui/tanstack";
 import superjson from "superjson";
+import { _trpc } from "@/components/static-trpc";
 
 export function makeQueryClient() {
     return new QueryClient({
@@ -54,3 +55,20 @@ export function makeQueryClient() {
     });
 }
 
+type Join<K, P> = K extends string
+    ? P extends string
+        ? `${K}.${P}`
+        : never
+    : never;
+
+type DotPaths<T> = {
+    [K in keyof T]: T[K] extends { queryKey: (...args: any) => any }
+        ? K & string
+        : T[K] extends object
+        ? Join<K & string, DotPaths<T[K]>>
+        : never;
+}[keyof T];
+
+type Routes = DotPaths<typeof _trpc>;
+
+const e: Routes = "jobs.adminAnalytics";

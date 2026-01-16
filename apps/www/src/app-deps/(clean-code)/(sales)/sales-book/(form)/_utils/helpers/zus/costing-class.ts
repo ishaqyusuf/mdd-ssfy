@@ -245,7 +245,7 @@ export class CostingClass {
         let groupItem: (typeof zus.kvFormItem)[number]["groupItem"] = gi;
         let formData: (typeof groupItem)["form"][number] = fd;
         const cPrice = formData.pricing?.customPrice as any;
-
+        console.log({ cPrice, groupItem });
         const customPricing = cPrice || (cPrice == 0 && cPrice !== "");
         const pll = [
             groupItem?.pricing?.components?.salesPrice,
