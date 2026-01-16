@@ -21,6 +21,7 @@ import { LegendList } from "@legendapp/list";
 import { JobsItem } from "@/components/jobs-item";
 import { SearchInput } from "@/components/search-input";
 import { HorizontalFilterPills } from "@/components/horizontal-filter-pills";
+import { LoadingSpinner } from "@/components/loading-spinner";
 /**
  * MOCK DATA
  */
@@ -145,7 +146,11 @@ export function JobsScreen() {
             </View>
           </View>
         }
-        ListFooterComponent={<View className="mb-48"></View>}
+        ListFooterComponent={
+          <View className="mb-48">
+            <LoadingSpinner />
+          </View>
+        }
       />
 
       {/* FAB */}

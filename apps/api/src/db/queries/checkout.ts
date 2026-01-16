@@ -220,6 +220,7 @@ export async function verifyPayment(
         id: query.paymentId,
       },
       include: {
+        customerTxs: {},
         orders: {
           select: {
             order: {
@@ -240,7 +241,12 @@ export async function verifyPayment(
         },
       },
     });
+    if (squarePayment?.customerTxs?.length)
+      return {
+        status: "COMPLETED",
+      };
     const checkout = squarePayment.checkout;
+
     // const meta = checkout?.meta as any;
     // const {
     //     result: {
@@ -256,7 +262,6 @@ export async function verifyPayment(
       tip: null,
       status: null as any,
     };
-
     await Promise.all(
       tenders!.map(async (tender) => {
         // const {
@@ -275,15 +280,6 @@ export async function verifyPayment(
           let t = Number(tip);
           resp.tip = t > 0 ? t / 100 : 0;
         }
-        await tx.checkoutTenders.create({
-          data: {
-            salesCheckoutId: checkout!.id,
-            // squareOrderId: orderId,
-            status: resp.status,
-            tenderId: tender.id!,
-            // squarePaymentId: payment.id,
-          },
-        });
       })
     );
 

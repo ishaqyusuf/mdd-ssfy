@@ -25,6 +25,7 @@ export function makeQueryClient() {
         },
         mutationCache: new MutationCache({
             onMutate: async (variables, mutation) => {
+                if (!mutation?.meta?.toastTitle?.loading) return;
                 const title =
                     mutation?.meta?.toastTitle?.loading || "Processing...";
                 toast({
@@ -33,6 +34,7 @@ export function makeQueryClient() {
                 });
             },
             onSuccess: async (data, variables, _context, mutation) => {
+                if (!mutation?.meta?.toastTitle?.success) return;
                 const title =
                     mutation?.meta?.toastTitle?.success || "Success ...";
                 toast({
@@ -41,8 +43,8 @@ export function makeQueryClient() {
                 });
             },
             onError: async (data, variables, _context, mutation) => {
-                const title =
-                    mutation?.meta?.toastTitle?.loading || "Error ...";
+                if (!mutation?.meta?.toastTitle?.error) return;
+                const title = mutation?.meta?.toastTitle?.error || "Error ...";
                 toast({
                     title,
                     variant: "error",

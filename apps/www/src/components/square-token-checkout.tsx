@@ -34,13 +34,7 @@ export function SquareTokenCheckout(props: Props) {
         mutate,
     } = useMutation(
         _trpc.checkout.verifyPayment.mutationOptions({
-            onSuccess(data, variables, onMutateResult, context) {
-                toast({
-                    title: "Payment Verified",
-                    description: "Your payment has been successfully verified.",
-                    variant: "success",
-                });
-            },
+            onSuccess(data, variables, onMutateResult, context) {},
             onError(error, variables, context) {
                 let v = variables as any;
                 if (v.attempts < 3) {
@@ -62,7 +56,8 @@ export function SquareTokenCheckout(props: Props) {
     //     isPending,
     // } = useMutation(_trpc.checkout.verifyPayment.mutationOptions());
     useEffect(() => {
-        if (paymentId && walletId) mutate({ paymentId, attempts: 1, walletId });
+        if (paymentId && walletId && !isVerifying)
+            mutate({ paymentId, attempts: 1, walletId });
     }, [paymentId, walletId]);
 
     const status = useMemo(() => {
