@@ -1,12 +1,18 @@
 // apps/expo-app/src/components/forms/job/job-form-step.tsx
-import { View, Text, ScrollView, Pressable } from "react-native";
 
 import { Icon } from "@/components/ui/icon";
 import { JobFormTaskItems } from "./job-form-task-item";
 import { JobFormExtras } from "./job-form-extras";
 import { JobFormFooter } from "./job-form-footer";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
-import { KeyboardAvoidingView, Platform } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+} from "react-native";
 import { Textarea } from "@/components/ui/textarea";
 import { Controller } from "react-hook-form";
 import { Switch } from "@/components/ui/switch";

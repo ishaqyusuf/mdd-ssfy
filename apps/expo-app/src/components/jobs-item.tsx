@@ -81,7 +81,11 @@ export function JobsItem({ item }: { item: JobItem }) {
         </View>
         <Status value={item?.status} />
       </View>
-
+      {item?.isCustom || (
+        <View className="flex-row">
+          <Status value={"Custom"}></Status>
+        </View>
+      )}
       {/* Contractor Row */}
       <View className="flex flex-row items-center border-t border-b border-dashed border-border my-1 py-4">
         {!admin ? (

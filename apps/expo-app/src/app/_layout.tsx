@@ -29,6 +29,10 @@ import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
 import { cn } from "@/lib/utils";
 import { StaticRouter } from "@/components/static-router";
+import {
+  KeyboardAvoidingView,
+  KeyboardProvider,
+} from "react-native-keyboard-controller";
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
@@ -113,23 +117,24 @@ function RootLayoutNav() {
       {/* 
         using  <View className={cn(theme.dark ? "dark" : "", "flex-1")}></View> somehow freezes scroll. the issue is mainly the dark className.
       */}
-
-      <View className="flex-1">
-        <ThemeProvider
-          value={DefaultTheme}
-          // value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-        >
-          <AuthProvider value={useCreateAuthContext()}>
-            <ToastProviderWithViewport>
-              <BottomSheetModalProvider>
-                <FlashMessage position="top" />
-                <InitialLayout />
-              </BottomSheetModalProvider>
-            </ToastProviderWithViewport>
-          </AuthProvider>
-        </ThemeProvider>
-        {/* </View> */}
-      </View>
+      <KeyboardProvider>
+        <View className="flex-1">
+          <ThemeProvider
+            value={DefaultTheme}
+            // value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+          >
+            <AuthProvider value={useCreateAuthContext()}>
+              <ToastProviderWithViewport>
+                <BottomSheetModalProvider>
+                  <FlashMessage position="top" />
+                  <InitialLayout />
+                </BottomSheetModalProvider>
+              </ToastProviderWithViewport>
+            </AuthProvider>
+          </ThemeProvider>
+          {/* </View> */}
+        </View>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

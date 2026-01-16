@@ -25,6 +25,7 @@ import {
   ClipboardList,
   Clock,
   CreditCard,
+  Delete,
   DoorOpen,
   Fence,
   FilePenLine,
@@ -150,6 +151,7 @@ function Icon({
 // }
 
 const appIcons = {
+  Delete,
   Activity,
   analytics: BarChart2,
   AlertCircle,

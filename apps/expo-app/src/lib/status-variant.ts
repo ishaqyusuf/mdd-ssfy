@@ -2,12 +2,12 @@ import { StatusVariantProps } from "@/components/status";
 
 const status: { [id in NonNullable<StatusVariantProps>]: string[] } = {
   accent: [],
-  destructive: [],
+  destructive: ["rejected"],
   primary: [],
-  secondary: [],
+  secondary: ["assigned"],
   muted: [],
-  success: [],
-  warn: ["submitted"],
+  success: ["approved"],
+  warn: ["submitted", "custom"],
 };
 export function getStatusVariant(value: string): StatusVariantProps {
   const normalized = value.toLowerCase();
