@@ -69,8 +69,8 @@ const config: ExpoConfig = {
       // projectId: "41f31ec0-9c44-4b41-af01-9a23d1b39d83", //ishaqyusuf
     },
   },
-  // owner: "pcruz321",
-  owner: "ishaqyusuf2",
+  owner: "pcruz321",
+  // owner: "ishaqyusuf2",
   updates: {
     url: "https://u.expo.dev/8ea2eecb-4109-453c-827f-9b2de2e3a9aa", //pcruz321
     // url: "https://u.expo.dev/41f31ec0-9c44-4b41-af01-9a23d1b39d83", //ishaqyusuf
