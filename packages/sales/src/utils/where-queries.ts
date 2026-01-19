@@ -605,21 +605,21 @@ function searchSales(params): Prisma.SalesOrdersWhereInput | null {
                   OR: [
                     {
                       stepProduct: {
-                        name: _contains,
-                      },
-                    },
-                    {
-                      stepProduct: {
-                        door: {
-                          title: _contains,
-                        },
-                      },
-                    },
-                    {
-                      stepProduct: {
-                        product: {
-                          title: _contains,
-                        },
+                        OR: [
+                          {
+                            name: _contains,
+                          },
+                          {
+                            door: {
+                              title: _contains,
+                            },
+                          },
+                          {
+                            product: {
+                              title: _contains,
+                            },
+                          },
+                        ],
                       },
                     },
                     {
@@ -637,10 +637,54 @@ function searchSales(params): Prisma.SalesOrdersWhereInput | null {
               housePackageTool: {
                 OR: [
                   {
+                    stepProduct: {
+                      OR: [
+                        {
+                          name: _contains,
+                        },
+                        {
+                          door: {
+                            title: _contains,
+                          },
+                        },
+                        {
+                          product: {
+                            title: _contains,
+                          },
+                        },
+                      ],
+                    },
+                  },
+                  {
                     door: {
-                      title: {
-                        contains: parsedQ.otherparams,
-                      },
+                      OR: [
+                        {
+                          stepProducts: {
+                            some: {
+                              OR: [
+                                {
+                                  name: _contains,
+                                },
+                                {
+                                  door: {
+                                    title: _contains,
+                                  },
+                                },
+                                {
+                                  product: {
+                                    title: _contains,
+                                  },
+                                },
+                              ],
+                            },
+                          },
+                        },
+                        {
+                          title: {
+                            contains: parsedQ.otherparams,
+                          },
+                        },
+                      ],
                     },
                   },
                   {
