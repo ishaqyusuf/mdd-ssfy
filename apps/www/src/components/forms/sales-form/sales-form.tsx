@@ -24,7 +24,7 @@ export function SalesFormClient({ data }) {
         },
         {
             wait: 200,
-        }
+        },
     );
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -40,7 +40,7 @@ export function SalesFormClient({ data }) {
             <div
                 className={cn(
                     " bg-white border-b border-gray-200 p-4 flex items-center gap-4",
-                    hidden || "xl:hidden"
+                    hidden || "xl:hidden",
                 )}
             >
                 <h1 className="text-xl capitalize font-semibold text-gray-900">
@@ -63,7 +63,9 @@ export function SalesFormClient({ data }) {
                     className="flex items-center gap-2"
                 >
                     <MenuIcon className="h-4 w-4" />
-                    Invoice Details
+                    {zus?.metaData?.type === "quote"
+                        ? "Quote Detail"
+                        : "Invoice Detail"}
                 </Button>
             </div>
             <div className="flex">
@@ -95,7 +97,7 @@ export function SalesFormClient({ data }) {
                     <div
                         className={cn(
                             "fixed inset-0 z-50 flex",
-                            !hidden && "xl:hidden"
+                            !hidden && "xl:hidden",
                         )}
                     >
                         <div

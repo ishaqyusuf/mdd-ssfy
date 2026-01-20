@@ -23,12 +23,14 @@ export function Footer({}) {
     return (
         <div className="border-t pt-2">
             <div className="flex justify-end gap-4">
-                <SalesPaymentProcessor
-                    phoneNo={zus.metaData.primaryPhone}
-                    selectedIds={[zus.metaData.id]}
-                    customerId={zus.metaData.customer.id}
-                    disabled={!amount || !zus.metaData.salesId}
-                />
+                {zus?.metaData?.type == "order" && (
+                    <SalesPaymentProcessor
+                        phoneNo={zus.metaData.primaryPhone}
+                        selectedIds={[zus.metaData.id]}
+                        customerId={zus.metaData.customer.id}
+                        disabled={!amount || !zus.metaData.salesId}
+                    />
+                )}
                 {/* <Button
                     onClick={() => {
                         customerQuery.pay({
@@ -49,7 +51,7 @@ export function Footer({}) {
                     onClick={() => {
                         overviewQuery.open2(
                             zus.metaData?.salesId,
-                            zus.metaData.type == "order" ? "sales" : "quote"
+                            zus.metaData.type == "order" ? "sales" : "quote",
                         );
                         // openSalesOverview({
                         //     salesId: zus.metaData.id,
