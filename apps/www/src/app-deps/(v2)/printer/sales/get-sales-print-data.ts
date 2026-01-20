@@ -4,12 +4,12 @@ import { getDispatchCompletetionNotes } from "@sales/sales-control/actions";
 import { composeSalesItems } from "../../(loggedIn)/sales-v2/_utils/compose-sales-items";
 import { viewSale } from "../../(loggedIn)/sales-v2/overview/_actions/get-sales-overview";
 import { composePrint } from "./compose-print";
-import { SalesPrintProps } from "./page";
 import { prisma } from "@/db";
+import { SalesPrinterProps } from "../type";
 
 export async function getSalesPrintData(
     slug,
-    query: SalesPrintProps["searchParams"]
+    query: SalesPrinterProps["searchParams"],
 ) {
     const order = await viewSale(query?.mode, slug, query.deletedAt);
 
@@ -23,6 +23,6 @@ export async function getSalesPrintData(
                 ? await getDispatchCompletetionNotes(prisma, dispatchId)
                 : null,
         },
-        query
+        query,
     );
 }

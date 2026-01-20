@@ -1,6 +1,5 @@
 import { Stack } from "expo-router";
-import { JobsHeader } from "@/components/jobs-header";
-
+// import { JobsHeader } from "@/components/jobs-header";
 export default function AuthLayout() {
   return (
     <Stack initialRouteName="index">
