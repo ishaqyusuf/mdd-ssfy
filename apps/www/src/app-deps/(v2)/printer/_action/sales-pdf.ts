@@ -1,10 +1,10 @@
 "use server";
 import { env } from "@/env.mjs";
-import { SalesPrintProps } from "../sales/page";
 import QueryString from "qs";
 import { uploadPDFToCloudinary } from "@/modules/cloudinary";
 import { generateRandomString } from "@/lib/utils";
 import dayjs from "dayjs";
+import { SalesPrintProps } from "@/app/(v2)/printer/sales/page";
 
 export async function salesPdf(query: SalesPrintProps["searchParams"]) {
     const pdf = await geenrate(query);

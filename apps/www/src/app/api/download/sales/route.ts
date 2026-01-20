@@ -21,11 +21,11 @@ export async function GET(req: NextRequest) {
     const requestUrl = new URL(req.url);
     // const session = await getServerSession(authOptions);
     const result = paramsSchema.safeParse(
-        Object.fromEntries(requestUrl.searchParams.entries())
+        Object.fromEntries(requestUrl.searchParams.entries()),
     );
     const payload = await validateTokenAction(
         result.data.token,
-        "salesPdfToken"
+        "salesPdfToken",
     );
 
     if (!payload) notFound();
@@ -57,12 +57,12 @@ export async function GET(req: NextRequest) {
             template: {
                 size: "A4",
             },
-        })
+        }),
     );
     if (!stream) {
         return NextResponse.json(
             { error: "Failed to render PDF stream" },
-            { status: 500 }
+            { status: 500 },
         );
     }
     // return NextResponse.json({ data: "Testing Sentry Error...!", printData });
@@ -76,9 +76,8 @@ export async function GET(req: NextRequest) {
     };
 
     if (!preview) {
-        headers[
-            "Content-Disposition"
-        ] = `attachment; filename="${safeTitle}.pdf"`;
+        headers["Content-Disposition"] =
+            `attachment; filename="${safeTitle}.pdf"`;
     } else {
         headers["Content-Disposition"] = `inline; filename="${safeTitle}.pdf"`;
     }

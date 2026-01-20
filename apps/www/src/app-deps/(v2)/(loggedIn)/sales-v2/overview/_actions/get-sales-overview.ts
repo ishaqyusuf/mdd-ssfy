@@ -72,7 +72,7 @@ export async function viewSale(type, slug, deletedAt?) {
         // meta.uid
         // item.uid
         const rootStep = item.formSteps.find(
-            (fs) => fs.step.title == "Item Type"
+            (fs) => fs.step.title == "Item Type",
         );
         const routes = settings?.data?.route;
         const rootConfig = settings?.data?.route?.[rootStep?.prodUid]?.config;
@@ -81,7 +81,7 @@ export async function viewSale(type, slug, deletedAt?) {
             ?.map(
                 (fs) =>
                     (fs.component?.meta as any as StepComponentMeta)
-                        ?.sectionOverride
+                        ?.sectionOverride,
             )
             ?.filter(Boolean);
         const sectionOverride = ovs.find((s) => s.overrideMode);
@@ -91,11 +91,11 @@ export async function viewSale(type, slug, deletedAt?) {
             configs: sectionOverride
                 ? sectionOverride
                 : rootConfig
-                ? rootConfig
-                : null,
+                  ? rootConfig
+                  : null,
 
             sectionTitle: sectionTitles?.stepProducts?.find(
-                (p) => p?.product?.title == meta?.doorType
+                (p) => p?.product?.title == meta?.doorType,
             )?.product?.value,
             housePackageTool: item.housePackageTool
                 ? {
@@ -110,13 +110,13 @@ export async function viewSale(type, slug, deletedAt?) {
         .filter(
             (item) =>
                 (item.multiDyke && item.multiDykeUid) ||
-                (!item.multiDyke && !item.multiDykeUid)
+                (!item.multiDyke && !item.multiDykeUid),
         )
         .map((item, index) => {
             const _multiDyke = items.filter(
                 (i) =>
                     i.id == item.id ||
-                    (item.multiDyke && item.multiDykeUid == i.multiDykeUid)
+                    (item.multiDyke && item.multiDykeUid == i.multiDykeUid),
             );
 
             return {
@@ -142,7 +142,7 @@ export async function viewSale(type, slug, deletedAt?) {
     // ].map((v) => v.map((c) => ids.push(c.id)));
 
     groupings.doors = _mergedItems?.filter((mi) =>
-        ids.every((id) => id != mi.id)
+        ids.every((id) => id != mi.id),
     );
 
     const progress = await prisma.progress.findMany({
