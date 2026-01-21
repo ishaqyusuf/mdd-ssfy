@@ -9,7 +9,6 @@ import {
     getSquareDevices as getSquareDevices2,
     fetchDevicesByLocations as fetchDevicesByLocations2,
 } from "@gnd/square";
-import { consoleLog } from "@gnd/utils";
 
 export type TerminalCheckoutStatus =
     | "PENDING"
@@ -35,7 +34,7 @@ export interface CreateTerminalCheckoutProps {
     orderIds: string[];
 }
 export async function createSquareTerminalCheckout(
-    props: CreateTerminalCheckoutProps
+    props: CreateTerminalCheckoutProps,
 ) {
     const amt = formatMoney(props.amount);
     const cent = Math.round(props.amount * 100);
@@ -58,7 +57,6 @@ export async function createSquareTerminalCheckout(
             },
         },
     });
-    consoleLog("DATA", props);
     // const checkout = resp.result.checkout;
     return {
         id: checkout.id,
@@ -96,7 +94,7 @@ export async function createTerminalCheckout({
             salesPayment: await squareSalesPaymentCreatedDta(
                 idempotencyKey,
                 checkout.id,
-                checkout.orderId
+                checkout.orderId,
             ),
         };
     });

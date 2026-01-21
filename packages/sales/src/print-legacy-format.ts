@@ -17,7 +17,7 @@ function formatCurrency(value) {
 }
 export async function generateLegacyPrintData(
   db: Db,
-  tokenData: SalesPdfToken
+  tokenData: SalesPdfToken,
 ) {
   const sales = await db.salesOrders.findMany({
     include: SalesIncludeAll,
@@ -44,6 +44,7 @@ export async function generateLegacyPrintData(
     .flat();
   return printList?.map(({ sale: s, mode }) => {
     const salesitems = composeSalesItems(s);
+
     const data = composePrint(
       {
         ...salesitems,
@@ -53,7 +54,7 @@ export async function generateLegacyPrintData(
         mode,
         mockup: "no",
         dispatchId: tokenData.dispatchId,
-      }
+      },
     );
 
     const {
@@ -155,13 +156,13 @@ export function composeSalesItems(data: ViewSaleType) {
 
 export function composeDoorDetails(
   steps: ViewSaleType["items"][0]["formSteps"],
-  item: ViewSaleType["items"][0]
+  item: ViewSaleType["items"][0],
 ) {
   if (!steps) steps = [];
 
   let _steps = steps
     .filter(
-      (s) => !["Door", "Item Type", "Moulding"].some((k) => k == s.step.title)
+      (s) => !["Door", "Item Type", "Moulding"].some((k) => k == s.step.title),
     )
     .map((fs) => {
       return {
@@ -209,7 +210,7 @@ interface Query {
 }
 export function composePrint(
   data: PrintData,
-  query: Query // SalesPrintProps["searchParams"],
+  query: Query, // SalesPrintProps["searchParams"],
 ) {
   data = {
     ...data,
@@ -278,7 +279,7 @@ export function composePrint(
 }
 function shelfItemsTable(
   { isProd, isPacking, isOrder, isEstimate },
-  data: PrintData
+  data: PrintData,
 ) {
   const price = !isProd && !isPacking;
   // keyof DykeSalesDoors
@@ -292,7 +293,7 @@ function shelfItemsTable(
         // price ? 7 : isPacking ? 11 : 14,
         null as any,
         "text-left",
-        "text-left"
+        "text-left",
       ),
       _cell<T>("Qty", "qty", 1.2, "text-center", "text-center"),
     ],
@@ -306,9 +307,9 @@ function shelfItemsTable(
           "totalPrice",
           3.5,
           "text-right",
-          "text-right font-bold"
+          "text-right font-bold",
         ),
-      ]
+      ],
     );
   if (isPacking) res.cells.push(_cell<T>("Fulfilment", "packing", 3));
   const newResp = data.order.items
@@ -319,7 +320,7 @@ function shelfItemsTable(
         cells: res.cells,
         _index: item.meta.lineIndex,
         _shelfItems: item.shelfItems.map((shelfItem, itemIndex) =>
-          composeShelfItem<typeof res.cells>(res.cells, shelfItem, itemIndex)
+          composeShelfItem<typeof res.cells>(res.cells, shelfItem, itemIndex),
         ),
       };
     });
@@ -336,7 +337,7 @@ function shelfItemsTable(
 function composeShelfItem<T>(
   cells: T,
   shelfItem,
-  itemIndex
+  itemIndex,
 ): { style; value; colSpan }[] {
   return (cells as any).map((cell, _i) => {
     const ret = {
@@ -345,8 +346,8 @@ function composeShelfItem<T>(
         _i == 0
           ? itemIndex + 1
           : cell.cell == "description"
-          ? shelfItem.description || shelfItem.shelfProduct?.title
-          : shelfItem?.[cell.cell as any],
+            ? shelfItem.description || shelfItem.shelfProduct?.title
+            : shelfItem?.[cell.cell as any],
       colSpan: cell.colSpan,
     };
     if (_i > 2 && ret.value) ret.value = formatCurrency(ret.value);
@@ -372,7 +373,7 @@ function _cell<T>(
   cell: Cell,
   colSpan = 2,
   style?: any,
-  cellStyle?: any
+  cellStyle?: any,
 ) {
   return { title, cell, colSpan, style, cellStyle };
 }
@@ -416,7 +417,7 @@ function packingInfo(data: PrintData, itemId, doorId?) {
 }
 function getDoorsTable(
   { isProd, isPacking, isOrder, isEstimate },
-  data: PrintData
+  data: PrintData,
 ) {
   const deliveries = data.order.deliveries;
   const price = !isProd && !isPacking;
@@ -428,10 +429,10 @@ function getDoorsTable(
         (item) =>
           item.housePackageTool ||
           item?.meta?.doorType == "Services" ||
-          item?.meta?.doorType === "Mouldings"
+          item?.meta?.doorType === "Mouldings",
       )
       .filter(
-        (item) => !item.multiDykeUid || (item.multiDykeUid && item.multiDyke)
+        (item) => !item.multiDykeUid || (item.multiDykeUid && item.multiDyke),
       )
       .map((item) => {
         const doorType = item.meta.doorType;
@@ -455,7 +456,7 @@ function getDoorsTable(
                     // price ? 4 : isPacking ? 7 : 10,
                     null as any,
                     { position: "left" },
-                    { position: "left" }
+                    { position: "left" },
                   ),
                   _cell("Qty", "qty", 1.2, "text-center", "text-center"),
                 ]
@@ -468,7 +469,7 @@ function getDoorsTable(
                           // price ? 4 : isPacking ? 7 : 10,
                           null as any,
                           { position: "left" },
-                          { position: "left" }
+                          { position: "left" },
                         ),
                       ]
                     : [
@@ -478,14 +479,14 @@ function getDoorsTable(
                           // price ? 4 : isPacking ? 7 : 10,
                           null as any,
                           { position: "left" },
-                          { position: "left" }
+                          { position: "left" },
                         ),
                         _cell(
                           "Size",
                           "dimension",
                           2.5,
                           { position: "left" },
-                          { position: "left" }
+                          { position: "left" },
                         ),
                       ]),
                   ...(is.garage ? [_cell("Swing", "swing", 2, {}, {})] : []),
@@ -508,9 +509,9 @@ function getDoorsTable(
                 "lineTotal",
                 2.5,
                 "text-right",
-                "text-right font-bold"
+                "text-right font-bold",
               ),
-            ]
+            ],
           );
         }
         if (isPacking)
@@ -520,8 +521,8 @@ function getDoorsTable(
               "packing",
               3,
               "text-center",
-              "text-center font-bold"
-            )
+              "text-center font-bold",
+            ),
           );
 
         const details =
@@ -531,8 +532,8 @@ function getDoorsTable(
                 ...item.formSteps.filter(
                   (t) =>
                     !["Door", "Item Type", "Moulding"].some(
-                      (s) => s == t.step.title
-                    )
+                      (s) => s == t.step.title,
+                    ),
                 ),
               ].map((v) => {
                 v.step.title = transformStepTitle(v.step.title);
@@ -542,7 +543,7 @@ function getDoorsTable(
         const _multies = data.order.items.filter(
           (i) =>
             (!item.multiDyke && i.id == item.id) ||
-            (item.multiDyke && item.multiDykeUid == i.multiDykeUid)
+            (item.multiDyke && item.multiDykeUid == i.multiDykeUid),
         );
         _multies.map((m, _) => {
           const getVal = (cell: Cell, door?: any, doorTitle?) => {
@@ -603,7 +604,7 @@ function getDoorsTable(
                   value: getVal(cell.cell),
                 };
                 return ret;
-              })
+              }),
             );
           } else {
             m.housePackageTool?.doors?.map((door, _doorI) => {
@@ -614,7 +615,7 @@ function getDoorsTable(
                 door?.stepProduct?.product?.title;
 
               const isPh = m.formSteps.find((s) =>
-                s.value?.toLowerCase()?.startsWith("ph -")
+                s.value?.toLowerCase()?.startsWith("ph -"),
               );
               lines.push(
                 res.cells.map((cell, _cellId) => {
@@ -624,11 +625,11 @@ function getDoorsTable(
                     value: getVal(
                       cell.cell,
                       door,
-                      (isPh ? "PH - " : "") + doorTitle
+                      (isPh ? "PH - " : "") + doorTitle,
                     ),
                   };
                   return ret;
-                })
+                }),
               );
             });
           }
@@ -715,7 +716,7 @@ function lineItems(data: PrintData, { isProd, isPacking }) {
           null,
           `font-bold ${!item.rate ? "bg-shade" : ""} ${
             !item.rate ? "text-center" : ""
-          } uppercase `
+          } uppercase `,
         ),
         styled(item.swing, null, "font-bold text-center uppercase"),
         styled(item.qty, null, "font-bold text-center"),
@@ -726,18 +727,18 @@ function lineItems(data: PrintData, { isProd, isPacking }) {
             styled(
               item.total ? formatCurrency(item.rate || 0) : null,
               null,
-              "text-right"
+              "text-right",
             ),
             styled(
               !item.total ? null : formatCurrency(item.total || 0),
               null,
-              "font-bold text-right"
+              "font-bold text-right",
             ),
-          ]
+          ],
         );
       if (isPacking)
         cells.push(
-          styled(packingInfo(data, item.id), "", "font-bold text-center")
+          styled(packingInfo(data, item.id), "", "font-bold text-center"),
         );
       return {
         id: item.id,
@@ -762,7 +763,7 @@ function printFooter(data: PrintData, notPrintable) {
   const totalPaid = sum(
     data.order.payments
       .filter((p) => !p.deletedAt && p.status == "success")
-      .map((p) => p.amount)
+      .map((p) => p.amount),
   );
   let taxLines: any[] = [];
   if (data.order.taxes?.length) {
@@ -776,8 +777,8 @@ function printFooter(data: PrintData, notPrintable) {
             styled(
               `${sData.title} ${sData.percentage}%`,
               formatCurrency(t.tax),
-              "font-bold"
-            )
+              "font-bold",
+            ),
           );
         } else {
           taxLines.push(
@@ -788,8 +789,8 @@ function printFooter(data: PrintData, notPrintable) {
                   : "Tax"
               }`,
               formatCurrency(t.tax),
-              "font-bold"
-            )
+              "font-bold",
+            ),
           );
         }
       });
@@ -799,8 +800,8 @@ function printFooter(data: PrintData, notPrintable) {
         styled(
           `Tax (${data.order.taxPercentage}%)`,
           formatCurrency(data.order.tax || 0),
-          "font-bold"
-        )
+          "font-bold",
+        ),
       );
   }
   return {
@@ -811,11 +812,11 @@ function printFooter(data: PrintData, notPrintable) {
         ? styled(
             "Labor",
             formatCurrency(data.order.meta?.labor_cost || 0),
-            "font-bold"
+            "font-bold",
           )
         : null,
       ...data.order?.extraCosts?.map((ec) =>
-        styled(ec.label, formatCurrency(ec.amount || 0), "font-bold")
+        styled(ec.label, formatCurrency(ec.amount || 0), "font-bold"),
       ),
       data.order.meta?.ccc
         ? styled("C.C.C", formatCurrency(data.order.meta.ccc || 0), "font-bold")
@@ -824,20 +825,20 @@ function printFooter(data: PrintData, notPrintable) {
         ? styled(
             "Delivery",
             `${formatCurrency(data.order.meta.deliveryCost)}`,
-            ""
+            "",
           )
         : null,
       totalPaid > 0
         ? styled(
             "Total Paid",
             `(${formatCurrency(totalPaid || 0)})`,
-            "font-bold"
+            "font-bold",
           )
         : null,
       styled(
         "Total Due",
         formatCurrency(data.order.amountDue || 0),
-        "text-base font-bold"
+        "text-base font-bold",
       ),
       // styled("Total", formatCurrency.format(data.order.grandTotal || 0), {
       //     "font-bold",
@@ -858,18 +859,18 @@ function heading({ mode, isOrder, order, isEstimate, isPacking }) {
         isOrder ? "Invoice #" : "Quote #",
         salesNo,
         // order.orderId?.toUpperCase(),
-        "font-bold text-base"
+        "font-bold text-base",
       ),
       styled(
         isOrder ? "Invoice Date" : "Quote Date",
-        formatDate(order.createdAt)
+        formatDate(order.createdAt),
       ),
       styled("Rep", order.salesRep?.name),
     ],
   };
   if (isEstimate) {
     h.lines.push(
-      styled("Good Until", order.goodUntil ? formatDate(order.goodUntil) : "-")
+      styled("Good Until", order.goodUntil ? formatDate(order.goodUntil) : "-"),
     );
   }
   // if (isOrder || isPacking)
@@ -897,8 +898,8 @@ function heading({ mode, isOrder, order, isEstimate, isPacking }) {
       styled(
         "Balance Due",
         formatCurrency(order?.amountDue),
-        "text-base font-bold"
-      )
+        "text-base font-bold",
+      ),
     );
     if (order?.amountDue > 0) {
       let { goodUntil, paymentTerm, createdAt } = order;
@@ -924,18 +925,19 @@ function styled(title, value?, style?: any) {
 }
 function address({ type, customer, billingAddress, shippingAddress }) {
   const estimate = type == "quote";
+
   return [
     addressLine(
       estimate ? "Customer" : "Sold To",
       customer?.businessName,
       billingAddress as any,
-      customer
+      customer,
     ),
     addressLine(
       estimate ? "Shipping Address" : "Ship To",
       customer?.businessName,
       shippingAddress as any,
-      customer
+      customer,
     ),
   ].filter(Boolean);
 }
@@ -943,7 +945,7 @@ function addressLine(
   title,
   businessName,
   address: any & { meta: AddressBookMeta },
-  customer: any & { meta: CustomerMeta }
+  customer: any & { meta: CustomerMeta },
 ) {
   return {
     title,

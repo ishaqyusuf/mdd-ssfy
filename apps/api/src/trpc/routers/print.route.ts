@@ -7,6 +7,7 @@ import {
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 
 import { generateLegacyPrintData } from "@sales/print-legacy-format";
+import { consoleLog } from "@gnd/utils";
 export const printRouter = createTRPCRouter({
   modelTemplate: publicProcedure
     .input(modelPrintSchema)
@@ -25,17 +26,18 @@ export const printRouter = createTRPCRouter({
       z.object({
         token: z.string(),
         preview: z.boolean().optional().default(false),
-      })
+      }),
     )
     .query(async (props) => {
       const payload = await validateToken(
         props.input.token,
-        tokenSchemas.salesPdfToken
+        tokenSchemas.salesPdfToken,
       );
 
       // if (!payload) notFound();
 
       const printData = await generateLegacyPrintData(props.ctx.db, payload!);
+      consoleLog("PAYLOAD", printData!?.[0]?.pageData?.address);
       const title = printData.map((a) => a.orderNo).join("-");
       const safeTitle = title.replace(/[^\w\-]+/g, "_");
       const { preview } = props.input;

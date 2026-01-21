@@ -1,6 +1,6 @@
 import { LogOut } from "lucide-react-native";
 import { TouchableOpacity } from "react-native";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "@/hooks/use-color";
 import { useAuthContext } from "@/hooks/use-auth";
 
 export function Logout() {

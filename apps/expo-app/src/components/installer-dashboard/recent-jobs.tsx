@@ -1,6 +1,6 @@
 import { Text } from "@/components/ui/text";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "@/hooks/use-color";
 import { TouchableOpacity, View } from "react-native";
 import { useNavigation } from "@react-navigation/native"; // Add this
 import { LegendList } from "@legendapp/list";
@@ -28,7 +28,7 @@ export function RecentJobs() {
     _trpc.jobs.getJobs.queryOptions({
       size: 5,
       userId: profile.user.id,
-    })
+    }),
   );
   const router = useRouter();
   const renderItem = ({ item }: { item: JobItem }) => {

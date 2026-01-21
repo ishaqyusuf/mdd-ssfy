@@ -26,8 +26,7 @@ import FlashMessage from "react-native-flash-message";
 import { TRPCReactProvider } from "@/trpc/client";
 import { StaticTrpc } from "@/components/static-trpc";
 import { StatusBar } from "expo-status-bar";
-import { View } from "react-native";
-import { cn } from "@/lib/utils";
+import { Text, View } from "react-native";
 import { StaticRouter } from "@/components/static-router";
 import {
   KeyboardAvoidingView,
@@ -80,6 +79,7 @@ const InitialLayout = () => {
         <StaticRouter />
         <StatusBar style="dark" />
         {/* <StatusBar style="auto" /> */}
+
         <Stack>
           <Stack.Protected guard={!token}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />

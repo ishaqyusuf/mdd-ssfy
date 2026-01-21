@@ -77,7 +77,7 @@ import {
   XCircle,
   Zap,
 } from "lucide-react-native";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "@/hooks/use-color";
 import { camel } from "@gnd/utils";
 import { THEME } from "@/lib/theme";
 import { View } from "react-native";

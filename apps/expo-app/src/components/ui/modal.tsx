@@ -33,7 +33,7 @@ import type {
   BottomSheetModalProps,
 } from "@gorhom/bottom-sheet";
 import { BottomSheetModal, useBottomSheet } from "@gorhom/bottom-sheet";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "@/hooks/use-color";
 import * as React from "react";
 import { Pressable, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
@@ -73,26 +73,26 @@ export const Modal = React.forwardRef(
       detached = false,
       ...props
     }: ModalProps,
-    ref: ModalRef
+    ref: ModalRef,
   ) => {
     const { colorScheme } = useColorScheme();
     const detachedProps = React.useMemo(
       () => getDetachedProps(detached),
-      [detached]
+      [detached],
     );
     const modal = useModal();
     const snapPoints = React.useMemo(() => _snapPoints, [_snapPoints]);
 
     React.useImperativeHandle(
       ref,
-      () => (modal.ref.current as BottomSheetModal) || null
+      () => (modal.ref.current as BottomSheetModal) || null,
     );
     const colors = useColors();
     const backgroundStyle = React.useMemo(
       () => ({
         backgroundColor: colors.background,
       }),
-      [colors]
+      [colors],
     );
     const renderHandleComponent = React.useCallback(
       () => (
@@ -101,7 +101,7 @@ export const Modal = React.forwardRef(
           <ModalHeader title={title} dismiss={modal.dismiss} />
         </>
       ),
-      [title, modal.dismiss]
+      [title, modal.dismiss],
     );
 
     return (
@@ -117,7 +117,7 @@ export const Modal = React.forwardRef(
         backgroundStyle={backgroundStyle}
       />
     );
-  }
+  },
 );
 Modal.displayName = "Modal";
 /**

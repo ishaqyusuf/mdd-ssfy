@@ -1,7 +1,7 @@
 import React from "react";
 import { View, TouchableOpacity } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "@/hooks/use-color";
 import { Text } from "@/components/ui/text";
 import { useJobOverviewStore } from "@/stores/use-job-overview-store";
 

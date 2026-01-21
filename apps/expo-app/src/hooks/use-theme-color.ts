@@ -4,7 +4,7 @@
  */
 
 import { Colors } from "@/constants/Colors";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "@/hooks/use-color";
 import colors from "@/components/ui/colors";
 import {
   DarkTheme as _DarkTheme,
@@ -50,7 +50,7 @@ export function useThemeConfig() {
 }
 export function useThemeColor(
   props: { light?: string; dark?: string },
-  colorName: keyof typeof Colors.light & keyof typeof Colors.dark
+  colorName: keyof typeof Colors.light & keyof typeof Colors.dark,
 ) {
   const { colorScheme } = useColorScheme();
   const theme = colorScheme ?? "light";

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import * as Haptics from "expo-haptics";
 import { Image, type ImageStyle } from "react-native";
 
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "@/hooks/use-color";
 const THEME_TOGGLE_IMAGES = {
   light: require("@assets/images/theme-toggle-light.png"),
   dark: require("@assets/images/theme-toggle-dark.png"),

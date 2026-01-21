@@ -1,5 +1,5 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "@/hooks/use-color";
 import { useQuery } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
 import { View } from "@/components/ui/view";

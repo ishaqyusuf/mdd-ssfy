@@ -1,4 +1,4 @@
-import { useColorScheme } from "nativewind";
+import { useColorScheme } from "@/hooks/use-color";
 import { useQuery } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
 import { View } from "@/components/ui/view";
@@ -151,7 +151,7 @@ const EarningsChart = ({ data }) => {
 const buildSmoothStrokePath = (
   values: number[],
   width: number,
-  height: number
+  height: number,
 ) => {
   const max = Math.max(...values);
   const min = Math.min(...values);
