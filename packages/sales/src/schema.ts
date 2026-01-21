@@ -47,7 +47,7 @@ export const dispatchForm = z.object({
     .array(
       z.object({
         pathname: z.string(),
-      })
+      }),
     )
     .optional()
     .nullable(),
@@ -104,7 +104,7 @@ export const updateSalesControlSchema = z.object({
           z.object({
             uid: z.string(),
             qty: qty.optional().nullable(),
-          })
+          }),
         )
         .optional()
         .nullable(),
@@ -120,7 +120,7 @@ export const updateSalesControlSchema = z.object({
           z.object({
             assignmentId: z.number(),
             qty: qty.optional().nullable(),
-          })
+          }),
         )
         .optional()
         .nullable(),
@@ -140,10 +140,10 @@ export const updateSalesControlSchema = z.object({
               z.object({
                 submissionId: z.number(),
                 qty: qty,
-              })
+              }),
             ),
             note: z.string().optional(),
-          })
+          }),
         )
         .nullable(),
     })
@@ -239,7 +239,7 @@ export const inventoryFormSchema = z.object({
       //     inventoryId: z.number().optional().nullable(),
       //   })
       // ),
-    })
+    }),
   ),
   subComponents: z.array(
     z.object({
@@ -249,7 +249,7 @@ export const inventoryFormSchema = z.object({
       inventoryCategoryId: z.number(),
       index: z.number().default(0).optional().nullable(),
       status: z.enum(INVENTORY_STATUS).default("draft").optional().nullable(),
-    })
+    }),
   ),
   images: z
     .array(
@@ -258,7 +258,7 @@ export const inventoryFormSchema = z.object({
         id: z.number(),
         imageGalleryId: z.number(),
         position: z.number(),
-      })
+      }),
     )
     .optional()
     .nullable(),
@@ -283,9 +283,9 @@ export const inventoryFormSchema = z.object({
             id: z.number(),
             attributeId: z.number(),
             attributeInventoryId: z.number(),
-          })
+          }),
         ),
-      })
+      }),
     )
     .optional()
     .nullable(),
@@ -337,7 +337,7 @@ export const variantFormSchema = z.object({
       z.object({
         inventoryId: z.number(),
         attributeId: z.number(),
-      })
+      }),
     )
     .optional()
     .nullable(),
@@ -356,7 +356,7 @@ export const inventoryCategoryFormSchema = z.object({
       id: z.number().optional().nullable(),
       valuesInventoryCategoryId: z.number().nullable(),
       active: z.boolean().nullable(),
-    })
+    }),
   ),
 });
 export type InventoryCategoryForm = z.infer<typeof inventoryCategoryFormSchema>;
@@ -378,3 +378,13 @@ export const linePricingSchema = z.object({
   unitCostPrice: z.number().nullable().optional(),
   unitSalesPrice: z.number().nullable().optional(),
 });
+
+export const salesRepPaymentReceivedNotification = z.object({
+  email: z.string(),
+  orderId: z.array(z.string()),
+  customer: z.string(),
+  salesRep: z.string(),
+});
+export type SalesRepPaymentReceivedNotification = z.infer<
+  typeof salesRepPaymentReceivedNotification
+>;

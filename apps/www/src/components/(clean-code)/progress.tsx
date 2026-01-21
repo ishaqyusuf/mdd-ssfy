@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 
 import { Progress as BaseProgress } from "@gnd/ui/progress";
 import { percent } from "@gnd/utils";
+import { hexToRgba } from "@gnd/utils/colors";
 interface ProgressBaseProps {
     children?;
     className?;
@@ -43,9 +44,17 @@ function Status(props: StatusProps) {
             )}
             <div
                 style={{
-                    color: badge ? `white` : _color,
+                    // color: badge ? `white` : _color,
+                    color: _color,
+                    backgroundColor: badge
+                        ? hexToRgba(_color, 0.15)
+                        : undefined,
+                    borderColor: badge ? hexToRgba(_color, 0.2) : undefined,
                 }}
-                className={cn("text-xs uppercase")}
+                className={cn(
+                    "text-xs uppercase",
+                    badge && "p-0.5 px-1 shadow rounded-md border",
+                )}
             >
                 {children}
             </div>

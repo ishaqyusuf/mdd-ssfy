@@ -21,7 +21,7 @@ export type GetCustomerServicesSchema = z.infer<
 
 export async function getCustomerServices(
   ctx: TRPCContext,
-  query: GetCustomerServicesSchema
+  query: GetCustomerServicesSchema,
 ) {
   const { db } = ctx;
   const model = db.workOrders;
@@ -29,7 +29,7 @@ export async function getCustomerServices(
   const { response, searchMeta } = await composeQueryData(
     query,
     whereCustomerServices(query),
-    model
+    model,
   );
 
   const data = await model.findMany({
@@ -38,7 +38,12 @@ export async function getCustomerServices(
     // include: {}
     ...searchMeta,
     include: {
-      tech: true,
+      tech: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   });
 
@@ -47,7 +52,7 @@ export async function getCustomerServices(
       return {
         ...item,
       };
-    })
+    }),
   );
 }
 
@@ -90,7 +95,7 @@ export type AssignWorkOrderSchema = z.infer<typeof assignWorkOrderSchema>;
 
 export async function assignWorkOrder(
   ctx: TRPCContext,
-  data: AssignWorkOrderSchema
+  data: AssignWorkOrderSchema,
 ) {
   const { db } = ctx;
   await db.workOrders.update({
@@ -114,7 +119,7 @@ export type DeleteWorkOrderSchema = z.infer<typeof deleteWorkOrderSchema>;
 
 export async function deleteWorkOrder(
   ctx: TRPCContext,
-  query: DeleteWorkOrderSchema
+  query: DeleteWorkOrderSchema,
 ) {
   const { db } = ctx;
   await db.workOrders.update({
@@ -135,7 +140,7 @@ export type UpdateWorkOrderStatusSchema = z.infer<
 
 export async function updateWorkOrderStatus(
   ctx: TRPCContext,
-  query: UpdateWorkOrderStatusSchema
+  query: UpdateWorkOrderStatusSchema,
 ) {
   const { db } = ctx;
   db.workOrders.update({
@@ -170,7 +175,7 @@ export type GetWorkorderChartFilterSchema = z.infer<
 
 export async function getWorkorderChartFilter(
   ctx: TRPCContext,
-  query: GetWorkorderChartFilterSchema
+  query: GetWorkorderChartFilterSchema,
 ) {
   const { db } = ctx;
   const model = db.workOrders;

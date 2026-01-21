@@ -4,13 +4,14 @@ import {
   createSalesDispatchSchema,
 } from "@gnd/utils/sales";
 import { salesType } from "@gnd/utils/constants";
+import { salesCheckoutSuccessSchema } from "@notifications/schemas";
 // import { salesQueryParamsSchema } from "@api/schemas/sales";
 
 export const taskNames = [
   "create-sales-dispatch",
   "create-sales-history",
   "mark-sales-as-completed",
-  "sales-online-payment-action-notification",
+  "sales-rep-payment-received-notification",
   "send-login-email",
   "send-password-reset-code",
   "send-password-reset-to-default-email",
@@ -81,7 +82,7 @@ export const sendSalesReminderSchema = z.object({
       salesIds: z.array(z.number()),
       customerEmail: z.string(),
       customerName: z.string(),
-    })
+    }),
   ),
   salesRepEmail: z.string(),
   salesRep: z.string(),
@@ -137,7 +138,7 @@ export const sendStorefrontOrderConfirmationEmailSchema = z.object({
       name: z.string(),
       quantity: z.number(),
       price: z.number(),
-    })
+    }),
   ),
   total: z.number(),
 });
@@ -175,7 +176,7 @@ export const sendGndSalesEmailSchema = z.object({
       date: z.string(), // Using string for date to avoid serialization issues
       total: z.number(),
       due: z.number(),
-    })
+    }),
   ),
 });
 export type SendGndSalesEmailPayload = z.infer<typeof sendGndSalesEmailSchema>;
@@ -190,7 +191,7 @@ export const sendStorefrontAbandonedCartEmailSchema = z.object({
         name: z.string(),
         quantity: z.number(),
         price: z.number(),
-      })
+      }),
     )
     .optional(),
 });
@@ -229,7 +230,7 @@ export const sendStorefrontHotDealsEmailSchema = z.object({
         price: z.number(),
         imageUrl: z.string().url(),
         productUrl: z.string().url(),
-      })
+      }),
     )
     .optional(),
 });
@@ -338,3 +339,14 @@ export const markSalesAsCompletedSchema = z.object({
   ids: z.array(z.number()),
   authorName: z.string(),
 });
+const baseJobSchema = z.object({
+  // teamId: z.string().uuid(),
+  sendEmail: z.boolean().optional().default(false),
+});
+export const notificationSchema = z.discriminatedUnion("type", [
+  baseJobSchema
+    .extend({
+      type: z.literal("sales_checkout_success"),
+    })
+    .extend(salesCheckoutSuccessSchema.omit({}).shape),
+]);

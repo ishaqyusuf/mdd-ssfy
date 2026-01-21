@@ -34,7 +34,7 @@ export interface UserData {
   email: string;
   locale?: string;
   avatar_url?: string;
-  team_id: string;
+  // team_id: string;
   role?: "owner" | "member";
 }
 

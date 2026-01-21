@@ -1,21 +1,17 @@
-import type { Database } from "@gnd/db/client";
+// import type { Database } from "@gnd/db/client";
 import { shouldSendNotification } from "@gnd/db/queries";
-import InvoiceEmail from "@gnd/email/emails/invoice";
-import InvoiceOverdueEmail from "@gnd/email/emails/invoice-overdue";
-import InvoicePaidEmail from "@gnd/email/emails/invoice-paid";
-import InvoiceReminderEmail from "@gnd/email/emails/invoice-reminder";
-import TransactionsEmail from "@gnd/email/emails/transactions";
-import TransactionsExportedEmail from "@gnd/email/emails/transactions-exported";
-import { render } from "@gnd/email/render";
+import SalesRepOnlinePaymentReceived from "@gnd/email/emails/sales-rep-online-payment-received";
+// import { render } from "@gnd/email/render";
 import { nanoid } from "nanoid";
 import { type CreateEmailOptions, Resend } from "resend";
 import type { EmailInput } from "../base";
+import { Db } from "@gnd/db";
 
 export class EmailService {
   private client: Resend;
 
-  constructor(private db: Database) {
-    this.client = new Resend(process.env.RESEND_API_KEY!);
+  constructor(private db: Db) {
+    // this.client = new Resend(process.env.RESEND_API_KEY!);
   }
 
   async sendBulk(emails: EmailInput[], notificationType: string) {
@@ -29,7 +25,7 @@ export class EmailService {
 
     const eligibleEmails = await this.#filterEligibleEmails(
       emails,
-      notificationType
+      notificationType,
     );
 
     if (eligibleEmails.length === 0) {
@@ -41,12 +37,12 @@ export class EmailService {
     }
 
     const emailPayloads = eligibleEmails.map((email) =>
-      this.#buildEmailPayload(email)
+      this.#buildEmailPayload(email),
     );
 
     // Check if any emails have attachments - batch send doesn't support attachments
     const hasAttachments = emailPayloads.some(
-      (payload) => payload.attachments && payload.attachments.length > 0
+      (payload) => payload.attachments && payload.attachments.length > 0,
     );
 
     try {
@@ -108,13 +104,13 @@ export class EmailService {
         const shouldSend = await shouldSendNotification(
           this.db,
           email.user.id,
-          email.user.team_id,
+          // email.user.team_id,
           notificationType,
-          "email"
+          "email",
         );
 
         return shouldSend ? email : null;
-      })
+      }),
     );
 
     return eligibleEmails.filter(Boolean) as EmailInput[];
@@ -124,7 +120,7 @@ export class EmailService {
     let html: string;
     if (email.template) {
       const template = this.#getTemplate(email.template as string);
-      html = render(template(email.data as any));
+      // html = render(template(email.data as any));
     } else {
       throw new Error(`No template found for email: ${email.template}`);
     }
@@ -153,19 +149,14 @@ export class EmailService {
     if (email.bcc) payload.bcc = email.bcc;
     if (email.attachments) payload.attachments = email.attachments;
     if (email.tags) payload.tags = email.tags;
-    if (email.text) payload.text = email.text;
+    // if (email.text) payload.text = email.text;
 
     return payload;
   }
 
   #getTemplate(templateName: string) {
     const templates = {
-      "invoice-overdue": InvoiceOverdueEmail,
-      "invoice-paid": InvoicePaidEmail,
-      invoice: InvoiceEmail,
-      "invoice-reminder": InvoiceReminderEmail,
-      transactions: TransactionsEmail,
-      "transactions-exported": TransactionsExportedEmail,
+      "sales-rep-online-payment-received": SalesRepOnlinePaymentReceived,
     };
 
     const template = templates[templateName as keyof typeof templates];

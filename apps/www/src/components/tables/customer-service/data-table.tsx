@@ -14,6 +14,7 @@ import { Icons } from "@gnd/ui/custom/icons";
 import { GetCustomerServicesSchema } from "@api/db/queries/customer-service";
 import { useQuery } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
+import { generateRandomNumber } from "@gnd/utils";
 interface Props {
     defaultFilters?: GetCustomerServicesSchema;
 }
@@ -34,6 +35,7 @@ export function DataTable(props: Props) {
         },
         route: trpc.customerService.getCustomerServices,
     });
+
     const tableScroll = useTableScroll({
         useColumnWidths: true,
         startFromColumn: 2,
@@ -45,7 +47,7 @@ export function DataTable(props: Props) {
     const { data: employeesResp } = useQuery(
         _trpc.hrm.getEmployees.queryOptions({
             roles: ["Punchout"],
-        })
+        }),
     );
     if (!data?.length && !isFetching) {
         return (

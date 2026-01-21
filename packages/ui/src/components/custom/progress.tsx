@@ -38,7 +38,7 @@ function Status({ children, noDot, badge }: StatusProps) {
         }}
         className={cn(
           "text-xs uppercase",
-          badge && "p-0.5 px-1 shadow rounded-md border"
+          badge && "p-0.5 px-1 shadow rounded-md border",
         )}
       >
         {children}

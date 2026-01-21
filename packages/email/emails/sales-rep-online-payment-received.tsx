@@ -13,11 +13,11 @@ import {
   EmailThemeProvider,
   getEmailInlineStyles,
   getEmailThemeClasses,
-} from "components/theme";
-import { Logo } from "components/logo";
-import { Footer } from "components/footer";
+} from "../components/theme";
+import { Logo } from "../components/logo";
+import { Footer } from "../components/footer";
 
-export default function SalesRepPaymentNotificationEmail(props: any) {
+export default function SalesRepOnlinePaymentReceived(props: any) {
   const {
     ordersNo = ["ABC"],
     amount = 100,
@@ -26,7 +26,7 @@ export default function SalesRepPaymentNotificationEmail(props: any) {
   } = props;
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
-  const previewText = `Payment Received - Order{ordersNo?.length > 0 ? "s" : ""} #
+  const previewText = `Payment Received - Order${ordersNo?.length > 0 ? "s" : ""} #
         ${ordersNo.join(", ")}`;
   return (
     <EmailThemeProvider preview={<Preview>{previewText}</Preview>}>

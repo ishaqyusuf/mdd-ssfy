@@ -35,7 +35,7 @@ export function camel(str?: string) {
     function (match: any, p1: any, p2: any, offset: any) {
       if (p2) return p2.toUpperCase();
       return p1.toLowerCase();
-    }
+    },
   );
 }
 export function shuffle(array: any) {
@@ -110,7 +110,7 @@ export function sum<T>(array?: T[], key: keyof T | undefined = undefined) {
 export function sortList<T>(
   list: T[],
   sortBy: keyof T | undefined = undefined,
-  dir: "asc" | "desc" = "asc"
+  dir: "asc" | "desc" = "asc",
 ) {
   if (!list) return [];
   return list.sort((a, b) => {
@@ -122,12 +122,12 @@ export function sortList<T>(
 }
 export function reorderList({ newFields, oldFields, swap, fieldId = "_id" }) {
   const firstDiffIndex = oldFields.findIndex(
-    (field, index) => field[fieldId] !== newFields[index]?.[fieldId]
+    (field, index) => field[fieldId] !== newFields[index]?.[fieldId],
   );
 
   if (firstDiffIndex !== -1) {
     const newIndex = newFields.findIndex(
-      (field) => field[fieldId] === oldFields[firstDiffIndex]?.[fieldId]
+      (field) => field[fieldId] === oldFields[firstDiffIndex]?.[fieldId],
     );
     if (newIndex !== -1) {
       swap(firstDiffIndex, newIndex);
@@ -136,12 +136,12 @@ export function reorderList({ newFields, oldFields, swap, fieldId = "_id" }) {
 }
 export function uniqueList<T>(
   list: T[],
-  uniqueBy: keyof T | undefined = undefined
+  uniqueBy: keyof T | undefined = undefined,
 ) {
   if (!list) return [];
   const kValue = (b) => (!uniqueBy || typeof b === "string" ? b : b[uniqueBy]);
   return list.filter((a, i) =>
-    !kValue(a) ? true : i === list.findIndex((b) => kValue(b) == kValue(a))
+    !kValue(a) ? true : i === list.findIndex((b) => kValue(b) == kValue(a)),
   );
 }
 export function addPercentage(value: any, percentage: any) {
@@ -167,11 +167,13 @@ export function percent(score: any, total: any, def = 0) {
 }
 export function generateRandomNumber(length = 15) {
   const charset = "0123456789";
+  const charset1 = "123456789";
   let randomString = "";
 
   for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * charset.length);
-    randomString += charset.charAt(randomIndex);
+    const cs = i == 0 ? charset1 : charset;
+    const randomIndex = Math.floor(Math.random() * cs.length);
+    randomString += cs.charAt(randomIndex);
   }
 
   return +randomString;
@@ -207,7 +209,7 @@ export function getNameInitials(name?: string) {
 export function sumArrayKeys<T>(
   array?: T[],
   keys: (keyof T | undefined)[] = undefined!,
-  subtract = false
+  subtract = false,
 ) {
   if (!array?.length) return array;
   let [first, ...others] = array;
@@ -350,7 +352,7 @@ export function matchValue<T>(item: T) {
 export function labelValueOptions<T>(
   data: T[],
   labelKey?: keyof T,
-  valueKey?: keyof T
+  valueKey?: keyof T,
 ) {
   if (!data) return [];
   return data
@@ -364,7 +366,7 @@ export function labelValueOptions<T>(
 export function selectOptions<T>(
   data: T[],
   labelKey: keyof T,
-  valueKey: keyof T
+  valueKey: keyof T,
 ) {
   return data?.map((d) => ({
     data: d,
@@ -588,7 +590,7 @@ export function listFilter<T>(items: T[], query, fuzzy?: boolean): T[] {
 
   const pattern = new RegExp(escapedText, "i");
   let filteredOptions = items?.filter((option) =>
-    pattern.test((option as any).title)
+    pattern.test((option as any).title),
   );
   return uniqueBy(filteredOptions, "title");
 }

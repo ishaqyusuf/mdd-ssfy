@@ -10,6 +10,7 @@ import { useEffect, useMemo } from "react";
 
 import { openLink } from "@/lib/open-link";
 import { toast } from "@gnd/ui/use-toast";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
 
 interface Props {
     token: string;
@@ -22,11 +23,14 @@ export function SquareTokenCheckout(props: Props) {
             },
             {
                 enabled: !!props.token,
-            }
-        )
+            },
+        ),
     );
     const paymentId = data?.payload?.paymentId;
     const walletId = data?.payload?.walletId;
+    const trig = useTaskTrigger({
+        silent: true,
+    });
     const {
         isPending: isVerifying,
         data: verifyData,
@@ -34,8 +38,24 @@ export function SquareTokenCheckout(props: Props) {
         mutate,
     } = useMutation(
         _trpc.checkout.verifyPayment.mutationOptions({
-            onSuccess(data, variables, onMutateResult, context) {},
+            async onSuccess(data, variables, onMutateResult, context) {
+                console.log({ data });
+                if (data.notifications)
+                    await Promise.all(
+                        data?.notifications?.map(async (payload) => {
+                            await trig.trigger({
+                                taskName:
+                                    "sales-rep-payment-received-notification",
+                                payload,
+                            });
+                        }),
+                    );
+            },
             onError(error, variables, context) {
+                console.log({
+                    error,
+                    variables,
+                });
                 let v = variables as any;
                 if (v.attempts < 3) {
                     setTimeout(() => {
@@ -47,7 +67,7 @@ export function SquareTokenCheckout(props: Props) {
                     }, 3000);
                 }
             },
-        })
+        }),
     );
     // const {
     //     mutateAsync: verifyPayment,
@@ -80,14 +100,14 @@ export function SquareTokenCheckout(props: Props) {
                 (verifyData?.status === "COMPLETED"
                     ? "Successful"
                     : verifyData?.status === "FAILED"
-                    ? "Failed"
-                    : "Pending"),
+                      ? "Failed"
+                      : "Pending"),
             description:
                 verifyData?.status === "COMPLETED"
                     ? "Your payment has been completed successfully."
                     : verifyData?.status === "FAILED"
-                    ? "Your payment has failed. Please try again."
-                    : "Your payment is being processed. Please wait.",
+                      ? "Your payment has failed. Please try again."
+                      : "Your payment is being processed. Please wait.",
         };
     }, [paymentId, verifyData, data, verifyError]);
     const { mutate: createCheckout, isPending: isProcessing } = useMutation(
@@ -97,7 +117,7 @@ export function SquareTokenCheckout(props: Props) {
                     openLink(data.paymentLink);
                 }
             },
-        })
+        }),
     );
 
     const payload = data?.payload;

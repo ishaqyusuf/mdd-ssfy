@@ -12,6 +12,7 @@ import type { SquarePaymentStatus } from "./sales-accounting";
 import type { CustomerTransactionType } from "@sales/types";
 import { getAppUrl } from "@gnd/utils/envs";
 import { SQUARE_LOCATION_ID, squareClient } from "@gnd/square";
+import type { Db } from "@gnd/db";
 export const initializeCheckoutSchema = z.object({
   token: z.string(),
 });
@@ -19,12 +20,12 @@ export type InitializeCheckoutSchema = z.infer<typeof initializeCheckoutSchema>;
 
 export async function initializeCheckout(
   ctx: TRPCContext,
-  query: InitializeCheckoutSchema
+  query: InitializeCheckoutSchema,
 ) {
   const { db } = ctx;
   const payload = validateToken(
     query.token,
-    tokenSchemas.salesPaymentTokenSchema
+    tokenSchemas.salesPaymentTokenSchema,
   );
   const sales = await getOrders(ctx, {
     salesIds: payload?.salesIds,
@@ -48,7 +49,7 @@ export type CreateSalesCheckoutLinkSchema = z.infer<
 
 export async function createSalesCheckoutLink(
   ctx: TRPCContext,
-  data: CreateSalesCheckoutLinkSchema
+  data: CreateSalesCheckoutLinkSchema,
 ) {
   const { db } = ctx;
   const checkoutData = await initializeCheckout(ctx, {
@@ -205,10 +206,19 @@ export const verifyPaymentSchema = z.object({
 });
 export type VerifyPaymentSchema = z.infer<typeof verifyPaymentSchema>;
 
+let salesRepsNotifications: {
+  [email in string]: any;
+};
 export async function verifyPayment(
   ctx: TRPCContext,
-  query: VerifyPaymentSchema
-) {
+  query: VerifyPaymentSchema,
+): Promise<{
+  amount?: any;
+  tips?: any;
+  status?: any;
+  notifications?: any[];
+}> {
+  salesRepsNotifications = {};
   if (query.attempts! > 2)
     return {
       status: "error",
@@ -257,6 +267,7 @@ export async function verifyPayment(
       orderId: squarePayment.squareOrderId!,
     });
     const tenders = order!.tenders;
+
     const resp: { amount; tip; status: SquarePaymentStatus } = {
       amount: 0,
       tip: null,
@@ -280,7 +291,7 @@ export async function verifyPayment(
           let t = Number(tip);
           resp.tip = t > 0 ? t / 100 : 0;
         }
-      })
+      }),
     );
 
     if (resp.amount > 0)
@@ -299,9 +310,12 @@ export async function verifyPayment(
           // amount: checkout?.amount || squarePayment.amount,
           amount: resp.amount,
         },
-        tx
+        tx as any,
       );
-    return resp;
+    return {
+      ...resp,
+      notifications: Object.values(salesRepsNotifications || {}),
+    };
   });
 }
 export async function paymentSuccess(
@@ -313,7 +327,7 @@ export async function paymentSuccess(
     orders: { id; customerId; amountDue; salesRepId }[];
     checkoutId;
   },
-  tx
+  tx: Db,
 ) {
   let balance = p.amount;
   for (const order of p.orders) {
@@ -362,6 +376,22 @@ export async function paymentSuccess(
             order: {
               select: {
                 salesRepId: true,
+                customer: {
+                  select: {
+                    name: true,
+                    businessName: true,
+                  },
+                },
+                billingAddress: {
+                  select: { name: true },
+                },
+                salesRep: {
+                  select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                  },
+                },
                 id: true,
                 orderId: true,
               },
@@ -370,8 +400,9 @@ export async function paymentSuccess(
         },
       },
     });
-    const [sp] = __tx.salesPayments;
+    const sp = __tx.salesPayments?.[0]!;
     await updateSalesDueAmount(order.id, tx);
+
     await createPayrollAction(
       {
         orderId: order.id,
@@ -379,8 +410,24 @@ export async function paymentSuccess(
         salesPaymentId: sp.id,
         salesAmount: sp.amount,
       },
-      tx
+      tx,
     );
+    const salesRep = sp?.order.salesRep;
+    if (salesRep) {
+      if (!salesRepsNotifications[salesRep.email])
+        salesRepsNotifications[salesRep.email] = {
+          amount: 0,
+          email: salesRep.email,
+          repName: salesRep.name,
+          customerName:
+            sp.order.customer?.businessName ||
+            sp.order.customer?.name ||
+            sp.order.billingAddress?.name,
+          ordersNo: [],
+        };
+      salesRepsNotifications[salesRep.email].amount += sp?.amount;
+      salesRepsNotifications[salesRep.email].ordersNo.push(sp.order.orderId);
+    }
   }
 
   await tx.salesCheckout.update({
@@ -405,7 +452,7 @@ export type GenerateDeviceCodeSchema = z.infer<typeof generateDeviceCodeSchema>;
 
 export async function generateDeviceCode(
   ctx: TRPCContext,
-  query: GenerateDeviceCodeSchema
+  query: GenerateDeviceCodeSchema,
 ) {
   const { db } = ctx;
   const resp = await squareClient.devices.codes.create({

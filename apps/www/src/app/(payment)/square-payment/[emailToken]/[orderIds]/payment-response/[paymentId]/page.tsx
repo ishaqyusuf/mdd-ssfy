@@ -41,8 +41,7 @@ export default function PaymentResponsePage(props) {
                 await Promise.all(
                     response?.notifications?.map(async (not) => {
                         await trig.trigger({
-                            taskName:
-                                "sales-online-payment-action-notification",
+                            taskName: "sales-rep-payment-received-notification",
                             payload: not,
                         });
                     }),

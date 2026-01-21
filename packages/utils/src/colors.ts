@@ -146,6 +146,14 @@ export const colorsObject = {
   default: null,
 } as const;
 export type Colors = keyof typeof colorsObject;
+export const defaultColors = {
+  completed: colorsObject.limeGreen,
+  scheduled: colorsObject.yellow,
+  pending: colorsObject.yellow,
+};
+export const getDefaultColor = (value) => {
+  return defaultColors?.[value?.toLocaleLowerCase()];
+};
 export function customHash(value: string) {
   let hash = 0;
 
@@ -165,8 +173,7 @@ export function getColor(value: string, arrayLength: number) {
 
 export function getColorFromName(value: string) {
   const index = getColor(value, colors.length);
-
-  return colors[index];
+  return getDefaultColor(value) || colors[index];
 }
 
 export function getRandomColor() {
