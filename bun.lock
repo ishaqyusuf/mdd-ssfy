@@ -565,6 +565,7 @@
       "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
         "@types/bun": "latest",
+        "@types/node": "^24.0.4",
         "prisma": "^6.18.0",
         "typescript": "^5.9.3",
       },
