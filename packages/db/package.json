@@ -36,8 +36,9 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@gnd/tsconfig": "workspace:*",
+    "@types/bun": "latest",
     "typescript": "^5.9.3",
-    "prisma": "^6.18.0",
-    "@gnd/tsconfig": "workspace:*"
+    "prisma": "^6.18.0"
   }
 }
