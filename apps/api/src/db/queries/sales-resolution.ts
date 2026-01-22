@@ -21,14 +21,13 @@ export type GetSalesResolutions = z.infer<typeof getSalesResolutionsSchema>;
 
 export async function getSalesResolutions(
   ctx: TRPCContext,
-  query: GetSalesResolutions
+  query: GetSalesResolutions,
 ) {
   const { db } = ctx;
   const resolvables = await getSalesResolvables(ctx, {
     salesNo: query.salesNo,
     "customer.name": query["customer.name"],
   });
-  console.log({ resolvables });
   let { q, size = 20, status, cursor = "0" } = query;
   const meta: PageDataMeta = {};
 
@@ -36,7 +35,7 @@ export async function getSalesResolutions(
   switch (status) {
     case "Resolved":
       filteredResolvables = filteredResolvables?.filter(
-        (a) => a.status == "resolved"
+        (a) => a.status == "resolved",
       );
       break;
     case "Resolved Today":
@@ -88,7 +87,7 @@ export async function getSalesResolutions(
 }
 export async function getSalesResolvables(
   ctx: TRPCContext,
-  query: SalesQueryParamsSchema
+  query: SalesQueryParamsSchema,
 ) {
   const { db: prisma } = ctx;
 
@@ -201,7 +200,7 @@ export async function getSalesResolvables(
     .filter(
       !isDefaultFilter
         ? Boolean
-        : (a) => a.status || !!resolvedToday?.find((b) => b.salesId == a.id)
+        : (a) => a.status || !!resolvedToday?.find((b) => b.salesId == a.id),
     )
     .sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime());
 }

@@ -54,6 +54,7 @@ export async function createNoteAction(props: CreateNoteData) {
           id: senderContactId,
         },
       },
+      // readReceipts
       events: data.eventDate
         ? {
             create: {

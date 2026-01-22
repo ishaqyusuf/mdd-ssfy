@@ -12,6 +12,7 @@ export const SALES_PAYMENT_STATUS = [
   "pending",
   "success",
   "cancelled",
+  "completed",
 ] as const;
 
 export type SalesPaymentStatus = (typeof SALES_PAYMENT_STATUS)[number];
