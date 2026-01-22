@@ -2,6 +2,8 @@ import type { Db, Prisma } from "@gnd/db";
 import { getPivotModel } from "./utils";
 import { CostChartMeta } from "./types";
 import { dateQuery } from "@gnd/utils";
+
+// process.env.
 export async function getCommunityPivotId(id, db: Db) {
   const c = await db.communityModels.findUnique({ where: { id } });
   if (!c) return null;
@@ -50,7 +52,7 @@ export async function linkUnitsToCommunityByPivotId(pivotId, db: Db) {
             communityTemplateId: model.id,
           },
         });
-      })
+      }),
     );
   }
 }
@@ -87,6 +89,6 @@ export async function synchronizeModelCost(id, pivotId, db: Db) {
           updatedAt: new Date(),
         },
       });
-    })
+    }),
   );
 }
