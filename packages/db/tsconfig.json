@@ -1,27 +1,11 @@
 {
   "extends": "@gnd/tsconfig/base.json",
-  "include": ["src", "../../types"],
+  "include": ["src", "."],
   "exclude": ["node_modules"],
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "jsx": "react-jsx",
-    "jsxImportSource": "react",
-    "noImplicitAny": false,
     "baseUrl": ".",
     "paths": {
       "@db/*": ["./src/*"]
     }
   }
-  // "compilerOptions": {
-  //   "module": "NodeNext",
-  //   "moduleResolution": "NodeNext",
-  //   "jsx": "react-jsx",
-  //   "jsxImportSource": "react",
-  //   "baseUrl": ".",
-  //   "paths": {
-  //     "@/*": ["./src/*"],
-  //     "@api/*": ["../../apps/api/src/*"]
-  //   }
-  // }
 }
