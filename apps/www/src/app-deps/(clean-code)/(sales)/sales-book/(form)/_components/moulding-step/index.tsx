@@ -92,7 +92,14 @@ function MouldingRow({
                 <MouldingCalculator
                     title={data.title}
                     unitPrice={data.basePrice?.price}
-                    onCalculate={(price, wastePercentage) => {}}
+                    onCalculate={(qty) => {
+                        ctx.ctx.dotUpdateGroupItemFormPath(
+                            lineUid,
+                            "qty.total",
+                            qty,
+                        );
+                        valueChanged();
+                    }}
                 />
                 <LineInput
                     cls={ctx.ctx}

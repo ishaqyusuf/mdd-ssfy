@@ -18,7 +18,7 @@ interface Props {
     wastePercentage?: number;
     longFoot?: number;
     qty?: number;
-    onCalculate?: (price, wastePercentage) => void;
+    onCalculate?: (qty) => void;
 }
 export function MouldingCalculator(props: Props) {
     console.log(props);
@@ -347,10 +347,12 @@ export function MouldingCalculator(props: Props) {
                     <div className="gap-1 w-full">
                         <Button
                             onClick={() => {
-                                // props.onCalculate(
-                                //     data.price,
-                                //     data.wastePercentage,
-                                // );
+                                props.onCalculate(
+                                    data.qty,
+                                    // data.price,
+                                    // data.wastePercentage,
+                                );
+                                setOpened(false);
                             }}
                             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
                         >
