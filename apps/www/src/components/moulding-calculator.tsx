@@ -13,26 +13,32 @@ import { Icons } from "@gnd/ui/icons";
 
 interface Props {
     title: string;
-    price?: number;
+    unitLF?: number;
+    unitPrice?: number;
     wastePercentage?: number;
-    length?: number;
-    quantity?: number;
+    longFoot?: number;
+    qty?: number;
     onCalculate?: (price, wastePercentage) => void;
 }
 export function MouldingCalculator(props: Props) {
+    console.log(props);
     const form = useZodForm(
         z.object({
-            price: z.number().min(0).optional(),
+            unitPrice: z.number().min(0).optional(),
             wastePercentage: z.number().min(0).max(100).optional(),
-            length: z.number().min(0).optional(),
-            quantity: z.number().min(0).optional(),
+            longFoot: z.number().min(0).optional(),
+            unitLF: z.number().min(0),
+            qty: z.number().min(0).optional(),
+            totalPrice: z.number().min(0).optional(),
         }),
         {
             defaultValues: {
-                price: props.price,
+                unitPrice: props.unitPrice,
                 wastePercentage: props.wastePercentage,
-                length: props.length || getMouldingLength(props.title),
-                quantity: props.quantity,
+                longFoot: props.longFoot,
+                unitLF: props.unitLF || Number(getMouldingLength(props.title)),
+                qty: props.qty,
+                totalPrice: props.unitPrice,
             },
         },
     );
@@ -40,21 +46,41 @@ export function MouldingCalculator(props: Props) {
     const data = form.watch();
     useEffect(() => {
         if (!opened) return;
-        // qty = price / length * (1 + wastePercentage/100)
-
-        const length = data.length || 1;
-        const wasteFactor = 1 + (data.wastePercentage || 0) / 100;
+        // qty = longFoot / unitLF * (1 + wastePercentage/100)
         const qty =
-            data.price && length ? (data.price / length) * wasteFactor : 0;
-        form.setValue("quantity", Math.round(qty * 100) / 100);
-        props.onCalculate?.(data.price, data.wastePercentage);
-    }, [data.price, data.wastePercentage, data.length, opened]);
+            data.longFoot && data.unitLF
+                ? (data.longFoot / data.unitLF) *
+                  (1 + (data.wastePercentage || 0) / 100)
+                : 0;
+        const roundQty = Math.ceil(qty);
+        form.setValue("qty", roundQty);
+        const totalPrice =
+            data.unitPrice && roundQty ? data.unitPrice * roundQty : 0;
+        // 2 decimal places toatl price
+        const tPrice = Math.round(totalPrice * 100) / 100;
+        form.setValue("totalPrice", tPrice);
+
+        // const length = data.length || 1;
+        // const wasteFactor = 1 + (data.wastePercentage || 0) / 100;
+        // const qty =
+        //     data.price && length ? (data.price / length) * wasteFactor : 0;
+        // form.setValue("quantity", Math.round(qty * 100) / 100);
+        // props.onCalculate?.(data.price, data.wastePercentage);
+    }, [
+        data.longFoot,
+        data.wastePercentage,
+        data.unitLF,
+        data.unitPrice,
+        opened,
+    ]);
     //   const calculatedBaseLF = data.quantity// parseFloat(budget) / pricePerLF;
-    const totalPieces = data.quantity || 0;
-    const totalFootage = totalPieces * data.length;
+    const totalPieces = data.qty || 0;
+    const totalFootage = data.longFoot;
     const pricePerLF =
-        data.length && data.price ? data.price / totalFootage : 0;
-    const calculatedBaseLF = pricePerLF ? (data.price || 0) / pricePerLF : 0;
+        data.longFoot && data.unitPrice ? data.longFoot / data.unitPrice : 0;
+    const calculatedBaseLF = pricePerLF
+        ? (data.totalPrice || 0) / pricePerLF
+        : 0;
     return (
         <AlertDialog open={opened} onOpenChange={setOpened}>
             <AlertDialog.Trigger asChild>
@@ -88,7 +114,7 @@ export function MouldingCalculator(props: Props) {
                             <section className="space-y-4">
                                 <Controller
                                     control={form.control}
-                                    name="length"
+                                    name="unitLF"
                                     render={({ field }) => (
                                         <Field>
                                             <Field.Label>
@@ -113,7 +139,7 @@ export function MouldingCalculator(props: Props) {
                                                                     )
                                                                 }
                                                                 variant={
-                                                                    data.length ===
+                                                                    data.unitLF ===
                                                                     parseFloat(
                                                                         len,
                                                                     )
@@ -133,19 +159,16 @@ export function MouldingCalculator(props: Props) {
                                 <div className="grid gap-4 grid-cols-2">
                                     <Controller
                                         control={form.control}
-                                        name="price"
+                                        name="longFoot"
                                         render={({ field }) => (
                                             <Field>
                                                 <Field.Label>
-                                                    Total Budget / Price
+                                                    Total LF
                                                 </Field.Label>
                                                 <InputGroup>
-                                                    <InputGroup.Addon>
-                                                        $
-                                                    </InputGroup.Addon>
                                                     <InputGroup.Input
                                                         type="number"
-                                                        placeholder="0.00"
+                                                        placeholder="0"
                                                         className=""
                                                         value={field.value}
                                                         onChange={(e) =>
@@ -163,11 +186,11 @@ export function MouldingCalculator(props: Props) {
                                     />
                                     <Controller
                                         control={form.control}
-                                        name="price"
+                                        name="unitPrice"
                                         render={({ field }) => (
                                             <Field>
                                                 <Field.Label>
-                                                    Price per Foot (Derived)
+                                                    Price per LF (Derived)
                                                 </Field.Label>
                                                 <InputGroup>
                                                     <InputGroup.Addon>
@@ -178,7 +201,9 @@ export function MouldingCalculator(props: Props) {
                                                         type="number"
                                                         placeholder="0.00"
                                                         className=""
-                                                        value={field.value}
+                                                        defaultValue={String(
+                                                            field.value,
+                                                        )}
                                                     />
                                                     <InputGroup.Addon
                                                         className="text-xs"
@@ -280,37 +305,36 @@ export function MouldingCalculator(props: Props) {
                                         <span className="text-3xl font-bold text-foreground">
                                             <AnimatedNumber
                                                 currency="number"
-                                                value={data.quantity || 0}
+                                                value={data.qty || 0}
                                             />
                                             {/* {data.quantity || 0}{" "} */}
                                         </span>
                                     </div>
                                     <div className="flex flex-col text-right">
                                         <span className="text-[11px] font-semibold text-muted-foreground uppercase">
-                                            Total Footage
+                                            Total Cost
                                         </span>
                                         <span className="text-3xl font-bold text-foreground">
                                             <AnimatedNumber
-                                                currency="number"
-                                                value={totalFootage || 0}
+                                                value={data.totalPrice || 0}
                                             />
                                             {"  "}
-                                            <span className="text-sm font-normal text-muted-foreground">
+                                            {/* <span className="text-sm font-normal text-muted-foreground">
                                                 LF
-                                            </span>
+                                            </span> */}
                                         </span>
                                     </div>
                                 </div>
                                 <div className="mt-3 pt-3 border-t border-border">
                                     <div className="flex justify-between text-[11px]">
                                         <span className="text-muted-foreground">
-                                            Budget (${data.price?.toFixed(1)}) ÷
+                                            {/* Budget (${data.price?.toFixed(1)}) ÷
                                             {data.length}
-                                            /LF
+                                            /LF */}
                                         </span>
                                         <span className="text-muted-foreground font-medium">
-                                            {calculatedBaseLF.toFixed(1)} LF
-                                            Base + {data.wastePercentage}% Waste
+                                            {/* {calculatedBaseLF.toFixed(1)} LF
+                                            Base + {data.wastePercentage}% Waste */}
                                         </span>
                                     </div>
                                 </div>
@@ -322,12 +346,12 @@ export function MouldingCalculator(props: Props) {
                     {/* Footer */}
                     <div className="gap-1 w-full">
                         <Button
-                            onClick={() =>
-                                props.onCalculate(
-                                    data.price,
-                                    data.wastePercentage,
-                                )
-                            }
+                            onClick={() => {
+                                // props.onCalculate(
+                                //     data.price,
+                                //     data.wastePercentage,
+                                // );
+                            }}
                             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
                         >
                             <CheckCircle2 size={20} />

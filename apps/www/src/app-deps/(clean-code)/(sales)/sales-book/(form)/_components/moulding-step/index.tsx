@@ -91,6 +91,7 @@ function MouldingRow({
             <TableCell className="flex gap-1 items-center">
                 <MouldingCalculator
                     title={data.title}
+                    unitPrice={data.basePrice?.price}
                     onCalculate={(price, wastePercentage) => {}}
                 />
                 <LineInput
