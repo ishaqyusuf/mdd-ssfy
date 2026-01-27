@@ -20,11 +20,7 @@ import { MouldingClass } from "../../_utils/helpers/zus/moulding-class";
 import { LineInput } from "../line-input";
 import { Context, useCreateContext, useCtx } from "./ctx";
 import { _trpc } from "@/components/static-trpc";
-import { useQuery } from "@gnd/ui/tanstack";
-import { Skeletons } from "@gnd/ui/custom/skeletons";
-import { Button } from "@gnd/ui/button";
-import { Calculator } from "lucide-react";
-import { AlertDialog } from "@gnd/ui/composite";
+
 import { MouldingCalculator } from "@/components/moulding-calculator";
 
 interface Props {
@@ -93,7 +89,10 @@ function MouldingRow({
                 {data.title}
             </TableCell>
             <TableCell className="flex gap-1 items-center">
-                <MouldingCalculator />
+                <MouldingCalculator
+                    title={data.title}
+                    onCalculate={(price, wastePercentage) => {}}
+                />
                 <LineInput
                     cls={ctx.ctx}
                     name="qty.total"
