@@ -28,7 +28,7 @@ import Money from "../_v1/money";
 import { toast } from "@gnd/ui/use-toast";
 import { FormDebugBtn } from "../form-debug-btn";
 import { cn } from "@gnd/ui/cn";
-import z4 from "zod/v4";
+
 import { Env } from "../env";
 import { Field } from "@gnd/ui/composite";
 import { Controller } from "react-hook-form";
@@ -63,7 +63,7 @@ export function CommunityInstallCostForm({ model }: Props) {
                     variant: "destructive",
                 });
             },
-        })
+        }),
     );
     const form = useZodForm(
         updateInstallCostSchema.extend({
@@ -76,7 +76,7 @@ export function CommunityInstallCostForm({ model }: Props) {
                 meta: model?.meta,
                 installCost: model?.installCost,
             },
-        }
+        },
     );
     useEffect(() => {
         console.log({ model });
@@ -91,7 +91,9 @@ export function CommunityInstallCostForm({ model }: Props) {
     }, [model]);
     const onSubmit = async (formData) => {
         const installCost = Object.fromEntries(
-            Object.entries(formData?.installCost || {})?.filter(([a, b]) => !!b)
+            Object.entries(formData?.installCost || {})?.filter(
+                ([a, b]) => !!b,
+            ),
         );
         const meta = {
             communityModel: {
@@ -134,10 +136,10 @@ export function CommunityInstallCostForm({ model }: Props) {
                                 <TableRow
                                     className={cn(
                                         form.getValues(
-                                            `installCost.${task.uid}` as any
+                                            `installCost.${task.uid}` as any,
                                         ) > 0
                                             ? "bg-teal-50"
-                                            : ""
+                                            : "",
                                     )}
                                     key={ti}
                                 >
@@ -168,7 +170,7 @@ export function CommunityInstallCostForm({ model }: Props) {
                                                             props.field?.value
                                                                 ? props.field
                                                                       ?.value
-                                                                : ""
+                                                                : "",
                                                         )}
                                                     />
                                                 )}

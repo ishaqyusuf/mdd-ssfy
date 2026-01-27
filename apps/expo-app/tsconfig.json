@@ -10,6 +10,9 @@
     "strict": true,
     "noImplicitAny": false,
 
+    "jsx": "react-native",
+    "checkJs": false,
+
     "paths": {
       "@/*": ["./src/*"],
       "@api/*": ["../api/src/*"],

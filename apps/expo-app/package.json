@@ -2,7 +2,6 @@
   "name": "@gnd/expo-app",
   "main": "expo-router/entry",
   "version": "1.0.0",
-  "type": "module",
   "scripts": {
     "start": "expo start -c --go",
     "dev": "expo start -c --clear --port 3501 --go",

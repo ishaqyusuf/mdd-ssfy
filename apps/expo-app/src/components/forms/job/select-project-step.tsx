@@ -31,7 +31,7 @@ export function SelectProjectStep() {
       <SearchInput
         value={query}
         onChangeText={setQuery}
-        placeholder="Search projects"
+        placeholder="Search projects..."
       />
       <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
         <JobSelectProjectList items={results} />
