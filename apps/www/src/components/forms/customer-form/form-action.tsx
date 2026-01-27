@@ -55,6 +55,7 @@ export function FormAction({ onCancel }) {
                 //     resp?.addressId,
                 // );
                 setParams({
+                    customerForm: false,
                     payload: {
                         customerId: resp.customerId,
                         addressId: resp.addressId,
@@ -64,13 +65,9 @@ export function FormAction({ onCancel }) {
                 // if (resp) {
                 // }
             },
-        }
+        },
     );
-    const onSubmit = async (data) => {
-        mutate({
-            ...data,
-        });
-    };
+
     return (
         <div className="flex flex-1 py-4 items-center gap-4">
             <div className="text-sm text-muted-foreground">
@@ -92,7 +89,7 @@ export function FormAction({ onCancel }) {
                 <form
                     // onSubmit={form.handleSubmit(onSubmit)}
                     onSubmit={form.handleSubmit(
-                        params?.address ? mutateAddress : mutate
+                        params?.address ? mutateAddress : mutate,
                     )}
                 >
                     <SubmitButton

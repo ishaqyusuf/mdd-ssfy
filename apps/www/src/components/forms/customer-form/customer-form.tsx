@@ -26,6 +26,7 @@ import { Form } from "@gnd/ui/form";
 import { ExistingCustomerResolver } from "./existing-customer-resolver";
 import AddressAutoComplete from "@/components/address-autocomplete";
 import { useCustomerForm } from "./form-context";
+import { cn } from "@gnd/ui/cn";
 
 export type CustomerFormData = z.infer<typeof createCustomerSchema>;
 
@@ -43,7 +44,7 @@ export function CustomerForm() {
         },
         {
             wait: 120,
-        }
+        },
     );
     const { taxProfiles, salesProfiles } = resp?.data || {};
 
@@ -70,6 +71,7 @@ export function CustomerForm() {
     }, [addressId]);
     function handleCreateCopy() {}
     const [searchInput, setSearchInput] = useState("");
+    const isBusiness = customerType == "Business";
     return (
         <Form {...form}>
             <div className="flex flex-col overflow-x-hidden pb-32">
@@ -98,27 +100,34 @@ export function CustomerForm() {
                                             size="sm"
                                             options={["Personal", "Business"]}
                                         />
-                                        {customerType == "Business" ? (
-                                            <FormInput
-                                                control={form.control}
-                                                name="businessName"
-                                                label="Business Name"
-                                                size="sm"
-                                            />
-                                        ) : (
-                                            <FormInput
-                                                control={form.control}
-                                                name="name"
-                                                label="Name"
-                                                size="sm"
-                                            />
-                                        )}
+
+                                        <FormInput
+                                            control={form.control}
+                                            name="businessName"
+                                            label="Business Name *"
+                                            size="sm"
+                                            className={cn(
+                                                !isBusiness && "hidden",
+                                            )}
+                                        />
+
+                                        <FormInput
+                                            control={form.control}
+                                            name="name"
+                                            label="Name *"
+                                            size="sm"
+                                            className={cn(
+                                                isBusiness && "hidden",
+                                            )}
+                                        />
+
                                         <div className="grid grid-cols-2 gap-4">
                                             <FormInput
                                                 control={form.control}
                                                 name="phoneNo"
                                                 label="Phone"
                                                 size="sm"
+                                                type="phone"
                                             />
                                             <FormInput
                                                 control={form.control}
@@ -131,7 +140,7 @@ export function CustomerForm() {
                                             <FormSelect
                                                 control={form.control}
                                                 name="profileId"
-                                                label="Customer Profile"
+                                                label="Customer Profile *"
                                                 size="sm"
                                                 titleKey="title"
                                                 valueKey="id"
@@ -139,7 +148,7 @@ export function CustomerForm() {
                                                     (s) => ({
                                                         ...s,
                                                         id: String(s.id),
-                                                    })
+                                                    }),
                                                 )}
                                             />
                                             <FormSelect
@@ -177,28 +186,28 @@ export function CustomerForm() {
                                         setAddress={(address) => {
                                             form.setValue(
                                                 "formattedAddress",
-                                                address.formattedAddress
+                                                address.formattedAddress,
                                             );
                                             form.setValue(
                                                 "address1",
-                                                address.address1
+                                                address.address1,
                                             );
                                             form.setValue(
                                                 "address2",
-                                                address.address2
+                                                address.address2,
                                             );
                                             form.setValue("city", address.city);
                                             form.setValue(
                                                 "state",
-                                                address.region
+                                                address.region,
                                             );
                                             form.setValue(
                                                 "zip_code",
-                                                address.postalCode
+                                                address.postalCode,
                                             );
                                             form.setValue(
                                                 "country",
-                                                address.country
+                                                address.country,
                                             );
                                             // form.setValue("country", address.);
                                             // form.setValue(
@@ -298,7 +307,7 @@ export function CustomerForm() {
                                                             size="sm"
                                                             onClick={() => {
                                                                 setResolutionRequired(
-                                                                    false
+                                                                    false,
                                                                 );
                                                             }}
                                                         >
@@ -330,7 +339,7 @@ export function CustomerForm() {
                                                                 <div className="space-y-3">
                                                                     {sales.map(
                                                                         (
-                                                                            sale
+                                                                            sale,
                                                                         ) => (
                                                                             <div
                                                                                 key={
@@ -350,9 +359,9 @@ export function CustomerForm() {
                                                                                             "Completed"
                                                                                                 ? "default"
                                                                                                 : sale.status ===
-                                                                                                  "Pending"
-                                                                                                ? "outline"
-                                                                                                : "destructive"
+                                                                                                    "Pending"
+                                                                                                  ? "outline"
+                                                                                                  : "destructive"
                                                                                         }
                                                                                     >
                                                                                         {
@@ -364,7 +373,7 @@ export function CustomerForm() {
                                                                                     <div>
                                                                                         Date:{" "}
                                                                                         {new Date(
-                                                                                            sale.date
+                                                                                            sale.date,
                                                                                         ).toLocaleDateString()}
                                                                                     </div>
                                                                                     <div>
@@ -376,7 +385,7 @@ export function CustomerForm() {
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
-                                                                        )
+                                                                        ),
                                                                     )}
                                                                 </div>
                                                             </AccordionContent>
