@@ -32,13 +32,13 @@ function ProjectListItem({ item }: ProjectListItemProps) {
         "group relative flex-row items-center gap-4 bg-card p-4 rounded-3xl border-2 transition-all my-1",
         isSelected
           ? "bg-primary/30 border-primary"
-          : "border-transparent bg-card"
+          : "border-transparent bg-card",
       )}
     >
       <View
         className={cn(
           "flex items-center justify-center rounded-full bg-muted shrink-0",
-          isCustom ? "size-14" : "size-12"
+          isCustom ? "size-14" : "size-12",
         )}
       >
         <Icon
@@ -52,7 +52,7 @@ function ProjectListItem({ item }: ProjectListItemProps) {
           className={cn(
             "text-base font-medium ",
             isCustom && "text-lg font-bold",
-            isSelected ? "text-primary-foreground" : "text-foreground"
+            isSelected ? "text-primary-foreground" : "text-foreground",
           )}
         >
           {item.title}
@@ -60,7 +60,7 @@ function ProjectListItem({ item }: ProjectListItemProps) {
         <Text
           className={cn(
             "text-sm",
-            isSelected ? "text-primary-foreground/75" : "text-muted-foreground"
+            isSelected ? "text-primary-foreground/75" : "text-muted-foreground",
           )}
         >
           {item.builder?.name}
@@ -69,14 +69,14 @@ function ProjectListItem({ item }: ProjectListItemProps) {
       <View
         className={cn(
           "shrink-0 size-6 rounded-full border-2 flex items-center justify-center transition-colors",
-          isSelected ? "border-primary bg-primary" : "border-border"
+          isSelected ? "border-primary bg-primary" : "border-border",
         )}
       >
         <Icon
           name="Check"
           className={cn(
             "text-primary-foreground",
-            isSelected ? "opacity-100" : "opacity-0"
+            isSelected ? "opacity-100" : "opacity-0",
           )}
           size={16}
         />
@@ -110,6 +110,7 @@ export function JobSelectProjectList({ items }) {
             </Text>
           </View>
         }
+        ListFooterComponent={<View className="pb-32" />}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <ProjectListItem item={item} />}
       />

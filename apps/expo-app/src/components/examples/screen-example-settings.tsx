@@ -1,17 +1,20 @@
 import React, { useState } from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
-import { Icon } from "../ui/icon";
+import { Icon, IconKeys } from "../ui/icon";
 import { useRouter } from "expo-router";
 import { useAuthContext } from "@/hooks/use-auth";
 import { padStart } from "@gnd/utils";
 import { Debug } from "../debug";
 import { BackBtn } from "../back-btn";
+import config from "@root/app.config";
 export default function SettingsExampleScreen() {
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(true);
   const router = useRouter();
   const auth = useAuthContext();
+  // get expo build version
+  const expoVersion = config.version;
   return (
     <View className="flex-1 bg-background">
       {/* Header */}
@@ -178,7 +181,7 @@ export default function SettingsExampleScreen() {
               </Text>
             </Pressable>
             <Text className="text-xs font-medium text-muted-foreground">
-              Version 2.4.1 (Build 890)
+              Version {expoVersion} (Build {config.android?.versionCode || "1"})
             </Text>
           </View>
         </View>
@@ -225,7 +228,7 @@ function SettingsItem({
   rightElement,
   isLast,
 }: {
-  icon: any;
+  icon: IconKeys;
   label: string;
   subLabel?: string;
   rightElement?: React.ReactNode;
