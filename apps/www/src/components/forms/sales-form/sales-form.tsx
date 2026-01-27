@@ -2,7 +2,6 @@ import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(fo
 import ItemSection from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/item-section";
 import { zhAddItem } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-form-helper";
 import { Icons } from "@/components/_v1/icons";
-import Button from "@/components/common/button";
 import useEffectLoader from "@/lib/use-effect-loader";
 import { cn } from "@/lib/utils";
 import { FormWatcher } from "./form-watcher";
@@ -15,6 +14,7 @@ import { SalesFormSidebar } from "./sales-form-sidebar";
 import { useSalesSummaryToggle } from "@/store/invoice-summary-toggle";
 import { SalesFormSave } from "./sales-form-save";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
+import { Button } from "@gnd/ui/button";
 
 export function SalesFormClient({ data }) {
     const zus = useFormDataStore();

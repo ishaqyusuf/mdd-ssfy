@@ -41,7 +41,7 @@ async function composeBookForm<T>(data: T) {
     };
 }
 export async function createSalesBookFormUseCase(
-    data: GetSalesBookFormDataProps
+    data: GetSalesBookFormDataProps,
 ) {
     const resp = await createSalesBookFormDataDta(data);
     return await composeBookForm(resp);
@@ -53,7 +53,7 @@ export async function saveSalesSettingUseCase(meta) {
 export async function saveFormUseCase(
     data: SalesFormFields,
     oldFormState?: SalesFormFields,
-    query?: SaveQuery
+    query?: SaveQuery,
     // allowRedirect = true
 ) {
     if (!oldFormState)
@@ -74,9 +74,9 @@ export async function moveOrderUseCase(orderId, to: SalesType) {
     const resp = await copySalesUseCase(
         orderId,
         to,
-        to == "order" ? "quote" : "order"
+        to == "order" ? "quote" : "order",
     );
-    if (!resp?.error) await deleteSalesByOrderId(orderId);
+    if (!resp?.error && to == "quote") await deleteSalesByOrderId(orderId);
     return resp;
 }
 export async function copySalesUseCase(orderId, as: any, type: any) {

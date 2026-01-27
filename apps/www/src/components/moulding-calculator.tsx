@@ -63,11 +63,11 @@ export function MouldingCalculator(props: Props) {
                         // handleCalculatorOpen('5-1/4" Crown Moulding')
                     }}
                     className=""
-                    size="sm"
+                    size="icon-sm"
                     variant="secondary"
                     title="Open Calculator"
                 >
-                    <Calculator className="size-5" />
+                    <Calculator className="" />
                 </Button>
             </AlertDialog.Trigger>
             <AlertDialog.Content size="default">

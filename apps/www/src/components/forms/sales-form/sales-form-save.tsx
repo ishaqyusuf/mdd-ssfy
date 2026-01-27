@@ -55,7 +55,7 @@ export function SalesFormSave({ type = "button", and }: Props) {
             {
                 restoreMode,
                 allowRedirect: true,
-            }
+            },
         );
 
         const s = resp?.data?.sales;
@@ -109,7 +109,7 @@ export function SalesFormSave({ type = "button", and }: Props) {
         zus.init(zhInitializeState(data));
     }
     return type == "button" ? (
-        <Button icon="save" size="xs" action={save} variant="default">
+        <Button icon="save" size="sm" action={save} variant="default">
             <span className="">Save</span>
         </Button>
     ) : and ? (
