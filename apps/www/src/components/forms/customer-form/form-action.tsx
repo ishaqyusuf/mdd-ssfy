@@ -25,6 +25,7 @@ export function FormAction({ onCancel }) {
                 title: id ? "Updated" : "Created",
             });
             setParams({
+                customerForm: false,
                 payload: {
                     customerId: resp.customerId,
                     addressId: resp.addressId,
