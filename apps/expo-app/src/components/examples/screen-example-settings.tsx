@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
+import { View, Text, Pressable, ScrollView, Platform } from "react-native";
 import { Icon, IconKeys } from "../ui/icon";
 import { useRouter } from "expo-router";
 import { useAuthContext } from "@/hooks/use-auth";
@@ -181,7 +181,12 @@ export default function SettingsExampleScreen() {
               </Text>
             </Pressable>
             <Text className="text-xs font-medium text-muted-foreground">
-              Version {expoVersion} (Build {config.android?.versionCode || "1"})
+              Version {expoVersion} (Build{" "}
+              {Platform.select({
+                android: config.android?.version || 1,
+                ios: config.ios?.buildNumber || "1",
+              })}
+              )
             </Text>
           </View>
         </View>

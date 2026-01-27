@@ -81,7 +81,7 @@ function Content() {
                                     className={cn(
                                         "border-b-2 border-b-transparent uppercase",
                                         ctx.hpt.tabUid == door.uid &&
-                                            "rounded-b-none border-muted-foreground"
+                                            "rounded-b-none border-muted-foreground",
                                     )}
                                     variant={
                                         ctx.hpt.tabUid == door.uid
@@ -97,7 +97,7 @@ function Content() {
                                 <div
                                     className={cn(
                                         // ctx.hpt.tabUid != door.uid &&
-                                        "hidden"
+                                        "hidden",
                                     )}
                                 >
                                     <Menu>
@@ -159,7 +159,7 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
                             <TableHead className="w-28 whitespace-nowrap">
                                 Labor/Qty
                             </TableHead>
-                            {/* <TableHead className="w-28">Addon/Qty</TableHead> */}
+
                             <TableHead className="w-28">Line Total</TableHead>
                             <TableHead className=""></TableHead>
                         </TableRow>
@@ -229,7 +229,7 @@ function DoorSizeRowContent({ doorIndex, sizeIndex }) {
             <TableRow
                 className={cn(
                     // !sizeForm?.selected && "hidden",
-                    "hover:bg-transparent"
+                    "hover:bg-transparent",
                 )}
             >
                 <TableCell className="font-mono$"></TableCell>

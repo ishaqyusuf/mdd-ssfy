@@ -6,18 +6,21 @@ export const runtime = "nodejs"; // 👈 REQUIRED
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
 
+    const appId = "dDs6hBgLPn9uCRNr5A1tnZ";
+    const versionNumber = "1.0.127";
     const fileUrl =
         searchParams.get("url") ??
-        "https://expo.dev/artifacts/eas/2FnxTdEff3pRrfULnr3JXa.apk";
+        `https://expo.dev/artifacts/eas/${appId}.apk`;
 
-    const filename = searchParams.get("name") ?? "GND-Millwork.apk";
+    const filename =
+        searchParams.get("name") ?? `GND-Millwork ${versionNumber}.apk`;
 
     const res = await fetch(fileUrl);
 
     if (!res.ok || !res.body) {
         return NextResponse.json(
             { error: "Failed to fetch file" },
-            { status: 400 }
+            { status: 400 },
         );
     }
 

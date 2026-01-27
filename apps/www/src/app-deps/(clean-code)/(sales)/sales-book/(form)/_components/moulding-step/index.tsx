@@ -22,6 +22,10 @@ import { Context, useCreateContext, useCtx } from "./ctx";
 import { _trpc } from "@/components/static-trpc";
 import { useQuery } from "@gnd/ui/tanstack";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
+import { Button } from "@gnd/ui/button";
+import { Calculator } from "lucide-react";
+import { AlertDialog } from "@gnd/ui/composite";
+import { MouldingCalculator } from "@/components/moulding-calculator";
 
 interface Props {
     itemStepUid;
@@ -47,7 +51,7 @@ export default function MouldingLineItem({ itemStepUid }: Props) {
                             <TableHead className="w-full">
                                 {ctx?.ctx?.getItemType()}
                             </TableHead>
-                            <TableHead className="w-28">Qty</TableHead>
+                            <TableHead className="w-36">Qty</TableHead>
                             <TableHead className="w-28">Estimate</TableHead>
                             <TableHead className="w-28">Addon/Qty</TableHead>
                             <TableHead className="w-28">Line Total</TableHead>
@@ -88,7 +92,8 @@ function MouldingRow({
             <TableCell className="font-mono$ text-sm font-medium">
                 {data.title}
             </TableCell>
-            <TableCell>
+            <TableCell className="flex gap-1 items-center">
+                <MouldingCalculator />
                 <LineInput
                     cls={ctx.ctx}
                     name="qty.total"

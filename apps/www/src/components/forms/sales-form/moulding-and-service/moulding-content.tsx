@@ -128,7 +128,7 @@ function PriceEstimateCell({}) {
     const mould = new MouldingClass(ctx.mouldingItemStepUid);
     const lineItem = mould.getMouldingLineItemForm();
     const moulding = ctx?.mouldings?.find(
-        (m) => m.productId == lineForm?.mouldingProductId
+        (m) => m.productId == lineForm?.mouldingProductId,
     );
 
     return (
