@@ -36,6 +36,7 @@ import { openLink } from "@/lib/open-link";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { History } from "lucide-react";
 
 interface Props {
     data: GetCommunityTemplate;
@@ -76,7 +77,7 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                     success: "Done!.",
                 },
             },
-        })
+        }),
     );
     const auth = useAuth();
     async function save() {
@@ -123,7 +124,7 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                                         // homeIds: "",
                                         templateSlug: data?.slug,
                                     },
-                                    true
+                                    true,
                                 );
                             }}
                         >
@@ -136,13 +137,15 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                             V2
                         </Link>
                         <Button
+                            variant="outline"
                             onClick={() => {
                                 modal.openSheet(
-                                    <TemplateHistoryModal data={data} />
+                                    <TemplateHistoryModal data={data} />,
                                 );
                             }}
                             size="sm"
                         >
+                            <History className="size-4" />
                             History
                         </Button>
                         <ImportModelTemplateSheet

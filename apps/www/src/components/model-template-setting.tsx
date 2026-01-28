@@ -1,7 +1,7 @@
 import { updateCommunityVersion } from "@/actions/community/update-community-version";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { Button } from "@gnd/ui/button";
-import { Field, Popover, Select } from "@gnd/ui/composite";
+import { DropdownMenu, Field, Popover, Select } from "@gnd/ui/composite";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
 import { Settings } from "lucide-react";
@@ -23,7 +23,7 @@ export function ModelTemplateSetting(props: Props) {
             defaultValues: {
                 ...(props?.defaultValues || {}),
             },
-        }
+        },
     );
     const updateVersion = async (d) => {
         await updateCommunityVersion(props.id, d);
@@ -32,13 +32,13 @@ export function ModelTemplateSetting(props: Props) {
     };
     const version = form.watch("version");
     return (
-        <Popover.Root>
-            <Popover.Trigger asChild>
+        <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
                 <Button variant="secondary">
                     <Icons.Settings className="size-4" />
                 </Button>
-            </Popover.Trigger>
-            <Popover.Content>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content>
                 <div className="grid gap-4">
                     <div className="space-y-2">
                         <h4 className="leading-none font-medium">
@@ -64,8 +64,8 @@ export function ModelTemplateSetting(props: Props) {
                         </Select.Root>
                     </Field>
                 </div>
-            </Popover.Content>
-        </Popover.Root>
+            </DropdownMenu.Content>
+        </DropdownMenu.Root>
     );
 }
 

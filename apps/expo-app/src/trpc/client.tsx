@@ -9,7 +9,7 @@ import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
 import { AppRouter } from "@api/trpc/routers/_app";
 import { getBaseUrl } from "@/lib/base-url";
-import { getToken } from "@/lib/session-store";
+import { getSessionProfile, getToken } from "@/lib/session-store";
 import { consoleLog } from "@gnd/utils";
 // import { generateRandomString } from "@/lib/utils";
 // import { authUser } from "@/app/(v1)/_actions/utils";
@@ -54,9 +54,21 @@ export function TRPCReactProvider(
           async headers() {
             const headers = new Map<string, string>();
             const token = getToken();
-            if (token) headers.set("Authorization", `Bearer ${token}`);
-
-            return headers;
+            if (token)
+              return {
+                Authorization: `Bearer ${token}|${getSessionProfile()?.user?.id}`,
+              };
+            headers.set(
+              "Authorization",
+              `Bearer ${token}|${getSessionProfile()?.user?.id}`,
+            );
+            // headers.
+            consoleLog("USER ID HEADER", {
+              // userId: getSessionProfile()?.user?.id,
+              // token,
+              headers: Object.fromEntries(headers),
+            });
+            return Object.fromEntries(headers);
           },
         }),
         loggerLink({

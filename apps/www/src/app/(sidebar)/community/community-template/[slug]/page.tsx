@@ -26,7 +26,7 @@ export default async function Page(props) {
                 data={{
                     community: true,
                 }}
-                className="space-y-4 px-8"
+                className="space-y-4 p-8"
             >
                 <PageTitle>{response?.modelName}</PageTitle>
 

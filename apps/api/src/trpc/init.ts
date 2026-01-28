@@ -4,6 +4,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { withAuthPermission } from "./middleware/auth-permission";
 import { verify } from "jsonwebtoken";
+import { consoleLog } from "@gnd/utils";
 export type TRPCContext = {
   //   session: Session | null;
   //   supabase: SupabaseClient;
@@ -19,6 +20,7 @@ export const createTRPCContext = async (
 ): Promise<TRPCContext> => {
   const header = c.req.header();
   const auth = header["authorization"] ?? "";
+  consoleLog("TRPC CONTEXT HEADERS", Object.entries(header));
   let [token, userId] = auth?.split(" ")?.[1]?.split("|") || [];
   if (!userId && token) {
     // console.log({ token, jwt: process.env.JWT_SECRET });
