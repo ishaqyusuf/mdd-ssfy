@@ -19,6 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input-2";
 import { cn } from "@/lib/utils";
 import { Toast } from "@/components/ui/toast";
+import { formatMoney } from "@gnd/utils";
 
 export function JobFormStep() {
   const ctx = useJobFormContext();
@@ -86,7 +87,7 @@ export function JobFormStep() {
                         multiline
                         className={cn(
                           "flex w-full rounded-lg  bg-card min-h-30 px-5 py-4 text-base text-foreground align-text-top",
-                          fieldState?.error && "border-destructive"
+                          fieldState?.error && "border-destructive",
                         )}
                         placeholder="Enter specific job details, access codes, or warnings..."
                         placeholderClassName="text-foreground"
@@ -121,7 +122,7 @@ export function JobFormStep() {
                             }}
                             className={cn(
                               "flex w-full rounded-xl border h-14 pl-15 pr-5 text-base text-foreground",
-                              fieldState?.error && "border-destructive"
+                              fieldState?.error && "border-destructive",
                             )}
                             placeholder="0.00"
                             inputMode="decimal"
@@ -133,39 +134,64 @@ export function JobFormStep() {
                 </View>
               </View>
             )}
-            <Controller
-              control={ctx.form.control}
-              name="isCustom"
-              render={({ field, fieldState }) => (
-                <Pressable
-                  onPress={(e) => {
-                    if (
-                      ctx.formData?.id &&
-                      ctx.formData?.status == "Assigned"
-                    ) {
-                      Toast.show("Error. Action not applicable", {
-                        type: "error",
-                      });
-                      return;
-                    }
-                    field?.onChange(!field?.value);
-                  }}
-                  className="flex-row bg-card p-4 rounded-lg shadow"
-                >
-                  <View>
-                    <Text className="text-lg font-bold">Custom Job</Text>
-                    <Text>Enter custom job details manually</Text>
-                  </View>
-                  <View className="flex-1"></View>
-                  <Switch
-                    checked={!!field?.value}
-                    onCheckedChange={(e) => {}}
-                    className=""
-                  />
-                </Pressable>
-              )}
-            />
+            {ctx?.state?.allowCustomJobs && (
+              <Controller
+                control={ctx.form.control}
+                name="isCustom"
+                render={({ field, fieldState }) => (
+                  <Pressable
+                    onPress={(e) => {
+                      if (
+                        ctx.formData?.id &&
+                        ctx.formData?.status == "Assigned"
+                      ) {
+                        Toast.show("Error. Action not applicable", {
+                          type: "error",
+                        });
+                        return;
+                      }
+                      field?.onChange(!field?.value);
+                    }}
+                    className="flex-row bg-card p-4 rounded-lg shadow"
+                  >
+                    <View>
+                      <Text className="text-lg font-bold">Custom Job</Text>
+                      <Text>Enter custom job details manually</Text>
+                    </View>
+                    <View className="flex-1"></View>
+                    <Switch
+                      checked={!!field?.value}
+                      onCheckedChange={(e) => {}}
+                      className=""
+                    />
+                  </Pressable>
+                )}
+              />
+            )}
 
+            <View className="bg-card p-4 rounded-lg shadow">
+              <View className="flex items-center flex-row justify-between px-2">
+                <View className="flex flex-col">
+                  <Text className="text-base font-bold text-gray-900 dark:text-white leading-tight">
+                    Project Addon
+                  </Text>
+                  <Text className="text-xs text-gray-500 dark:text-gray-400">
+                    Default project-specific addition
+                  </Text>
+                </View>
+                <View className="flex flex-row items-center gap-2 bg-muted dark:bg-surface-dark px-4 py-2 rounded-full border border-muted-foreground/50">
+                  <Text className="text-base font-bold text-primary">
+                    ${formatMoney(ctx?.formData?.addon || 0)}
+                  </Text>
+                  <Text className="">
+                    <Icon
+                      name="Lock"
+                      className="size-12 text-muted-foreground"
+                    />
+                  </Text>
+                </View>
+              </View>
+            </View>
             {/* Unit Tasks List */}
             {ctx?.formData?.isCustom || (
               <View>

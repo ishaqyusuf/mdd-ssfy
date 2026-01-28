@@ -45,7 +45,10 @@ export async function projectList(ctx: TRPCContext) {
       title: "asc",
     },
   });
-  return list;
+  return list.map((ls) => ({
+    ...ls,
+    addon: (ls?.meta as any)?.addon,
+  }));
 }
 export async function buildersList(ctx: TRPCContext) {
   const _data = await ctx.db.builders.findMany({
@@ -70,7 +73,7 @@ export async function getCommunityTemplateForm(ctx: TRPCContext, templateId) {
 }
 export async function saveCommunityTemplateForm(
   ctx: TRPCContext,
-  data: CommunityTemplateForm
+  data: CommunityTemplateForm,
 ) {
   if (data.id) {
     await ctx.db.communityModels.update({
@@ -135,7 +138,7 @@ export async function saveCommunityTemplateForm(
 }
 export async function createCommnunityModelCost(
   ctx: TRPCContext,
-  data: CreateCommunityModelCost
+  data: CreateCommunityModelCost,
 ) {
   const slug = slugify(`${data.builderName} ${data.modelName}`);
   await ctx.db.homeTemplates.create({
@@ -157,7 +160,7 @@ export type CommunityModelCostHistory = z.infer<
 export async function communityModelCostHistory(
   ctx: TRPCContext,
   data: CommunityModelCostForm,
-  retry = false
+  retry = false,
 ) {
   const { db } = ctx;
   const model = await db.communityModels.findFirstOrThrow({
@@ -214,7 +217,7 @@ export type CommunityInstallCostForm = z.infer<
 
 export async function communityInstallCostForm(
   ctx: TRPCContext,
-  data: CommunityInstallCostForm
+  data: CommunityInstallCostForm,
 ) {
   const config = await getInstallPriceConfiguration(ctx);
   const model = await ctx.db.communityModels.findFirstOrThrow({
@@ -280,7 +283,7 @@ export type UpdateInstallCostSchema = z.infer<typeof updateInstallCostSchema>;
 
 export async function updateInstallCost(
   ctx: TRPCContext,
-  query: UpdateInstallCostSchema
+  query: UpdateInstallCostSchema,
 ) {
   const { db } = ctx;
   const { communityModelId, pivotId, meta } = query;
@@ -317,7 +320,7 @@ export type CommunityModelCostForm = z.infer<
 export async function communityModelCostForm(
   ctx: TRPCContext,
   data: CommunityModelCostForm,
-  retry = false
+  retry = false,
 ) {
   if (data.id < 0) return null;
   const { db } = ctx;
@@ -355,7 +358,7 @@ export type SaveCommunityModelCost = z.infer<
 >;
 export async function saveCommunityModelCost(
   ctx: TRPCContext,
-  data: SaveCommunityModelCost
+  data: SaveCommunityModelCost,
 ) {
   return await ctx.db.$transaction(
     async (__tx) => {
@@ -379,7 +382,7 @@ export async function saveCommunityModelCost(
       mcMeta.totalTax = sum([...Object.values(mcMeta.tax)]);
       mcMeta.sumCosts = {};
       Array.from(
-        new Set([...Object.keys(mcMeta.costs), ...Object.keys(mcMeta.tax)])
+        new Set([...Object.keys(mcMeta.costs), ...Object.keys(mcMeta.tax)]),
       ).map((k) => {
         mcMeta.sumCosts[k] = sum([mcMeta.costs[k], mcMeta.tax[k]]);
       });
@@ -429,7 +432,7 @@ export async function saveCommunityModelCost(
     },
     {
       timeout: 20 * 1000,
-    }
+    },
   );
 }
 export const deleteCommunityModelCostSchema = z.object({
@@ -441,7 +444,7 @@ export type DeleteCommunityModelCost = z.infer<
 
 export async function deleteCommunityModelCost(
   ctx: TRPCContext,
-  data: DeleteCommunityModelCost
+  data: DeleteCommunityModelCost,
 ) {
   const { db } = ctx;
   await db.communityModelCost.update({
@@ -488,7 +491,7 @@ export async function _createMissingPivots(prisma: Db) {
           pivotId: pivot.id,
         },
       });
-    })
+    }),
   );
 }
 export async function _addMissingPivotToModelCosts(prisma: Db) {
@@ -527,7 +530,7 @@ export async function _addMissingPivotToModelCosts(prisma: Db) {
           pivotId: Number(k),
         },
       });
-    })
+    }),
   );
 }
 export const communitySummarySchema = z.object({
@@ -536,7 +539,7 @@ export const communitySummarySchema = z.object({
 export type CommunitySummary = z.infer<typeof communitySummarySchema>;
 export async function communitySummary(
   db: Db,
-  data: CommunitySummary
+  data: CommunitySummary,
 ): Promise<{ value: any; subtitle?: string }> {
   switch (data.type) {
     case "projects":
@@ -584,14 +587,14 @@ export type GetCommunityProjectsSchema = z.infer<
 >;
 export async function getCommunityProjects(
   ctx: TRPCContext,
-  query: GetCommunityProjectsSchema
+  query: GetCommunityProjectsSchema,
 ) {
   const { db } = ctx;
   // const query = {};
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereCommunityProjects(query),
-    db.projects
+    db.projects,
   );
 
   const data = await db.projects.findMany({
@@ -626,7 +629,7 @@ export async function getCommunityProjects(
     data.map((d) => ({
       ...d,
       meta: d.meta as any as ProjectMeta,
-    }))
+    })),
   );
 }
 function whereCommunityProjects(query: GetCommunityProjectsSchema) {
@@ -687,7 +690,7 @@ export type GetProjectFormSchema = z.infer<typeof getProjectFormSchema>;
 
 export async function getProjectForm(
   ctx: TRPCContext,
-  query: GetProjectFormSchema
+  query: GetProjectFormSchema,
 ) {
   const { db } = ctx;
 }
@@ -750,7 +753,7 @@ export async function getUnitJobs(ctx: TRPCContext, query: GetUnitJobsSchema) {
   project?.homes?.map((unit) => {
     const isTestUnit = unit.lot == "1118";
     const _count = unit.jobs.filter(
-      (j) => j.type?.toLowerCase() == jobType?.toLowerCase()
+      (j) => j.type?.toLowerCase() == jobType?.toLowerCase(),
     ).length;
     if (_count > 0 && byAvailability) {
       return;
@@ -758,7 +761,7 @@ export async function getUnitJobs(ctx: TRPCContext, query: GetUnitJobsSchema) {
     if (
       jobType == "punchout" &&
       unit.jobs.filter(
-        (j) => j.type?.toLowerCase() == ("installation" as JobType)
+        (j) => j.type?.toLowerCase() == ("installation" as JobType),
       ).length == 0
     )
       return;
@@ -766,7 +769,7 @@ export async function getUnitJobs(ctx: TRPCContext, query: GetUnitJobsSchema) {
     // if (isTestUnit) console.log(unit);
     let template: any = unit.homeTemplate as any;
     let communityTemplate: any = project.communityModels.find(
-      (m) => m.modelName == unit.modelName
+      (m) => m.modelName == unit.modelName,
     ) as any;
     // if (isTestUnit) console.log(communityTemplate);
     // if (jobType == "punchout") {

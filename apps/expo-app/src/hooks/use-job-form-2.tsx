@@ -3,6 +3,7 @@ import { Toast } from "@/components/ui/toast";
 import { useZodForm } from "@/components/use-zod-form";
 import { getJobType } from "@/lib/job";
 import { getSessionProfile } from "@/lib/session-store";
+import { useTRPC } from "@/trpc/client";
 import { createJobSchema } from "@api/db/queries/jobs";
 import { consoleLog, sum } from "@gnd/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -20,7 +21,7 @@ import { BackHandler } from "react-native";
 
 type JobFormContextType = ReturnType<typeof useCreateJobFormContext>;
 export const JobFormContext = createContext<JobFormContextType>(
-  undefined as any
+  undefined as any,
 );
 export const JobFormContextProvider = JobFormContext.Provider as any;
 export type JobFormTabs =
@@ -34,6 +35,7 @@ export const JobFormProvider = JobFormContext.Provider;
 export interface JobFormProps {
   admin?: boolean;
   controlId?: string;
+  type?: string;
   action?: "submit" | "create" | "update" | "re-assign";
 }
 export const useCreateJobFormContext = (props: JobFormProps) => {
@@ -88,24 +90,32 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
 
       const sub = BackHandler.addEventListener(
         "hardwareBackPress",
-        onBackPress
+        onBackPress,
       );
       return () => sub.remove();
-    }, [tabHistory])
+    }, [tabHistory]),
   );
   const { data: projectList } = useQuery(
-    _trpc.community.projectsList.queryOptions()
+    _trpc.community.projectsList.queryOptions(),
   );
   const { data: costData } = useQuery(
-    _trpc.jobs.getInstallCosts.queryOptions({})
+    _trpc.jobs.getInstallCosts.queryOptions({}),
   );
   const profile = getSessionProfile();
+  const type = (props.type || "installation")?.toLowerCase();
+  // const type = props.type;
+  const role = {
+    installation: "1099 Contractor",
+    punchout: "Punchout",
+    maintenance: "Deco-Shutter Installer",
+  }[type];
+
   const { data: users } = useQuery(
     _trpc.hrm.getEmployees.queryOptions({
       roles: props.admin
-        ? ["1099 Contractor", "Punchout"]
+        ? [role] //["1099 Contractor", "Punchout"]
         : [profile?.role?.name!],
-    })
+    }),
   );
 
   const formData = useWatch({
@@ -123,12 +133,12 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
     _trpc.community.getUnitJobs.queryOptions(
       {
         projectId: projectId!,
-        jobType: "installation",
+        jobType: type,
       },
       {
         enabled: !!projectId,
-      }
-    )
+      },
+    ),
   );
   const { data: jobData } = useQuery(
     _trpc.jobs.getJobForm.queryOptions(
@@ -137,8 +147,8 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
       },
       {
         enabled: !!props.controlId,
-      }
-    )
+      },
+    ),
   );
   useEffect(() => {
     if (jobData) form.reset(jobData);
@@ -146,12 +156,18 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
   const total = useMemo(() => {
     const taskCost = sum(
       Object.entries(formData?.tasks! || {}).map(([k, v]) =>
-        sum([+v?.qty! * +(v?.cost || 0)])
-      )
+        sum([+v?.qty! * +(v?.cost || 0)]),
+      ),
     );
     if (formData?.isCustom) return formData.additionalCost;
-    return sum([formData.addon, taskCost, formData.additionalCost]);
+    const addon = getAddon(formData);
+    return sum([addon, taskCost, formData.additionalCost]);
   }, [formData]);
+  const getAddon = (formData) => {
+    const { isCustom, homeId, projectId } = formData;
+    const addon = isCustom || !homeId || !projectId ? 0 : formData.addon || 0;
+    return addon;
+  };
   const [errors, setErrors] = useState<any>(null);
   const {
     mutate: saveJob,
@@ -177,7 +193,7 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
           success: "Done!.",
         },
       },
-    })
+    }),
   );
   //@ts-ignore
   const [, setOpened] = useState(false);
@@ -192,6 +208,7 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
   };
   // const [unit,setUnit] = useStat
   const selectUnit = (unit, onSelect) => {
+    if (unit.id === -1) unit.id = null;
     form.setValue("homeId", unit.id);
     form.setValue("subtitle", unit.name);
 
@@ -205,7 +222,7 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
             qty: null,
             cost: costData?.data?.list?.find((a) => a.uid === k)?.cost,
           },
-        ])
+        ]),
     );
     // store.update("form.tasks", tasks);
     // form.reset(store.form)
@@ -214,6 +231,7 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
     // setTab("tasks");
   };
   const selectProject = (project, onSelect) => {
+    if (project.id === -1) project.id = null;
     const oldProjectId = form.getValues("projectId");
 
     form.setValue("projectId", project.id);
@@ -221,6 +239,7 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
 
     if (oldProjectId !== project.id) {
       form.setValue("homeId", null);
+      form.setValue("addon", project.addon || 0);
 
       form.setValue("subtitle", null);
       form.setValue("tasks", {});
@@ -250,6 +269,9 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
       form.handleSubmit(
         (e) => {
           const values = formData;
+          // if (!values?.projectId || !values?.homeId || values.isCustom)
+          //   values.addon = null;
+
           if (!props.admin) {
             const profile = getSessionProfile();
             const role = profile?.role?.name;
@@ -263,11 +285,11 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
         },
         (errs) => {
           setErrors(errs);
-          consoleLog("ERROR", errs);
+
           Toast.show("Error. Invalid form data.", {
             type: "error",
           });
-        }
+        },
       )();
     }, 250);
   };
@@ -275,8 +297,16 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
     setTabHistory([rootTab()]);
     form.reset({});
   };
+  const { data: jobSettings } = useQuery(
+    useTRPC().settings.getJobSettings.queryOptions(),
+  );
+  // console.log({ jobSettings });
   return {
     ...props,
+    state: {
+      showTaskQty: props.admin || jobSettings?.meta?.showTaskQty,
+      allowCustomJobs: props.admin || jobSettings?.meta?.allowCustomJobs,
+    },
     form,
     costData: costData?.data,
     // onDismiss,

@@ -15,10 +15,6 @@ export type Project = {
 export function SelectUnitStep() {
   const { setTab, jobsListData, ...ctx } = useJobFormContext();
 
-  const handleContinue = () => {
-    setTab("main");
-  };
-
   const jobsList = jobsListData?.homeList;
   const { setQuery, query, results } = useSearch({
     items: jobsList!,

@@ -57,6 +57,22 @@ export default function TabLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="job-type"
+        options={{
+          presentation: "formSheet",
+          headerShown: false,
+          gestureDirection: "vertical",
+          animation: "slide_from_bottom",
+          sheetGrabberVisible: true,
+          sheetInitialDetentIndex: 0,
+          // sheetAllowedDetents: [0.5, 0.75, 1],
+          sheetAllowedDetents: [0.5],
+          sheetCornerRadius: 20,
+          sheetExpandsWhenScrolledToEdge: true,
+          sheetElevation: 24,
+        }}
+      />
     </Stack>
   );
   // return (
@@ -201,7 +217,7 @@ function TabBarIcon({
         name={icon as any}
         size={24}
         className={cn(
-          focused ? "text-primary fill-primary" : "text-muted-foreground"
+          focused ? "text-primary fill-primary" : "text-muted-foreground",
         )}
         strokeWidth={2}
       />

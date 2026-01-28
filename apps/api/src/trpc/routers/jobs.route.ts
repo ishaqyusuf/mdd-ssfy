@@ -25,7 +25,7 @@ export const jobRoutes = createTRPCRouter({
     .input(
       z.object({
         id: z.number(),
-      })
+      }),
     )
     .mutation(async (props) => {
       // return deleteJob(props.ctx, props.input);
@@ -42,7 +42,7 @@ export const jobRoutes = createTRPCRouter({
     .input(
       z.object({
         jobId: z.number(),
-      })
+      }),
     )
     .mutation(async (props) => {
       const { ctx, input } = props;
@@ -61,7 +61,7 @@ export const jobRoutes = createTRPCRouter({
         jobId: z.number(),
         oldUserId: z.number(),
         newUserId: z.number(),
-      })
+      }),
     )
     .mutation(async (props) => {
       const { ctx, input } = props;
@@ -96,7 +96,7 @@ export const jobRoutes = createTRPCRouter({
             },
           ],
         },
-        ctx.userId!
+        ctx.userId!,
       );
     }),
   jobReview: publicProcedure
@@ -105,11 +105,10 @@ export const jobRoutes = createTRPCRouter({
         action: z.enum(["approve", "reject"]),
         note: z.string().optional(),
         jobId: z.number(),
-      })
+      }),
     )
     .mutation(async (props) => {
       const { ctx, input } = props;
-      console.log({ input });
 
       const db = ctx.db;
       const job = await db.jobs.update({
@@ -138,7 +137,7 @@ export const jobRoutes = createTRPCRouter({
             },
           ],
         },
-        ctx.userId!
+        ctx.userId!,
       );
       // return jobReview(props.ctx, props.input);
     }),

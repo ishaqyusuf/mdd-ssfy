@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { HOME_DOMAIN } from "./constants";
 
-const prod = process.env.NODE_ENV == "production";
+const prod = process.env.NODE_ENV === "production";
 export function constructMetadata({
     title = `${process.env.NEXT_PUBLIC_APP_NAME} - Enterprice Management System`,
     description = `${process.env.NEXT_PUBLIC_APP_NAME}`,
@@ -16,7 +16,7 @@ export function constructMetadata({
             rel: "icon",
             type: "image/png",
             sizes: "32x32",
-            url: `/favicon-32x32${prod ? ".png" : ".dev.jpg"}`,
+            url: `/favicon-32x32s${prod ? ".png" : ".dev.jpg"}`,
         },
         {
             rel: "icon",

@@ -48,7 +48,7 @@ export function InstallerDashboardHeader2() {
           </TouchableOpacity> */}
         {/* <ThemeToggle /> */}
         {/* <Logout /> */}
-        <PressableLink href={"/settings"}>
+        <PressableLink href={"/settings"} className={"p-2 rounded-full"}>
           <Icon name="Settings" className="size-20" />
         </PressableLink>
       </View>

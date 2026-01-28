@@ -3,6 +3,7 @@ import type { LucideIcon, LucideProps } from "lucide-react-native";
 import {
   Activity,
   AlertCircle,
+  AppWindow,
   ArrowLeft,
   ArrowRight,
   BarChart2,
@@ -30,6 +31,7 @@ import {
   Fence,
   FilePenLine,
   FileText,
+  FolderPlus,
   Gavel,
   Globe,
   GripHorizontal,
@@ -42,6 +44,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   List,
+  ListChecks,
   ListX,
   Loader2,
   LocateIcon,
@@ -154,7 +157,7 @@ function Icon({
 // }
 
 const appIcons = {
-  Delete,
+  AppWindow,
   Activity,
   analytics: BarChart2,
   AlertCircle,
@@ -180,10 +183,12 @@ const appIcons = {
   CircleCheck,
   CircleDollarSign,
   CreditCard,
+  Delete,
   DoorOpen,
   Fence,
   FilePenLine,
   FileText,
+  FolderPlus,
   Gavel,
   Globe,
   GripHorizontal,
@@ -199,6 +204,7 @@ const appIcons = {
   LayoutDashboard,
   LayoutGrid,
   List,
+  ListChecks,
   ListX,
   LocateIcon,
   Loader2,

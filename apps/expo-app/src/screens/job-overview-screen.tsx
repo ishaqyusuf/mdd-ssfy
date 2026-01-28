@@ -14,7 +14,6 @@ import {
 import { useJobTaskList } from "@/hooks/use-job-task-list";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@gnd/utils";
-import { getColorFromName } from "@gnd/utils/colors";
 import { formatDate } from "@gnd/utils/dayjs";
 import { Text, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
@@ -137,7 +136,7 @@ function TasksAndChargesCard() {
                 <Text
                   className={cn(
                     "font-bold text-foreground text-sm",
-                    !task.reason || "text-warn"
+                    !task.reason || "text-warn",
                   )}
                 >
                   {task.title}
@@ -149,7 +148,7 @@ function TasksAndChargesCard() {
               <Text
                 className={cn(
                   "font-bold text-foreground",
-                  !task.reason || "text-warn"
+                  !task.reason || "text-warn",
                 )}
               >
                 ${formatMoney(task?.cost)}
@@ -165,7 +164,7 @@ function TasksAndChargesCard() {
             Total Amount
           </Text>
           <Text className="text-[32px] font-bold text-foreground tracking-tight leading-none">
-            ${job?.amount}
+            ${formatMoney(job?.amount)}
           </Text>
         </View>
       </View>

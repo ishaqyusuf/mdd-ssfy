@@ -31,7 +31,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereJobs(query),
-    model
+    model,
   );
   const data = await model.findMany({
     where,
@@ -144,8 +144,8 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
             taskCost,
           },
         };
-      }
-    )
+      },
+    ),
   );
 }
 function whereJobs(query: GetJobsSchema) {
@@ -180,7 +180,7 @@ export type GetInstallCostsSchema = z.infer<typeof getInstallCostsSchema>;
 
 export async function getInstallCosts(
   ctx: TRPCContext,
-  query: GetInstallCostsSchema
+  query: GetInstallCostsSchema,
 ) {
   const { db } = ctx;
   const res = await getSetting<InstallCostMeta>(ctx, "install-price-chart");
@@ -193,7 +193,7 @@ export type GetJobAnalyticsSchema = z.infer<typeof getJobAnalyticsSchema>;
 
 export async function getJobAnalytics(
   ctx: TRPCContext,
-  query: GetJobAnalyticsSchema
+  query: GetJobAnalyticsSchema,
 ) {
   const { db } = ctx;
 
@@ -300,7 +300,7 @@ export const createJobSchema = z
         qty: z.number().optional().nullable(),
         maxQty: z.number().optional().nullable(),
         cost: z.number(),
-      })
+      }),
       // .refine(
       //   (data) =>
       //     data.qty == null || data.maxQty == null || data.qty <= data.maxQty,
@@ -348,23 +348,26 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
   const { db } = ctx;
   if (query.isCustom) {
     query.tasks = {};
-    query.addon = 0;
-    // query.status = ''
+    // query.addon = 0;
+    // query.status = '';
   }
 
   const taskCost = sum(
-    Object.entries(query.tasks).map(([k, v]) => sum([+v.qty! * +v.cost]))
+    Object.entries(query.tasks).map(([k, v]) => sum([+v.qty! * +v.cost])),
   );
   const meta: JobMeta = {
     taskCost,
     additional_cost: query.additionalCost!,
     additionalCostReason: query.additionalReason!,
-    addon: !query.homeId ? 0 : query.addon!,
+    addon: query.addon! || 0, // !query.homeId ? 0 : query.addon!,
     costData: query.tasks as any,
   };
   const amount = sum([
-    sum([meta.addon, meta.taskCost, meta.additional_cost]) /
-      (query.coWorker?.id ? 2 : 1),
+    sum([
+      query.isCustom || !query.homeId ? 0 : meta.addon,
+      meta.taskCost,
+      meta.additional_cost,
+    ]) / (query.coWorker?.id ? 2 : 1),
   ]);
   const controlId = query.id ? query.controlId : generateControlId();
   if (!controlId) throw new Error("Unable to proceed");
@@ -428,7 +431,7 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
           },
         ],
       },
-      ctx.userId!
+      ctx.userId!,
     );
   } else {
     const result = await db.jobs.updateMany({
@@ -499,7 +502,7 @@ export type EarningAnalyticsSchema = z.infer<typeof earningAnalyticsSchema>;
 
 export async function earningAnalytics(
   ctx: TRPCContext,
-  query: EarningAnalyticsSchema
+  query: EarningAnalyticsSchema,
 ) {
   const { db } = ctx;
   const now = new Date();
@@ -546,7 +549,7 @@ export async function earningAnalytics(
   const data = days.map((day) => {
     return thisMonthJobs
       .filter(
-        (j) => format(j.createdAt!, "yyyy-MM-dd") === format(day, "yyyy-MM-dd")
+        (j) => format(j.createdAt!, "yyyy-MM-dd") === format(day, "yyyy-MM-dd"),
       )
       .reduce((s, j) => s + j.amount, 0);
   });
@@ -571,7 +574,7 @@ export type AdminAnalyticsSchema = z.infer<typeof adminAnalyticsSchema>;
 
 export async function adminAnalytics(
   ctx: TRPCContext,
-  query: AdminAnalyticsSchema
+  query: AdminAnalyticsSchema,
 ) {
   const { db } = ctx;
 

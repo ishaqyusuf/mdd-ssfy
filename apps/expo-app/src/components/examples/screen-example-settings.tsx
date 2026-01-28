@@ -7,12 +7,35 @@ import { padStart } from "@gnd/utils";
 import { Debug } from "../debug";
 import { BackBtn } from "../back-btn";
 import config from "@root/app.config";
+import { useTRPC } from "@/trpc/client";
+import { useMutation, useQuery } from "@tanstack/react-query";
 export default function SettingsExampleScreen() {
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(true);
   const router = useRouter();
   const auth = useAuthContext();
+  const { data: setting, refetch } = useQuery(
+    useTRPC().settings.getJobSettings.queryOptions(),
+  );
+  const { mutate: updateSetting } = useMutation(
+    useTRPC().settings.updateSetting.mutationOptions({
+      onSuccess: () => {
+        refetch();
+      },
+      onError: (error) => {
+        console.error("Error updating job setting:", error);
+      },
+    }),
+  );
+  async function updateJobSetting(key, value) {
+    updateSetting({
+      type: setting?.type!,
+      meta: {
+        [key]: value,
+      },
+    });
+  }
   // get expo build version
   const expoVersion = config.version;
   return (
@@ -54,6 +77,44 @@ export default function SettingsExampleScreen() {
               <Icon name="Pencil" className="text-primary" size={18} />
             </Pressable>
           </View>
+          {!auth.isAdmin || (
+            <Section title="Job Configuration">
+              <SettingsItem
+                icon="ListChecks"
+                label="Task Qty visible"
+                subLabel="Show maximum task qty to workers"
+                isLast={false}
+                rightElement={
+                  <Toggle
+                    value={setting?.meta?.showTaskQty || false}
+                    onValueChange={() =>
+                      updateJobSetting(
+                        "showTaskQty",
+                        !setting?.meta?.showTaskQty,
+                      )
+                    }
+                  />
+                }
+              />
+              <SettingsItem
+                icon="FolderPlus"
+                label="Custom jobs"
+                subLabel="Allow workers to create custom jobs"
+                isLast={false}
+                rightElement={
+                  <Toggle
+                    value={setting?.meta?.allowCustomJobs || false}
+                    onValueChange={() =>
+                      updateJobSetting(
+                        "allowCustomJobs",
+                        !setting?.meta?.allowCustomJobs,
+                      )
+                    }
+                  />
+                }
+              />
+            </Section>
+          )}
           <Debug>
             {/* Preferences Section */}
             <Section title="PREFERENCES">

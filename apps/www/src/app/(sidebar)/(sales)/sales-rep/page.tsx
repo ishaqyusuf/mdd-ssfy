@@ -57,7 +57,7 @@ export default async function SalesRepProfile(props: {
                     <Link
                         className={cn(
                             buttonVariants({ variant: "default" }),
-                            "flex items-center gap-2"
+                            "flex items-center gap-2",
                         )}
                         href="/sales-book/create-order"
                     >
