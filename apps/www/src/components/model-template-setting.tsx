@@ -12,7 +12,7 @@ import z from "zod";
 interface Props {
     slug: String;
     id: number;
-    pivotModelId;
+    pivotModelCostId;
     defaultValues: {
         version?: string;
     };
@@ -85,7 +85,7 @@ export function ModelTemplateSetting(props: Props) {
                     onClick={() => {
                         setModelCostParams({
                             editModelCostTemplateId: props.id,
-                            editModelCostId: props.pivotModelId || -1,
+                            editModelCostId: props.pivotModelCostId || -1,
                         });
                     }}
                     className="justify-start gap-2"
@@ -93,7 +93,7 @@ export function ModelTemplateSetting(props: Props) {
                     <Tag className="size-4" />
                     Model Cost
                 </DropdownMenu.Item>
-                <DropdownMenu.Item className="justify-start gap-2">
+                <DropdownMenu.Item disabled className="justify-start gap-2">
                     <Eye className="size-4" />
                     Preview
                 </DropdownMenu.Item>

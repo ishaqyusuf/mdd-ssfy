@@ -36,7 +36,7 @@ import { openLink } from "@/lib/open-link";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { History } from "lucide-react";
+import { Eye, History } from "lucide-react";
 
 interface Props {
     data: GetCommunityTemplate;
@@ -114,6 +114,8 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                 Action={() => (
                     <>
                         <Button
+                            variant="outline"
+                            size="sm"
                             onClick={(e) => {
                                 openLink(
                                     "p/model-template",
@@ -128,10 +130,16 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                                 );
                             }}
                         >
+                            <Eye className="size-4" />
                             Preview
                         </Button>
                         <Link
-                            className={cn(buttonVariants({}))}
+                            className={cn(
+                                buttonVariants({
+                                    variant: "outline",
+                                    size: "sm",
+                                }),
+                            )}
                             href={`/community/model-template/${data?.slug}`}
                         >
                             V2
@@ -157,6 +165,7 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                         </Btn>
 
                         <ModelTemplateSetting
+                            pivotModelCostId={data?.pivotModelCostId}
                             id={data?.id!}
                             defaultValues={{
                                 version: data?.version,

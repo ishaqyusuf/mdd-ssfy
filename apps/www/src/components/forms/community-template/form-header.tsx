@@ -77,7 +77,7 @@ export function FormHeader() {
             </Btn>
             <ModelTemplateSetting
                 id={ctx?.communityTemplate?.id!}
-                pivotModelId={ctx?.communityTemplate?.pivotModelCostId!}
+                pivotModelCostId={ctx?.communityTemplate?.pivotModelCostId!}
                 defaultValues={{
                     version: ctx?.communityTemplate?.version,
                 }}

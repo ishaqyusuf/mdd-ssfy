@@ -127,7 +127,7 @@ function whereHomeTemplate(query: HomeTemplatesQueryParams) {
     return where;
 }
 export async function printHomesAction(
-    homes: { builderId: number; projectId: number; modelName }[]
+    homes: { builderId: number; projectId: number; modelName }[],
 ) {
     const prints = await prisma.homeTemplates.findMany({
         where: {
@@ -169,12 +169,23 @@ export async function getCommunityTemplate(slug) {
         where: { slug },
         include: {
             history: true,
+            pivot: {
+                select: {
+                    modelCosts: {
+                        take: 1,
+                        select: {
+                            id: true,
+                        },
+                    },
+                },
+            },
         },
     });
     if (!homeTemplate) throw new Error("Home template not found");
     return {
         ...homeTemplate,
         meta: homeTemplate.meta as any as HomeTemplateMeta,
+        pivotModelCostId: homeTemplate.pivot?.modelCosts?.[0]?.id,
     };
 }
 export async function saveHomeTemplateDesign(slug, meta) {
