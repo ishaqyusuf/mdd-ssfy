@@ -37,6 +37,8 @@ import { _qc, _trpc } from "@/components/static-trpc";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Eye, History } from "lucide-react";
+import { InstallCostBtn } from "@/components/install-cost-btn";
+import { CommunityTemplateActions } from "@/components/community-template-actions";
 
 interface Props {
     data: GetCommunityTemplate;
@@ -160,16 +162,11 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                             data={data}
                             form={form as any}
                         />
-                        <Btn size="sm" isLoading={isSaving} onClick={save}>
-                            Save
-                        </Btn>
 
-                        <ModelTemplateSetting
-                            pivotModelCostId={data?.pivotModelCostId}
+                        <CommunityTemplateActions
                             id={data?.id!}
-                            defaultValues={{
-                                version: data?.version,
-                            }}
+                            pivotModelCostId={data?.pivotModelCostId}
+                            version={data?.version}
                             slug={data?.slug}
                         />
                     </>

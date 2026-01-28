@@ -11,6 +11,7 @@ import { ModelTemplateSetting } from "@/components/model-template-setting";
 import Link from "next/link";
 import { cn } from "@gnd/ui/cn";
 import Btn from "@/components/_v1/btn";
+import { InstallCostBtn } from "@/components/install-cost-btn";
 
 export function FormHeader() {
     const store = useCommunityModelStore();
@@ -72,9 +73,7 @@ export function FormHeader() {
             >
                 V1
             </Link>
-            <Btn onClick={onSubmit} isLoading={isPending} type="button">
-                Save
-            </Btn>
+            <InstallCostBtn id={ctx?.communityTemplate?.id!} />
             <ModelTemplateSetting
                 id={ctx?.communityTemplate?.id!}
                 pivotModelCostId={ctx?.communityTemplate?.pivotModelCostId!}
@@ -83,6 +82,9 @@ export function FormHeader() {
                 }}
                 slug={ctx?.modelSlug}
             />
+            <Btn onClick={onSubmit} isLoading={isPending} type="button">
+                Save
+            </Btn>
         </div>
     );
 }
