@@ -30,7 +30,7 @@ export function FormHeader() {
                     queryKey: _trpc.print.modelTemplate.queryKey({}),
                 });
             },
-        })
+        }),
     );
 
     const onSubmit = () => {
@@ -56,7 +56,7 @@ export function FormHeader() {
                             version: "v2",
                             templateSlug: ctx?.modelSlug,
                         },
-                        true
+                        true,
                     );
                 }}
             >
@@ -66,7 +66,7 @@ export function FormHeader() {
                 className={cn(
                     buttonVariants({
                         variant: "destructive",
-                    })
+                    }),
                 )}
                 href={`/community/community-template/${ctx?.modelSlug}`}
             >
@@ -77,6 +77,7 @@ export function FormHeader() {
             </Btn>
             <ModelTemplateSetting
                 id={ctx?.communityTemplate?.id!}
+                pivotModelId={ctx?.communityTemplate?.pivotModelCostId!}
                 defaultValues={{
                     version: ctx?.communityTemplate?.version,
                 }}

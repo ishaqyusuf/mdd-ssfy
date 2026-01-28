@@ -25,7 +25,7 @@ export type CreateCommunityTemplateBlockSchema = z.infer<
 
 export async function createCommunityTemplateBlock(
   db: Db,
-  data: CreateCommunityTemplateBlockSchema
+  data: CreateCommunityTemplateBlockSchema,
 ) {
   const inventory = await saveInventory(db, {
     product: {
@@ -66,7 +66,7 @@ export type SaveCommunityInputSchema = z.infer<typeof saveCommunityInputSchema>;
 
 export async function saveCommunityInput(
   db: Db,
-  data: SaveCommunityInputSchema
+  data: SaveCommunityInputSchema,
 ) {
   return db.$transaction(async (tx) => {
     if (data.uid && data.title) {
@@ -118,7 +118,7 @@ export const getCommunitySchemaSchema = z.object({
 export type GetCommunitySchemaSchema = z.infer<typeof getCommunitySchemaSchema>;
 export async function getCommunitySchema(
   db: Db,
-  query?: GetCommunitySchemaSchema
+  query?: GetCommunitySchemaSchema,
 ) {
   const inputsCategory = await getCommunitySectionsInventoryCategory(db);
   const blocksCategory = await getCommunityBlocksInventoryCategory(db);
@@ -168,7 +168,7 @@ export async function getCommunitySchema(
       ...b,
       title: invMap.get(b.uid)?.name,
     })),
-    "index"
+    "index",
   );
 
   return {
@@ -191,6 +191,16 @@ export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
       modelName: true,
       id: true,
       version: true,
+      pivot: {
+        select: {
+          modelCosts: {
+            take: 1,
+            select: {
+              id: true,
+            },
+          },
+        },
+      },
       project: {
         select: {
           title: true,
@@ -249,6 +259,7 @@ export async function getModelTemplate(db: Db, query: GetModelTemplateSchema) {
     values: homeTemplate.templateValues,
     id: homeTemplate.id,
     version: homeTemplate.version,
+    pivotModelCostId: homeTemplate?.pivot?.modelCosts?.[0]?.id || null,
   };
 }
 export const getCommunityBlockSchemaSchema = z.object({
@@ -262,7 +273,7 @@ export type GetCommunityBlockSchema = RenturnTypeAsync<
 >;
 export async function getCommunityBlockSchema(
   db: Db,
-  query: GetCommunityBlockSchemaSchema
+  query: GetCommunityBlockSchemaSchema,
 ) {
   const block = await db.communityTemplateBlockConfig.findUniqueOrThrow({
     where: {
@@ -310,7 +321,7 @@ export async function getCommunityBlockSchema(
         ...i,
         inv: invMap.get(i.uid),
       })),
-      "index"
+      "index",
     ).map((a) => ({
       ...a,
       title: a.title || a.inv?.name,
@@ -404,7 +415,7 @@ export async function getCategory(db: Db, type: CommunityCategory) {
           title: n,
         },
       });
-    })
+    }),
   );
   const response = await inventoryCategories(db, {
     q: type,
@@ -431,7 +442,7 @@ export const updateRecordsIndicesSchema = z.object({
     z.object({
       id: z.any(),
       index: z.number(),
-    })
+    }),
   ),
   recordName: z.enum([
     "communityTemplateBlockConfig",
@@ -444,7 +455,7 @@ export type UpdateRecordsIndicesSchema = z.infer<
 
 export async function updateRecordsIndices(
   db: Db,
-  query: UpdateRecordsIndicesSchema
+  query: UpdateRecordsIndicesSchema,
 ) {
   await Promise.all(
     query.records.map(async (b) => {
@@ -454,7 +465,7 @@ export async function updateRecordsIndices(
           index: b.index,
         },
       });
-    })
+    }),
   );
 }
 
@@ -471,7 +482,7 @@ export type UpdateCommunityBlockInputSchema = z.infer<
 
 export async function updateCommunityBlockInput(
   db: Db,
-  query: UpdateCommunityBlockInputSchema
+  query: UpdateCommunityBlockInputSchema,
 ) {
   await db.communityTemplateInputConfig.update({
     where: {
@@ -494,7 +505,7 @@ export type UpdateCommunityBlockInputAnalyticsSchema = z.infer<
 
 export async function updateCommunityBlockInputAnalytics(
   db: Db,
-  data: UpdateCommunityBlockInputAnalyticsSchema
+  data: UpdateCommunityBlockInputAnalyticsSchema,
 ) {
   // await db.communityTemplateInputConfig.update({
   //   where: {
@@ -515,7 +526,7 @@ export type GetTemplateInputListingsSchema = z.infer<
 
 export async function getTemplateInputListings(
   db: Db,
-  query: GetTemplateInputListingsSchema
+  query: GetTemplateInputListingsSchema,
 ) {
   const results = await inventoryList(db, {
     // categoryId: query.inputInventoryId,
@@ -541,7 +552,7 @@ export type SaveTemplateInputListingSchema = z.infer<
 
 export async function saveTemplateInputListing(
   db: Db,
-  data: SaveTemplateInputListingSchema
+  data: SaveTemplateInputListingSchema,
 ) {
   return db.$transaction(async (tx) => {
     let db = tx as any;
@@ -576,7 +587,7 @@ export type DeleteInputSchemaSchema = z.infer<typeof deleteInputSchemaSchema>;
 
 export async function deleteInputSchema(
   db: Db,
-  query: DeleteInputSchemaSchema
+  query: DeleteInputSchemaSchema,
 ) {
   await db.communityTemplateInputConfig.update({
     where: { id: query.id },
@@ -594,7 +605,7 @@ export type DeleteInputInventoryBlockSchema = z.infer<
 
 export async function deleteInputInventoryBlock(
   db: Db,
-  query: DeleteInputInventoryBlockSchema
+  query: DeleteInputInventoryBlockSchema,
 ) {
   await db.inventory.updateMany({
     where: {
