@@ -4,20 +4,22 @@ import { useQuery } from "@gnd/ui/tanstack";
 
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { CommunityInstallCostForm } from "../forms/community-install-cost-form";
+import { Skeletons } from "@gnd/ui/custom/skeletons";
+import { Skeleton } from "@gnd/ui/skeleton";
 
 export function CommunityInstallCostModal() {
     const { editCommunityModelInstallCostId, setParams } =
         useCommunityInstallCostParams();
     const trpc = useTRPC();
-    const { data, error } = useQuery(
+    const { data, isPending, error } = useQuery(
         trpc.community.communityInstallCostForm.queryOptions(
             {
                 projectId: editCommunityModelInstallCostId,
             },
             {
                 enabled: !!editCommunityModelInstallCostId,
-            }
-        )
+            },
+        ),
     );
 
     return (
@@ -33,7 +35,18 @@ export function CommunityInstallCostModal() {
             <div className="flex flex-col gap-4">
                 <div className="" id="installCostModalAction"></div>
                 <CustomModalContent className="lg:max-h-[55vh] overflow-auto">
-                    <CommunityInstallCostForm model={data} />
+                    {isPending ? (
+                        <div className="grid gap-2">
+                            <>
+                                <Skeleton className="h-10" />
+                                {[...Array(10)].map((_, i) => (
+                                    <Skeleton key={i} className="h-16" />
+                                ))}
+                            </>
+                        </div>
+                    ) : (
+                        <CommunityInstallCostForm model={data} />
+                    )}
                 </CustomModalContent>
             </div>
         </CustomModal>

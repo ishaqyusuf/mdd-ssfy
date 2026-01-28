@@ -26,10 +26,10 @@ function Card() {
 }
 
 // 3. Table Skeleton
-function Table() {
+function Table({ rows = 5, className = "" }) {
   return (
     <div className="grid gap-2">
-      {[...Array(5)].map((_, i) => (
+      {[...Array(rows)].map((_, i) => (
         <div key={i} className="grid grid-cols-4 gap-4">
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-full" />
@@ -236,5 +236,5 @@ export const Skeletons = Object.assign(
     ProductCard,
     FeedPost,
     Footer,
-  }
+  },
 );

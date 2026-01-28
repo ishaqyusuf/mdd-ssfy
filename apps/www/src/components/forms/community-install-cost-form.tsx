@@ -80,7 +80,6 @@ export function CommunityInstallCostForm({ model }: Props) {
         },
     );
     useEffect(() => {
-        console.log({ model });
         form.reset({
             // projectId: model?.projectId,
             pivotId: model?.pivotId,
@@ -145,7 +144,7 @@ export function CommunityInstallCostForm({ model }: Props) {
                                     key={ti}
                                 >
                                     <TableCell>
-                                        <TCell.Primary>
+                                        <TCell.Primary className="uppercase">
                                             {task?.title}
                                             <Env isDev>{task?.uid}</Env>
                                         </TCell.Primary>
