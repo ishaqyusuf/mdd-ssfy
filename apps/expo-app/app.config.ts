@@ -4,7 +4,7 @@ const config: ExpoConfig = {
   name: "GND Millwork",
   slug: "gnd-prodesk",
   // slug: "prodesk",
-  version: "1.0.127",
+  version: "1.0.128",
   orientation: "portrait",
   icon: "./assets/icons/adaptive-icon.png",
   scheme: "gndprodesk",

@@ -179,15 +179,12 @@ export function JobFormStep() {
                     Default project-specific addition
                   </Text>
                 </View>
-                <View className="flex flex-row items-center gap-2 bg-muted dark:bg-surface-dark px-4 py-2 rounded-full border border-muted-foreground/50">
-                  <Text className="text-base font-bold text-primary">
+                <View className="flex flex-row items-center gap-2 bg-primary px-4 py-2 rounded-full border border-muted-foreground/50">
+                  <Text className="text-base font-bold text-foreground">
                     ${formatMoney(ctx?.formData?.addon || 0)}
                   </Text>
                   <Text className="">
-                    <Icon
-                      name="Lock"
-                      className="size-12 text-muted-foreground"
-                    />
+                    <Icon name="Lock" className="size-12 text-foreground" />
                   </Text>
                 </View>
               </View>

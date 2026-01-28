@@ -26,12 +26,11 @@ import FlashMessage from "react-native-flash-message";
 import { TRPCReactProvider } from "@/trpc/client";
 import { StaticTrpc } from "@/components/static-trpc";
 import { StatusBar } from "expo-status-bar";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { StaticRouter } from "@/components/static-router";
-import {
-  KeyboardAvoidingView,
-  KeyboardProvider,
-} from "react-native-keyboard-controller";
+import { KeyboardProvider } from "react-native-keyboard-controller";
+import * as Updates from "expo-updates";
+
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
@@ -51,6 +50,12 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
+  const { isUpdatePending } = Updates.useUpdates();
+  useEffect(() => {
+    if (isUpdatePending) {
+      Updates.reloadAsync();
+    }
+  }, [isUpdatePending]);
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) throw error;

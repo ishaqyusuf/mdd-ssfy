@@ -13,7 +13,7 @@ export const getBaseUrl = () => {
    * **NOTE**: This is only for development. In production, you'll want to set the
    * baseUrl to your production API URL.
    */
-  // return process.env.EXPO_PUBLIC_BASE_URL;
+  return process.env.EXPO_PUBLIC_BASE_URL;
   if (process.env.EXPO_PUBLIC_APP_VARIANT === "preview")
     return process.env.EXPO_PUBLIC_BASE_URL;
 
@@ -23,7 +23,7 @@ export const getBaseUrl = () => {
   if (!localhost) {
     // return "https://turbo.t3.gg";
     throw new Error(
-      "Failed to get localhost. Please point to your production server."
+      "Failed to get localhost. Please point to your production server.",
     );
   }
 
@@ -36,7 +36,7 @@ export const getWebUrl = () => {
   if (!localhost) {
     // return "https://turbo.t3.gg";
     throw new Error(
-      "Failed to get localhost. Please point to your production server."
+      "Failed to get localhost. Please point to your production server.",
     );
   }
 

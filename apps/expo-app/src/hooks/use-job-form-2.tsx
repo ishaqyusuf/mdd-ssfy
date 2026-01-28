@@ -18,6 +18,7 @@ import {
 } from "react";
 import { useWatch } from "react-hook-form";
 import { BackHandler } from "react-native";
+import { useAuthContext } from "./use-auth";
 
 type JobFormContextType = ReturnType<typeof useCreateJobFormContext>;
 export const JobFormContext = createContext<JobFormContextType>(
@@ -153,6 +154,11 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
   useEffect(() => {
     if (jobData) form.reset(jobData);
   }, [jobData]);
+  const getAddon = (formData) => {
+    const { isCustom, homeId, projectId, addon: _addon } = formData || {};
+    const addon = isCustom || !homeId || !projectId ? 0 : _addon || 0;
+    return addon;
+  };
   const total = useMemo(() => {
     const taskCost = sum(
       Object.entries(formData?.tasks! || {}).map(([k, v]) =>
@@ -163,11 +169,7 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
     const addon = getAddon(formData);
     return sum([addon, taskCost, formData.additionalCost]);
   }, [formData]);
-  const getAddon = (formData) => {
-    const { isCustom, homeId, projectId } = formData;
-    const addon = isCustom || !homeId || !projectId ? 0 : formData.addon || 0;
-    return addon;
-  };
+
   const [errors, setErrors] = useState<any>(null);
   const {
     mutate: saveJob,
@@ -195,6 +197,7 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
       },
     }),
   );
+  const auth = useAuthContext();
   //@ts-ignore
   const [, setOpened] = useState(false);
   const onChange = (e) => {
@@ -269,9 +272,13 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
       form.handleSubmit(
         (e) => {
           const values = formData;
+          if (!props.admin) {
+            values.worker = {
+              id: auth?.profile?.user?.id,
+            };
+          }
           // if (!values?.projectId || !values?.homeId || values.isCustom)
           //   values.addon = null;
-
           if (!props.admin) {
             const profile = getSessionProfile();
             const role = profile?.role?.name;

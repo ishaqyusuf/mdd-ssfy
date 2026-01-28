@@ -15,7 +15,7 @@ export type TRPCContext = {
 };
 export const createTRPCContext = async (
   _: unknown,
-  c: Context
+  c: Context,
 ): Promise<TRPCContext> => {
   const header = c.req.header();
   const auth = header["authorization"] ?? "";
@@ -23,6 +23,7 @@ export const createTRPCContext = async (
   if (!userId && token) {
     // console.log({ token, jwt: process.env.JWT_SECRET });
     const payload = verify(token, process.env.JWT_SECRET!);
+    console.log({ payload, jwt: process.env.JWT_SECRET });
     // console.log({ payload });
     userId = (payload as any).userId;
   }

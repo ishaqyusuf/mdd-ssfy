@@ -10,6 +10,7 @@ import { makeQueryClient } from "./query-client";
 import { AppRouter } from "@api/trpc/routers/_app";
 import { getBaseUrl } from "@/lib/base-url";
 import { getToken } from "@/lib/session-store";
+import { consoleLog } from "@gnd/utils";
 // import { generateRandomString } from "@/lib/utils";
 // import { authUser } from "@/app/(v1)/_actions/utils";
 
@@ -35,7 +36,7 @@ function getQueryClient() {
 export function TRPCReactProvider(
   props: Readonly<{
     children: React.ReactNode;
-  }>
+  }>,
 ) {
   const queryClient = getQueryClient();
 
@@ -53,7 +54,6 @@ export function TRPCReactProvider(
           async headers() {
             const headers = new Map<string, string>();
             const token = getToken();
-
             if (token) headers.set("Authorization", `Bearer ${token}`);
 
             return headers;
@@ -65,7 +65,7 @@ export function TRPCReactProvider(
             (opts.direction === "down" && opts.result instanceof Error),
         }),
       ],
-    })
+    }),
   );
 
   return (
