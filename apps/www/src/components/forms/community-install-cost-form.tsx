@@ -33,6 +33,7 @@ import { Env } from "../env";
 import { Field } from "@gnd/ui/composite";
 import { Controller } from "react-hook-form";
 import { Input } from "@gnd/ui/input";
+import z from "zod";
 
 interface Props {
     model: RouterOutputs["community"]["communityInstallCostForm"];
@@ -67,7 +68,7 @@ export function CommunityInstallCostForm({ model }: Props) {
     );
     const form = useZodForm(
         updateInstallCostSchema.extend({
-            installCost: z4.any().optional().nullable(),
+            installCost: z.any().optional().nullable(),
         }),
         {
             defaultValues: {
@@ -101,11 +102,11 @@ export function CommunityInstallCostForm({ model }: Props) {
                 installCosts: [installCost],
             },
             pivot: {
-                ...(model?.meta?.pivot || {}),
+                ...((model?.meta?.pivot || {}) as any),
                 installCost,
             },
         };
-        console.log({ meta, model });
+
         save.mutate({
             // ...formData,
             pivotId: model?.pivotId,
