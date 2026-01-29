@@ -7,6 +7,7 @@ import {
     startOfDay,
 } from "date-fns";
 
+export { getInitials } from "@gnd/utils";
 export function formatSize(bytes: number): string {
     const units = ["byte", "kilobyte", "megabyte", "gigabyte", "terabyte"];
 
@@ -89,21 +90,6 @@ export function formatDate(date: string, dateFormat?: string) {
     }
 
     return format(new Date(date), dateFormat ?? "P");
-}
-
-export function getInitials(value: string) {
-    if (!value) return null;
-    const formatted = value.toUpperCase().replace(/[\s.-]/g, "");
-
-    if (formatted.split(" ").length > 1) {
-        return `${formatted.charAt(0)}${formatted.charAt(1)}`;
-    }
-
-    if (value.length > 1) {
-        return formatted.charAt(0) + formatted.charAt(1);
-    }
-
-    return formatted.charAt(0);
 }
 
 export function formatAccountName({

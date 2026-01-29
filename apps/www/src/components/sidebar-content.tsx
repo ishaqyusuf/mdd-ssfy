@@ -5,10 +5,16 @@ import { SidebarProvider, useLinks } from "@/hooks/use-sidebar";
 import { Sidebar } from "./sidebar";
 import { cn } from "@gnd/ui/cn";
 import { Header } from "./header";
-
+import { usePathname } from "next/dist/client/components/navigation";
+import { createSiteNavContext, SiteNav } from "@gnd/site-nav";
+import Link from "next/link";
+import { linkModules } from "./sidebar/links";
 export function SidebarContent({ children }) {
     const auth = useAuth();
     if (!auth.id) return null;
+    if (process.env.NODE_ENV === "development") {
+        return <NavLayoutClient>{children}</NavLayoutClient>;
+    }
     return (
         <SidebarProvider args={[{}]}>
             <Sidebar />
@@ -26,3 +32,31 @@ function Content({ children }) {
         </div>
     );
 }
+
+function NavLayoutClient({ children }) {
+    const auth = useAuth();
+    const pathName = usePathname();
+    return (
+        <SiteNav.Provider
+            value={createSiteNavContext({
+                pathName,
+                linkModules,
+                Link,
+                role: auth.role,
+                userId: auth.id,
+            })}
+        >
+            <div className="relative">
+                <SiteNav.Sidebar>
+                    {/* <TermSwitcher /> */}
+                    {/* <ModuleSwitcher /> */}
+                </SiteNav.Sidebar>
+                <SiteNav.Shell className="pb-8">
+                    <Header />
+                    <div className="px-6">{children}</div>
+                </SiteNav.Shell>
+            </div>
+        </SiteNav.Provider>
+    );
+}
+

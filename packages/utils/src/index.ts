@@ -120,6 +120,20 @@ export function sortList<T>(
     return String(va).localeCompare(String(vb));
   });
 }
+export function getInitials(value: string) {
+  if (!value) return null;
+  const formatted = value.toUpperCase().replace(/[\s.-]/g, "");
+
+  if (formatted.split(" ").length > 1) {
+    return `${formatted.charAt(0)}${formatted.charAt(1)}`;
+  }
+
+  if (value.length > 1) {
+    return formatted.charAt(0) + formatted.charAt(1);
+  }
+
+  return formatted.charAt(0);
+}
 export function reorderList({ newFields, oldFields, swap, fieldId = "_id" }) {
   const firstDiffIndex = oldFields.findIndex(
     (field, index) => field[fieldId] !== newFields[index]?.[fieldId],

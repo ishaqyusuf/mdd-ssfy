@@ -30,6 +30,7 @@
         "@gnd/notifications": "workspace:*",
         "@gnd/printer": "workspace:*",
         "@gnd/sales": "workspace:*",
+        "@gnd/site-nav": "workspace:*",
         "@gnd/square": "workspace:*",
         "@gnd/ui": "workspace:*",
         "@gnd/pdf": "workspace:*",
@@ -156,4 +157,3 @@
         "vercel": "^48.2.9"
     }
 }
-
