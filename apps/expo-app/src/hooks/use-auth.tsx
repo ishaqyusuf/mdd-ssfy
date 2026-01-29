@@ -41,7 +41,7 @@ export const useCreateAuthContext = () => {
 
       _setToken(null);
       // router.replace("/");
-      router.replace("/");
+      router.replace("/sign-in");
     },
   };
 };

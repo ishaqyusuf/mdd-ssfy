@@ -88,8 +88,8 @@ function JobFormTaskItem(task: {
                 placeholder="0"
                 placeholderClassName=""
               />
-              <View className={cn(state?.showTaskQty || "hidden")}>
-                <Text className="font-bold">/{task?.maxQty}</Text>
+              <View className={cn(state?.showTaskQty || "hidden", "mb]")}>
+                <Text className="font-bold">/ {task?.maxQty}</Text>
               </View>
             </Pressable>
 

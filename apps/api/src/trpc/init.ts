@@ -23,27 +23,17 @@ export const createTRPCContext = async (
     (header["authorization"] ?? header["x-trpc-source"] === "app")
       ? header["x-app-authorization"]
       : "";
-  // consoleLog("TRPC CONTEXT HEADERS", {
-  //   tprcSource: header["x-trpc-source"],
-  //   // headers: Object.entries(header),
-  //   auth,
-  // });
+
   let [token, userId] = auth?.split(" ")?.[1]?.split("|") || [];
   if (!userId && token) {
-    // console.log({ token, jwt: process.env.JWT_SECRET });
     const payload = verify(token, process.env.JWT_SECRET!);
-    // console.log({ payload, jwt: process.env.JWT_SECRET });
-    // console.log({ payload });
+
     userId = (payload as any).userId;
   }
-  // console.log({ token, userId });
-  // const [tok, userId] = auth?.split("|");
-  // const guestId = header["x-guest-id"];
 
   return {
     db,
     userId: Number(userId),
-    // guestId,
   };
 };
 
