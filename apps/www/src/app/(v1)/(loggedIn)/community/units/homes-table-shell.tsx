@@ -112,7 +112,7 @@ export default function HomesTableShell<T>({
                             const edit = await getUnitTemplateLink(
                                 row.original.projectId,
                                 row.original.homeTemplateId,
-                                row.original.modelName
+                                row.original.modelName,
                             );
                             if (edit) route.push(edit);
                         }}
@@ -184,7 +184,7 @@ export default function HomesTableShell<T>({
                 "_status",
                 "_q",
                 "_builderId",
-                "_projectId"
+                "_projectId",
                 // "_installation",
                 // "_production"
             ),
@@ -216,7 +216,7 @@ export default function HomesTableShell<T>({
                                     const edit = await getUnitTemplateLink(
                                         row.original.projectId,
                                         row.original.homeTemplateId,
-                                        row.original.modelName
+                                        row.original.modelName,
                                     );
                                     if (edit) route.push(edit);
                                     else
@@ -238,7 +238,7 @@ export default function HomesTableShell<T>({
                                 Edit Model
                             </DropdownMenuItem>
                             {!row.original?.tasks.some(
-                                (t) => t.sentToProductionAt
+                                (t) => t.sentToProductionAt,
                             ) ? (
                                 <MenuItem
                                     onClick={() => {
@@ -263,29 +263,12 @@ export default function HomesTableShell<T>({
                                     Remove from Production
                                 </MenuItem>
                             )}
-                            {/* </Link> */}
-                            <DropdownMenuItem
-                                onClick={() => {
-                                    dispatchSlice("printHomes", {
-                                        homes: [deepCopy(row.original)],
-                                    });
-                                }}
-                            >
-                                <Printer className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
-                                Print
-                            </DropdownMenuItem>
-                            <DeleteRowAction
-                                menu
-                                row={row.original}
-                                action={deleteHome}
-                                // action={async () => deleteOrderAction(row.id)}
-                            />
                         </DropdownMenuContent>
                     </DropdownMenu>
                 ),
             },
         ], //.filter(Boolean) as any,
-        [data, isPending]
+        [data, isPending],
     );
 
     return (

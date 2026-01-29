@@ -29,7 +29,7 @@ export function CommunityInstallCostModal() {
                 setParams(null);
             }}
             size="xl"
-            title={`Model Cost (${data?.title})`}
+            title={`Install Cost (${data?.title})`}
             description={data?.subtitle}
         >
             <div className="flex flex-col gap-4">

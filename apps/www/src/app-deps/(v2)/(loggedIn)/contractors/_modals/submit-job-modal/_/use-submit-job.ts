@@ -11,7 +11,7 @@ import {
 } from "@/app-deps/(v1)/_actions/hrm-jobs/create-job";
 
 import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { getJobCostList } from "../../../_actions/job-cost-list";
 import submitJobUtils from "./submit-job-utils";
@@ -23,9 +23,11 @@ import {
     useStaticProjects,
 } from "@/_v2/hooks/use-static-data";
 import { toast } from "@gnd/ui/use-toast";
+import { generateRandomString } from "@gnd/utils";
+import { formatDate } from "date-fns";
 
 export const JobSubmitContext = createContext<ReturnType<typeof useSubmitJob>>(
-    {} as any
+    {} as any,
 );
 export const useJobSubmitCtx = () => useContext(JobSubmitContext);
 export default function useSubmitJob(form) {
@@ -44,6 +46,18 @@ export default function useSubmitJob(form) {
         "job.homeId",
         "homes",
     ]);
+    const ii =
+        formatDate(new Date(), "mm") +
+        (+formatDate(new Date(), "ss") > 30 ? 1 : 0);
+    useEffect(() => {
+        console.log({ ii });
+
+        if (projectId && type)
+            (async () => {
+                const unitJobs = await getUnitJobs(projectId, type);
+                console.log(unitJobs);
+            })();
+    }, [projectId, type, ii]);
     const taskValidation = useValidateTaskQty(form);
     const path = usePathname();
     const isAdmin = path.includes("contractor/jobs");
@@ -81,7 +95,7 @@ export default function useSubmitJob(form) {
             job.amount = 0;
             if (!job.homeId) job.meta.addon = 0;
             [job.meta.addon, job.meta.taskCost, job.meta.additional_cost].map(
-                (n) => n > 0 && (job.amount += Number(n))
+                (n) => n > 0 && (job.amount += Number(n)),
             );
             if (job.coWorkerId) job.amount /= 2;
             if (!job.id) await createJobAction(job as any);
@@ -105,7 +119,7 @@ export default function useSubmitJob(form) {
     async function _initialize(
         _job: IJobs,
         // form: UseFormReturn<SubmitJobForm>,
-        { isAdmin, action }
+        { isAdmin, action },
     ) {
         const _costs = await getJobCostList(_job?.type);
         setCosts(_costs as any);
@@ -126,7 +140,7 @@ export default function useSubmitJob(form) {
         const unitJobs = await getUnitJobs(
             _job.projectId,
             type,
-            _job.homeId ? false : true
+            // _job.homeId ? false : true
         );
 
         const homes = unitJobs.homeList;
@@ -145,7 +159,7 @@ export default function useSubmitJob(form) {
     async function updateCostList(
         cost,
         home: HomeJobList,
-        updateCostData = false
+        updateCostData = false,
     ) {
         const cData = {};
 
@@ -160,7 +174,7 @@ export default function useSubmitJob(form) {
                     }
                     return null;
                 })
-                .filter(Boolean) || []
+                .filter(Boolean) || [],
         );
 
         if (updateCostData) form.setValue("job.meta.costData", cData as any);

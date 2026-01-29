@@ -4,23 +4,19 @@ import { prisma } from "@/db";
 import { deepCopy } from "@/lib/deep-copy";
 import {
     ExtendedHome,
-    HomeTemplateMeta,
-    ICommunityPivotMeta,
     ICommunityTemplate,
-    ICommunityTemplateMeta,
-    IHome,
     IHomeTemplate,
     IProject,
-    InstallCost,
     InstallCosting,
 } from "@/types/community";
-import { HomeJobList, IJobMeta, IJobType } from "@/types/hrm";
+import { HomeJobList, IJobType } from "@/types/hrm";
 
 export async function getUnitJobs(
     projectId,
     jobType: IJobType,
-    byAvailability = true,
+    byAvailability = false,
 ) {
+    const debugInfo: any = {};
     if (!projectId)
         return {
             homeList: [],
@@ -62,11 +58,11 @@ export async function getUnitJobs(
     const ls: HomeJobList[] = [];
     const proj: IProject = project as any;
 
-    project?.homes?.map((unit) => {
-        const isTestUnit = unit.lot == "1118";
+    project?.homes?.map((unit, i) => {
         const _count = unit.jobs.filter(
             (j) => j.type?.toLowerCase() == jobType?.toLowerCase(),
         ).length;
+
         if (_count > 0 && byAvailability) {
             return;
         }
@@ -84,6 +80,19 @@ export async function getUnitJobs(
             project.communityModels.find(
                 (m) => m.modelName == unit.modelName,
             ) as any;
+        const ic = communityTemplate?.meta?.installCosts?.[0];
+        const cost = ic?.costings;
+        if (ic && "costings" in ic)
+            if (_pushCost(initJobData(unit as any, proj, cost))) return;
+        if (
+            ic &&
+            Object.entries(ic)?.every(
+                ([k, v]) => !v || typeof v === "number",
+            ) &&
+            _pushCost(initJobData(unit as any, proj, ic as any))
+        )
+            return;
+
         // if (isTestUnit) console.log(communityTemplate);
         // if (jobType == "punchout") {
         //     ls.push({
@@ -98,11 +107,10 @@ export async function getUnitJobs(
             _pushCost(initJobData(unit as any, proj, pivotInstallCost));
             return;
         }
-        if (communityTemplate?.meta?.overrideModelCost) {
-            const cost = communityTemplate?.meta?.installCosts?.[0]?.costings;
 
-            if (_pushCost(initJobData(unit as any, proj, cost))) return;
-        }
+        // if (communityTemplate?.meta?.overrideModelCost) {
+
+        // }
         if (!template) {
             const costings = proj.meta.installCosts?.[0]?.costings;
             _pushCost(initJobData(unit as any, proj, costings));
@@ -123,6 +131,7 @@ export async function getUnitJobs(
                 (a, b) => a?.name?.localeCompare(b.name) as any,
             ) as HomeJobList[],
         addon: proj?.meta?.addon,
+        // debugInfo,
     };
 }
 
