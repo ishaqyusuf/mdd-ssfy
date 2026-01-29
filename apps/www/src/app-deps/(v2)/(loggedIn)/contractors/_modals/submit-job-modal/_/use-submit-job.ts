@@ -22,8 +22,7 @@ import {
     useStaticContractors,
     useStaticProjects,
 } from "@/_v2/hooks/use-static-data";
-import { toast } from "@gnd/ui/use-toast";
-import { generateRandomString } from "@gnd/utils";
+import { toast } from "@gnd/ui/use-toast"; 
 import { formatDate } from "date-fns";
 
 export const JobSubmitContext = createContext<ReturnType<typeof useSubmitJob>>(

@@ -54,10 +54,10 @@ export function TRPCReactProvider(
           async headers() {
             const headers = new Map<string, string>();
             const token = getToken();
-            if (token)
-              return {
-                Authorization: `Bearer ${token}|${getSessionProfile()?.user?.id}`,
-              };
+            // if (token)
+            //   return {
+            //     Authorization: `Bearer ${token}|${getSessionProfile()?.user?.id}`,
+            //   };
             headers.set(
               "Authorization",
               `Bearer ${token}|${getSessionProfile()?.user?.id}`,
