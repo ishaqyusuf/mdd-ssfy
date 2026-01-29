@@ -46,7 +46,7 @@ function NavLayoutClient({ children }) {
                 userId: auth.id,
             })}
         >
-            <div className="relative">
+            <div className="relative ">
                 <SiteNav.Sidebar>
                     {/* <TermSwitcher /> */}
                     {/* <ModuleSwitcher /> */}

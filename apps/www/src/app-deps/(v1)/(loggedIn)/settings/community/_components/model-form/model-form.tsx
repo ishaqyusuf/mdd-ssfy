@@ -168,6 +168,8 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                             pivotModelCostId={data?.pivotModelCostId}
                             version={data?.version}
                             slug={data?.slug}
+                            save={save}
+                            isSaving={isSaving}
                         />
                     </>
                 )}
