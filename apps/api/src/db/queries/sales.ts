@@ -27,7 +27,7 @@ import {
   itemItemControlUid,
   mouldingItemControlUid,
 } from "@api/utils/sales-control";
-import { consoleLog, formatCurrency, formatMoney } from "@gnd/utils";
+import { formatCurrency, formatMoney } from "@gnd/utils";
 import { calculateSalesDueAmount } from "@sales/sales-transaction";
 import { payrollUid } from "@sales/utils/utils";
 import z from "zod";
@@ -108,7 +108,6 @@ export async function getOrders(
     if (query.showing != "all sales" && !query.q?.trim())
       query.salesRepId = ctx.userId!;
   }
-  consoleLog("getOrders query", query);
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,
