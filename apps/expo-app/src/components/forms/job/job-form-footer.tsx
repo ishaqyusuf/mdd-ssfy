@@ -41,7 +41,7 @@ export function JobFormFooter() {
                 ctx.handleSubmit();
               }}
               className={cn(
-                "flex w-full flex-row items-center justify-center gap-2 rounded-xl bg-primary h-14"
+                "flex w-full flex-row items-center justify-center gap-2 rounded-xl bg-primary h-14",
               )}
             >
               <Text className="text-primary-foreground text-lg font-bold">

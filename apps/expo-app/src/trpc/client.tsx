@@ -54,21 +54,11 @@ export function TRPCReactProvider(
           async headers() {
             const headers = new Map<string, string>();
             const token = getToken();
-            // if (token)
-            //   return {
-            //     Authorization: `Bearer ${token}|${getSessionProfile()?.user?.id}`,
-            //   };
             headers.set(
               "x-app-authorization",
               `Bearer ${token}|${getSessionProfile()?.user?.id}`,
             );
             headers.set("x-trpc-source", "app");
-            // headers.
-            consoleLog("USER ID HEADER", {
-              // userId: getSessionProfile()?.user?.id,
-              // token,
-              headers: Object.fromEntries(headers),
-            });
             return Object.fromEntries(headers);
           },
         }),
