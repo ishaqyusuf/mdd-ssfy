@@ -19,10 +19,10 @@ export const createTRPCContext = async (
   c: Context,
 ): Promise<TRPCContext> => {
   const header = c.req.header();
-  const auth =
-    (header["authorization"] ?? header["x-trpc-source"] === "app")
-      ? header["x-app-authorization"]
-      : "";
+  const isApp = header["x-trpc-source"] === "app";
+  const auth = isApp
+    ? header["x-app-authorization"]
+    : (header["authorization"] ?? "");
 
   let [token, userId] = auth?.split(" ")?.[1]?.split("|") || [];
   if (!userId && token) {

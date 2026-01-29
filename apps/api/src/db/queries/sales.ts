@@ -27,7 +27,7 @@ import {
   itemItemControlUid,
   mouldingItemControlUid,
 } from "@api/utils/sales-control";
-import { formatCurrency, formatMoney } from "@gnd/utils";
+import { consoleLog, formatCurrency, formatMoney } from "@gnd/utils";
 import { calculateSalesDueAmount } from "@sales/sales-transaction";
 import { payrollUid } from "@sales/utils/utils";
 import z from "zod";
@@ -35,7 +35,7 @@ import type { SalesPaymentStatus } from "@sales/constants";
 
 export async function getSales(
   ctx: TRPCContext,
-  query: SalesQueryParamsSchema
+  query: SalesQueryParamsSchema,
 ) {
   if (!query.salesType) query.salesType = "order";
   if (query.defaultSearch) {
@@ -48,7 +48,7 @@ export async function getSales(
   const { response, searchMeta, where, meta } = await composeQueryData(
     query,
     whereSales(query),
-    db.salesOrders
+    db.salesOrders,
   );
 
   const data = await db.salesOrders.findMany({
@@ -58,7 +58,7 @@ export async function getSales(
   });
   const notCounts = await salesNotesCount(
     data?.map((a) => a.id),
-    ctx.db
+    ctx.db,
   );
 
   const result = await response(
@@ -66,7 +66,7 @@ export async function getSales(
       ...d,
       noteCount: 0,
       ...(notCounts[d.id.toString()] || {}),
-    }))
+    })),
   );
 
   return result;
@@ -83,7 +83,7 @@ export async function sales(ctx: TRPCContext, query: SalesQueryParamsSchema) {
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereSales(query),
-    db.salesOrders
+    db.salesOrders,
   );
 
   const data = await db.salesOrders.findMany({
@@ -95,12 +95,12 @@ export async function sales(ctx: TRPCContext, query: SalesQueryParamsSchema) {
   return await response(
     data.map(salesQuoteDto).map((d) => ({
       ...d,
-    }))
+    })),
   );
 }
 export async function getOrders(
   ctx: TRPCContext,
-  query: SalesQueryParamsSchema
+  query: SalesQueryParamsSchema,
 ) {
   query.salesType = "order";
   if (query.defaultSearch) {
@@ -108,11 +108,12 @@ export async function getOrders(
     if (query.showing != "all sales" && !query.q?.trim())
       query.salesRepId = ctx.userId!;
   }
+  consoleLog("getOrders query", query);
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereSales(query),
-    db.salesOrders
+    db.salesOrders,
   );
 
   const data = await db.salesOrders.findMany({
@@ -122,7 +123,7 @@ export async function getOrders(
   });
   const notCounts = await salesNotesCount(
     data?.map((a) => a.id),
-    ctx.db
+    ctx.db,
   );
 
   const result = await response(
@@ -130,13 +131,13 @@ export async function getOrders(
       ...d,
       noteCount: 0,
       ...(notCounts[d.id.toString()] || {}),
-    }))
+    })),
   );
   return result;
 }
 export async function getQuotes(
   ctx: TRPCContext,
-  query: SalesQueryParamsSchema
+  query: SalesQueryParamsSchema,
 ) {
   query.salesType = "quote";
 
@@ -144,7 +145,7 @@ export async function getQuotes(
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereSales(query),
-    db.salesOrders
+    db.salesOrders,
   );
 
   const data = await db.salesOrders.findMany({
@@ -156,7 +157,7 @@ export async function getQuotes(
   return await response(
     data.map(salesQuoteDto).map((d) => ({
       ...d,
-    }))
+    })),
   );
 }
 
@@ -244,7 +245,7 @@ export async function salesNotesCount(salesIds: number[], prisma) {
 
 export async function startNewSales(
   ctx: TRPCContext,
-  customerId?: number | null
+  customerId?: number | null,
 ) {
   const { db } = ctx;
 
@@ -261,7 +262,7 @@ export async function startNewSales(
 
 export async function getSalesLifeCycle(
   ctx: TRPCContext,
-  params: GetFullSalesDataSchema
+  params: GetFullSalesDataSchema,
 ) {
   const { assignedToId } = params;
   let select = FullSalesSelect;
@@ -284,7 +285,7 @@ export async function getSalesLifeCycle(
     let baseItem =
       !multiDyke && multiDykeUid
         ? order.items.find(
-            (a) => a.multiDyke && multiDykeUid == a.multiDykeUid
+            (a) => a.multiDyke && multiDykeUid == a.multiDykeUid,
           ) || item
         : item;
     function addItem(item: ItemControlData) {
@@ -302,7 +303,7 @@ export async function getSalesLifeCycle(
         item,
         // item.controlUid,
         // item.qty,
-        order
+        order,
         // item.itemConfig,
       );
       const hands = assignedToId
@@ -327,8 +328,8 @@ export async function getSalesLifeCycle(
         assignedToId
           ? null
           : item.unitLabor
-          ? `$ ${formatCurrency(item.unitLabor)}/qty labor`
-          : `no labor cost`,
+            ? `$ ${formatCurrency(item.unitLabor)}/qty labor`
+            : `no labor cost`,
       ]
         ?.filter(Boolean)
         .join(" | ");
@@ -341,7 +342,7 @@ export async function getSalesLifeCycle(
     let controlUid;
     let { configs, sectionTitle } = composeStepFormDisplay(
       item.formSteps,
-      item.dykeDescription
+      item.dykeDescription,
     );
     if (!order.isDyke || (!doors?.length && !hpt?.door)) {
       controlUid = hpt
@@ -415,7 +416,7 @@ export async function getSalesLifeCycle(
             salesItemControlUid: item.controlUid,
           },
         });
-    })
+    }),
   );
 
   return {
@@ -498,7 +499,7 @@ export type SalesOverviewSchema = z.infer<typeof salesOverviewSchema>;
 
 export async function salesOverview(
   ctx: TRPCContext,
-  query: SalesOverviewSchema
+  query: SalesOverviewSchema,
 ) {
   const { db } = ctx;
 
