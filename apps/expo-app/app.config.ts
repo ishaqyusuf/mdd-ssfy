@@ -6,7 +6,9 @@ const config: ExpoConfig = {
   // slug: "prodesk",
   version: "1.0.128",
   orientation: "portrait",
-  icon: "./assets/icons/adaptive-icon.png",
+  // icon: "./assets/icons/adaptive-icon.png",
+  // icon: "./assets/icons/splash-icon-dark.png",
+  icon: "./assets/images/icon.png",
   scheme: "gndprodesk",
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
@@ -44,13 +46,15 @@ const config: ExpoConfig = {
     [
       "expo-splash-screen",
       {
-        image: "./assets/icons/splash-icon-dark.png",
+        image: "./assets/images/icon.png",
+        // image: "./assets/icons/splash-icon-dark.png",
         imageWidth: 200,
         resizeMode: "contain",
         backgroundColor: "#ffffff",
         dark: {
           backgroundColor: "#000000",
-          image: "./assets/icons/splash-icon-light.png",
+          image: "./assets/images/icon.png",
+          // image: "./assets/icons/splash-icon-light.png",
         },
       },
     ],

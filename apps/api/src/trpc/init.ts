@@ -20,7 +20,11 @@ export const createTRPCContext = async (
 ): Promise<TRPCContext> => {
   const header = c.req.header();
   const auth = header["authorization"] ?? "";
-  consoleLog("TRPC CONTEXT HEADERS", { headers: Object.entries(header), auth });
+  consoleLog("TRPC CONTEXT HEADERS", {
+    tprcSource: header["x-trpc-source"],
+    headers: Object.entries(header),
+    auth,
+  });
   let [token, userId] = auth?.split(" ")?.[1]?.split("|") || [];
   if (!userId && token) {
     // console.log({ token, jwt: process.env.JWT_SECRET });
