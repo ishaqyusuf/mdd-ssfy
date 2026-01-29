@@ -59,10 +59,10 @@ export function TRPCReactProvider(
             //     Authorization: `Bearer ${token}|${getSessionProfile()?.user?.id}`,
             //   };
             headers.set(
-              "Authorization",
+              "x-app-authorization",
               `Bearer ${token}|${getSessionProfile()?.user?.id}`,
             );
-            headers.set("x-trpc-source", "expo-app");
+            headers.set("x-trpc-source", "app");
             // headers.
             consoleLog("USER ID HEADER", {
               // userId: getSessionProfile()?.user?.id,
