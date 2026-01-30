@@ -36,16 +36,21 @@ export async function createActivity(db: Db, params: CreateActivityInput) {
           id: senderId,
         },
       },
-      readReceipts: {
-        create: recipientIds.map((contactId) => ({
-          contact: {
-            connect: {
-              id: contactId,
-            },
-          },
-          // status: "unread",
+      recipients: {
+        connect: recipientIds.map((contactId) => ({
+          id: contactId,
         })),
       },
+      // readReceipts: {
+      //   create: recipientIds.map((contactId) => ({
+      //     contact: {
+      //       connect: {
+      //         id: contactId,
+      //       },
+      //     },
+      //     // status: "unread",
+      //   })),
+      // },
       tags: {
         createMany: {
           data: Object.entries(tags).map(([tagName, tagValue]) => ({
