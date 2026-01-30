@@ -1,14 +1,45 @@
 import { z } from "zod";
 
+const type = z.enum([
+  "job_assigned",
+  "job_submitted",
+  "job_approved",
+  "job_rejected",
+  "job_review_requested",
+  "job_deleted",
+  "sales_checkout_success",
+]);
+const source = z.enum(["system", "user"]).default("system");
+const priority = z.number().int().min(1).max(10).default(5);
+const baseActivityTags = z.object({
+  type,
+  source,
+  priority,
+  sendEmail: z.boolean().optional().default(false),
+});
+const activitiesTags = z.object({
+  id: z.number(),
+  slug: z.string(),
+});
+export const jobAssignedTags = activitiesTags
+  .pick({
+    id: true,
+  })
+  .extend(baseActivityTags);
 export const createActivitySchema = z.object({
   // teamId: z.string().uuid(),
-  userId: z.number().optional(),
-  userIds: z.array(z.number()), ///number().optional(),
-  type: z.enum(["sales_checkout_success"]),
-  source: z.enum(["system", "user"]).default("system"),
-  priority: z.number().int().min(1).max(10).default(5),
+  subject: z.string(),
+  headline: z.string().optional(),
+  note: z.string().optional(),
+  authorId: z.number().optional(),
+  sendEmail: z.boolean().optional().default(false),
+  userIds: z.array(z.number()).optional().nullable(), ///number().optional(),
+  type,
+  source,
+  priority,
+  // status: z.enum([]),
   // groupId: z.string().uuid().optional(), // Links related activities together
-  metadata: z.record(z.string(), z.any()), // Flexible - any JSON object
+  tags: z.record(z.string(), z.any()), // Flexible - any JSON object
 });
 
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;
@@ -56,7 +87,37 @@ export type SalesCheckoutSuccessInput = z.infer<
   typeof salesCheckoutSuccessSchema
 >;
 
+export const jobActivitySchema = z.object({
+  users: z.array(userSchema).optional().nullable(),
+  jobId: z.number(),
+  activityType: z.enum([
+    "job_created",
+    "job_assigned",
+    "job_submitted",
+    "job_approved",
+    "job_rejected",
+    "job_review_requested",
+    "job_deleted",
+    // "job_updated",
+    "job_reassigned",
+    "job_status_updated",
+    "note_added",
+  ]),
+  author: z.string().optional().nullable(),
+  comment: z.string().optional(),
+});
+export type JobActivityInput = z.infer<typeof jobActivitySchema>;
+
+export const jobAssignedSchema = z.object({
+  users: z.array(userSchema).optional().nullable(),
+  jobId: z.number(),
+  comment: z.string().optional(),
+  author: z.string().optional().nullable(),
+});
+export type JobAssignedInput = z.infer<typeof jobAssignedSchema>;
 // Notification types map - all available notification types with their data structures
 export type NotificationTypes = {
   sales_checkout_success: SalesCheckoutSuccessInput;
+  job_activity: JobActivityInput;
+  job_assigned: JobAssignedInput;
 };

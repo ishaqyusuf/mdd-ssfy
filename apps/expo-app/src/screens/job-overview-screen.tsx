@@ -1,4 +1,4 @@
-import { AdminJobReviewCard } from "@/components/admin-job-review-card";
+import { JobOverviewActions } from "@/components/job-overview-actions";
 import { BackBtn } from "@/components/back-btn";
 import { JobFooterContractor } from "@/components/job-footer-contractor";
 import { SafeArea } from "@/components/safe-area";
@@ -17,6 +17,7 @@ import { formatMoney } from "@gnd/utils";
 import { formatDate } from "@gnd/utils/dayjs";
 import { Text, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
+import { JobActivityHistory } from "@/components/job-activity-history";
 
 // All components are in this file as per the instructions.
 
@@ -90,7 +91,7 @@ function InfoCard() {
               Unit
             </Text>
             <Text className="text-lg uppercase font-bold text-foreground leading-tight">
-              {job?.subtitle}
+              {job?.subtitle || "Custom"}
             </Text>
             <Text className="text-sm uppercase text-muted-foreground">
               {/* Standard 2BR Layout */}
@@ -283,7 +284,8 @@ function Content() {
           </ScrollView>
         </View>
         <NotesCard />
-        <AdminJobReviewCard />
+        <JobActivityHistory />
+        <JobOverviewActions />
       </ScrollView>
       <JobFooterContractor />
       {/* <Debug>

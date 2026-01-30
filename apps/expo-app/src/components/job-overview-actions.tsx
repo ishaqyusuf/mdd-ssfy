@@ -7,14 +7,39 @@ import { Toast } from "./ui/toast";
 import { Controller, useForm } from "react-hook-form";
 import { _push } from "./static-router";
 
-export function AdminJobReviewCard() {
+export function JobOverviewActions() {
   const ctx = useJobContext();
 
-  const form = useForm({
-    defaultValues: {
-      note: "",
-    },
-  });
+  // if (!ctx.adminMode) return null;
+
+  return (
+    <>
+      <ReAssginJobAction />
+      <DeleteJobAction />
+      <ReviewJobAction />
+    </>
+  );
+}
+function ReAssginJobAction() {
+  const ctx = useJobContext();
+  const composer = useComposer();
+  const show = composer.isAdmin && composer.isAssigned;
+  if (!show) return null;
+  return (
+    <Pressable
+      onPress={(e) => {
+        _push(`/re-assign/${ctx?.job?.controlId}`);
+      }}
+      className="w-full py-4 px-4 bg-secondary-foreground rounded-xl flex-row items-center justify-center gap-2 border border-border"
+    >
+      <Icon name="UserPlus" className="text-secondary size-16" />
+      <Text className="text-secondary font-semibold">Re-Assign Job</Text>
+    </Pressable>
+  );
+}
+function DeleteJobAction() {
+  const ctx = useJobContext();
+  const job = useComposer();
   const { mutate: restoreJob, isPending: isRestoring } = useMutation(
     _trpc.jobs.restoreJob.mutationOptions({
       onSuccess(data, variables, onMutateResult, context) {},
@@ -26,7 +51,7 @@ export function AdminJobReviewCard() {
           success: "Done!.",
         },
       },
-    })
+    }),
   );
   const { mutate: deleteJob, isPending: isDeletingJob } = useMutation(
     _trpc.jobs.deleteJob.mutationOptions({
@@ -44,8 +69,35 @@ export function AdminJobReviewCard() {
       },
       onError(error, variables, onMutateResult, context) {},
       meta: {},
-    })
+    }),
   );
+  const show = [job.isAdmin && job.isAssigned].every(Boolean);
+  if (!show) return null;
+  return (
+    <>
+      <Pressable
+        onPress={(e) => {
+          deleteJob({
+            id: job.id!,
+          });
+        }}
+        className="flex-1 py-4 px-4 bg-destructive rounded-xl flex-row items-center justify-center gap-2"
+      >
+        <Icon name="Trash" className="text-destructive-foreground size-16" />
+        <Text className="text-destructive-foreground font-semibold">
+          Delete
+        </Text>
+      </Pressable>
+    </>
+  );
+}
+function ReviewJobAction() {
+  const job = useComposer();
+  const form = useForm({
+    defaultValues: {
+      note: "",
+    },
+  });
   const { mutate: _reviewAction, isPending: isReviewing } = useMutation(
     _trpc.jobs.jobReview.mutationOptions({
       onSuccess(data, variables, onMutateResult, context) {
@@ -65,46 +117,73 @@ export function AdminJobReviewCard() {
           success: "Done!.",
         },
       },
-    })
+    }),
   );
   const reviewAction = (action: "approve" | "reject") => {
     _reviewAction({
       note: form.getValues("note"),
-      jobId: ctx?.job?.id!,
+      jobId: job.id!,
       action,
     });
   };
-  if (!ctx.adminMode) return null;
-
-  if (ctx.job?.status === "Assigned")
+  const showReview = [job.isAdmin, job.isSubmitted].every(Boolean);
+  const showUpdateReview = [
+    job.isAdmin,
+    job.isApproved || job.isRejected,
+  ].every(Boolean);
+  if (!showReview && !showUpdateReview) return null;
+  if (job.isApproved)
     return (
-      <>
-        <Pressable
-          onPress={(e) => {
-            _push(`/re-assign/${ctx?.job?.controlId}`);
-          }}
-          className="w-full py-4 px-4 bg-secondary-foreground rounded-xl flex-row items-center justify-center gap-2 border border-border"
-        >
-          <Icon name="UserPlus" className="text-secondary size-16" />
-          <Text className="text-secondary font-semibold">Re-Assign Job</Text>
-        </Pressable>
-        <Pressable
-          onPress={(e) => {
-            deleteJob({
-              id: ctx?.job?.id!,
-            });
-          }}
-          className="flex-1 py-4 px-4 bg-destructive rounded-xl flex-row items-center justify-center gap-2"
-        >
-          <Icon name="Delete" className="text-destructive-foreground size-16" />
-          <Text className="text-destructive-foreground font-semibold">
-            Delete
+      <View className="bg-card rounded-2xl p-6 border border-border mb-6 shadow-sm">
+        <View className="flex-row items-center gap-3 mb-6">
+          <View className="p-2 rounded-lg bg-accent/10">
+            <Icon
+              name="CheckCircle2"
+              className="text-accent-foreground size-20"
+            />
+          </View>
+          <Text className="text-lg font-bold text-foreground">
+            Admin Review
           </Text>
-        </Pressable>
-      </>
+        </View>
+
+        <View className="mb-6">
+          <Text className="text-xs font-semibold text-muted-foreground uppercase mb-3">
+            Note
+          </Text>
+
+          <Text className="w-full bg-background border border-border rounded-xl text-sm p-4 text-foreground min-h-25">
+            {job?.recentNote || "No notes provided."}
+          </Text>
+        </View>
+
+        <View className="gap-3">
+          <View className="flex-row gap-3">
+            <Pressable
+              disabled={isReviewing}
+              onPress={(e) => reviewAction("reject")}
+              className="flex-1 py-4 px-4 bg-destructive rounded-xl flex-row items-center justify-center gap-2"
+            >
+              <Icon name="X" className="text-destructive-foreground size-16" />
+              <Text className="text-destructive-foreground font-semibold">
+                Reject
+              </Text>
+            </Pressable>
+
+            <Pressable
+              disabled={isReviewing}
+              onPress={(e) => reviewAction("approve")}
+              className="flex-1 py-4 px-4 bg-accent rounded-xl flex-row items-center justify-center gap-2"
+            >
+              <Icon name="Check" className="text-accent-foreground size-16" />
+              <Text className="text-accent-foreground font-semibold">
+                Approve
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
     );
-  if (ctx?.job?.status?.toLowerCase() === "approved") return null;
-  if (ctx?.job?.status?.toLowerCase() === "Rejected") return null;
   return (
     <View className="bg-card rounded-2xl p-6 border border-border mb-6 shadow-sm">
       <View className="flex-row items-center gap-3 mb-6">
@@ -163,4 +242,22 @@ export function AdminJobReviewCard() {
       </View>
     </View>
   );
+}
+function useComposer() {
+  const ctx = useJobContext();
+  const status = ctx?.job?.status?.toLocaleLowerCase();
+  return {
+    isAdmin: ctx?.adminMode,
+    status: ctx?.job?.status,
+    id: ctx?.job?.id,
+    isAssigned: status === "assigned",
+    isApproved: status === "approved",
+    isRejected: status === "rejected",
+    isSubmitted: status === "submitted",
+    recentActivity: {
+      // note: ctx?.job?.notes?.[0],
+      date: "",
+      author: "",
+    },
+  };
 }

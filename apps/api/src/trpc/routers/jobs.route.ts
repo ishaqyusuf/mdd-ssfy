@@ -38,6 +38,26 @@ export const jobRoutes = createTRPCRouter({
       // update job activity deleted.
       // notify assigned worker of deletion
     }),
+  getJobActivityHistory: publicProcedure
+    .input(
+      z.object({
+        jobId: z.number(),
+      }),
+    )
+    .query(async (props) => {
+      const { ctx, input } = props;
+      const db = ctx.db;
+      // const activities = await db.notifications.findMany({
+      //   where: {
+      //     jobId: input.jobId,
+      //   },
+      //   orderBy: {
+      //     createdAt: "desc",
+      //   },
+      // });
+      // return dataAsType(activities);
+      return [];
+    }),
   restoreJob: publicProcedure
     .input(
       z.object({

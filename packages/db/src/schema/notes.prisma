@@ -22,6 +22,8 @@ model NotePad {
 model NoteRecipients {
     id               Int             @unique @default(autoincrement())
     notePage         NotePad         @relation(fields: [notePadId], references: [id])
+    sendEmail        Boolean?        @default(false)
+    sentAt           DateTime?       @db.Timestamp(0)
     deletedAt        DateTime?       @db.Timestamp(0)
     createdAt        DateTime?       @default(now()) @db.Timestamp(0)
     notePadId        Int

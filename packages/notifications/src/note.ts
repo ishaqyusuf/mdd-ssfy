@@ -48,6 +48,7 @@ export async function createNoteAction(props: CreateNoteData) {
       headline: data.headline,
       note: data.note,
       subject: data.subject,
+
       // status: "public",
       senderContact: {
         connect: {
