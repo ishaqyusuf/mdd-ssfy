@@ -54,6 +54,11 @@ export interface AddressBookMeta {
 export type CustomerMeta = {
   netTerm?: string;
 };
+export type CustomerProfileMeta = {
+  net: string;
+  goodUntil: number;
+  taxCode?: string;
+};
 export type SalesMeta = {
   qb;
   profileEstimate: Boolean;
