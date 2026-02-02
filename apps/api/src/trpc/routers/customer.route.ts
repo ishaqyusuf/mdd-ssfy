@@ -42,7 +42,7 @@ export const customerRouter = createTRPCRouter({
     });
     return taxProfiles;
   }),
-  getCustromerProfiles: publicProcedure.query(async (props) => {
+  getCustomerProfiles: publicProcedure.query(async (props) => {
     const customerProfiles = await props.ctx.db.customerTypes.findMany({
       select: {
         id: true,
@@ -51,11 +51,9 @@ export const customerRouter = createTRPCRouter({
         meta: true,
       },
     });
-    return customerProfiles.map((cp) => {
-      ({
-        ...cp,
-        meta: cp.meta as CustomerProfileMeta,
-      });
-    });
+    return customerProfiles.map((cp) => ({
+      ...cp,
+      meta: cp.meta as CustomerProfileMeta,
+    }));
   }),
 });

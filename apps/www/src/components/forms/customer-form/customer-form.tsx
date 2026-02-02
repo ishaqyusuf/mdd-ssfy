@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCustomerProfilesAction } from "@/actions/cache/get-customer-profiles";
-import { getTaxProfilesAction } from "@/actions/cache/get-tax-profiles";
+
 import { getSalesListAction } from "@/actions/get-sales-list";
 import { createCustomerSchema } from "@/actions/schema";
 import salesData from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-data";
@@ -27,6 +26,8 @@ import { ExistingCustomerResolver } from "./existing-customer-resolver";
 import AddressAutoComplete from "@/components/address-autocomplete";
 import { useCustomerForm } from "./form-context";
 import { cn } from "@gnd/ui/cn";
+import { useQuery } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
 
 export type CustomerFormData = z.infer<typeof createCustomerSchema>;
 
@@ -34,19 +35,25 @@ export function CustomerForm() {
     const { params, setParams, actionTitle } = useCreateCustomerParams();
     const sections = params.formSectionsTrigger;
     const form = useCustomerForm();
-    const resp = useEffectLoader(
-        async () => {
-            const re = {
-                taxProfiles: await getTaxProfilesAction(),
-                salesProfiles: await getCustomerProfilesAction(),
-            };
-            return re;
-        },
-        {
-            wait: 120,
-        },
+    const { data: taxProfiles } = useQuery(
+        useTRPC().customers.getTaxProfiles.queryOptions(),
     );
-    const { taxProfiles, salesProfiles } = resp?.data || {};
+    const { data: salesProfiles } = useQuery(
+        useTRPC().customers.getCustomerProfiles.queryOptions(),
+    );
+    // const resp = useEffectLoader(
+    //     async () => {
+    //         const re = {
+    //             taxProfiles: await getTaxProfilesAction(),
+    //             salesProfiles: await getCustomerProfilesAction(),
+    //         };
+    //         return re;
+    //     },
+    //     {
+    //         wait: 120,
+    //     },
+    // );
+    // const { taxProfiles, salesProfiles } = resp?.data || {};
 
     const [customerType] = form.watch(["customerType"]);
     const [resolutionRequired, setResolutionRequired] = useState(false);
