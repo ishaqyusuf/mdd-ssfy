@@ -1,12 +1,13 @@
 import { Db } from "@gnd/db";
 import {
   createActivity,
-  getUsersById,
+  getContactsByUserIds,
+  // getUsersById,
   // getTeamById,
   // getTeamMembers,
   shouldSendNotification,
   updateActivityMetadata,
-} from "@gnd/db/queries";
+} from "./activities";
 import { EmailService } from "./services/email-service";
 import { createActivitySchema, NotificationTypes } from "./schemas";
 import {
@@ -15,8 +16,11 @@ import {
   NotificationResult,
   UserData,
 } from "./base";
+import { jobAssigned } from "./types/job-assigned";
 
-const handlers = {} as const;
+const handlers = {
+  job_assigned: jobAssigned,
+} as const;
 export class Notifications {
   #emailService: EmailService;
   #db: Db;
@@ -25,28 +29,28 @@ export class Notifications {
     this.#db = db;
   }
 
-  #toUserData(
-    teamMembers: Array<{
-      id: number;
-      role?: string;
-      fullName: string | null;
-      avatarUrl: string | null;
-      email: string;
-      locale?: string | null;
-    }>,
-    // teamId: string,
-    // teamInfo: { name: string | null; inboxId: string | null },
-  ): UserData[] {
-    return teamMembers.map((member) => ({
-      id: member.id,
-      full_name: member.fullName ?? undefined,
-      avatar_url: member.avatarUrl ?? undefined,
-      email: member.email ?? "",
-      locale: member.locale ?? "en",
-      // team_id: teamId,
-      role: member.role ?? "member",
-    }));
-  }
+  // #toUserData(
+  //   contacts: Array<{
+  //     id: number;
+  //     // role?: string;
+  //     name: string | null;
+  //     // avatarUrl: string | null;
+  //     email: string;
+  //     // locale?: string | null;
+  //   }>,
+  //   // teamId: string,
+  //   // teamInfo: { name: string | null; inboxId: string | null },
+  // ): UserData[] {
+  //   return contacts.map((member) => ({
+  //     id: member.id,
+  //     full_name: member.name ?? undefined,
+  //     // avatar_url: member.avatarUrl ?? undefined,
+  //     email: member.email ?? "",
+  //     // locale: member.locale ?? "en",
+  //     // team_id: teamId,
+  //     // role: member.role ?? "member",
+  //   }));
+  // }
 
   async #createActivities<T extends keyof NotificationTypes>(
     handler: any,
@@ -56,55 +60,55 @@ export class Notifications {
     options?: NotificationOptions,
   ) {
     const activityPromises = await Promise.all(
-      validatedData.users.map(async (user: UserData) => {
+      validatedData.contacts!?.map(async (user: UserData) => {
         const activityInput = handler.createActivity(validatedData, user);
 
         // Check if handler supports combining
-        if (handler.combine) {
-          try {
-            const existingActivity = await handler.combine.findExisting(
-              this.#db,
-              validatedData,
-              user,
-            );
+        //  if (handler.combine) {
+        //    try {
+        //      const existingActivity = await handler.combine.findExisting(
+        //        this.#db,
+        //        validatedData,
+        //        user,
+        //      );
 
-            if (existingActivity) {
-              // Security check: Verify the activity belongs to the correct team
-              // This prevents combining activities across teams even if findExisting is buggy
-              if (existingActivity.teamId !== user.id) {
-                // Activity belongs to different team - skip combining and create new one
-                // This is a safety fallback
-              } else {
-                // Merge metadata using handler's merge function
-                const mergedMetadata = handler.combine.mergeMetadata(
-                  existingActivity.metadata as Record<string, any>,
-                  activityInput.metadata as Record<string, any>,
-                );
+        //      if (existingActivity) {
+        //        // Security check: Verify the activity belongs to the correct team
+        //        // This prevents combining activities across teams even if findExisting is buggy
+        //        if (existingActivity.teamId !== user.team_id) {
+        //          // Activity belongs to different team - skip combining and create new one
+        //          // This is a safety fallback
+        //        } else {
+        //          // Merge metadata using handler's merge function
+        //          const mergedMetadata = handler.combine.mergeMetadata(
+        //            existingActivity.metadata as Record<string, any>,
+        //            activityInput.metadata as Record<string, any>,
+        //          );
 
-                const updated = await updateActivityMetadata(this.#db, {
-                  activityId: existingActivity.id,
-                  // teamId: user.team_id,
-                  metadata: mergedMetadata,
-                });
+        //          const updated = await updateActivityMetadata(this.#db, {
+        //            activityId: existingActivity.id,
+        //            teamId: user.team_id,
+        //            metadata: mergedMetadata,
+        //          });
 
-                // If update succeeded, return the updated activity
-                // If update failed (e.g., activity was deleted or teamId mismatch), fall through to create new one
-                if (updated) {
-                  return updated;
-                }
-              }
-            }
-          } catch (error) {
-            // If combining fails, fall through to create new activity
-            // Error is silently handled - creating a new activity is the safe fallback
-          }
-        }
+        //          // If update succeeded, return the updated activity
+        //          // If update failed (e.g., activity was deleted or teamId mismatch), fall through to create new one
+        //          if (updated) {
+        //            return updated;
+        //          }
+        //        }
+        //      }
+        //    } catch (error) {
+        //      // If combining fails, fall through to create new activity
+        //      // Error is silently handled - creating a new activity is the safe fallback
+        //    }
+        //  }
 
         // Check if user wants in-app notifications for this type
         const inAppEnabled = await shouldSendNotification(
           this.#db,
           user.id,
-          // user.team_id,
+          //  user.team_id,
           notificationType,
           "in_app",
         );
@@ -132,7 +136,6 @@ export class Notifications {
         return createActivity(this.#db, validatedActivity);
       }),
     );
-
     return activityPromises.filter(Boolean);
   }
   #createEmailInput<T extends keyof NotificationTypes>(
@@ -162,12 +165,12 @@ export class Notifications {
 
   async create<T extends keyof NotificationTypes>(
     type: T,
-    userIds: number[],
     payload: Omit<NotificationTypes[T], "users">,
+    userIds?: number[],
     options?: NotificationOptions,
   ): Promise<NotificationResult> {
     const [teamMembers] = await Promise.all([
-      getUsersById(this.#db, userIds),
+      getContactsByUserIds(this.#db, options?.userIdType!, userIds || []),
       // getTeamById(this.#db, teamId),
     ]);
 
@@ -184,10 +187,7 @@ export class Notifications {
     }
 
     // Transform team members to UserData format
-    const users = this.#toUserData(
-      teamMembers,
-      // teamId, teamInfo
-    );
+    const users = teamMembers;
 
     // Build the full notification data
     const data = { ...payload, users } as NotificationTypes[T];
@@ -280,7 +280,8 @@ export class Notifications {
         } else if (sampleEmail.emailType === "owners") {
           // Owners-only email: send to team owners only
           const ownerUsers = validatedData.users.filter(
-            (user: UserData) => user.role === "owner",
+            Boolean,
+            // (user: UserData) => user.role === "owner",
           );
 
           const emailInputs = ownerUsers.map((user: UserData) =>

@@ -108,8 +108,11 @@ function MouldingRow({
                     type="number"
                     valueChanged={valueChanged}
                     mask
+                    // disabled
                     qtyInputProps={{
                         min: 0,
+                        // disabled: true,
+                        // inputGroup: sn > 1
                     }}
                 />
             </TableCell>

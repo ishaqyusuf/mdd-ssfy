@@ -38,6 +38,7 @@ model NotePadContacts {
     name          String
     email         String?
     phoneNo       String?
+    role          ContactRole?
     notesReceived NoteRecipients[]
     notesSent     NotePad[]
     deletedAt     DateTime?            @db.Timestamp(0)
@@ -45,6 +46,11 @@ model NotePadContacts {
     readReceipts  NotePadReadReceipt[]
 
     @@unique([name, email, phoneNo])
+}
+
+enum ContactRole {
+    customer
+    employee
 }
 
 model NoteTags {

@@ -1,6 +1,8 @@
 import { Minus, Plus } from "lucide-react";
 import * as React from "react";
 import { cn } from "../utils";
+import { InputGroup } from "./composite";
+import { Icons } from "./icons";
 
 export type QtyInputProps = {
   value?: number;
@@ -10,6 +12,8 @@ export type QtyInputProps = {
   onBlur?: () => void;
   onFocus?: () => void;
   className?: string;
+  disabled?: boolean;
+  inputGroup?: boolean;
 };
 
 export function QuantityInput({
@@ -20,15 +24,17 @@ export function QuantityInput({
   onBlur,
   onFocus,
   className,
+  disabled,
+  inputGroup,
 }: QtyInputProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const [rawValue, setRawValue] = React.useState(String(value));
+  // const [rawValue, setRawValue] = React.useState(String(value));
 
   const handleInput: React.ChangeEventHandler<HTMLInputElement> = ({
     currentTarget: el,
   }) => {
     const input = el.value;
-    setRawValue(input);
+    // setRawValue(input);
 
     // Check if input can be parsed as a valid number
     const num = Number.parseFloat(input);
@@ -47,14 +53,52 @@ export function QuantityInput({
       }
       const newVal = Math.min(Math.max(value + diff, min), max);
       onChange?.(newVal);
-      setRawValue(String(newVal));
+      // setRawValue(String(newVal));
     };
-
+  if (inputGroup) {
+    return (
+      <InputGroup className="border-transparent p-0">
+        <InputGroup.Addon>
+          <InputGroup.Button
+            className="rounded-full"
+            size="icon-xs"
+            variant="secondary"
+          >
+            -
+          </InputGroup.Button>
+        </InputGroup.Addon>
+        <InputGroup.Input
+          className="w-12 text-xs font-semibold [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+          style={{ fontKerning: "none" }}
+          type="number"
+          min={min}
+          max={max}
+          // disabled={disabled}
+          autoComplete="off"
+          step={0.1}
+          value={String(value || "")}
+          onInput={handleInput}
+          onBlur={onBlur}
+          onFocus={onFocus}
+          inputMode="decimal"
+        />
+        <InputGroup.Addon align="inline-end">
+          <InputGroup.Button
+            className="rounded-full"
+            size="icon-xs"
+            variant="secondary"
+          >
+            +
+          </InputGroup.Button>
+        </InputGroup.Addon>
+      </InputGroup>
+    );
+  }
   return (
     <div
       className={cn(
         "group flex items-stretch transition-[box-shadow] font-mono$",
-        className
+        className,
       )}
     >
       <button
@@ -63,7 +107,7 @@ export function QuantityInput({
         className={cn(
           "flex items-center rounded-full justify-center text-white border bg-muted-foreground spl-[.325em] size-6",
           value <= max ||
-            "hover:border-muted-foreground hover:bg-muted hover:text-secondary-foreground"
+            "hover:border-muted-foreground hover:bg-muted hover:text-secondary-foreground",
         )}
         disabled={value <= min}
         onPointerDown={handlePointerDown(-1)}
@@ -85,9 +129,10 @@ export function QuantityInput({
           type="number"
           min={min}
           max={max}
+          disabled={disabled}
           autoComplete="off"
           step={0.1}
-          value={rawValue}
+          value={String(value || "")}
           onInput={handleInput}
           onBlur={onBlur}
           onFocus={onFocus}
@@ -99,7 +144,7 @@ export function QuantityInput({
         className={cn(
           "flex items-center rounded-full justify-center text-white border bg-muted-foreground spl-[.325em] size-6",
           value >= max ||
-            "hover:border-muted-foreground hover:bg-muted hover:text-secondary-foreground"
+            "hover:border-muted-foreground hover:bg-muted hover:text-secondary-foreground",
         )}
         disabled={value >= max}
         onPointerDown={handlePointerDown(1)}

@@ -29,13 +29,14 @@ export interface NotificationHandler<T = any> {
 }
 
 export interface UserData {
-  id: string;
-  full_name?: string;
-  email: string;
-  locale?: string;
-  avatar_url?: string;
+  id: number;
+  name: string;
+  // email: string | null;
+  email?;
+  phoneNo?: string;
+  // avatar_url?: string;
   // team_id: string;
-  role?: "owner" | "member";
+  // role?: "owner" | "member";
 }
 
 // Combine template data with all Resend options using intersection type
@@ -49,6 +50,7 @@ export type EmailInput = {
 export type NotificationOptions = {
   priority?: number;
   sendEmail?: boolean;
+  userIdType?: "user" | "customer";
 } & Partial<CreateEmailOptions>;
 
 export interface NotificationResult {

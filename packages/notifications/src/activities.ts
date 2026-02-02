@@ -18,7 +18,11 @@ export async function createActivity(db: Db, params: CreateActivityInput) {
     where: { id: params.authorId },
   });
   const senderId = await getContactId(db, auth);
-  const recipientIds = await getReceipientIds(db, ...(params.userIds || []));
+  const recipientIds = await getContactIdsByUserIds(
+    db,
+    params.userIdType,
+    params.userIds || [],
+  );
   const tags = {
     ...params.tags,
     type: params.type,
@@ -41,16 +45,6 @@ export async function createActivity(db: Db, params: CreateActivityInput) {
           id: contactId,
         })),
       },
-      // readReceipts: {
-      //   create: recipientIds.map((contactId) => ({
-      //     contact: {
-      //       connect: {
-      //         id: contactId,
-      //       },
-      //     },
-      //     // status: "unread",
-      //   })),
-      // },
       tags: {
         createMany: {
           data: Object.entries(tags).map(([tagName, tagValue]) => ({
@@ -64,40 +58,81 @@ export async function createActivity(db: Db, params: CreateActivityInput) {
     },
   });
 }
-const getReceipientIds = async (db: Db, ...userIds) => {
-  const recipients = await db.users.findMany({
-    where: {
-      id: {
-        in: userIds,
-      },
-    },
-  });
+export const getContactsByUserIds = async (
+  db: Db,
+  userIdType: "user" | "customer",
+  userIds: number[],
+) => {
+  const isCustomer = userIdType === "customer";
+  const recipients = isCustomer
+    ? (
+        await db.customers.findMany({
+          where: {
+            id: {
+              in: userIds,
+            },
+          },
+          select: {
+            email: true,
+            name: true,
+            phoneNo: true,
+            businessName: true,
+          },
+        })
+      )?.map(({ email, name, phoneNo, businessName }) => ({
+        email,
+        name: businessName || name,
+        phoneNo,
+      }))
+    : await db.users.findMany({
+        where: {
+          id: {
+            in: userIds,
+          },
+        },
+        select: {
+          email: true,
+          name: true,
+          phoneNo: true,
+        },
+      });
   return await Promise.all(
     recipients.map(async (recipient) => {
-      const contactId = await getContactId(db, recipient);
-      return contactId;
+      const contact = await getContact(db, recipient);
+      return contact;
     }),
   );
 };
-const getContactId = async (db: Db, { email, name, phoneNo }) => {
-  const senderContactId = (
-    await db.notePadContacts.upsert({
-      where: {
-        name_email_phoneNo: {
-          email: email,
-          name: name!,
-          phoneNo: phoneNo!,
-        },
-      },
-      update: {},
-      create: {
+export const getContactIdsByUserIds = async (
+  db: Db,
+  // isCustomer: boolean,
+  userIdType: "user" | "customer",
+  userIds: number[],
+) => {
+  const contacts = await getContactsByUserIds(db, userIdType, userIds);
+  return contacts.map((contact) => contact.id);
+};
+export const getContact = async (db: Db, { email, name, phoneNo }) => {
+  const contact = await db.notePadContacts.upsert({
+    where: {
+      name_email_phoneNo: {
         email: email,
         name: name!,
-        phoneNo: phoneNo,
+        phoneNo: phoneNo!,
       },
-    })
-  ).id;
-  return senderContactId;
+    },
+    update: {},
+    create: {
+      email: email,
+      name: name!,
+      phoneNo: phoneNo,
+    },
+  });
+
+  return contact;
+};
+export const getContactId = async (db: Db, { email, name, phoneNo }) => {
+  return (await getContact(db, { email, name, phoneNo }))?.id;
 };
 
 export async function updateActivityStatus(
@@ -121,6 +156,15 @@ export type UpdateActivityMetadataParams = {
 export async function updateActivityMetadata(
   db: Db,
   params: UpdateActivityMetadataParams,
+) {
+  return true;
+}
+
+export async function shouldSendNotification(
+  db: Db,
+  contactId: number,
+  notificationType: string,
+  channel: "email" | "inbox" | "in_app",
 ) {
   return true;
 }

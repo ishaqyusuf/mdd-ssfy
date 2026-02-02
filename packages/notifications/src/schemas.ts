@@ -25,7 +25,7 @@ export const jobAssignedTags = activitiesTags
   .pick({
     id: true,
   })
-  .extend(baseActivityTags);
+  .extend(baseActivityTags.shape);
 export const createActivitySchema = z.object({
   // teamId: z.string().uuid(),
   subject: z.string(),
@@ -34,6 +34,7 @@ export const createActivitySchema = z.object({
   authorId: z.number().optional(),
   sendEmail: z.boolean().optional().default(false),
   userIds: z.array(z.number()).optional().nullable(), ///number().optional(),
+  userIdType: z.enum(["user", "customer"]).optional().default("user"),
   type,
   source,
   priority,
@@ -45,13 +46,14 @@ export const createActivitySchema = z.object({
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;
 
 export const userSchema = z.object({
-  id: z.string().uuid(),
-  full_name: z.string(),
-  email: z.string().email(),
-  locale: z.string().optional(),
-  avatar_url: z.string().optional(),
-  team_id: z.string().uuid(),
-  role: z.enum(["owner", "member"]).optional(),
+  id: z.number(),
+  name: z.string(),
+  email: z.email().optional().nullable,
+  phoneNo: z.string().optional(),
+  // locale: z.string().optional(),
+  // avatar_url: z.string().optional(),
+  // team_id: z.string().uuid(),
+  // role: z.enum(["owner", "member"]).optional(),
 });
 
 // export const transactionSchema = z.object({
@@ -109,7 +111,7 @@ export const jobActivitySchema = z.object({
 export type JobActivityInput = z.infer<typeof jobActivitySchema>;
 
 export const jobAssignedSchema = z.object({
-  users: z.array(userSchema).optional().nullable(),
+  contacts: z.array(userSchema).optional().nullable(),
   jobId: z.number(),
   comment: z.string().optional(),
   author: z.string().optional().nullable(),
@@ -117,7 +119,7 @@ export const jobAssignedSchema = z.object({
 export type JobAssignedInput = z.infer<typeof jobAssignedSchema>;
 // Notification types map - all available notification types with their data structures
 export type NotificationTypes = {
-  sales_checkout_success: SalesCheckoutSuccessInput;
-  job_activity: JobActivityInput;
+  // sales_checkout_success: SalesCheckoutSuccessInput;
+  // job_activity: JobActivityInput;
   job_assigned: JobAssignedInput;
 };
