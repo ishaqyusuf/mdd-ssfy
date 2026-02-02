@@ -83,7 +83,9 @@ function MouldingRow({
         ctx.ctx.calculateTotalPrice();
     };
     return (
-        <TableRow className={cn(!mfd?.selected && "hidden")}>
+        <TableRow
+            className={cn(!mfd?.selected && "hidden", "group hover:bg-inherit")}
+        >
             <TableCell className="font-mono$">{sn}.</TableCell>
             <TableCell className="font-mono$ text-sm font-medium">
                 {data.title}
@@ -112,7 +114,7 @@ function MouldingRow({
                     qtyInputProps={{
                         min: 0,
                         // disabled: true,
-                        // inputGroup: sn > 1
+                        // inputGroup: sn > 1,
                     }}
                 />
             </TableCell>
