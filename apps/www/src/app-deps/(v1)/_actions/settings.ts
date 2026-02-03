@@ -29,6 +29,7 @@ export async function getSalesSettingAction() {
 }
 export async function saveSettingAction(id, data): Promise<any> {
     // const type: PostType = "sales-settings";
+    // console.log("Saving setting", id, data);
     const setting = await prisma.settings.update({
         where: {
             id,

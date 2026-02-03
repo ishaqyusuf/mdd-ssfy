@@ -15,6 +15,8 @@ import { useSalesSummaryToggle } from "@/store/invoice-summary-toggle";
 import { SalesFormSave } from "./sales-form-save";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { Button } from "@gnd/ui/button";
+import { SidebarProvider } from "@gnd/ui/sidebar";
+import { Sidebar } from "@gnd/ui/composite";
 
 export function SalesFormClient({ data }) {
     const zus = useFormDataStore();
@@ -36,103 +38,70 @@ export function SalesFormClient({ data }) {
         sPreview.preview(zus.metaData?.salesId, zus?.metaData?.type);
     }
     return (
-        <div className="min-h-screen w-full bg-white dark:bg-primary-foreground  xl:gap-4">
-            <div
-                className={cn(
-                    " bg-white border-b border-gray-200 p-4 flex items-center gap-4",
-                    hidden || "xl:hidden",
-                )}
-            >
-                <h1 className="text-xl capitalize font-semibold text-gray-900">
-                    {data?.order?.type} Builder
-                </h1>
-                <div className="flex-1"></div>
-                <SalesFormSave />
-                <Button
-                    size="sm"
-                    onClick={() => preview()}
-                    className="flex items-center gap-2"
-                >
-                    <MenuIcon className="h-4 w-4 mr-2" />
-                    Preview
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSidebarOpen(true)}
-                    className="flex items-center gap-2"
-                >
-                    <MenuIcon className="h-4 w-4" />
-                    {zus?.metaData?.type === "quote"
-                        ? "Quote Detail"
-                        : "Invoice Detail"}
-                </Button>
-            </div>
-            <div className="flex">
-                <div className={cn("flex-1", !hidden && "xl:mr-96")}>
-                    {takeOff ? (
-                        <TakeOff />
-                    ) : (
-                        <div className={cn("hiddens")}>
-                            {zus.sequence?.formItem?.map((uid) => (
-                                <ItemSection key={uid} uid={uid} />
-                            ))}
-                        </div>
+        <Sidebar.Provider className="min-h-screen w-full bg-white dark:bg-primary-foreground  xl:gap-4">
+            <Sidebar.Inset>
+                <div
+                    className={cn(
+                        "bg-white border-b border-gray-200 p-4 flex items-center gap-4",
+                        hidden || "xl:hidden",
                     )}
-                    <div className="mt-4 flex justify-end">
-                        <Button
-                            onClick={() => {
-                                zhAddItem();
-                            }}
-                        >
-                            <Icons.add className="mr-2 size-4" />
-                            <span>Add</span>
-                        </Button>
-                    </div>
-                </div>
-                <div className={cn("hidden", !hidden && "xl:block")}>
-                    <SalesFormSidebar />
-                </div>
-                {sidebarOpen && (
-                    <div
-                        className={cn(
-                            "fixed inset-0 z-50 flex",
-                            !hidden && "xl:hidden",
-                        )}
+                >
+                    <h1 className="text-xl capitalize font-semibold text-gray-900">
+                        {data?.order?.type} Builder
+                    </h1>
+                    <div className="flex-1"></div>
+                    <SalesFormSave />
+                    <Button
+                        size="sm"
+                        onClick={() => preview()}
+                        className="flex items-center gap-2"
                     >
-                        <div
-                            className="flex-1 bg-black bg-opacity-50"
-                            onClick={() => setSidebarOpen(false)}
-                        />
-                        <div className="sw-full ssm:w-[70vw] w-96 bg-white">
-                            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                                <h2 className="text-lg font-semibold">
-                                    Invoice Details
-                                </h2>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setSidebarOpen(false)}
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
+                        <MenuIcon className="h-4 w-4 mr-2" />
+                        Preview
+                    </Button>
+                    {/* <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSidebarOpen(true)}
+                        className="flex items-center gap-2"
+                    >
+                        <MenuIcon className="h-4 w-4" />
+                        {zus?.metaData?.type === "quote"
+                            ? "Quote Detail"
+                            : "Invoice Detail"}
+                    </Button> */}
+                    <Sidebar.Trigger></Sidebar.Trigger>
+                </div>
+                <div className="flex">
+                    <div className={cn("flex-1", !hidden && "xl:mr-96")}>
+                        {takeOff ? (
+                            <TakeOff />
+                        ) : (
+                            <div className={cn("hiddens")}>
+                                {zus.sequence?.formItem?.map((uid) => (
+                                    <ItemSection key={uid} uid={uid} />
+                                ))}
                             </div>
-                            <SalesFormSidebar
-                                onClose={() => setSidebarOpen(false)}
-                            />
+                        )}
+                        <div className="mt-4 flex justify-end">
+                            <Button
+                                onClick={() => {
+                                    zhAddItem();
+                                }}
+                            >
+                                <Icons.add className="mr-2 size-4" />
+                                <span>Add</span>
+                            </Button>
                         </div>
                     </div>
-                )}
-            </div>
-            {/* <div className="relative lg:w-[350px]">
-                <div className="sticky top-16 flex w-full flex-col">
-                    <div className="">
-                        <SalesMetaForm />
-                    </div>
+                    {/* <div className={cn("hidden", !hidden && "xl:block")}>
+                        <SalesFormSidebar />
+                    </div> */}
                 </div>
-            </div> */}
+            </Sidebar.Inset>
+            <SalesFormSidebar />
             <FormWatcher />
             <TakeoffSwitch {...{ takeOff, takeOffChanged }} />
-        </div>
+        </Sidebar.Provider>
     );
 }

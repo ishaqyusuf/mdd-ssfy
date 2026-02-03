@@ -67,7 +67,7 @@ export function SalesPaymentProcessor(props: Props) {
                             e.preventDefault();
                             setOpened(!open);
                         }}
-                        className="w-full"
+                        className=""
                         {...props?.buttonProps}
                     >
                         <Icons.payment className="mr-2 size-4" />
@@ -114,9 +114,9 @@ const formSchema = createPaymentSchema
                 z.object({
                     id: z.number(),
                     selected: z.boolean(),
-                })
+                }),
             ),
-        })
+        }),
     )
     .superRefine((data, ctx) => {
         if (data?.sales?.filter((s) => s.selected).length == 0) {
@@ -131,7 +131,7 @@ function Content(props: Props & { setOpened }) {
     const { data, error, isPending, refetch } = useSuspenseQuery(
         _trpc.customers.getCustomerPayPortal.queryOptions({
             accountNo,
-        })
+        }),
     );
     const form = useZodForm(formSchema, {
         defaultValues: {},
@@ -244,7 +244,7 @@ function Content(props: Props & { setOpened }) {
                                 token: tok,
                                 preview: true,
                             },
-                            true
+                            true,
                         );
                         props.setOpened(false);
                     })();
@@ -269,10 +269,10 @@ function Content(props: Props & { setOpened }) {
             sum(
                 // wSales.filter(a => a.selected),
                 data?.pendingSales?.filter(
-                    (a) => wSales?.find((b) => b.id == a.id)?.selected
+                    (a) => wSales?.find((b) => b.id == a.id)?.selected,
                 ),
-                "amountDue"
-            )
+                "amountDue",
+            ),
         );
     }, [salesFields, data]);
     const makePayment = useAction(createSalesPaymentAction, {
@@ -280,7 +280,7 @@ function Content(props: Props & { setOpened }) {
             if (args.data?.terminalPaymentSession) {
                 form.setValue(
                     "terminalPaymentSession",
-                    args.data.terminalPaymentSession
+                    args.data.terminalPaymentSession,
                 );
                 setTimeout(() => {
                     setWaitSeconds(0);
@@ -349,7 +349,7 @@ function Content(props: Props & { setOpened }) {
             salesIds: formData.sales.filter((s) => s.selected).map((s) => s.id),
             orderNos: data?.pendingSales
                 ?.filter(
-                    (s) => formData.sales.find((b) => b.id == s.id)?.selected
+                    (s) => formData.sales.find((b) => b.id == s.id)?.selected,
                 )
                 .map((s) => s.orderId),
         });
@@ -361,7 +361,7 @@ function Content(props: Props & { setOpened }) {
         if (!amount) return;
         startTransition(async () => {
             const sales = data?.pendingSales?.filter(
-                (s) => formData.sales.find((b) => b.id == s.id)?.selected
+                (s) => formData.sales.find((b) => b.id == s.id)?.selected,
             );
 
             if (sales.length > 1) {
@@ -374,7 +374,7 @@ function Content(props: Props & { setOpened }) {
                 return;
             }
             const cData = sales?.find(
-                (s) => !!s.customerName && !!s?.customerEmail
+                (s) => !!s.customerName && !!s?.customerEmail,
             );
             if (!cData?.customerEmail) {
                 toast({
@@ -413,7 +413,7 @@ function Content(props: Props & { setOpened }) {
             const rep = mockStatus
                 ? { status: mockStatus }
                 : await terminalPaymentStatus(
-                      terminalPaymentSession?.squareCheckoutId
+                      terminalPaymentSession?.squareCheckoutId,
                   );
             console.log({ rep });
             switch (rep.status) {
@@ -475,7 +475,7 @@ function Content(props: Props & { setOpened }) {
                     sendLink ? sendPaymentLink : initPayment,
                     (e) => {
                         console.log("Form Errors: ", e);
-                    }
+                    },
                 )}
             >
                 <div className="grid gap-4">
@@ -501,25 +501,25 @@ function Content(props: Props & { setOpened }) {
                                         className={cn(
                                             !salesFields?.[index]?.selected ||
                                                 "bg-green-100 border-green-500",
-                                            "cursor-pointer p-2"
+                                            "cursor-pointer p-2",
                                         )}
                                     >
                                         <Item.Content className="flex-row justify-between">
                                             <Item.Title
                                                 className={cn(
-                                                    "text-accents inline-flex"
+                                                    "text-accents inline-flex",
                                                 )}
                                             >
                                                 {sale?.orderId}
                                             </Item.Title>
                                             <Item.Description
                                                 className={cn(
-                                                    "text-secondary-foregrounds flex gap-2 items-center"
+                                                    "text-secondary-foregrounds flex gap-2 items-center",
                                                 )}
                                             >
                                                 <span>
                                                     {formatDate(
-                                                        sale?.createdAt
+                                                        sale?.createdAt,
                                                     )}
                                                 </span>
                                                 {/* <Separator orientation="vertical" /> */}
@@ -639,7 +639,7 @@ function Content(props: Props & { setOpened }) {
                                         onCheckedChange={(checked) =>
                                             form.setValue(
                                                 "linkProcessed",
-                                                !!checked
+                                                !!checked,
                                             )
                                         }
                                         id="paid"
@@ -710,12 +710,12 @@ function Content(props: Props & { setOpened }) {
                                         <Field.Content>
                                             <Select.Root
                                                 {...form.register(
-                                                    "paymentMethod"
+                                                    "paymentMethod",
                                                 )}
                                                 onValueChange={(e) => {
                                                     form.setValue(
                                                         "paymentMethod",
-                                                        e as any
+                                                        e as any,
                                                     );
                                                 }}
                                             >
@@ -731,7 +731,7 @@ function Content(props: Props & { setOpened }) {
                                                             >
                                                                 {s.label}
                                                             </Select.Item>
-                                                        )
+                                                        ),
                                                     )}
                                                 </Select.Content>
                                             </Select.Root>
@@ -755,12 +755,12 @@ function Content(props: Props & { setOpened }) {
                                             <Field.Content>
                                                 <Select.Root
                                                     {...form.register(
-                                                        "deviceId"
+                                                        "deviceId",
                                                     )}
                                                     onValueChange={(e) => {
                                                         form.setValue(
                                                             "deviceId",
-                                                            e
+                                                            e,
                                                         );
                                                     }}
                                                 >
@@ -771,7 +771,7 @@ function Content(props: Props & { setOpened }) {
                                                         {data?.terminals?.map(
                                                             (
                                                                 terminal,
-                                                                tIndex
+                                                                tIndex,
                                                             ) => (
                                                                 <Select.Item
                                                                     disabled={
@@ -789,7 +789,7 @@ function Content(props: Props & { setOpened }) {
                                                                         terminal.label
                                                                     }
                                                                 </Select.Item>
-                                                            )
+                                                            ),
                                                         )}
                                                     </Select.Content>
                                                 </Select.Root>

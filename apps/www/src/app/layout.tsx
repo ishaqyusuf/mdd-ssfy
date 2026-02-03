@@ -2,7 +2,6 @@ import "@gnd/ui/globals.css";
 // import "@/styles/globals.css";
 
 import { TailwindIndicator } from "@/components/tailwind-indicator";
-import Upgrader from "@/components/_v1/upgrader";
 import { env } from "@/env.mjs";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 

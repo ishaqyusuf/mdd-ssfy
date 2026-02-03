@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { saveSettingAction } from "@/app-deps/(v1)/_actions/settings";
-import Btn from "@/components/_v1/btn";
+
 import PageHeader from "@/components/_v1/page-header";
 import { generateRandomString } from "@/lib/utils";
 import { resetPasswordSchema } from "@/lib/validations/auth";
@@ -11,7 +11,7 @@ import { InstallCostMeta, InstallCostSettings } from "@/types/settings";
 import { Delete, Move, Plus, Trash } from "lucide-react";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { useFieldArray, useForm } from "react-hook-form";
-import { toast } from "sonner";
+
 import type { z } from "zod";
 
 import { Button } from "@gnd/ui/button";
@@ -20,6 +20,8 @@ import { Form, FormControl, FormField, FormItem } from "@gnd/ui/form";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { useTransition } from "@/utils/use-safe-transistion";
+import { SubmitButton } from "@gnd/ui/submit-button";
+import { toast } from "@gnd/ui/use-toast";
 
 export type ResetPasswordFormInputs = z.infer<typeof resetPasswordSchema>;
 
@@ -51,9 +53,17 @@ export function InstallCostForm({ data }: { data: InstallCostSettings }) {
                         }),
                     },
                 });
-                toast.success("Saved.");
+                toast({
+                    title: "Success",
+                    description: "Install Cost Price saved successfully.",
+                    variant: "success",
+                });
             } catch (err: any) {
-                toast.error(err.message);
+                toast({
+                    title: "Error",
+                    description: err.message,
+                    variant: "destructive",
+                });
             }
         });
     }
@@ -71,13 +81,14 @@ export function InstallCostForm({ data }: { data: InstallCostSettings }) {
                     title="Install Cost Price"
                     Action={() => (
                         <>
-                            <Btn
+                            <SubmitButton
                                 className="h-8"
-                                isLoading={isPending}
+                                isSubmitting={isPending}
+                                type="button"
                                 onClick={onSubmit}
                             >
                                 Save
-                            </Btn>
+                            </SubmitButton>
                         </>
                     )}
                 />
@@ -186,7 +197,7 @@ export function InstallCostForm({ data }: { data: InstallCostSettings }) {
                                                                 <Button
                                                                     onClick={() => {
                                                                         remove(
-                                                                            rowIndex
+                                                                            rowIndex,
                                                                         );
                                                                     }}
                                                                     size="icon"
