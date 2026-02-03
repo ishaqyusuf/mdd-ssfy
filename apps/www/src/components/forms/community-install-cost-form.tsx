@@ -1,12 +1,6 @@
-import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTRPC } from "@/trpc/client";
-import {
-    communityInstallCostFormSchema,
-    communityModelCostFormSchema,
-    saveCommunityModelCostSchema,
-    updateInstallCostSchema,
-} from "@api/db/queries/community";
+import { updateInstallCostSchema } from "@api/db/queries/community";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Form } from "@gnd/ui/form";
 import {
@@ -34,13 +28,15 @@ import { Field } from "@gnd/ui/composite";
 import { Controller } from "react-hook-form";
 import { Input } from "@gnd/ui/input";
 import z from "zod";
+import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
+import Portal from "@gnd/ui/custom/portal";
 
 interface Props {
     model: RouterOutputs["community"]["communityInstallCostForm"];
 }
 export function CommunityInstallCostForm({ model }: Props) {
     const trpc = useTRPC();
-    const { editModelCostId, setParams } = useCommunityModelCostParams();
+    const { setParams, openToSide } = useCommunityInstallCostParams();
 
     const qc = useQueryClient();
     const save = useMutation(
@@ -119,9 +115,21 @@ export function CommunityInstallCostForm({ model }: Props) {
     //         ?.map((t) => sum([costs?.[t.uid], tax?.[t.uid]]))
     //         .flat()
     // );
+    const Actions = (
+        <>
+            <div className="text-xl font-semibold">
+                {/* <Money value={total} /> */}
+            </div>
+
+            <FormDebugBtn />
+            <form onSubmit={form.handleSubmit(onSubmit, (e) => {})}>
+                <SubmitButton isSubmitting={save.isPending}>Save</SubmitButton>
+            </form>
+        </>
+    );
     return (
         <Form {...form}>
-            <form className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                     <Table className="table-sm w-full">
                         <TableHeader>
@@ -192,25 +200,18 @@ export function CommunityInstallCostForm({ model }: Props) {
                         </TableBody>
                     </Table>
                 </div>
-                <CustomModalPortal>
-                    <DialogFooter className="flex items-center justify-end gap-4">
-                        <div className="text-xl font-semibold">
-                            {/* <Money value={total} /> */}
-                        </div>
-
-                        <FormDebugBtn />
-                        <form
-                            onSubmit={form.handleSubmit(onSubmit, (e) => {
-                                console.log(e);
-                            })}
-                        >
-                            <SubmitButton isSubmitting={save.isPending}>
-                                Save
-                            </SubmitButton>
-                        </form>
-                    </DialogFooter>
-                </CustomModalPortal>
-            </form>
+                {openToSide ? (
+                    <Portal nodeId={"install-cost-sidebar-footer"}>
+                        {Actions}
+                    </Portal>
+                ) : (
+                    <CustomModalPortal>
+                        <DialogFooter className="flex items-center justify-end gap-4">
+                            {Actions}
+                        </DialogFooter>
+                    </CustomModalPortal>
+                )}
+            </div>
         </Form>
     );
 }
