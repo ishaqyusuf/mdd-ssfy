@@ -43,15 +43,6 @@ export default async function RootLayout({
                             {children}
                         </Providers>
                     </Suspense>
-                    <div
-                        className={cn(
-                            __isProd
-                                ? "fixed bottom-0 left-0 z-[9999] h-5 w-5 overflow-hidden opacity-0"
-                                : "fixed bottom-0 right-0 mb-2"
-                        )}
-                    >
-                        <Upgrader />
-                    </div>
                     {/* <Analytics /> */}
                     <TailwindIndicator />
                     {prodDB && !__isProd && (

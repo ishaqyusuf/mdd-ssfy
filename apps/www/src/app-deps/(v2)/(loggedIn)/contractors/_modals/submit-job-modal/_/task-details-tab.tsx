@@ -23,6 +23,8 @@ import { useJobSubmitCtx } from "./use-submit-job";
 import { Field } from "@gnd/ui/composite";
 import { Switch } from "@gnd/ui/switch";
 import { Controller } from "react-hook-form";
+import { useQuery } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
 
 export default function TaskDetailsTab({}) {
     const ctx = useJobSubmitCtx();
@@ -30,6 +32,10 @@ export default function TaskDetailsTab({}) {
         "home.costing",
         "job.isCustom",
     ]);
+    const { data: setting } = useQuery(
+        useTRPC().settings.getJobSettings.queryOptions(),
+    );
+    const { showTaskQty, allowCustomTasks } = setting?.meta || {};
     // const cost = useJobCostList(ctx.type);
     // const form = useFormContext();
     // useEffect(() => {},[])
@@ -58,6 +64,7 @@ export default function TaskDetailsTab({}) {
                                     id="form-rhf-switch-isCustom"
                                     name={field.name}
                                     checked={field.value}
+                                    disabled={!allowCustomTasks}
                                     onCheckedChange={field.onChange}
                                     aria-invalid={fieldState.invalid}
                                 />
@@ -100,7 +107,7 @@ export default function TaskDetailsTab({}) {
                                                             className={cn(
                                                                 "hiddens h-8 w-16",
                                                                 fieldState.error &&
-                                                                    "border-red-400"
+                                                                    "border-red-400",
                                                             )}
                                                             type="number"
                                                             min={0}
