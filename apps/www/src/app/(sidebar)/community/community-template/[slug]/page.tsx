@@ -8,6 +8,8 @@ import { Metadata } from "next";
 import ModelForm from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/model-form/model-form";
 import { getCommunityTemplate } from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/home-template";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+import { SidebarInset, SidebarProvider } from "@gnd/ui/sidebar";
+import { InstallCostSidebar } from "@/components/install-cost-sidebar";
 
 export const metadata: Metadata = {
     title: "Edit Community Template",
@@ -16,29 +18,33 @@ export const metadata: Metadata = {
 export default async function Page(props) {
     const params = await props.params;
     const response: any = await getCommunityTemplate(params.slug);
-
     if (response.meta?.design) {
         response.meta.design = transformCommunityTemplate(response.meta.design);
     }
     return (
         <AuthGuard can={["editProject"]}>
-            <DataPageShell
-                data={{
-                    community: true,
-                }}
-                className="space-y-4 p-8"
-            >
-                <PageTitle>{response?.modelName}</PageTitle>
+            <SidebarProvider>
+                <SidebarInset>
+                    <DataPageShell
+                        data={{
+                            community: true,
+                        }}
+                        className="space-y-4 p-8"
+                    >
+                        <PageTitle>{response?.modelName}</PageTitle>
 
-                <ModelForm
-                    title={
-                        <div className="">
-                            <span>Edit Community Model</span>
-                        </div>
-                    }
-                    data={response as any}
-                />
-            </DataPageShell>
+                        <ModelForm
+                            title={
+                                <div className="">
+                                    <span>Edit Community Model</span>
+                                </div>
+                            }
+                            data={response as any}
+                        />
+                    </DataPageShell>
+                </SidebarInset>
+                <InstallCostSidebar />
+            </SidebarProvider>
         </AuthGuard>
     );
 }

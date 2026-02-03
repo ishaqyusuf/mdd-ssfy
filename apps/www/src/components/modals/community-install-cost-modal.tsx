@@ -8,7 +8,7 @@ import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { Skeleton } from "@gnd/ui/skeleton";
 
 export function CommunityInstallCostModal() {
-    const { editCommunityModelInstallCostId, setParams } =
+    const { editCommunityModelInstallCostId, openToSide, setParams } =
         useCommunityInstallCostParams();
     const trpc = useTRPC();
     const { data, isPending, error } = useQuery(
@@ -24,7 +24,7 @@ export function CommunityInstallCostModal() {
 
     return (
         <CustomModal
-            open={!!editCommunityModelInstallCostId}
+            open={!!editCommunityModelInstallCostId && !openToSide}
             onOpenChange={(e) => {
                 setParams(null);
             }}

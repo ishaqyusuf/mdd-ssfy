@@ -9,13 +9,17 @@ interface Props {
     slug?: string;
     isSaving?: boolean;
     save?;
+    templateEditMode?: boolean;
 }
 
 export function CommunityTemplateActions(props: Props) {
     const { id, pivotModelCostId, version, slug, isSaving, save } = props;
     return (
         <>
-            <InstallCostBtn id={id!} />
+            <InstallCostBtn
+                templateEditMode={props.templateEditMode}
+                id={id!}
+            />
             <SubmitButton size="sm" isLoading={isSaving} onClick={save}>
                 Save
             </SubmitButton>

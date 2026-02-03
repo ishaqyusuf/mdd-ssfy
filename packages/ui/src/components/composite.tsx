@@ -21,7 +21,7 @@ const Dialog = Object.assign(
     Description: DialogDescription,
     Trigger: DialogTrigger,
     Close: DialogClose,
-  }
+  },
 );
 
 import {
@@ -36,7 +36,7 @@ const Popover = Object.assign(
     Root: PopoverRoot,
     Content: PopoverContent,
     Trigger: PopoverTrigger,
-  }
+  },
 );
 
 import {
@@ -71,7 +71,7 @@ const DropdownMenu = Object.assign(
     Sub: DropdownMenuSub,
     SubContent: DropdownMenuSubContent,
     SubTrigger: DropdownMenuSubTrigger,
-  }
+  },
 );
 
 import {
@@ -96,7 +96,7 @@ const Sheet = Object.assign(
     Description: SheetDescription,
     Trigger: SheetTrigger,
     Close: SheetClose,
-  }
+  },
 );
 import {
   AlertDialog as AlertDialogRoot,
@@ -133,7 +133,7 @@ const Tabs = Object.assign(
     List: TabsList,
     Trigger: TabsTrigger,
     Content: TabsContent,
-  }
+  },
 );
 import {
   Select as SelectRoot,
@@ -161,7 +161,7 @@ const Select = Object.assign(
     Separator: SelectSeparator,
     ScrollUpButton: SelectScrollUpButton,
     ScrollDownButton: SelectScrollDownButton,
-  }
+  },
 );
 import {
   Accordion as AccordionRoot,
@@ -188,7 +188,7 @@ const HoverCard = Object.assign(
     Root: HoverCardRoot,
     Content: HoverCardContent,
     Trigger: HoverCardTrigger,
-  }
+  },
 );
 export {
   HoverCard,
@@ -218,7 +218,7 @@ const Card = Object.assign(
     Title: CardTitle,
     Description: CardDescription,
     Content: CardContent,
-  }
+  },
 );
 import {
   InputGroup as InputGroupRoot,
@@ -339,3 +339,56 @@ const NavigationMenu = Object.assign(NavigationMenuBase, {
   Indicator: NavigationMenuIndicator,
   Viewport: NavigationMenuViewport,
 });
+
+import {
+  Sidebar as SidebarBase,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarTrigger,
+  SidebarGroup,
+  SidebarGroupAction,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarInput,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuAction,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSkeleton,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarSeparator,
+} from "./sidebar";
+
+const Sidebar = Object.assign(SidebarBase, {
+  Header: SidebarHeader,
+  Content: SidebarContent,
+  Footer: SidebarFooter,
+  Trigger: SidebarTrigger,
+  Group: SidebarGroup,
+  GroupAction: SidebarGroupAction,
+  GroupContent: SidebarGroupContent,
+  GroupLabel: SidebarGroupLabel,
+  Input: SidebarInput,
+  Inset: SidebarInset,
+  Menu: SidebarMenu,
+  MenuAction: SidebarMenuAction,
+  MenuBadge: SidebarMenuBadge,
+  MenuButton: SidebarMenuButton,
+  MenuItem: SidebarMenuItem,
+  MenuSkeleton: SidebarMenuSkeleton,
+  MenuSub: SidebarMenuSub,
+  MenuSubButton: SidebarMenuSubButton,
+  MenuSubItem: SidebarMenuSubItem,
+  Provider: SidebarProvider,
+  Rail: SidebarRail,
+  Separator: SidebarSeparator,
+});
+
+export { Sidebar };

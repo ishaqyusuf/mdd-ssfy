@@ -164,6 +164,7 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                         />
 
                         <CommunityTemplateActions
+                            templateEditMode={true}
                             id={data?.id!}
                             pivotModelCostId={data?.pivotModelCostId}
                             version={data?.version}

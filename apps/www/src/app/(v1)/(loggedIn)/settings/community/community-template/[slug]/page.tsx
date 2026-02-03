@@ -26,7 +26,7 @@ export default async function CommunityModelTemplatePage(props) {
                 data={{
                     community: true,
                 }}
-                className="space-y-4 px-8"
+                className="space-y-4 px-8 "
             >
                 <Breadcrumbs>
                     <BreadLink isFirst title="Settings" />

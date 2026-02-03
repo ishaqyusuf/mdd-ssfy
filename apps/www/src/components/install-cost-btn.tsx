@@ -4,9 +4,10 @@ import { Icons } from "@gnd/ui/custom/icons";
 
 interface Props {
     id: number;
+    templateEditMode?: boolean;
 }
 
-export function InstallCostBtn({ id }: Props) {
+export function InstallCostBtn({ id, templateEditMode }: Props) {
     const { setParams } = useCommunityInstallCostParams();
 
     return (
@@ -15,6 +16,7 @@ export function InstallCostBtn({ id }: Props) {
             onClick={() => {
                 setParams({
                     editCommunityModelInstallCostId: id,
+                    view: templateEditMode ? "template-edit" : "template-list",
                     // : pivotModelCostId || -1,
                 });
             }}
