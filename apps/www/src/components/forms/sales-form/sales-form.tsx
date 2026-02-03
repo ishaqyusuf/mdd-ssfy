@@ -99,7 +99,13 @@ export function SalesFormClient({ data }) {
                     </div> */}
                 </div>
             </Sidebar.Inset>
-            <SalesFormSidebar />
+
+            <SalesFormSidebar
+                opened
+                className="hidden xl:flex"
+                collapsible="none"
+            />
+            <SalesFormSidebar className="xl:hidden" />
             <FormWatcher />
             <TakeoffSwitch {...{ takeOff, takeOffChanged }} />
         </Sidebar.Provider>

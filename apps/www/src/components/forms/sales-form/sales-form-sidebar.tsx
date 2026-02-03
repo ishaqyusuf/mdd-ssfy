@@ -2,15 +2,27 @@ import { Sidebar } from "@gnd/ui/composite";
 import { SalesMetaForm } from "./sales-meta-form";
 import { useSidebar } from "@gnd/ui/sidebar";
 import { Footer } from "@/components/forms/sales-form/footer";
-export function SalesFormSidebar({ onClose = null }) {
+import { cn } from "@gnd/ui/cn";
+import { ComponentProps } from "react";
+interface Props extends ComponentProps<typeof Sidebar> {
+    opened?: boolean;
+}
+export function SalesFormSidebar({
+    className = "",
+    opened = false,
+    ...props
+}: Props) {
     const sb = useSidebar();
 
     return (
         <Sidebar
             side="right"
-            hidden={!sb.open}
-            // collapsible="none"
-            className="top-(--header-height) h-[calc(100svh-var(--header-height))]! stickys top-0s hidden h-svhs border-l lg:flex"
+            hidden={!sb.open && !opened}
+            className={cn(
+                "top-(--header-height) h-[calc(100svh-var(--header-height))]! stickys top-0s   h-svhs border-l",
+                className,
+            )}
+            {...props}
         >
             <Sidebar.Content className="w-sm">
                 {/* <span>abc</span> */}
