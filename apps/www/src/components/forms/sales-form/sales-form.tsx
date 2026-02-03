@@ -73,7 +73,7 @@ export function SalesFormClient({ data }) {
                     <Sidebar.Trigger></Sidebar.Trigger>
                 </div>
                 <div className="flex">
-                    <div className={cn("flex-1", !hidden && "xl:mr-96")}>
+                    <div className={cn("flex-1", !hidden && "xl:mr-96s")}>
                         {takeOff ? (
                             <TakeOff />
                         ) : (

@@ -36,6 +36,7 @@ import { ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useSalesSummaryToggle } from "@/store/invoice-summary-toggle";
 import { SalesCustomerInput } from "./sales-customer-input";
+import { Sidebar } from "@gnd/ui/composite";
 
 export function SalesMetaForm({}) {
     const zus = useFormDataStore();
@@ -98,6 +99,7 @@ export function SalesMetaForm({}) {
                         </Button>
                     ))}
                     <div className="flex-1"></div>
+                    <Sidebar.Trigger> </Sidebar.Trigger>
                     <div>
                         <Menu open={menuOpen} onOpenChanged={setMenuOpen}>
                             {/* <Menu.Item Icon={Icons.save}>Save</Menu.Item> */}
