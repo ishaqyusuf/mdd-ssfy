@@ -35,6 +35,7 @@ export function InstallCostForm({ data }: { data: InstallCostSettings }) {
             ...(data.meta as any),
         },
     });
+
     const { watch, control } = form;
     const { fields, replace, remove, append } = useFieldArray({
         control,

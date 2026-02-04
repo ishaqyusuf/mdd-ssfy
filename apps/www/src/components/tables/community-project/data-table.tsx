@@ -28,6 +28,7 @@ export function DataTable() {
         },
         route: trpc.community.getCommunityProjects,
     });
+
     const tableScroll = useTableScroll({
         useColumnWidths: true,
         startFromColumn: 2,
@@ -73,7 +74,7 @@ export function DataTable() {
                             //     openCommunityProjectId: rowData.id,
                             // });
                             router.push(
-                                `/community/project-units?projectSlug=${rowData?.slug}`
+                                `/community/project-units?projectSlug=${rowData?.slug}`,
                             );
                         },
                     },

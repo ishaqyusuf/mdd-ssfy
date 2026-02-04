@@ -28,6 +28,7 @@ import { Icons } from "../../../../../../components/_v1/icons";
 import { openModal } from "@/lib/modal";
 import PageHeader from "@/components/_v1/page-header";
 import { useBuilderModal } from "./builder-modal";
+import { uniqueList } from "@gnd/utils";
 
 export default function BuildersTableShell<T>({
     data,
@@ -142,6 +143,7 @@ export default function BuildersTableShell<T>({
     function createBuilder() {
         modal.create();
     }
+
     return (
         <>
             <PageHeader title="Builders" newAction={createBuilder} />
