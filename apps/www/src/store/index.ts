@@ -14,8 +14,8 @@ export const store = configureStore({
         //CustomerTypes,
         orderItemComponent: orderItemComponentSlice,
         // headerSlice,
-        slicers,
-        // slicers: process.env.NODE_ENV === "development" ? undefined : slicers,
+        // slicers,
+        slicers: process.env.NODE_ENV === "development" ? undefined : slicers,
         staticData: staticDataSlice,
     },
     middleware(getDefaultMiddleware) {

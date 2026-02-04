@@ -22,7 +22,7 @@ import { Label } from "@gnd/ui/label";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { toast } from "@gnd/ui/use-toast";
-
+import { Table } from "@gnd/ui/composite";
 export type ResetPasswordFormInputs = z.infer<typeof resetPasswordSchema>;
 
 export function InstallCostForm({ data }: { data: InstallCostSettings }) {
@@ -94,128 +94,113 @@ export function InstallCostForm({ data }: { data: InstallCostSettings }) {
                 />
                 <div className="mx-w-lg">
                     <DragDropContext onDragEnd={handleOndragEnd}>
-                        <Droppable droppableId="droppable-1">
-                            {(provided) => {
-                                return (
-                                    <ul
-                                        role="list"
+                        <Table className="[&_td]:border [&_td]:border-border">
+                            <Table.Header>
+                                <Table.Row>
+                                    <Table.Head className="w-[45%]">
+                                        Task
+                                    </Table.Head>
+                                    <Table.Head className="w-[15%]">
+                                        Cost
+                                    </Table.Head>
+                                    <Table.Head className="w-[10%]">
+                                        Max Qty
+                                    </Table.Head>
+                                    <Table.Head className="w-[10%] text-center">
+                                        Punchout
+                                    </Table.Head>
+                                    <Table.Head className="w-[10%]" />
+                                </Table.Row>
+                            </Table.Header>
+
+                            <Droppable droppableId="droppable-1">
+                                {(provided) => (
+                                    <Table.Body
                                         ref={provided.innerRef}
                                         {...provided.droppableProps}
                                     >
-                                        <div className="grid w-full grid-cols-12">
-                                            <div className="col-span-6 border bg-slate-200 p-0.5 px-2">
-                                                <Label>Task</Label>
-                                            </div>
-                                            <div className="col-span-2 border bg-slate-200 p-0.5 px-2">
-                                                <Label>Cost</Label>
-                                            </div>
-                                            <div className="col-span-1 border bg-slate-200 p-0.5 px-2">
-                                                <Label>Max Qty</Label>
-                                            </div>
-                                            {/* <div className="col-span-1 p-0.5 border bg-slate-200 px-2">
-                                                <Label>Contractor</Label>
-                                            </div> */}
-                                            <div className="col-span-1 border bg-slate-200 p-0.5 px-2">
-                                                <Label>Punchout</Label>
-                                            </div>
-                                            <div className="col-span-1 border bg-slate-200 p-0.5 px-2"></div>
-                                        </div>
                                         {fields.map((field, rowIndex) => (
                                             <Draggable
-                                                key={rowIndex}
+                                                key={field.id}
                                                 draggableId={field.id}
                                                 index={rowIndex}
                                             >
-                                                {(provided) => {
-                                                    return (
-                                                        <div
-                                                            {...provided.draggableProps}
-                                                            {...provided.dragHandleProps}
-                                                            ref={
-                                                                provided.innerRef
-                                                            }
-                                                            key={field.id}
-                                                            className="group grid w-full grid-cols-12 items-center  rounded"
-                                                        >
-                                                            <div className="col-span-6 border">
-                                                                <CostInput
-                                                                    form={form}
-                                                                    formKey={`list.${rowIndex}.title`}
-                                                                />
-                                                            </div>
-                                                            <div className="col-span-2 border">
-                                                                <CostInput
-                                                                    type="number"
-                                                                    form={form}
-                                                                    formKey={`list.${rowIndex}.cost`}
-                                                                />
-                                                            </div>
-                                                            <div className="col-span-1 border">
-                                                                <CostInput
-                                                                    type="number"
-                                                                    form={form}
-                                                                    formKey={`list.${rowIndex}.defaultQty`}
-                                                                />
-                                                            </div>
-                                                            {[
-                                                                // "contractor",
-                                                                "punchout",
-                                                            ].map((k) => (
-                                                                <div
-                                                                    key={k}
-                                                                    className="col-span-1 flex h-7 justify-center border"
-                                                                >
-                                                                    <FormField
-                                                                        control={
-                                                                            form.control
-                                                                        }
-                                                                        name={
-                                                                            `list.${rowIndex}.${k}` as any
-                                                                        }
-                                                                        render={({
-                                                                            field,
-                                                                        }) => (
-                                                                            <FormItem className="flex items-center space-x-2 space-y-0">
-                                                                                <FormControl>
-                                                                                    <Checkbox
-                                                                                        checked={
-                                                                                            field.value as any
-                                                                                        }
-                                                                                        onCheckedChange={
-                                                                                            field.onChange
-                                                                                        }
-                                                                                    />
-                                                                                </FormControl>
-                                                                            </FormItem>
-                                                                        )}
-                                                                    />
-                                                                </div>
-                                                            ))}
+                                                {(provided) => (
+                                                    <Table.Row
+                                                        ref={provided.innerRef}
+                                                        {...provided.draggableProps}
+                                                        className="group hover:bg-transparent"
+                                                    >
+                                                        <Table.Cell>
+                                                            <CostInput
+                                                                form={form}
+                                                                formKey={`list.${rowIndex}.title`}
+                                                            />
+                                                        </Table.Cell>
 
-                                                            <div className="col-span-1 flex  h-7 items-center space-x-2 border">
-                                                                <Move className="mx-2 size-4 text-slate-300 group-hover:text-gray-600" />
-                                                                <Button
-                                                                    onClick={() => {
-                                                                        remove(
-                                                                            rowIndex,
-                                                                        );
-                                                                    }}
-                                                                    size="icon"
-                                                                    variant="ghost"
-                                                                >
-                                                                    <Trash className="h-4 w-4 text-slate-300 group-hover:text-red-600" />
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                }}
+                                                        <Table.Cell>
+                                                            <CostInput
+                                                                type="number"
+                                                                form={form}
+                                                                formKey={`list.${rowIndex}.cost`}
+                                                            />
+                                                        </Table.Cell>
+
+                                                        <Table.Cell>
+                                                            <CostInput
+                                                                type="number"
+                                                                form={form}
+                                                                formKey={`list.${rowIndex}.defaultQty`}
+                                                            />
+                                                        </Table.Cell>
+
+                                                        <Table.Cell className="text-center">
+                                                            <FormField
+                                                                control={
+                                                                    form.control
+                                                                }
+                                                                name={`list.${rowIndex}.punchout`}
+                                                                render={({
+                                                                    field,
+                                                                }) => (
+                                                                    <Checkbox
+                                                                        checked={
+                                                                            field.value
+                                                                        }
+                                                                        onCheckedChange={
+                                                                            field.onChange
+                                                                        }
+                                                                    />
+                                                                )}
+                                                            />
+                                                        </Table.Cell>
+
+                                                        <Table.Cell
+                                                            {...provided.dragHandleProps}
+                                                            className="flex items-center gap-2"
+                                                        >
+                                                            <Move className="size-4 text-slate-300 group-hover:text-gray-600" />
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                onClick={() =>
+                                                                    remove(
+                                                                        rowIndex,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Trash className="size-4 text-slate-300 group-hover:text-red-600" />
+                                                            </Button>
+                                                        </Table.Cell>
+                                                    </Table.Row>
+                                                )}
                                             </Draggable>
                                         ))}
                                         {provided.placeholder}
-                                    </ul>
-                                );
-                            }}
-                        </Droppable>
+                                    </Table.Body>
+                                )}
+                            </Droppable>
+                        </Table>
                     </DragDropContext>
                     <Button
                         onClick={() => {

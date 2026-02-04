@@ -10,19 +10,19 @@ export function constructMetadata({
         {
             rel: "apple-touch-icon",
             sizes: "32x32",
-            url: `/apple-touch-icon${prod ? ".png" : ".dev.jpg"}`,
+            url: `/icons/apple-touch-icon${prod ? ".png" : ".dev.jpg"}`,
         },
         {
             rel: "icon",
             type: "image/png",
             sizes: "32x32",
-            url: `/favicon-32x32s${prod ? ".png" : ".dev.jpg"}`,
+            url: `/icons/favicon-32x32s${prod ? ".png" : ".dev.jpg"}`,
         },
         {
             rel: "icon",
             type: "image/png",
             sizes: "16x16",
-            url: `/favicon-16x16${prod ? ".png" : ".dev.jpg"}`,
+            url: `/icons/favicon-16x16${prod ? ".png" : ".dev.jpg"}`,
         },
     ],
     noIndex = false,

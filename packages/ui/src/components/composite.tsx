@@ -1,4 +1,26 @@
 import {
+  Table as TableBase,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCaption,
+  TableFooter,
+} from "./table";
+
+const Table = Object.assign(TableBase, {
+  Header: TableHeader,
+  Body: TableBody,
+  Row: TableRow,
+  Head: TableHead,
+  Cell: TableCell,
+  Caption: TableCaption,
+  Footer: TableFooter,
+});
+export { Table };
+
+import {
   Dialog as DialogRoot,
   DialogContent,
   DialogHeader,
