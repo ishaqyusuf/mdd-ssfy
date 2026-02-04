@@ -14,7 +14,7 @@ export async function getEmployees(
   query: EmployeesQueryParams,
 ) {
   const { db } = ctx;
-  // query.sort = query.sort || "name";
+  query.sort = query.sort || "name";
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereEmployees(query),
