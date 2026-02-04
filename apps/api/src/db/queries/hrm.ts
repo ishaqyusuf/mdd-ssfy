@@ -15,6 +15,7 @@ export async function getEmployees(
 ) {
   const { db } = ctx;
   // query.sort = query.sort || "name";
+  query.size = 30;
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereEmployees(query),
