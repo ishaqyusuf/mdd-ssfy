@@ -116,6 +116,7 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
       roles: props.admin
         ? [role] //["1099 Contractor", "Punchout"]
         : [profile?.role?.name!],
+      size: 100,
     }),
   );
 

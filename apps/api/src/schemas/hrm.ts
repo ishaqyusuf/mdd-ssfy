@@ -1,11 +1,14 @@
 import type { PermissionScope, Roles } from "@gnd/utils/constants";
 import { z } from "zod";
+import { paginationSchema } from "./common";
 
-export const employeesQueryParamsSchema = z.object({
-  can: z.array(z.custom<PermissionScope>()).optional().nullable(),
-  cannot: z.array(z.custom<PermissionScope>()).optional().nullable(),
-  roles: z.array(z.custom<Roles>()).optional().nullable(),
-});
+export const employeesQueryParamsSchema = z
+  .object({
+    can: z.array(z.custom<PermissionScope>()).optional().nullable(),
+    cannot: z.array(z.custom<PermissionScope>()).optional().nullable(),
+    roles: z.array(z.custom<Roles>()).optional().nullable(),
+  })
+  .extend(paginationSchema.shape);
 export type EmployeesQueryParams = z.infer<typeof employeesQueryParamsSchema>;
 export const employeeFormSchema = z
   .object({
@@ -18,6 +21,7 @@ export const employeeFormSchema = z
     username: z.string().optional().nullable(),
     password: z.string().nullable().optional().default("Millwork"),
   })
+
   .superRefine((data, ctx) => {
     if (data.id == null && !data.email) {
       ctx.addIssue({

@@ -130,7 +130,7 @@ function PriceEstimateCell({}) {
     const moulding = ctx?.mouldings?.find(
         (m) => m.productId == lineForm?.mouldingProductId,
     );
-
+    console.log({ moulding });
     return (
         <Menu
             noSize

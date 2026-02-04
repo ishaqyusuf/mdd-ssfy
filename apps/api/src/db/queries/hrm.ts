@@ -11,18 +11,22 @@ import { hash } from "bcrypt-ts";
 
 export async function getEmployees(
   ctx: TRPCContext,
-  query: EmployeesQueryParams
+  query: EmployeesQueryParams,
 ) {
   const { db } = ctx;
+  // query.sort = query.sort || "name";
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereEmployees(query),
-    db.users
+    // {},
+    db.users,
   );
   const data = await ctx.db.users.findMany({
     where,
-
     ...searchMeta,
+    // orderBy: {
+    //   name: "asc",
+    // },
     select: {
       id: true,
       name: true,
@@ -51,12 +55,12 @@ export async function getEmployees(
       name: user.name,
       email: user.email,
       role: user?.roles?.[0]?.role?.name,
-    }))
+    })),
   );
 }
 export async function getEmployeesList(
   ctx: TRPCContext,
-  query: EmployeesQueryParams
+  query: EmployeesQueryParams,
 ) {
   const resp = await getEmployees(ctx, query);
   return resp.data;
@@ -112,7 +116,7 @@ async function hashPassword(pwrd) {
 }
 export async function getEmployeeFormData(
   ctx: TRPCContext,
-  { id }: GetEmployeeFormDataSchema
+  { id }: GetEmployeeFormDataSchema,
 ): Promise<EmployeeFormSchema> {
   const employee = await ctx.db.users.findUniqueOrThrow({
     where: {

@@ -587,6 +587,7 @@ export class StepHelperClass extends SettingsClass {
         const itemSteps = this.getItemStepForms();
         return itemSteps
             .map((step) => {
+                console.log(step);
                 return {
                     title: step.title,
                     price: step.salesPrice,

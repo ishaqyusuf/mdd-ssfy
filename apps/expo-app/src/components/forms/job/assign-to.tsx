@@ -18,6 +18,7 @@ export function AssignTo() {
   const { clear, query, setQuery, results } = useSearch({
     items: users?.data!,
   });
+  // console.log()
   return (
     <View className="relative flex-1">
       {/* <JobSelectProjectHeader onBack={handleBack} /> */}
