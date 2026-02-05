@@ -1,11 +1,7 @@
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
-import { Icons } from "@/components/_v1/icons";
-import Money from "@/components/_v1/money";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-
 import { Button } from "@gnd/ui/button";
-
 import { SalesFormSave } from "./sales-form-save";
 import { sum } from "@/lib/utils";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";

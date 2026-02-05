@@ -28,7 +28,7 @@ export function salesOrderDto(data: Item) {
   let deliveryStatus = data?.deliveries?.find((a) => !!a?._count?.items)?.[0]
     ?.status as SalesDispatchStatus;
   const d = data?.stat?.find(
-    (d) => d.type == ("dispatchCompleted" as QtyControlType)
+    (d) => d.type == ("dispatchCompleted" as QtyControlType),
   );
   const status = overallStatus(data.stat);
   if (d?.percentage == 100 || deliveryStatus == "completed") {
@@ -62,7 +62,7 @@ export function salesOrderDto(data: Item) {
       shipping: getAddressDto(
         data.shippingAddress || data.billingAddress,
         customer,
-        "Shipping Address"
+        "Shipping Address",
       ),
       billing: getAddressDto(data.billingAddress, customer, "Billing Address"),
     },
@@ -77,7 +77,7 @@ export function salesQuoteDto(data: Item) {
 function getAddressDto(
   data: Item["shippingAddress"],
   customer: Item["customer"],
-  title
+  title,
 ) {
   if (!data) return { title, address: "No address set" };
   const meta: AddressBookMeta = data?.meta as any;
@@ -112,8 +112,8 @@ function commonListData(data: Item) {
   let accountNo = data.customer?.phoneNo
     ? data.customer?.phoneNo
     : !customerId
-    ? null
-    : `cust-${customerId}`;
+      ? null
+      : `cust-${customerId}`;
   const salesStat = composeSalesStat(data.stat);
   return {
     // noteCount: data.noteCount,
@@ -133,8 +133,8 @@ function commonListData(data: Item) {
       data.billingAddress?.address1 ||
       data.billingAddress?.address2,
     displayName:
-      data.customer?.name ||
       data.customer?.businessName ||
+      data.customer?.name ||
       data?.shippingAddress?.name,
     email: data.customer?.email,
     customerId: data.customer?.id,
@@ -164,7 +164,7 @@ function commonListData(data: Item) {
 }
 export function statToKeyValueDto(
   dataStats: Prisma.SalesStatGetPayload<{}>[],
-  reset = false
+  reset = false,
 ) {
   // const dataStats = data.stat;
   const k: { [k in QtyControlType]: Prisma.SalesStatGetPayload<{}> } =

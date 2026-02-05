@@ -18,8 +18,13 @@ export const createCustomerAddressAction = actionClient
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
             let addressId = input.addressId;
             let customerId = input.customerId || input.id;
+            const name =
+                input.customerType === "Business"
+                    ? input.businessName
+                    : input.name;
             const customerData = {
-                name: input.name,
+                name,
+                // businessName: input.businessName,
                 phoneNo: input.phoneNo,
                 phoneNo2: input.phoneNo2,
                 email: input.email,
@@ -72,8 +77,8 @@ export const createCustomerAddressAction = actionClient
                 addressId = address.id;
             }
 
-            revalidateTag(Tags.salesCustomers);
-            revalidateTag(`customer-${customerId}`);
+            // revalidateTag(Tags.salesCustomers);
+            // revalidateTag(`customer-${customerId}`);
             return {
                 customerId,
                 addressId,

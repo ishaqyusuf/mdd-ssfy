@@ -15,12 +15,12 @@ import { padStart } from "lodash";
 
 export function salesAddressLines(
   address: Prisma.AddressBooksGetPayload<{}>,
-  customer?: Prisma.CustomersGetPayload<{}>
+  customer?: Prisma.CustomersGetPayload<{}>,
 ) {
   let meta = address?.meta as any as AddressBookMeta;
   let cMeta = customer?.meta as any as CustomerMeta;
   return [
-    address?.name || customer?.name || customer?.businessName,
+    address?.name || customer?.businessName || customer?.name,
     address?.phoneNo || customer?.phoneNo || customer?.phoneNo2,
     address?.email || customer?.email,
     address?.address1 || customer?.address,
@@ -81,7 +81,7 @@ export function overallStatus(dataStats: Prisma.SalesStatGetPayload<{}>[]) {
   const sk = statToKeyValueDto(dataStats);
   const dispatch = sumArrayKeys(
     [sk.dispatchAssigned, sk.dispatchInProgress, sk.dispatchCompleted],
-    ["score", "total", "percentage"]
+    ["score", "total", "percentage"],
   );
 
   return {
@@ -144,8 +144,8 @@ export function getItemStatConfig({ setting, ...props }: ItemStatConfigProps) {
         production: isService
           ? props.dykeProduction
           : props?.prodOverride
-          ? props?.prodOverride?.production
-          : config?.production,
+            ? props?.prodOverride?.production
+            : config?.production,
         shipping: config?.shipping,
       }
     : {
