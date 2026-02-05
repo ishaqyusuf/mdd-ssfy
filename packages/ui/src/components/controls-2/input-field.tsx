@@ -6,6 +6,7 @@ import {
 } from "react-hook-form";
 import { Field, InputGroup } from "../composite";
 import { Input } from "../input";
+import { cn } from "../../utils";
 
 interface Props<T> {
   label?: string;
@@ -17,17 +18,19 @@ interface Props<T> {
   fieldProps?: {
     orientation?: "horizontal" | "vertical" | "responsive";
   };
+  className?: string;
+  type?: React.InputHTMLAttributes<HTMLInputElement>["type"];
 }
 export function InputField<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
-  TOptionType = any
+  TOptionType = any,
 >(
   props: Pick<
     Partial<ControllerProps<TFieldValues, TName>>,
     "control" | "name" | "defaultValue" | "disabled"
   > &
-    Props<TOptionType>
+    Props<TOptionType>,
 ) {
   let { control, name, fieldProps, disabled, defaultValue } = props;
   if (!fieldProps) fieldProps = {};
@@ -51,6 +54,7 @@ export function InputField<
           defaultValue={defaultValue}
           {...fieldProps}
           data-invalid={fieldState.invalid}
+          className={cn(props.className)}
         >
           {fieldProps?.orientation === "vertical" ? (
             <>{Label}</>
@@ -67,8 +71,31 @@ export function InputField<
             <InputGroup.Input
               // className="min-h-[120px]"
               {...field}
+              onChange={(e) => {
+                if (props.type !== "number") return field.onChange(e);
+                const input = e.target.value;
+                // console.log({ input });
+                // setRawValue(input);
+
+                // Check if input can be parsed as a valid number
+                const num = Number.parseFloat(input);
+
+                if (
+                  !Number.isNaN(num)
+                  // && min <= num && num <= max
+                ) {
+                  field.onChange?.(num);
+                }
+                if (input === "") field.onChange?.(null as any);
+              }}
+              className={cn(
+                "",
+                props.type === "number" &&
+                  "&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]",
+              )}
               id={props.name}
               name={props.name}
+              type={props.type}
               placeholder={props.placeholder}
               aria-invalid={fieldState.invalid}
             />

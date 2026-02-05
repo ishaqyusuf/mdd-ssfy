@@ -7,6 +7,7 @@ import { Icons } from "@gnd/ui/icons";
 import { ColumnDef } from "@tanstack/react-table";
 import { cn } from "@gnd/ui/cn";
 import { useBuilderParams } from "@/hooks/use-builder-params";
+import { Item } from "@gnd/ui/composite";
 
 export type Item = RouterOutputs["community"]["getBuilders"]["data"][number];
 interface ItemProps {
@@ -14,15 +15,59 @@ interface ItemProps {
 }
 type Column = ColumnDef<Item>;
 const column1: Column = {
-    header: "header",
-    accessorKey: "header",
+    header: "Builder Name",
+    accessorKey: "builderName",
     meta: {},
-    cell: ({ row: { original: item } }) => <></>,
+    cell: ({ row: { original: item } }) => (
+        <>
+            <Item.Title>{item.name}</Item.Title>
+        </>
+    ),
 };
-
+const totalProjects: Column = {
+    header: "Total Projects",
+    accessorKey: "totalProjects",
+    meta: {
+        className: "",
+    },
+    cell: ({ row: { original: item } }) => (
+        <>
+            {/* <Item.Title>{}</Item.Title> */}
+            <Item.Description>{item?._count?.projects || 0}</Item.Description>
+        </>
+    ),
+};
+const builderTasks: Column = {
+    header: "Builder Tasks",
+    accessorKey: "builderTasks",
+    meta: {
+        className: "",
+    },
+    cell: ({ row: { original: item } }) => (
+        <>
+            {/* <Item.Title>{}</Item.Title> */}
+            <Item.Description>{item._count.tasks}</Item.Description>
+        </>
+    ),
+};
+const homes: Column = {
+    header: "homes",
+    accessorKey: "homes",
+    meta: {
+        className: "",
+    },
+    cell: ({ row: { original: item } }) => (
+        <>
+            <Item.Description>{item._count.projects}</Item.Description>
+        </>
+    ),
+};
 export const columns: Column[] = [
-    cells.selectColumn,
+    // cells.selectColumn,
     column1,
+    totalProjects,
+    builderTasks,
+    homes,
     {
         header: "",
         accessorKey: "action",
@@ -41,9 +86,10 @@ export const columns: Column[] = [
 
 function Actions({ item }: ItemProps) {
     const isMobile = useIsMobile();
+    const { setParams } = useBuilderParams();
     return (
         <div className="relative flex justify-end z-10">
-            <Menu
+            {/* <Menu
                 triggerSize={isMobile ? "default" : "xs"}
                 Trigger={
                     <Button
@@ -55,7 +101,19 @@ function Actions({ item }: ItemProps) {
                 }
             >
                 <Menu.Item SubMenu={<></>}>Mark as</Menu.Item>
-            </Menu>
+            </Menu> */}
+            {/* <Edit */}
+            <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                    setParams({
+                        openBuilderId: item.id,
+                    });
+                }}
+            >
+                <Icons.Edit className="h-4 w-4" />
+            </Button>
         </div>
     );
 }

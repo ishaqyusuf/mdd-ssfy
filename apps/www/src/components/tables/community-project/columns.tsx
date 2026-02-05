@@ -109,7 +109,7 @@ function Actions({ item }: ItemProps) {
     const {} = useMutation(
         _trpc.community.deleteUnits.mutationOptions({
             onSuccess(data, variables, onMutateResult, context) {},
-        })
+        }),
     );
 
     const modal = useModal();
@@ -137,8 +137,7 @@ function Actions({ item }: ItemProps) {
                 <Icons.Edit className="size-4" />
             </Button> */}
             <ConfirmBtn
-                disabled
-                onClick={() => {}}
+                // onClick={() => {}}
                 trash
                 variant="outline"
                 className="px-2"

@@ -11,6 +11,7 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@gnd/ui/dialog";
@@ -44,15 +45,14 @@ const sheetContentVariant = cva("flex flex-col w-full ", {
     },
 });
 interface Props
-    extends SheetContentProps,
-        VariantProps<typeof sheetContentVariant> {
+    extends SheetContentProps, VariantProps<typeof sheetContentVariant> {
     children?;
     open?: boolean;
     onOpenChange?;
     title?;
     description?;
 }
-export function CustomModal({
+function CustomModalBase({
     children,
     open,
     title,
@@ -92,8 +92,18 @@ export function CustomModalPortal({ children }) {
 }
 export function CustomModalContent({ children = null, className = "" }) {
     return (
-        <ScrollArea className={cn("-mx-4 flex-1 px-4", className)}>
+        <ScrollArea
+            className={cn(
+                "-mx-4 flex-1 px-4 max-h-[70vh] overflow-auto",
+                className,
+            )}
+        >
             {children}
         </ScrollArea>
     );
 }
+export const CustomModal = Object.assign(CustomModalBase, {
+    Content: CustomModalContent,
+    Portal: CustomModalPortal,
+    Footer: DialogFooter,
+});

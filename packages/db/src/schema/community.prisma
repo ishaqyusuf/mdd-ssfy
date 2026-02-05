@@ -196,6 +196,7 @@ model CommunityModelCost {
 model Builders {
     id            Int             @unique @default(autoincrement())
     name          String?         @db.VarChar(255)
+    address       String?         @db.VarChar(255)
     slug          String?         @db.VarChar(255)
     meta          Json?           @db.Json
     deletedAt     DateTime?       @db.Timestamp(0)

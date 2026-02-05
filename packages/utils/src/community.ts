@@ -27,6 +27,7 @@ export interface ICostChartMeta {
 }
 export interface CommunityBuilderMeta {
   address;
+  upgraded: boolean;
   tasks: IBuilderTasks[];
 }
 export interface IBuilderTasks {

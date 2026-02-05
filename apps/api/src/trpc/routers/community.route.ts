@@ -80,6 +80,8 @@ import {
   getProjectUnitsSchema,
 } from "@api/db/queries/project-units";
 import { generateRandomString } from "@gnd/utils";
+import type { CommunityBuilderMeta } from "@gnd/utils/community";
+import { builderFormSchema } from "@community/schema";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -126,6 +128,42 @@ export const communityRouters = createTRPCRouter({
   getBuilders: publicProcedure.input(getBuildersSchema).query(async (q) => {
     return getBuilders(q.ctx.db, q.input);
   }),
+  getBuilderForm: publicProcedure
+    .input(z.object({ builderId: z.number() }))
+    .query(async (props) => {
+      const { builderId } = props.input;
+      const result = await props.ctx.db.builders.findUnique({
+        where: {
+          id: builderId,
+        },
+        select: {
+          id: true,
+          name: true,
+          address: true,
+          meta: true,
+          tasks: {
+            select: {
+              id: true,
+              addonPercentage: true,
+              billable: true,
+              installable: true,
+              productionable: true,
+              taskName: true,
+              taskUid: true,
+            },
+          },
+        },
+      });
+      if (!result) throw new Error("Builder not found");
+      const meta: CommunityBuilderMeta = (result.meta as any) || {};
+      return {
+        isLegacy: !meta.upgraded,
+        id: result.id,
+        name: result.name,
+        address: result.address,
+        tasks: result.tasks,
+      };
+    }),
   getProjectForm: publicProcedure
     .input(getProjectFormSchema)
     .query(async (props) => {
@@ -320,55 +358,78 @@ export const communityRouters = createTRPCRouter({
       });
     }),
   },
-
-  saveBuilderTask: publicProcedure
-    .input(
-      z.object({
-        id: z.number().optional().nullable(),
-        builderId: z.number(),
-        taskName: z.string(),
-        billable: z.boolean().optional().nullable(),
-        productionable: z.boolean().optional().nullable(),
-        addonPercentage: z.number().optional().nullable(),
-        installable: z.boolean().optional().nullable(),
-      }),
-    )
+  saveBuilder: publicProcedure
+    .input(builderFormSchema)
     .mutation(async (props) => {
       const { db } = props.ctx;
-      const {
-        builderId,
-        taskName,
-        billable,
-        productionable,
-        addonPercentage,
-        id,
-        installable,
-      } = props.input;
+      const { id, name, address, tasks } = props.input;
+      let result;
+      console.log({ address });
       if (id) {
-        await db.builderTask.update({
+        result = await db.builders.update({
           where: { id },
           data: {
-            builderId,
-            taskName,
-            billable,
-            productionable,
-            addonPercentage,
-            installable,
+            name,
+            address,
           },
         });
+
+        const newTasks = tasks.filter((t) => !t.id);
+        const existingTasks = tasks.filter((t) => t.id);
+        await Promise.all([
+          ...existingTasks.map(
+            (t) =>
+              db.builderTask.update({
+                where: { id: t.id! },
+                data: {
+                  taskName: t.taskName,
+
+                  billable: t.billable,
+                  productionable: t.productionable,
+                  addonPercentage: t.addonPercentage,
+                  installable: t.installable,
+                },
+              }),
+            newTasks.length > 0
+              ? db.builderTask.createMany({
+                  data: newTasks.map((t) => ({
+                    builderId: t.builderId,
+
+                    taskName: t.taskName,
+                    billable: t.billable,
+                    productionable: t.productionable,
+                    addonPercentage: t.addonPercentage,
+                    installable: t.installable,
+                    taskUid: generateRandomString(5),
+                  })),
+                })
+              : null,
+          ),
+        ]);
       } else {
-        await db.builderTask.create({
+        result = await db.builders.create({
           data: {
-            builderId,
-            taskName,
-            billable,
-            productionable,
-            addonPercentage,
-            installable,
-            taskUid: generateRandomString(5),
+            name,
+            address,
+            tasks: {
+              create: tasks.map((t) => ({
+                taskName: t.taskName,
+                billable: t.billable,
+                productionable: t.productionable,
+                addonPercentage: t.addonPercentage,
+                installable: t.installable,
+                taskUid: generateRandomString(5),
+              })),
+            },
           },
         });
       }
+      if (!result) throw new Error("Builder not found");
+      const meta: CommunityBuilderMeta = (result.meta as any) || {};
+      return {
+        isLegacy: !meta.upgraded,
+        id: result.id,
+      };
     }),
   getBuilderTasks: publicProcedure
     .input(z.object({ builderId: z.number() }))
@@ -440,5 +501,53 @@ export const communityRouters = createTRPCRouter({
           },
         });
       }
+    }),
+  upgradeBuilderToV2: publicProcedure
+    .input(z.object({ builderId: z.number() }))
+    .mutation(async (props) => {
+      const { db } = props.ctx;
+      const { builderId } = props.input;
+      // check if already exists
+      const existing = await db.builders.findFirst({
+        where: {
+          id: builderId,
+        },
+      });
+      if (!existing) return null;
+      const meta: CommunityBuilderMeta = (existing.meta as any) || {};
+      // const {
+      //   address: meta?.address,
+      // }
+      meta.upgraded = true;
+      await db.builders.update({
+        where: { id: builderId },
+        data: {
+          meta,
+          address: meta?.address,
+          // status: "active",
+          tasks: {
+            createMany: {
+              data: (meta?.tasks || []).map(
+                ({
+                  name: taskName,
+                  uid: taskUid,
+                  billable,
+                  produceable: productionable,
+                  addon,
+                  installable,
+                }) => ({
+                  taskName,
+                  taskUid,
+                  billable,
+                  productionable,
+                  addonPercentage: 0,
+                  installable,
+                }),
+              ),
+            },
+          },
+        },
+      });
+      return true;
     }),
 });

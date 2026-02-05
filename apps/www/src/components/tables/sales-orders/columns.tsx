@@ -6,7 +6,6 @@ import { Menu } from "@/components/(clean-code)/menu";
 import { Progress } from "@gnd/ui/custom/progress";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { cn } from "@/lib/utils";
 import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
@@ -18,8 +17,7 @@ import { Icons } from "@gnd/ui/icons";
 import { Check, StickyNote } from "lucide-react";
 import { InvoiceColumn } from "./column.invoice";
 import { cells } from "@gnd/ui/custom/data-table/cells";
-import { Card } from "@gnd/ui/composite";
-import { Separator } from "@gnd/ui/separator";
+
 import Link from "next/link";
 import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
 export type Item = RouterOutputs["sales"]["index"]["data"][number];

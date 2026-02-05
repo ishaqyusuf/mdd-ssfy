@@ -1,4 +1,5 @@
 import { Db, Prisma } from "@gnd/db";
+import { sum } from "@gnd/utils";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 import z from "zod";
@@ -19,12 +20,38 @@ export async function getBuilders(db: Db, query: GetBuildersSchema) {
     ...searchMeta,
     select: {
       id: true,
+      name: true,
+      projects: {
+        select: {
+          _count: {
+            select: {
+              homes: {
+                where: { deletedAt: null },
+              },
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          projects: {
+            where: { deletedAt: null },
+          },
+          tasks: {
+            where: { deletedAt: null },
+          },
+        },
+      },
     },
   });
 
   return await response(
-    data.map((d) => ({
+    data.map(({ _count, projects, ...d }) => ({
       ...d,
+      _count: {
+        ..._count,
+        projects: sum(projects.map((p) => p._count.homes)),
+      },
     })),
   );
 }
