@@ -23,8 +23,8 @@ export function BuilderFormAction() {
             <form
                 onSubmit={form.handleSubmit(
                     (data) => {
-                        console.log("Form submitted with data:", data);
-                        // saveBuilder(data);
+                        // console.log("Form submitted with data:", data);
+                        saveBuilder(data);
                     },
                     (e) => {
                         console.log("Form errors:", e);

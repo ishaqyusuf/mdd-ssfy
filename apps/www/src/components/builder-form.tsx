@@ -53,7 +53,7 @@ export function BuilderForm(props: BuilderFormProps) {
                     />
                     <InputField
                         control={form.control}
-                        name="adddress"
+                        name="address"
                         label="Address"
                         textarea
                     />
