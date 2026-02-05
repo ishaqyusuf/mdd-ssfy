@@ -68,6 +68,7 @@ import {
   updateCommunityBlockInputAnalyticsSchema,
   updateCommunityBlockInputAnalytics,
 } from "@community/community-template-schemas";
+import { getBuilders, getBuildersSchema } from "@community/builder";
 import {
   saveCommunityModel,
   saveCommunityModelLegacy,
@@ -122,6 +123,9 @@ export const communityRouters = createTRPCRouter({
     .mutation(async (props) => {
       return createCommnunityModelCost(props.ctx, props.input);
     }),
+  getBuilders: publicProcedure.input(getBuildersSchema).query(async (q) => {
+    return getBuilders(q.ctx.db, q.input);
+  }),
   getProjectForm: publicProcedure
     .input(getProjectFormSchema)
     .query(async (props) => {

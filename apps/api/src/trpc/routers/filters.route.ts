@@ -1,5 +1,6 @@
 import {
   backlogFilters,
+  builderFilters,
   communityProjectFilters,
   communityTemplateFilters,
   customerServiceFilters,
@@ -27,7 +28,7 @@ export const filterRouters = createTRPCRouter({
     return communityTemplateFilters(props.ctx);
   }),
   communityTemplateFilters: publicProcedure.query(async (props) =>
-    getCommunityTemplateFilters(props.ctx)
+    getCommunityTemplateFilters(props.ctx),
   ),
   customer: publicProcedure.query(async (props) => {
     return getCustomerFilters(props.ctx);
@@ -36,10 +37,13 @@ export const filterRouters = createTRPCRouter({
     return customerServiceFilters(props.ctx);
   }),
   dispatch: publicProcedure.query(async (props) =>
-    getDispatchFilters(props.ctx)
+    getDispatchFilters(props.ctx),
   ),
   inbound: publicProcedure.query(async (props) => {
     return getInboundFilters(props.ctx);
+  }),
+  builder: publicProcedure.query(async (props) => {
+    return builderFilters(props.ctx);
   }),
   inventory: publicProcedure.query(async (props) => {
     return getInventoryFilters(props.ctx);
@@ -55,7 +59,7 @@ export const filterRouters = createTRPCRouter({
     return backlogFilters(props.ctx);
   }),
   salesProductions: publicProcedure.query(async (props) =>
-    getSalesProductionFilters(props.ctx)
+    getSalesProductionFilters(props.ctx),
   ),
   salesOrders: publicProcedure
     .input(
@@ -64,10 +68,10 @@ export const filterRouters = createTRPCRouter({
           salesManager: z.boolean().optional().nullable(),
         })
         .optional()
-        .nullable()
+        .nullable(),
     )
     .query(async (props) =>
-      getSalesOrderFilters(props.ctx, !!props.input!?.salesManager)
+      getSalesOrderFilters(props.ctx, !!props.input!?.salesManager),
     ),
   salesQuotes: publicProcedure
     .input(
@@ -76,10 +80,10 @@ export const filterRouters = createTRPCRouter({
           salesManager: z.boolean().optional().nullable(),
         })
         .optional()
-        .nullable()
+        .nullable(),
     )
     .query(async (props) =>
-      getSalesQuoteFilter(props.ctx, props.input!?.salesManager)
+      getSalesQuoteFilter(props.ctx, props.input!?.salesManager),
     ),
   salesAccounting: publicProcedure.query(async (props) => {
     return salesAccountingFilters(props.ctx);

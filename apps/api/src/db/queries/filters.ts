@@ -40,6 +40,7 @@ import {
   type GetProjectUnitsSchema,
 } from "./project-units";
 import type { GetCustomerServicesSchema } from "./customer-service";
+import type { GetBuildersSchema } from "@community/builder";
 
 export async function getDispatchFilters(ctx: TRPCContext) {
   type T = keyof DispatchQueryParamsSchema;
@@ -52,7 +53,7 @@ export async function getDispatchFilters(ctx: TRPCContext) {
       salesDispatchStatus.map((status) => ({
         label: status,
         value: status,
-      }))
+      })),
     ),
     dateRangeFilter<T>("scheduleDate", "Schedule Date"),
   ] as FilterData[];
@@ -66,7 +67,7 @@ export async function getInboundFilters(ctx: TRPCContext) {
 function optionFilter<T>(
   value: T,
   label,
-  options: ({ label: any; value: any } | string)[]
+  options: ({ label: any; value: any } | string)[],
 ) {
   return {
     label,
@@ -113,7 +114,7 @@ export async function getCommunityTemplateFilters(ctx: TRPCContext) {
       builders.map((b) => ({
         label: b.name,
         value: b.id,
-      }))
+      })),
     ),
     optionFilter<T>(
       "projectId",
@@ -121,7 +122,7 @@ export async function getCommunityTemplateFilters(ctx: TRPCContext) {
       projects.map((b) => ({
         label: b.title,
         value: b.id,
-      }))
+      })),
     ),
   ];
   return resp as FilterData[];
@@ -162,7 +163,7 @@ export async function getCustomerFilters(ctx: TRPCContext) {
       builders.map((b) => ({
         label: b.name,
         value: b.id,
-      }))
+      })),
     ),
     optionFilter<T>(
       "projectId",
@@ -170,7 +171,7 @@ export async function getCustomerFilters(ctx: TRPCContext) {
       projects.map((b) => ({
         label: b.title,
         value: b.id,
-      }))
+      })),
     ),
   ];
   return resp as FilterData[];
@@ -195,28 +196,28 @@ export async function projectUnitFilters(ctx: TRPCContext) {
     optionFilter<T>(
       "builderSlug",
       "Builder",
-      labelValueOptions(builders, "name", "slug")
+      labelValueOptions(builders, "name", "slug"),
     ),
     optionFilter<T>(
       "projectSlug",
       "Project",
-      labelValueOptions(projects, "title", "slug")
+      labelValueOptions(projects, "title", "slug"),
     ),
     optionFilter<T>(
       "invoice",
       "Invoice",
-      labelValueOptions([...invoiceFilter])
+      labelValueOptions([...invoiceFilter]),
     ),
     dateRangeFilter<T>("dateRange", "Filter by date"),
     optionFilter<T>(
       "installation",
       "Installation",
-      labelValueOptions([...communityInstllationFilters])
+      labelValueOptions([...communityInstllationFilters]),
     ),
     optionFilter<T>(
       "production",
       "Production",
-      labelValueOptions([...communityProductionFilter])
+      labelValueOptions([...communityProductionFilter]),
     ),
   ] satisfies FilterData[];
 
@@ -224,7 +225,7 @@ export async function projectUnitFilters(ctx: TRPCContext) {
 }
 export async function getSalesOrderFilters(
   ctx: TRPCContext,
-  isSalesManager?: boolean
+  isSalesManager?: boolean,
 ) {
   type T = keyof SalesQueryParamsSchema;
   type FilterData = PageFilterData<T>;
@@ -257,14 +258,14 @@ export async function getSalesOrderFilters(
     ...new Set(
       sales
         .flatMap((s) => [s.customer?.name, s.customer?.businessName])
-        .filter(Boolean)
+        .filter(Boolean),
     ),
   ];
   const phones = [
     ...new Set(
       sales
         .flatMap((s) => [s.customer?.phoneNo, s.billingAddress?.phoneNo])
-        .filter(Boolean)
+        .filter(Boolean),
     ),
   ];
   const pos = [
@@ -298,32 +299,32 @@ export async function getSalesOrderFilters(
               // label: name?.replace(",", ""),
               // value: name?.replace(",", ""),
             })),
-          "value"
+          "value",
         ),
-        "value"
-      )
+        "value",
+      ),
     ),
     optionFilter<T>(
       "phone",
       "Phone",
-      phones.map((phone) => ({ label: phone, value: phone }))
+      phones.map((phone) => ({ label: phone, value: phone })),
     ),
     optionFilter<T>(
       "po",
       "P.O",
-      pos.map((po) => ({ label: po, value: po }))
+      pos.map((po) => ({ label: po, value: po })),
     ),
     isSalesManager
       ? optionFilter<T>(
           "sales.rep",
           "Sales Rep",
-          salesReps.map((rep) => ({ label: rep, value: rep }))
+          salesReps.map((rep) => ({ label: rep, value: rep })),
         )
       : null,
     optionFilter<T>(
       "salesNo",
       "Order #",
-      orderNos.map((no) => ({ label: no, value: no }))
+      orderNos.map((no) => ({ label: no, value: no })),
     ),
     optionFilter<T>(
       "dispatch.status",
@@ -331,7 +332,7 @@ export async function getSalesOrderFilters(
       SALES_DISPATCH_FILTER_OPTIONS.map((status) => ({
         label: status,
         value: status,
-      }))
+      })),
     ),
     optionFilter<T>(
       "invoice",
@@ -339,7 +340,7 @@ export async function getSalesOrderFilters(
       INVOICE_FILTER_OPTIONS.map((status) => ({
         label: status,
         value: status,
-      }))
+      })),
     ),
     optionFilter<T>(
       "production",
@@ -347,7 +348,7 @@ export async function getSalesOrderFilters(
       PRODUCTION_FILTER_OPTIONS.map((status) => ({
         label: `${status}`,
         value: status,
-      }))
+      })),
     ),
   ].filter(Boolean);
   return resp as FilterData[];
@@ -360,8 +361,8 @@ export async function getResolutionFilters(ctx: TRPCContext) {
 
   const resp: FilterData[] = baseFilters.filter((a) =>
     (["q", "salesNo", "customer.name"] as TOrdersFilter[]).includes(
-      a.value as any
-    )
+      a.value as any,
+    ),
   ) as any;
   resp.push(
     optionFilter<T>(
@@ -370,15 +371,15 @@ export async function getResolutionFilters(ctx: TRPCContext) {
       RESOLUTION_FILTER_OPTIONS.map((status) => ({
         label: `${status}`,
         value: status,
-      }))
-    )
+      })),
+    ),
   );
   return resp;
 }
 function transformFilter<T extends { key: string; value: any }>(
   filters: T[],
   k: T["key"],
-  v: any
+  v: any,
 ) {
   const filter = filters.find((f) => f.key === k);
   if (filter) {
@@ -395,7 +396,7 @@ export async function getSalesProductionFilters(ctx: TRPCContext) {
 
   const resp: FilterData[] = [
     ...(baseFilters.filter((a) =>
-      (["q", "salesNo"] as TOrdersFilter[]).includes(a.value as any)
+      (["q", "salesNo"] as TOrdersFilter[]).includes(a.value as any),
     ) as any),
     {
       value: "production",
@@ -412,7 +413,7 @@ export async function getSalesProductionFilters(ctx: TRPCContext) {
           roles: ["Production"],
         }),
         "name",
-        "id"
+        "id",
       ),
     },
   ];
@@ -454,14 +455,14 @@ export async function getSalesQuoteFilter(ctx: TRPCContext, isSalesManager?) {
     ...new Set(
       sales
         .flatMap((s) => [s.customer?.name, s.customer?.businessName])
-        .filter(Boolean)
+        .filter(Boolean),
     ),
   ];
   const phones = [
     ...new Set(
       sales
         .flatMap((s) => [s.customer?.phoneNo, s.billingAddress?.phoneNo])
-        .filter(Boolean)
+        .filter(Boolean),
     ),
   ];
   const pos = [
@@ -478,35 +479,35 @@ export async function getSalesQuoteFilter(ctx: TRPCContext, isSalesManager?) {
       ? optionFilter<T>(
           "showing",
           "Show",
-          ["all sales", "my sales"].map((rep) => ({ label: rep, value: rep }))
+          ["all sales", "my sales"].map((rep) => ({ label: rep, value: rep })),
         )
       : null,
     optionFilter<T>(
       "customer.name",
       "Customer",
-      customerNames.map((name) => ({ label: name, value: name }))
+      customerNames.map((name) => ({ label: name, value: name })),
     ),
     optionFilter<T>(
       "phone",
       "Phone",
-      phones.map((phone) => ({ label: phone, value: phone }))
+      phones.map((phone) => ({ label: phone, value: phone })),
     ),
     optionFilter<T>(
       "po",
       "P.O",
-      pos.map((po) => ({ label: po, value: po }))
+      pos.map((po) => ({ label: po, value: po })),
     ),
     isSalesManager
       ? optionFilter<T>(
           "sales.rep",
           "Sales Rep",
-          salesReps.map((rep) => ({ label: rep, value: rep }))
+          salesReps.map((rep) => ({ label: rep, value: rep })),
         )
       : null,
     optionFilter<T>(
       "salesNo",
       "Quote #",
-      orderNos.map((no) => ({ label: no, value: no }))
+      orderNos.map((no) => ({ label: no, value: no })),
     ),
   ].filter(Boolean);
   return resp as FilterData[];
@@ -540,7 +541,7 @@ export async function getInventoryFilters(ctx: TRPCContext) {
       categories.map((c) => ({
         label: c.title,
         value: c.id,
-      }))
+      })),
     ),
   ];
   return resp;
@@ -678,14 +679,14 @@ export async function salesAccountingFilters(ctx: TRPCContext) {
       salesReps.map((s) => ({
         label: s.name,
         value: s.id?.toString(),
-      }))
+      })),
     ),
     dateRangeFilter<T>("dateRange", "Filter by date"),
     optionFilter<T>("payments", "Sales having", [...salesHaving]),
     optionFilter<T>(
       "orderNo",
       "Order No.",
-      salesIds.map((a) => a.orderId)
+      salesIds.map((a) => a.orderId),
     ),
   ] satisfies FilterData[];
 
@@ -714,9 +715,31 @@ export async function customerServiceFilters(ctx: TRPCContext) {
       WORK_ORDER_STATUS.map((status) => ({
         label: `${status}`,
         value: status,
-      }))
+      })),
     ),
 
+    // optionFilter<T>("categoryId", "Category", steps),
+    // dateRangeFilter<T>("dateRange", "Filter by date"),
+  ] satisfies FilterData[];
+
+  return resp;
+}
+export async function builderFilters(ctx: TRPCContext) {
+  type T = keyof GetBuildersSchema;
+  type FilterData = PageFilterData<T>;
+  // const steps = labelValueOptions(
+  //   await ctx.db.Builders.findMany({
+  //     where: {},
+  //     select: {
+  //       id: true,
+  //       title: true,
+  //     },
+  //   }),
+  //   "title",
+  //   "id"
+  // );
+  const resp = [
+    searchFilter,
     // optionFilter<T>("categoryId", "Category", steps),
     // dateRangeFilter<T>("dateRange", "Filter by date"),
   ] satisfies FilterData[];
