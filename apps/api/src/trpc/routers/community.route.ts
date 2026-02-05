@@ -78,6 +78,7 @@ import {
   getProjectUnits,
   getProjectUnitsSchema,
 } from "@api/db/queries/project-units";
+import { generateRandomString } from "@gnd/utils";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -171,7 +172,7 @@ export const communityRouters = createTRPCRouter({
     .input(
       z.object({
         templateId: z.number(),
-      })
+      }),
     )
     .query(async (props) => {
       return getCommunityTemplateForm(props.ctx, props.input?.templateId);
@@ -259,7 +260,7 @@ export const communityRouters = createTRPCRouter({
           projectName: z.string(),
           lot: z.string(),
           block: z.string(),
-        })
+        }),
       )
       .query(async (props) => {
         const { projectName, lot, block } = props.input;
@@ -316,7 +317,124 @@ export const communityRouters = createTRPCRouter({
     }),
   },
 
-  // getProjectForm: publicProcedure.query(async (props) => {
-  //   return;
-  // }),
+  saveBuilderTask: publicProcedure
+    .input(
+      z.object({
+        id: z.number().optional().nullable(),
+        builderId: z.number(),
+        taskName: z.string(),
+        billable: z.boolean().optional().nullable(),
+        productionable: z.boolean().optional().nullable(),
+        addonPercentage: z.number().optional().nullable(),
+        installable: z.boolean().optional().nullable(),
+      }),
+    )
+    .mutation(async (props) => {
+      const { db } = props.ctx;
+      const {
+        builderId,
+        taskName,
+        billable,
+        productionable,
+        addonPercentage,
+        id,
+        installable,
+      } = props.input;
+      if (id) {
+        await db.builderTask.update({
+          where: { id },
+          data: {
+            builderId,
+            taskName,
+            billable,
+            productionable,
+            addonPercentage,
+            installable,
+          },
+        });
+      } else {
+        await db.builderTask.create({
+          data: {
+            builderId,
+            taskName,
+            billable,
+            productionable,
+            addonPercentage,
+            installable,
+            taskUid: generateRandomString(5),
+          },
+        });
+      }
+    }),
+  getBuilderTasks: publicProcedure
+    .input(z.object({ builderId: z.number() }))
+    .query(async (props) => {
+      const { db } = props.ctx;
+      const { builderId } = props.input;
+      const tasks = await db.builderTask.findMany({
+        where: {
+          builderId,
+        },
+        include: {},
+      });
+      return tasks;
+    }),
+  getModelInstallTasksByBuilderTask: publicProcedure
+    .input(z.object({ builderTaskId: z.number(), modelId: z.number() }))
+    .query(async (props) => {
+      const { db } = props.ctx;
+      const { modelId: communityModelId, builderTaskId } = props.input;
+      const tasks = await db.communityModelInstallTask.findMany({
+        where: {
+          builderTaskId,
+          communityModelId,
+        },
+        include: {
+          builderTask: true,
+        },
+      });
+      return tasks;
+    }),
+  saveModelInstallTask: publicProcedure
+    .input(
+      z.object({
+        id: z.number().optional().nullable(),
+        modelId: z.number(),
+        qty: z.number().optional().nullable(),
+        installCostModelId: z.number(),
+        builderTaskId: z.number(),
+        status: z
+          .enum(["active", "inactive"])
+          .optional()
+          // .nullable()
+          .default("inactive"),
+      }),
+    )
+    .mutation(async (props) => {
+      const { db } = props.ctx;
+      const { id, modelId, qty, installCostModelId, builderTaskId, status } =
+        props.input;
+      if (id) {
+        await db.communityModelInstallTask.update({
+          where: { id },
+          data: {
+            communityModelId: modelId,
+            qty,
+            installCostModelId,
+            builderTaskId,
+            status,
+          },
+        });
+      } else {
+        await db.communityModelInstallTask.create({
+          data: {
+            communityModelId: modelId,
+            installCostModelId,
+            builderTaskId,
+            qty,
+            status,
+          },
+        });
+      }
+    }),
 });

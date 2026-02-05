@@ -67,18 +67,18 @@ model Homes {
 }
 
 model HomeTasks {
-    id                   Int       @unique @default(autoincrement())
+    id                   Int           @unique @default(autoincrement())
     archived             Boolean?
     homeId               Int?
-    type                 String?   @db.VarChar(255)
-    taskName             String?   @db.VarChar(255)
-    taskUid              String?   @db.VarChar(255)
-    status               String?   @db.VarChar(255)
-    meta                 Json?     @db.Json
-    producerName         String?   @db.VarChar(255)
-    search               String?   @db.VarChar(255)
-    productionStatus     String?   @db.VarChar(255)
-    checkNo              String?   @db.VarChar(255)
+    type                 String?       @db.VarChar(255)
+    taskName             String?       @db.VarChar(255)
+    taskUid              String?       @db.VarChar(255)
+    status               String?       @db.VarChar(255)
+    meta                 Json?         @db.Json
+    producerName         String?       @db.VarChar(255)
+    search               String?       @db.VarChar(255)
+    productionStatus     String?       @db.VarChar(255)
+    checkNo              String?       @db.VarChar(255)
     projectId            Int?
     assignedToId         Int?
     billable             Boolean?
@@ -92,20 +92,23 @@ model HomeTasks {
     amountPaid           Float?
     completedAt          DateTime?
     jobId                Int?
-    checkDate            DateTime? @db.Timestamp(0)
-    statusDate           DateTime? @db.Timestamp(0)
-    sentToProductionAt   DateTime? @db.Timestamp(0)
-    producedAt           DateTime? @db.Timestamp(0)
-    prodStartedAt        DateTime? @db.Timestamp(0)
-    productionStatusDate DateTime? @db.Timestamp(0)
-    productionDueDate    DateTime? @db.Timestamp(0)
-    deletedAt            DateTime? @db.Timestamp(0)
-    createdAt            DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt            DateTime? @updatedAt
-    home                 Homes?    @relation(fields: [homeId], references: [id])
-    project              Projects? @relation(fields: [projectId], references: [id])
-    job                  Jobs?     @relation(fields: [jobId], references: [id])
-    assignedTo           Users?    @relation(fields: [assignedToId], references: [id])
+    checkDate            DateTime?     @db.Timestamp(0)
+    statusDate           DateTime?     @db.Timestamp(0)
+    sentToProductionAt   DateTime?     @db.Timestamp(0)
+    producedAt           DateTime?     @db.Timestamp(0)
+    prodStartedAt        DateTime?     @db.Timestamp(0)
+    productionStatusDate DateTime?     @db.Timestamp(0)
+    productionDueDate    DateTime?     @db.Timestamp(0)
+    deletedAt            DateTime?     @db.Timestamp(0)
+    createdAt            DateTime?     @default(now()) @db.Timestamp(0)
+    updatedAt            DateTime?     @updatedAt
+    home                 Homes?        @relation(fields: [homeId], references: [id])
+    project              Projects?     @relation(fields: [projectId], references: [id])
+    job                  Jobs?         @relation(fields: [jobId], references: [id])
+    assignedTo           Users?        @relation(fields: [assignedToId], references: [id])
+    builderTask          BuilderTask?  @relation(fields: [builderTaskId], references: [id])
+    builderTaskId        Int?
+    jobHomeTasks         JobHomeTask[]
 
     @@index([createdAt, deletedAt, produceable, billable, addon, deco, punchout, installable, taskName, projectId, jobId])
     @@index([homeId])
@@ -200,6 +203,68 @@ model Builders {
     updatedAt     DateTime?       @updatedAt
     projects      Projects[]
     homeTemplates HomeTemplates[]
+    tasks         BuilderTask[]
+}
+
+model BuilderTask {
+    id                         Int                         @unique @default(autoincrement())
+    builderId                  Int
+    taskName                   String                      @db.VarChar(255)
+    taskUid                    String                      @db.VarChar(255)
+    billable                   Boolean?
+    productionable             Boolean?
+    installable                Boolean?
+    addonPercentage            Float?
+    createdAt                  DateTime?                   @default(now()) @db.Timestamp(0)
+    updatedAt                  DateTime?                   @updatedAt
+    deletedAt                  DateTime?                   @db.Timestamp(0)
+    builder                    Builders                    @relation(fields: [builderId], references: [id])
+    communityModelInstallTasks CommunityModelInstallTask[]
+    homeTasks                  HomeTasks[]
+
+    @@index([builderId])
+}
+
+model InstallCostModel {
+    id                         Int                         @unique @default(autoincrement())
+    title                      String                      @db.VarChar(255)
+    unit                       String?                     @db.VarChar(255)
+    unitCost                   Float?
+    status                     InstallCostModelStatus
+    deletedAt                  DateTime?                   @db.Timestamp(0)
+    createdAt                  DateTime?                   @default(now()) @db.Timestamp(0)
+    updatedAt                  DateTime?                   @updatedAt
+    communityModelInstallTasks CommunityModelInstallTask[]
+}
+
+enum InstallCostModelStatus {
+    active
+    inactive
+}
+
+enum CommunityModelInstallTaskStatus {
+    active
+    inactive
+}
+
+model CommunityModelInstallTask {
+    id                 Int                             @unique @default(autoincrement())
+    communityModelId   Int
+    installCostModelId Int
+    qty                Float?
+    totalCost          Float?
+    createdAt          DateTime?                       @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime?                       @updatedAt
+    deletedAt          DateTime?                       @db.Timestamp(0)
+    communityModel     CommunityModels                 @relation(fields: [communityModelId], references: [id])
+    installCostModel   InstallCostModel                @relation(fields: [installCostModelId], references: [id])
+    builderTask        BuilderTask?                    @relation(fields: [builderTaskId], references: [id])
+    builderTaskId      Int?
+    status             CommunityModelInstallTaskStatus
+    jobInstallTasks    JobInstallTasks[]
+
+    @@index([communityModelId])
+    @@index([installCostModelId])
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
@@ -239,8 +304,9 @@ model CommunityModels {
     costs   CommunityModelCost[]
     pivot   CommunityModelPivot? @relation(fields: [pivotId], references: [id])
 
-    history        CommunityTemplateHistory[]
-    templateValues CommunityModelTemplateValue[]
+    history                    CommunityTemplateHistory[]
+    templateValues             CommunityModelTemplateValue[]
+    communityModelInstallTasks CommunityModelInstallTask[]
 
     @@index([pivotId])
     @@index([projectId])

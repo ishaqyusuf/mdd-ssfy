@@ -130,15 +130,17 @@ model Jobs {
     paymentId   Int?
 
     // checkNo     String?      @db.VarChar(255)
-    deletedAt DateTime?    @db.Timestamp(0)
-    createdAt DateTime?    @default(now()) @db.Timestamp(0)
-    updatedAt DateTime?    @updatedAt
-    payment   JobPayments? @relation(fields: [paymentId], references: [id])
-    home      Homes?       @relation(fields: [homeId], references: [id])
-    user      Users?       @relation(name: "installer", fields: [userId], references: [id])
-    coWorker  Users?       @relation(name: "co-worker", fields: [coWorkerId], references: [id])
-    project   Projects?    @relation(fields: [projectId], references: [id])
-    homeTasks HomeTasks[]
+    deletedAt       DateTime?         @db.Timestamp(0)
+    createdAt       DateTime?         @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?         @updatedAt
+    payment         JobPayments?      @relation(fields: [paymentId], references: [id])
+    home            Homes?            @relation(fields: [homeId], references: [id])
+    user            Users?            @relation(name: "installer", fields: [userId], references: [id])
+    coWorker        Users?            @relation(name: "co-worker", fields: [coWorkerId], references: [id])
+    project         Projects?         @relation(fields: [projectId], references: [id])
+    homeTasks       HomeTasks[]
+    jobHomeTasks    JobHomeTask[]
+    jobInstallTasks JobInstallTasks[]
 
     @@index([createdAt, homeId, type, status, userId])
     @@index([paymentId])
@@ -146,6 +148,48 @@ model Jobs {
     @@index([userId])
     @@index([coWorkerId])
     @@index([projectId])
+}
+
+model JobHomeTask {
+    id         Int    @unique @default(autoincrement())
+    jobId      Int
+    homeTaskId Int
+    addonTotal Float?
+    taskTotal  Float?
+    grandTotal Float?
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    job             Jobs              @relation(fields: [jobId], references: [id])
+    homeTask        HomeTasks         @relation(fields: [homeTaskId], references: [id])
+    jobInstallTasks JobInstallTasks[]
+
+    @@index([jobId])
+    @@index([homeTaskId])
+}
+
+model JobInstallTasks {
+    id    Int    @unique @default(autoincrement())
+    jobId Int
+    qty   Float?
+    rate  Float?
+    total Float?
+
+    job           Jobs         @relation(fields: [jobId], references: [id])
+    jobHomeTask   JobHomeTask? @relation(fields: [jobHomeTaskId], references: [id])
+    jobHomeTaskId Int?
+
+    deletedAt                   DateTime?                  @db.Timestamp(0)
+    createdAt                   DateTime?                  @default(now()) @db.Timestamp(0)
+    updatedAt                   DateTime?                  @updatedAt
+    communityModelInstallTask   CommunityModelInstallTask? @relation(fields: [communityModelInstallTaskId], references: [id])
+    communityModelInstallTaskId Int?
+
+    @@index([jobId])
+    @@index([jobHomeTaskId])
+    @@index([communityModelInstallTaskId])
 }
 
 model JobPayments {
