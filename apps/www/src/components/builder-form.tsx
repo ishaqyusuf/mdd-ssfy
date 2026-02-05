@@ -16,6 +16,8 @@ import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { useEffect } from "react";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Form } from "@gnd/ui/form";
+import { Button } from "@gnd/ui/button";
+import { Icons } from "@gnd/ui/custom/icons";
 
 interface BuilderFormProps {
     defaultValues?: RouterOutputs["community"]["getBuilderForm"];
@@ -129,6 +131,23 @@ export function BuilderForm(props: BuilderFormProps) {
                             </Table.Row>
                         ))}
                     </Table.Body>
+                    <Table.Footer className="bg-inherit hover:bg-inherit">
+                        <Table.Row>
+                            <Table.Cell colSpan={6}>
+                                <Button
+                                    onClick={(e) => {
+                                        append({
+                                            taskName: "",
+                                        });
+                                    }}
+                                    className="w-full"
+                                >
+                                    <Icons.add className="size-4 mr-2" />
+                                    Add
+                                </Button>
+                            </Table.Cell>
+                        </Table.Row>
+                    </Table.Footer>
                 </Table>
                 {props.children}
             </div>

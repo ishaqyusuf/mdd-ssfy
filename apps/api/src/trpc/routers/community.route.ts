@@ -376,35 +376,34 @@ export const communityRouters = createTRPCRouter({
 
         const newTasks = tasks.filter((t) => !t.id);
         const existingTasks = tasks.filter((t) => t.id);
+        console.log(newTasks);
         await Promise.all([
-          ...existingTasks.map(
-            (t) =>
-              db.builderTask.update({
-                where: { id: t.id! },
-                data: {
-                  taskName: t.taskName,
+          ...existingTasks.map((t) =>
+            db.builderTask.update({
+              where: { id: t.id! },
+              data: {
+                taskName: t.taskName,
 
+                billable: t.billable,
+                productionable: t.productionable,
+                addonPercentage: t.addonPercentage,
+                installable: t.installable,
+              },
+            }),
+          ),
+          newTasks.length > 0
+            ? db.builderTask.createMany({
+                data: newTasks.map((t) => ({
+                  builderId: result.id,
+                  taskName: t.taskName,
                   billable: t.billable,
                   productionable: t.productionable,
                   addonPercentage: t.addonPercentage,
                   installable: t.installable,
-                },
-              }),
-            newTasks.length > 0
-              ? db.builderTask.createMany({
-                  data: newTasks.map((t) => ({
-                    builderId: t.builderId,
-
-                    taskName: t.taskName,
-                    billable: t.billable,
-                    productionable: t.productionable,
-                    addonPercentage: t.addonPercentage,
-                    installable: t.installable,
-                    taskUid: generateRandomString(5),
-                  })),
-                })
-              : null,
-          ),
+                  taskUid: generateRandomString(5),
+                })),
+              })
+            : null,
         ]);
       } else {
         result = await db.builders.create({

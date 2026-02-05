@@ -3,12 +3,25 @@ import { BuilderFormSchema } from "@community/schema";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useMutation } from "@tanstack/react-query";
 import { useFormContext } from "react-hook-form";
+import { _qc } from "./static-trpc";
+import { useBuilderParams } from "@/hooks/use-builder-params";
 
 export function BuilderFormAction() {
     const form = useFormContext<BuilderFormSchema>();
+    const { setParams, openBuilderId } = useBuilderParams();
     const { mutate: saveBuilder, isPending } = useMutation(
         useTRPC().community.saveBuilder.mutationOptions({
-            onSuccess(data, variables, onMutateResult, context) {},
+            onSuccess(data, variables, onMutateResult, context) {
+                if (variables) {
+                    _qc.invalidateQueries({
+                        queryKey: useTRPC().community.getBuilderForm.queryKey({
+                            builderId: variables.id!,
+                        }),
+                    });
+                    if (openBuilderId < 0 || !openBuilderId)
+                        setParams({ builderId: data.id });
+                }
+            },
             meta: {
                 toastTitle: {
                     error: "Unable to complete",
