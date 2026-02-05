@@ -1,7 +1,7 @@
 "use client";
 
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
-import { Progress } from "@/components/(clean-code)/progress";
+import { Progress } from "@gnd/ui/custom/progress";
 import ConfirmBtn from "@/components/confirm-button";
 import { StockModeStatus } from "@/components/stock-mode-status";
 import { useInventoryParams } from "@/hooks/use-inventory-params";

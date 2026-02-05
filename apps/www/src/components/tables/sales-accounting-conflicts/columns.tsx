@@ -7,7 +7,7 @@ import { _perm } from "@/components/sidebar/links";
 import { getCustomerTransactionsAction } from "@/actions/get-customer-tx-action";
 import { formatMoney } from "@/lib/use-number";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
-import { Progress } from "@/components/(clean-code)/progress";
+import { Progress } from "@gnd/ui/custom/progress";
 import { cn } from "@gnd/ui/cn";
 
 import { CancelSalesTransactionAction } from "@/components/cancel-sales-transaction";

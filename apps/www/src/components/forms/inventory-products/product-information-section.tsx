@@ -1,6 +1,6 @@
 import { useInventoryForm } from "./form-context";
 import { DollarSign, Eye, EyeOff, Package } from "lucide-react";
-import { Progress } from "@/components/(clean-code)/progress";
+import { Progress } from "@gnd/ui/custom/progress";
 import {
     AccordionContent,
     AccordionItem,

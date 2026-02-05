@@ -3,7 +3,7 @@
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Menu } from "@/components/(clean-code)/menu";
-import { Progress } from "@/components/(clean-code)/progress";
+import { Progress } from "@gnd/ui/custom/progress";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";

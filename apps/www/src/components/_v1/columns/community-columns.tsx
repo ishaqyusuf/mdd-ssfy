@@ -9,7 +9,7 @@ import {
 } from "@/lib/community/community-utils";
 import { Cell, DateCellContent } from "./base-columns";
 import Money from "../money";
-import { Progress } from "@/components/(clean-code)/progress";
+import { Progress } from "@gnd/ui/custom/progress";
 interface Props {
     home: ExtendedHome;
 }

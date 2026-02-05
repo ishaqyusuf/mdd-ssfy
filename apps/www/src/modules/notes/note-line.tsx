@@ -1,6 +1,6 @@
 import { Menu } from "@/components/(clean-code)/menu";
 import { GetNotes } from "./actions/get-notes-action";
-import { Progress } from "@/components/(clean-code)/progress";
+import { Progress } from "@gnd/ui/custom/progress";
 import { formatDate } from "@/lib/use-day";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { BellIcon } from "lucide-react";

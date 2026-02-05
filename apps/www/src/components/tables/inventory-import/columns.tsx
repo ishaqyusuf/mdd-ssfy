@@ -1,7 +1,7 @@
 "use client";
 
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
-import { Progress } from "@/components/(clean-code)/progress";
+import { Progress } from "@gnd/ui/custom/progress";
 import { useTRPC } from "@/trpc/client";
 
 import { ColumnDef } from "@/types/type";

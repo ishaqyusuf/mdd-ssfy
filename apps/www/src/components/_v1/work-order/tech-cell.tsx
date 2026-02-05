@@ -18,7 +18,7 @@ import {
 } from "@gnd/ui/dropdown-menu";
 
 import { Cell, StatusCell } from "../columns/base-columns";
-import { Progress } from "@/components/(clean-code)/progress";
+import { Progress } from "@gnd/ui/custom/progress";
 
 interface Props {
     workOrder: IWorkOrder;

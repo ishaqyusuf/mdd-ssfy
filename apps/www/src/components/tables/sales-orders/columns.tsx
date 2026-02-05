@@ -3,7 +3,7 @@ import * as React from "react";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Menu } from "@/components/(clean-code)/menu";
-import { Progress } from "@/components/(clean-code)/progress";
+import { Progress } from "@gnd/ui/custom/progress";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -72,7 +72,7 @@ export const columns2: ColumnDef<Item>[] = [
             <TCell.Primary
                 className={cn(
                     item.isBusiness && "text-blue-700",
-                    "whitespace-nowrap uppercase"
+                    "whitespace-nowrap uppercase",
                 )}
             >
                 <TextWithTooltip
@@ -208,7 +208,7 @@ export const columns: ColumnDef<Item>[] = [
             <TCell.Primary
                 className={cn(
                     item.isBusiness && "text-blue-700",
-                    "whitespace-nowrap uppercase"
+                    "whitespace-nowrap uppercase",
                 )}
             >
                 <TextWithTooltip
@@ -345,7 +345,7 @@ function Actions({ item }: { item: Item }) {
                         // variant: "ghost"
                         size: "xs",
                     }),
-                    "bg-green-600/70 hover:bg-green-600 text-accent"
+                    "bg-green-600/70 hover:bg-green-600 text-accent",
                 )}
                 href={`/sales-book/edit-order/${item.slug}`}
             >
@@ -363,7 +363,7 @@ function Actions({ item }: { item: Item }) {
                                 onClick={(e) => {
                                     e.preventDefault();
                                     batchSales.markAsProductionCompleted(
-                                        item.id
+                                        item.id,
                                     );
                                 }}
                             >

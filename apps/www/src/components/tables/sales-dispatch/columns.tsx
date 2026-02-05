@@ -4,7 +4,7 @@ import { ColumnDef } from "@/types/type";
 import { ActionCell } from "../action-cell";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
-import { Progress } from "@/components/(clean-code)/progress";
+import { Progress } from "@gnd/ui/custom/progress";
 import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
 import { Icons } from "@gnd/ui/icons";
 import { Button } from "@gnd/ui/button";

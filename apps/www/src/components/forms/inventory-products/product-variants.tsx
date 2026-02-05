@@ -17,7 +17,7 @@ import { ChartSpline } from "lucide-react";
 import { VariantPricingTab } from "./variant-pricing-tab";
 import { cn } from "@gnd/ui/cn";
 import { VariantFilters } from "./variant-filters";
-import { Progress } from "@/components/(clean-code)/progress";
+import { Progress } from "@gnd/ui/custom/progress";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { Menu } from "@/components/(clean-code)/menu";
 import { Button } from "@gnd/ui/button";

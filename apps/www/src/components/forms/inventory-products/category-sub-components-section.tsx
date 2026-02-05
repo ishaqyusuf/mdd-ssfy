@@ -32,7 +32,7 @@ import {
 } from "@dnd-kit/sortable";
 import { UniqueIdentifier } from "@dnd-kit/core";
 import ConfirmBtn from "@/components/confirm-button";
-import { Progress } from "@/components/(clean-code)/progress";
+import { Progress } from "@gnd/ui/custom/progress";
 import { traceDeprecation } from "process";
 import { toast } from "sonner";
 
