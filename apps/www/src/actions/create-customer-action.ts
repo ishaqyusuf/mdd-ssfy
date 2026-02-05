@@ -26,13 +26,16 @@ export const createCustomerAction = actionClient
                 : `cust-${
                       customerId ? customerId : await nextId(tx.customers)
                   }`;
+            const isBusiness = input.customerType === "Business";
+
             const customerData = {
-                name: input.name,
+                name: isBusiness ? null : input.name,
+                businessName: isBusiness ? input.businessName : null,
                 phoneNo: input.phoneNo,
                 phoneNo2: input.phoneNo2,
                 email: input.email,
                 address: input.address1,
-                businessName: input.businessName,
+                // businessName: input.businessName,
                 meta: {
                     netTerm: input.netTerm,
                 } satisfies CustomerMeta,
@@ -55,12 +58,12 @@ export const createCustomerAction = actionClient
                           }
                         : undefined
                     : input?.taxCode
-                    ? {
-                          create: {
-                              taxCode: input.taxCode,
-                          },
-                      }
-                    : undefined,
+                      ? {
+                            create: {
+                                taxCode: input.taxCode,
+                            },
+                        }
+                      : undefined,
             } satisfies Prisma.CustomersUpdateInput;
             if (input.id) {
                 const customer = await prisma.customers.update({
@@ -120,8 +123,8 @@ export const createCustomerAction = actionClient
                           isPrimary: true,
                       },
                   });
-            revalidateTag(Tags.salesCustomers);
-            revalidateTag(`customer-${customerId}`);
+            // revalidateTag(Tags.salesCustomers);
+            // revalidateTag(`customer-${customerId}`);
             return {
                 customerId,
                 addressId: address.id,
