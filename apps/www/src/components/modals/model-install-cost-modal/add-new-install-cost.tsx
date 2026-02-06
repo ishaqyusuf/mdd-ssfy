@@ -1,12 +1,9 @@
-import {
-    useModelInstallConfigContext,
-    useNewModelInstallConfig,
-} from "@/hooks/use-model-install-config";
+import { useBuilderModelInstallsContext } from "@/hooks/use-model-install-config";
 import { Search } from "lucide-react";
 import { useState } from "react";
 
 export function AddNewInstallCost() {
-    const ctx = useNewModelInstallConfig();
+    // const ctx = useBuilderModelInstallsContext();
     const [showCreateCost, setShowCreateCost] = useState(false);
     const [costSearchQuery, setCostSearchQuery] = useState("");
     const unassociatedCosts = [];
@@ -14,7 +11,7 @@ export function AddNewInstallCost() {
     const [newCostDetails, setNewCostDetails] = useState({
         name: "",
         rate: "",
-        unit: "LF",
+        unit: "",
     });
     const handleCreateAndAddCost = () => {};
 
@@ -105,7 +102,7 @@ export function AddNewInstallCost() {
                                 placeholder="0.00"
                             />
                         </div>
-                        <div className="col-span-2">
+                        {/* <div className="col-span-2">
                             <label className="text-[10px] font-bold text-muted-foreground uppercase mb-1 block">
                                 Unit
                             </label>
@@ -123,7 +120,7 @@ export function AddNewInstallCost() {
                                 <option value="EA">EA</option>
                                 <option value="SET">SET</option>
                             </select>
-                        </div>
+                        </div> */}
                         <div className="col-span-2 flex gap-1">
                             <button
                                 onClick={handleCreateAndAddCost}
@@ -144,3 +141,4 @@ export function AddNewInstallCost() {
         </div>
     );
 }
+

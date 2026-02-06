@@ -14,10 +14,13 @@ import { DropdownMenu, Sidebar } from "@gnd/ui/composite";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import {
+    BuilderModelInstallsProvider,
     ModelInstallConfigProvider,
+    useCreateBuilderModelInstallsContext,
     useCreateModelInstallConfigContext,
-    useModelInstallConfigContext,
 } from "@/hooks/use-model-install-config";
+import { InstallConfiguration } from "./install-configuration";
+import { AddNewInstallCost } from "./add-new-install-cost";
 
 export function ModelInstallCostModal() {
     const sideBarView = true;
@@ -34,7 +37,7 @@ export function ModelInstallCostModal() {
             onOpenChange={(e) => {
                 setParams(null);
             }}
-            size={isV2 ? "3xl" : "xl"}
+            size={isV2 ? "4xl" : "xl"}
             title={
                 !isV2 ? (
                     `Install Cost (${data?.title})`
@@ -124,8 +127,17 @@ export function ModelInstallCostModal() {
                                     <span>FOOTER.</span>
                                 </Sidebar.Footer>
                             </Sidebar>
-                            <div>
-                                <CustomModal.Content className="h-[60vh] relative -mx-0 border-l"></CustomModal.Content>
+                            <div className="flex-1">
+                                <BuilderModelInstallsProvider
+                                    value={useCreateBuilderModelInstallsContext(
+                                        ctx,
+                                    )}
+                                >
+                                    <AddNewInstallCost />
+                                    <CustomModal.Content className="h-[60vh] relative -mx-0 border-l">
+                                        <InstallConfiguration />
+                                    </CustomModal.Content>
+                                </BuilderModelInstallsProvider>
                             </div>
                             <CustomModal.Footer>
                                 <SubmitButton type="button">Save</SubmitButton>

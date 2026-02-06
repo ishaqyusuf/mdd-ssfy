@@ -70,7 +70,7 @@ export function BuilderTaskItem({ task, sideBarMode }: Props) {
         );
     if (sideBarMode)
         return (
-            <Sidebar.MenuItem className="sgroup">
+            <Sidebar.MenuItem className="group relative">
                 <Sidebar.MenuButton
                     onClick={() =>
                         setParams({
@@ -106,38 +106,46 @@ export function BuilderTaskItem({ task, sideBarMode }: Props) {
                         </div>
                     </div>
                     <div className="flex-1" />
-                    <DropdownMenu>
-                        <DropdownMenu.Trigger
-                            asChild
-                            className="sopacity-0 group-hover:opacity-100"
-                        >
-                            <Button variant="ghost" size="xs">
-                                <Icons.MoreHoriz className="size-4" />
-                            </Button>
-                        </DropdownMenu.Trigger>
-                        <DropdownMenu.Content className="w-[200px]">
-                            <DropdownMenu.Label>Actions</DropdownMenu.Label>
-                            <DropdownMenu.Item disabled>
-                                <Settings size={14} className="mr-2" />
-                                Update Add-on %
-                            </DropdownMenu.Item>
-                            <DropdownMenu.Item disabled>
-                                <CheckCircle2 size={14} className="mr-2" />
-                                Set{" "}
-                                {task.installable
-                                    ? "Not Installable"
-                                    : "Installable"}
-                            </DropdownMenu.Item>
-                            <DropdownMenu.Item
-                                onClick={(e) => setStartDelete(true)}
-                                className="hover:bg-destructive/10 text-destructive"
-                            >
-                                <Trash2 size={14} className="mr-2" />
-                                Delete Task
-                            </DropdownMenu.Item>
-                        </DropdownMenu.Content>
-                    </DropdownMenu>
                 </Sidebar.MenuButton>
+                <DropdownMenu>
+                    <DropdownMenu.Trigger
+                        asChild
+                        className="sopacity-0 group-hover:opacity-100 absolute right-4 top-1/2 -translate-y-1/2"
+                    >
+                        <Button
+                            variant="ghost"
+                            className={cn(
+                                isActive
+                                    ? "text-primary-foreground"
+                                    : "text-foreground",
+                            )}
+                            size="xs"
+                        >
+                            <Icons.MoreHoriz className="size-4" />
+                        </Button>
+                    </DropdownMenu.Trigger>
+                    <DropdownMenu.Content className="w-[200px]">
+                        <DropdownMenu.Label>Actions</DropdownMenu.Label>
+                        <DropdownMenu.Item disabled>
+                            <Settings size={14} className="mr-2" />
+                            Update Add-on %
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item disabled>
+                            <CheckCircle2 size={14} className="mr-2" />
+                            Set{" "}
+                            {task.installable
+                                ? "Not Installable"
+                                : "Installable"}
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                            onClick={(e) => setStartDelete(true)}
+                            className="hover:bg-destructive/10 text-destructive"
+                        >
+                            <Trash2 size={14} className="mr-2" />
+                            Delete Task
+                        </DropdownMenu.Item>
+                    </DropdownMenu.Content>
+                </DropdownMenu>
             </Sidebar.MenuItem>
         );
     return (

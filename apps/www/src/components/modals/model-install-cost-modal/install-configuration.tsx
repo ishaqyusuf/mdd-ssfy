@@ -1,10 +1,12 @@
-import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
+import { useBuilderModelInstallsContext } from "@/hooks/use-model-install-config";
 
 export function InstallConfiguration() {
-    const {
-        setParams,
-        selectedBuilderTaskId,
-        editCommunityModelInstallCostId,
-        mode,
-    } = useCommunityInstallCostParams();
+    const { tasks, installCosts } = useBuilderModelInstallsContext();
+    console.log({ installCosts, tasks });
+    return (
+        <>
+            <div className="bg-green-200 h-screen"></div>
+        </>
+    );
 }
+

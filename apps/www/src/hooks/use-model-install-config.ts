@@ -70,9 +70,19 @@ export const useModelInstallConfigContext = () => {
     return context;
 };
 
-export function useNewModelInstallConfig() {
-    const { params, dataV2, isPending, setParams } =
-        useModelInstallConfigContext();
+type BuilderModelInstallsContextProps = ReturnType<
+    typeof useCreateBuilderModelInstallsContext
+>;
+export const BuilderModelInstallsContext =
+    createContext<BuilderModelInstallsContextProps>(undefined as any);
+export const BuilderModelInstallsProvider =
+    BuilderModelInstallsContext.Provider;
+export const useCreateBuilderModelInstallsContext = (
+    modelInstallConfigCtx: ReturnType<
+        typeof useCreateModelInstallConfigContext
+    >,
+) => {
+    const { params, dataV2, isPending, setParams } = modelInstallConfigCtx;
     const {
         data: modelData,
         isPending: modelDataPending,
@@ -100,5 +110,14 @@ export function useNewModelInstallConfig() {
         tasks: modelData?.tasks || [],
         installCosts: modelData?.installCosts || [],
     };
-}
+};
+export const useBuilderModelInstallsContext = () => {
+    const context = useContext(BuilderModelInstallsContext);
+    if (context === undefined) {
+        throw new Error(
+            "useBuilderModelInstallsContext must be used within a BuilderModelInstallsProvider",
+        );
+    }
+    return context;
+};
 
