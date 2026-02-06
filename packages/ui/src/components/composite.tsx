@@ -77,24 +77,21 @@ import {
   DropdownMenuSubTrigger,
 } from "./dropdown-menu";
 
-const DropdownMenu = Object.assign(
-  {},
-  {
-    Root: DropdownMenuRoot,
-    Content: DropdownMenuContent,
-    Trigger: DropdownMenuTrigger,
-    Item: DropdownMenuItem,
-    Label: DropdownMenuLabel,
-    Separator: DropdownMenuSeparator,
-    CheckboxItem: DropdownMenuCheckboxItem,
-    RadioItem: DropdownMenuRadioItem,
-    RadioGroup: DropdownMenuRadioGroup,
-    Group: DropdownMenuGroup,
-    Sub: DropdownMenuSub,
-    SubContent: DropdownMenuSubContent,
-    SubTrigger: DropdownMenuSubTrigger,
-  },
-);
+const DropdownMenu = Object.assign(DropdownMenuRoot, {
+  Root: DropdownMenuRoot,
+  Content: DropdownMenuContent,
+  Trigger: DropdownMenuTrigger,
+  Item: DropdownMenuItem,
+  Label: DropdownMenuLabel,
+  Separator: DropdownMenuSeparator,
+  CheckboxItem: DropdownMenuCheckboxItem,
+  RadioItem: DropdownMenuRadioItem,
+  RadioGroup: DropdownMenuRadioGroup,
+  Group: DropdownMenuGroup,
+  Sub: DropdownMenuSub,
+  SubContent: DropdownMenuSubContent,
+  SubTrigger: DropdownMenuSubTrigger,
+});
 
 import {
   Sheet as SheetRoot,

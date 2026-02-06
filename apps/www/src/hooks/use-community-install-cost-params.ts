@@ -11,6 +11,8 @@ export function useCommunityInstallCostParams() {
         // editModelCostTemplateId: parseAsInteger,
         // editModelCostId: parseAsInteger,
         editCommunityModelInstallCostId: parseAsInteger,
+        mode: parseAsStringEnum(["v1", "v2"]).withDefault("v1"),
+        selectedBuilderTaskId: parseAsInteger,
         view: parseAsStringEnum(["template-edit", "template-list"]).withDefault(
             "template-list",
         ),

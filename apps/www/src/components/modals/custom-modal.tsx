@@ -51,6 +51,7 @@ interface Props
     onOpenChange?;
     title?;
     description?;
+    className?: string;
 }
 function CustomModalBase({
     children,
@@ -58,6 +59,7 @@ function CustomModalBase({
     title,
     onOpenChange,
     description,
+    className,
     ...props
 }: Props) {
     return (
@@ -70,6 +72,7 @@ function CustomModalBase({
                     sheetContentVariant({
                         ...(props as any),
                     }),
+                    className,
                 )}
             >
                 <DialogHeader>
@@ -102,8 +105,15 @@ export function CustomModalContent({ children = null, className = "" }) {
         </ScrollArea>
     );
 }
+function Footer({ children, className = "" }) {
+    return (
+        <CustomModalPortal>
+            <DialogFooter className={cn(className)}>{children}</DialogFooter>
+        </CustomModalPortal>
+    );
+}
 export const CustomModal = Object.assign(CustomModalBase, {
     Content: CustomModalContent,
     Portal: CustomModalPortal,
-    Footer: DialogFooter,
+    Footer,
 });

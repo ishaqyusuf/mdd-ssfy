@@ -13,6 +13,7 @@ export async function getHomeInvoices(query: HomeQueryParams) {
         query.sort_order = "desc";
     }
     const where = await whereHome(query);
+    console.log({ where });
     const _items = await prisma.homes.findMany({
         where,
         ...(await queryFilter(query)),

@@ -115,6 +115,7 @@ const modelCost: Column = {
         );
     },
 };
+
 const installCost: Column = {
     header: "Install Cost",
     accessorKey: "installCost",
@@ -125,7 +126,7 @@ const installCost: Column = {
     cell: ({ row: { original: item } }) => {
         const { setParams } = useCommunityInstallCostParams();
         return (
-            <>
+            <div className="gap-2 flex">
                 <Badge
                     onClick={(e) => {
                         setParams({
@@ -136,15 +137,27 @@ const installCost: Column = {
                         item?.hasInstallCost && item?.hasPivotInstallCost
                             ? "bg-orange-200 text-orange-700 hover:bg-orange-200"
                             : item?.hasPivotInstallCost
-                            ? "bg-green-200 text-green-700 hover:bg-green-200"
-                            : "bg-slate-200 text-slate-700 hover:bg-slate-200"
+                              ? "bg-green-200 text-green-700 hover:bg-green-200"
+                              : "bg-slate-200 text-slate-700 hover:bg-slate-200",
                     )}
                 >
-                    {item.hasInstallCost || item?.hasPivotInstallCost
-                        ? "Edit Cost"
-                        : "Set Cost"}
+                    v1
+                    {/* {item.hasInstallCost || item?.hasPivotInstallCost
+                        ? "v1"
+                        : "Set Cost"} */}
                 </Badge>
-            </>
+                <Badge
+                    onClick={(e) => {
+                        setParams({
+                            editCommunityModelInstallCostId: item.id,
+                            mode: "v2",
+                        });
+                    }}
+                    variant={"secondary"}
+                >
+                    v2
+                </Badge>
+            </div>
         );
     },
 };
@@ -196,7 +209,7 @@ function Actions({ item }: ItemProps) {
                                 // slugs: "",
                                 templateSlug: item.slug,
                             },
-                            true
+                            true,
                         );
                     }}
                 >

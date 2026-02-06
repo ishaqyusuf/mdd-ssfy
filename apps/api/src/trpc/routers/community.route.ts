@@ -443,6 +443,63 @@ export const communityRouters = createTRPCRouter({
       });
       return tasks;
     }),
+  getModelBuilderTasks: publicProcedure
+    .input(z.object({ modelId: z.number() }))
+    .query(async (props) => {
+      const { db } = props.ctx;
+      const { modelId } = props.input;
+      const model = await db.communityModels.findUnique({
+        where: { id: modelId },
+        select: {
+          modelName: true,
+          project: {
+            select: {
+              title: true,
+              builder: {
+                select: {
+                  name: true,
+
+                  tasks: {
+                    select: {
+                      id: true,
+                      taskName: true,
+                      billable: true,
+                      productionable: true,
+                      addonPercentage: true,
+                      installable: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          communityModelInstallTasks: {
+            select: {
+              builderTaskId: true,
+              id: true,
+            },
+          },
+        },
+      });
+      return {
+        builderTasks: (model?.project?.builder?.tasks || [])?.map((task) => {
+          const installTasks = model?.communityModelInstallTasks?.filter(
+            (t) => t.builderTaskId === task.id,
+          );
+          const installTask = installTasks?.[0];
+          const installTaskCount = installTasks?.length || 0;
+          return {
+            ...task,
+            installTaskId: installTask?.id,
+            installTaskCount,
+          };
+        }),
+        projectName: model?.project?.title || "",
+        builderName: model?.project?.builder?.name || "",
+        modelName: model?.modelName,
+      };
+    }),
+
   getModelInstallTasksByBuilderTask: publicProcedure
     .input(z.object({ builderTaskId: z.number(), modelId: z.number() }))
     .query(async (props) => {
@@ -453,11 +510,46 @@ export const communityRouters = createTRPCRouter({
           builderTaskId,
           communityModelId,
         },
-        include: {
-          builderTask: true,
+        select: {
+          // builderTask: true,
+          id: true,
+          builderTaskId: true,
+          installCostModelId: true,
+          qty: true,
+          status: true,
         },
       });
-      return tasks;
+      const installCosts = await db.installCostModel.findMany({
+        where: {
+          status: "active",
+        },
+        select: {
+          id: true,
+          title: true,
+          unit: true,
+          unitCost: true,
+        },
+      });
+
+      return {
+        tasks: tasks.map((t) => {
+          const installCost = installCosts.find(
+            (ic) => ic.id === t.installCostModelId,
+          );
+          return {
+            ...t,
+            installCost: installCost
+              ? {
+                  id: installCost.id,
+                  title: installCost.title,
+                  unit: installCost.unit,
+                  unitCost: installCost.unitCost,
+                }
+              : null,
+          };
+        }),
+        installCosts,
+      };
     }),
   saveModelInstallTask: publicProcedure
     .input(

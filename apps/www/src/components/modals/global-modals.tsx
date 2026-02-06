@@ -3,7 +3,7 @@
 import { SuperAdminGuard } from "../auth-guard";
 import { CommunityInstallCostForm } from "../forms/community-install-cost-form";
 import { BuilderFormModal } from "./builder-form-modal";
-import { CommunityInstallCostModal } from "./community-install-cost-modal";
+import { ModelInstallCostModal } from "./model-install-cost-modal";
 import { CommunityModelCostModal } from "./community-model-cost-modal";
 import { CommunityTemplateModal } from "./community-template-modal";
 import { CreateCommunityModelCostModal } from "./create-community-model-cost-modal";
@@ -39,7 +39,7 @@ export function GlobalModals() {
 
             {/* LEGACY */}
 
-            <CommunityInstallCostModal />
+            <ModelInstallCostModal />
             <CreateCommunityProjectModal />
             <BuilderFormModal />
             {/* </Env> */}

@@ -30,11 +30,9 @@ export function BuilderFormModal({}) {
         >
             <CustomModal.Content className="bg-muted/10 py-2 pb-16">
                 <BuilderForm defaultValues={formData}>
-                    <CustomModal.Portal>
-                        <CustomModal.Footer>
-                            <BuilderFormAction />
-                        </CustomModal.Footer>
-                    </CustomModal.Portal>
+                    <CustomModal.Footer>
+                        <BuilderFormAction />
+                    </CustomModal.Footer>
                 </BuilderForm>
             </CustomModal.Content>
         </CustomModal>
