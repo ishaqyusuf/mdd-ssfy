@@ -28,6 +28,8 @@ import { _perm } from "@/components/sidebar/links";
 import { useSalesPrintParams } from "@/hooks/use-sales-print-params";
 import { InvoicePrintModes } from "@sales/types";
 import { MenuItemSalesActions } from "@/components/menu-item-sales-actions";
+import { useMutation } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
 
 export function GeneralFooter({}) {
     const { data } = useSaleOverview();
@@ -42,7 +44,7 @@ export function GeneralFooter({}) {
             try {
                 const resp = await resetSalesStatAction(
                     data?.id,
-                    data?.orderId
+                    data?.orderId,
                 );
                 toast.success("Reset complete");
                 qs.salesQuery.salesStatReset();
@@ -58,27 +60,36 @@ export function GeneralFooter({}) {
     const printer = useSalesPrintParams();
     const loader = useLoadingToast();
     const sq = useSalesQueryClient();
-    const deleteSale = async () => {
-        // const id = store?.salesId;
-        loader.loading("Deleting...");
-        await deleteSalesUseCase(data?.id);
-        data?.type == "order"
-            ? sq.invalidate.salesList()
-            : sq.invalidate.quoteList();
-        loader.success("Deleted", {
-            description: "Undo delete?",
-            action: (
-                <ToastAction
-                    onClick={async (e) => {
-                        await restoreDeleteUseCase(data?.id);
-                    }}
-                    altText="delete"
-                >
-                    Edit
-                </ToastAction>
-            ),
-        });
-    };
+    const { mutate: deleteSale } = useMutation(
+        useTRPC().sales.deleteSale.mutationOptions({
+            onSuccess: () => {
+                data?.type == "order"
+                    ? sq.invalidate.salesList()
+                    : sq.invalidate.quoteList();
+            },
+        }),
+    );
+    // const deleteSale = async () => {
+    //     // const id = store?.salesId;
+    //     loader.loading("Deleting...");
+    //     await deleteSalesUseCase(data?.id);
+    //     data?.type == "order"
+    //         ? sq.invalidate.salesList()
+    //         : sq.invalidate.quoteList();
+    //     loader.success("Deleted", {
+    //         description: "Undo delete?",
+    //         action: (
+    //             <ToastAction
+    //                 onClick={async (e) => {
+    //                     await restoreDeleteUseCase(data?.id);
+    //                 }}
+    //                 altText="delete"
+    //             >
+    //                 Edit
+    //             </ToastAction>
+    //         ),
+    //     });
+    // };
 
     const menuRef = useRef(null);
 
@@ -88,7 +99,11 @@ export function GeneralFooter({}) {
                 <ConfirmBtn
                     size="icon"
                     Icon={Icons.trash}
-                    onClick={deleteSale}
+                    onClick={(e) => {
+                        deleteSale({
+                            salesId: data?.id!,
+                        });
+                    }}
                     trash
                     variant="destructive"
                 />
@@ -130,7 +145,7 @@ export function GeneralFooter({}) {
                                     {
                                         salesNo: data.orderId,
                                     },
-                                    true
+                                    true,
                                 );
                             }}
                             disabled={loading}

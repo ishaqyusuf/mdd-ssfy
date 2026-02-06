@@ -56,6 +56,7 @@ import {
   getSalesAccountings,
   getSalesAccountingsSchema,
 } from "@api/db/queries/sales-accounting";
+import { createNoteAction } from "@notifications/note";
 export const salesRouter = createTRPCRouter({
   createStep: publicProcedure
     .input(
@@ -225,5 +226,49 @@ export const salesRouter = createTRPCRouter({
     .input(deleteSupplierSchema)
     .mutation(async (props) => {
       return deleteSupplier(props.ctx, props.input);
+    }),
+  deleteSale: publicProcedure
+    .input(z.object({ salesId: z.number() }))
+    .mutation(async (props) => {
+      const o = await props.ctx.db.salesOrders.update({
+        where: {
+          id: props.input.salesId,
+          deletedAt: null,
+        },
+        data: {
+          // bin: true,
+          deletedAt: new Date(),
+        },
+        select: {
+          orderId: true,
+        },
+      });
+      await createNoteAction({
+        db: props.ctx.db,
+        authorId: props.ctx.userId!,
+        subject: "Sale Deleted",
+        headline: `Sale with # ${o.orderId} was deleted.`, // headline is used for the general activities page
+        note: "", // user input
+        type: "activity",
+        tags: [
+          {
+            tagName: "channel",
+            tagValue: "Sales",
+          },
+          {
+            tagName: "salesId",
+            tagValue: String(props.input.salesId),
+          },
+          {
+            tagName: "type",
+            tagValue: "system",
+          },
+          {
+            tagName: "status",
+            tagValue: "public",
+          },
+        ],
+      });
+      return true;
     }),
 });

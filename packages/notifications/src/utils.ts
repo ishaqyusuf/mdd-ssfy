@@ -24,7 +24,7 @@ type TagValueMap = {
 } & Record<Exclude<NoteTagNames, "activity" | "status">, string>;
 export function noteTagFilter<K extends NoteTagNames>(
   tagName: K,
-  tagValue: TagValueMap[K]
+  tagValue: TagValueMap[K],
 ) {
   // export function noteTagFilter(tagName: NoteTagNames, tagValue: string) {
   return { tagName, tagValue: String(tagValue) };
@@ -57,6 +57,7 @@ export function transformActivityTags(
 }
 
 export const noteTagNames = [
+  "channel",
   "itemControlUID",
   "deliveryId",
   "dispatchRecipient",
