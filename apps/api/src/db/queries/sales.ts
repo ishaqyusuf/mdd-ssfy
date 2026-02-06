@@ -119,7 +119,6 @@ export async function getOrders(
     whereSales(query),
     db.salesOrders,
   );
-  consoleLog("where", JSON.stringify(where));
 
   const data = await db.salesOrders.findMany({
     where,

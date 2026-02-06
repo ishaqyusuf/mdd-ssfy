@@ -17,6 +17,6 @@ export function useSiteActionFilterParams() {
         hasFilters: Object.values(filter).some((value) => value !== null),
     };
 }
-export const loadInboundFilterParams = createLoader(
+export const loadingSiteActionFilterParams = createLoader(
     siteActionFilterParamsSchema,
 );

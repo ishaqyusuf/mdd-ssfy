@@ -221,11 +221,9 @@ export const validateLinks = ({
 type NavType = z.infer<typeof schema>;
 const profileSection = _section("settings", null, [
     _link("Profile Settings", "settings2", "/settings/profile").data,
-    _link(
-        "Site Actions",
-        "Notification",
-        "/settings/site-action-notifications",
-    ).access(_role.is("Super Admin")).data,
+    _link("Site Actions", "Notification", "/site-actions").access(
+        _role.is("Super Admin"),
+    ).data,
 ]);
 
 const canEditProject = _perm.in("editProject", "editCommunity");

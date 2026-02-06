@@ -8,6 +8,8 @@ import { DataTable } from "@/components/tables/sales-orders/data-table";
 import { batchPrefetch, trpc } from "@/trpc/server";
 import { loadOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { ErrorFallbackSales } from "@/components/error-fallback-sales";
+import { consoleLog } from "@gnd/utils";
+import { db } from "@gnd/db";
 
 export async function generateMetadata(props) {
     return constructMetadata({
@@ -17,6 +19,7 @@ export async function generateMetadata(props) {
 
 export default async function Page(props) {
     const searchParams = await props.searchParams;
+
     const filter = loadOrderFilterParams(searchParams);
     batchPrefetch([
         trpc.sales.getOrders.infiniteQueryOptions({
