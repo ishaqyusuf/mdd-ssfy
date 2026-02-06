@@ -35,7 +35,7 @@ export default function TaskDetailsTab({}) {
     const { data: setting } = useQuery(
         useTRPC().settings.getJobSettings.queryOptions(),
     );
-    const { showTaskQty, allowCustomTasks } = setting?.meta || {};
+    const { showTaskQty, allowCustomJobs } = (setting?.meta as any) || {};
     // const cost = useJobCostList(ctx.type);
     // const form = useFormContext();
     // useEffect(() => {},[])
@@ -64,7 +64,7 @@ export default function TaskDetailsTab({}) {
                                     id="form-rhf-switch-isCustom"
                                     name={field.name}
                                     checked={field.value}
-                                    disabled={!allowCustomTasks}
+                                    disabled={!allowCustomJobs}
                                     onCheckedChange={field.onChange}
                                     aria-invalid={fieldState.invalid}
                                 />
@@ -73,7 +73,11 @@ export default function TaskDetailsTab({}) {
                     />
                 </Field.Group>
             </div>
-            <div className={cn(!ctx.costList?.fields?.length && "hidden")}>
+            <div
+                className={cn(
+                    !ctx.costList?.fields?.length || (isCustom && "hidden"),
+                )}
+            >
                 <Table className="">
                     <TableHeader>
                         <TableRow>
