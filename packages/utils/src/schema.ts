@@ -5,4 +5,5 @@ export const paginationSchema = z.object({
   // start: z.number().nullable().optional(),
   cursor: z.string().nullable().optional(),
   q: z.string().nullable().optional(),
+  bin: z.boolean().nullable().optional(),
 });

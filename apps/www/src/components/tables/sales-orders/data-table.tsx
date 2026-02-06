@@ -18,6 +18,7 @@ import { RouterInputs } from "@api/trpc/routers/_app";
 interface Props {
     defaultFilters?: RouterInputs["sales"]["getOrders"];
     singlePage?: boolean;
+    bin?: boolean;
 }
 export function DataTable(props: Props) {
     const { rowSelection, setRowSelection } = useSalesOrdersStore();
@@ -31,6 +32,7 @@ export function DataTable(props: Props) {
         filter: {
             ...filters,
             ...(props.defaultFilters || {}),
+            bin: props.bin,
         },
         route: _trpc.sales.getOrders,
     });

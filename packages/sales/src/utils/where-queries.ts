@@ -16,6 +16,15 @@ export function whereSales(query: SalesQueryParamsSchema) {
   Object.entries(query).map(([k, v]) => {
     if (v === null) return;
     switch (k as keyof SalesQueryParamsSchema) {
+      case "bin":
+        where.push({
+          // deletedAt: { not: null },
+          deletedAt: {
+            gt: new Date(),
+          },
+        });
+        break;
+
       case "salesRepId":
         where.push({
           salesRepId: v as any,

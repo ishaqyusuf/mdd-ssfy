@@ -58,6 +58,7 @@ export function transformSalesFilterQuery(query: SalesQueryParamsSchema) {
     "salesType",
     "size",
     "showing",
+    "bin",
   ];
 
   query.defaultSearch = Object.entries(query)
