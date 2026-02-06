@@ -63,7 +63,7 @@ export async function getSales(
 
   const result = await response(
     data
-      .map((o) => salesOrderDto(o, query.bin))
+      .map((o) => salesOrderDto(o, !!query.bin))
       .map((d) => ({
         ...d,
         noteCount: 0,

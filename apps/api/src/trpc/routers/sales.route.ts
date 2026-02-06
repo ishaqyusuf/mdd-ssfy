@@ -61,7 +61,7 @@ export const salesRouter = createTRPCRouter({
     .input(
       z.object({
         title: z.string(),
-      })
+      }),
     )
     .mutation(async (props) => {
       const db = props.ctx.db;
@@ -171,6 +171,21 @@ export const salesRouter = createTRPCRouter({
     .input(resolvePaymentSchema)
     .mutation(async (props) => {
       return resolvePayment(props.ctx, props.input);
+    }),
+  restore: publicProcedure
+    .input(z.object({ salesId: z.number() }))
+    .mutation(async (props) => {
+      await props.ctx.db.salesOrders.update({
+        where: {
+          id: props.input.salesId,
+          deletedAt: {},
+        },
+        data: {
+          // bin: false,
+          deletedAt: null,
+        },
+      });
+      return true;
     }),
   printInvoice: publicProcedure
     .input(printInvoiceSchema)

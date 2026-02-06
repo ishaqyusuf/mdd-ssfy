@@ -11,7 +11,7 @@ import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 
 import { Badge } from "@gnd/ui/badge";
-import { buttonVariants } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 
 import { Check, StickyNote } from "lucide-react";
@@ -20,6 +20,10 @@ import { cells } from "@gnd/ui/custom/data-table/cells";
 
 import Link from "next/link";
 import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
+import { useBin } from "@/hooks/use-bin";
+import { SubmitButton } from "@gnd/ui/submit-button";
+import { useMutation } from "@tanstack/react-query";
+import { useTRPC } from "@/trpc/client";
 export type Item = RouterOutputs["sales"]["index"]["data"][number];
 export const columns2: ColumnDef<Item>[] = [
     cells.selectColumn,
@@ -335,6 +339,34 @@ function Actions({ item }: { item: Item }) {
     const produceable = !!item.stats?.prodCompleted?.total;
     const batchSales = useBatchSales();
     const isMobile = useIsMobile();
+    const isBin = useBin();
+    const { mutate: restore, isPending: isRestoring } = useMutation(
+        useTRPC().sales.restore.mutationOptions({
+            onSuccess: () => {},
+            meta: {
+                toastTitle: {
+                    error: "Unable to complete",
+                    loading: "Processing...",
+                    success: "Done!.",
+                },
+            },
+        }),
+    );
+    if (isBin) {
+        return (
+            <>
+                <SubmitButton
+                    type="button"
+                    onClick={restore}
+                    isSubmitting={isRestoring}
+                    size="sm"
+                    variant="destructive"
+                >
+                    Restore
+                </SubmitButton>
+            </>
+        );
+    }
     return (
         <div className="relative flex items-center gap-2 z-10">
             <Link
