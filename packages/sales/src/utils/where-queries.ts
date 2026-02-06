@@ -19,7 +19,9 @@ export function whereSales(query: SalesQueryParamsSchema) {
       case "bin":
         if (v)
           where.push({
-            deletedAt: {},
+            deletedAt: {
+              lte: new Date(),
+            },
           });
         break;
 
