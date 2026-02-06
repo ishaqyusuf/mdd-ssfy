@@ -16,14 +16,14 @@ export function whereSales(query: SalesQueryParamsSchema) {
   Object.entries(query).map(([k, v]) => {
     if (v === null) return;
     switch (k as keyof SalesQueryParamsSchema) {
-      case "bin":
-        if (v)
-          where.push({
-            deletedAt: {
-              lte: new Date(),
-            },
-          });
-        break;
+      // case "bin":
+      //   if (v)
+      //     where.push({
+      //       deletedAt: {
+      //         lte: new Date(),
+      //       },
+      //     });
+      //   break;
 
       case "salesRepId":
         where.push({
@@ -78,11 +78,7 @@ export function whereSales(query: SalesQueryParamsSchema) {
         break;
     }
   });
-  if (query["with.trashed"]) where.push({ deletedAt: { not: null } });
-  if (query["trashed.only"])
-    where.push({
-      deletedAt: anyDateQuery(),
-    });
+
   // const q = query.q;
   // if (q) {
   //   const searchQ = searchSales(q);

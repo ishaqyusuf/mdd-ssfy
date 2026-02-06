@@ -21,10 +21,10 @@ export async function queryResponse<T>(
     query?;
     model?;
     where?;
-  }
+  },
 ) {
   let meta = {} as PageDataMeta;
-  if (where) where.deletedAt = null;
+  if (where && !query?.bin) where.deletedAt = null;
   if (model) {
     const count = await model.count({
       where,
@@ -48,7 +48,7 @@ export function queryMeta(query?: any, sortFn?) {
   // const [sort, sortOrder = "desc"] = (query.sort || "createdAt").split(".");
   const multiSorts = query.sort;
   const [sort, sortOrder = "desc"] = (query.sort?.[0] || "createdAt")?.split(
-    "."
+    ".",
   );
 
   //query.sort?.split(",");
@@ -80,6 +80,12 @@ interface Props {
   sortFn(sort: string, sortOrder: string);
 }
 export async function composeQueryData(query, where, model, props?: Props) {
+  if (query?.bin) {
+    where.deletedAt = {
+      lte: new Date(),
+    };
+    consoleLog("bin where", JSON.stringify(where));
+  }
   const md = await queryResponse([], {
     query,
     model,
@@ -109,7 +115,7 @@ export async function composeQueryData(query, where, model, props?: Props) {
 }
 export function composeQuery<T>(
   queries: T[],
-  relation: "AND" | "OR" = "AND"
+  relation: "AND" | "OR" = "AND",
 ): T | undefined {
   if (!Array.isArray(queries) || queries.length === 0) {
     return undefined;
@@ -123,12 +129,12 @@ export function composeQuery<T>(
 }
 export function __queryBuilder<T extends object, WhereInput>(
   query: T,
-  queries: WhereInput[]
+  queries: WhereInput[],
 ) {
   type Ctx = {
     _if<K extends keyof T>(
       k: K,
-      fn?: (ctx: Ctx, value: NonNullable<T[K]>) => void
+      fn?: (ctx: Ctx, value: NonNullable<T[K]>) => void,
     ): Ctx;
     _unless<K extends keyof T>(k: K, fn?: (ctx: Ctx, value: T[K]) => void): Ctx;
     where(where: WhereInput): Ctx;

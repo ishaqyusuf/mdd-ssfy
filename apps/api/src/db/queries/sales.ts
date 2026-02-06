@@ -27,7 +27,7 @@ import {
   itemItemControlUid,
   mouldingItemControlUid,
 } from "@api/utils/sales-control";
-import { formatCurrency, formatMoney } from "@gnd/utils";
+import { consoleLog, formatCurrency, formatMoney } from "@gnd/utils";
 import { calculateSalesDueAmount } from "@sales/sales-transaction";
 import { payrollUid } from "@sales/utils/utils";
 import z from "zod";
@@ -46,6 +46,7 @@ export async function getSales(
 
   const { db } = ctx;
   const { response, searchMeta, where, meta } = await composeQueryData(
+    // const where = ;
     query,
     whereSales(query),
     db.salesOrders,
@@ -118,6 +119,7 @@ export async function getOrders(
     whereSales(query),
     db.salesOrders,
   );
+  consoleLog("where", JSON.stringify(where));
 
   const data = await db.salesOrders.findMany({
     where,
