@@ -11,7 +11,7 @@ import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { useSalesOrdersStore } from "@/store/sales-orders";
+// import { useSalesOrdersStore } from "@/store/sales-orders";
 import { SalesQueryParamsSchema } from "@sales/schema";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { Button } from "@gnd/ui/button";
@@ -21,11 +21,12 @@ import { Icons } from "@gnd/ui/custom/icons";
 interface Props {
     defaultFilters?: SalesQueryParamsSchema;
     singlePage?: boolean;
+    bin?: boolean;
 }
 export function DataTable(props: Props) {
     const trpc = useTRPC();
     const { filters } = useOrderFilterParams();
-    const { rowSelection, setRowSelection } = useSalesOrdersStore();
+    // const { rowSelection, setRowSelection } = useSalesOrdersStore();
     const {
         data,
         ref: loadMoreRef,
@@ -35,6 +36,7 @@ export function DataTable(props: Props) {
         filter: {
             ...filters,
             ...(props.defaultFilters || {}),
+            bin: props.bin,
         },
         route: trpc.sales.quotes,
     });

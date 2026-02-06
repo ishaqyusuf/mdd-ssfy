@@ -103,7 +103,7 @@ export async function getOrders(
   query: SalesQueryParamsSchema,
 ) {
   query.salesType = "order";
-  if (query.defaultSearch) {
+  if (query.defaultSearch && !query.bin) {
     if (query.showing != "all sales") query.salesRepId = ctx.userId!;
     if (query.showing != "all sales" && !query.q?.trim())
       query.salesRepId = ctx.userId!;

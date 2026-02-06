@@ -8,7 +8,7 @@ import type {
   SalesStatStatus,
 } from "@api/type";
 import type { Prisma } from "@gnd/db";
-import { sumArrayKeys } from "@gnd/utils";
+import { consoleLog, sumArrayKeys } from "@gnd/utils";
 import dayjs from "@gnd/utils/dayjs";
 import type { DispatchItemPackingStatus } from "@sales/types";
 import { padStart } from "lodash";
