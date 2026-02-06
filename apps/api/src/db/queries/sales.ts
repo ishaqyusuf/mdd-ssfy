@@ -62,11 +62,13 @@ export async function getSales(
   );
 
   const result = await response(
-    data.map(salesOrderDto).map((d) => ({
-      ...d,
-      noteCount: 0,
-      ...(notCounts[d.id.toString()] || {}),
-    })),
+    data
+      .map((o) => salesOrderDto(o, query.bin))
+      .map((d) => ({
+        ...d,
+        noteCount: 0,
+        ...(notCounts[d.id.toString()] || {}),
+      })),
   );
 
   return result;
@@ -93,9 +95,11 @@ export async function sales(ctx: TRPCContext, query: SalesQueryParamsSchema) {
   });
 
   return await response(
-    data.map(salesQuoteDto).map((d) => ({
-      ...d,
-    })),
+    data
+      .map((o) => salesQuoteDto(o, query.bin))
+      .map((d) => ({
+        ...d,
+      })),
   );
 }
 export async function getOrders(
@@ -126,11 +130,13 @@ export async function getOrders(
   );
 
   const result = await response(
-    data.map(salesOrderDto).map((d) => ({
-      ...d,
-      noteCount: 0,
-      ...(notCounts[d.id.toString()] || {}),
-    })),
+    data
+      .map((o) => salesOrderDto(o, query.bin))
+      .map((d) => ({
+        ...d,
+        noteCount: 0,
+        ...(notCounts[d.id.toString()] || {}),
+      })),
   );
   return result;
 }
@@ -154,9 +160,11 @@ export async function getQuotes(
   });
 
   return await response(
-    data.map(salesQuoteDto).map((d) => ({
-      ...d,
-    })),
+    data
+      .map((o) => salesQuoteDto(o, query.bin))
+      .map((d) => ({
+        ...d,
+      })),
   );
 }
 

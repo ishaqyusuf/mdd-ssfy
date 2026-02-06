@@ -22,7 +22,7 @@ export type Item = Prisma.SalesOrdersGetPayload<{
   include: typeof SalesListInclude;
 }> &
   Partial<{}>;
-export function salesOrderDto(data: Item) {
+export function salesOrderDto(data: Item, bin?: boolean) {
   const deliveryOption: DeliveryOption =
     (data?.deliveryOption as any) || "pickup";
   let deliveryStatus = data?.deliveries?.find((a) => !!a?._count?.items)?.[0]
@@ -46,7 +46,7 @@ export function salesOrderDto(data: Item) {
   if (due <= 0) due = 0;
   const customer = data.customer;
   return {
-    ...commonListData(data),
+    ...commonListData(data, bin),
     deliveryOption,
     deliveryStatus,
     dispatchList: data.deliveries?.map((d) => {
@@ -69,9 +69,9 @@ export function salesOrderDto(data: Item) {
     statList: data.stat,
   };
 }
-export function salesQuoteDto(data: Item) {
+export function salesQuoteDto(data: Item, bin?: boolean) {
   return {
-    ...commonListData(data),
+    ...commonListData(data, bin),
   };
 }
 function getAddressDto(
@@ -94,7 +94,7 @@ function getAddressDto(
   };
 }
 
-function commonListData(data: Item) {
+function commonListData(data: Item, bin?: boolean) {
   const meta = (data.meta || {}) as any as SalesMeta;
   const costLines: { label: string; amount }[] = [];
   const _cost = (label, amount) => costLines.push({ label, amount });
