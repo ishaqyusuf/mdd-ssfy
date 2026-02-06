@@ -24,6 +24,7 @@ import { useBin } from "@/hooks/use-bin";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
+import { _qc, _trpc } from "@/components/static-trpc";
 export type Item = RouterOutputs["sales"]["index"]["data"][number];
 export const columns2: ColumnDef<Item>[] = [
     cells.selectColumn,
@@ -342,7 +343,11 @@ function Actions({ item }: { item: Item }) {
     const isBin = useBin();
     const { mutate: restore, isPending: isRestoring } = useMutation(
         useTRPC().sales.restore.mutationOptions({
-            onSuccess: () => {},
+            onSuccess: () => {
+                _qc.invalidateQueries({
+                    queryKey: _trpc.sales.getOrders.infiniteQueryKey(),
+                });
+            },
             meta: {
                 toastTitle: {
                     error: "Unable to complete",
@@ -357,7 +362,9 @@ function Actions({ item }: { item: Item }) {
             <>
                 <SubmitButton
                     type="button"
-                    onClick={restore}
+                    onClick={(e) => {
+                        restore({ salesId: item.id });
+                    }}
                     isSubmitting={isRestoring}
                     size="sm"
                     variant="destructive"
