@@ -1,5 +1,3 @@
-import { consoleLog } from ".";
-
 export type PageDataMeta = {
   count?;
   page?;
@@ -84,7 +82,6 @@ export async function composeQueryData(query, where, model, props?: Props) {
     where.deletedAt = {
       lte: new Date(),
     };
-    consoleLog("bin where", JSON.stringify(where));
   }
   const md = await queryResponse([], {
     query,
