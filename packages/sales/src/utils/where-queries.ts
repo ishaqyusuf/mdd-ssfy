@@ -18,10 +18,10 @@ export function whereSales(query: SalesQueryParamsSchema) {
     switch (k as keyof SalesQueryParamsSchema) {
       case "bin":
         where.push({
-          // deletedAt: { not: null },
-          deletedAt: {
-            gt: new Date(),
-          },
+          deletedAt: { not: null },
+          // deletedAt: {
+          //   gt: new Date(),
+          // },
         });
         break;
 
