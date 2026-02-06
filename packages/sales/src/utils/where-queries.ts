@@ -525,7 +525,7 @@ export function whereSales(query: SalesQueryParamsSchema) {
       },
     ],
   };
-  if (query.defaultSearch) {
+  if (query.defaultSearch && !query?.bin) {
     where.push({
       OR: [
         dispatchPendingQuery,
