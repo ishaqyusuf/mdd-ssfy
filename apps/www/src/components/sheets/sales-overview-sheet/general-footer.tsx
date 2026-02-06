@@ -57,8 +57,7 @@ export function GeneralFooter({}) {
         });
     }
     const [menuOpen, setMenuOpen] = useState(false);
-    const printer = useSalesPrintParams();
-    const loader = useLoadingToast();
+
     const sq = useSalesQueryClient();
     const { mutate: deleteSale } = useMutation(
         useTRPC().sales.deleteSale.mutationOptions({
