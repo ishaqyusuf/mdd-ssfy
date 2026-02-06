@@ -96,7 +96,7 @@ export async function sales(ctx: TRPCContext, query: SalesQueryParamsSchema) {
 
   return await response(
     data
-      .map((o) => salesQuoteDto(o, query.bin))
+      .map((o) => salesQuoteDto(o, !!query.bin))
       .map((d) => ({
         ...d,
       })),
@@ -131,7 +131,7 @@ export async function getOrders(
 
   const result = await response(
     data
-      .map((o) => salesOrderDto(o, query.bin))
+      .map((o) => salesOrderDto(o, !!query.bin))
       .map((d) => ({
         ...d,
         noteCount: 0,
@@ -161,7 +161,7 @@ export async function getQuotes(
 
   return await response(
     data
-      .map((o) => salesQuoteDto(o, query.bin))
+      .map((o) => salesQuoteDto(o, !!query.bin))
       .map((d) => ({
         ...d,
       })),
