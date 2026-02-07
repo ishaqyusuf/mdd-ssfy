@@ -35,7 +35,7 @@ export default function TaskDetailsTab({}) {
     const { data: setting } = useQuery(
         useTRPC().settings.getJobSettings.queryOptions(),
     );
-    const { showTaskQty, allowCustomJobs } = (setting?.meta as any) || {};
+    const { showTaskQty, allowCustomJobs } = setting?.meta || {};
     // const cost = useJobCostList(ctx.type);
     // const form = useFormContext();
     // useEffect(() => {},[])

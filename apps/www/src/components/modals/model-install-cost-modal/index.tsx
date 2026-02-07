@@ -28,7 +28,7 @@ export function ModelInstallCostModal() {
     const { data, isPending, dataV2, isV2 } = ctx;
     const { editCommunityModelInstallCostId, setParams, mode, openToSide } =
         useCommunityInstallCostParams();
-
+    const _modelInstallContext = useCreateBuilderModelInstallsContext(ctx);
     return (
         <CustomModal
             // className="overflow-hidden sp-0 md:max-h-full md:h-auto md:min-h-0  md:max-w-[700px] lg:max-w-[800px]"
@@ -129,9 +129,7 @@ export function ModelInstallCostModal() {
                             </Sidebar>
                             <div className="flex-1">
                                 <BuilderModelInstallsProvider
-                                    value={useCreateBuilderModelInstallsContext(
-                                        ctx,
-                                    )}
+                                    value={_modelInstallContext}
                                 >
                                     <AddNewInstallCost />
                                     <CustomModal.Content className="h-[60vh] relative -mx-0 border-l">

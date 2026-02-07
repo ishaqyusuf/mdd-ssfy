@@ -26,9 +26,9 @@ export async function getSettingAction<T extends keyof SettingsTypes>(
         meta: {},
       },
     });
-    return newSetting as SettingsTypes[T];
+    return newSetting as any as SettingsTypes[T];
   }
-  return setting as SettingsTypes[T];
+  return setting as any as SettingsTypes[T];
 }
 export async function updateSettingsMeta<T extends keyof SettingsTypes>(
   type: T,

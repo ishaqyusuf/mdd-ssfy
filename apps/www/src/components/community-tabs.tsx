@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { ResetInventories } from "./reset-inventories";
 import { Tabs } from "@gnd/ui/composite";
 import { Building2, Home, Users2 } from "lucide-react";
+import { Icons } from "@gnd/ui/custom/icons";
 // import { Tabs } from "@gnd/ui/custom/tabs";
 export function CommunityTabs() {
     function CustomTab({
@@ -36,16 +37,23 @@ export function CommunityTabs() {
     return (
         <div className="flex gap-4 items-center">
             <Tabs.Root value={path}>
-                <Tabs.List className="flex  gap-1 overflow-x-auto no-scrollbar border-b border-border/50">
+                <Tabs.List className="flex  gap-1 overflow-x-auto no-scrollbar border-b bg-background border-border/50">
                     <CustomTab Icon={Building2}>Projects</CustomTab>
                     <CustomTab Icon={Home} value="/project-units">
                         Units
                     </CustomTab>
                     <CustomTab value="/unit-productions">Productions</CustomTab>
-                    <CustomTab value="/unit-invoices">Invoices</CustomTab>
-                    <CustomTab value="/templates">Templates</CustomTab>
-                    <CustomTab Icon={Users2} value="/builders">
+                    <CustomTab Icon={Icons.estimates} value="/unit-invoices">
+                        Invoices
+                    </CustomTab>
+                    <CustomTab Icon={Icons.communityInvoice} value="/templates">
+                        Templates
+                    </CustomTab>
+                    <CustomTab Icon={Icons.builder} value="/builders">
                         Builders
+                    </CustomTab>
+                    <CustomTab Icon={Icons.lineChart} value="/install-costs">
+                        Install Cost Rate
                     </CustomTab>
                 </Tabs.List>
             </Tabs.Root>

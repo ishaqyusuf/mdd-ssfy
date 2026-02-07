@@ -7,6 +7,7 @@ import {
 } from "@gnd/ui/tanstack";
 import superjson from "superjson";
 import { _trpc } from "@/components/static-trpc";
+import { consoleLog } from "@gnd/utils";
 
 export function makeQueryClient() {
     return new QueryClient({
@@ -44,6 +45,12 @@ export function makeQueryClient() {
                 });
             },
             onError: async (data, variables, _context, mutation) => {
+                if (
+                    process.env.NODE_ENV === "development" &&
+                    mutation?.meta?.debug
+                ) {
+                    consoleLog("Mutation error", { data, variables, mutation });
+                }
                 if (!mutation?.meta?.toastTitle?.error) return;
                 const title = mutation?.meta?.toastTitle?.error || "Error ...";
                 toast({
@@ -65,10 +72,11 @@ type DotPaths<T> = {
     [K in keyof T]: T[K] extends { queryKey: (...args: any) => any }
         ? K & string
         : T[K] extends object
-        ? Join<K & string, DotPaths<T[K]>>
-        : never;
+          ? Join<K & string, DotPaths<T[K]>>
+          : never;
 }[keyof T];
 
 type Routes = DotPaths<typeof _trpc>;
 
 const e: Routes = "jobs.adminAnalytics";
+

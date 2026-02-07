@@ -12,6 +12,7 @@ import GeneralInfoTab from "./general-info-tab";
 import SelectUserField from "./select-user-field";
 import TaskDetailsTab from "./task-details-tab";
 import { useJobSubmitCtx } from "./use-submit-job";
+import { SubmitButton } from "@gnd/ui/submit-button";
 
 export type SubmitJobTabs = "project" | "user" | "unit" | "tasks" | "general";
 export type JobFormAction = "edit" | "change-worker";
@@ -71,9 +72,9 @@ function ModalFooter({ data }: SubmitJobModalProps) {
     const ctx = useJobSubmitCtx();
     return (
         <div className="flex items-center space-x-4">
-            <Btn isLoading={ctx.isLoading} onClick={ctx.nextTab}>
+            <SubmitButton isSubmitting={ctx.isLoading} onClick={ctx.nextTab}>
                 Submit
-            </Btn>
+            </SubmitButton>
         </div>
     );
 }

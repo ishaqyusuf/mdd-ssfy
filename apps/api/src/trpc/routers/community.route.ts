@@ -79,9 +79,10 @@ import {
   getProjectUnits,
   getProjectUnitsSchema,
 } from "@api/db/queries/project-units";
-import { generateRandomString } from "@gnd/utils";
+import { consoleLog, generateRandomString } from "@gnd/utils";
 import type { CommunityBuilderMeta } from "@gnd/utils/community";
 import { builderFormSchema } from "@community/schema";
+import { getSettingAction } from "@gnd/settings";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -164,6 +165,56 @@ export const communityRouters = createTRPCRouter({
         tasks: result.tasks,
       };
     }),
+  // community install costs
+  getCommunityInstallCostRates: publicProcedure.query(async (props) => {
+    const r = await props.ctx.db.installCostModel.findMany({
+      where: {
+        // status: "active",
+      },
+      orderBy: {
+        title: "asc",
+      },
+      select: {
+        id: true,
+        title: true,
+        unit: true,
+        unitCost: true,
+      },
+    });
+    const legacyCosts = await (async () => {
+      const ss = await getSettingAction("install-price-chart", props.ctx.db);
+      const s = ss?.meta?.list || [];
+      return s;
+    })();
+
+    return {
+      communityInstallCostRates: r,
+      legacyCosts,
+    };
+  }),
+  importLegacyInstallCosts: publicProcedure.mutation(async (props) => {
+    const ss = await getSettingAction("install-price-chart", props.ctx.db);
+    const s = ss?.meta?.list || [];
+    const existingCosts = await props.ctx.db.installCostModel.findMany({
+      where: {
+        status: "active",
+      },
+    });
+    const existingTitles = existingCosts.map((c) => c.title);
+    const costsToImport = s.filter((c) => !existingTitles.includes(c.title));
+    await props.ctx.db.installCostModel.createMany({
+      data: costsToImport.map((cost) => ({
+        title: cost.title,
+        unit: "PCS",
+        unitCost: +cost.cost,
+        status: "active",
+      })),
+    });
+    return {
+      importedCount: costsToImport.length,
+    };
+  }),
+  // commuunity install costs end
   getProjectForm: publicProcedure
     .input(getProjectFormSchema)
     .query(async (props) => {

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useEffect } from "react";
 import { useCommunityInstallCostParams } from "./use-community-install-cost-params";
 import { useTRPC } from "@/trpc/client";
+import { _trpc } from "@/components/static-trpc";
 
 type ModelInstallConfigContextProps = ReturnType<
     typeof useCreateModelInstallConfigContext
@@ -88,7 +89,7 @@ export const useCreateBuilderModelInstallsContext = (
         isPending: modelDataPending,
         error: modelDataError,
     } = useQuery(
-        useTRPC().community.getModelInstallTasksByBuilderTask.queryOptions(
+        _trpc.community.getModelInstallTasksByBuilderTask.queryOptions(
             {
                 builderTaskId: params.selectedBuilderTaskId!,
                 modelId: params.editCommunityModelInstallCostId!,

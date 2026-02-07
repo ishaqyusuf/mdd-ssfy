@@ -8,3 +8,5 @@ const COMMUNITY_CATEGORIES = [
   COMMUNITY_LISTINGS_INVENTORY_CATEGORY_TITLE,
 ] as const;
 export type CommunityCategory = (typeof COMMUNITY_CATEGORIES)[number];
+
+export const INSTALL_COST_DEFAULT_UNITS = ["PCS", "FT", "SQFT", "HOURS"];
