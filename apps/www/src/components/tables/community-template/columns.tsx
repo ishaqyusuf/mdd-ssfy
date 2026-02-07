@@ -14,7 +14,6 @@ import { Badge } from "@gnd/ui/badge";
 import Money from "@/components/_v1/money";
 import Link from "next/link";
 import { openLink } from "@/lib/open-link";
-import InstallCostCell from "@/components/_v1/community/install-cost-cell";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 
 export type Item =
@@ -35,7 +34,7 @@ const model: Column = {
     header: "model",
     accessorKey: "model",
     meta: {
-        className: "w-[50px]",
+        className: "w-[50px]!",
         preventDefault: true,
     },
     cell: ({ row: { original: item } }) => (
@@ -51,7 +50,7 @@ const project: Column = {
     header: "Project",
     accessorKey: "project",
     meta: {
-        className: "w-[100px]",
+        // className: "w-[100px]",
     },
     cell: ({ row: { original: item } }) => (
         <>
@@ -76,7 +75,7 @@ const modelCost: Column = {
     header: "Model Cost",
     accessorKey: "modelCost",
     meta: {
-        className: "w-[150px]",
+        className: "w-[100px]",
         preventDefault: true,
     },
     cell: ({ row: { original: item } }) => {
@@ -120,14 +119,15 @@ const installCost: Column = {
     header: "Install Cost",
     accessorKey: "installCost",
     meta: {
-        className: "w-[150px]",
+        className: "w-[80px]",
         preventDefault: true,
     },
     cell: ({ row: { original: item } }) => {
         const { setParams } = useCommunityInstallCostParams();
         return (
             <div className="gap-2 flex">
-                <Badge
+                <Button
+                    size="sm"
                     onClick={(e) => {
                         setParams({
                             editCommunityModelInstallCostId: item.id,
@@ -145,8 +145,8 @@ const installCost: Column = {
                     {/* {item.hasInstallCost || item?.hasPivotInstallCost
                         ? "v1"
                         : "Set Cost"} */}
-                </Badge>
-                <Badge
+                </Button>
+                <Button
                     onClick={(e) => {
                         setParams({
                             editCommunityModelInstallCostId: item.id,
@@ -154,9 +154,10 @@ const installCost: Column = {
                         });
                     }}
                     variant={"secondary"}
+                    size="sm"
                 >
                     v2
-                </Badge>
+                </Button>
             </div>
         );
     },
