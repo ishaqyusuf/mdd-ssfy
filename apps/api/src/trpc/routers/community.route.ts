@@ -86,6 +86,7 @@ import {
   communityInstallCostRateSchema,
 } from "@community/schema";
 import { getSettingAction } from "@gnd/settings";
+import { INSTALL_COST_DEFAULT_UNITS } from "@community/constants";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -241,6 +242,24 @@ export const communityRouters = createTRPCRouter({
         });
       }
     }),
+  getInstallCostRateUnits: publicProcedure.query(async (props) => {
+    const r = await props.ctx.db.installCostModel.findMany({
+      where: {
+        status: "active",
+      },
+      select: {
+        unit: true,
+      },
+      distinct: ["unit"],
+    });
+    const units = [
+      ...INSTALL_COST_DEFAULT_UNITS,
+      ...r
+        .map((c) => c.unit)
+        .filter((u) => u && !INSTALL_COST_DEFAULT_UNITS.includes(u)),
+    ];
+    return units;
+  }),
   // commuunity install costs end
   getProjectForm: publicProcedure
     .input(getProjectFormSchema)

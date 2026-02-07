@@ -11,6 +11,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Download, History } from "lucide-react";
 import { _qc, _trpc } from "../static-trpc";
 import { InstallCostLine } from "./install-cost-line";
+import { Button } from "@gnd/ui/button";
+import { Icons } from "@gnd/ui/icons";
 
 export default function CommunityInstallCostRate() {
     const ctx = useCreateCommunityInstallCostRateContext();
@@ -18,6 +20,17 @@ export default function CommunityInstallCostRate() {
         return <LegacyImport costs={ctx.legacyCosts} />;
     return (
         <CommunityInstallCostRateProvider value={ctx}>
+            <div className="flex">
+                <div className="flex-1"></div>
+                <Button
+                    disabled={!!ctx?.editIndex}
+                    size={"sm"}
+                    onClick={() => ctx.setEditIndex(-1)}
+                >
+                    <Icons.Add className="h-4 w-4" />
+                    Add New Rate
+                </Button>
+            </div>
             <Table className="">
                 <Table.Header className="">
                     <Table.Row className="bg-muted hover:bg-muted [&>th]:uppercase [&>th]:border-r [&>th]:border-border [&>th]:last:border-0">
@@ -28,12 +41,9 @@ export default function CommunityInstallCostRate() {
                     </Table.Row>
                 </Table.Header>
                 <Table.Body>
+                    <InstallCostLine rate={{} as any} />
                     {ctx?.communityInstallCostRates?.map((rate, index) => (
-                        <InstallCostLine
-                            key={rate.id}
-                            index={index}
-                            rate={rate}
-                        />
+                        <InstallCostLine key={rate.id} rate={rate} />
                     ))}
                 </Table.Body>
             </Table>

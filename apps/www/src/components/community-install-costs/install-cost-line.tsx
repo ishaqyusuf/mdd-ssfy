@@ -12,20 +12,20 @@ import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { handleNumberInput } from "@gnd/utils";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Controller } from "react-hook-form";
 import { _qc, _trpc } from "../static-trpc";
+import { useState } from "react";
 
 export function InstallCostLine({
     rate,
-    index,
 }: {
     rate: RouterOutputs["community"]["getCommunityInstallCostRates"]["communityInstallCostRates"][number];
-    index: number;
+    // index: number;
 }) {
     const ctx = useCommunityInstallCostRateContext();
-    if (ctx.editIndex === index) return <Form rate={rate} />;
-    if (ctx.editIndex === -1) return null;
+    if (ctx.editIndex === rate?.id) return <Form rate={rate} />;
+    if (!rate?.id) return null;
     return (
         <Table.Row>
             <Table.Cell>
@@ -40,7 +40,7 @@ export function InstallCostLine({
             <Table.Cell className="flex justify-end">
                 <Button
                     onClick={(e) => {
-                        ctx.setEditIndex(index);
+                        ctx.setEditIndex(rate.id);
                     }}
                     variant={"outline"}
                     size={"sm"}
@@ -77,6 +77,10 @@ function Form({ rate }) {
             },
         }),
     );
+    const { data: unitsList } = useQuery(
+        useTRPC().community.getInstallCostRateUnits.queryOptions(),
+    );
+    const [customUnit, setCustomUnit] = useState("");
     const ctx = useCommunityInstallCostRateContext();
     return (
         <Table.Row className="bg-primary/5 hover:bg-primary/5 border-l-4 border-l-primary">
@@ -115,11 +119,30 @@ function Form({ rate }) {
                     name="unit"
                     render={({ field }) => (
                         <ComboboxDropdown
+                            className="uppercase"
+                            selectedItem={
+                                field.value
+                                    ? { id: field.value, label: field.value }
+                                    : undefined
+                            }
+                            onCreate={(e) => {
+                                setCustomUnit(e?.toUpperCase());
+                                field.onChange(e?.toUpperCase());
+                            }}
+                            renderOnCreate={(value) => {
+                                return (
+                                    <div className="flex items-center space-x-2">
+                                        <span>{`"${value}"`}</span>
+                                    </div>
+                                );
+                            }}
                             placeholder=""
-                            items={INSTALL_COST_DEFAULT_UNITS.map((a) => ({
-                                id: a,
-                                label: a,
-                            }))}
+                            items={[customUnit, ...(unitsList || [])]
+                                .filter(Boolean)
+                                .map((a) => ({
+                                    id: a,
+                                    label: a,
+                                }))}
                             onSelect={(item) => {
                                 field.onChange(item.id);
                             }}
@@ -128,7 +151,11 @@ function Form({ rate }) {
                 />
             </Table.Cell>
             <Table.Cell className="flex justify-end gap-2">
-                <form onSubmit={form.handleSubmit(handleUpdate)}>
+                <form
+                    onSubmit={form.handleSubmit((e) => {
+                        handleUpdate(e as any);
+                    })}
+                >
                     <SubmitButton
                         isSubmitting={isUpdating}
                         // variant={""}
