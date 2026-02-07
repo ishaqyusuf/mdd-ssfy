@@ -1,6 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { cn } from "../utils";
-import { Button, type ButtonProps } from "./button";
+import { Button } from "./button";
+import React from "react";
 
 export function SubmitButton({
   children,
@@ -11,7 +12,7 @@ export function SubmitButton({
   children: React.ReactNode;
   isSubmitting: boolean;
   disabled?: boolean;
-} & ButtonProps) {
+} & React.ComponentProps<typeof Button>) {
   return (
     <Button
       disabled={isSubmitting || disabled}

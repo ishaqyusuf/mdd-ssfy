@@ -618,3 +618,16 @@ export const uniqueBy = (data, key) => {
     };
   });
 };
+
+export function handleNumberInput(input, min?, max?) {
+  const num = Number.parseFloat(input);
+  if (
+    !Number.isNaN(num) &&
+    (min === undefined || num >= min) &&
+    (max === undefined || num <= max)
+  ) {
+    //  onChange?.(num);
+    return num;
+  }
+  if (input === "") return null;
+}

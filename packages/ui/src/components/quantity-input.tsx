@@ -3,6 +3,7 @@ import * as React from "react";
 import { cn } from "../utils";
 import { InputGroup } from "./composite";
 import { Icons } from "./icons";
+import { handleNumberInput } from "@gnd/utils";
 
 export type QtyInputProps = {
   value?: number;
@@ -33,16 +34,17 @@ export function QuantityInput({
   const handleInput: React.ChangeEventHandler<HTMLInputElement> = ({
     currentTarget: el,
   }) => {
-    const input = el.value;
-    // setRawValue(input);
+    return handleNumberInput(el.value, min, max);
+    // const input = el.value;
+    // // setRawValue(input);
 
-    // Check if input can be parsed as a valid number
-    const num = Number.parseFloat(input);
+    // // Check if input can be parsed as a valid number
+    // const num = Number.parseFloat(input);
 
-    if (!Number.isNaN(num) && min <= num && num <= max) {
-      onChange?.(num);
-    }
-    if (input === "") onChange?.(null as any);
+    // if (!Number.isNaN(num) && min <= num && num <= max) {
+    //   onChange?.(num);
+    // }
+    // if (input === "") onChange?.(null as any);
   };
 
   const handlePointerDown =

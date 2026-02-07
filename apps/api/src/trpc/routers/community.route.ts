@@ -81,7 +81,10 @@ import {
 } from "@api/db/queries/project-units";
 import { consoleLog, generateRandomString } from "@gnd/utils";
 import type { CommunityBuilderMeta } from "@gnd/utils/community";
-import { builderFormSchema } from "@community/schema";
+import {
+  builderFormSchema,
+  communityInstallCostRateSchema,
+} from "@community/schema";
 import { getSettingAction } from "@gnd/settings";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
@@ -214,6 +217,30 @@ export const communityRouters = createTRPCRouter({
       importedCount: costsToImport.length,
     };
   }),
+  updateInstallCostRate: publicProcedure
+    .input(communityInstallCostRateSchema)
+    .mutation(async (props) => {
+      const { id, title, unit, unitCost } = props.input;
+      if (id) {
+        await props.ctx.db.installCostModel.update({
+          where: { id },
+          data: {
+            title,
+            unit,
+            unitCost,
+          },
+        });
+      } else {
+        await props.ctx.db.installCostModel.create({
+          data: {
+            title,
+            unit,
+            unitCost,
+            status: "active",
+          },
+        });
+      }
+    }),
   // commuunity install costs end
   getProjectForm: publicProcedure
     .input(getProjectFormSchema)

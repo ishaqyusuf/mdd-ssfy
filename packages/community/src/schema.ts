@@ -17,3 +17,14 @@ export const builderFormSchema = z.object({
   ),
 });
 export type BuilderFormSchema = z.infer<typeof builderFormSchema>;
+
+export const communityInstallCostRateSchema = z.object({
+  id: z.number().optional().nullable(),
+  title: z.string(),
+  unit: z.string().optional().nullable(),
+  unitCost: z.number(),
+  status: z.enum(["active", "inactive"]).default("active"),
+});
+export type CommunityInstallCostRateSchema = z.infer<
+  typeof communityInstallCostRateSchema
+>;

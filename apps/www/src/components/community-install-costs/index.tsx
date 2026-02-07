@@ -22,7 +22,7 @@ export default function CommunityInstallCostRate() {
                 <Table.Header className="">
                     <Table.Row className="bg-muted hover:bg-muted [&>th]:uppercase [&>th]:border-r [&>th]:border-border [&>th]:last:border-0">
                         <Table.Head>Task</Table.Head>
-                        <Table.Head className="w-[100px]">Cost</Table.Head>
+                        <Table.Head className="w-[150px]">Cost</Table.Head>
                         <Table.Head className="w-[150px]">Max Qty</Table.Head>
                         <Table.Head></Table.Head>
                     </Table.Row>
