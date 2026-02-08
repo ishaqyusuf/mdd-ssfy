@@ -1,8 +1,9 @@
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useBuilderModelInstallsContext } from "@/hooks/use-model-install-config";
 import { useTRPC } from "@/trpc/client";
+import { Button } from "@gnd/ui/button";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 export function AddNewInstallCost() {
@@ -31,8 +32,21 @@ export function AddNewInstallCost() {
             },
         ),
     );
+    const { mutate: updateCommunityModelInstallTask, isPending: isUpdating } =
+        useMutation(
+            useTRPC().community.updateCommunityModelInstallTask.mutationOptions(
+                {
+                    onSuccess() {
+                        setParams({
+                            editCommunityModelInstallCostId: null,
+                            selectedBuilderTaskId: null,
+                        });
+                    },
+                },
+            ),
+        );
     return (
-        <div className="p-6 border-t border-dashed border-border mt-4 bg-muted/5">
+        <div className="p-6 border-t border-dashed border-border flex flex-col mt-4 bg-muted/5">
             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
                 Add Cost to Task
             </h4>
@@ -75,49 +89,37 @@ export function AddNewInstallCost() {
                             </div>
                         )}
                     </div> */}
-                    <ComboboxDropdown
-                        className="uppercase"
-                        // selectedItem={
-                        //     field.value
-                        //         ? { id: field.value, label: field.value }
-                        //         : undefined
-                        // }
-                        // onCreate={(e) => {
-                        //     // setCustomUnit(e?.toUpperCase());
-                        //     // field.onChange(e?.toUpperCase());
-                        // }}
-                        // renderOnCreate={(value) => {
-                        //     return (
-                        //         <div className="flex items-center space-x-2">
-                        //             <span>{`"${value}"`}</span>
-                        //         </div>
-                        //     );
-                        // }}
-                        renderListItem={({ item }) => (
-                            <div className="flex justify-between items-center w-full">
-                                <span>{item.label}</span>
-                                <span className="text-xs font-bold text-muted-foreground">
-                                    ${item.data.unitCost}
-                                    {item.data.unit ? `/${item.data.unit}` : ""}
-                                </span>
-                            </div>
-                        )}
-                        placeholder=""
-                        items={[...(suggesstions || [])]
-                            .filter(Boolean)
-                            .map((a) => ({
-                                id: String(a.id),
-                                label: String(a.title),
-                                data: a,
-                            }))}
-                        onSelect={(item) => {}}
-                    />
-                    <button
+                    <div className="flex-1">
+                        <ComboboxDropdown
+                            className="uppercase"
+                            placeholder="Search global costs..."
+                            renderListItem={({ item }) => (
+                                <div className="flex justify-between items-center w-full">
+                                    <span>{item.label}</span>
+                                    <span className="text-xs font-bold text-muted-foreground">
+                                        ${item.data.unitCost}
+                                        {item.data.unit
+                                            ? `/${item.data.unit}`
+                                            : ""}
+                                    </span>
+                                </div>
+                            )}
+                            items={[...(suggesstions || [])]
+                                .filter(Boolean)
+                                .map((a) => ({
+                                    id: String(a.id),
+                                    label: String(a.title),
+                                    data: a,
+                                }))}
+                            onSelect={(item) => {}}
+                        />
+                    </div>
+                    <Button
                         onClick={() => setShowCreateCost(true)}
-                        className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm font-bold border border-border hover:bg-secondary/80 transition-colors"
+                        className=""
                     >
                         Create New
-                    </button>
+                    </Button>
                 </div>
             ) : (
                 <div className="p-4 bg-background border border-border rounded-xl animate-in fade-in zoom-in-95 duration-200">

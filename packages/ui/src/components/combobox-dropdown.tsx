@@ -75,7 +75,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   const [inputValue, setInputValue] = React.useState("");
   const filteredItems =
     items?.filter((item) =>
-      item.label?.toLowerCase().includes(inputValue.toLowerCase())
+      item.label?.toLowerCase().includes(inputValue.toLowerCase()),
     ) || [];
   const [cursor, setCusor] = React.useState(0);
   React.useEffect(() => {
@@ -110,7 +110,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
 
       <CommandGroup>
         <CommandList className={cn("")}>
-          <div className={cn("max-h-[225px] overflow-auto", listClassName)}>
+          <div className={cn("max-h-56.25 overflow-auto", listClassName)}>
             {__items.map((item, itemIndex) => {
               let value = item.id;
               if (typeof value !== "string") value = String(item.id);
@@ -124,14 +124,14 @@ export function ComboboxDropdown<T extends ComboboxItem>({
                       ? "text-muted-foreground cursor-not-allowed"
                       : "cursor-pointer",
 
-                    className
+                    className,
                   )}
                   key={itemIndex}
                   value={value}
                   onSelect={(id) => {
                     const foundItem = filteredItems?.find(
                       (item) =>
-                        String(item.id)?.toUpperCase() === id?.toUpperCase()
+                        String(item.id)?.toUpperCase() === id?.toUpperCase(),
                     );
                     if (!foundItem) {
                       return;
@@ -149,7 +149,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
                       <Check
                         className={cn(
                           "mr-2 h-4 w-4",
-                          isChecked ? "opacity-100" : "opacity-0"
+                          isChecked ? "opacity-100" : "opacity-0",
                         )}
                       />
                       {item.label}
@@ -211,7 +211,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
                 selectedItem.label
               )
             ) : (
-              placeholder ?? "Select item..."
+              (placeholder ?? "Select item...")
             )}
           </span>
           <ChevronsUpDown className="absolute right-2 size-4 opacity-50" />

@@ -169,7 +169,10 @@ export const communityRouters = createTRPCRouter({
         tasks: result.tasks,
       };
     }),
-  // community install costs
+  /**
+   * COMMUNITY INSTALL COSTS
+   */
+
   getCommunityInstallCostRates: publicProcedure.query(async (props) => {
     const r = await props.ctx.db.installCostModel.findMany({
       where: {
@@ -231,6 +234,24 @@ export const communityRouters = createTRPCRouter({
       return suggestions;
       // Implementation for getInstallCostRatesSuggestions
     }),
+  getInstallCostRateUnits: publicProcedure.query(async (props) => {
+    const r = await props.ctx.db.installCostModel.findMany({
+      where: {
+        status: "active",
+      },
+      select: {
+        unit: true,
+      },
+      distinct: ["unit"],
+    });
+    const units = [
+      ...INSTALL_COST_DEFAULT_UNITS,
+      ...r
+        .map((c) => c.unit)
+        .filter((u) => u && !INSTALL_COST_DEFAULT_UNITS.includes(u)),
+    ];
+    return units;
+  }),
   importLegacyInstallCosts: publicProcedure.mutation(async (props) => {
     const ss = await getSettingAction("install-price-chart", props.ctx.db);
     const s = ss?.meta?.list || [];
@@ -253,6 +274,50 @@ export const communityRouters = createTRPCRouter({
       importedCount: costsToImport.length,
     };
   }),
+  updateCommunityModelInstallTask: publicProcedure
+    .input(
+      z.object({
+        id: z.number().optional().nullable(),
+        qty: z.number().optional().nullable(),
+        builderTaskId: z.number(),
+        installCostModelId: z.number(),
+        communityModelId: z.number(),
+        status: z.enum(["active", "inactive"]).optional().default("active"),
+      }),
+    )
+    .mutation(async (props) => {
+      const {
+        id,
+        qty,
+        builderTaskId,
+        installCostModelId,
+        communityModelId,
+        status,
+      } = props.input;
+      if (!id) {
+        const result = await props.ctx.db.communityModelInstallTask.create({
+          data: {
+            builderTaskId,
+            installCostModelId,
+            status: status || "active",
+            communityModelId,
+          },
+        });
+        return result;
+      } else {
+        const result = await props.ctx.db.communityModelInstallTask.update({
+          where: { id },
+          data: {
+            qty,
+            // builderTaskId,
+            // installCostModelId,
+            status: status || "active",
+            // communityModelId,
+          },
+        });
+        return result;
+      }
+    }),
   updateInstallCostRate: publicProcedure
     .input(communityInstallCostRateSchema)
     .mutation(async (props) => {
@@ -277,25 +342,10 @@ export const communityRouters = createTRPCRouter({
         });
       }
     }),
-  getInstallCostRateUnits: publicProcedure.query(async (props) => {
-    const r = await props.ctx.db.installCostModel.findMany({
-      where: {
-        status: "active",
-      },
-      select: {
-        unit: true,
-      },
-      distinct: ["unit"],
-    });
-    const units = [
-      ...INSTALL_COST_DEFAULT_UNITS,
-      ...r
-        .map((c) => c.unit)
-        .filter((u) => u && !INSTALL_COST_DEFAULT_UNITS.includes(u)),
-    ];
-    return units;
-  }),
-  // commuunity install costs end
+  /**
+   *
+   *
+   */
   getProjectForm: publicProcedure
     .input(getProjectFormSchema)
     .query(async (props) => {
