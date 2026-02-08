@@ -102,7 +102,6 @@ import {
   Wrench,
   PackagePlus,
 } from "lucide-react";
-import Image from "next/image";
 
 import { Cross2Icon, DashboardIcon } from "@radix-ui/react-icons";
 

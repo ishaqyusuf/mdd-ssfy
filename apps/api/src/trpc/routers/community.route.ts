@@ -196,6 +196,41 @@ export const communityRouters = createTRPCRouter({
       legacyCosts,
     };
   }),
+  getInstallCostRatesSuggestions: publicProcedure
+    .input(
+      z.object({
+        builderTaskId: z.number(),
+        modelId: z.number(),
+      }),
+    )
+    .query(async (props) => {
+      const suggestions = await props.ctx.db.installCostModel.findMany({
+        where: {
+          status: "active",
+          communityModelInstallTasks: {
+            every: {
+              builderTaskId: {
+                not: props.input.builderTaskId,
+              },
+              communityModelId: {
+                not: props.input.modelId,
+              },
+            },
+          },
+        },
+        orderBy: {
+          title: "asc",
+        },
+        select: {
+          id: true,
+          title: true,
+          unit: true,
+          unitCost: true,
+        },
+      });
+      return suggestions;
+      // Implementation for getInstallCostRatesSuggestions
+    }),
   importLegacyInstallCosts: publicProcedure.mutation(async (props) => {
     const ss = await getSettingAction("install-price-chart", props.ctx.db);
     const s = ss?.meta?.list || [];

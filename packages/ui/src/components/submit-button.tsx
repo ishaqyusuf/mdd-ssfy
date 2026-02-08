@@ -10,7 +10,7 @@ export function SubmitButton({
   ...props
 }: {
   children: React.ReactNode;
-  isSubmitting: boolean;
+  isSubmitting?: boolean;
   disabled?: boolean;
 } & React.ComponentProps<typeof Button>) {
   return (

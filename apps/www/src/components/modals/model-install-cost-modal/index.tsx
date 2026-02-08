@@ -6,7 +6,7 @@ import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cos
 import { CommunityInstallCostForm } from "../../forms/community-install-cost-form";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Badge } from "@gnd/ui/badge";
-import { Layers } from "lucide-react";
+import { AlertTriangle, Layers } from "lucide-react";
 import { useEffect } from "react";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { BuilderTaskItem } from "./builder-task-item";
@@ -26,8 +26,13 @@ export function ModelInstallCostModal() {
     const sideBarView = true;
     const ctx = useCreateModelInstallConfigContext();
     const { data, isPending, dataV2, isV2 } = ctx;
-    const { editCommunityModelInstallCostId, setParams, mode, openToSide } =
-        useCommunityInstallCostParams();
+    const {
+        editCommunityModelInstallCostId,
+        setParams,
+        mode,
+        selectedBuilderTaskId,
+        openToSide,
+    } = useCommunityInstallCostParams();
     const _modelInstallContext = useCreateBuilderModelInstallsContext(ctx);
     return (
         <CustomModal
@@ -131,6 +136,31 @@ export function ModelInstallCostModal() {
                                 <BuilderModelInstallsProvider
                                     value={_modelInstallContext}
                                 >
+                                    <div className="bg-amber-50 dark:bg-amber-900/10 border-b border-amber-100 dark:border-amber-800 px-6 py-3 flex items-start gap-3">
+                                        <AlertTriangle className="text-amber-600 mt-0.5 size-10" />
+                                        <div>
+                                            <p className="font-bold text-amber-800 dark:text-amber-200">
+                                                Global Builder Configuration
+                                            </p>
+                                            <p className="text-sm text-amber-700 dark:text-amber-300">
+                                                Changes to the install cost list
+                                                below will update{" "}
+                                                <strong>
+                                                    {dataV2?.builderName}
+                                                </strong>{" "}
+                                                globally. This affects ALL
+                                                models using the{" "}
+                                                <em>
+                                                    {dataV2?.builderTasks?.find(
+                                                        (a) =>
+                                                            a.id ===
+                                                            selectedBuilderTaskId,
+                                                    )?.taskName || "selected"}
+                                                </em>{" "}
+                                                task.
+                                            </p>
+                                        </div>
+                                    </div>
                                     <AddNewInstallCost />
                                     <CustomModal.Content className="h-[60vh] relative -mx-0 border-l">
                                         <InstallConfiguration />
@@ -138,7 +168,12 @@ export function ModelInstallCostModal() {
                                 </BuilderModelInstallsProvider>
                             </div>
                             <CustomModal.Footer>
-                                <SubmitButton type="button">Save</SubmitButton>
+                                <SubmitButton
+                                    isSubmitting={false}
+                                    type="button"
+                                >
+                                    Save
+                                </SubmitButton>
                             </CustomModal.Footer>
                         </Sidebar.Provider>
                     )

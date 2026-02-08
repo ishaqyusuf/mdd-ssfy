@@ -1,11 +1,15 @@
+import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useBuilderModelInstallsContext } from "@/hooks/use-model-install-config";
-import { Search } from "lucide-react";
+import { useTRPC } from "@/trpc/client";
+import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 export function AddNewInstallCost() {
     // const ctx = useBuilderModelInstallsContext();
     const [showCreateCost, setShowCreateCost] = useState(false);
     const [costSearchQuery, setCostSearchQuery] = useState("");
+    const { setParams, ...params } = useCommunityInstallCostParams();
     const unassociatedCosts = [];
     const handleAddExistingCost = (costId) => {};
     const [newCostDetails, setNewCostDetails] = useState({
@@ -14,7 +18,19 @@ export function AddNewInstallCost() {
         unit: "",
     });
     const handleCreateAndAddCost = () => {};
-
+    const { data: suggesstions } = useQuery(
+        useTRPC().community.getInstallCostRatesSuggestions.queryOptions(
+            {
+                builderTaskId: params.selectedBuilderTaskId,
+                modelId: params.editCommunityModelInstallCostId,
+            },
+            {
+                enabled:
+                    !!params.selectedBuilderTaskId &&
+                    !!params?.editCommunityModelInstallCostId,
+            },
+        ),
+    );
     return (
         <div className="p-6 border-t border-dashed border-border mt-4 bg-muted/5">
             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
@@ -22,7 +38,7 @@ export function AddNewInstallCost() {
             </h4>
             {!showCreateCost ? (
                 <div className="flex gap-2 relative">
-                    <div className="relative flex-1">
+                    {/* <div className="relative flex-1">
                         <Search
                             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                             size={14}
@@ -58,7 +74,44 @@ export function AddNewInstallCost() {
                                 )}
                             </div>
                         )}
-                    </div>
+                    </div> */}
+                    <ComboboxDropdown
+                        className="uppercase"
+                        // selectedItem={
+                        //     field.value
+                        //         ? { id: field.value, label: field.value }
+                        //         : undefined
+                        // }
+                        // onCreate={(e) => {
+                        //     // setCustomUnit(e?.toUpperCase());
+                        //     // field.onChange(e?.toUpperCase());
+                        // }}
+                        // renderOnCreate={(value) => {
+                        //     return (
+                        //         <div className="flex items-center space-x-2">
+                        //             <span>{`"${value}"`}</span>
+                        //         </div>
+                        //     );
+                        // }}
+                        renderListItem={({ item }) => (
+                            <div className="flex justify-between items-center w-full">
+                                <span>{item.label}</span>
+                                <span className="text-xs font-bold text-muted-foreground">
+                                    ${item.data.unitCost}
+                                    {item.data.unit ? `/${item.data.unit}` : ""}
+                                </span>
+                            </div>
+                        )}
+                        placeholder=""
+                        items={[...(suggesstions || [])]
+                            .filter(Boolean)
+                            .map((a) => ({
+                                id: String(a.id),
+                                label: String(a.title),
+                                data: a,
+                            }))}
+                        onSelect={(item) => {}}
+                    />
                     <button
                         onClick={() => setShowCreateCost(true)}
                         className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm font-bold border border-border hover:bg-secondary/80 transition-colors"
