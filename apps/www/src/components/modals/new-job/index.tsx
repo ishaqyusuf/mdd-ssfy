@@ -1,5 +1,7 @@
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { CustomModal } from "../custom-modal";
+import { StepsDescription } from "./steps-description";
+import { NewJobFooter } from "./new-job-footer";
 
 export function NewJobModal() {
     const { setParams, opened, ...params } = useJobFormParams();
@@ -13,9 +15,13 @@ export function NewJobModal() {
                     setParams(null);
                 }
             }}
-            title="Create New Job"
-            description="Select a project to create a new job."
-        ></CustomModal>
+            title={"Assign New Job"}
+            description={<StepsDescription />}
+            size={"xl"}
+        >
+            <CustomModal.Content className="h-[60vh] relative -mx-0"></CustomModal.Content>
+            <NewJobFooter />
+        </CustomModal>
     );
 }
 

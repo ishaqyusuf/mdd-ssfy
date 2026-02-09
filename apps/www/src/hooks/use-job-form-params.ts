@@ -10,7 +10,7 @@ export function useJobFormParams() {
         // createModelCost: parseAsBoolean,
         // editModelCostTemplateId: parseAsInteger,
         // editModelCostId: parseAsInteger,
-        step: parseAsStringEnum(["user", "project", "unit", "task", "form"]),
+        step: parseAsInteger,
         projectId: parseAsInteger,
         jobId: parseAsInteger,
         unitId: parseAsInteger,

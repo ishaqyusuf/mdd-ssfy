@@ -16,6 +16,7 @@ import {
 } from "@gnd/ui/dropdown-menu";
 
 import SubmitJobModal from "../_modals/submit-job-modal";
+import { useJobFormParams } from "@/hooks/use-job-form-params";
 
 export default function SubmitJobBtn({}) {
     const { data: session } = useSession({
@@ -36,6 +37,7 @@ export default function SubmitJobBtn({}) {
 
         modal?.openModal(<SubmitJobModal job={{ type } as any} />);
     }
+    const { setParams } = useJobFormParams();
     if (actions.length == 1)
         return (
             <Button
@@ -70,6 +72,15 @@ export default function SubmitJobBtn({}) {
                             {a}
                         </DropdownMenuItem>
                     ))}
+                    <DropdownMenuItem
+                        onClick={() => {
+                            setParams({
+                                step: 1,
+                            });
+                        }}
+                    >
+                        V2
+                    </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </>
