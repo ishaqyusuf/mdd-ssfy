@@ -101,8 +101,12 @@ export const useCreateBuilderModelInstallsContext = (
             },
         ),
     );
+    const selectedBuilderTask = dataV2?.builderTasks?.find(
+        (task) => task.id === params.selectedBuilderTaskId,
+    );
     return {
         params,
+        selectedBuilderTask,
         data: dataV2,
         setParams,
         modelId: params.editCommunityModelInstallCostId,

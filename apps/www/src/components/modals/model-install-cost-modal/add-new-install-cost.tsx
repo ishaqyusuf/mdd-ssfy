@@ -1,3 +1,4 @@
+import { _qc, _trpc } from "@/components/static-trpc";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useBuilderModelInstallsContext } from "@/hooks/use-model-install-config";
 import { useTRPC } from "@/trpc/client";
@@ -9,16 +10,14 @@ import { useState } from "react";
 export function AddNewInstallCost() {
     // const ctx = useBuilderModelInstallsContext();
     const [showCreateCost, setShowCreateCost] = useState(false);
-    const [costSearchQuery, setCostSearchQuery] = useState("");
     const { setParams, ...params } = useCommunityInstallCostParams();
-    const unassociatedCosts = [];
-    const handleAddExistingCost = (costId) => {};
+    const { data, selectedBuilderTask } = useBuilderModelInstallsContext();
     const [newCostDetails, setNewCostDetails] = useState({
         name: "",
         rate: "",
         unit: "",
     });
-    const handleCreateAndAddCost = () => {};
+
     const { data: suggesstions } = useQuery(
         useTRPC().community.getInstallCostRatesSuggestions.queryOptions(
             {
@@ -32,15 +31,27 @@ export function AddNewInstallCost() {
             },
         ),
     );
+    const handleCreateAndAddCost = () => {};
     const { mutate: updateCommunityModelInstallTask, isPending: isUpdating } =
         useMutation(
             useTRPC().community.updateCommunityModelInstallTask.mutationOptions(
                 {
                     onSuccess() {
-                        setParams({
-                            editCommunityModelInstallCostId: null,
-                            selectedBuilderTaskId: null,
+                        _qc.invalidateQueries({
+                            queryKey:
+                                _trpc.community.getModelInstallTasksByBuilderTask.queryKey(
+                                    {
+                                        builderTaskId:
+                                            params.selectedBuilderTaskId!,
+                                        modelId:
+                                            params.editCommunityModelInstallCostId!,
+                                    },
+                                ),
                         });
+                        // setParams({
+                        //     editCommunityModelInstallCostId: null,
+                        //     selectedBuilderTaskId: null,
+                        // });
                     },
                 },
             ),
@@ -48,7 +59,8 @@ export function AddNewInstallCost() {
     return (
         <div className="p-6 border-t border-dashed border-border flex flex-col mt-4 bg-muted/5">
             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
-                Add Cost to Task
+                Add Install Task for {data?.builderName} -{" "}
+                {selectedBuilderTask?.taskName}
             </h4>
             {!showCreateCost ? (
                 <div className="flex gap-2 relative">
@@ -111,7 +123,17 @@ export function AddNewInstallCost() {
                                     label: String(a.title),
                                     data: a,
                                 }))}
-                            onSelect={(item) => {}}
+                            onSelect={(item) => {
+                                // console.log({ selected: item });
+                                updateCommunityModelInstallTask({
+                                    // id: params.editCommunityModelInstallCostId,
+                                    builderTaskId: params.selectedBuilderTaskId,
+                                    communityModelId:
+                                        params.editCommunityModelInstallCostId,
+                                    installCostModelId: item.data.id,
+                                    qty: 0,
+                                });
+                            }}
                         />
                     </div>
                     <Button

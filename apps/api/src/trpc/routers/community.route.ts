@@ -279,6 +279,7 @@ export const communityRouters = createTRPCRouter({
       z.object({
         id: z.number().optional().nullable(),
         qty: z.number().optional().nullable(),
+        builderTaskInstallCostId: z.number().optional().nullable(),
         builderTaskId: z.number(),
         installCostModelId: z.number(),
         communityModelId: z.number(),
@@ -286,27 +287,54 @@ export const communityRouters = createTRPCRouter({
       }),
     )
     .mutation(async (props) => {
-      const {
+      if (!props.input.builderTaskInstallCostId) {
+        const r = await props.ctx.db.builderTaskInstallCost.create({
+          data: {
+            builderTaskId: props.input.builderTaskId,
+            installCostModelId: props.input.installCostModelId,
+            // communityModelId: props.input.communityModelId,
+          },
+        });
+        props.input.builderTaskInstallCostId = r.id;
+      }
+      let {
         id,
         qty,
         builderTaskId,
         installCostModelId,
         communityModelId,
         status,
+        builderTaskInstallCostId,
       } = props.input;
-      if (!id) {
+      const findId = async () => {
+        const _id = (
+          await props.ctx.db.communityModelInstallTask.findFirst({
+            where: {
+              builderTaskId,
+              communityModelId,
+            },
+            select: {
+              id: true,
+            },
+          })
+        )?.id;
+        id = _id;
+        return _id;
+      };
+      if (!id && !(await findId())) {
         const result = await props.ctx.db.communityModelInstallTask.create({
           data: {
             builderTaskId,
             installCostModelId,
             status: status || "active",
             communityModelId,
+            builderTaskInstallCostId,
           },
         });
         return result;
       } else {
         const result = await props.ctx.db.communityModelInstallTask.update({
-          where: { id },
+          where: { id: id! },
           data: {
             qty,
             // builderTaskId,
@@ -681,26 +709,26 @@ export const communityRouters = createTRPCRouter({
         modelName: model?.modelName,
       };
     }),
-
   getModelInstallTasksByBuilderTask: publicProcedure
     .input(z.object({ builderTaskId: z.number(), modelId: z.number() }))
     .query(async (props) => {
       const { db } = props.ctx;
       const { modelId: communityModelId, builderTaskId } = props.input;
-      const tasks = await db.communityModelInstallTask.findMany({
-        where: {
-          builderTaskId,
-          communityModelId,
-        },
-        select: {
-          // builderTask: true,
-          id: true,
-          builderTaskId: true,
-          installCostModelId: true,
-          qty: true,
-          status: true,
-        },
-      });
+      // const tasks = await db.communityModelInstallTask.findMany({
+      //   where: {
+      //     builderTaskId,
+      //     communityModelId,
+      //   },
+      //   select: {
+      //     // builderTask: true,
+      //     id: true,
+      //     builderTaskId: true,
+      //     installCostModelId: true,
+      //     qty: true,
+      //     status: true,
+      //   },
+      // });
+
       const installCosts = await db.installCostModel.findMany({
         where: {
           status: "active",
@@ -712,22 +740,40 @@ export const communityRouters = createTRPCRouter({
           unitCost: true,
         },
       });
-
+      const builderTaskInstallCosts = await db.builderTaskInstallCost.findMany({
+        where: {
+          builderTaskId,
+        },
+        select: {
+          id: true,
+          installCostModel: {
+            select: {
+              id: true,
+              title: true,
+              unit: true,
+              unitCost: true,
+              status: true,
+            },
+          },
+          modelInstallTasks: {
+            where: {
+              communityModelId,
+            },
+            take: 1,
+          },
+        },
+      });
       return {
-        tasks: tasks.map((t) => {
-          const installCost = installCosts.find(
-            (ic) => ic.id === t.installCostModelId,
-          );
+        tasks: builderTaskInstallCosts.map((b) => {
+          const modelInstallTask = b.modelInstallTasks[0];
           return {
-            ...t,
-            installCost: installCost
-              ? {
-                  id: installCost.id,
-                  title: installCost.title,
-                  unit: installCost.unit,
-                  unitCost: installCost.unitCost,
-                }
-              : null,
+            id: modelInstallTask?.id || null,
+            builderTaskId,
+            installCostModelId: b.installCostModel.id,
+            qty: modelInstallTask?.qty || null,
+            status: modelInstallTask?.status || "inactive",
+            installCostModel: b.installCostModel,
+            builderTaskInstallCostId: b.id,
           };
         }),
         installCosts,

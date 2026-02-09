@@ -222,8 +222,27 @@ model BuilderTask {
     builder                    Builders                    @relation(fields: [builderId], references: [id])
     communityModelInstallTasks CommunityModelInstallTask[]
     homeTasks                  HomeTasks[]
+    builderTaskInstallCosts    BuilderTaskInstallCost[]
 
     @@index([builderId])
+}
+
+model BuilderTaskInstallCost {
+    id                 Int                          @unique @default(autoincrement())
+    builderTaskId      Int
+    installCostModelId Int
+    defaultQty         Float?
+    totalCost          Float?
+    createdAt          DateTime?                    @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime?                    @updatedAt
+    deletedAt          DateTime?                    @db.Timestamp(0)
+    builderTask        BuilderTask                  @relation(fields: [builderTaskId], references: [id])
+    status             BuilderTaskInstallCostStatus @default(active)
+    installCostModel   InstallCostModel             @relation(fields: [installCostModelId], references: [id])
+    modelInstallTasks  CommunityModelInstallTask[]
+
+    @@index([builderTaskId])
+    @@index([installCostModelId])
 }
 
 model InstallCostModel {
@@ -236,6 +255,12 @@ model InstallCostModel {
     createdAt                  DateTime?                   @default(now()) @db.Timestamp(0)
     updatedAt                  DateTime?                   @updatedAt
     communityModelInstallTasks CommunityModelInstallTask[]
+    builderTaskInstallCosts    BuilderTaskInstallCost[]
+}
+
+enum BuilderTaskInstallCostStatus {
+    active
+    inactive
 }
 
 enum InstallCostModelStatus {
@@ -249,20 +274,22 @@ enum CommunityModelInstallTaskStatus {
 }
 
 model CommunityModelInstallTask {
-    id                 Int                             @unique @default(autoincrement())
-    communityModelId   Int
-    installCostModelId Int
-    qty                Float?
-    totalCost          Float?
-    createdAt          DateTime?                       @default(now()) @db.Timestamp(0)
-    updatedAt          DateTime?                       @updatedAt
-    deletedAt          DateTime?                       @db.Timestamp(0)
-    communityModel     CommunityModels                 @relation(fields: [communityModelId], references: [id])
-    installCostModel   InstallCostModel                @relation(fields: [installCostModelId], references: [id])
-    builderTask        BuilderTask?                    @relation(fields: [builderTaskId], references: [id])
-    builderTaskId      Int?
-    status             CommunityModelInstallTaskStatus
-    jobInstallTasks    JobInstallTasks[]
+    id                       Int                             @unique @default(autoincrement())
+    communityModelId         Int
+    installCostModelId       Int
+    qty                      Float?
+    totalCost                Float?
+    createdAt                DateTime?                       @default(now()) @db.Timestamp(0)
+    updatedAt                DateTime?                       @updatedAt
+    deletedAt                DateTime?                       @db.Timestamp(0)
+    communityModel           CommunityModels                 @relation(fields: [communityModelId], references: [id])
+    installCostModel         InstallCostModel                @relation(fields: [installCostModelId], references: [id])
+    builderTask              BuilderTask?                    @relation(fields: [builderTaskId], references: [id])
+    builderTaskId            Int?
+    status                   CommunityModelInstallTaskStatus
+    jobInstallTasks          JobInstallTasks[]
+    builderTaskInstallCost   BuilderTaskInstallCost?         @relation(fields: [builderTaskInstallCostId], references: [id])
+    builderTaskInstallCostId Int?
 
     @@index([communityModelId])
     @@index([installCostModelId])
