@@ -8,6 +8,11 @@
     "strict": false,
     "noImplicitAny": false
   },
-  "include": ["src", "../../apps/www/src/components/create-sales-btn.tsx"],
+  "include": [
+    "src",
+    "../../apps/www/src/components/create-sales-btn.tsx",
+    "../utils/src/hooks/use-search.ts",
+    "../utils/src/hooks/use-debounce.ts"
+  ],
   "exclude": ["node_modules"]
 }

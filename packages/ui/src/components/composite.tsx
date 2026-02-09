@@ -145,15 +145,12 @@ const AlertDialog = Object.assign(AlertDialogRoot, {
 
 import { Tabs as TabsRoot, TabsList, TabsTrigger, TabsContent } from "./tabs";
 
-const Tabs = Object.assign(
-  {},
-  {
-    Root: TabsRoot,
-    List: TabsList,
-    Trigger: TabsTrigger,
-    Content: TabsContent,
-  },
-);
+const Tabs = Object.assign(TabsRoot, {
+  Root: TabsRoot,
+  List: TabsList,
+  Trigger: TabsTrigger,
+  Content: TabsContent,
+});
 import {
   Select as SelectRoot,
   SelectContent,

@@ -10,6 +10,7 @@ export function useJobFormParams() {
         // createModelCost: parseAsBoolean,
         // editModelCostTemplateId: parseAsInteger,
         // editModelCostId: parseAsInteger,
+        redirectStep: parseAsInteger,
         step: parseAsInteger,
         projectId: parseAsInteger,
         jobId: parseAsInteger,

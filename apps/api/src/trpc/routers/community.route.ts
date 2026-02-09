@@ -461,6 +461,121 @@ export const communityRouters = createTRPCRouter({
   getUnitJobs: publicProcedure.input(getUnitJobsSchema).query(async (props) => {
     return getUnitJobs(props.ctx, props.input);
   }),
+  getProjectUnitsWithJobStats: publicProcedure
+    .input(
+      z.object({
+        projectId: z.number(),
+      }),
+    )
+    .query(async (props) => {
+      const { projectId } = props.input;
+      const { db } = props.ctx;
+      const units = await db.homes.findMany({
+        where: {
+          projectId,
+        },
+        select: {
+          id: true,
+          lot: true,
+          block: true,
+          modelName: true,
+          modelNo: true,
+          _count: {
+            select: {
+              jobs: {
+                where: {
+                  deletedAt: null,
+                },
+              },
+            },
+          },
+          jobs: {
+            where: {
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              amount: true,
+              status: true,
+            },
+          },
+        },
+      });
+      return units.map((unit) => {
+        const totalJobCost = unit.jobs.reduce(
+          (acc, job) => acc + job.amount,
+          0,
+        );
+        return {
+          id: unit.id,
+          lot: unit.lot,
+          block: unit.block,
+          jobCount: unit._count.jobs,
+          totalJobCost,
+          modelName: unit.modelName,
+          modelNo: unit.modelNo,
+        };
+      });
+    }),
+  getBuilderTasksForProject: publicProcedure
+    .input(
+      z.object({
+        projectId: z.number(),
+        homeId: z.number(),
+      }),
+    )
+    .query(async (props) => {
+      const { projectId, homeId } = props.input;
+      const { db } = props.ctx;
+      const tasks = await db.builderTask.findMany({
+        where: {
+          builder: {
+            projects: {
+              some: {
+                id: projectId,
+              },
+            },
+          },
+        },
+        select: {
+          id: true,
+          taskName: true,
+          communityModelInstallTasks: {
+            select: {
+              id: true,
+              qty: true,
+              installCostModel: {
+                select: {
+                  title: true,
+                  unitCost: true,
+                  unit: true,
+                },
+              },
+            },
+            where: {
+              communityModel: {
+                homes: {
+                  some: {
+                    id: homeId,
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      return tasks.map((task) => ({
+        id: task.id,
+        taskName: task.taskName,
+        installTasksCount: task.communityModelInstallTasks.length,
+        // installCostModel: task.communityModelInstallTasks?.[0]?.installCostModel || null,
+        // qty: task.communityModelInstallTasks?.[0]?.qty || null,
+        estimatedCost: task.communityModelInstallTasks.reduce((acc, t) => {
+          const cost = (t.installCostModel?.unitCost || 0) * (t.qty || 0);
+          return acc + cost;
+        }, 0),
+      }));
+    }),
   saveCommunityModelCostForm: publicProcedure
     .input(saveCommunityModelCostSchema)
     .mutation(async (props) => {
