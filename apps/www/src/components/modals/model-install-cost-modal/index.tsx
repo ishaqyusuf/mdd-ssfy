@@ -165,9 +165,9 @@ export function ModelInstallCostModal() {
                                         </div>
                                     </div>
                                     <AddNewInstallCost />
-                                    <CustomModal.Content className="h-[60vh] relative -mx-0">
+                                    <CustomModal.Content className="h-[45vh] relative -mx-0">
                                         <InstallConfiguration />
-                                        <CustomModal.Footer className="justify-end">
+                                        <CustomModal.Footer className="justify-end border-t pt-4">
                                             <div className="flex flex-col pl-2">
                                                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                                                     Est. Base Cost

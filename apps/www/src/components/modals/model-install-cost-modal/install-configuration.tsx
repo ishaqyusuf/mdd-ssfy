@@ -20,7 +20,7 @@ export function InstallConfiguration() {
     if (tasks?.length === 0) return <EmptyState />;
     return (
         <>
-            <div className="h-screen">
+            <div className="">
                 <Table>
                     <Table.Header className="bg-muted hover:bg-muted uppercase">
                         <Table.Row>
