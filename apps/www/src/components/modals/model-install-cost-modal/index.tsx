@@ -102,15 +102,15 @@ export function ModelInstallCostModal() {
                         >
                             <Sidebar
                                 collapsible="none"
-                                className="hidden  md:flex w-[300px]  overflow-x-hidden"
+                                className="hidden md:border-t md:flex w-[300px]  overflow-x-hidden"
                             >
-                                <Sidebar.Header>
+                                {/* <Sidebar.Header>
                                     <div className="p-4 border-b border-border bg-muted/10">
                                         <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                                             <Layers size={14} /> Builder Tasks
                                         </h3>
                                     </div>
-                                </Sidebar.Header>
+                                </Sidebar.Header> */}
                                 <Sidebar.Content className="flex-1">
                                     <Sidebar.Group className="">
                                         <Sidebar.Menu>
@@ -128,15 +128,15 @@ export function ModelInstallCostModal() {
                                         </Sidebar.Menu>
                                     </Sidebar.Group>
                                 </Sidebar.Content>
-                                <Sidebar.Footer>
+                                {/* <Sidebar.Footer>
                                     <span>FOOTER.</span>
-                                </Sidebar.Footer>
+                                </Sidebar.Footer> */}
                             </Sidebar>
-                            <div className="flex-1">
+                            <div className="flex-1 border-l border-t">
                                 <BuilderModelInstallsProvider
                                     value={_modelInstallContext}
                                 >
-                                    <div className="bg-amber-50 dark:bg-amber-900/10 border-b border-amber-100 dark:border-amber-800 px-6 py-3 flex items-start gap-3">
+                                    <div className="bg-amber-50 hidden dark:bg-amber-900/10 border-b border-amber-100 dark:border-amber-800 px-6 py-3 flex items-start gap-3">
                                         <AlertTriangle className="text-amber-600 mt-0.5 size-10" />
                                         <div>
                                             <p className="font-bold text-amber-800 dark:text-amber-200">
@@ -162,19 +162,19 @@ export function ModelInstallCostModal() {
                                         </div>
                                     </div>
                                     <AddNewInstallCost />
-                                    <CustomModal.Content className="h-[60vh] relative -mx-0 border-l">
+                                    <CustomModal.Content className="h-[60vh] relative -mx-0">
                                         <InstallConfiguration />
                                     </CustomModal.Content>
                                 </BuilderModelInstallsProvider>
                             </div>
-                            <CustomModal.Footer>
+                            {/* <CustomModal.Footer>
                                 <SubmitButton
                                     isSubmitting={false}
                                     type="button"
                                 >
                                     Save
                                 </SubmitButton>
-                            </CustomModal.Footer>
+                            </CustomModal.Footer> */}
                         </Sidebar.Provider>
                     )
                 ) : (

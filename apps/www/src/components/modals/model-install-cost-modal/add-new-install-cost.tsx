@@ -57,7 +57,7 @@ export function AddNewInstallCost() {
             ),
         );
     return (
-        <div className="p-6 border-t border-dashed border-border flex flex-col mt-4 bg-muted/5">
+        <div className="p-6 border-dashed border-border flex flex-col mt-4 bg-muted/5">
             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
                 Add Install Task for {data?.builderName} -{" "}
                 {selectedBuilderTask?.taskName}
@@ -137,6 +137,7 @@ export function AddNewInstallCost() {
                         />
                     </div>
                     <Button
+                        disabled
                         onClick={() => setShowCreateCost(true)}
                         className=""
                     >
