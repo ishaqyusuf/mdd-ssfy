@@ -312,6 +312,7 @@ export const communityRouters = createTRPCRouter({
             where: {
               builderTaskId,
               communityModelId,
+              installCostModelId,
             },
             select: {
               id: true,

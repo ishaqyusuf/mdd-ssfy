@@ -7,13 +7,13 @@ import { cn } from "@gnd/ui/cn";
 import { InputGroup, Item, Table } from "@gnd/ui/composite";
 import { Icons } from "@gnd/ui/icons";
 import { SubmitButton } from "@gnd/ui/submit-button";
+import NumberFlow from "@number-flow/react";
 import { useMutation } from "@tanstack/react-query";
 import { ArrowRight, DollarSign, RefreshCcw } from "lucide-react";
 import { useState } from "react";
 import { Controller } from "react-hook-form";
 import { useDebouncedCallback } from "use-debounce";
 import z from "zod";
-
 export function InstallConfiguration() {
     const { tasks, installCosts } = useBuilderModelInstallsContext();
 
@@ -27,8 +27,7 @@ export function InstallConfiguration() {
                             <Table.Head>Install Cost Item</Table.Head>
                             <Table.Head>Status</Table.Head>
                             <Table.Head>Max Qty</Table.Head>
-                            <Table.Head>Estimate</Table.Head>
-                            <Table.Head></Table.Head>
+                            <Table.Head>Est.</Table.Head>
                         </Table.Row>
                     </Table.Header>
                     <Table.Body>
@@ -114,7 +113,7 @@ function Line({
                 <Item.Description>
                     ${task.installCostModel?.unitCost}
                     {task.installCostModel?.unit
-                        ? `per ${task.installCostModel?.unit}`
+                        ? ` / ${task.installCostModel?.unit}`
                         : ""}
                 </Item.Description>
             </Table.Cell>
@@ -159,34 +158,44 @@ function Line({
                                             cost.builderTaskId === task.id,
                                     )?.qty || 0} */}
             </Table.Cell>
-            <Table.Cell>
-                $
+            <Table.Cell className={cn("flex justify-end")}>
+                <NumberFlow
+                    prefix="$"
+                    className={cn(
+                        !!task.installCostModel?.unitCost && "font-medium",
+                    )}
+                    value={
+                        task.installCostModel?.unitCost
+                            ? +(
+                                  (Number(maxQty) || 0) *
+                                  task.installCostModel.unitCost
+                              ).toFixed(2)
+                            : 0
+                    }
+                />
+                <SubmitButton
+                    className={cn(
+                        "opacity-0",
+                        (isError || isPending) && "opacity-100",
+                    )}
+                    isSubmitting={isPending}
+                    onClick={(e) => {
+                        handleUpdate({
+                            maxQty,
+                            status,
+                        });
+                    }}
+                    type="button"
+                    size="xs"
+                    variant={!isError ? "default" : "destructive"}
+                >
+                    <RefreshCcw className="size-3" />
+                </SubmitButton>
+                {/* $
                 {task.installCostModel?.unitCost &&
                     (
                         (Number(maxQty) || 0) * task.installCostModel.unitCost
-                    ).toFixed(2)}
-            </Table.Cell>
-            <Table.Cell>
-                <>
-                    <SubmitButton
-                        className={cn(
-                            "opacity-0",
-                            (isError || isPending) && "opacity-100",
-                        )}
-                        isSubmitting={isPending}
-                        onClick={(e) => {
-                            handleUpdate({
-                                maxQty,
-                                status,
-                            });
-                        }}
-                        type="button"
-                        size="xs"
-                        variant={!isError ? "default" : "destructive"}
-                    >
-                        <RefreshCcw className="size-3" />
-                    </SubmitButton>
-                </>
+                    ).toFixed(2)} */}
             </Table.Cell>
         </Table.Row>
     );

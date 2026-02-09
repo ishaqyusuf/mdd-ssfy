@@ -22,6 +22,7 @@ import {
 import { InstallConfiguration } from "./install-configuration";
 import { AddNewInstallCost } from "./add-new-install-cost";
 import { sum } from "@gnd/utils";
+import NumberFlow from "@number-flow/react";
 
 export function ModelInstallCostModal() {
     const sideBarView = true;
@@ -176,11 +177,19 @@ export function ModelInstallCostModal() {
                                                         size={14}
                                                         className="text-muted-foreground"
                                                     />
-                                                    {sum(
-                                                        Object.values(
-                                                            _modelInstallContext?.builderTaskIntallCosts,
-                                                        ).map((a) => a.total),
-                                                    )?.toFixed(2)}
+
+                                                    <NumberFlow
+                                                        value={
+                                                            +sum(
+                                                                Object.values(
+                                                                    _modelInstallContext?.builderTaskIntallCosts,
+                                                                ).map(
+                                                                    (a) =>
+                                                                        a.total,
+                                                                ),
+                                                            )?.toFixed(2)
+                                                        }
+                                                    />
                                                 </span>
                                             </div>
                                         </CustomModal.Footer>

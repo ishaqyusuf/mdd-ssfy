@@ -17,6 +17,7 @@ import { SalesInvoicePreviewModal } from "./sales-invoice-preview-modal";
 import { SalesPreviewModal } from "./sales-preview-modal";
 import { SalesQuickPayModal } from "./sales-quick-pay-modal";
 import { WorkOrderFormModal } from "./work-order-form-modal";
+import { NewJobModal } from "./new-job";
 
 export function GlobalModals() {
     return (
@@ -42,6 +43,7 @@ export function GlobalModals() {
             <ModelInstallCostModal />
             <CreateCommunityProjectModal />
             <BuilderFormModal />
+            <NewJobModal />
             {/* </Env> */}
         </>
     );
