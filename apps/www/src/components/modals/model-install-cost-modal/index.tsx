@@ -6,7 +6,7 @@ import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cos
 import { CommunityInstallCostForm } from "../../forms/community-install-cost-form";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Badge } from "@gnd/ui/badge";
-import { AlertTriangle, Layers } from "lucide-react";
+import { AlertTriangle, DollarSign, Layers } from "lucide-react";
 import { useEffect } from "react";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { BuilderTaskItem } from "./builder-task-item";
@@ -21,6 +21,7 @@ import {
 } from "@/hooks/use-model-install-config";
 import { InstallConfiguration } from "./install-configuration";
 import { AddNewInstallCost } from "./add-new-install-cost";
+import { sum } from "@gnd/utils";
 
 export function ModelInstallCostModal() {
     const sideBarView = true;
@@ -34,6 +35,7 @@ export function ModelInstallCostModal() {
         openToSide,
     } = useCommunityInstallCostParams();
     const _modelInstallContext = useCreateBuilderModelInstallsContext(ctx);
+
     return (
         <CustomModal
             // className="overflow-hidden sp-0 md:max-h-full md:h-auto md:min-h-0  md:max-w-[700px] lg:max-w-[800px]"
@@ -164,17 +166,27 @@ export function ModelInstallCostModal() {
                                     <AddNewInstallCost />
                                     <CustomModal.Content className="h-[60vh] relative -mx-0">
                                         <InstallConfiguration />
+                                        <CustomModal.Footer className="justify-end">
+                                            <div className="flex flex-col pl-2">
+                                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                                    Est. Base Cost
+                                                </span>
+                                                <span className="text-xl font-black text-foreground flex items-center gap-0.5">
+                                                    <DollarSign
+                                                        size={14}
+                                                        className="text-muted-foreground"
+                                                    />
+                                                    {sum(
+                                                        Object.values(
+                                                            _modelInstallContext?.builderTaskIntallCosts,
+                                                        ).map((a) => a.total),
+                                                    )?.toFixed(2)}
+                                                </span>
+                                            </div>
+                                        </CustomModal.Footer>
                                     </CustomModal.Content>
                                 </BuilderModelInstallsProvider>
                             </div>
-                            {/* <CustomModal.Footer>
-                                <SubmitButton
-                                    isSubmitting={false}
-                                    type="button"
-                                >
-                                    Save
-                                </SubmitButton>
-                            </CustomModal.Footer> */}
                         </Sidebar.Provider>
                     )
                 ) : (

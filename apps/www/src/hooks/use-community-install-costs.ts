@@ -1,6 +1,6 @@
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 type CommunityInstallCostRateContextProps = ReturnType<
     typeof useCreateCommunityInstallCostRateContext
@@ -14,9 +14,12 @@ export const useCreateCommunityInstallCostRateContext = () => {
         useTRPC().community.getCommunityInstallCostRates.queryOptions(),
     );
     const [editIndex, setEditIndex] = useState<number | null>(null);
+
+    // useEffect(() => {}, [editIndex]);
     return {
         setEditIndex,
         editIndex,
+
         communityInstallCostRates: data?.communityInstallCostRates || [],
         legacyCosts: data?.legacyCosts || [],
     };

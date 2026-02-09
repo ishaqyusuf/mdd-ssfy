@@ -32,8 +32,8 @@ export function InstallConfiguration() {
                         </Table.Row>
                     </Table.Header>
                     <Table.Body>
-                        {tasks?.map((task) => (
-                            <Line task={task} key={task.id} />
+                        {tasks?.map((task, tid) => (
+                            <Line task={task} key={tid} />
                         ))}
                     </Table.Body>
                 </Table>
@@ -49,14 +49,26 @@ function Line({
 }) {
     const [status, setStatus] = useState(task.status);
     const [maxQty, setMaxQty] = useState(task?.qty || "");
-    const { modelId } = useBuilderModelInstallsContext();
+    const { modelId, setBuilderTaskInstallCosts } =
+        useBuilderModelInstallsContext();
     // const values = form.watch();
     const { mutate, isPending, isError } = useMutation(
         _trpc.community.updateCommunityModelInstallTask.mutationOptions({
             onSuccess(data, variables, onMutateResult, context) {
-                console.log({
-                    data,
-                });
+                // console.log({
+                //     data,
+                // });
+                setBuilderTaskInstallCosts((prev) => ({
+                    ...prev,
+                    [String(data.id)]: {
+                        qty: (variables as any)?.qty || 0,
+                        cost: task.installCostModel?.unitCost || 0,
+                        total: +(
+                            ((variables as any)?.qty || 0) *
+                            (task.installCostModel?.unitCost || 0)
+                        ).toFixed(2),
+                    },
+                }));
             },
             meta: {
                 toastTitle: {

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useCommunityInstallCostParams } from "./use-community-install-cost-params";
 import { useTRPC } from "@/trpc/client";
 import { _trpc } from "@/components/static-trpc";
@@ -84,6 +84,16 @@ export const useCreateBuilderModelInstallsContext = (
     >,
 ) => {
     const { params, dataV2, isPending, setParams } = modelInstallConfigCtx;
+    const [builderTaskIntallCosts, setBuilderTaskInstallCosts] = useState<
+        Record<
+            string,
+            {
+                qty: number;
+                cost: number;
+                total: number;
+            }
+        >
+    >({});
     const {
         data: modelData,
         isPending: modelDataPending,
@@ -101,6 +111,25 @@ export const useCreateBuilderModelInstallsContext = (
             },
         ),
     );
+    useEffect(() => {
+        setBuilderTaskInstallCosts(
+            Object.fromEntries(
+                modelData?.tasks
+                    ?.filter((a) => a.id && !!a.qty)
+                    .map((cost) => [
+                        String(cost.id),
+                        {
+                            qty: cost.qty,
+                            cost: cost.installCostModel?.unitCost || 0,
+                            total: +(
+                                (cost.qty || 0) *
+                                (cost.installCostModel?.unitCost || 0)
+                            ).toFixed(2),
+                        },
+                    ]) || [],
+            ),
+        );
+    }, [modelData?.tasks]);
     const selectedBuilderTask = dataV2?.builderTasks?.find(
         (task) => task.id === params.selectedBuilderTaskId,
     );
@@ -114,6 +143,8 @@ export const useCreateBuilderModelInstallsContext = (
         modelDataPending,
         tasks: modelData?.tasks || [],
         installCosts: modelData?.installCosts || [],
+        builderTaskIntallCosts,
+        setBuilderTaskInstallCosts,
     };
 };
 export const useBuilderModelInstallsContext = () => {
