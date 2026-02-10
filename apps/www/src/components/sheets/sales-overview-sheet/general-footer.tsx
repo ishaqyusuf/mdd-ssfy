@@ -36,6 +36,7 @@ export function GeneralFooter({}) {
     const [loading, startTransition] = useTransition();
     const qs = useSalesOverviewQuery();
     const sPreview = useSalesPreview();
+
     function preview() {
         sPreview.preview(data?.orderId, data?.type);
     }
@@ -51,6 +52,7 @@ export function GeneralFooter({}) {
                 // qs.setParams({
                 //     refreshTok: generateRandomString(),
                 // });
+                qs.close();
             } catch (error) {
                 toast.error("Unable to complete");
             }
@@ -59,12 +61,19 @@ export function GeneralFooter({}) {
     const [menuOpen, setMenuOpen] = useState(false);
 
     const sq = useSalesQueryClient();
-    const { mutate: deleteSale } = useMutation(
+    const { mutate: deleteSale, isPending } = useMutation(
         useTRPC().sales.deleteSale.mutationOptions({
             onSuccess: () => {
                 data?.type == "order"
                     ? sq.invalidate.salesList()
                     : sq.invalidate.quoteList();
+            },
+            meta: {
+                toastTitle: {
+                    error: "Unable to complete",
+                    loading: "Delete...",
+                    success: "Deleted!.",
+                },
             },
         }),
     );

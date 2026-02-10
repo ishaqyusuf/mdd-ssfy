@@ -29,8 +29,8 @@ export function SalesCustomerInput() {
             },
             {
                 enabled: !!md.customer.id,
-            }
-        )
+            },
+        ),
     );
     const { params, setParams } = useCreateCustomerParams();
     useEffect(() => {
@@ -58,7 +58,7 @@ export function SalesCustomerInput() {
                     md,
                     "billing.id",
                     "shipping.id",
-                    "customer.id"
+                    "customer.id",
                 )
             ) {
                 metaData.dataRefreshToken = generateRandomString();
@@ -228,8 +228,8 @@ function SearchCustomer() {
             },
             {
                 enabled: !!debouncedQuery,
-            }
-        )
+            },
+        ),
     );
     return (
         <div className="py-2">
@@ -296,8 +296,8 @@ function SearchCustomer() {
                     </Fragment>
                 )}
                 {searchResult?.map((sr, index) => (
-                    <Fragment key={sr.id}>
-                        <Item size="sm" key={sr.id}>
+                    <Fragment key={index}>
+                        <Item size="sm">
                             <Item.Content>
                                 <Item.Title>
                                     {sr?.name} {" - "} {sr?.profileName}

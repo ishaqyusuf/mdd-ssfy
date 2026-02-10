@@ -233,7 +233,7 @@ export const salesRouter = createTRPCRouter({
       const o = await props.ctx.db.salesOrders.update({
         where: {
           id: props.input.salesId,
-          deletedAt: null,
+          // deletedAt: null,
         },
         data: {
           // bin: true,

@@ -245,7 +245,7 @@ function Content({
                                                         ] || 0;
                                                     return (
                                                         <tr
-                                                            key={cost.id}
+                                                            key={index}
                                                             className="bg-card"
                                                         >
                                                             <td className="px-4 py-3 font-medium text-foreground">
