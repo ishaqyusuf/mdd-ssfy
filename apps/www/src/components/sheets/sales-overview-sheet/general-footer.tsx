@@ -52,7 +52,6 @@ export function GeneralFooter({}) {
                 // qs.setParams({
                 //     refreshTok: generateRandomString(),
                 // });
-                qs.close();
             } catch (error) {
                 toast.error("Unable to complete");
             }
@@ -67,6 +66,7 @@ export function GeneralFooter({}) {
                 data?.type == "order"
                     ? sq.invalidate.salesList()
                     : sq.invalidate.quoteList();
+                qs.close();
             },
             meta: {
                 toastTitle: {
