@@ -171,11 +171,12 @@ model JobHomeTask {
 }
 
 model JobInstallTasks {
-    id    Int    @unique @default(autoincrement())
-    jobId Int
-    qty   Float?
-    rate  Float?
-    total Float?
+    id     Int    @unique @default(autoincrement())
+    jobId  Int
+    qty    Float?
+    maxQty Float?
+    rate   Float?
+    total  Float?
 
     job           Jobs         @relation(fields: [jobId], references: [id])
     jobHomeTask   JobHomeTask? @relation(fields: [jobHomeTaskId], references: [id])

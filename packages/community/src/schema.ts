@@ -28,3 +28,48 @@ export const communityInstallCostRateSchema = z.object({
 export type CommunityInstallCostRateSchema = z.infer<
   typeof communityInstallCostRateSchema
 >;
+
+export const jobFormShema = z.object({
+  unit: z
+    .object({
+      id: z.number(),
+      lot: z.string(),
+      block: z.string(),
+      modelName: z.string(),
+      modelNo: z.string(),
+      projectTitle: z.string(),
+    })
+    .optional(),
+  user: z
+    .object({
+      id: z.number(),
+      name: z.string(),
+    })
+    .optional(),
+  job: z.object({
+    id: z.number().optional(),
+    description: z.string().optional(),
+    isCustom: z.boolean().optional().default(false).nullable(),
+    adminNote: z.string().optional().nullable(),
+    title: z.string().optional().nullable(),
+    subtitle: z.string().optional().nullable(),
+    type: z.string().optional().nullable(),
+    tasks: z
+      .array(
+        z.object({
+          id: z.number().optional(),
+          modelTaskId: z.number(),
+          rate: z.number(),
+          qty: z.number(),
+          maxQty: z.number().optional(),
+        }),
+      )
+      .optional(),
+    meta: z.object({
+      addon: z.number().optional().nullable(),
+      additionalCostReason: z.string().optional().nullable(),
+      additional_cost: z.number().optional().nullable(),
+    }),
+  }),
+});
+export type JobFormSchema = z.infer<typeof jobFormShema>;

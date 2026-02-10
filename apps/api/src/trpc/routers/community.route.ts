@@ -87,7 +87,7 @@ import {
 } from "@community/schema";
 import { getSettingAction } from "@gnd/settings";
 import { INSTALL_COST_DEFAULT_UNITS } from "@community/constants";
-import type { ProjectMeta } from "@community/types";
+import type { JobMeta, ProjectMeta } from "@community/types";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -205,11 +205,13 @@ export const communityRouters = createTRPCRouter({
       z.object({
         jobId: z.number().optional().nullable(),
         taskId: z.number().optional().nullable(),
+        modelId: z.number(),
         unitId: z.number(),
+        userId: z.number(),
       }),
     )
     .query(async (props) => {
-      const { jobId, taskId } = props.input;
+      const { jobId, taskId, modelId } = props.input;
       // get unit information
       const { db } = props.ctx;
       const unit = await props.ctx.db.homes.findFirst({
@@ -234,15 +236,31 @@ export const communityRouters = createTRPCRouter({
         },
       });
       const projectAddon = (unit?.project?.meta as any as ProjectMeta)?.addon;
-      const tasks = await db.builderTask.findFirst({
+      const builderTask = await db.builderTask.findFirst({
         where: {
           id: taskId!,
+          // status: ""
+          installable: true,
         },
         select: {
           taskName: true,
           addonPercentage: true,
           builderTaskInstallCosts: {
+            where: {
+              // installCostModelId
+              // id
+            },
             select: {
+              modelInstallTasks: {
+                where: {
+                  communityModelId: modelId,
+                },
+                select: {
+                  id: true,
+                  communityModelId: true,
+                  installCostModelId: true,
+                },
+              },
               defaultQty: true,
               installCostModel: {
                 select: {
@@ -256,6 +274,70 @@ export const communityRouters = createTRPCRouter({
           },
         },
       });
+      const job = await db.jobs.findFirst({
+        where: {
+          id: jobId!,
+        },
+        select: {
+          amount: true,
+          description: true,
+          meta: true,
+          id: true,
+          adminNote: true,
+          isCustom: true,
+          note: true,
+          title: true,
+          subtitle: true,
+          type: true,
+          jobInstallTasks: {
+            select: {
+              id: true,
+              communityModelInstallTaskId: true,
+              qty: true,
+              maxQty: true,
+              rate: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+      const jobTasks = builderTask?.builderTaskInstallCosts?.map(
+        (taskInstallCost) => {
+          const jobTask = job?.jobInstallTasks.find(
+            (jt) =>
+              jt.communityModelInstallTaskId ===
+              taskInstallCost.installCostModel.id,
+          );
+          const modelTaskId = taskInstallCost.modelInstallTasks?.find(
+            (mit) =>
+              mit.installCostModelId === taskInstallCost.installCostModel.id,
+          )?.id;
+          return {
+            id: jobTask?.id,
+            // builderTaskId:
+            qty: jobTask?.qty!,
+            maxQty: jobTask?.maxQty || taskInstallCost.defaultQty,
+            rate: jobTask?.rate || taskInstallCost.installCostModel.unitCost,
+            installCostModel: taskInstallCost.installCostModel,
+            modelTaskId,
+          };
+        },
+      );
+      const user = await db.users.findFirst({
+        where: {
+          id: props.input.userId,
+        },
+        select: {
+          name: true,
+          id: true,
+        },
+      });
+      const jobMeta: JobMeta = (job?.meta as any) || {};
       return {
         unit: {
           lot: unit?.lot,
@@ -264,10 +346,34 @@ export const communityRouters = createTRPCRouter({
           projectTitle: unit?.project.title,
           builderName: unit?.project?.builder?.name,
           projectAddon,
+          taskName: builderTask?.taskName,
+          addonPercentage: builderTask?.addonPercentage,
+        },
+
+        user: job?.user || user,
+        job: {
+          tasks: jobTasks,
+          id: job?.id,
+          amount: job?.amount,
+          description: job?.description,
+          meta: jobMeta,
+          title: job?.title,
+          subtitle: job?.subtitle,
+          adminNote: job?.adminNote,
+          isCustom: job?.isCustom,
         },
       };
     }),
+  saveJobForm: publicProcedure
+    .input(workOrderFormSchema)
+    .mutation(async (props) => {
+      const { ctx, input } = props;
 
+      // await ctx.db.jobInstallTasks.create({
+      //   data: {
+      //   }
+      // })
+    }),
   getInstallCostRatesSuggestions: publicProcedure
     .input(
       z.object({
@@ -545,7 +651,7 @@ export const communityRouters = createTRPCRouter({
         },
         orderBy: {
           modelName: "asc",
-          lot: "asc",
+          // lot: "asc",
           // block: "asc",
         },
         select: {
@@ -554,6 +660,11 @@ export const communityRouters = createTRPCRouter({
           block: true,
           modelName: true,
           modelNo: true,
+          communityTemplate: {
+            select: {
+              id: true,
+            },
+          },
           _count: {
             select: {
               jobs: {
@@ -588,6 +699,7 @@ export const communityRouters = createTRPCRouter({
           totalJobCost,
           modelName: unit.modelName,
           modelNo: unit.modelNo,
+          modelId: unit?.communityTemplate?.id!,
         };
       });
     }),
@@ -638,6 +750,7 @@ export const communityRouters = createTRPCRouter({
           },
         },
       });
+
       return tasks.map((task) => ({
         id: task.id,
         taskName: task.taskName,

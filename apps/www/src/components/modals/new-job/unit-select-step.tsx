@@ -44,6 +44,7 @@ export function UnitSelectStep({}) {
                             onClick={() => {
                                 setParams({
                                     unitId: item.id,
+                                    modelId: item.modelId,
                                     step:
                                         params.redirectStep || params.step + 1,
                                     redirectStep: null,

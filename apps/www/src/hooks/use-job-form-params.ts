@@ -17,6 +17,7 @@ export function useJobFormParams() {
         unitId: parseAsInteger,
         taskId: parseAsInteger,
         userId: parseAsInteger,
+        modelId: parseAsInteger,
     });
     const opened = !!params.step;
     return {
