@@ -13,10 +13,11 @@ export function useAuth() {
             enabled,
             staleTime: 5 * 60 * 1000, // 5 minutes
             gcTime: 10 * 60 * 1000, // 10 minutes
-        })
+        }),
     );
     const can = data?.can;
     const isActuallyPending = status === "loading" || (enabled && isPending);
+    const roleTitle = session?.role?.name as Roles;
     return {
         id: session?.user?.id,
         email: session?.user?.email,
@@ -25,7 +26,7 @@ export function useAuth() {
         isPending: isActuallyPending,
         can: can || session?.can || ({} as typeof can),
         role: session?.role,
-        roleTitle: session?.role?.name as Roles,
+        roleTitle,
         avatar: null,
         enabled,
         data,

@@ -6,6 +6,8 @@ import { ChevronRight, Layers } from "lucide-react";
 import { useSearch } from "@gnd/ui/hooks/use-search";
 import { SearchInput } from "@/components/search-input";
 import { Skeleton } from "@gnd/ui/skeleton";
+import { StepTitle } from "./step-title";
+import { SubHeader } from "./sub-header";
 export function TaskSelectStep({}) {
     const { setParams, ...params } = useJobFormParams();
     const { data, isPending, refetch, isEnabled } = useQuery(
@@ -27,24 +29,26 @@ export function TaskSelectStep({}) {
 
     return (
         <div className="space-y-4">
-            <div className="relative">
+            <StepTitle title="Select Task" />
+            <SubHeader>
                 <SearchInput
                     value={query}
                     onChangeText={setQuery}
                     placeholder="Search tasks..."
                 />
-            </div>
+            </SubHeader>
             <LoadingSkeleton isPending={isPending}>
                 <div className="space-y-2">
                     {results.map((item) => (
                         <button
                             key={item.id}
                             onClick={() => {
-                                // setParams({
-                                //     taskId: item.id,
-                                //     step: params.redirectStep || params.step + 1,
-                                //     redirectStep: null,
-                                // });
+                                setParams({
+                                    taskId: item.id,
+                                    step:
+                                        params.redirectStep || params.step + 1,
+                                    redirectStep: null,
+                                });
                                 // handleNext();
                             }}
                             className={`w-full flex items-center gap-4 p-3 rounded-xl border text-left transition-all hover:shadow-md ${params.taskId === item.id ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted/50"}`}

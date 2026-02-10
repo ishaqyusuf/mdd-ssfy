@@ -6,6 +6,8 @@ import { Briefcase, DollarSign, Home } from "lucide-react";
 import { useSearch } from "@gnd/ui/hooks/use-search";
 import { SearchInput } from "@/components/search-input";
 import { Skeleton } from "@gnd/ui/skeleton";
+import { StepTitle } from "./step-title";
+import { SubHeader } from "./sub-header";
 export function UnitSelectStep({}) {
     const { setParams, ...params } = useJobFormParams();
     const { data, isPending, refetch, isEnabled } = useQuery(
@@ -26,13 +28,14 @@ export function UnitSelectStep({}) {
 
     return (
         <div className="space-y-4">
-            <div className="relative">
+            <StepTitle title="Select Unit" />
+            <SubHeader>
                 <SearchInput
                     value={query}
                     onChangeText={setQuery}
                     placeholder="Search units..."
                 />
-            </div>
+            </SubHeader>
             <LoadingSkeleton isPending={isPending}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
                     {results.map((item) => (
@@ -128,3 +131,4 @@ function LoadingSkeleton({ isPending, children }) {
         </div>
     );
 }
+

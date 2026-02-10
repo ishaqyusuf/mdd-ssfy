@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import { useSearch } from "@gnd/ui/hooks/use-search";
 import { SearchInput } from "@/components/search-input";
 import { Skeleton } from "@gnd/ui/skeleton";
+import { StepTitle } from "./step-title";
+import { SubHeader } from "./sub-header";
 export function ProjectSelectStep({}) {
     const { setParams, ...params } = useJobFormParams();
     const { data, isPending, refetch, isEnabled } = useQuery(
@@ -22,13 +24,14 @@ export function ProjectSelectStep({}) {
 
     return (
         <div className="space-y-4">
-            <div className="relative">
+            <StepTitle title="Select Project" />
+            <SubHeader>
                 <SearchInput
                     value={query}
                     onChangeText={setQuery}
                     placeholder="Search projects..."
                 />
-            </div>
+            </SubHeader>
             <LoadingSkeleton isPending={isPending}>
                 <div className="space-y-2">
                     {results.map((item) => (

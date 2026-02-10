@@ -24,10 +24,16 @@ export function NewJobModal() {
                     setParams(null);
                 }
             }}
-            title={"Assign New Job"}
+            title={
+                <>
+                    <span>Assign New Job</span>
+                    <span id="step-title" />
+                </>
+            }
             description={<StepsDescription />}
             size={"xl"}
         >
+            <div className="" id="sub-header"></div>
             <CustomModal.Content className="h-[70vh] relative -mx-0">
                 <Tabs value={String(params.step)}>
                     {formType === "assign" ? (
