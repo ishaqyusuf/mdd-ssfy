@@ -37,11 +37,11 @@ export function FormStep({}) {
     return (
         <>
             <StepTitle title="Configure Job Details" />
-            {!data || <Content defaultValues={data} />}
+            {!data || <FormContent defaultValues={data} />}
         </>
     );
 }
-function Content({
+function FormContent({
     defaultValues,
 }: {
     defaultValues: RouterOutputs["community"]["getJobForm"];
@@ -51,22 +51,19 @@ function Content({
             ...defaultValues,
         },
     });
-    const { update, fields: taskFields } = useFieldArray({
-        control: form.control,
-        name: "job.tasks",
-        keyName: "_id",
-    });
-    const maxPotentialValue = defaultValues.job.tasks.reduce(
-        (sum, task) => sum + (task.rate || 0) * (task.maxQty || 0),
-        0,
-    );
-    const builderTaskQuantities = defaultValues.job.tasks.reduce(
-        (acc, task) => {
-            acc[task.id] = task.qty || 0;
-            return acc;
-        },
-        {} as Record<number, number>,
-    );
+    const maxPotentialValue =
+        defaultValues.job.tasks?.reduce(
+            (sum, task) => sum + (task.rate || 0) * (task.maxQty || 0),
+            0,
+        ) || 0;
+    const builderTaskQuantities =
+        defaultValues.job.tasks?.reduce(
+            (acc, task) => {
+                acc[task.id] = task.qty || 0;
+                return acc;
+            },
+            {} as Record<number, number>,
+        ) || 0;
     const addonPercentage = defaultValues.unit?.addonPercentage || 0;
     const addonValue = percentageValue(
         defaultValues.unit?.projectAddon,
@@ -97,7 +94,6 @@ function Content({
     return (
         <>
             <div className="space-y-6 h-full flex flex-col">
-                {/* Summary Header */}
                 <div className="flex flex-wrap gap-2 text-xs">
                     <span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
                         <User className="size-3" />{" "}
@@ -115,8 +111,7 @@ function Content({
                         <Home className="size-3" /> Block{" "}
                         {defaultValues?.unit?.block}
                     </span>
-                </div>
-
+                </div>{" "}
                 <div className="flex-1 overflow-y-auto pr-2 space-y-6">
                     {isCustomTask ? (
                         /* Custom Task Form */
@@ -130,13 +125,13 @@ function Content({
                                             <Field.Label>
                                                 Job Description
                                             </Field.Label>
-                                            <InputGroup>
+                                            {/* <InputGroup>
                                                 <InputGroup.TextArea
                                                     {...field}
                                                     className="min-h-[100px] resize-none"
                                                     placeholder="Additional instructions for the custom task..."
                                                 />
-                                            </InputGroup>
+                                            </InputGroup> */}
                                         </Field>
                                     )}
                                 />
@@ -167,7 +162,7 @@ function Content({
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Controller
+                                {/* <Controller
                                     control={form.control}
                                     name="job.meta.additional_cost"
                                     render={({ field }) => (
@@ -193,7 +188,7 @@ function Content({
                                             </InputGroup>
                                         </Field>
                                     )}
-                                />
+                                /> */}
                             </div>
                         </div>
                     ) : (
@@ -275,7 +270,7 @@ function Content({
                                                                             },
                                                                         }) => (
                                                                             <InputGroup>
-                                                                                <InputGroup.Input
+                                                                                {/* <InputGroup.Input
                                                                                     type="number"
                                                                                     className="w-full bg-transparent text-center font-bold text-foreground outline-none p-0 text-sm"
                                                                                     value={
@@ -303,7 +298,7 @@ function Content({
                                                                                         /
                                                                                         {` ${cost.maxQty} `}
                                                                                     </span>
-                                                                                </InputGroup.Addon>
+                                                                                </InputGroup.Addon> */}
                                                                             </InputGroup>
                                                                         )}
                                                                     />
