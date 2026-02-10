@@ -16,15 +16,24 @@ import { Checkbox } from "@gnd/ui/checkbox";
 export function FormStep({}) {
     const { setParams, ...params } = useJobFormParams();
     const { data, isPending } = useQuery(
-        useTRPC().community.getJobForm.queryOptions({
-            unitId: params.unitId,
-            taskId: params.taskId,
-            jobId: params.jobId,
-            userId: params.userId,
-            modelId: params.modelId,
-        }),
+        useTRPC().community.getJobForm.queryOptions(
+            {
+                unitId: params.unitId,
+                taskId: params.taskId,
+                jobId: params.jobId,
+                userId: params.userId,
+                modelId: params.modelId,
+            },
+            {
+                enabled:
+                    !!params.unitId &&
+                    !!params.taskId &&
+                    !!params.userId &&
+                    !!params.modelId,
+            },
+        ),
     );
-
+    console.log([data, params, isPending]);
     return (
         <>
             <StepTitle title="Configure Job Details" />

@@ -276,7 +276,7 @@ export const communityRouters = createTRPCRouter({
       });
       const job = await db.jobs.findFirst({
         where: {
-          id: jobId!,
+          id: jobId! || -1,
         },
         select: {
           amount: true,
