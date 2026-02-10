@@ -87,6 +87,7 @@ import {
 } from "@community/schema";
 import { getSettingAction } from "@gnd/settings";
 import { INSTALL_COST_DEFAULT_UNITS } from "@community/constants";
+import type { ProjectMeta } from "@community/types";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -199,6 +200,74 @@ export const communityRouters = createTRPCRouter({
       legacyCosts,
     };
   }),
+  getJobForm: publicProcedure
+    .input(
+      z.object({
+        jobId: z.number().optional().nullable(),
+        taskId: z.number().optional().nullable(),
+        unitId: z.number(),
+      }),
+    )
+    .query(async (props) => {
+      const { jobId, taskId } = props.input;
+      // get unit information
+      const { db } = props.ctx;
+      const unit = await props.ctx.db.homes.findFirst({
+        where: {
+          id: props.input.unitId,
+        },
+        select: {
+          lot: true,
+          block: true,
+          modelName: true,
+          project: {
+            select: {
+              meta: true,
+              title: true,
+              builder: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      const projectAddon = (unit?.project?.meta as any as ProjectMeta)?.addon;
+      const tasks = await db.builderTask.findFirst({
+        where: {
+          id: taskId!,
+        },
+        select: {
+          taskName: true,
+          addonPercentage: true,
+          builderTaskInstallCosts: {
+            select: {
+              defaultQty: true,
+              installCostModel: {
+                select: {
+                  id: true,
+                  title: true,
+                  unit: true,
+                  unitCost: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      return {
+        unit: {
+          lot: unit?.lot,
+          block: unit?.block,
+          modelName: unit?.modelName,
+          projectTitle: unit?.project.title,
+          builderName: unit?.project?.builder?.name,
+          projectAddon,
+        },
+      };
+    }),
+
   getInstallCostRatesSuggestions: publicProcedure
     .input(
       z.object({
@@ -473,6 +542,11 @@ export const communityRouters = createTRPCRouter({
       const units = await db.homes.findMany({
         where: {
           projectId,
+        },
+        orderBy: {
+          modelName: "asc",
+          lot: "asc",
+          // block: "asc",
         },
         select: {
           id: true,

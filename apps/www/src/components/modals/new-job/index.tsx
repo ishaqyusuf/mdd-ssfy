@@ -14,7 +14,16 @@ export function NewJobModal() {
     const { setParams, opened, ...params } = useJobFormParams();
     const { formType } = useJobStepInfo();
 
-    // const stepTabs =
+    const stepTabs =
+        formType === "assign"
+            ? [
+                  UserSelectStep,
+                  ProjectSelectStep,
+                  UnitSelectStep,
+                  TaskSelectStep,
+                  FormStep,
+              ]
+            : [ProjectSelectStep, UnitSelectStep, TaskSelectStep, FormStep];
     return (
         <CustomModal
             className=""
@@ -36,11 +45,16 @@ export function NewJobModal() {
             <div className="" id="sub-header"></div>
             <CustomModal.Content className="h-[70vh] relative -mx-0">
                 <Tabs value={String(params.step)}>
-                    {formType === "assign" ? (
+                    {stepTabs.map((StepComponent, index) => (
+                        <Tabs.Content key={index} value={String(index + 1)}>
+                            <StepComponent />
+                        </Tabs.Content>
+                    ))}
+                    {/* {formType === "assign" ? (
                         <>
                             <Tabs.Content value={"1"}>
                                 <UserSelectStep />
-                                {/* <ProjectSelectStep /> */}
+                               
                             </Tabs.Content>
                             <Tabs.Content value={"2"}>
                                 <ProjectSelectStep />
@@ -70,7 +84,7 @@ export function NewJobModal() {
                                 <FormStep />
                             </Tabs.Content>
                         </>
-                    )}
+                    )} */}
                 </Tabs>
 
                 <NewJobFooter />

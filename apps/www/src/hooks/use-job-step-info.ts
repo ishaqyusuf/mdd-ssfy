@@ -6,6 +6,7 @@ export function useJobStepInfo() {
     const formType = auth?.can?.editJobs ? "assign" : "submit";
     return {
         formType,
-        stepCount: formType === "assign" ? 3 : 2,
+        stepCount: formType === "assign" ? 5 : 4,
     };
 }
+

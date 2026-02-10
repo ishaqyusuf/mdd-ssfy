@@ -37,7 +37,7 @@ export function UnitSelectStep({}) {
                 />
             </SubHeader>
             <LoadingSkeleton isPending={isPending}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {results.map((item) => (
                         <button
                             key={item.id}
@@ -65,7 +65,7 @@ export function UnitSelectStep({}) {
                                 {item.modelName}
                             </p>
                             <p className="text-[10px] text-muted-foreground truncate mb-2">
-                                {item.modelNo}
+                                {/* {item.modelNo} */}
                             </p>
 
                             {/* Stats Section */}
