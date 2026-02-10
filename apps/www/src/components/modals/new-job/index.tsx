@@ -8,10 +8,13 @@ import { UserSelectStep } from "./user-select-step";
 import { ProjectSelectStep } from "./project-select-step";
 import { UnitSelectStep } from "./unit-select-step";
 import { TaskSelectStep } from "./task-select-step";
+import { FormStep } from "./form-step";
 
 export function NewJobModal() {
     const { setParams, opened, ...params } = useJobFormParams();
     const { formType } = useJobStepInfo();
+
+    // const stepTabs =
     return (
         <CustomModal
             className=""
@@ -25,7 +28,7 @@ export function NewJobModal() {
             description={<StepsDescription />}
             size={"xl"}
         >
-            <CustomModal.Content className="h-[70vh] max-h-none relative -mx-0">
+            <CustomModal.Content className="h-[70vh] relative -mx-0">
                 <Tabs value={String(params.step)}>
                     {formType === "assign" ? (
                         <>
@@ -42,6 +45,9 @@ export function NewJobModal() {
                             <Tabs.Content value={"4"}>
                                 <TaskSelectStep />
                             </Tabs.Content>
+                            <Tabs.Content value={"5"}>
+                                <FormStep />
+                            </Tabs.Content>
                         </>
                     ) : (
                         <>
@@ -53,6 +59,9 @@ export function NewJobModal() {
                             </Tabs.Content>
                             <Tabs.Content value={"3"}>
                                 <TaskSelectStep />
+                            </Tabs.Content>
+                            <Tabs.Content value={"4"}>
+                                <FormStep />
                             </Tabs.Content>
                         </>
                     )}

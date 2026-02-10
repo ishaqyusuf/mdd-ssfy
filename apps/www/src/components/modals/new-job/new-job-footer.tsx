@@ -16,22 +16,23 @@ export function NewJobFooter() {
         setParams(null);
     };
     return (
-        <CustomModal.Footer className="px-6 py-4 bg-muted/20 border-t border-border  flex justify-between items-center shrink-0">
-            <Button
-                onClick={step === 1 ? onClose : handleBack}
-                // className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors"
-                variant="outline"
-            >
-                {step === 1 ? (
-                    "Cancel"
-                ) : (
-                    <>
-                        <ChevronLeft className="size-4" /> Back
-                    </>
-                )}
-            </Button>
-            <div className="flex-1"></div>
-            {/* {step === 5 ? (
+        <CustomModal.Portal>
+            <CustomModal.Footer className=" bg-muted/20 sborder-t border-border  flex justify-between items-center shrink-0">
+                <Button
+                    onClick={step === 1 ? onClose : handleBack}
+                    // className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors"
+                    variant="outline"
+                >
+                    {step === 1 ? (
+                        "Cancel"
+                    ) : (
+                        <>
+                            <ChevronLeft className="size-4" /> Back
+                        </>
+                    )}
+                </Button>
+                <div className="flex-1"></div>
+                {/* {step === 5 ? (
                     <button
                         onClick={onClose}
                         className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-bold hover:bg-primary/90 shadow-md shadow-primary/20 transition-all"
@@ -48,8 +49,9 @@ export function NewJobFooter() {
                         Next Step <ChevronRight size={16} />
                     </button>
                 )} */}
-            <div className="" id="jobActionButton"></div>
-        </CustomModal.Footer>
+                <div className="" id="jobActionButton"></div>
+            </CustomModal.Footer>
+        </CustomModal.Portal>
     );
 }
 
