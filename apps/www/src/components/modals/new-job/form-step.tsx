@@ -162,7 +162,7 @@ function FormContent({
                                 />
                             </div>
                             <div className="space-y-2">
-                                {/* <Controller
+                                <Controller
                                     control={form.control}
                                     name="job.meta.additional_cost"
                                     render={({ field }) => (
@@ -188,7 +188,7 @@ function FormContent({
                                             </InputGroup>
                                         </Field>
                                     )}
-                                /> */}
+                                />
                             </div>
                         </div>
                     ) : (
@@ -270,7 +270,7 @@ function FormContent({
                                                                             },
                                                                         }) => (
                                                                             <InputGroup>
-                                                                                {/* <InputGroup.Input
+                                                                                <InputGroup.Input
                                                                                     type="number"
                                                                                     className="w-full bg-transparent text-center font-bold text-foreground outline-none p-0 text-sm"
                                                                                     value={
@@ -298,7 +298,7 @@ function FormContent({
                                                                                         /
                                                                                         {` ${cost.maxQty} `}
                                                                                     </span>
-                                                                                </InputGroup.Addon> */}
+                                                                                </InputGroup.Addon>
                                                                             </InputGroup>
                                                                         )}
                                                                     />
