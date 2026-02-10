@@ -37,11 +37,11 @@ export function UnitSelectStep({}) {
                     <button
                         key={item.id}
                         onClick={() => {
-                            // setParams({
-                            //     userId: item.id,
-                            //     step: params.redirectStep || params.step + 1,
-                            //     redirectStep: null,
-                            // });
+                            setParams({
+                                unitId: item.id,
+                                step: params.redirectStep || params.step + 1,
+                                redirectStep: null,
+                            });
                             // handleNext();
                         }}
                         className={`flex flex-col gap-1 p-4 rounded-xl border text-left transition-all hover:shadow-md ${params.unitId === item.id ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted/50"}`}
@@ -55,7 +55,7 @@ export function UnitSelectStep({}) {
                             </span>
                         </div>
                         <p className="text-sm font-bold text-foreground flex items-center gap-2">
-                            <Home size={14} className="text-primary" />
+                            <Home className="text-primary size-4" />
                             {item.modelName}
                         </p>
                         <p className="text-[10px] text-muted-foreground truncate mb-2">
@@ -65,11 +65,11 @@ export function UnitSelectStep({}) {
                         {/* Stats Section */}
                         <div className="flex items-center gap-2 pt-2 border-t border-border/50">
                             <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-                                <Briefcase className="size-12" />
+                                <Briefcase className="size-4" />
                                 <span>{item.jobCount} Jobs</span>
                             </div>
                             <div className="flex items-center gap-1 text-[10px] font-bold text-foreground ml-auto">
-                                <DollarSign className="size-12 text-primary" />
+                                <DollarSign className="size-4 text-primary" />
                                 <span>
                                     $
                                     {item.totalJobCost.toLocaleString("en-US", {

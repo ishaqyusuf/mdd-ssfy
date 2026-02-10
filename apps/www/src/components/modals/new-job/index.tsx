@@ -25,15 +25,16 @@ export function NewJobModal() {
             description={<StepsDescription />}
             size={"xl"}
         >
-            <CustomModal.Content className="h-[60vh] relative -mx-0">
+            <CustomModal.Content className="h-[70vh] max-h-none relative -mx-0">
                 <Tabs value={String(params.step)}>
                     {formType === "assign" ? (
                         <>
                             <Tabs.Content value={"1"}>
                                 <UserSelectStep />
+                                {/* <ProjectSelectStep /> */}
                             </Tabs.Content>
                             <Tabs.Content value={"2"}>
-                                <ProjectSelectStep stepIndex={2} />
+                                <ProjectSelectStep />
                             </Tabs.Content>
                             <Tabs.Content value={"3"}>
                                 <UnitSelectStep />
@@ -45,7 +46,7 @@ export function NewJobModal() {
                     ) : (
                         <>
                             <Tabs.Content value={"1"}>
-                                <ProjectSelectStep stepIndex={1} />
+                                <ProjectSelectStep />
                             </Tabs.Content>
                             <Tabs.Content value={"2"}>
                                 <UnitSelectStep />

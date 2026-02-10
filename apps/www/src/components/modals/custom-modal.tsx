@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { cva, VariantProps } from "class-variance-authority";
 
-import { Sheet, SheetContent, SheetContentProps } from "@gnd/ui/sheet";
+import { SheetContentProps } from "@gnd/ui/sheet";
 
 import Portal from "../_v1/portal";
 import { ScrollArea } from "@gnd/ui/scroll-area";
@@ -15,6 +15,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@gnd/ui/dialog";
+import { ComponentPropsWithoutRef } from "react";
 
 const sheetContentVariant = cva("flex flex-col w-full ", {
     variants: {
@@ -94,13 +95,23 @@ export function CustomModalPortal({ children }) {
         </Portal>
     );
 }
-export function CustomModalContent({ children = null, className = "" }) {
+interface CustomModalContentProps extends ComponentPropsWithoutRef<
+    typeof ScrollArea
+> {
+    // className?: string;
+}
+export function CustomModalContent({
+    children,
+    className,
+    ...props
+}: CustomModalContentProps) {
     return (
         <ScrollArea
             className={cn(
                 "-mx-4 flex-1 px-4 max-h-[70vh] overflow-auto",
                 className,
             )}
+            {...(props as any)}
         >
             {children}
         </ScrollArea>

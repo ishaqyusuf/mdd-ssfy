@@ -6,11 +6,11 @@ import { Building2, ChevronRight, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearch } from "@gnd/ui/hooks/use-search";
 import { SearchInput } from "@/components/search-input";
-export function ProjectSelectStep({ stepIndex }) {
+export function ProjectSelectStep({}) {
     const { setParams, ...params } = useJobFormParams();
     const { data, isPending, refetch, isEnabled } = useQuery(
         _trpc.community.projectsList.queryOptions(null, {
-            enabled: params.step === stepIndex,
+            // enabled: params.step === stepIndex,
         }),
     );
 
@@ -33,11 +33,11 @@ export function ProjectSelectStep({ stepIndex }) {
                     <button
                         key={item.id}
                         onClick={() => {
-                            // setParams({
-                            //     userId: item.id,
-                            //     step: params.redirectStep || params.step + 1,
-                            //     redirectStep: null,
-                            // });
+                            setParams({
+                                projectId: item.id,
+                                step: params.redirectStep || params.step + 1,
+                                redirectStep: null,
+                            });
                             // handleNext();
                         }}
                         className={`w-full flex items-center gap-4 p-3 rounded-xl border text-left transition-all hover:shadow-md ${params.projectId === item.id ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted/50"}`}
