@@ -58,7 +58,7 @@ const homes: Column = {
     },
     cell: ({ row: { original: item } }) => (
         <>
-            <Item.Description>{item._count.projects}</Item.Description>
+            <Item.Description>{item._count.homes}</Item.Description>
         </>
     ),
 };

@@ -50,7 +50,7 @@ export async function getBuilders(db: Db, query: GetBuildersSchema) {
       ...d,
       _count: {
         ..._count,
-        projects: sum(projects.map((p) => p._count.homes)),
+        homes: sum(projects.map((p) => p._count.homes)),
       },
     })),
   );

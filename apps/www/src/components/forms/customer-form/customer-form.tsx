@@ -28,6 +28,8 @@ import { useCustomerForm } from "./form-context";
 import { cn } from "@gnd/ui/cn";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
+import { Controller } from "react-hook-form";
+import { Field } from "@gnd/ui/composite";
 
 export type CustomerFormData = z.infer<typeof createCustomerSchema>;
 
@@ -135,6 +137,24 @@ export function CustomerForm() {
                                                 label="Phone"
                                                 size="sm"
                                                 type="phone"
+                                            />
+                                            <Controller
+                                                control={form.control}
+                                                name="email"
+                                                render={({
+                                                    field: { value, onChange },
+                                                }) => (
+                                                    <Field>
+                                                        <Field.Label>
+                                                            Email
+                                                        </Field.Label>
+                                                        <Field.Input
+                                                            type="email"
+                                                            value={value}
+                                                            onChange={onChange}
+                                                        />
+                                                    </Field>
+                                                )}
                                             />
                                             <FormInput
                                                 control={form.control}
