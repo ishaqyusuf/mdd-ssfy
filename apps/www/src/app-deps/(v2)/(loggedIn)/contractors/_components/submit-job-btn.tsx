@@ -74,6 +74,18 @@ export default function SubmitJobBtn({}) {
                     ))}
                     <DropdownMenuItem
                         onClick={() => {
+                            if (process.env.NODE_ENV === "development") {
+                                setParams({
+                                    // step=5&userId=38&projectId=208&unitId=15597&modelId=2087&taskId=1
+                                    step: 5,
+                                    userId: 38,
+                                    projectId: 208,
+                                    unitId: 15597,
+                                    modelId: 2087,
+                                    taskId: 1,
+                                });
+                                return;
+                            }
                             setParams({
                                 step: 1,
                             });

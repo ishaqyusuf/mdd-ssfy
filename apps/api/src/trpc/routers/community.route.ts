@@ -222,6 +222,7 @@ export const communityRouters = createTRPCRouter({
           lot: true,
           block: true,
           modelName: true,
+          lotBlock: true,
           project: {
             select: {
               meta: true,
@@ -239,17 +240,12 @@ export const communityRouters = createTRPCRouter({
       const builderTask = await db.builderTask.findFirst({
         where: {
           id: taskId!,
-          // status: ""
-          installable: true,
+          // installable: true,
         },
         select: {
           taskName: true,
           addonPercentage: true,
           builderTaskInstallCosts: {
-            where: {
-              // installCostModelId
-              // id
-            },
             select: {
               modelInstallTasks: {
                 where: {
@@ -259,6 +255,8 @@ export const communityRouters = createTRPCRouter({
                   id: true,
                   communityModelId: true,
                   installCostModelId: true,
+                  qty: true,
+                  status: true,
                 },
               },
               defaultQty: true,
@@ -313,15 +311,16 @@ export const communityRouters = createTRPCRouter({
               jt.communityModelInstallTaskId ===
               taskInstallCost.installCostModel.id,
           );
-          const modelTaskId = taskInstallCost.modelInstallTasks?.find(
+          const modelInstallTask = taskInstallCost.modelInstallTasks?.find(
             (mit) =>
               mit.installCostModelId === taskInstallCost.installCostModel.id,
-          )?.id;
+          );
+          const modelTaskId = modelInstallTask?.id;
           return {
             id: jobTask?.id,
             // builderTaskId:
             qty: jobTask?.qty!,
-            maxQty: jobTask?.maxQty || taskInstallCost.defaultQty,
+            maxQty: jobTask?.maxQty || modelInstallTask?.qty, //.defaultQty,
             rate: jobTask?.rate || taskInstallCost.installCostModel.unitCost,
             installCostModel: taskInstallCost.installCostModel,
             modelTaskId,
@@ -342,6 +341,7 @@ export const communityRouters = createTRPCRouter({
         unit: {
           lot: unit?.lot,
           block: unit?.block,
+          lotBlock: unit?.lotBlock,
           modelName: unit?.modelName,
           projectTitle: unit?.project.title,
           builderName: unit?.project?.builder?.name,

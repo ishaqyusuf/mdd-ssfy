@@ -6,6 +6,7 @@ import { Button } from "@gnd/ui/button";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export function AddNewInstallCost() {
     // const ctx = useBuilderModelInstallsContext();
@@ -17,7 +18,7 @@ export function AddNewInstallCost() {
         rate: "",
         unit: "",
     });
-
+    const { tasks } = useBuilderModelInstallsContext();
     const { data: suggesstions } = useQuery(
         useTRPC().community.getInstallCostRatesSuggestions.queryOptions(
             {
@@ -32,6 +33,24 @@ export function AddNewInstallCost() {
         ),
     );
     const handleCreateAndAddCost = () => {};
+    const handleUpdateCommunityModelInstallTask = (suggesstionId) => {
+        const selectedSuggestion = suggesstions?.find(
+            (s) => s.id === suggesstionId,
+        );
+        if (
+            tasks?.some((t) => t.installCostModelId === selectedSuggestion?.id)
+        ) {
+            toast.error("This cost is already added to the task.");
+            return;
+        }
+        updateCommunityModelInstallTask({
+            // id: params.editCommunityModelInstallCostId,
+            builderTaskId: params.selectedBuilderTaskId,
+            communityModelId: params.editCommunityModelInstallCostId,
+            installCostModelId: selectedSuggestion.id,
+            qty: 0,
+        });
+    };
     const { mutate: updateCommunityModelInstallTask, isPending: isUpdating } =
         useMutation(
             useTRPC().community.updateCommunityModelInstallTask.mutationOptions(
@@ -125,14 +144,9 @@ export function AddNewInstallCost() {
                                 }))}
                             onSelect={(item) => {
                                 // console.log({ selected: item });
-                                updateCommunityModelInstallTask({
-                                    // id: params.editCommunityModelInstallCostId,
-                                    builderTaskId: params.selectedBuilderTaskId,
-                                    communityModelId:
-                                        params.editCommunityModelInstallCostId,
-                                    installCostModelId: item.data.id,
-                                    qty: 0,
-                                });
+                                handleUpdateCommunityModelInstallTask(
+                                    item.data.id,
+                                );
                             }}
                         />
                     </div>

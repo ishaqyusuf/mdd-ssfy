@@ -10,12 +10,12 @@ import { jobFormShema } from "@community/schema";
 import { Controller, useFieldArray } from "react-hook-form";
 import { handleNumberInput, percentageValue, sum } from "@gnd/utils";
 import { Field, InputGroup } from "@gnd/ui/composite";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Checkbox } from "@gnd/ui/checkbox";
 
 export function FormStep({}) {
     const { setParams, ...params } = useJobFormParams();
-    const { data, isPending } = useQuery(
+    const { data, isPending, refetch, fetchStatus, isFetching } = useQuery(
         useTRPC().community.getJobForm.queryOptions(
             {
                 unitId: params.unitId,
@@ -25,15 +25,22 @@ export function FormStep({}) {
                 modelId: params.modelId,
             },
             {
-                enabled:
-                    !!params.unitId &&
-                    !!params.taskId &&
-                    !!params.userId &&
-                    !!params.modelId,
+                // enabled: false,
+                // refetchOnMount: true,
+                // !!params.unitId &&
+                // !!params.taskId &&
+                // !!params.userId &&
+                // !!params.modelId,
             },
         ),
     );
-    console.log([data, params, isPending]);
+
+    console.log({
+        tasks: data?.job?.tasks,
+        isPending,
+        fetchStatus,
+        isFetching,
+    });
     return (
         <>
             <StepTitle title="Configure Job Details" />
@@ -70,27 +77,36 @@ function FormContent({
         addonPercentage,
     );
     const isCustomTask = false;
-    const jobTasks = form.watch("job.tasks");
+    // const jobTasks = form.watch("job.tasks");
+    const { fields: jobTasks } = useFieldArray({
+        control: form.control,
+        name: "job.tasks",
+    });
     const [additionalCost, isCustom] = form.watch([
         "job.meta.additional_cost",
         "job.isCustom",
     ]);
-    const estimates = useMemo(() => {
-        const tasksSubTotal = sum(
-            jobTasks.map((task) => (task.rate || 0) * (task.qty || 0)),
-        );
-
-        // const addonValue = percentageValue(tasksSubTotal, addonPercentage);
-        return {
-            tasksSubTotal,
-            addonValue,
-            total: sum([
-                tasksSubTotal,
-                addonValue,
-                isCustom ? additionalCost || 0 : 0,
-            ]),
-        };
-    }, [jobTasks, addonValue, additionalCost, isCustom]);
+    const tasksSubTotal = sum(
+        jobTasks?.map((task) => (task.rate || 0) * (task.qty || 0)),
+    );
+    const total = sum([
+        tasksSubTotal,
+        addonValue,
+        isCustom ? additionalCost || 0 : 0,
+    ]);
+    // const estimates = useMemo(() => {
+    //     // console.log({ tasksSubTotal, addonPercentage, addonValue });
+    //     // const addonValue = percentageValue(tasksSubTotal, addonPercentage);
+    //     return {
+    //         tasksSubTotal,
+    //         addonValue,
+    //         total: sum([
+    //             tasksSubTotal,
+    //             addonValue,
+    //             isCustom ? additionalCost || 0 : 0,
+    //         ]),
+    //     };
+    // }, [jobTasks, addonValue, additionalCost, isCustom]);
     return (
         <>
             <div className="space-y-6 h-full flex flex-col">
@@ -104,15 +120,36 @@ function FormContent({
                         {defaultValues?.unit?.projectTitle || "Unknown Project"}
                     </span>
                     <span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
-                        <Home className="size-3" /> Lot{" "}
-                        {defaultValues?.unit?.lot}
+                        <Home className="size-3" />
+                        {`${defaultValues?.unit?.modelName} ${defaultValues?.unit?.lotBlock}`}
                     </span>
-                    <span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
-                        <Home className="size-3" /> Block{" "}
-                        {defaultValues?.unit?.block}
-                    </span>
-                </div>{" "}
+                </div>
                 <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+                    <div className="space-y-2">
+                        <Controller
+                            control={form.control}
+                            name="job.isCustom"
+                            render={({ field }) => (
+                                <Field orientation="horizontal">
+                                    <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                        id="isCustomTask"
+                                    />
+                                    <Field.Content>
+                                        <Field.Label htmlFor="isCustomTask">
+                                            Is this a custom task?
+                                        </Field.Label>
+                                        <Field.Description>
+                                            Custom tasks are not based on
+                                            builder templates and require a
+                                            manual cost input.
+                                        </Field.Description>
+                                    </Field.Content>
+                                </Field>
+                            )}
+                        />
+                    </div>
                     {isCustomTask ? (
                         /* Custom Task Form */
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -136,31 +173,7 @@ function FormContent({
                                     )}
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Controller
-                                    control={form.control}
-                                    name="job.isCustom"
-                                    render={({ field }) => (
-                                        <Field orientation="horizontal">
-                                            <Checkbox
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                                id="isCustomTask"
-                                            />
-                                            <Field.Content>
-                                                <Field.Label htmlFor="isCustomTask">
-                                                    Is this a custom task?
-                                                </Field.Label>
-                                                <Field.Description>
-                                                    Custom tasks are not based
-                                                    on builder templates and
-                                                    require a manual cost input.
-                                                </Field.Description>
-                                            </Field.Content>
-                                        </Field>
-                                    )}
-                                />
-                            </div>
+
                             <div className="space-y-2">
                                 <Controller
                                     control={form.control}
@@ -239,79 +252,76 @@ function FormContent({
                                                             cost.id
                                                         ] || 0;
                                                     return (
-                                                        <tr
+                                                        <Controller
+                                                            control={
+                                                                form.control
+                                                            }
+                                                            name={`job.tasks.${index}.qty`}
                                                             key={index}
-                                                            className="bg-card"
-                                                        >
-                                                            <td className="px-4 py-3 font-medium text-foreground">
-                                                                {
-                                                                    cost
-                                                                        .installCostModel
-                                                                        .title
-                                                                }
-                                                            </td>
-                                                            <td className="px-4 py-3 text-right text-muted-foreground">
-                                                                $
-                                                                {cost.rate.toFixed(
-                                                                    2,
-                                                                )}
-                                                            </td>
-                                                            <td className="px-4 py-2">
-                                                                <div className="flex items-center bg-muted rounded-lg border border-border px-2 py-1">
-                                                                    <Controller
-                                                                        control={
-                                                                            form.control
+                                                            render={({
+                                                                field: {
+                                                                    onChange,
+                                                                    value,
+                                                                },
+                                                            }) => (
+                                                                <tr className="bg-card">
+                                                                    <td className="px-4 py-3 font-medium text-foreground">
+                                                                        {
+                                                                            cost
+                                                                                .installCostModel
+                                                                                .title
                                                                         }
-                                                                        name={`job.tasks.${index}.qty`}
-                                                                        render={({
-                                                                            field: {
-                                                                                onChange,
-                                                                                value,
-                                                                            },
-                                                                        }) => (
-                                                                            <InputGroup>
-                                                                                <InputGroup.Input
-                                                                                    type="number"
-                                                                                    className="w-full bg-transparent text-center font-bold text-foreground outline-none p-0 text-sm"
-                                                                                    value={
-                                                                                        value ||
-                                                                                        ""
-                                                                                    }
-                                                                                    onChange={(
-                                                                                        e,
-                                                                                    ) => {
-                                                                                        onChange(
-                                                                                            Number(
-                                                                                                e
-                                                                                                    .target
-                                                                                                    .value,
-                                                                                            ),
-                                                                                        );
-                                                                                    }}
-                                                                                    placeholder="0"
-                                                                                />
-                                                                                <InputGroup.Addon
-                                                                                    className="p-0"
-                                                                                    align="inline-end"
-                                                                                >
-                                                                                    <span className="text-[10px] text-muted-foreground">
-                                                                                        /
-                                                                                        {` ${cost.maxQty} `}
-                                                                                    </span>
-                                                                                </InputGroup.Addon>
-                                                                            </InputGroup>
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-right text-muted-foreground">
+                                                                        $
+                                                                        {cost.rate.toFixed(
+                                                                            2,
                                                                         )}
-                                                                    />
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-right font-bold">
-                                                                $
-                                                                {(
-                                                                    cost.rate *
-                                                                    qty
-                                                                ).toFixed(2)}
-                                                            </td>
-                                                        </tr>
+                                                                    </td>
+                                                                    <td className="px-4 py-2">
+                                                                        <InputGroup>
+                                                                            <InputGroup.Input
+                                                                                type="number"
+                                                                                className="w-full bg-transparent text-center font-bold text-foreground outline-none p-0 text-sm [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                                                                                value={
+                                                                                    value ||
+                                                                                    ""
+                                                                                }
+                                                                                onChange={(
+                                                                                    e,
+                                                                                ) => {
+                                                                                    onChange(
+                                                                                        Number(
+                                                                                            e
+                                                                                                .target
+                                                                                                .value,
+                                                                                        ),
+                                                                                    );
+                                                                                }}
+                                                                                placeholder="0"
+                                                                            />
+                                                                            <InputGroup.Addon
+                                                                                className=""
+                                                                                align="inline-end"
+                                                                            >
+                                                                                <span className="text-muted-foreground">
+                                                                                    {` / ${cost.maxQty} `}
+                                                                                </span>
+                                                                            </InputGroup.Addon>
+                                                                        </InputGroup>
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-right font-bold">
+                                                                        $
+                                                                        {(
+                                                                            cost.rate *
+                                                                            +value
+                                                                        ).toFixed(
+                                                                            2,
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        />
                                                     );
                                                 },
                                             )}
@@ -341,7 +351,7 @@ function FormContent({
                                         Subtotal
                                     </span>
                                     <span className="font-bold text-foreground">
-                                        ${estimates.tasksSubTotal}
+                                        ${tasksSubTotal}
                                     </span>
                                 </div>
                                 <div className="flex justify-between text-sm">
@@ -361,7 +371,7 @@ function FormContent({
                                         Grand Total
                                     </span>
                                     <span className="font-black text-xl text-primary">
-                                        ${estimates.total}
+                                        ${total}
                                     </span>
                                 </div>
                             </div>

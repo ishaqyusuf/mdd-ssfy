@@ -78,7 +78,10 @@ table.styled td.action {
         @apply bg-background text-foreground;
     }
 }
-
+/* input with type of number */
+input [type="number"] {
+    @apply [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield];
+}
 .custom-sheet {
 }
 .watermark-text {
