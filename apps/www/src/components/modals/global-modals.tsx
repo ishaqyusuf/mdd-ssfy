@@ -1,7 +1,7 @@
 "use client";
 
 import { SuperAdminGuard } from "../auth-guard";
-import { CommunityInstallCostForm } from "../forms/community-install-cost-form";
+
 import { BuilderFormModal } from "./builder-form-modal";
 import { ModelInstallCostModal } from "./model-install-cost-modal";
 import { CommunityModelCostModal } from "./community-model-cost-modal";
@@ -18,6 +18,7 @@ import { SalesPreviewModal } from "./sales-preview-modal";
 import { SalesQuickPayModal } from "./sales-quick-pay-modal";
 import { WorkOrderFormModal } from "./work-order-form-modal";
 import { NewJobModal } from "./new-job";
+import { JobOverviewModal } from "./job-overview";
 
 export function GlobalModals() {
     return (
@@ -44,6 +45,7 @@ export function GlobalModals() {
             <CreateCommunityProjectModal />
             <BuilderFormModal />
             <NewJobModal />
+            <JobOverviewModal />
             {/* </Env> */}
         </>
     );

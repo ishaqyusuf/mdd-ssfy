@@ -6,7 +6,13 @@ import { paginationSchema } from "@gnd/utils/schema";
 import z from "zod";
 import { getSetting } from "./settings";
 import { formatLargeNumber } from "@gnd/utils/format";
-import { consoleLog, generateRandomString, nextId, sum } from "@gnd/utils";
+import {
+  consoleLog,
+  generateRandomString,
+  nextId,
+  padStart,
+  sum,
+} from "@gnd/utils";
 import {
   startOfMonth,
   endOfMonth,
@@ -119,6 +125,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
           taskCost,
         } = meta2 || {};
         return {
+          jobId: `#J-${padStart(id, 5, "0")}`,
           controlId,
           isCustom,
           adminNote,

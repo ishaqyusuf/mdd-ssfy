@@ -16,7 +16,6 @@ import {
 } from "@api/db/queries/jobs";
 import { createTRPCRouter, publicProcedure } from "../init";
 import z from "zod";
-import { dataAsType } from "@gnd/utils";
 import { saveNote } from "@gnd/utils/note";
 import { generateJobId } from "@community/utils/job";
 
@@ -189,5 +188,31 @@ export const jobRoutes = createTRPCRouter({
     .input(adminAnalyticsSchema)
     .query(async (props) => {
       return adminAnalytics(props.ctx, props.input);
+    }),
+  overview: publicProcedure
+    .input(
+      z.object({
+        jobId: z.number(),
+      }),
+    )
+    .query(async (props) => {
+      const { ctx, input } = props;
+      const db = ctx.db;
+      const [job] =
+        (
+          await getJobs(ctx, {
+            jobId: input.jobId,
+          })
+        )?.data || [];
+      if (!job) throw new Error("Job not found");
+      return {
+        ...job,
+        financials: {
+          addonPercent: 0,
+          addonValue: 0,
+          total: 100,
+          subtotal: 100,
+        },
+      };
     }),
 });

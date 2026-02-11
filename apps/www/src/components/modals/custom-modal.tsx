@@ -7,15 +7,9 @@ import { SheetContentProps } from "@gnd/ui/sheet";
 
 import Portal from "../_v1/portal";
 import { ScrollArea } from "@gnd/ui/scroll-area";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@gnd/ui/dialog";
+
 import { ComponentPropsWithoutRef } from "react";
+import { Dialog } from "@gnd/ui/composite";
 
 const sheetContentVariant = cva("flex flex-col w-full ", {
     variants: {
@@ -32,6 +26,7 @@ const sheetContentVariant = cva("flex flex-col w-full ", {
             lg: "sm:h-[85vh]",
         },
         size: {
+            "5xl": "sm:max-w-5xl",
             "4xl": "sm:max-w-4xl",
             "3xl": "sm:max-w-3xl",
             "2xl": "sm:max-w-2xl",
@@ -54,6 +49,8 @@ interface Props
     title?;
     description?;
     className?: string;
+    titleAsChild?: boolean;
+    descriptionAsChild?: boolean;
 }
 function CustomModalBase({
     children,
@@ -62,11 +59,13 @@ function CustomModalBase({
     onOpenChange,
     description,
     className,
+    titleAsChild = false,
+    descriptionAsChild = false,
     ...props
 }: Props) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent
+            <Dialog.Content
                 id="customModalContent"
                 {...props}
                 className={cn(
@@ -77,15 +76,36 @@ function CustomModalBase({
                     className,
                 )}
             >
-                <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
+                <Dialog.Header>
+                    <Dialog.Title asChild={titleAsChild} id="customModalTitle">
+                        {title}
+                    </Dialog.Title>
                     {!description || (
-                        <DialogDescription>{description}</DialogDescription>
+                        <Dialog.Description
+                            id="customModalDescription"
+                            asChild={descriptionAsChild}
+                        >
+                            {description}
+                        </Dialog.Description>
                     )}
-                </DialogHeader>
+                </Dialog.Header>
                 {children}
-            </DialogContent>
+            </Dialog.Content>
         </Dialog>
+    );
+}
+function Title({ children }) {
+    return (
+        <Portal nodeId={"customModalTitle"} noDelay>
+            {children}
+        </Portal>
+    );
+}
+function Description({ children }) {
+    return (
+        <Portal nodeId={"customModalDescription"} noDelay>
+            {children}
+        </Portal>
     );
 }
 export function CustomModalPortal({ children }) {
@@ -120,7 +140,7 @@ export function CustomModalContent({
 function Footer({ children, className = "" }) {
     return (
         <CustomModalPortal>
-            <DialogFooter className={cn(className)}>{children}</DialogFooter>
+            <Dialog.Footer className={cn(className)}>{children}</Dialog.Footer>
         </CustomModalPortal>
     );
 }
@@ -128,4 +148,6 @@ export const CustomModal = Object.assign(CustomModalBase, {
     Content: CustomModalContent,
     Portal: CustomModalPortal,
     Footer,
+    Title,
+    Description,
 });

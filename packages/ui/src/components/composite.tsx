@@ -32,19 +32,16 @@ import {
 } from "./dialog";
 import { Input } from "./input";
 import { Textarea } from "./textarea";
-const Dialog = Object.assign(
-  {},
-  {
-    Root: DialogRoot,
-    Content: DialogContent,
-    Header: DialogHeader,
-    Footer: DialogFooter,
-    Title: DialogTitle,
-    Description: DialogDescription,
-    Trigger: DialogTrigger,
-    Close: DialogClose,
-  },
-);
+const Dialog = Object.assign(DialogRoot, {
+  Root: DialogRoot,
+  Content: DialogContent,
+  Header: DialogHeader,
+  Footer: DialogFooter,
+  Title: DialogTitle,
+  Description: DialogDescription,
+  Trigger: DialogTrigger,
+  Close: DialogClose,
+});
 
 import {
   Popover as PopoverRoot,
@@ -225,17 +222,14 @@ import {
   CardContent,
 } from "./card";
 
-const Card = Object.assign(
-  {},
-  {
-    Root: CardRoot,
-    Header: CardHeader,
-    Footer: CardFooter,
-    Title: CardTitle,
-    Description: CardDescription,
-    Content: CardContent,
-  },
-);
+const Card = Object.assign(CardRoot, {
+  Root: CardRoot,
+  Header: CardHeader,
+  Footer: CardFooter,
+  Title: CardTitle,
+  Description: CardDescription,
+  Content: CardContent,
+});
 import {
   InputGroup as InputGroupRoot,
   InputGroupAddon,
