@@ -43,7 +43,7 @@ export function NewJobModal() {
             size={"xl"}
         >
             <div className="" id="sub-header"></div>
-            <CustomModal.Content className="h-[70vh] relative -mx-0">
+            <CustomModal.Content className="max-h-[60vh] min-h-[60vh]  relative -mx-0">
                 <Tabs value={String(params.step)}>
                     {stepTabs.map((StepComponent, index) => (
                         <Tabs.Content key={index} value={String(index + 1)}>
