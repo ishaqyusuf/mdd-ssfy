@@ -3,7 +3,7 @@ import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { StepTitle } from "./step-title";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
-import { Building2, Home, User } from "lucide-react";
+import { Building2, CheckCircle2, Home, User } from "lucide-react";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { jobFormShema } from "@community/schema";
@@ -12,6 +12,9 @@ import { handleNumberInput, percentageValue, sum } from "@gnd/utils";
 import { Field, InputGroup } from "@gnd/ui/composite";
 import { useEffect, useMemo } from "react";
 import { Checkbox } from "@gnd/ui/checkbox";
+import NumberFlow from "@number-flow/react";
+import Portal from "@gnd/ui/custom/portal";
+import { SubmitButton } from "@gnd/ui/submit-button";
 
 export function FormStep({}) {
     const { setParams, ...params } = useJobFormParams();
@@ -76,12 +79,12 @@ function FormContent({
         defaultValues.unit?.projectAddon,
         addonPercentage,
     );
-    const isCustomTask = false;
-    // const jobTasks = form.watch("job.tasks");
-    const { fields: jobTasks } = useFieldArray({
-        control: form.control,
-        name: "job.tasks",
-    });
+    const isCustomTask = form.watch("job.isCustom");
+    const jobTasks = form.watch("job.tasks");
+    // const { fields: jobTasks } = useFieldArray({
+    //     control: form.control,
+    //     name: "job.tasks",
+    // });
     const [additionalCost, isCustom] = form.watch([
         "job.meta.additional_cost",
         "job.isCustom",
@@ -162,13 +165,13 @@ function FormContent({
                                             <Field.Label>
                                                 Job Description
                                             </Field.Label>
-                                            {/* <InputGroup>
+                                            <InputGroup>
                                                 <InputGroup.TextArea
                                                     {...field}
                                                     className="min-h-[100px] resize-none"
                                                     placeholder="Additional instructions for the custom task..."
                                                 />
-                                            </InputGroup> */}
+                                            </InputGroup>
                                         </Field>
                                     )}
                                 />
@@ -185,7 +188,7 @@ function FormContent({
                                             </Field.Label>
                                             <InputGroup>
                                                 <InputGroup.Addon>
-                                                    <span className="text-[10px] text-muted-foreground">
+                                                    <span className="text-muted-foreground">
                                                         $
                                                     </span>
                                                 </InputGroup.Addon>
@@ -247,10 +250,9 @@ function FormContent({
                                         <tbody className="divide-y divide-border">
                                             {defaultValues?.job?.tasks?.map(
                                                 (cost, index) => {
-                                                    const qty =
-                                                        builderTaskQuantities[
-                                                            cost.id
-                                                        ] || 0;
+                                                    const maxQty =
+                                                        cost.maxQty || 0;
+
                                                     return (
                                                         <Controller
                                                             control={
@@ -265,7 +267,7 @@ function FormContent({
                                                                 },
                                                             }) => (
                                                                 <tr className="bg-card">
-                                                                    <td className="px-4 py-3 font-medium text-foreground">
+                                                                    <td className="px-4 py-3 font-medium text-foreground uppercase">
                                                                         {
                                                                             cost
                                                                                 .installCostModel
@@ -287,6 +289,10 @@ function FormContent({
                                                                                     value ||
                                                                                     ""
                                                                                 }
+                                                                                disabled={
+                                                                                    maxQty ===
+                                                                                    0
+                                                                                }
                                                                                 onChange={(
                                                                                     e,
                                                                                 ) => {
@@ -305,19 +311,25 @@ function FormContent({
                                                                                 align="inline-end"
                                                                             >
                                                                                 <span className="text-muted-foreground">
-                                                                                    {` / ${cost.maxQty} `}
+                                                                                    {` / ${maxQty} `}
                                                                                 </span>
                                                                             </InputGroup.Addon>
                                                                         </InputGroup>
                                                                     </td>
                                                                     <td className="px-4 py-3 text-right font-bold">
-                                                                        $
-                                                                        {(
-                                                                            cost.rate *
-                                                                            +value
-                                                                        ).toFixed(
-                                                                            2,
-                                                                        )}
+                                                                        <NumberFlow
+                                                                            prefix="$"
+                                                                            value={
+                                                                                +(
+                                                                                    (cost.rate ||
+                                                                                        0) *
+                                                                                        +value ||
+                                                                                    0
+                                                                                ).toFixed(
+                                                                                    2,
+                                                                                )
+                                                                            }
+                                                                        />
                                                                     </td>
                                                                 </tr>
                                                             )}
@@ -379,6 +391,26 @@ function FormContent({
                     )}
                 </div>
             </div>
+            <Portal nodeId={"jobActionButton"}>
+                <form
+                    {...form}
+                    onSubmit={form.handleSubmit((values) => {
+                        console.log("Form Submitted with values:", values);
+                        // Here you would typically call a mutation to save the job details
+                        // For example: trpc.community.updateJob.mutate(values)
+                        // setParams({
+                        //     step: 3, // Move to the next step, e.g., review/confirm
+                        // });
+                    })}
+                >
+                    <SubmitButton className="">
+                        <div className="flex gap-2">
+                            <CheckCircle2 className="size-4" />
+                            <span>Submit</span>
+                        </div>
+                    </SubmitButton>
+                </form>
+            </Portal>
         </>
     );
 }

@@ -1,6 +1,6 @@
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { CustomModal } from "../custom-modal";
-import { CheckCircle2, ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Button } from "@gnd/ui/button";
 
 export function NewJobFooter() {
