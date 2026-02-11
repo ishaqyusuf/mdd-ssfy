@@ -131,6 +131,7 @@ const installCost: Column = {
                     onClick={(e) => {
                         setParams({
                             editCommunityModelInstallCostId: item.id,
+                            mode: "v1",
                         });
                     }}
                     className={cn(

@@ -54,7 +54,7 @@ export const useCreateModelInstallConfigContext = () => {
     }, [selectedBuilderTaskId, dataV2]);
     return {
         data,
-        isPending: isPending || isPendingV2,
+        isPending: (!isV2 && isPending) || (isV2 && isPendingV2),
         dataV2,
         isV2,
         params,
