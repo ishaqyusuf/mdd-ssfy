@@ -9,11 +9,15 @@ import { ProjectSelectStep } from "./project-select-step";
 import { UnitSelectStep } from "./unit-select-step";
 import { TaskSelectStep } from "./task-select-step";
 import { FormStep } from "./form-step";
+import {
+    JobFormProvider,
+    useCreateJobFormContext,
+} from "@/contexts/job-form-context";
 
 export function NewJobModal() {
     const { setParams, opened, ...params } = useJobFormParams();
     const { formType } = useJobStepInfo();
-
+    const jobFormContext = useCreateJobFormContext();
     const stepTabs =
         formType === "assign"
             ? [
@@ -42,15 +46,16 @@ export function NewJobModal() {
             description={<StepsDescription />}
             size={"xl"}
         >
-            <div className="" id="sub-header"></div>
-            <CustomModal.Content className="max-h-[60vh] min-h-[60vh]  relative -mx-0">
-                <Tabs value={String(params.step)}>
-                    {stepTabs.map((StepComponent, index) => (
-                        <Tabs.Content key={index} value={String(index + 1)}>
-                            <StepComponent />
-                        </Tabs.Content>
-                    ))}
-                    {/* {formType === "assign" ? (
+            <JobFormProvider value={jobFormContext}>
+                <div className="" id="sub-header"></div>
+                <CustomModal.Content className="max-h-[60vh] min-h-[60vh]  relative -mx-0">
+                    <Tabs value={String(params.step)}>
+                        {stepTabs.map((StepComponent, index) => (
+                            <Tabs.Content key={index} value={String(index + 1)}>
+                                <StepComponent />
+                            </Tabs.Content>
+                        ))}
+                        {/* {formType === "assign" ? (
                         <>
                             <Tabs.Content value={"1"}>
                                 <UserSelectStep />
@@ -85,10 +90,11 @@ export function NewJobModal() {
                             </Tabs.Content>
                         </>
                     )} */}
-                </Tabs>
+                    </Tabs>
 
-                <NewJobFooter />
-            </CustomModal.Content>
+                    <NewJobFooter />
+                </CustomModal.Content>
+            </JobFormProvider>
         </CustomModal>
     );
 }

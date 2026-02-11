@@ -15,52 +15,26 @@ import { Checkbox } from "@gnd/ui/checkbox";
 import NumberFlow from "@number-flow/react";
 import Portal from "@gnd/ui/custom/portal";
 import { SubmitButton } from "@gnd/ui/submit-button";
+import { useJobFormContext } from "@/contexts/job-form-context";
 
 export function FormStep({}) {
     const { setParams, ...params } = useJobFormParams();
-    const { data, isPending, refetch, fetchStatus, isFetching } = useQuery(
-        useTRPC().community.getJobForm.queryOptions(
-            {
-                unitId: params.unitId,
-                taskId: params.taskId,
-                jobId: params.jobId,
-                userId: params.userId,
-                modelId: params.modelId,
-            },
-            {
-                // enabled: false,
-                // refetchOnMount: true,
-                // !!params.unitId &&
-                // !!params.taskId &&
-                // !!params.userId &&
-                // !!params.modelId,
-            },
-        ),
-    );
 
-    console.log({
-        tasks: data?.job?.tasks,
-        isPending,
-        fetchStatus,
-        isFetching,
-    });
     return (
         <>
             <StepTitle title="Configure Job Details" />
-            {!data || <FormContent defaultValues={data} />}
+            <FormContent />
         </>
     );
 }
-function FormContent({
-    defaultValues,
-}: {
-    defaultValues: RouterOutputs["community"]["getJobForm"];
-}) {
+function FormContent() {
+    const { defaultValues } = useJobFormContext();
     const form = useZodForm(jobFormShema, {
         defaultValues: {
-            ...defaultValues,
+            ...(defaultValues || {}),
         },
     });
+    if (!defaultValues) return null;
     const maxPotentialValue =
         defaultValues.job.tasks?.reduce(
             (sum, task) => sum + (task.rate || 0) * (task.maxQty || 0),
