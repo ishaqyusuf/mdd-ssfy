@@ -144,24 +144,29 @@ export function CustomerForm() {
                                                 render={({
                                                     field: { value, onChange },
                                                 }) => (
-                                                    <Field>
+                                                    <Field className="gap-0">
                                                         <Field.Label>
                                                             Email
                                                         </Field.Label>
                                                         <Field.Input
+                                                            className="h-8"
                                                             type="email"
                                                             value={value}
-                                                            onChange={onChange}
+                                                            onChange={(e) => {
+                                                                onChange(
+                                                                    e.target.value?.toLowerCase(),
+                                                                );
+                                                            }}
                                                         />
                                                     </Field>
                                                 )}
                                             />
-                                            <FormInput
+                                            {/* <FormInput
                                                 control={form.control}
                                                 name="email"
                                                 label="Email"
                                                 size="sm"
-                                            />
+                                            /> */}
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <FormSelect
