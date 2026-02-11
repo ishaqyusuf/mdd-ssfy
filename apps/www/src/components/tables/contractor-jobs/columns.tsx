@@ -35,7 +35,12 @@ const descriptionColumn: Column = {
     cell: ({ row: { original: item } }) => (
         <>
             <Item.Title>
-                {item.title} - {item.subtitle}
+                {item.title} - {item.subtitle}{" "}
+                {item.isCustom && (
+                    <Progress.Status badge noDot>
+                        Custom
+                    </Progress.Status>
+                )}
             </Item.Title>
             <Item.Description>
                 {item.description || "no report"}

@@ -30,8 +30,8 @@ export function JobOverviewModal() {
                 }
             }}
             // title="..."
-            title={<></>}
-            description={<></>}
+            title={<span></span>}
+            description={<span></span>}
             titleAsChild
             descriptionAsChild
             // title={`Job #${openJobId} Overview`}
