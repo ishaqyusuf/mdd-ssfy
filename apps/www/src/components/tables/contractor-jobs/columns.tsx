@@ -1,7 +1,6 @@
 import { useIsMobile } from "@gnd/ui/hooks/use-mobile";
 import { Menu } from "@gnd/ui/custom/menu";
 import { RouterOutputs } from "@api/trpc/routers/_app";
-import { cells } from "@gnd/ui/custom/data-table/cells";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { ColumnDef } from "@tanstack/react-table";

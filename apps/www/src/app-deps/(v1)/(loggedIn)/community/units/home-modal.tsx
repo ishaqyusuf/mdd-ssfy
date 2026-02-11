@@ -75,7 +75,7 @@ export default function HomeModal({ home }: Props) {
                 if (home?.id) {
                     const unit = formData.units[0] as any;
                     unit.modelName = communityTemplates.find(
-                        (f) => f.id == unit.communityTemplateId
+                        (f) => f.id == unit.communityTemplateId,
                     )?.modelName as any;
                     await _updateCommunityHome(unit);
                     msg = "Unit updated!";
@@ -86,11 +86,11 @@ export default function HomeModal({ home }: Props) {
                     const unitForms = formData.units?.map((u) => {
                         const pid = (u.projectId = Number(formData.projectId));
                         u.modelName = communityTemplates.find(
-                            (f) => f.id == u.communityTemplateId
+                            (f) => f.id == u.communityTemplateId,
                         )?.modelName as any;
                         u.modelNo = getModelNumber(u.modelName);
                         u.builderId = Number(
-                            projects.find((p) => p.id == pid)?.builderId
+                            projects.find((p) => p.id == pid)?.builderId,
                         );
                         // u.communityTemplateId = Number(
                         //     communityTemplates.find(
@@ -199,7 +199,7 @@ export default function HomeModal({ home }: Props) {
                                                     ?.filter(
                                                         (m) =>
                                                             m.projectId ==
-                                                            projectId
+                                                            projectId,
                                                     )
                                                     ?.map((i) => ({
                                                         id: String(i.id),
@@ -230,11 +230,11 @@ export default function HomeModal({ home }: Props) {
                                             setValue={(e) =>
                                                 form.setValue(
                                                     `units.${i}.createdAt`,
-                                                    e
+                                                    e,
                                                 )
                                             }
                                             value={form.getValues(
-                                                `units.${i}.createdAt`
+                                                `units.${i}.createdAt`,
                                             )}
                                         />
                                     </div>

@@ -7,8 +7,7 @@ import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 
 import { getProjectHomesAction } from "@/app-deps/(v1)/_actions/community/home";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
-import HomesTableShell from "../../units/homes-table-shell";
-import AddBtn from "../../units/add-button";
+import HomesTableShell from "@/app-deps/(v1)/(loggedIn)/community/units/homes-table-shell";
 
 export const metadata: Metadata = {
     title: "Projects",
@@ -18,7 +17,7 @@ export default async function ProjectHomesPage(props) {
     const params = await props.params;
     const searchParams = await props.searchParams;
     const { project, ...response } = (await getProjectHomesAction(
-        queryParams({ ...searchParams, _projectSlug: params.slug })
+        queryParams({ ...searchParams, _projectSlug: params.slug }),
     )) as any;
     metadata.title = `${project.title} | Homes`;
 
@@ -34,7 +33,6 @@ export default async function ProjectHomesPage(props) {
                 <PageHeader
                     title={project.title}
                     subtitle={project?.builder?.name}
-                    Action={AddBtn}
                     modalData={{ projectId: project.id }}
                 />
                 <HomesTableShell<ExtendedHome>

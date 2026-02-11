@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { useModal } from "@/components/common/modal/provider";
-import { openModal } from "@/lib/modal";
+
 import { Plus } from "lucide-react";
 import { useSession } from "next-auth/react";
 
@@ -16,7 +16,6 @@ import {
 } from "@gnd/ui/dropdown-menu";
 
 import SubmitJobModal from "../_modals/submit-job-modal";
-import { useJobFormParams } from "@/hooks/use-job-form-params";
 
 export default function SubmitJobBtn({}) {
     const { data: session } = useSession({
@@ -37,7 +36,6 @@ export default function SubmitJobBtn({}) {
 
         modal?.openModal(<SubmitJobModal job={{ type } as any} />);
     }
-    const { setParams } = useJobFormParams();
     if (actions.length == 1)
         return (
             <Button
@@ -72,27 +70,6 @@ export default function SubmitJobBtn({}) {
                             {a}
                         </DropdownMenuItem>
                     ))}
-                    <DropdownMenuItem
-                        onClick={() => {
-                            if (process.env.NODE_ENV === "development") {
-                                setParams({
-                                    // step=5&userId=38&projectId=208&unitId=15597&modelId=2087&taskId=1
-                                    step: 5,
-                                    userId: 38,
-                                    projectId: 208,
-                                    unitId: 15597,
-                                    modelId: 2087,
-                                    taskId: 1,
-                                });
-                                return;
-                            }
-                            setParams({
-                                step: 1,
-                            });
-                        }}
-                    >
-                        V2
-                    </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </>

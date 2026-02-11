@@ -9,8 +9,7 @@ import { getHomesAction } from "@/app-deps/(v1)/_actions/community/home";
 import ActivateProductionModal from "@/components/_v1/modals/activate-production-modal";
 import { _addLotBlocks } from "@/app-deps/(v1)/_actions/community/units/_add-lotblocks";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
-import HomesTableShell from "./homes-table-shell";
-import AddBtn from "./add-button";
+import HomesTableShell from "@/app-deps/(v1)/(loggedIn)/community/units/homes-table-shell";
 
 export const metadata: Metadata = {
     title: "All Units",
@@ -20,7 +19,7 @@ export default async function CommunityUnitsPage(props) {
     const params = await props.params;
     const searchParams = await props.searchParams;
     const response = await getHomesAction(
-        queryParams({ ...searchParams, _projectSlug: params.slug })
+        queryParams({ ...searchParams, _projectSlug: params.slug }),
     );
     await _addLotBlocks();
 
@@ -38,7 +37,7 @@ export default async function CommunityUnitsPage(props) {
                         isLast
                     />
                 </Breadcrumbs>
-                <PageHeader title={"Units"} subtitle={``} Action={AddBtn} />
+                <PageHeader title={"Units"} subtitle={``} />
                 <HomesTableShell<ExtendedHome>
                     projectView={false}
                     data={response.data as any}
