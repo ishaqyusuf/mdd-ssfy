@@ -76,18 +76,21 @@ export async function getRevenueOverTime(ctx: TRPCContext, filter: Filter) {
     end: filter.to ? parseISO(filter.to) : new Date(),
   });
 
-  const dailyRevenue = sales.reduce((acc, sale) => {
-    const date = format(sale.createdAt!, "yyyy-MM-dd");
-    acc[date] = (acc[date] || 0) + (sale.grandTotal ?? 0);
-    return acc;
-  }, {} as Record<string, number>);
+  const dailyRevenue = sales.reduce(
+    (acc, sale) => {
+      const date = format(sale.createdAt!, "yyyy-MM-dd");
+      acc[date] = (acc[date] || 0) + (sale.grandTotal ?? 0);
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   const ret = interval.map((day) => ({
     date: format(day, "MMM d"),
     revenue: dailyRevenue[format(day, "yyyy-MM-dd")] || 0,
   }));
   return ret.filter((d, i) =>
-    ret.filter((a, ai) => ai <= i).some((b) => b.revenue)
+    ret.filter((a, ai) => ai <= i).some((b) => b.revenue),
   );
 }
 
@@ -122,7 +125,7 @@ export async function getRecentSales(ctx: TRPCContext) {
 }
 
 export async function getTopProducts(ctx: TRPCContext, filter: Filter) {
-  // const thirtyDaysAgo = subDays(new Date(), 30);
+  const thirtyDaysAgo = subDays(new Date(), 30);
   const salesWhere = getWhereClause(filter, "order");
   const products = await ctx.db.salesOrderItems.groupBy({
     by: ["description"],
@@ -132,10 +135,10 @@ export async function getTopProducts(ctx: TRPCContext, filter: Filter) {
     where: {
       salesOrder: {
         ...salesWhere,
-        // createdAt: {
-        //   gte: thirtyDaysAgo,
-        // },
-        // type: "order",
+        createdAt: {
+          gte: thirtyDaysAgo,
+        },
+        type: "order",
       },
       description: {
         not: null,
@@ -159,10 +162,10 @@ export async function getTopProducts(ctx: TRPCContext, filter: Filter) {
           ...salesWhere,
         },
       },
-      //   createdAt: {
-      //     gte: thirtyDaysAgo,
-      //   },
-      //   type: "order",
+      createdAt: {
+        gte: thirtyDaysAgo,
+      },
+      // type: "order",
       // },
       // description: {
       //   not: null,
@@ -206,7 +209,7 @@ export async function getTopProducts(ctx: TRPCContext, filter: Filter) {
 }
 
 export async function getSalesRepLeaderboard(ctx: TRPCContext, filter: Filter) {
-  // const thirtyDaysAgo = subDays(new Date(), 30);
+  const thirtyDaysAgo = subDays(new Date(), 30);
   const salesWhere = getWhereClause(filter, "order");
   const reps = await ctx.db.salesOrders.groupBy({
     by: ["salesRepId"],
@@ -214,11 +217,12 @@ export async function getSalesRepLeaderboard(ctx: TRPCContext, filter: Filter) {
       grandTotal: true,
     },
     where: {
-      // createdAt: {
-      //   gte: thirtyDaysAgo,
-      // },
+      createdAt: {
+        gte: thirtyDaysAgo,
+      },
       // type: "order",
       ...salesWhere,
+      deletedAt: null,
       salesRepId: {
         not: null,
       },
@@ -242,10 +246,13 @@ export async function getSalesRepLeaderboard(ctx: TRPCContext, filter: Filter) {
     },
   });
 
-  const userMap = users.reduce((acc, user) => {
-    acc[user.id] = user.name ?? "Unknown";
-    return acc;
-  }, {} as Record<number, string>);
+  const userMap = users.reduce(
+    (acc, user) => {
+      acc[user.id] = user.name ?? "Unknown";
+      return acc;
+    },
+    {} as Record<number, string>,
+  );
 
   return reps.map((rep) => ({
     id: rep.salesRepId!,
