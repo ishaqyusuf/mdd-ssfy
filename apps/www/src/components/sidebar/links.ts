@@ -95,6 +95,10 @@ const _link = (
             res.paths = paths?.map((p) => (p?.startsWith("/") ? p : `/${p}`));
             return ctx;
         },
+        subLinks(...subLinks: LinkItem[]) {
+            res.subLinks = subLinks;
+            return ctx;
+        },
     };
     return ctx;
 };
@@ -241,9 +245,13 @@ export const linkModules = [
             //     .data,
         ]),
         _section("", null, [
-            _link("Jobs", "jobs", "/contractor/jobs").access(
-                _perm.every("viewProject", "viewInvoice", "viewJobs"),
-            ).data,
+            _link("Jobs", "jobs", "/contractor/jobs")
+                .access(_perm.every("viewProject", "viewInvoice", "viewJobs"))
+                .subLinks(
+                    _subLink("Jobs - v2", "/hrm/contractors/jobs").access(
+                        _role.is("Super Admin"),
+                    ).data,
+                ).data,
             _link(
                 "Payment Receipts",
                 "payment",

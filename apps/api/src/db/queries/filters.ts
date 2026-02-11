@@ -41,6 +41,7 @@ import {
 } from "./project-units";
 import type { GetCustomerServicesSchema } from "./customer-service";
 import type { GetBuildersSchema } from "@community/builder";
+import type { GetJobsSchema } from "./jobs";
 
 export async function getDispatchFilters(ctx: TRPCContext) {
   type T = keyof DispatchQueryParamsSchema;
@@ -126,6 +127,28 @@ export async function getCommunityTemplateFilters(ctx: TRPCContext) {
     ),
   ];
   return resp as FilterData[];
+}
+export async function jobFilters(ctx: TRPCContext) {
+  type T = keyof GetJobsSchema;
+  type FilterData = PageFilterData<T>;
+  // const steps = labelValueOptions(
+  //   await ctx.db.Jobs.findMany({
+  //     where: {},
+  //     select: {
+  //       id: true,
+  //       title: true,
+  //     },
+  //   }),
+  //   "title",
+  //   "id"
+  // );
+  const resp = [
+    searchFilter,
+    // optionFilter<T>("categoryId", "Category", steps),
+    // dateRangeFilter<T>("dateRange", "Filter by date"),
+  ] satisfies FilterData[];
+
+  return resp;
 }
 export async function communityProjectFilters(ctx: TRPCContext) {
   type T = keyof GetCommunityProjectsSchema;
