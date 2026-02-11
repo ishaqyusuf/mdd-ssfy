@@ -35,6 +35,8 @@ function FormContent() {
         },
     });
     if (!defaultValues) return null;
+
+    //
     const maxPotentialValue =
         defaultValues.job.tasks?.reduce(
             (sum, task) => sum + (task.rate || 0) * (task.maxQty || 0),
