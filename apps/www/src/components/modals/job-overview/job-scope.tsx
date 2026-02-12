@@ -64,7 +64,7 @@ export function JobScope() {
                                     Rate
                                 </Table.Head>
                                 <Table.Head className="text-center">
-                                    Qty / Max
+                                    Qty
                                 </Table.Head>
                                 <Table.Head className="text-right">
                                     Total
@@ -83,7 +83,7 @@ export function JobScope() {
                                     </Table.Cell>
 
                                     <Table.Cell className="text-right font-mono text-muted-foreground">
-                                        ${task.rate.toFixed(2)}
+                                        ${task.rate}
                                     </Table.Cell>
 
                                     <Table.Cell className="text-center">
@@ -98,7 +98,7 @@ export function JobScope() {
                                     </Table.Cell>
 
                                     <Table.Cell className="text-right font-bold">
-                                        ${task.total.toFixed(2)}
+                                        ${task.total}
                                     </Table.Cell>
                                 </Table.Row>
                             ))}

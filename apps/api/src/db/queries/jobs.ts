@@ -115,7 +115,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
   return await response(
     data.map(
       ({
-        meta,
+        meta: _meta,
         adminNote,
         note,
         amount,
@@ -135,14 +135,14 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
         isCustom,
         ...rest
       }) => {
-        const meta2 = meta as any as JobMeta;
-        const {
-          additional_cost,
-          additionalCostReason,
-          addon,
-          costData,
-          taskCost,
-        } = meta2 || {};
+        const meta = _meta as any as JobMeta;
+        // const {
+        //   additional_cost,
+        //   additionalCostReason,
+        //   addon,
+        //   costData,
+        //   taskCost,
+        // } = meta2 || {};
         return {
           jobId: `#J-${padStart(id, 5, "0")}`,
           controlId,
@@ -162,13 +162,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
           title,
           user,
           coWorker,
-          meta: {
-            additional_cost,
-            additionalCostReason,
-            addon,
-            costData,
-            taskCost,
-          },
+          meta,
           ...rest,
         };
       },

@@ -308,6 +308,7 @@ export interface JobMeta {
   additionalCostReason: string;
   taskCost: number;
   addon: number;
+  addonPercent?: number;
   costData: InstallCostingTemplate<{ qty: number; cost: number }>;
 }
 
