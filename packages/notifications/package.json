@@ -25,6 +25,8 @@
   },
   "devDependencies": {
     "@gnd/tsconfig": "workspace:*",
+    "@types/react": "~19.1.0",
+    "@types/node": "^25.2.3",
     "typescript": "^5.9.3"
   }
 }

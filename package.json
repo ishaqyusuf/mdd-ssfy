@@ -1,7 +1,7 @@
 {
   "name": "nextjs-template",
   "devDependencies": {
-    "@types/node": "^24.0.4",
+    "@types/node": "^25.2.3",
     "check-dependency-version-consistency": "5.0.1",
     "knip": "^5.61.2"
   },

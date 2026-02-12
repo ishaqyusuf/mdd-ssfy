@@ -225,7 +225,7 @@ export class Notifications {
       // CONDITIONALLY send emails
       let emails = {
         sent: 0,
-        skipped: validatedData.users.length,
+        skipped: contacts?.length,
         failed: 0,
       };
 
@@ -233,7 +233,7 @@ export class Notifications {
 
       // Send emails if requested and handler supports email
       if (sendEmail && handler.createEmail) {
-        const firstUser = validatedData.users[0];
+        const firstUser = contacts?.[0]!;
         if (!firstUser) {
           throw new Error("No team members available for email context");
         }
@@ -274,7 +274,7 @@ export class Notifications {
           });
         } else if (sampleEmail.emailType === "owners") {
           // Owners-only email: send to team owners only
-          const ownerUsers = validatedData.users.filter(
+          const ownerUsers = contacts.filter(
             Boolean,
             // (user: UserData) => user.role === "owner",
           );

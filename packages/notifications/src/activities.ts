@@ -27,6 +27,10 @@ export async function createActivity(
     priority: params.priority,
     sendEmail: params.sendEmail,
   };
+  console.log({
+    recipientIds,
+    authorId,
+  });
   const activity = await db.notePad.create({
     data: {
       subject: params.subject,
@@ -37,11 +41,18 @@ export async function createActivity(
           id: authorId,
         },
       },
-      recipients: {
-        connect: recipientIds?.map((contactId) => ({
-          id: contactId,
-        })),
-      },
+      recipients: !recipientIds?.length
+        ? undefined
+        : {
+            createMany: {
+              data: recipientIds.map((notePadContactId) => ({
+                notePadContactId,
+              })),
+            },
+            // connect: recipientIds?.map((contactId) => ({
+            //   id: contactId,
+            // })),
+          },
       tags: {
         createMany: {
           data: Object.entries(tags).map(([tagName, tagValue]) => ({

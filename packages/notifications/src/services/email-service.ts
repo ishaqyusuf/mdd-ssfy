@@ -11,7 +11,8 @@ export class EmailService {
   private client: Resend;
 
   constructor(private db: Db) {
-    // this.client = new Resend(process.env.RESEND_API_KEY!);
+    // @ts-ignore
+    this.client = new Resend(process.env.RESEND_API_KEY!);
     // env
   }
 

@@ -136,7 +136,7 @@
     "@tailwindcss/typography": "^0.5.10",
     "@types/dot-object": "^2.1.6",
     "@types/mdx": "^2.0.11",
-    "@types/node": "^24.0.1",
+    "@types/node": "^25.2.3",
     "@types/qs": "^6.9.7",
     "@types/react": "~19.1.0",
     "@types/react-dom": "^19.1.9",

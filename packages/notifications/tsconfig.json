@@ -1,13 +1,15 @@
 {
   "extends": "@gnd/tsconfig/base.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    // "module": "NodeNext",
+    // "moduleResolution": "NodeNext",
     "jsx": "react-jsx",
-    "jsxImportSource": "react",
+    // "jsxImportSource": "react",
     "baseUrl": ".",
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "allowJs": true,
+    "skipLibCheck": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../../types"],
   "exclude": ["node_modules", "dist"]
 }
