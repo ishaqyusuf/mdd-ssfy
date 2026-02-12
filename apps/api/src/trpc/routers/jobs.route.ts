@@ -19,7 +19,7 @@ import z from "zod";
 import { saveNote } from "@gnd/utils/note";
 import { generateJobId } from "@community/utils/job";
 import { sum } from "@gnd/utils";
-import { Notifications } from "@notifications/index";
+// import { Notifications } from "@notifications/index";
 
 export const jobRoutes = createTRPCRouter({
   deleteJob: publicProcedure
@@ -163,25 +163,24 @@ export const jobRoutes = createTRPCRouter({
       // return jobReview(props.ctx, props.input);
     }),
   testActivity: publicProcedure.mutation(async (props) => {
-    const notifications = new Notifications(props.ctx.db);
-    await notifications.create(
-      "job_assigned",
-      {
-        assignedToId: 1,
-        // authorId: 2,
-        jobId: 234,
-      },
-      // userIds
-      // [1],
-      {
-        userIds: [1],
-        userIdType: "employee",
-        authorId: 1,
-        authorIdType: "employee",
-
-        // template: "job-assigned",
-      },
-    );
+    // const notifications = new Notifications(props.ctx.db);
+    // await notifications.create(
+    //   "job_assigned",
+    //   {
+    //     assignedToId: 1,
+    //     // authorId: 2,
+    //     jobId: 234,
+    //   },
+    //   // userIds
+    //   // [1],
+    //   {
+    //     userIds: [1],
+    //     userIdType: "employee",
+    //     authorId: 1,
+    //     authorIdType: "employee",
+    //     // template: "job-assigned",
+    //   },
+    // );
   }),
   getJobForm: publicProcedure.input(getJobFormSchema).query(async (props) => {
     return getJobForm(props.ctx, props.input);
