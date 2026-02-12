@@ -1,9 +1,7 @@
 import {
   Body,
   Container,
-  Head,
   Heading,
-  Html,
   Preview,
   Text,
 } from "@react-email/components";
@@ -17,7 +15,7 @@ import {
 import { Logo } from "../components/logo";
 import { Footer } from "../components/footer";
 
-export default function SalesRepOnlinePaymentReceived(props: any) {
+export function SalesRepOnlinePaymentReceived(props: any) {
   const {
     ordersNo = ["ABC"],
     amount = 100,
