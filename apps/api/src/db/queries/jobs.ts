@@ -92,6 +92,24 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
           modelName: true,
         },
       },
+      jobInstallTasks: {
+        select: {
+          id: true,
+          qty: true,
+          maxQty: true,
+          rate: true,
+          total: true,
+          communityModelInstallTask: {
+            select: {
+              installCostModel: {
+                select: {
+                  title: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
   return await response(
@@ -115,6 +133,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
         coWorker,
         controlId,
         isCustom,
+        ...rest
       }) => {
         const meta2 = meta as any as JobMeta;
         const {
@@ -150,6 +169,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
             costData,
             taskCost,
           },
+          ...rest,
         };
       },
     ),
@@ -187,7 +207,7 @@ export type GetInstallCostsSchema = z.infer<typeof getInstallCostsSchema>;
 
 export async function getInstallCosts(
   ctx: TRPCContext,
-  query: GetInstallCostsSchema,
+  query?: GetInstallCostsSchema,
 ) {
   const { db } = ctx;
   const res = await getSetting<InstallCostMeta>(ctx, "install-price-chart");

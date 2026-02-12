@@ -6,7 +6,7 @@ import { FileText, PackageOpen } from "lucide-react";
 export function JobScope() {
     const ctx = useJobOverviewContext();
     const { overview: job } = ctx;
-    const tasks = [];
+    const tasks = job?.tasks || [];
     return (
         <Card className="overflow-hidden">
             {/* Header */}
@@ -73,13 +73,13 @@ export function JobScope() {
                         </Table.Header>
 
                         <Table.Body>
-                            {tasks?.map((task) => (
+                            {tasks?.map((task, id) => (
                                 <Table.Row
-                                    key={task.id}
+                                    key={id}
                                     className="hover:bg-muted/50"
                                 >
                                     <Table.Cell className="font-bold">
-                                        {task.name}
+                                        {task.title}
                                     </Table.Cell>
 
                                     <Table.Cell className="text-right font-mono text-muted-foreground">
@@ -89,9 +89,11 @@ export function JobScope() {
                                     <Table.Cell className="text-center">
                                         <Badge variant="secondary">
                                             {task.qty}
-                                            <span className="ml-1 font-normal text-muted-foreground">
-                                                / {task.maxQty}
-                                            </span>
+                                            {task.maxQty && (
+                                                <span className="ml-1 font-normal text-muted-foreground">
+                                                    / {task.maxQty}
+                                                </span>
+                                            )}
                                         </Badge>
                                     </Table.Cell>
 

@@ -11,6 +11,7 @@ import { padStart } from "@gnd/utils";
 import { formatDate } from "@/utils/format";
 import { Avatar } from "@/components/avatar";
 import { Progress } from "@gnd/ui/custom/progress";
+import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 
 export type Item = RouterOutputs["jobs"]["getJobs"]["data"][number];
 interface ItemProps {
@@ -18,7 +19,7 @@ interface ItemProps {
 }
 type Column = ColumnDef<Item>;
 const column1: Column = {
-    header: "Job Id",
+    header: "Job",
     accessorKey: "header",
     meta: {},
     cell: ({ row: { original: item } }) => (
@@ -43,7 +44,13 @@ const descriptionColumn: Column = {
                 )}
             </Item.Title>
             <Item.Description>
-                {item.description || "no report"}
+                <TextWithTooltip
+                    text={item.description || "no report"}
+                    // tooltip={item.description || "no report"}
+                    // maxChars={50}
+                    className="max-w-[400px] xl:max-w-[200px] 2xl:max-w-[300px]"
+                />
+                {/* {item.description || "no report"} */}
             </Item.Description>
         </>
     ),

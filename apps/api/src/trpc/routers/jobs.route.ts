@@ -205,6 +205,38 @@ export const jobRoutes = createTRPCRouter({
           })
         )?.data || [];
       if (!job) throw new Error("Job not found");
+      const tasks: {
+        title: string;
+        qty: number;
+        rate: number;
+        total: number;
+        maxQty: number | null;
+      }[] = await (async () => {
+        if (job?.isCustom) return [];
+        if (job.meta?.costData) {
+          const i = await getInstallCosts(ctx);
+          return i.data?.list?.map((l) => {
+            const v = job.meta?.costData?.[l.uid];
+            return {
+              title: String(l.title),
+              qty: v?.qty || 0,
+              rate: v?.cost || 0,
+              // maxQty: l?.
+              maxQty: null,
+              total: +((v?.cost || 0) * (v?.qty || 0))?.toFixed(2),
+            };
+          });
+        }
+        return job.jobInstallTasks.map((t) => {
+          return {
+            title: t.communityModelInstallTask?.installCostModel?.title!,
+            qty: t.qty || 0,
+            maxQty: t.maxQty,
+            rate: t.rate || 0,
+            total: +((t.rate || 0) * (t.qty || 0))?.toFixed(2),
+          };
+        });
+      })();
       return {
         ...job,
         financials: {
@@ -213,6 +245,7 @@ export const jobRoutes = createTRPCRouter({
           total: 100,
           subtotal: 100,
         },
+        tasks,
       };
     }),
 });
