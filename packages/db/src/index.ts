@@ -11,7 +11,7 @@ import {
   PayoutStatus,
   type Roles,
   type Users,
-
+  type NoteStatus,
   // } from "../node_modules/.prisma/client/client.js";
 } from "@prisma/client";
 // export {
@@ -30,7 +30,9 @@ export {
   PayoutStatus,
   type Roles,
   type Users,
+  // NoteStatus,
 };
+export * from "@prisma/client";
 export type AddressBooks = Prisma.AddressBooksGetPayload<undefined>;
 export type ComponentPrice = Prisma.ComponentPriceGetPayload<undefined>;
 export type DykeStepForm = Prisma.DykeStepFormGetPayload<undefined>;

@@ -225,7 +225,7 @@ export class Notifications {
       // CONDITIONALLY send emails
       let emails = {
         sent: 0,
-        skipped: contacts?.length,
+        skipped: contacts?.length || 0,
         failed: 0,
       };
 

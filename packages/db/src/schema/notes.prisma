@@ -20,9 +20,9 @@ model NotePad {
 }
 
 model NoteRecipients {
-    id       Int     @unique @default(autoincrement())
-    notePage NotePad @relation(fields: [notePadId], references: [id])
-
+    id               Int             @unique @default(autoincrement())
+    notePage         NotePad         @relation(fields: [notePadId], references: [id])
+    status           NoteStatus?
     deletedAt        DateTime?       @db.Timestamp(0)
     createdAt        DateTime?       @default(now()) @db.Timestamp(0)
     notePadId        Int
@@ -31,6 +31,12 @@ model NoteRecipients {
 
     @@index([notePadId])
     @@index([notePadContactId])
+}
+
+enum NoteStatus {
+    read
+    unread
+    archived
 }
 
 model NotePadContacts {

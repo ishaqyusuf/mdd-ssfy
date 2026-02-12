@@ -32,7 +32,7 @@ export interface UserData {
   id: number;
   name: string;
   // email: string | null;
-  email?;
+  email?: string;
   phoneNo?: string;
   // avatar_url?: string;
   // team_id: string;

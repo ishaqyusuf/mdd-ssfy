@@ -1,8 +1,8 @@
-import { Db } from "@gnd/db";
+import { Db, NoteStatus } from "@gnd/db";
 import { CreateActivityInput } from "./schemas";
 import { UserData } from "./base";
 
-const activityTypes = ["sales_checkout_success"] as const;
+// const activityTypes = ["sales_checkout_success"] as const;
 const activityStatus = [] as const;
 // type CreateActivityParams = {
 //   //   teamId: string;
@@ -107,7 +107,7 @@ export const getContactsByUserIds = async (
       });
   return await Promise.all(
     recipients.map(async (recipient) => {
-      const contact = await getContact(db, recipient);
+      const contact = await getContact(db, recipient as any);
       return contact;
     }),
   );
@@ -123,7 +123,15 @@ export const getContactIdsByUserIds = async (
 };
 export const getContact = async (
   db: Db,
-  { email, name, phoneNo },
+  {
+    email,
+    name,
+    phoneNo,
+  }: {
+    email: string;
+    name?: string;
+    phoneNo?: string;
+  },
 ): Promise<UserData> => {
   const contact = await db.notePadContacts.upsert({
     where: {
@@ -144,24 +152,37 @@ export const getContact = async (
   return {
     id: contact.id,
     name: contact.name,
-    email: contact.email,
+    email: contact.email!,
     // phoneNo: contact.phoneNo,
   };
 };
-export const getContactId = async (db: Db, { email, name, phoneNo }) => {
+export const getContactId = async (
+  db: Db,
+  { email, name, phoneNo }: { email: string; name?: string; phoneNo?: string },
+) => {
   return (await getContact(db, { email, name, phoneNo }))?.id;
 };
 
 export async function updateActivityStatus(
   db: Db,
-  activityId: string,
-  status: (typeof activityStatus)[number],
-  teamId: string,
-) {}
+  activityId: number,
+  status: NoteStatus,
+  notePadContactId: number,
+) {
+  await db.noteRecipients.updateMany({
+    where: {
+      notePadId: activityId,
+      notePadContactId,
+    },
+    data: {
+      status,
+    },
+  });
+}
 export async function updateAllActivitiesStatus(
   db: Db,
   teamId: string,
-  status: (typeof activityStatus)[number],
+  status: NoteStatus,
   options: { userId: string },
 ) {}
 
