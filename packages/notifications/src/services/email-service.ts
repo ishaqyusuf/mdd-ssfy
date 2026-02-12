@@ -39,8 +39,8 @@ export class EmailService {
       };
     }
 
-    const emailPayloads = eligibleEmails.map((email) =>
-      this.#buildEmailPayload(email),
+    const emailPayloads = await Promise.all(
+      eligibleEmails.map((email) => this.#buildEmailPayload(email)),
     );
 
     // Check if any emails have attachments - batch send doesn't support attachments
@@ -119,11 +119,11 @@ export class EmailService {
     return eligibleEmails.filter(Boolean) as EmailInput[];
   }
 
-  #buildEmailPayload(email: EmailInput): CreateEmailOptions {
+  async #buildEmailPayload(email: EmailInput): Promise<CreateEmailOptions> {
     let html: string;
     if (email.template) {
       const template = this.#getTemplate(email.template as string);
-      html = render(template(email.data as any));
+      html = await render(template(email.data as any));
     } else {
       throw new Error(`No template found for email: ${email.template}`);
     }
@@ -133,7 +133,7 @@ export class EmailService {
     }
 
     // Use explicit 'to' field if provided, otherwise default to user email
-    const recipients = email.to || [email.user.email];
+    const recipients = email.to || [email.user.email!];
 
     const payload: CreateEmailOptions = {
       from: email.from || "gnd <gndbot@gnd.ai>",

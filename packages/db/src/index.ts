@@ -12,6 +12,7 @@ import {
   type Roles,
   type Users,
   type NoteStatus,
+  type ContactRole,
   // } from "../node_modules/.prisma/client/client.js";
 } from "@prisma/client";
 // export {
@@ -30,7 +31,8 @@ export {
   PayoutStatus,
   type Roles,
   type Users,
-  NoteStatus,
+  type NoteStatus,
+  type ContactRole,
 };
 // export * from "@prisma/client";
 export type AddressBooks = Prisma.AddressBooksGetPayload<undefined>;
