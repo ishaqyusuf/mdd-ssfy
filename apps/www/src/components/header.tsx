@@ -1,5 +1,6 @@
 "use client";
 import { MobileMenu } from "./mobile-menu";
+import { NotificationCenter } from "./notification-center";
 import { OpenSearchButton } from "./search/open-search-button";
 import { UserNav } from "./user-nav";
 
@@ -28,6 +29,7 @@ export function Header() {
                 <div className="flex-1"></div>
                 <div className="mx-4 flex gap-4 " id="navRightSlot"></div>
                 <div className="inline-flex gap-4" id="actionNav"></div>
+                <NotificationCenter />
                 <UserNav />
             </div>
             <div className="dark:bg-muted" id="pageTab"></div>

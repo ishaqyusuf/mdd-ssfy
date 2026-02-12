@@ -175,9 +175,9 @@ export const jobRoutes = createTRPCRouter({
       // [1],
       {
         userIds: [1],
-        userIdType: "user",
+        userIdType: "employee",
         authorId: 1,
-        authorIdType: "user",
+        authorIdType: "employee",
 
         // template: "job-assigned",
       },

@@ -7,6 +7,7 @@ import {
 } from "@api/db/queries/user";
 import { loginByTokenSchema } from "@api/schemas/hrm";
 import { consoleLog } from "@gnd/utils";
+import { getContact } from "@notifications/activities";
 import { sign } from "jsonwebtoken";
 export const userRoutes = createTRPCRouter({
   // validateAuth: publicProcedure.input()
@@ -17,6 +18,20 @@ export const userRoutes = createTRPCRouter({
     }),
   auth: publicProcedure.query(async (props) => {
     return auth(props.ctx);
+  }),
+  notificationAccount: publicProcedure.query(async (props) => {
+    const user = await auth(props.ctx);
+    const recipient = await getContact(props.ctx.db, {
+      email: user?.email || "",
+      name: user?.name || "",
+      phoneNo: user?.phoneNo || "",
+    });
+    return {
+      id: recipient.id,
+      email: recipient.email,
+      name: recipient.name,
+      phoneNo: recipient.phoneNo,
+    };
   }),
   loginExample: publicProcedure.input(loginSchema).mutation(async (props) => {
     return {};
@@ -32,7 +47,7 @@ export const userRoutes = createTRPCRouter({
       process.env.JWT_SECRET!,
       {
         expiresIn: "30d",
-      }
+      },
     );
 
     return {

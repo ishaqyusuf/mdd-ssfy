@@ -49,14 +49,11 @@ import {
   PopoverTrigger,
 } from "./popover";
 
-const Popover = Object.assign(
-  {},
-  {
-    Root: PopoverRoot,
-    Content: PopoverContent,
-    Trigger: PopoverTrigger,
-  },
-);
+const Popover = Object.assign(PopoverRoot, {
+  Root: PopoverRoot,
+  Content: PopoverContent,
+  Trigger: PopoverTrigger,
+});
 
 import {
   DropdownMenu as DropdownMenuRoot,

@@ -22,7 +22,7 @@ model NotePad {
 model NoteRecipients {
     id               Int             @unique @default(autoincrement())
     notePage         NotePad         @relation(fields: [notePadId], references: [id])
-    status           NoteStatus?
+    status           NoteStatus?     @default(unread)
     deletedAt        DateTime?       @db.Timestamp(0)
     createdAt        DateTime?       @default(now()) @db.Timestamp(0)
     notePadId        Int
@@ -45,6 +45,7 @@ model NotePadContacts {
     email         String?
     phoneNo       String?
     role          ContactRole?
+    profileId     Int? //user.id or customer.id
     notesReceived NoteRecipients[]
     notesSent     NotePad[]
     deletedAt     DateTime?            @db.Timestamp(0)

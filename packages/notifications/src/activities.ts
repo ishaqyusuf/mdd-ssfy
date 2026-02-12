@@ -1,4 +1,4 @@
-import { Db, NoteStatus } from "@gnd/db";
+import { ContactRole, Db, NoteStatus } from "@gnd/db";
 import { CreateActivityInput } from "./schemas";
 import { UserData } from "./base";
 
@@ -27,10 +27,7 @@ export async function createActivity(
     priority: params.priority,
     sendEmail: params.sendEmail,
   };
-  console.log({
-    recipientIds,
-    authorId,
-  });
+
   const activity = await db.notePad.create({
     data: {
       subject: params.subject,
@@ -47,6 +44,7 @@ export async function createActivity(
             createMany: {
               data: recipientIds.map((notePadContactId) => ({
                 notePadContactId,
+                status: "unread",
               })),
             },
             // connect: recipientIds?.map((contactId) => ({
@@ -69,7 +67,7 @@ export async function createActivity(
 }
 export const getContactsByUserIds = async (
   db: Db,
-  userIdType: "user" | "customer",
+  userIdType: ContactRole,
   userIds: number[],
 ) => {
   const isCustomer = userIdType === "customer";
@@ -82,6 +80,7 @@ export const getContactsByUserIds = async (
             },
           },
           select: {
+            id: true,
             email: true,
             name: true,
             phoneNo: true,
@@ -100,6 +99,7 @@ export const getContactsByUserIds = async (
           },
         },
         select: {
+          id: true,
           email: true,
           name: true,
           phoneNo: true,
@@ -115,7 +115,7 @@ export const getContactsByUserIds = async (
 export const getContactIdsByUserIds = async (
   db: Db,
   // isCustomer: boolean,
-  userIdType: "user" | "customer",
+  userIdType: ContactRole,
   userIds: number[],
 ) => {
   const contacts = await getContactsByUserIds(db, userIdType, userIds);
@@ -127,11 +127,14 @@ export const getContact = async (
     email,
     name,
     phoneNo,
+    id,
   }: {
+    id?: number;
     email: string;
     name?: string;
     phoneNo?: string;
   },
+  role: ContactRole = "employee",
 ): Promise<UserData> => {
   const contact = await db.notePadContacts.upsert({
     where: {
@@ -141,11 +144,17 @@ export const getContact = async (
         phoneNo: phoneNo!,
       },
     },
-    update: {},
+    update: {
+      // profileId: id,
+      profileId: id,
+      role,
+    },
     create: {
       email: email,
       name: name!,
       phoneNo: phoneNo,
+      profileId: id,
+      role,
     },
   });
 

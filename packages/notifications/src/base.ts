@@ -1,6 +1,7 @@
 import type { CreateEmailOptions } from "resend";
 import { z } from "zod";
 import type { CreateActivityInput } from "./schemas";
+import { ContactRole } from "@gnd/db";
 
 export interface TeamContext {
   id: string;
@@ -51,8 +52,8 @@ export type NotificationOptions = {
   priority?: number;
   sendEmail?: boolean;
   userIds?: number[];
-  userIdType?: "user" | "customer";
-  authorIdType?: "user" | "customer";
+  userIdType?: ContactRole;
+  authorIdType?: ContactRole;
   authorId?: number; // Optional authorId for activity creation, can be used in email generation as well
   author?: UserData; // Optional author object, can be used directly if available to avoid extra DB fetch
   contacts?: UserData[]; // Optional contacts array, can be used directly if available to avoid extra DB fetch
