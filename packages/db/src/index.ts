@@ -11,7 +11,6 @@ import {
   PayoutStatus,
   type Roles,
   type Users,
-  type NoteStatus,
   // } from "../node_modules/.prisma/client/client.js";
 } from "@prisma/client";
 // export {
