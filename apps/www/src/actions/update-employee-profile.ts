@@ -8,13 +8,18 @@ export async function updateEmployeeProfile(id, profileId) {
         where: {
             id,
         },
-        data: {
-            employeeProfile: {
-                connect: {
-                    id: profileId,
-                },
-            },
-        },
+        data:
+            profileId === -1
+                ? {
+                      employeeProfileId: null,
+                  }
+                : {
+                      employeeProfile: {
+                          connect: {
+                              id: profileId,
+                          },
+                      },
+                  },
         select: {
             name: true,
             employeeProfile: {
@@ -28,7 +33,7 @@ export async function updateEmployeeProfile(id, profileId) {
         event: "edited",
         type: "employee-profile",
         meta: {
-            description: `${user.name} profile updated to ${user?.employeeProfile?.name}`,
+            // description: `${user.name} profile updated to ${user?.employeeProfile?.name}`,
         },
     });
 }

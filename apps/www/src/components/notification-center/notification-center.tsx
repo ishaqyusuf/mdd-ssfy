@@ -62,7 +62,8 @@ export function NotificationCenter() {
                                 </Tabs.Trigger>
                             </div>
                             <Link
-                                href="/settings/notifications"
+                                // href="/settings/notifications"
+                                href=""
                                 onClick={() => setOpen(false)}
                             >
                                 <Button

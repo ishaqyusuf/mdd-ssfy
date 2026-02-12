@@ -117,7 +117,7 @@ function Action({ item }: { item: Item }) {
             onError(error, variables, context) {
                 toast.error("Unable to complete");
             },
-        })
+        }),
     );
     function onSubmit() {
         submitAction.mutate({
@@ -164,12 +164,13 @@ function Action({ item }: { item: Item }) {
 function Profile({ item }: { item: Item }) {
     const ctx = useTable();
     const roles = ctx.tableMeta?.filterData?.find(
-        (a) => a.value == "employeeProfileId"
+        (a) => a.value == "employeeProfileId",
     )?.options;
     const loader = useLoadingToast();
-    async function updateRole(roleId) {
+    async function updateProfile(profileId) {
         loader.loading("Updating...");
-        await updateEmployeeProfile(item.id, roleId);
+        await updateEmployeeProfile(item.id, profileId);
+        // ctx?.table?.reset();
         loader.success("Updated.");
     }
     return (
@@ -188,9 +189,10 @@ function Profile({ item }: { item: Item }) {
                 hoverVariant="default"
                 triggerSize="xs"
             >
+                <Menu.Item onClick={(e) => updateProfile(-1)}>Non</Menu.Item>
                 {roles?.map((role) => (
                     <Menu.Item
-                        onClick={(e) => updateRole(Number(role.value))}
+                        onClick={(e) => updateProfile(Number(role.value))}
                         key={role.value}
                     >
                         {role?.label}
@@ -203,7 +205,7 @@ function Profile({ item }: { item: Item }) {
 function Role({ item }: { item: Item }) {
     const ctx = useTable();
     const roles = ctx.tableMeta?.filterData?.find(
-        (a) => a.value == "roleId"
+        (a) => a.value == "roleId",
     )?.options;
     const loader = useLoadingToast();
     // const session = useAsyncMemo

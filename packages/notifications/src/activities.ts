@@ -65,6 +65,68 @@ export async function createActivity(
   });
   return activity;
 }
+export type GetActivitiesParams = {
+  contactIds: number[];
+  status?: NoteStatus;
+};
+export async function getActivties(db: Db, params: GetActivitiesParams) {
+  const { contactIds, status } = params;
+  const activities = await db.notePad.findMany({
+    where: {
+      recipients: {
+        some: {
+          notePadContactId: {
+            in: contactIds,
+          },
+          ...(status ? { status } : {}),
+        },
+      },
+    },
+    select: {
+      id: true,
+      subject: true,
+      headline: true,
+      note: true,
+      senderContact: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      tags: {
+        select: {
+          tagName: true,
+          tagValue: true,
+        },
+      },
+      recipients: {
+        where: {
+          notePadContactId: {
+            in: contactIds,
+          },
+        },
+        select: {
+          status: true,
+          notePadContactId: true,
+        },
+      },
+    },
+  });
+  return activities.map(({ tags, recipients, ...activity }) => {
+    return {
+      ...activity,
+      receipt: recipients[0],
+      tags: tags.reduce(
+        (acc, { tagName, tagValue }) => {
+          acc[tagName] = tagValue;
+          return acc;
+        },
+        {} as Record<string, any>,
+      ),
+    };
+  });
+}
 export const getContactsByUserIds = async (
   db: Db,
   userIdType: ContactRole,
