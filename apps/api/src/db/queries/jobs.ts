@@ -23,6 +23,7 @@ import {
 } from "date-fns";
 import { saveNote } from "@gnd/utils/note";
 import { generateControlId, generateJobId } from "@gnd/community/utils/job";
+import { Notifications } from "@gnd/notifications";
 export const getJobsSchema = z
   .object({
     userId: z.number().optional().nullable(),
@@ -434,6 +435,14 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
             },
           ],
     });
+    const notifications = new Notifications(db);
+    if (query.mode == "assign") {
+      await notifications.create("job_assigned", {
+        jobId,
+        authorId: ctx.userId!,
+        assignedToId: query?.worker?.id!,
+      });
+    }
     await saveNote(
       ctx.db,
       {

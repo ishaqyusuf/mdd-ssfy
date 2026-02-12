@@ -33,8 +33,9 @@ export const createActivitySchema = z.object({
   note: z.string().optional(),
   authorId: z.number().optional(),
   sendEmail: z.boolean().optional().default(false),
-  userIds: z.array(z.number()).optional().nullable(), ///number().optional(),
-  userIdType: z.enum(["user", "customer"]).optional().default("user"),
+  // userIds: z.array(z.number()).optional().nullable(), ///number().optional(),
+  // recipientId: z.number().optional(),
+  // userIdType: z.enum(["user", "customer"]).optional().default("user"),
   type,
   source,
   priority,
@@ -111,10 +112,12 @@ export const jobActivitySchema = z.object({
 export type JobActivityInput = z.infer<typeof jobActivitySchema>;
 
 export const jobAssignedSchema = z.object({
-  contacts: z.array(userSchema).optional().nullable(),
+  // contacts: z.array(userSchema).optional().nullable(),
   jobId: z.number(),
-  comment: z.string().optional(),
-  author: z.string().optional().nullable(),
+  // authorId: z.number(),
+  assignedToId: z.number(),
+  // comment: z.string().optional(),
+  // author: z.string().optional().nullable(),
 });
 export type JobAssignedInput = z.infer<typeof jobAssignedSchema>;
 // Notification types map - all available notification types with their data structures

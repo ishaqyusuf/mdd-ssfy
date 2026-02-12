@@ -20,7 +20,7 @@ export interface NotificationHandler<T = any> {
   createEmail?: (
     data: T,
     user: UserData,
-    team: TeamContext,
+    // team: TeamContext,
   ) => Partial<CreateEmailOptions> & {
     data: Record<string, any>;
     template?: string;
@@ -50,7 +50,12 @@ export type EmailInput = {
 export type NotificationOptions = {
   priority?: number;
   sendEmail?: boolean;
+  userIds?: number[];
   userIdType?: "user" | "customer";
+  authorIdType?: "user" | "customer";
+  authorId?: number; // Optional authorId for activity creation, can be used in email generation as well
+  author?: UserData; // Optional author object, can be used directly if available to avoid extra DB fetch
+  contacts?: UserData[]; // Optional contacts array, can be used directly if available to avoid extra DB fetch
 } & Partial<CreateEmailOptions>;
 
 export interface NotificationResult {

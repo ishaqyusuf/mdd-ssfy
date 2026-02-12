@@ -1,6 +1,6 @@
 // import type { Database } from "@gnd/db/client";
 import { shouldSendNotification } from "@gnd/db/queries";
-import SalesRepOnlinePaymentReceived from "@gnd/email/emails/sales-rep-online-payment-received";
+// import SalesRepOnlinePaymentReceived from "@gnd/email/emails/sales-rep-online-payment-received";
 // import { render } from "@gnd/email/render";
 import { nanoid } from "nanoid";
 import { type CreateEmailOptions, Resend } from "resend";
@@ -11,7 +11,7 @@ export class EmailService {
   private client: Resend;
 
   constructor(private db: Db) {
-    this.client = new Resend(process.env.RESEND_API_KEY!);
+    // this.client = new Resend(process.env.RESEND_API_KEY!);
     // env
   }
 
@@ -157,7 +157,7 @@ export class EmailService {
 
   #getTemplate(templateName: string) {
     const templates = {
-      "sales-rep-online-payment-received": SalesRepOnlinePaymentReceived,
+      // "sales-rep-online-payment-received": SalesRepOnlinePaymentReceived,
     };
 
     const template = templates[templateName as keyof typeof templates];

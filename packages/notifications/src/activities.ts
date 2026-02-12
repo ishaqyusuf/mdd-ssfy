@@ -1,5 +1,6 @@
 import { Db } from "@gnd/db";
 import { CreateActivityInput } from "./schemas";
+import { UserData } from "./base";
 
 const activityTypes = ["sales_checkout_success"] as const;
 const activityStatus = [] as const;
@@ -13,16 +14,12 @@ const activityStatus = [] as const;
 //   groupId?: string;
 //   tags: Record<string, any>;
 // };
-export async function createActivity(db: Db, params: CreateActivityInput) {
-  const auth = await db.users.findFirstOrThrow({
-    where: { id: params.authorId },
-  });
-  const senderId = await getContactId(db, auth);
-  const recipientIds = await getContactIdsByUserIds(
-    db,
-    params.userIdType,
-    params.userIds || [],
-  );
+export async function createActivity(
+  db: Db,
+  params: CreateActivityInput,
+  authorId?: number,
+  recipientIds?: number[],
+) {
   const tags = {
     ...params.tags,
     type: params.type,
@@ -37,11 +34,11 @@ export async function createActivity(db: Db, params: CreateActivityInput) {
       note: params.note,
       senderContact: {
         connect: {
-          id: senderId,
+          id: authorId,
         },
       },
       recipients: {
-        connect: recipientIds.map((contactId) => ({
+        connect: recipientIds?.map((contactId) => ({
           id: contactId,
         })),
       },
@@ -57,6 +54,7 @@ export async function createActivity(db: Db, params: CreateActivityInput) {
       },
     },
   });
+  return activity;
 }
 export const getContactsByUserIds = async (
   db: Db,
@@ -112,7 +110,10 @@ export const getContactIdsByUserIds = async (
   const contacts = await getContactsByUserIds(db, userIdType, userIds);
   return contacts.map((contact) => contact.id);
 };
-export const getContact = async (db: Db, { email, name, phoneNo }) => {
+export const getContact = async (
+  db: Db,
+  { email, name, phoneNo },
+): Promise<UserData> => {
   const contact = await db.notePadContacts.upsert({
     where: {
       name_email_phoneNo: {
@@ -129,7 +130,12 @@ export const getContact = async (db: Db, { email, name, phoneNo }) => {
     },
   });
 
-  return contact;
+  return {
+    id: contact.id,
+    name: contact.name,
+    email: contact.email,
+    // phoneNo: contact.phoneNo,
+  };
 };
 export const getContactId = async (db: Db, { email, name, phoneNo }) => {
   return (await getContact(db, { email, name, phoneNo }))?.id;

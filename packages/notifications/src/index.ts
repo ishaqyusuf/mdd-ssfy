@@ -16,7 +16,7 @@ import {
   NotificationResult,
   UserData,
 } from "./base";
-import { jobAssigned } from "./types/job-assigned";
+import { jobAssigned } from "./types/job-assigned-schema";
 
 const handlers = {
   job_assigned: jobAssigned,
@@ -57,53 +57,20 @@ export class Notifications {
     validatedData: NotificationTypes[T],
     groupId: string,
     notificationType: string,
+    author: UserData,
     options?: NotificationOptions,
+    contacts?: UserData[],
   ) {
+    // console.log("Creating activities with data:", {
+    //   validatedData,
+    //   groupId,
+    //   notificationType,
+    //   options,
+    // });
+    // return;
     const activityPromises = await Promise.all(
-      validatedData.contacts!?.map(async (user: UserData) => {
+      contacts!?.map(async (user: UserData) => {
         const activityInput = handler.createActivity(validatedData, user);
-
-        // Check if handler supports combining
-        //  if (handler.combine) {
-        //    try {
-        //      const existingActivity = await handler.combine.findExisting(
-        //        this.#db,
-        //        validatedData,
-        //        user,
-        //      );
-
-        //      if (existingActivity) {
-        //        // Security check: Verify the activity belongs to the correct team
-        //        // This prevents combining activities across teams even if findExisting is buggy
-        //        if (existingActivity.teamId !== user.team_id) {
-        //          // Activity belongs to different team - skip combining and create new one
-        //          // This is a safety fallback
-        //        } else {
-        //          // Merge metadata using handler's merge function
-        //          const mergedMetadata = handler.combine.mergeMetadata(
-        //            existingActivity.metadata as Record<string, any>,
-        //            activityInput.metadata as Record<string, any>,
-        //          );
-
-        //          const updated = await updateActivityMetadata(this.#db, {
-        //            activityId: existingActivity.id,
-        //            teamId: user.team_id,
-        //            metadata: mergedMetadata,
-        //          });
-
-        //          // If update succeeded, return the updated activity
-        //          // If update failed (e.g., activity was deleted or teamId mismatch), fall through to create new one
-        //          if (updated) {
-        //            return updated;
-        //          }
-        //        }
-        //      }
-        //    } catch (error) {
-        //      // If combining fails, fall through to create new activity
-        //      // Error is silently handled - creating a new activity is the safe fallback
-        //    }
-        //  }
-
         // Check if user wants in-app notifications for this type
         const inAppEnabled = await shouldSendNotification(
           this.#db,
@@ -133,7 +100,9 @@ export class Notifications {
         const validatedActivity = createActivitySchema.parse(activityInput);
 
         // Create activity directly using DB query
-        return createActivity(this.#db, validatedActivity);
+        return createActivity(this.#db, validatedActivity, author?.id, [
+          user.id,
+        ]);
       }),
     );
     return activityPromises.filter(Boolean);
@@ -142,11 +111,15 @@ export class Notifications {
     handler: any,
     validatedData: NotificationTypes[T],
     user: UserData,
-    teamContext: { id: string; name: string; inboxId: string },
+    // teamContext: { id: string; name: string; inboxId: string },
     options?: NotificationOptions,
   ): EmailInput {
     // Create email input using handler's createEmail function
-    const customEmail = handler.createEmail(validatedData, user, teamContext);
+    const customEmail = handler.createEmail(
+      validatedData,
+      user,
+      // , teamContext
+    );
 
     const baseEmailInput: EmailInput = {
       user,
@@ -166,47 +139,66 @@ export class Notifications {
   async create<T extends keyof NotificationTypes>(
     type: T,
     payload: Omit<NotificationTypes[T], "users">,
-    userIds?: number[],
+    // userIds?: number[],
+    // author: UserData,
     options?: NotificationOptions,
+    // contacts?: UserData[],
   ): Promise<NotificationResult> {
-    const [teamMembers] = await Promise.all([
-      getContactsByUserIds(this.#db, options?.userIdType!, userIds || []),
-      // getTeamById(this.#db, teamId),
-    ]);
+    console.log("Creating notification:", { type, payload, options });
+    const [author, ...contacts] = (
+      await Promise.all([
+        getContactsByUserIds(this.#db, options?.authorIdType!, [
+          options?.authorId!,
+        ]),
+        getContactsByUserIds(
+          this.#db,
+          options?.userIdType!,
+          options?.userIds || [],
+        ),
+        // getTeamById(this.#db, teamId),
+      ])
+    ).flat();
 
+    console.log("Fetched team members:", contacts);
     // if (!teamInfo) {
     //   throw new Error(`Team not found: ${teamId}`);
     // }
 
-    if (teamMembers.length === 0) {
-      return {
-        type: type as string,
-        activities: 0,
-        emails: { sent: 0, skipped: 0, failed: 0 },
-      };
-    }
+    // if (teamMembers.length === 0) {
+    //   return {
+    //     type: type as string,
+    //     activities: 0,
+    //     emails: { sent: 0, skipped: 0, failed: 0 },
+    //   };
+    // }
 
     // Transform team members to UserData format
-    const users = teamMembers;
+    // const users = teamMembers;
 
     // Build the full notification data
-    const data = { ...payload, users } as NotificationTypes[T];
-
+    const data = { ...payload } as NotificationTypes[T];
+    console.log("Creating notification with data:", { type, data, options });
+    // return null;
     return this.#createInternal(
       type,
       data,
-      options,
-      // teamInfo
+      author!,
+      {
+        ...(options || {}),
+      },
+      contacts,
     );
   }
   async #createInternal<T extends keyof NotificationTypes>(
     type: T,
     data: NotificationTypes[T],
-    options?: NotificationOptions,
-    teamInfo?: { id: string; name: string | null; inboxId: string | null },
+    author: UserData,
+    options: NotificationOptions,
+    contacts?: UserData[],
+    // teamInfo?: { id: string; name: string | null; inboxId: string | null },
   ): Promise<NotificationResult> {
     const handler = handlers[type];
-
+    // const { author, contacts } = options;
     if (!handler) {
       throw new Error(`Unknown notification type: ${type}`);
     }
@@ -215,8 +207,9 @@ export class Notifications {
       // Validate input data with the handler's schema
       const validatedData = handler.schema.parse(data);
 
-      // Generate a single group ID for all related activities
       const groupId = crypto.randomUUID();
+      console.log("validatedData:", validatedData);
+      // Generate a single group ID for all related activities
 
       // Create activities for each user
       const activities = await this.#createActivities(
@@ -224,9 +217,11 @@ export class Notifications {
         validatedData,
         groupId,
         type as string,
+        author,
         options,
+        contacts,
       );
-
+      // return null as any;
       // CONDITIONALLY send emails
       let emails = {
         sent: 0,
@@ -244,15 +239,15 @@ export class Notifications {
         }
 
         // Check the email type to determine behavior
-        const teamContext = {
-          id: teamInfo?.id || "",
-          name: teamInfo?.name || "Team",
-          inboxId: teamInfo?.inboxId || "",
-        };
+        // const teamContext = {
+        //   id: teamInfo?.id || "",
+        //   name: teamInfo?.name || "Team",
+        //   inboxId: teamInfo?.inboxId || "",
+        // };
         const sampleEmail = handler.createEmail(
           validatedData,
           firstUser,
-          teamContext,
+          // teamContext,
         );
 
         if (sampleEmail.emailType === "customer") {
@@ -262,7 +257,7 @@ export class Notifications {
               handler,
               validatedData,
               firstUser,
-              teamContext,
+              // teamContext,
               options,
             ),
           ];
@@ -289,7 +284,7 @@ export class Notifications {
               handler,
               validatedData,
               user,
-              teamContext,
+              // teamContext,
               options,
             ),
           );
@@ -308,12 +303,12 @@ export class Notifications {
           });
         } else {
           // Team-facing email: send to all team members
-          const emailInputs = validatedData.users.map((user: UserData) =>
+          const emailInputs = contacts!?.map((user: UserData) =>
             this.#createEmailInput(
               handler,
               validatedData,
               user,
-              teamContext,
+              // teamContext,
               options,
             ),
           );

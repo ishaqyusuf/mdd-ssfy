@@ -18,6 +18,8 @@ import { createTRPCRouter, publicProcedure } from "../init";
 import z from "zod";
 import { saveNote } from "@gnd/utils/note";
 import { generateJobId } from "@community/utils/job";
+import { sum } from "@gnd/utils";
+import { Notifications } from "@notifications/index";
 
 export const jobRoutes = createTRPCRouter({
   deleteJob: publicProcedure
@@ -160,6 +162,27 @@ export const jobRoutes = createTRPCRouter({
       );
       // return jobReview(props.ctx, props.input);
     }),
+  testActivity: publicProcedure.mutation(async (props) => {
+    const notifications = new Notifications(props.ctx.db);
+    await notifications.create(
+      "job_assigned",
+      {
+        assignedToId: 1,
+        authorId: 2,
+        jobId: 234,
+      },
+      // userIds
+      // [1],
+      {
+        userIds: [1],
+        userIdType: "user",
+        authorId: 1,
+        authorIdType: "user",
+
+        // template: "job-assigned",
+      },
+    );
+  }),
   getJobForm: publicProcedure.input(getJobFormSchema).query(async (props) => {
     return getJobForm(props.ctx, props.input);
   }),
@@ -244,8 +267,13 @@ export const jobRoutes = createTRPCRouter({
         financials: {
           addonPercent: job?.meta?.addonPercent,
           addonValue: job?.meta?.addon,
+          extraCharge: job?.meta?.additional_cost || 0,
           total: job?.amount,
-          subtotal: job?.amount,
+          subtotal: sum([
+            job?.amount,
+            -1 * (job?.meta?.addon || 0),
+            -1 * (job?.meta?.additional_cost || 0),
+          ]),
         },
         tasks,
       };
