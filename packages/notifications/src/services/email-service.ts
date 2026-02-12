@@ -1,7 +1,7 @@
 // import type { Database } from "@gnd/db/client";
 import { shouldSendNotification } from "@gnd/db/queries";
-// import SalesRepOnlinePaymentReceived from "@gnd/email/emails/sales-rep-online-payment-received";
-// import { render } from "@gnd/email/render";
+import SalesRepOnlinePaymentReceived from "@gnd/email/emails/sales-rep-online-payment-received";
+import { render } from "@gnd/email/render";
 import { nanoid } from "nanoid";
 import { type CreateEmailOptions, Resend } from "resend";
 import type { EmailInput } from "../base";
@@ -122,7 +122,7 @@ export class EmailService {
     let html: string;
     if (email.template) {
       const template = this.#getTemplate(email.template as string);
-      // html = render(template(email.data as any));
+      html = render(template(email.data as any));
     } else {
       throw new Error(`No template found for email: ${email.template}`);
     }
@@ -158,7 +158,7 @@ export class EmailService {
 
   #getTemplate(templateName: string) {
     const templates = {
-      // "sales-rep-online-payment-received": SalesRepOnlinePaymentReceived,
+      "sales-rep-online-payment-received": SalesRepOnlinePaymentReceived,
     };
 
     const template = templates[templateName as keyof typeof templates];

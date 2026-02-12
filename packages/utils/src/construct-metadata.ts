@@ -1,6 +1,9 @@
+// @ts-ignore
 const prod = process.env.NODE_ENV == "production";
 export function constructMetadata({
+  // @ts-ignore
   title = `${process.env.NEXT_PUBLIC_APP_NAME} - Enterprice Management System`,
+  // @ts-ignore
   description = `${process.env.NEXT_PUBLIC_APP_NAME}`,
   image = "https://assets.gndprodesk.com/thumbnail.png",
   icons = [
@@ -55,6 +58,7 @@ export function constructMetadata({
       creator: "@ishaaq_yusuf",
     },
     icons,
+    // @ts-ignore
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL!),
     ...(noIndex && {
       robots: {

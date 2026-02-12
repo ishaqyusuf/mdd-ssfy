@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-
+// @ts-ignore
 const SECRET = process.env.ENC_SECRET_KEY!;
 export function jwtEncrypt(data) {
   return jwt.sign(data, SECRET, { expiresIn: "1h" });
