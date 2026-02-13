@@ -33,17 +33,17 @@ export const jobFormShema = z.object({
   unit: z
     .object({
       id: z.number(),
-      lot: z.string(),
-      block: z.string(),
-      modelName: z.string(),
-      modelNo: z.string(),
-      projectTitle: z.string(),
+      // lot: z.string(),
+      // block: z.string(),
+      // modelName: z.string(),
+      // modelNo: z.string(),
+      // projectTitle: z.string(),
     })
     .optional(),
   user: z
     .object({
       id: z.number(),
-      name: z.string(),
+      // name: z.string(),
     })
     .optional(),
   job: z.object({
@@ -57,11 +57,11 @@ export const jobFormShema = z.object({
     tasks: z
       .array(
         z.object({
-          id: z.number().optional(),
+          id: z.number().optional().nullable(),
           modelTaskId: z.number(),
-          rate: z.number(),
-          qty: z.number(),
-          maxQty: z.number().optional(),
+          rate: z.number().optional().nullable(),
+          qty: z.number().optional().nullable(),
+          maxQty: z.number().optional().nullable(),
         }),
       )
       .optional(),

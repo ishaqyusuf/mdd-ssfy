@@ -357,10 +357,18 @@ export const communityRouters = createTRPCRouter({
           amount: job?.amount,
           description: job?.description,
           meta: jobMeta,
-          title: job?.title,
-          subtitle: job?.subtitle,
+          title:
+            job?.title ||
+            [unit?.project?.title, unit?.lotBlock]
+              ?.filter(Boolean)
+              ?.join(" - "),
+          subtitle:
+            job?.subtitle ||
+            [unit?.modelName, builderTask?.taskName]
+              ?.filter(Boolean)
+              ?.join(" - "),
           adminNote: job?.adminNote,
-          isCustom: job?.isCustom,
+          isCustom: !!job?.isCustom,
         },
       };
     }),

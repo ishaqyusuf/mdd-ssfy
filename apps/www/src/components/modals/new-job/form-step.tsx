@@ -16,6 +16,9 @@ import NumberFlow from "@number-flow/react";
 import Portal from "@gnd/ui/custom/portal";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useJobFormContext } from "@/contexts/job-form-context";
+import { useJobRole } from "@/hooks/use-job-role";
+import { cn } from "@/lib/utils";
+import { AdminJobFormContent } from "./admin-job-form-content";
 
 export function FormStep({}) {
     const { setParams, ...params } = useJobFormParams();
@@ -29,9 +32,16 @@ export function FormStep({}) {
 }
 function FormContent() {
     const { defaultValues } = useJobFormContext();
+    const { ...params } = useJobFormParams();
     const form = useZodForm(jobFormShema, {
         defaultValues: {
-            ...(defaultValues || {}),
+            ...((defaultValues as any) || {}),
+            unit: {
+                id: params.unitId,
+            },
+            user: {
+                id: params.userId,
+            },
         },
     });
     if (!defaultValues) return null;
@@ -55,6 +65,7 @@ function FormContent() {
         defaultValues.unit?.projectAddon,
         addonPercentage,
     );
+    const jobRole = useJobRole();
     const isCustomTask = form.watch("job.isCustom");
     const jobTasks = form.watch("job.tasks");
     // const { fields: jobTasks } = useFieldArray({
@@ -187,19 +198,21 @@ function FormContent() {
                         /* Builder Task Form */
                         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                             {/* Total Estimate Block */}
-                            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-center justify-between">
-                                <div className="flex flex-col">
-                                    <span className="text-xs font-bold text-primary uppercase tracking-wider mb-0.5">
-                                        Total Install Estimate
-                                    </span>
-                                    <span className="text-[10px] text-muted-foreground">
-                                        Calculated based on max quantities
-                                    </span>
+                            <AdminJobFormContent>
+                                <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-bold text-primary uppercase tracking-wider mb-0.5">
+                                            Total Install Estimate
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground">
+                                            Calculated based on max quantities
+                                        </span>
+                                    </div>
+                                    <div className="text-2xl font-black text-primary">
+                                        ${maxPotentialValue.toFixed(2)}
+                                    </div>
                                 </div>
-                                <div className="text-2xl font-black text-primary">
-                                    ${maxPotentialValue.toFixed(2)}
-                                </div>
-                            </div>
+                            </AdminJobFormContent>
 
                             <div className="space-y-3">
                                 <h3 className="text-sm font-bold text-foreground">
@@ -265,6 +278,14 @@ function FormContent() {
                                                                                     value ||
                                                                                     ""
                                                                                 }
+                                                                                min={
+                                                                                    0
+                                                                                }
+                                                                                max={
+                                                                                    jobRole.isAdmin
+                                                                                        ? maxQty
+                                                                                        : undefined
+                                                                                }
                                                                                 disabled={
                                                                                     maxQty ===
                                                                                     0
@@ -282,14 +303,13 @@ function FormContent() {
                                                                                 }}
                                                                                 placeholder="0"
                                                                             />
-                                                                            <InputGroup.Addon
-                                                                                className=""
-                                                                                align="inline-end"
-                                                                            >
-                                                                                <span className="text-muted-foreground">
-                                                                                    {` / ${maxQty} `}
-                                                                                </span>
-                                                                            </InputGroup.Addon>
+                                                                            <AdminJobFormContent>
+                                                                                <InputGroup.Addon align="inline-end">
+                                                                                    <span className="text-muted-foreground">
+                                                                                        {` / ${maxQty} `}
+                                                                                    </span>
+                                                                                </InputGroup.Addon>
+                                                                            </AdminJobFormContent>
                                                                         </InputGroup>
                                                                     </td>
                                                                     <td className="px-4 py-3 text-right font-bold">
@@ -370,17 +390,24 @@ function FormContent() {
             <Portal nodeId={"jobActionButton"}>
                 <form
                     {...form}
-                    onSubmit={form.handleSubmit((values) => {
-                        console.log("Form Submitted with values:", values);
-                        // Here you would typically call a mutation to save the job details
-                        // For example: trpc.community.updateJob.mutate(values)
-                        // setParams({
-                        //     step: 3, // Move to the next step, e.g., review/confirm
-                        // });
-                    })}
+                    onSubmit={form.handleSubmit(
+                        (values) => {
+                            console.log("Form Submitted with values:", values);
+                            console.log("default values", defaultValues);
+                            // Here you would typically call a mutation to save the job details
+                            // For example: trpc.community.updateJob.mutate(values)
+                            // setParams({
+                            //     step: 3, // Move to the next step, e.g., review/confirm
+                            // });
+                        },
+                        (e) => {
+                            console.log("Form Errors:", e);
+                            console.log("default values", defaultValues.unit);
+                        },
+                    )}
                 >
                     <SubmitButton className="">
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 items-center">
                             <CheckCircle2 className="size-4" />
                             <span>Submit</span>
                         </div>
