@@ -13,11 +13,7 @@ export const notification = schemaTask({
   },
   run: async (payload) => {
     const notifications = new Notifications(db);
-
-    const { type, teamId, sendEmail = false, ...data } = payload;
-
-    return notifications.create(type, teamId, data, {
-      sendEmail,
-    });
+    const { type, sendEmail = false, ...data } = payload;
+    // return notifications.create(type, data, {});
   },
 });

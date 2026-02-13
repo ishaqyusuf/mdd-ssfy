@@ -1,4 +1,15 @@
 import {
+  ButtonGroup as ButtonGroupBase,
+  ButtonGroupSeparator,
+  ButtonGroupText,
+  // buttonGroupVariants
+} from "./button-group";
+const ButtonGroup = Object.assign(ButtonGroupBase, {
+  Separator: ButtonGroupSeparator,
+  Text: ButtonGroupText,
+});
+export { ButtonGroup };
+import {
   Table as TableBase,
   TableHeader,
   TableBody,

@@ -8,6 +8,8 @@ import { Env } from "./env";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
+import { ButtonGroup } from "@gnd/ui/composite";
+import { Button } from "@gnd/ui/button";
 
 export function JobHeader({}) {
     const [filters, setFilters] = useQueryStates(jobFilterParams);
@@ -22,6 +24,23 @@ export function JobHeader({}) {
     );
     return (
         <div className="flex justify-between gap-4">
+            <ButtonGroup>
+                <Button variant="outline" size="sm">
+                    All Jobs
+                </Button>
+                <ButtonGroup.Separator />
+                <Button
+                    onClick={(e) => {
+                        setFilters({
+                            show: "custom",
+                        });
+                    }}
+                    variant="outline"
+                    size="sm"
+                >
+                    Custom Jobs
+                </Button>
+            </ButtonGroup>
             <SearchFilter
                 filterSchema={jobFilterParams}
                 placeholder="Search Jobs..."

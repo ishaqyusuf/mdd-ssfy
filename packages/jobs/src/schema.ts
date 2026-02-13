@@ -350,3 +350,5 @@ export const notificationSchema = z.discriminatedUnion("type", [
     })
     .extend(salesCheckoutSuccessSchema.omit({}).shape),
 ]);
+
+export type NotificationPayload = z.infer<typeof notificationSchema>;

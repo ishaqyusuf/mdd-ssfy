@@ -177,7 +177,7 @@ export class Notifications {
 
     // Build the full notification data
     const data = { ...payload } as NotificationTypes[T];
-    console.log("Creating notification with data:", { type, data, options });
+
     // return null;
     return this.#createInternal(
       type,

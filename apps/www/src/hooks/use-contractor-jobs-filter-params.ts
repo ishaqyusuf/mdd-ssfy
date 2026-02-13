@@ -1,10 +1,15 @@
-import { useQueryStates } from "nuqs";
+import { parseAsStringEnum, useQueryStates } from "nuqs";
 import { createLoader, parseAsString, parseAsInteger } from "nuqs/server";
 import { RouterInputs } from "@api/trpc/routers/_app";
+import { JOBS_SHOW_OPTIONS } from "@community/constants";
 type FilterKeys = keyof Exclude<RouterInputs["jobs"]["getJobs"], void>;
 
 export const jobFilterParams = {
     q: parseAsString,
+    show: parseAsStringEnum([...JOBS_SHOW_OPTIONS]),
+    contractor: parseAsString,
+    project: parseAsString,
+    unitId: parseAsInteger,
 } satisfies Partial<Record<FilterKeys, any>>;
 
 export function useJobFilterParams() {

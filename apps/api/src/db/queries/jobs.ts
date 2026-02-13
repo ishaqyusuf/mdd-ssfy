@@ -24,10 +24,15 @@ import {
 import { saveNote } from "@gnd/utils/note";
 import { generateControlId, generateJobId } from "@gnd/community/utils/job";
 import { Notifications } from "@gnd/notifications";
+import { JOBS_SHOW_OPTIONS } from "@community/constants";
 export const getJobsSchema = z
   .object({
     userId: z.number().optional().nullable(),
     jobId: z.number().optional().nullable(),
+    show: z.enum(JOBS_SHOW_OPTIONS).optional().nullable().default("all"),
+    contractor: z.string().optional().nullable(),
+    project: z.string().optional().nullable(),
+    unitId: z.string().optional().nullable(),
   })
   .extend(paginationSchema.shape);
 export type GetJobsSchema = z.infer<typeof getJobsSchema>;
@@ -439,7 +444,6 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
     if (query.mode == "assign") {
       await notifications.create("job_assigned", {
         jobId,
-        authorId: ctx.userId!,
         assignedToId: query?.worker?.id!,
       });
     }
