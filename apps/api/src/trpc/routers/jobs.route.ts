@@ -19,6 +19,7 @@ import z from "zod";
 import { saveNote } from "@gnd/utils/note";
 import { generateJobId } from "@community/utils/job";
 import { sum } from "@gnd/utils";
+import type { JobStatus } from "@community/types";
 // import { Notifications } from "@notifications/index";
 
 export const jobRoutes = createTRPCRouter({
@@ -198,6 +199,60 @@ export const jobRoutes = createTRPCRouter({
     .query(async (props) => {
       return getJobAnalytics(props.ctx, props.input);
     }),
+  getKpis: publicProcedure.input(getJobsSchema).query(async (props) => {
+    const jobs = await getJobs(props.ctx, props.input);
+    const db = props.ctx.db;
+    const [
+      totalCustomJobs,
+      totalCustomJobsAmount,
+      totalJobs,
+      totalJobsAmount,
+      totalPendingReviews,
+    ] = await Promise.all([
+      db.jobs.count({
+        where: {
+          isCustom: true,
+          deletedAt: null,
+        },
+      }),
+      db.jobs.aggregate({
+        _sum: {
+          amount: true,
+        },
+        where: {
+          isCustom: true,
+          deletedAt: null,
+        },
+      }),
+      db.jobs.count({
+        where: {
+          deletedAt: null,
+        },
+      }),
+      db.jobs.aggregate({
+        _sum: {
+          amount: true,
+        },
+        where: {
+          deletedAt: null,
+        },
+      }),
+      db.jobs.count({
+        where: {
+          status: "Submitted" as JobStatus,
+          deletedAt: null,
+          paymentId: null,
+        },
+      }),
+    ]);
+    return {
+      totalCustomJobs,
+      totalCustomJobsAmount: totalCustomJobsAmount._sum.amount || 0,
+      totalJobs,
+      totalJobsAmount: totalJobsAmount._sum.amount || 0,
+      totalPendingReviews,
+    };
+  }),
   earningAnalytics: publicProcedure
     .input(earningAnalyticsSchema)
     .query(async (props) => {

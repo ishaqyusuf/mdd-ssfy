@@ -6,14 +6,14 @@ import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@gnd/ui/tanstack";
 import { DollarSign, CreditCard, List, Activity } from "lucide-react";
 
-export function KpiWidgets() {
+export function SalesKpiWidgets() {
     const { params } = useSalesDashboardParams();
     const trpc = useTRPC();
     const { data, isLoading } = useQuery(
         trpc.salesDashboard.getKpis.queryOptions({
             from: params.from,
             to: params.to,
-        })
+        }),
     );
     if (isLoading) {
         return (

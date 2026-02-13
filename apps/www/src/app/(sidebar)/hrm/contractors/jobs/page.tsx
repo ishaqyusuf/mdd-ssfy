@@ -9,6 +9,7 @@ import { batchPrefetch, trpc } from "@/trpc/server";
 import { loadJobFilterParams } from "@/hooks/use-contractor-jobs-filter-params";
 import { SearchParams } from "nuqs";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+import { JobsKpiWidget } from "@/components/widgets/jobs-kpi-widget";
 
 export async function generateMetadata(props) {
     return constructMetadata({
@@ -25,10 +26,14 @@ export default async function Page(props: Props) {
         trpc.jobs.getJobs.infiniteQueryOptions({
             ...filter,
         }),
+        trpc.jobs.getKpis.infiniteQueryOptions({
+            ...filter,
+        }),
     ]);
     return (
         <div className="flex flex-col gap-6 pt-6">
             <PageTitle>Job</PageTitle>
+            <JobsKpiWidget />
             <JobHeader />
             <ErrorBoundary errorComponent={ErrorFallback}>
                 <Suspense fallback={<TableSkeleton />}>
