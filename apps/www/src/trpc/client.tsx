@@ -32,18 +32,18 @@ function getQueryClient() {
 export function TRPCReactProvider(
     props: Readonly<{
         children: React.ReactNode;
-    }>
+    }>,
 ) {
     const queryClient = getQueryClient();
     const [trpcClient] = useState(() =>
         createTRPCClient<AppRouter>({
             links: [
                 httpBatchLink({
-                    // url: `${process.env.NEXT_PUBLIC_APP_URL}/api/trpc`,
-                    url:
-                        process.env.NODE_ENV === "production"
-                            ? `${process.env.NEXT_PUBLIC_APP_URL}/api/trpc`
-                            : `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
+                    url: `${process.env.NEXT_PUBLIC_APP_URL}/api/trpc`,
+                    // url:
+                    //     process.env.NODE_ENV === "production"
+                    //         ? `${process.env.NEXT_PUBLIC_APP_URL}/api/trpc`
+                    //         : `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
                     transformer: superjson as any,
                     async headers() {
                         try {
@@ -57,7 +57,7 @@ export function TRPCReactProvider(
                             // }
                             return {
                                 Authorization: `Bearer ${generateRandomString(
-                                    16
+                                    16,
                                 )}|${id}`,
                             };
                         } catch (error) {}
@@ -71,7 +71,7 @@ export function TRPCReactProvider(
                             opts.result instanceof Error),
                 }),
             ],
-        })
+        }),
     );
 
     return (

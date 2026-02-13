@@ -24,6 +24,7 @@
       "@auth/*": ["../../packages/auth/src/*"],
       "@api/*": ["src/*"],
       "@community/*": ["../../packages/community/src/*"],
+      "@emails/*": ["../../packages/email/emails/*"],
       "@jobs/*": ["../../packages/jobs/src/*"],
       "@notifications/*": ["../../packages/notifications/src/*"],
       "@sales/*": ["../../packages/sales/src/*"],

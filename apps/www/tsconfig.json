@@ -9,6 +9,7 @@
             "@api/*": ["../api/src/*"],
             "@auth/*": ["../auth/src/*"],
             "@community/*": ["../../packages/community/src/*"],
+            "@emails/*": ["../../packages/email/emails/*"],
             "@notifications/*": ["../../packages/notifications/src/*"],
             "@engine/*": ["../engine/src/*"],
             "@jobs/*": ["../../packages/jobs/src/*"],

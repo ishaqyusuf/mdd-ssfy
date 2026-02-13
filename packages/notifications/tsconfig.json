@@ -10,6 +10,7 @@
     "noImplicitAny": false,
     "baseUrl": ".",
     "paths": {
+      "@emails/*": ["../email/emails/*"]
       // "@sales/*": ["../sales/src/*"]
       // "@/*": ["./src/*"],
       // "@api/*": ["../../apps/api/src/*"]
