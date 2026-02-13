@@ -29,49 +29,69 @@ export type CommunityInstallCostRateSchema = z.infer<
   typeof communityInstallCostRateSchema
 >;
 
-export const jobFormShema = z.object({
-  unit: z
-    .object({
-      id: z.number(),
-      // lot: z.string(),
-      // block: z.string(),
-      // modelName: z.string(),
-      // modelNo: z.string(),
-      // projectTitle: z.string(),
-    })
-    .optional(),
-  user: z
-    .object({
-      id: z.number(),
-      // name: z.string(),
-    })
-    .optional(),
-  job: z.object({
-    id: z.number().optional(),
-    amount: z.number(),
-    description: z.string().optional(),
-    isCustom: z.boolean().optional().default(false).nullable(),
-    adminNote: z.string().optional().nullable(),
-    title: z.string().optional().nullable(),
-    subtitle: z.string().optional().nullable(),
-    type: z.string(),
-    status: z.string(),
-    tasks: z
-      .array(
-        z.object({
-          id: z.number().optional().nullable(),
-          modelTaskId: z.number(),
-          rate: z.number().optional().nullable(),
-          qty: z.number().optional().nullable(),
-          maxQty: z.number().optional().nullable(),
-        }),
-      )
+export const jobFormShema = z
+  .object({
+    unit: z
+      .object({
+        id: z.number(),
+        // lot: z.string(),
+        // block: z.string(),
+        // modelName: z.string(),
+        // modelNo: z.string(),
+        // projectTitle: z.string(),
+      })
       .optional(),
-    meta: z.object({
-      addon: z.number().optional().nullable(),
-      additionalCostReason: z.string().optional().nullable(),
-      additional_cost: z.number().optional().nullable(),
+    user: z
+      .object({
+        id: z.number(),
+        // name: z.string(),
+      })
+      .optional(),
+    builderTaskId: z.number().optional(),
+    job: z.object({
+      id: z.number().optional(),
+      amount: z.number(),
+      description: z.string().optional(),
+      isCustom: z.boolean().optional().default(false).nullable(),
+      adminNote: z.string().optional().nullable(),
+      title: z.string().optional().nullable(),
+      subtitle: z.string().optional().nullable(),
+      // type: z.string(),
+      status: z.string(),
+
+      tasks: z
+        .array(
+          z.object({
+            id: z.number().optional().nullable(),
+            modelTaskId: z.number(),
+            rate: z.number().optional().nullable(),
+            qty: z.number().optional().nullable(),
+            maxQty: z.number().optional().nullable(),
+          }),
+        )
+        .optional(),
+      meta: z.object({
+        addon: z.number().optional().nullable(),
+        addonPercent: z.number().optional().nullable(),
+        additionalCostReason: z.string().optional().nullable(),
+        additional_cost: z.number().optional().nullable(),
+      }),
     }),
-  }),
-});
+  })
+  .superRefine((data, ctx) => {
+    if (data.job.isCustom) {
+      if (!data.job.meta.additional_cost)
+        ctx.addIssue({
+          code: "custom",
+          message: "Additional cost is required for custom jobs",
+          path: ["job.meta.additional_cost"],
+        });
+      if (!data.job?.description)
+        ctx.addIssue({
+          code: "custom",
+          message: "Description is required for custom jobs",
+          path: ["job.description"],
+        });
+    }
+  });
 export type JobFormSchema = z.infer<typeof jobFormShema>;

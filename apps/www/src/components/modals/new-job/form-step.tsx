@@ -31,7 +31,8 @@ export function FormStep({}) {
     );
 }
 function FormContent() {
-    const { defaultValues } = useJobFormContext();
+    const { defaultValues, markAsComplete, setMarkAsComplete } =
+        useJobFormContext();
     const { ...params } = useJobFormParams();
     const form = useZodForm(jobFormShema, {
         defaultValues: {
@@ -60,7 +61,7 @@ function FormContent() {
             },
             {} as Record<number, number>,
         ) || 0;
-    const addonPercentage = defaultValues.unit?.addonPercentage || 0;
+    const addonPercentage = defaultValues.job?.meta?.addonPercent || 0;
     const addonValue = percentageValue(
         defaultValues.unit?.projectAddon,
         addonPercentage,
@@ -122,6 +123,7 @@ function FormContent() {
                             render={({ field }) => (
                                 <Field orientation="horizontal">
                                     <Checkbox
+                                        disabled={params.taskId === -1}
                                         checked={field.value}
                                         onCheckedChange={field.onChange}
                                         id="isCustomTask"
@@ -383,6 +385,25 @@ function FormContent() {
                                     </span>
                                 </div>
                             </div>
+
+                            <Field orientation="horizontal">
+                                <Checkbox
+                                    id="finder-pref-9k2-sync-folders-nep"
+                                    checked={markAsComplete}
+                                    onCheckedChange={(e) =>
+                                        setMarkAsComplete(!!e)
+                                    }
+                                />
+                                <Field.Content>
+                                    <Field.Label htmlFor="finder-pref-9k2-sync-folders-nep">
+                                        Mark job as completed.
+                                    </Field.Label>
+                                    <Field.Description>
+                                        This will set the job status to
+                                        completed
+                                    </Field.Description>
+                                </Field.Content>
+                            </Field>
                         </div>
                     )}
                 </div>

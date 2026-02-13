@@ -2,7 +2,7 @@ import { _trpc } from "@/components/static-trpc";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Layers } from "lucide-react";
+import { ChevronRight, Layers, PenTool } from "lucide-react";
 import { useSearch } from "@gnd/ui/hooks/use-search";
 import { SearchInput } from "@/components/search-input";
 import { Skeleton } from "@gnd/ui/skeleton";
@@ -39,6 +39,30 @@ export function TaskSelectStep({}) {
             </SubHeader>
             <LoadingSkeleton isPending={isPending}>
                 <div className="space-y-2">
+                    <button
+                        onClick={() => {
+                            setParams({
+                                taskId: -1,
+                                step: params.redirectStep || params.step + 1,
+                                redirectStep: null,
+                            });
+                        }}
+                        className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed text-left transition-all group ${params.taskId == -1 ? "border-primary bg-primary/5" : "border-primary/30 hover:border-primary hover:bg-primary/5"}`}
+                    >
+                        <div className="p-2 bg-primary/10 rounded-lg text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                            <PenTool size={20} />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-sm font-bold text-primary">
+                                Custom Task
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                Create a one-off job with manual pricing
+                            </p>
+                        </div>
+                        <ChevronRight size={16} className="text-primary" />
+                    </button>
+
                     {results.map((item) => (
                         <button
                             key={item.id}

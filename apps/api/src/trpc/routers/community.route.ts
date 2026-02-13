@@ -79,7 +79,12 @@ import {
   getProjectUnits,
   getProjectUnitsSchema,
 } from "@api/db/queries/project-units";
-import { consoleLog, generateRandomString } from "@gnd/utils";
+import {
+  consoleLog,
+  generateRandomString,
+  percentageValue,
+  sum,
+} from "@gnd/utils";
 import type { CommunityBuilderMeta } from "@gnd/utils/community";
 import {
   builderFormSchema,
@@ -288,6 +293,7 @@ export const communityRouters = createTRPCRouter({
           title: true,
           subtitle: true,
           type: true,
+          status: true,
           jobInstallTasks: {
             select: {
               id: true,
@@ -337,7 +343,10 @@ export const communityRouters = createTRPCRouter({
           id: true,
         },
       });
-      const jobMeta: JobMeta = (job?.meta as any) || {};
+      const jobMeta: JobMeta = (job?.meta as any) || {
+        addonPercent: builderTask?.addonPercentage,
+        addon: projectAddon,
+      };
       return {
         unit: {
           lot: unit?.lot,
@@ -348,13 +357,14 @@ export const communityRouters = createTRPCRouter({
           builderName: unit?.project?.builder?.name,
           projectAddon,
           taskName: builderTask?.taskName,
-          addonPercentage: builderTask?.addonPercentage,
+          // addonPercentage: builderTask?.addonPercentage,
         },
-
+        builderTaskId: taskId,
         user: job?.user || user,
         job: {
           tasks: jobTasks,
           id: job?.id,
+          // type: job?.type || job?.,
           amount: job?.amount,
           description: job?.description,
           meta: jobMeta,
@@ -369,7 +379,8 @@ export const communityRouters = createTRPCRouter({
               ?.filter(Boolean)
               ?.join(" - "),
           adminNote: job?.adminNote,
-          isCustom: !!job?.isCustom,
+          isCustom: !!job?.isCustom || !taskId,
+          status: (job?.status || "Assigned") as JobStatus,
         },
       };
     }),
@@ -378,19 +389,39 @@ export const communityRouters = createTRPCRouter({
     return ctx.db.$transaction(async (db) => {
       const { unit, user, job } = input;
       let jobId = job.id;
+      if (job.isCustom) {
+        job.meta = {
+          ...job.meta,
+          addon: 0,
+          addonPercent: 0,
+        };
+        job.tasks = [];
+      } else {
+        job.meta.additional_cost = null;
+      }
+      // job.meta.addon = percentageValue(job.meta.)
+      const totalTaskCost = +(
+        job.tasks?.reduce((acc, t) => acc + (t.rate || 0) * (t.qty || 0), 0) ||
+        0
+      ).toFixed(2);
+      job.amount = sum([
+        totalTaskCost,
+        job.meta.addon,
+        job.meta.additional_cost,
+      ]);
       if (jobId) {
         await db.jobs.update({
           where: {
             id: jobId,
           },
           data: {
-            amount: job.amount!,
-            description: job.description!,
-            adminNote: job.adminNote!,
-            isCustom: job.isCustom!,
-            title: job.title!,
-            subtitle: job.subtitle!,
-            type: job.type!,
+            amount: job.amount,
+            adminNote: job.adminNote,
+            isCustom: job.isCustom,
+            title: job.title,
+            subtitle: job.subtitle,
+            description: job.description,
+            // type: job.type,
             meta: job.meta as any,
           },
         });
@@ -403,11 +434,14 @@ export const communityRouters = createTRPCRouter({
             isCustom: job.isCustom,
             title: job.title,
             subtitle: job.subtitle,
-            type: job.type,
+            // type: job.type,
             user: user?.id ? { connect: { id: user.id } } : undefined,
             home: unit?.id ? { connect: { id: unit.id } } : undefined,
             meta: job.meta as any,
             status: job.status,
+            builderTask: input?.builderTaskId
+              ? { connect: { id: input.builderTaskId } }
+              : undefined,
           },
         });
         jobId = newJob.id;
@@ -454,6 +488,9 @@ export const communityRouters = createTRPCRouter({
             })),
         }),
       ]);
+      return {
+        id: jobId,
+      };
     });
   }),
   getInstallCostRatesSuggestions: publicProcedure

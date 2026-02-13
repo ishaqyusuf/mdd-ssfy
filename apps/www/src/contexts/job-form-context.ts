@@ -1,7 +1,7 @@
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useState } from "react";
 
 type JobFormContextProps = ReturnType<typeof useCreateJobFormContext>;
 export const JobFormContext = createContext<JobFormContextProps>(
@@ -20,7 +20,7 @@ export const useCreateJobFormContext = () => {
         useTRPC().community.getJobForm.queryOptions(
             {
                 unitId: params.unitId,
-                taskId: params.taskId,
+                taskId: params.taskId > 0 ? params.taskId : undefined,
                 jobId: params.jobId,
                 userId: params.userId,
                 modelId: params.modelId,
@@ -40,8 +40,11 @@ export const useCreateJobFormContext = () => {
             },
         ),
     );
+    const [markAsComplete, setMarkAsComplete] = useState(false);
     return {
         defaultValues,
+        markAsComplete,
+        setMarkAsComplete,
     };
 };
 export const useJobFormContext = () => {

@@ -106,7 +106,7 @@ model Jobs {
     controlId   String?
     userId      Int
     coWorkerId  Int?
-    type        String    @db.VarChar(255)
+    type        String?   @db.VarChar(255)
     homeId      Int?
     // unitId      Int?
     projectId   Int?
