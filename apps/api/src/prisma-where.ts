@@ -211,6 +211,13 @@ export function whereEmployees(params: EmployeesQueryParams) {
           },
         });
         break;
+      case "profile":
+        wheres.push({
+          employeeProfile: {
+            name: value,
+          },
+        });
+        break;
     }
   });
   return composeQuery(wheres);

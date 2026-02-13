@@ -25,7 +25,7 @@ export async function createSiteActionTicket(
   let { meta } = props;
   if (!meta) meta = {};
   //   const auth = await user();
-  meta.authorName = author.name;
+  meta.authorName = author.name!;
   meta.authorId = author.id;
   await db.siteActionTicket.create({
     data: {
