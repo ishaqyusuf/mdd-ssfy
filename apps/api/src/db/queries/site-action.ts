@@ -4,7 +4,7 @@ import type { TRPCContext } from "@api/trpc/init";
 import {
   createSiteActionTicket,
   type SiteTicketProps,
-} from "@notifications/site-actions";
+} from "@gnd/notifications/site-actions";
 
 export async function getSiteActions(
   ctx: TRPCContext,
@@ -14,7 +14,7 @@ export async function getSiteActions(
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereSiteAction(query),
-    db.salesOrders,
+    db.siteActionTicket,
   );
   const result = await db.siteActionTicket.findMany({
     where,
