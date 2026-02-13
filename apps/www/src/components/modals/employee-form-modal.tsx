@@ -1,4 +1,4 @@
-import { useEmployeesParams } from "@/hooks/use-employee-params";
+import { useEmployeeParams } from "@/hooks/use-employee-params";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { employeeFormSchema } from "@api/schemas/hrm";
 import {
@@ -19,7 +19,7 @@ import { useEffect } from "react";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 
 export function EmployeeFormModal({}) {
-    const { setParams, params, opened } = useEmployeesParams();
+    const { setParams, params, opened } = useEmployeeParams();
     const form = useZodForm(employeeFormSchema, {
         defaultValues: {},
     });

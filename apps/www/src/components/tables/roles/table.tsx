@@ -14,7 +14,7 @@ import { TableProvider } from "..";
 import { TableHeaderComponent } from "../table-header";
 import { TableRow } from "../table-row";
 
-import { useEmployeesParams } from "@/hooks/use-employee-params";
+import { useEmployeeParams } from "@/hooks/use-employee-params";
 import { columns, Item } from "./columns";
 import { LoadMore } from "../load-more";
 import FContentShell from "@/components/(clean-code)/fikr-ui/f-content-shell";

@@ -1,7 +1,6 @@
 "use server";
 
 import { prisma } from "@/db";
-import { revalidateTag } from "next/cache";
 import { createSiteActionTicket } from "./create-site-action-ticket";
 
 export async function updateEmployeeRole(id, roleId) {

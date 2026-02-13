@@ -9,7 +9,7 @@ import { TableProvider } from "..";
 import { TableHeaderComponent } from "../table-header";
 import { TableRow } from "../table-row";
 
-import { useEmployeesParams } from "@/hooks/use-employee-params";
+import { useEmployeeParams } from "@/hooks/use-employee-params";
 import { PageFilterData } from "@/types/type";
 import { columns, Item } from "./columns";
 import { LoadMore } from "../load-more";
@@ -36,7 +36,7 @@ export function DataTable({
     nextMeta,
     filterDataPromise,
 }: Props) {
-    const { setParams, params } = useEmployeesParams();
+    const { setParams, params } = useEmployeeParams();
     const filterData: PageFilterData[] = filterDataPromise
         ? use(filterDataPromise)
         : [];

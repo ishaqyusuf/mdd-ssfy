@@ -13,7 +13,6 @@ import {
   SALES_DISPATCH_FILTER_OPTIONS,
   salesDispatchStatus,
   WORK_ORDER_STATUS,
-  type Roles,
 } from "@gnd/utils/constants";
 import {
   buildersList,
@@ -42,6 +41,52 @@ import {
 import type { GetCustomerServicesSchema } from "./customer-service";
 import type { GetBuildersSchema } from "@community/builder";
 import type { GetJobsSchema } from "./jobs";
+import type { GetEmployeesSchema } from "@api/schemas/hrm";
+
+export async function employeeFilters(ctx: TRPCContext) {
+  type T = keyof GetEmployeesSchema;
+  type FilterData = PageFilterData<T>;
+  // const steps = labelValueOptions(
+  //   await ctx.db.Users.findMany({
+  //     where: {},
+  //     select: {
+  //       id: true,
+  //       title: true,
+  //     },
+  //   }),
+  //   "title",
+  //   "id"
+  // );
+  const roles = await ctx.db.roles.findMany({
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+  const profiles = await ctx.db.employeeProfile.findMany({
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+  const resp = [
+    searchFilter,
+    optionFilter<T>(
+      "role",
+      "Role",
+      roles.map((r) => ({ label: r.name, value: r.name })),
+    ),
+    optionFilter<T>(
+      "profile",
+      "Employee Profile",
+      profiles.map((p) => ({ label: p.name, value: p.name })),
+    ),
+    // optionFilter<T>("categoryId", "Category", steps),
+    // dateRangeFilter<T>("dateRange", "Filter by date"),
+  ] satisfies FilterData[];
+
+  return resp;
+}
 
 export async function getDispatchFilters(ctx: TRPCContext) {
   type T = keyof DispatchQueryParamsSchema;

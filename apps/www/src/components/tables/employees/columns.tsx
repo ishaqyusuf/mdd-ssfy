@@ -5,7 +5,7 @@ import { ColumnDef, ColumnMeta, PageItemData } from "@/types/type";
 import { getEmployees } from "@/actions/get-employees";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Menu } from "@/components/(clean-code)/menu";
-import { useTable } from "..";
+
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { updateEmployeeRole } from "@/actions/update-employee-role";
 import { updateEmployeeProfile } from "@/actions/update-employee-profile";
@@ -13,27 +13,36 @@ import { AuthGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import { useEmployeesParams } from "@/hooks/use-employee-params";
+import { useEmployeeParams } from "@/hooks/use-employee-params";
 import { Icons } from "@gnd/ui/icons";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@gnd/ui/tanstack";
 import { triggerTask } from "@/actions/trigger-task";
 import { Item } from "@gnd/ui/composite";
 import { _qc, _trpc } from "@/components/static-trpc";
+import { RouterOutputs } from "@api/trpc/routers/_app";
+import { useTable } from "@gnd/ui/data-table";
+import { useProfilesList, useRolesList } from "@/hooks/use-data-list";
+import { useState } from "react";
+import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 
-export type Item = PageItemData<typeof getEmployees>;
-export const columns: ColumnDef<Item>[] = [
+export type Item = RouterOutputs["hrm"]["getEmployees"]["data"][number];
+interface ItemProps {
+    item: Item;
+}
+type Column = ColumnDef<Item>;
+export const columns: Column[] = [
     {
         header: "#",
         accessorKey: "uid",
         cell: ({ row: { original: item } }) => (
             <div>
-                <TCell.Secondary className="font-bold">
+                <Item.Description className="font-bold">
                     {item.uid}
-                </TCell.Secondary>
-                <TCell.Secondary className="font-mono$">
+                </Item.Description>
+                <Item.Description className="font-mono$">
                     {item.date}
-                </TCell.Secondary>
+                </Item.Description>
             </div>
         ),
     },
@@ -43,10 +52,10 @@ export const columns: ColumnDef<Item>[] = [
 
         cell: ({ row: { original: item } }) => (
             <div>
-                <TCell.Primary className="">{item.name}</TCell.Primary>
-                <TCell.Secondary className="font-mono$">
+                <Item.Title className="">{item.name}</Item.Title>
+                <Item.Description className="font-mono$">
                     {item.username}
-                </TCell.Secondary>
+                </Item.Description>
             </div>
         ),
     },
@@ -101,7 +110,7 @@ function Office({ item }: { item: Item }) {
     );
 }
 function Action({ item }: { item: Item }) {
-    const { params, setParams } = useEmployeesParams();
+    const { params, setParams } = useEmployeeParams();
     const trpc = useTRPC();
     const toast = useLoadingToast();
     const submitAction = useMutation(
@@ -126,17 +135,7 @@ function Action({ item }: { item: Item }) {
         toast.loading("Resetting password");
     }
     return (
-        <ActionCell
-            // Menu={
-            //     <>
-            //         <Menu.Item onClick={(e) => onSubmit()} icon="packingList">
-            //             Reset Password
-            //         </Menu.Item>
-            //     </>
-            // }
-            trash
-            itemId={item.id}
-        >
+        <div className="relative flex items-center gap-2 z-10">
             <Button
                 size="sm"
                 variant="outline"
@@ -158,21 +157,37 @@ function Action({ item }: { item: Item }) {
                     Reset Password
                 </Menu.Item>
             </Menu>
-        </ActionCell>
+        </div>
     );
 }
 function Profile({ item }: { item: Item }) {
     const ctx = useTable();
-    const roles = ctx.tableMeta?.filterData?.find(
-        (a) => a.value == "employeeProfileId",
-    )?.options;
-    const loader = useLoadingToast();
-    async function updateProfile(profileId) {
-        loader.loading("Updating...");
-        await updateEmployeeProfile(item.id, profileId);
-        // ctx?.table?.reset();
-        loader.success("Updated.");
-    }
+    // const roles = ctx.tableMeta?.filterData?.find(
+    //     (a) => a.value == "employeeProfileId",
+    // )?.options;
+    const [open, setOpen] = useState(false);
+    const profiles = useProfilesList(open);
+    const { mutate: updateProfile, isPending } = useMutation(
+        useTRPC().hrm.updateEmployeeProfile.mutationOptions({
+            onSuccess(data, variables, context) {
+                invalidateInfiniteQueries("hrm.getEmployees");
+            },
+            meta: {
+                toastTitle: {
+                    error: "Unable to complete",
+                    loading: "Processing...",
+                    success: "Done!.",
+                },
+            },
+        }),
+    );
+    // const loader = useLoadingToast();
+    // async function updateProfile(profileId) {
+    //     loader.loading("Updating...");
+    //     await updateEmployeeProfile(item.id, profileId);
+    //     // ctx?.table?.reset();
+    //     loader.success("Updated.");
+    // }
     return (
         <AuthGuard
             rules={[_perm.is("editRole")]}
@@ -189,13 +204,26 @@ function Profile({ item }: { item: Item }) {
                 hoverVariant="default"
                 triggerSize="xs"
             >
-                <Menu.Item onClick={(e) => updateProfile(-1)}>Non</Menu.Item>
-                {roles?.map((role) => (
+                <Menu.Item
+                    onClick={(e) =>
+                        updateProfile({
+                            userId: item.id,
+                        })
+                    }
+                >
+                    Non
+                </Menu.Item>
+                {profiles?.map((profile) => (
                     <Menu.Item
-                        onClick={(e) => updateProfile(Number(role.value))}
-                        key={role.value}
+                        onClick={(e) =>
+                            updateProfile({
+                                userId: item.id,
+                                profileId: profile.id,
+                            })
+                        }
+                        key={profile.id}
                     >
-                        {role?.label}
+                        {profile?.name}
                     </Menu.Item>
                 ))}
             </Menu>
@@ -204,38 +232,51 @@ function Profile({ item }: { item: Item }) {
 }
 function Role({ item }: { item: Item }) {
     const ctx = useTable();
-    const roles = ctx.tableMeta?.filterData?.find(
-        (a) => a.value == "roleId",
-    )?.options;
-    const loader = useLoadingToast();
-    // const session = useAsyncMemo
-    async function updateRole(roleId) {
-        loader.loading("Updating...");
-        await updateEmployeeRole(item.id, roleId);
-        loader.success("Updated.");
-        // _qc.invalidateQueries({
-        //     queryKey: _trpc.hrm.getEmployees.
-        // })
-    }
+    // const roles = ctx.tableMeta?.filterData?.find(
+    //     (a) => a.value == "roleId",
+    // )?.options;
+    const [opened, setOpened] = useState(false);
+    const roles = useRolesList(opened);
+    const { mutate: updateRole, isPending } = useMutation(
+        useTRPC().hrm.updateEmployeeRole.mutationOptions({
+            onSuccess(data, variables, context) {
+                invalidateInfiniteQueries("hrm.getEmployees");
+            },
+            meta: {
+                toastTitle: {
+                    error: "Unable to complete",
+                    loading: "Processing...",
+                    success: "Done!.",
+                },
+            },
+        }),
+    );
     return (
         <AuthGuard
             rules={[_perm.is("editRole")]}
-            Fallback={<Badge variant="secondary">{item.role?.name}</Badge>}
+            Fallback={<Badge variant="secondary">{item.role}</Badge>}
         >
             <Menu
-                label={item.role?.name || "Role not set"}
+                open={opened}
+                onOpenChanged={setOpened}
+                label={item.role || "Role not set"}
                 Icon={null}
-                variant={item?.role?.id ? "secondary" : "destructive"}
+                variant={item?.role ? "secondary" : "destructive"}
                 hoverVariant="default"
                 triggerSize="xs"
                 className="h-[40vh] overflow-auto"
             >
                 {roles?.map((role) => (
                     <Menu.Item
-                        onClick={(e) => updateRole(Number(role.value))}
-                        key={role.value}
+                        onClick={(e) =>
+                            updateRole({
+                                userId: item.id,
+                                roleId: role.id,
+                            })
+                        }
+                        key={role.id}
                     >
-                        {role?.label}
+                        {role?.name}
                     </Menu.Item>
                 ))}
             </Menu>

@@ -7,15 +7,19 @@ export const employeesQueryParamsSchema = z
     can: z.array(z.custom<PermissionScope>()).optional().nullable(),
     cannot: z.array(z.custom<PermissionScope>()).optional().nullable(),
     roles: z.array(z.custom<Roles>()).optional().nullable(),
+    role: z.string().optional().nullable(),
+    profile: z.string().optional().nullable(),
   })
   .extend(paginationSchema.shape);
 export type EmployeesQueryParams = z.infer<typeof employeesQueryParamsSchema>;
+export type GetEmployeesSchema = EmployeesQueryParams;
 export const employeeFormSchema = z
   .object({
     id: z.number().nullable().optional(),
     name: z.string(),
     email: z.string().optional(), // initially optional
-    roleId: z.number().optional().nullable(),
+    roleId: z.number(),
+    organizationId: z.number(),
     profileId: z.number().optional().nullable(),
     phoneNo: z.string().optional().nullable(),
     username: z.string().optional().nullable(),

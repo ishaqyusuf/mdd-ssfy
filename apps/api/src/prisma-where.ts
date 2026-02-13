@@ -196,5 +196,22 @@ export function whereEmployees(params: EmployeesQueryParams) {
       },
     });
   }
+  Object.entries(params).map(([k, v]) => {
+    const value = v as any;
+    if (v === null) return;
+    switch (k as keyof EmployeesQueryParams) {
+      case "role":
+        wheres.push({
+          roles: {
+            some: {
+              role: {
+                name: value,
+              },
+            },
+          },
+        });
+        break;
+    }
+  });
   return composeQuery(wheres);
 }

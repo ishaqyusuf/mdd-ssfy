@@ -9,7 +9,7 @@ import { TableProvider } from "../tables";
 import { TableHeaderComponent } from "../tables/table-header";
 import { TableRow } from "../tables/table-row";
 
-import { useEmployeesParams } from "@/hooks/use-employee-params";
+import { useEmployeeParams } from "@/hooks/use-employee-params";
 import { PageFilterData } from "@/types/type";
 import { columns, Item } from "./resolution-center-content";
 import { LoadMore } from "../tables/load-more";

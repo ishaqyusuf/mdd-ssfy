@@ -1,12 +1,12 @@
 // import type { Database } from "@gnd/db/client";
 import { shouldSendNotification } from "@gnd/db/queries";
-// import SalesRepOnlinePaymentReceived from "@gnd/email/emails/sales-rep-online-payment-received";
+
 import { render } from "@gnd/email/render";
 import { nanoid } from "nanoid";
 import { type CreateEmailOptions, Resend } from "resend";
 import type { EmailInput } from "../base";
 import { Db } from "@gnd/db";
-import { SalesRepOnlinePaymentReceived } from "@gnd/email/emails/sales-rep-online-payment-received";
+// import { SalesRepOnlinePaymentReceived } from "@gnd/email/emails/sales-rep-online-payment-received";
 
 export class EmailService {
   private client: Resend;
@@ -159,7 +159,7 @@ export class EmailService {
 
   #getTemplate(templateName: string) {
     const templates = {
-      "sales-rep-online-payment-received": SalesRepOnlinePaymentReceived,
+      // "sales-rep-online-payment-received": SalesRepOnlinePaymentReceived,
     };
 
     const template = templates[templateName as keyof typeof templates];

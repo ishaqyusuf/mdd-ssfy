@@ -9,7 +9,7 @@ import {
 
 import { useOnCloseQuery } from "./use-on-close-query";
 
-export function useEmployeesParams() {
+export function useEmployeeParams() {
     const [params, setParams] = useQueryStates({
         createEmployee: parseAsBoolean,
         editEmployeeId: parseAsInteger,

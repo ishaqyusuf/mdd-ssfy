@@ -8,7 +8,8 @@ import type {
 import type { TRPCContext } from "@api/trpc/init";
 import { db } from "@gnd/db";
 import { hash } from "bcrypt-ts";
-
+import { padStart } from "@gnd/utils";
+import { formatDate } from "@gnd/utils/dayjs";
 export async function getEmployees(
   ctx: TRPCContext,
   query: EmployeesQueryParams,
@@ -32,9 +33,13 @@ export async function getEmployees(
       id: true,
       name: true,
       email: true,
+      createdAt: true,
+      employeeProfile: true,
+      username: true,
       roles: {
         select: {
           roleId: true,
+          organization: true,
           role: {
             select: {
               RoleHasPermissions: {
@@ -52,10 +57,19 @@ export async function getEmployees(
   });
   return await response(
     data.map((user) => ({
+      uid: `GND-${formatDate(user.createdAt!, `YYMM`)}-${padStart(
+        String(user.id),
+        3,
+        "0",
+      )}`,
       id: user.id,
       name: user.name,
       email: user.email,
       role: user?.roles?.[0]?.role?.name,
+      org: user.roles?.[0]?.organization,
+      date: formatDate(user.createdAt),
+      profile: user.employeeProfile,
+      username: user.username,
     })),
   );
 }
@@ -91,14 +105,16 @@ export async function saveEmployee(ctx: TRPCContext, data: EmployeeFormSchema) {
   if (user?.id && formData.roleId) {
     await ctx.db.modelHasRoles.upsert({
       where: {
-        roleId_modelId: {
+        roleId_modelId_organizationId: {
           roleId: formData.roleId,
           modelId: user.id,
+          organizationId: formData.organizationId,
         },
       },
       create: {
         roleId: formData.roleId,
         modelId: user.id,
+        organizationId: formData.organizationId,
       },
       update: {
         roleId: formData.roleId,
@@ -132,6 +148,7 @@ export async function getEmployeeFormData(
       employeeProfileId: true,
       roles: {
         select: {
+          organizationId: true,
           roleId: true,
         },
       },
@@ -144,7 +161,8 @@ export async function getEmployeeFormData(
     email: employee.email,
     phoneNo: employee.phoneNo,
     username: employee.username,
-    roleId: employee?.roles?.[0]?.roleId,
+    roleId: employee?.roles?.[0]?.roleId!,
+    organizationId: employee?.roles?.[0]?.organizationId!,
     password: undefined as any,
   };
 }

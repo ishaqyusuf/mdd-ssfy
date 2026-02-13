@@ -3,10 +3,10 @@
 import { useQueryStates } from "nuqs";
 
 import { Button } from "@gnd/ui/button";
-import { useEmployeesParams } from "@/hooks/use-employee-params";
+import { useEmployeeParams } from "@/hooks/use-employee-params";
 
 export function EmptyState({}) {
-    const { setParams } = useEmployeesParams();
+    const { setParams } = useEmployeeParams();
 
     return (
         <div className="flex items-center justify-center ">
@@ -38,7 +38,7 @@ export function NoResults() {
     const [params, setParams] = useQueryStates({
         // ...accountingPageQuery,
     });
-    const q = useEmployeesParams();
+    const q = useEmployeeParams();
     return (
         <div className="flex items-center justify-center ">
             <div className="mt-40 flex flex-col items-center">
