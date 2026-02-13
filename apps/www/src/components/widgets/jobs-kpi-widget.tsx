@@ -1,4 +1,5 @@
 "use client";
+import { useJobsKpi } from "@/hooks/use-jobs-kpi";
 import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
 import { useTRPC } from "@/trpc/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
@@ -8,20 +9,15 @@ import { DollarSign, CreditCard, List, Activity } from "lucide-react";
 
 export function JobsKpiWidget() {
     const { params } = useSalesDashboardParams();
-    const trpc = useTRPC();
-    const { data, isLoading } = useQuery(
-        trpc.jobs.getKpis.queryOptions({
-            // from: params.from,
-            // to: params.to,
-        }),
-    );
+
     const {
         totalCustomJobs,
         totalCustomJobsAmount,
         totalJobs,
         totalJobsAmount,
         totalPendingReviews,
-    } = data || {};
+        isLoading,
+    } = useJobsKpi();
     if (isLoading) {
         return (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -197,6 +197,15 @@ function whereJobs(query: GetJobsSchema) {
           id: value,
         });
         break;
+      case "show":
+        switch (query.show) {
+          case "custom":
+            where.push({
+              isCustom: true,
+            });
+            break;
+        }
+        break;
     }
   }
   return composeQuery(where);

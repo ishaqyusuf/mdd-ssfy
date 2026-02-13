@@ -10,6 +10,9 @@ import { useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { ButtonGroup } from "@gnd/ui/composite";
 import { Button } from "@gnd/ui/button";
+import { useJobsKpi } from "@/hooks/use-jobs-kpi";
+import { Layers, PenTool } from "lucide-react";
+import { Badge } from "@gnd/ui/badge";
 
 export function JobHeader({}) {
     const [filters, setFilters] = useQueryStates(jobFilterParams);
@@ -22,23 +25,40 @@ export function JobHeader({}) {
             },
         }),
     );
+    const { totalCustomJobs, totalJobs } = useJobsKpi();
+    const showingCustom = filters.show === "custom";
     return (
         <div className="flex justify-between gap-4">
             <ButtonGroup>
-                <Button variant="outline" size="sm">
-                    All Jobs
+                <Button
+                    variant={showingCustom ? "outline" : "default"}
+                    onClick={(e) => {
+                        setFilters({
+                            show: null,
+                        });
+                    }}
+                >
+                    <Layers className="mr-2 h-4 w-4" />
+                    <span>All Jobs</span>
+                    <Badge variant="secondary" className="px-1">
+                        {totalJobs}
+                    </Badge>
                 </Button>
                 <ButtonGroup.Separator />
                 <Button
+                    variant={showingCustom ? "default" : "outline"}
                     onClick={(e) => {
                         setFilters({
                             show: "custom",
                         });
                     }}
-                    variant="outline"
-                    size="sm"
+                    // size="sm"
                 >
-                    Custom Jobs
+                    <PenTool className="mr-2 h-4 w-4" />
+                    <span>Custom Jobs</span>
+                    <Badge variant="secondary" className="px-1">
+                        {totalCustomJobs}
+                    </Badge>
                 </Button>
             </ButtonGroup>
             <SearchFilter
