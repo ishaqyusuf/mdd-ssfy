@@ -200,7 +200,7 @@ export const jobRoutes = createTRPCRouter({
       return getJobAnalytics(props.ctx, props.input);
     }),
   getKpis: publicProcedure.input(getJobsSchema).query(async (props) => {
-    const jobs = await getJobs(props.ctx, props.input);
+    // const jobs = await getJobs(props.ctx, props.input);
     const db = props.ctx.db;
     const [
       totalCustomJobs,
