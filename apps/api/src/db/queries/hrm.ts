@@ -7,7 +7,7 @@ import type {
 } from "@api/schemas/hrm";
 import type { TRPCContext } from "@api/trpc/init";
 import { hash } from "bcrypt-ts";
-import { consoleLog, padStart } from "@gnd/utils";
+import { padStart } from "@gnd/utils";
 import { formatDate } from "@gnd/utils/dayjs";
 export async function getEmployees(
   ctx: TRPCContext,
@@ -22,7 +22,6 @@ export async function getEmployees(
     // {},
     db.users,
   );
-  consoleLog("employee query where", where);
   const data = await ctx.db.users.findMany({
     where,
     ...searchMeta,
