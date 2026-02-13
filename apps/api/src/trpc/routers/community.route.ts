@@ -84,10 +84,11 @@ import type { CommunityBuilderMeta } from "@gnd/utils/community";
 import {
   builderFormSchema,
   communityInstallCostRateSchema,
+  jobFormShema,
 } from "@community/schema";
 import { getSettingAction } from "@gnd/settings";
 import { INSTALL_COST_DEFAULT_UNITS } from "@community/constants";
-import type { JobMeta, ProjectMeta } from "@community/types";
+import type { JobMeta, JobStatus, ProjectMeta } from "@community/types";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -372,16 +373,89 @@ export const communityRouters = createTRPCRouter({
         },
       };
     }),
-  saveJobForm: publicProcedure
-    .input(workOrderFormSchema)
-    .mutation(async (props) => {
-      const { ctx, input } = props;
-
-      // await ctx.db.jobInstallTasks.create({
-      //   data: {
-      //   }
-      // })
-    }),
+  saveJobForm: publicProcedure.input(jobFormShema).mutation(async (props) => {
+    const { ctx, input } = props;
+    return ctx.db.$transaction(async (db) => {
+      const { unit, user, job } = input;
+      let jobId = job.id;
+      if (jobId) {
+        await db.jobs.update({
+          where: {
+            id: jobId,
+          },
+          data: {
+            amount: job.amount!,
+            description: job.description!,
+            adminNote: job.adminNote!,
+            isCustom: job.isCustom!,
+            title: job.title!,
+            subtitle: job.subtitle!,
+            type: job.type!,
+            meta: job.meta as any,
+          },
+        });
+      } else {
+        const newJob = await db.jobs.create({
+          data: {
+            amount: job.amount,
+            description: job.description,
+            adminNote: job.adminNote,
+            isCustom: job.isCustom,
+            title: job.title,
+            subtitle: job.subtitle,
+            type: job.type,
+            user: user?.id ? { connect: { id: user.id } } : undefined,
+            home: unit?.id ? { connect: { id: unit.id } } : undefined,
+            meta: job.meta as any,
+            status: job.status,
+          },
+        });
+        jobId = newJob.id;
+      }
+      if (job.id) {
+        await db.jobInstallTasks.updateMany({
+          where: {
+            jobId: job.id,
+            id: {
+              notIn: job.tasks?.map((t) => t.id!).filter(Boolean) || [],
+            },
+          },
+          data: {
+            deletedAt: new Date(),
+          },
+        });
+      }
+      await Promise.all([
+        ...(job.tasks || [])
+          .filter((t) => !!t.id)
+          .map(async (task) => {
+            return db.jobInstallTasks.update({
+              where: {
+                id: task.id!,
+              },
+              data: {
+                qty: task.qty,
+                rate: task.rate,
+              },
+            });
+          }),
+        db.jobInstallTasks.createMany({
+          data: (job.tasks || [])
+            .filter((t) => !t.id)
+            .map((task) => ({
+              jobId: jobId!,
+              qty: task.qty,
+              rate: task.rate,
+              communityModelInstallTaskId: task.modelTaskId,
+              maxQty: task.maxQty,
+              total: +((task.rate || 0) * (task.qty || 0)).toFixed(2),
+              // jobHomeTaskId
+              // communityModelInstallTaskId: task.communityModelInstallTaskId,
+            })),
+        }),
+      ]);
+    });
+  }),
   getInstallCostRatesSuggestions: publicProcedure
     .input(
       z.object({

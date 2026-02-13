@@ -39,7 +39,7 @@ export async function saveWorkOrderForm(ctx: TRPCContext, data: WorkOrderForm) {
   if (!data.slug)
     data.slug = await slugModel(
       [data.projectName, data.lot, data.block],
-      ctx.db.workOrders
+      ctx.db.workOrders,
     );
   const { id, techId, ...updateData } = data;
   if (id)
@@ -72,7 +72,7 @@ function calculatePercentageChange(current: number, previous: number): string {
 
 export async function workOrderAnalytic(
   ctx: TRPCContext,
-  query: WorkOrderAnalyticSchema
+  query: WorkOrderAnalyticSchema,
 ): Promise<{
   title: string;
   value: string;
@@ -138,7 +138,7 @@ export async function workOrderAnalytic(
       change =
         calculatePercentageChange(
           currentPeriodNewPending,
-          previousPeriodNewPending
+          previousPeriodNewPending,
         ) + " from last month";
       break;
     }
@@ -163,7 +163,7 @@ export async function workOrderAnalytic(
       change =
         calculatePercentageChange(
           currentPeriodCompleted,
-          previousPeriodCompleted
+          previousPeriodCompleted,
         ) + " from last month";
       break;
     }
@@ -182,7 +182,7 @@ export async function workOrderAnalytic(
       let currentAvg = 0;
       if (currentCompleted.length > 0) {
         const totalDiff = currentCompleted.reduce((acc, wo) => {
-          return acc + (wo.updatedAt.getTime() - wo.createdAt.getTime());
+          return acc + (wo.updatedAt!.getTime() - wo.createdAt!.getTime());
         }, 0);
         currentAvg = totalDiff / currentCompleted.length;
       }
@@ -199,7 +199,7 @@ export async function workOrderAnalytic(
       let previousAvg = 0;
       if (previousCompleted.length > 0) {
         const totalDiff = previousCompleted.reduce((acc, wo) => {
-          return acc + (wo.updatedAt.getTime() - wo.createdAt.getTime());
+          return acc + (wo.updatedAt!.getTime() - wo.createdAt!.getTime());
         }, 0);
         previousAvg = totalDiff / previousCompleted.length;
       }

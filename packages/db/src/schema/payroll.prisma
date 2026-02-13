@@ -138,9 +138,12 @@ model Jobs {
     user            Users?            @relation(name: "installer", fields: [userId], references: [id])
     coWorker        Users?            @relation(name: "co-worker", fields: [coWorkerId], references: [id])
     project         Projects?         @relation(fields: [projectId], references: [id])
-    homeTasks       HomeTasks[]
-    jobHomeTasks    JobHomeTask[]
+    // homeTasks       HomeTasks[]
+    // jobHomeTasks    JobHomeTask[]
     jobInstallTasks JobInstallTasks[]
+
+    builderTask   BuilderTask? @relation(fields: [builderTaskId], references: [id])
+    builderTaskId Int?
 
     @@index([createdAt, homeId, type, status, userId])
     @@index([paymentId])
@@ -150,25 +153,23 @@ model Jobs {
     @@index([projectId])
 }
 
-model JobHomeTask {
-    id         Int    @unique @default(autoincrement())
-    jobId      Int
-    homeTaskId Int
-    addonTotal Float?
-    taskTotal  Float?
-    grandTotal Float?
+// model JobHomeTask {
+//     id         Int    @unique @default(autoincrement())
+//     jobId      Int
+//     // homeTaskId Int
+//     addonTotal Float?
+//     taskTotal  Float?
+//     grandTotal Float?
+//     deletedAt DateTime? @db.Timestamp(0)
+//     createdAt DateTime? @default(now()) @db.Timestamp(0)
+//     updatedAt DateTime? @updatedAt
+//     job             Jobs              @relation(fields: [jobId], references: [id])
+//     // homeTask        HomeTasks         @relation(fields: [homeTaskId], references: [id])
+//     jobInstallTasks JobInstallTasks[]
 
-    deletedAt DateTime? @db.Timestamp(0)
-    createdAt DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt DateTime? @updatedAt
-
-    job             Jobs              @relation(fields: [jobId], references: [id])
-    homeTask        HomeTasks         @relation(fields: [homeTaskId], references: [id])
-    jobInstallTasks JobInstallTasks[]
-
-    @@index([jobId])
-    @@index([homeTaskId])
-}
+//     @@index([jobId])
+//     // @@index([homeTaskId])
+// }
 
 model JobInstallTasks {
     id     Int    @unique @default(autoincrement())
@@ -178,9 +179,9 @@ model JobInstallTasks {
     rate   Float?
     total  Float?
 
-    job           Jobs         @relation(fields: [jobId], references: [id])
-    jobHomeTask   JobHomeTask? @relation(fields: [jobHomeTaskId], references: [id])
-    jobHomeTaskId Int?
+    job Jobs @relation(fields: [jobId], references: [id])
+    // jobHomeTask   JobHomeTask? @relation(fields: [jobHomeTaskId], references: [id])
+    // jobHomeTaskId Int?
 
     deletedAt                   DateTime?                  @db.Timestamp(0)
     createdAt                   DateTime?                  @default(now()) @db.Timestamp(0)
@@ -189,7 +190,7 @@ model JobInstallTasks {
     communityModelInstallTaskId Int?
 
     @@index([jobId])
-    @@index([jobHomeTaskId])
+    // @@index([jobHomeTaskId])
     @@index([communityModelInstallTaskId])
 }
 

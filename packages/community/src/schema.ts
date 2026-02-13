@@ -48,12 +48,14 @@ export const jobFormShema = z.object({
     .optional(),
   job: z.object({
     id: z.number().optional(),
+    amount: z.number(),
     description: z.string().optional(),
     isCustom: z.boolean().optional().default(false).nullable(),
     adminNote: z.string().optional().nullable(),
     title: z.string().optional().nullable(),
     subtitle: z.string().optional().nullable(),
-    type: z.string().optional().nullable(),
+    type: z.string(),
+    status: z.string(),
     tasks: z
       .array(
         z.object({

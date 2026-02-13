@@ -67,18 +67,18 @@ model Homes {
 }
 
 model HomeTasks {
-    id                   Int           @unique @default(autoincrement())
+    id                   Int          @unique @default(autoincrement())
     archived             Boolean?
     homeId               Int?
-    type                 String?       @db.VarChar(255)
-    taskName             String?       @db.VarChar(255)
-    taskUid              String?       @db.VarChar(255)
-    status               String?       @db.VarChar(255)
-    meta                 Json?         @db.Json
-    producerName         String?       @db.VarChar(255)
-    search               String?       @db.VarChar(255)
-    productionStatus     String?       @db.VarChar(255)
-    checkNo              String?       @db.VarChar(255)
+    type                 String?      @db.VarChar(255)
+    taskName             String?      @db.VarChar(255)
+    taskUid              String?      @db.VarChar(255)
+    status               String?      @db.VarChar(255)
+    meta                 Json?        @db.Json
+    producerName         String?      @db.VarChar(255)
+    search               String?      @db.VarChar(255)
+    productionStatus     String?      @db.VarChar(255)
+    checkNo              String?      @db.VarChar(255)
     projectId            Int?
     assignedToId         Int?
     billable             Boolean?
@@ -91,29 +91,29 @@ model HomeTasks {
     amountDue            Float?
     amountPaid           Float?
     completedAt          DateTime?
-    jobId                Int?
-    checkDate            DateTime?     @db.Timestamp(0)
-    statusDate           DateTime?     @db.Timestamp(0)
-    sentToProductionAt   DateTime?     @db.Timestamp(0)
-    producedAt           DateTime?     @db.Timestamp(0)
-    prodStartedAt        DateTime?     @db.Timestamp(0)
-    productionStatusDate DateTime?     @db.Timestamp(0)
-    productionDueDate    DateTime?     @db.Timestamp(0)
-    deletedAt            DateTime?     @db.Timestamp(0)
-    createdAt            DateTime?     @default(now()) @db.Timestamp(0)
-    updatedAt            DateTime?     @updatedAt
-    home                 Homes?        @relation(fields: [homeId], references: [id])
-    project              Projects?     @relation(fields: [projectId], references: [id])
-    job                  Jobs?         @relation(fields: [jobId], references: [id])
-    assignedTo           Users?        @relation(fields: [assignedToId], references: [id])
-    builderTask          BuilderTask?  @relation(fields: [builderTaskId], references: [id])
+    // jobId                Int?
+    checkDate            DateTime?    @db.Timestamp(0)
+    statusDate           DateTime?    @db.Timestamp(0)
+    sentToProductionAt   DateTime?    @db.Timestamp(0)
+    producedAt           DateTime?    @db.Timestamp(0)
+    prodStartedAt        DateTime?    @db.Timestamp(0)
+    productionStatusDate DateTime?    @db.Timestamp(0)
+    productionDueDate    DateTime?    @db.Timestamp(0)
+    deletedAt            DateTime?    @db.Timestamp(0)
+    createdAt            DateTime?    @default(now()) @db.Timestamp(0)
+    updatedAt            DateTime?    @updatedAt
+    home                 Homes?       @relation(fields: [homeId], references: [id])
+    project              Projects?    @relation(fields: [projectId], references: [id])
+    // job                  Jobs?         @relation(fields: [jobId], references: [id])
+    assignedTo           Users?       @relation(fields: [assignedToId], references: [id])
+    builderTask          BuilderTask? @relation(fields: [builderTaskId], references: [id])
     builderTaskId        Int?
-    jobHomeTasks         JobHomeTask[]
+    // jobHomeTasks         JobHomeTask[]
 
-    @@index([createdAt, deletedAt, produceable, billable, addon, deco, punchout, installable, taskName, projectId, jobId])
+    @@index([createdAt, deletedAt, produceable, billable, addon, deco, punchout, installable, taskName, projectId])
     @@index([homeId])
     @@index([projectId])
-    @@index([jobId])
+    // @@index([jobId])
     @@index([assignedToId])
 }
 
@@ -223,6 +223,7 @@ model BuilderTask {
     communityModelInstallTasks CommunityModelInstallTask[]
     homeTasks                  HomeTasks[]
     builderTaskInstallCosts    BuilderTaskInstallCost[]
+    jobs                       Jobs[]
 
     @@index([builderId])
 }
