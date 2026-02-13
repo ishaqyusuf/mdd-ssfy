@@ -26,3 +26,14 @@ export const JobShowRecordOptions: Record<
   paid: "Paid Jobs",
   "pending-payment": "Pending Payment",
 } as const;
+
+export const JOB_STATUS_OPTIONS = [
+  "Submitted",
+  "Assigned",
+  "Rejected",
+  "Approved",
+  "In Progress",
+] as const;
+export type JobStatus = (typeof JOB_STATUS_OPTIONS)[number];
+export type IsJobStatus = Record<JobStatus, boolean>;
+// export const IsJobStatus: Record<(typeof JOB_STATUS_OPTIONS)[number], string> =

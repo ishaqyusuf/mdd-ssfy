@@ -311,8 +311,8 @@ export const communityRouters = createTRPCRouter({
           },
         },
       });
-      const jobTasks = builderTask?.builderTaskInstallCosts?.map(
-        (taskInstallCost) => {
+      const jobTasks = builderTask?.builderTaskInstallCosts
+        ?.map((taskInstallCost) => {
           const jobTask = job?.jobInstallTasks.find(
             (jt) =>
               jt.communityModelInstallTaskId ===
@@ -332,8 +332,8 @@ export const communityRouters = createTRPCRouter({
             installCostModel: taskInstallCost.installCostModel,
             modelTaskId,
           };
-        },
-      );
+        })
+        .filter((a) => a.maxQty && a.modelTaskId);
       const user = await db.users.findFirst({
         where: {
           id: props.input.userId,

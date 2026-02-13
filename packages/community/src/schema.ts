@@ -1,4 +1,5 @@
 import z from "zod";
+import { JOB_STATUS_OPTIONS } from "./constants";
 
 export const builderFormSchema = z.object({
   id: z.number().optional().nullable(),
@@ -50,14 +51,14 @@ export const jobFormShema = z
     builderTaskId: z.number().optional(),
     job: z.object({
       id: z.number().optional(),
-      amount: z.number(),
+      amount: z.number().optional().nullable(),
       description: z.string().optional(),
       isCustom: z.boolean().optional().default(false).nullable(),
       adminNote: z.string().optional().nullable(),
       title: z.string().optional().nullable(),
       subtitle: z.string().optional().nullable(),
       // type: z.string(),
-      status: z.string(),
+      status: z.enum([...JOB_STATUS_OPTIONS]),
 
       tasks: z
         .array(

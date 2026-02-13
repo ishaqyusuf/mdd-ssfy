@@ -1,15 +1,15 @@
 import { _trpc } from "@/components/static-trpc";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { StepTitle } from "./step-title";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { Building2, CheckCircle2, Home, User } from "lucide-react";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { useZodForm } from "@/hooks/use-zod-form";
-import { jobFormShema } from "@community/schema";
+import { JobFormSchema, jobFormShema } from "@community/schema";
 import { Controller, useFieldArray } from "react-hook-form";
 import { handleNumberInput, percentageValue, sum } from "@gnd/utils";
-import { Field, InputGroup } from "@gnd/ui/composite";
+import { Card, Field, InputGroup, Item } from "@gnd/ui/composite";
 import { useEffect, useMemo } from "react";
 import { Checkbox } from "@gnd/ui/checkbox";
 import NumberFlow from "@number-flow/react";
@@ -85,19 +85,29 @@ function FormContent() {
         addonValue,
         isCustom ? additionalCost || 0 : 0,
     ]);
-    // const estimates = useMemo(() => {
-    //     // console.log({ tasksSubTotal, addonPercentage, addonValue });
-    //     // const addonValue = percentageValue(tasksSubTotal, addonPercentage);
-    //     return {
-    //         tasksSubTotal,
-    //         addonValue,
-    //         total: sum([
-    //             tasksSubTotal,
-    //             addonValue,
-    //             isCustom ? additionalCost || 0 : 0,
-    //         ]),
-    //     };
-    // }, [jobTasks, addonValue, additionalCost, isCustom]);
+
+    const { mutate: saveJob, isPending: isSaving } = useMutation(
+        useTRPC().community.saveJobForm.mutationOptions({
+            onSuccess() {},
+            onError(error, variables, onMutateResult, context) {
+                console.log("Failed to save job details", {
+                    error,
+                    variables,
+                    onMutateResult,
+                    context,
+                });
+            },
+            meta: {
+                toastTitle: {
+                    error: "Failed to save job details",
+                    success: "Job details saved",
+                    loading: "Saving job details...",
+                    show: true,
+                },
+            },
+        }),
+    );
+
     return (
         <>
             <div className="space-y-6 h-full flex flex-col">
@@ -116,32 +126,34 @@ function FormContent() {
                     </span>
                 </div>
                 <div className="flex-1 overflow-y-auto pr-2 space-y-6">
-                    <div className="space-y-2">
-                        <Controller
-                            control={form.control}
-                            name="job.isCustom"
-                            render={({ field }) => (
-                                <Field orientation="horizontal">
-                                    <Checkbox
-                                        disabled={params.taskId === -1}
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                        id="isCustomTask"
-                                    />
-                                    <Field.Content>
-                                        <Field.Label htmlFor="isCustomTask">
-                                            Is this a custom task?
-                                        </Field.Label>
-                                        <Field.Description>
-                                            Custom tasks are not based on
-                                            builder templates and require a
-                                            manual cost input.
-                                        </Field.Description>
-                                    </Field.Content>
-                                </Field>
-                            )}
-                        />
-                    </div>
+                    {params.taskId === -1 ? null : (
+                        <div className="space-y-2">
+                            <Controller
+                                control={form.control}
+                                name="job.isCustom"
+                                render={({ field }) => (
+                                    <Field orientation="horizontal">
+                                        <Checkbox
+                                            disabled={params.taskId === -1}
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                            id="isCustomTask"
+                                        />
+                                        <Field.Content>
+                                            <Field.Label htmlFor="isCustomTask">
+                                                Is this a custom task?
+                                            </Field.Label>
+                                            <Field.Description>
+                                                Custom tasks are not based on
+                                                builder templates and require a
+                                                manual cost input.
+                                            </Field.Description>
+                                        </Field.Content>
+                                    </Field>
+                                )}
+                            />
+                        </div>
+                    )}
                     {isCustomTask ? (
                         /* Custom Task Form */
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -149,15 +161,22 @@ function FormContent() {
                                 <Controller
                                     control={form.control}
                                     name="job.description"
-                                    render={({ field }) => (
+                                    render={({ field, fieldState }) => (
                                         <Field>
                                             <Field.Label>
                                                 Job Description
                                             </Field.Label>
-                                            <InputGroup>
+                                            <InputGroup
+                                                className={cn(
+                                                    fieldState.error &&
+                                                        "border-destructive",
+                                                )}
+                                            >
                                                 <InputGroup.TextArea
                                                     {...field}
-                                                    className="min-h-[100px] resize-none"
+                                                    className={cn(
+                                                        "min-h-[100px] resize-none",
+                                                    )}
                                                     placeholder="Additional instructions for the custom task..."
                                                 />
                                             </InputGroup>
@@ -170,12 +189,17 @@ function FormContent() {
                                 <Controller
                                     control={form.control}
                                     name="job.meta.additional_cost"
-                                    render={({ field }) => (
+                                    render={({ field, fieldState }) => (
                                         <Field>
                                             <Field.Label>
                                                 Total Cost
                                             </Field.Label>
-                                            <InputGroup>
+                                            <InputGroup
+                                                className={cn(
+                                                    fieldState.error &&
+                                                        "border-destructive",
+                                                )}
+                                            >
                                                 <InputGroup.Addon>
                                                     <span className="text-muted-foreground">
                                                         $
@@ -184,8 +208,10 @@ function FormContent() {
                                                 <InputGroup.Input
                                                     {...field}
                                                     onChange={(e) =>
-                                                        handleNumberInput(
-                                                            e.target.value,
+                                                        field.onChange(
+                                                            handleNumberInput(
+                                                                e.target.value,
+                                                            ),
                                                         )
                                                     }
                                                     type="number"
@@ -386,24 +412,28 @@ function FormContent() {
                                 </div>
                             </div>
 
-                            <Field orientation="horizontal">
-                                <Checkbox
-                                    id="finder-pref-9k2-sync-folders-nep"
-                                    checked={markAsComplete}
-                                    onCheckedChange={(e) =>
-                                        setMarkAsComplete(!!e)
-                                    }
-                                />
-                                <Field.Content>
-                                    <Field.Label htmlFor="finder-pref-9k2-sync-folders-nep">
-                                        Mark job as completed.
-                                    </Field.Label>
-                                    <Field.Description>
-                                        This will set the job status to
-                                        completed
-                                    </Field.Description>
-                                </Field.Content>
-                            </Field>
+                            <Item variant="outline">
+                                <Item.Content>
+                                    <Field orientation="horizontal">
+                                        <Checkbox
+                                            id="finder-pref-9k2-sync-folders-nep"
+                                            checked={markAsComplete}
+                                            onCheckedChange={(e) =>
+                                                setMarkAsComplete(!!e)
+                                            }
+                                        />
+                                        <Field.Content>
+                                            <Field.Label htmlFor="finder-pref-9k2-sync-folders-nep">
+                                                Mark job as completed.
+                                            </Field.Label>
+                                            <Field.Description>
+                                                This will set the job status to
+                                                completed
+                                            </Field.Description>
+                                        </Field.Content>
+                                    </Field>
+                                </Item.Content>
+                            </Item>
                         </div>
                     )}
                 </div>
@@ -412,9 +442,12 @@ function FormContent() {
                 <form
                     {...form}
                     onSubmit={form.handleSubmit(
-                        (values) => {
+                        // @ts-ignore
+                        (values: JobFormSchema) => {
                             console.log("Form Submitted with values:", values);
                             console.log("default values", defaultValues);
+                            if (markAsComplete) values.job.status = "Submitted";
+                            saveJob(values as any);
                             // Here you would typically call a mutation to save the job details
                             // For example: trpc.community.updateJob.mutate(values)
                             // setParams({
@@ -423,14 +456,14 @@ function FormContent() {
                         },
                         (e) => {
                             console.log("Form Errors:", e);
-                            console.log("default values", defaultValues.unit);
+                            console.log("default values", defaultValues);
                         },
                     )}
                 >
-                    <SubmitButton className="">
+                    <SubmitButton isSubmitting={isSaving} className="">
                         <div className="flex gap-2 items-center">
                             <CheckCircle2 className="size-4" />
-                            <span>Submit</span>
+                            <span>{markAsComplete ? "Submit" : "Assign"}</span>
                         </div>
                     </SubmitButton>
                 </form>
