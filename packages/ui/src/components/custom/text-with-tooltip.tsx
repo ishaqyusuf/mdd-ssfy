@@ -45,9 +45,9 @@ export function TextWithTooltip({ text, className }: TextWithTooltipProps) {
       <Tooltip>
         <TooltipTrigger asChild>
           {/* <div className="inline-flex"> */}
-          <div ref={textRef} className={`truncate ${className}`}>
+          <span ref={textRef} className={`truncate ${className}`}>
             {text}
-          </div>
+          </span>
           {/* {String(text)?.slice(-5)} */}
           {/* </div> */}
         </TooltipTrigger>

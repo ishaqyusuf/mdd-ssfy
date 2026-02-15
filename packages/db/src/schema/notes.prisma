@@ -40,17 +40,18 @@ enum NoteStatus {
 }
 
 model NotePadContacts {
-    id            Int                  @unique @default(autoincrement())
-    name          String
-    email         String?
-    phoneNo       String?
-    role          ContactRole?
-    profileId     Int? //user.id or customer.id
-    notesReceived NoteRecipients[]
-    notesSent     NotePad[]
-    deletedAt     DateTime?            @db.Timestamp(0)
-    createdAt     DateTime?            @default(now()) @db.Timestamp(0)
-    readReceipts  NotePadReadReceipt[]
+    id               Int                       @unique @default(autoincrement())
+    name             String
+    email            String?
+    phoneNo          String?
+    role             ContactRole?
+    profileId        Int? //user.id or customer.id
+    notesReceived    NoteRecipients[]
+    notesSent        NotePad[]
+    deletedAt        DateTime?                 @db.Timestamp(0)
+    createdAt        DateTime?                 @default(now()) @db.Timestamp(0)
+    readReceipts     NotePadReadReceipt[]
+    assignedChannels AssignedUserNoteChannel[]
 
     @@unique([name, email, phoneNo])
 }
@@ -116,4 +117,60 @@ model NotePadReadReceipt {
 
     @@index([notePadContactId])
     @@index([notePadId])
+}
+
+model NoteChannels {
+    id               Int                       @unique @default(autoincrement())
+    emailSupport     Boolean?
+    textSupport      Boolean?
+    whatsappSupport  Boolean?
+    inAppSupport     Boolean?
+    priority         Int?
+    channelName      String
+    deletedAt        DateTime?                 @db.Timestamp(0)
+    createdAt        DateTime?                 @default(now()) @db.Timestamp(0)
+    noteChannelRoles NoteChannelRole[]
+    userConfigs      UserNoteChannelConfig[]
+    assignedUsers    AssignedUserNoteChannel[]
+
+    @@unique([channelName])
+}
+
+model AssignedUserNoteChannel {
+    id               Int              @unique @default(autoincrement())
+    noteChannel      NoteChannels?    @relation(fields: [noteChannelId], references: [id])
+    noteChannelId    Int?
+    contact          NotePadContacts? @relation(fields: [notePadContactId], references: [id])
+    notePadContactId Int?
+
+    textEnabled     Boolean?
+    whatsappEnabled Boolean?
+    emailEnabled    Boolean?
+    inAppEnabled    Boolean?
+
+    @@index([noteChannelId])
+}
+
+model UserNoteChannelConfig {
+    id            Int           @unique @default(autoincrement())
+    noteChannel   NoteChannels? @relation(fields: [noteChannelId], references: [id])
+    noteChannelId Int?
+
+    @@index([noteChannelId])
+}
+
+model NoteChannelRole {
+    id Int @unique @default(autoincrement())
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+
+    // @@unique([roleName])
+    role          Roles?        @relation(fields: [roleId], references: [id])
+    roleId        Int?
+    noteChannel   NoteChannels? @relation(fields: [noteChannelId], references: [id])
+    noteChannelId Int?
+
+    @@index([noteChannelId])
+    @@index([roleId])
 }

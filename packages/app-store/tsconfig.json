@@ -1,0 +1,10 @@
+{
+  "extends": "@gnd/tsconfig/base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "bundler"
+  },
+  "include": ["src", ".", "images.d.ts"],
+  "exclude": ["node_modules"]
+}

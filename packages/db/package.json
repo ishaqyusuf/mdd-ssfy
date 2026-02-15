@@ -40,7 +40,7 @@
     "@types/qrcode": "^1.5.5",
     "dotenv": "^17.2.3",
     "prisma": "^6.18.0",
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react": "catalog:",
+    "react-dom": "catalog:"
   }
 }

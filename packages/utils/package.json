@@ -13,7 +13,7 @@
   "dependencies": {
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
-    "zod": "^4.3.5"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

@@ -27,8 +27,8 @@
   "devDependencies": {
     "@better-auth/cli": "^1.4.9",
     "@gnd/tsconfig": "workspace:*",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "typescript": "^5.9.3"
   }
 }

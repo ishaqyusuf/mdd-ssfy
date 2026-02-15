@@ -300,6 +300,7 @@ model Roles {
     deletedAt          DateTime?            @db.Timestamp(0)
     ModelHasRoles      ModelHasRoles[]
     RoleHasPermissions RoleHasPermissions[]
+    channels           NoteChannelRole[]
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.

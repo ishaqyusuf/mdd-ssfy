@@ -277,3 +277,95 @@ export async function shouldSendNotification(
 ) {
   return true;
 }
+export async function getChannelSubcribers(
+  db: Db,
+  channelName: string,
+): Promise<UserData[]> {
+  const channel = await db.noteChannels.findFirst({
+    where: {
+      channelName,
+    },
+    select: {
+      assignedUsers: {
+        select: {
+          id: true,
+          contact: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              profileId: true,
+            },
+          },
+        },
+      },
+      noteChannelRoles: {
+        select: {
+          role: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  // get all users in roles that have access to the channel.
+  const users = await db.users.findMany({
+    where: {
+      roles: {
+        some: {
+          roleId: {
+            in: (
+              channel?.noteChannelRoles.map((ncr) => ncr.role?.id) || []
+            ).filter((id): id is number => !!id),
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      phoneNo: true,
+    },
+  });
+  const contacts = [
+    ...(channel?.assignedUsers.map((au) => au.contact) || []),
+    ...(await db.notePadContacts.findMany({
+      where: {
+        profileId: {
+          in: users.map((u) => u.id),
+        },
+        role: "employee",
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        profileId: true,
+      },
+    })),
+  ];
+  const usersWithNoContact = users.filter(
+    (user) => !contacts.some((contact) => contact!.profileId === user.id),
+  );
+  const contactsFromUsersWithNoContact = await Promise.all(
+    usersWithNoContact.map(async (user) => {
+      return await getContact(
+        db,
+        {
+          email: user.email,
+          name: user.name!,
+          id: user.id,
+          phoneNo: user.phoneNo!,
+        },
+        "employee",
+      );
+    }),
+  );
+  return [...contacts, ...contactsFromUsersWithNoContact].filter(
+    Boolean,
+  ) as UserData[];
+  return [];
+}

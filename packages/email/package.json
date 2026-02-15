@@ -25,8 +25,8 @@
     "@react-email/tailwind": "2.0.1",
     "date-fns": "^4.1.0",
     "react-email": "5.0.6",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "responsive-react-email": "^0.0.5"
   },
   "devDependencies": {

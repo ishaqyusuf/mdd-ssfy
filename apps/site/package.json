@@ -95,11 +95,11 @@
     "postcss": "^8.4.38",
     "puppeteer": "^23.7.1",
     "puppeteer-core": "^23.7.1",
-    "react": "19.1.0",
+    "react": "catalog:",
     "react-colorful": "^5.6.1",
     "react-beautiful-dnd": "^13.1.1",
     "react-day-picker": "^8.10.0",
-    "react-dom": "19.1.0",
+    "react-dom": "catalog:",
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.66.0",
     "react-hotkeys-hook": "^5.1.0",
@@ -128,7 +128,7 @@
     "usehooks-ts": "^3.1.1",
     "uuid": "^9.0.0",
     "xlsx": "^0.18.5",
-    "zod": "^4.3.5",
+    "zod": "catalog:",
     "zustand": "^5.0.5"
   },
   "devDependencies": {
