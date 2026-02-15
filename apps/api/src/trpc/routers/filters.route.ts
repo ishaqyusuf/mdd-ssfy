@@ -15,6 +15,7 @@ import {
   getSalesProductionFilters,
   getSalesQuoteFilter,
   jobFilters,
+  notificationChannelFilters,
   productReportFilters,
   projectUnitFilters,
   salesAccountingFilters,
@@ -55,6 +56,9 @@ export const filterRouters = createTRPCRouter({
   }),
   job: publicProcedure.query(async (props) => {
     return jobFilters(props.ctx);
+  }),
+  notificationChannel: publicProcedure.query(async (props) => {
+    return notificationChannelFilters(props.ctx);
   }),
   productReport: publicProcedure.query(async (props) => {
     return productReportFilters(props.ctx);

@@ -1,10 +1,19 @@
 import { createTRPCRouter, publicProcedure } from "../init";
 import { saveInboundNoteSchema } from "@api/schemas/notes";
-import { saveInboundNote } from "@api/db/queries/note";
+import {
+  getNotificationChannels,
+  getNotificationChannelsSchema,
+  saveInboundNote,
+} from "@api/db/queries/note";
 import { saveNote, saveNoteSchema } from "@gnd/utils/note";
 import z from "zod";
 
 export const notesRouter = createTRPCRouter({
+  getNotificationChannels: publicProcedure
+    .input(getNotificationChannelsSchema)
+    .query(async (props) => {
+      return getNotificationChannels(props.ctx, props.input);
+    }),
   saveInboundNote: publicProcedure
     .input(saveInboundNoteSchema)
     .mutation(async (props) => {

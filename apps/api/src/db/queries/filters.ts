@@ -42,7 +42,30 @@ import type { GetCustomerServicesSchema } from "./customer-service";
 import type { GetBuildersSchema } from "@community/builder";
 import type { GetJobsSchema } from "./jobs";
 import type { GetEmployeesSchema } from "@api/schemas/hrm";
+import type { GetNotificationChannelsSchema } from "./note";
 
+export async function notificationChannelFilters(ctx: TRPCContext) {
+  type T = keyof GetNotificationChannelsSchema;
+  type FilterData = PageFilterData<T>;
+  // const steps = labelValueOptions(
+  //   await ctx.db.Notifications.findMany({
+  //     where: {},
+  //     select: {
+  //       id: true,
+  //       title: true,
+  //     },
+  //   }),
+  //   "title",
+  //   "id"
+  // );
+  const resp = [
+    searchFilter,
+    // optionFilter<T>("categoryId", "Category", steps),
+    // dateRangeFilter<T>("dateRange", "Filter by date"),
+  ] satisfies FilterData[];
+
+  return resp;
+}
 export async function employeeFilters(ctx: TRPCContext) {
   type T = keyof GetEmployeesSchema;
   type FilterData = PageFilterData<T>;
