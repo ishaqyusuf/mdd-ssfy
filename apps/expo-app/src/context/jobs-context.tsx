@@ -1,6 +1,6 @@
+import { useInfiniteLoader } from "@/components/infinite-loader";
 import { _trpc } from "@/components/static-trpc";
 import { getSessionProfile } from "@/lib/session-store";
-import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext } from "react";
 
 type HomeContextProps = ReturnType<typeof useCreateJobsContext>;
@@ -13,20 +13,31 @@ export interface JobsProps {
 }
 export const useCreateJobsContext = (props: JobsProps) => {
   const profile = getSessionProfile();
-  const { data, isPending, isRefetching, refetch } = useQuery(
-    _trpc.jobs.getJobs.queryOptions({
+  const {
+    data,
+    ref: loadMoreRef,
+    actions,
+    state,
+  } = useInfiniteLoader({
+    // filter: ,
+    route: _trpc?.jobs.getJobs,
+    filter: {
       size: props.recent ? 5 : 20,
-      userId: props.admin ? undefined : profile.user.id,
-    })
-  );
-  return {
-    items: data?.data || [],
-    isRefreshing: isRefetching,
-    isPending,
-    refresh() {
-      refetch();
+      userId: props.admin ? undefined : profile?.user?.id,
     },
+  });
+  // const { data, isPending, isRefetching, refetch } = useQuery(
+  //   _trpc.jobs.getJobs.queryOptions({
+  //     size: props.recent ? 5 : 20,
+  //     userId: props.admin ? undefined : profile.user.id,
+  //   })
+  // );
+  return {
+    items: data || [],
     ...props,
+    loadMoreRef,
+    state,
+    actions,
   };
 };
 export const useJobsContext = () => {

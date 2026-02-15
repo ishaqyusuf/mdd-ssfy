@@ -7,6 +7,7 @@ import {
   Pressable,
   SafeAreaView,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import { Icon, IconProps } from "../components/ui/icon";
 import { JobAdminNavs } from "../components/examples/job-admin-navs";
@@ -73,7 +74,7 @@ const JOBS = [
 ];
 
 export function JobsScreen() {
-  const { items, isRefreshing, refresh } = useJobsContext();
+  const { items, state, actions } = useJobsContext();
 
   return (
     <SafeArea>
@@ -115,9 +116,9 @@ export function JobsScreen() {
 
       {/* JOB LIST */}
       <LegendList
-        onRefresh={refresh}
+        onRefresh={actions.refetch}
         ListHeaderComponent={<></>}
-        refreshing={isRefreshing}
+        refreshing={state.isRefetching}
         data={items}
         renderItem={({ item }) => <JobsItem item={item} />}
         ListEmptyComponent={
@@ -146,11 +147,21 @@ export function JobsScreen() {
             </View>
           </View>
         }
+        // ListFooterComponent={
+        //   <View className="mb-48">
+        //     <LoadingSpinner />
+        //   </View>
+        // }
         ListFooterComponent={
-          <View className="mb-48">
-            <LoadingSpinner />
-          </View>
+          state.isFetching ? (
+            <ActivityIndicator size="small" color="#0000ff" />
+          ) : null
         }
+        onEndReached={() => {
+          if (state.hasNextPage && !state.isFetching) {
+            actions.fetchNextPage();
+          }
+        }}
       />
 
       {/* FAB */}
