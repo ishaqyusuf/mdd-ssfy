@@ -21,11 +21,16 @@ export const userRoutes = createTRPCRouter({
   }),
   notificationAccount: publicProcedure.query(async (props) => {
     const user = await auth(props.ctx);
-    const recipient = await getContact(props.ctx.db, {
-      email: user?.email || "",
-      name: user?.name || "",
-      phoneNo: user?.phoneNo || "",
-    });
+    const recipient = await getContact(
+      props.ctx.db,
+      {
+        email: user?.email || "",
+        name: user?.name || "",
+        phoneNo: user?.phoneNo || "",
+        id: user.id,
+      },
+      "employee",
+    );
     return {
       id: recipient.id,
       email: recipient.email,

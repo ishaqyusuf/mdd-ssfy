@@ -1,14 +1,7 @@
 import { z } from "zod";
+import { channelNames } from "./channels";
 
-const type = z.enum([
-  "job_assigned",
-  "job_submitted",
-  "job_approved",
-  "job_rejected",
-  "job_review_requested",
-  "job_deleted",
-  "sales_checkout_success",
-]);
+const type = z.enum(channelNames);
 const source = z.enum(["system", "user"]).default("system");
 const priority = z.number().int().min(1).max(10).default(5);
 const baseActivityTags = z.object({
