@@ -10,13 +10,9 @@ import { JobFormSchema, jobFormShema } from "@community/schema";
 import { Controller, useFieldArray } from "react-hook-form";
 import { handleNumberInput, percentageValue, sum } from "@gnd/utils";
 import { Card, Field, InputGroup, Item } from "@gnd/ui/composite";
-import { useEffect, useMemo } from "react";
 import { Checkbox } from "@gnd/ui/checkbox";
-import NumberFlow from "@number-flow/react";
 import Portal from "@gnd/ui/custom/portal";
-import { SubmitButton } from "@gnd/ui/submit-button";
 import { useJobFormContext } from "@/contexts/job-form-context";
-import { useJobRole } from "@/hooks/use-job-role";
 import { cn } from "@/lib/utils";
 import { AdminJobFormContent } from "./admin-job-form-content";
 import { InstallTasksList } from "./install-tasks-list";
@@ -134,7 +130,7 @@ function FormContent() {
                             />
                         </div>
                     )}
-                    {isCustomTask ? (
+                    {isCustomTask || params.taskId == -1 ? (
                         /* Custom Task Form */
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                             <div className="space-y-2">
@@ -269,31 +265,30 @@ function FormContent() {
                                     </span>
                                 </div>
                             </div>
-
-                            <Item variant="outline">
-                                <Item.Content>
-                                    <Field orientation="horizontal">
-                                        <Checkbox
-                                            id="finder-pref-9k2-sync-folders-nep"
-                                            checked={markAsComplete}
-                                            onCheckedChange={(e) =>
-                                                setMarkAsComplete(!!e)
-                                            }
-                                        />
-                                        <Field.Content>
-                                            <Field.Label htmlFor="finder-pref-9k2-sync-folders-nep">
-                                                Mark job as completed.
-                                            </Field.Label>
-                                            <Field.Description>
-                                                This will set the job status to
-                                                completed
-                                            </Field.Description>
-                                        </Field.Content>
-                                    </Field>
-                                </Item.Content>
-                            </Item>
                         </div>
                     )}
+                    <Item variant="outline">
+                        <Item.Content>
+                            <Field orientation="horizontal">
+                                <Checkbox
+                                    id="finder-pref-9k2-sync-folders-nep"
+                                    checked={markAsComplete}
+                                    onCheckedChange={(e) =>
+                                        setMarkAsComplete(!!e)
+                                    }
+                                />
+                                <Field.Content>
+                                    <Field.Label htmlFor="finder-pref-9k2-sync-folders-nep">
+                                        Mark job as completed.
+                                    </Field.Label>
+                                    <Field.Description>
+                                        This will set the job status to
+                                        completed
+                                    </Field.Description>
+                                </Field.Content>
+                            </Field>
+                        </Item.Content>
+                    </Item>
                 </div>
             </div>
             <Portal nodeId={"jobActionButton"}>

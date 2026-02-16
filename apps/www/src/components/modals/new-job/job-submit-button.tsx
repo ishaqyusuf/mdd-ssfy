@@ -50,9 +50,12 @@ export function JobSubmitButton({
             onSubmit={form.handleSubmit(
                 // @ts-ignore
                 (values: JobFormSchema) => {
-                    console.log("Form Submitted with values:", values);
-                    console.log("default values", defaultValues);
+                    // console.log("Form Submitted with values:", values);
+                    // console.log("default values", defaultValues);
+                    values.requestTaskConfig = submitAsTaskRequest;
                     if (markAsComplete) values.job.status = "Submitted";
+                    if (values.requestTaskConfig)
+                        values.job.status = "In Progress";
                     saveJob(values as any);
                     // Here you would typically call a mutation to save the job details
                     // For example: trpc.community.updateJob.mutate(values)
@@ -61,8 +64,8 @@ export function JobSubmitButton({
                     // });
                 },
                 (e) => {
-                    console.log("Form Errors:", e);
-                    console.log("default values", defaultValues);
+                    // console.log("Form Errors:", e);
+                    // console.log("default values", defaultValues);
                 },
             )}
         >
