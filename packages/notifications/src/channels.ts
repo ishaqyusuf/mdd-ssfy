@@ -24,6 +24,7 @@ export const channelsConfig: {
     title: string;
     priority: number;
     category: ChannelCategory;
+    published?: boolean;
   };
 } = {
   job_assigned: {

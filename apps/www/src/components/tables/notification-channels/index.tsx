@@ -11,7 +11,7 @@ export default function NotificationChannels() {
     return (
         <aside
             className={cn(
-                "w-full md:w-sm h-[calc(100vh)]   flex flex-col overflow-hidden  md:fixed md:top-[var(--header-height)] pb-4  z-50 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] gap-4 md:left-[70px]",
+                "w-full md:w-sm h-[calc(100vh)]   flex flex-col overflow-hidden md:fixed md:top-[var(--header-height)] pb-4 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] gap-4 md:left-[70px]",
                 !!openNotificationChannelId && "hidden md:flex",
                 "md:border-r border-border",
                 "md:pt-4",

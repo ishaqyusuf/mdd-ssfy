@@ -67,6 +67,7 @@ export const Icons = {
     monitor: Monitor,
     category: FolderTree,
     logout: LogOut,
+    notification: Monitor,
 };
 
 export type IconKeys = keyof typeof Icons;

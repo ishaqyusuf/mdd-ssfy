@@ -11,8 +11,6 @@ import { PageTitle } from "@gnd/ui/custom/page-title";
 import { NotificationChannelHeader } from "@/components/notification-channels-header";
 import { DataTable } from "@/components/tables/notification-channels/data-table";
 import { loadNotificationChannelFilterParams } from "@/hooks/use-notification-channel-filter-params";
-import { Sidebar } from "@gnd/ui/sidebar";
-import { cn } from "@gnd/ui/cn";
 import { NotificationChannelForm } from "@/components/forms/notification-channel-form";
 import NotificationChannels from "@/components/tables/notification-channels";
 

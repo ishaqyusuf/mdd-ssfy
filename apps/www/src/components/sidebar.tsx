@@ -15,13 +15,13 @@ export function Sidebar({}) {
         <aside
             className={cn(
                 "h-screen flex-shrink-0 flex-col desktop:overflow-hidden desktop:rounded-tl-[10px] desktop:rounded-bl-[10px] justify-between fixed top-0 pb-4 items-center hidden md:flex z-50 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
-                "bg-background border-r border-border",
+                "bg-background z-10 border-r border-border",
                 isExpanded ? "w-[240px]" : "w-[70px]",
             )}
         >
             <div
                 className={cn(
-                    "absolute top-0 left-0 h-[70px] flex items-center justify-center bg-background border-b border-border transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] z-10",
+                    "absolute top-0 left-0 h-[70px] flex items-center justify-center bg-background border-b border-border transition-all  duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] z-10",
                     isExpanded ? "w-full justify-starts" : "w-[69px]",
                 )}
             >
@@ -39,7 +39,7 @@ export function Sidebar({}) {
                      </div> */}
                 </Link>
             </div>
-            <div className="pt-[75px] flex w-full">
+            <div className="pt-[75px] z-10 flex w-full">
                 <SidebarModules />
             </div>
             <div

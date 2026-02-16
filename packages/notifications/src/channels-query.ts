@@ -97,27 +97,30 @@ export async function getChannels(
     // five level priorities
     //   const priorityStrings = ["Low", "Medium", "High", "Critical", "Urgent"];
   }
-  return channels.map((c) => ({
-    id: c.id,
-    priority: priorityStrings[(c.priority || 1) - 1] || "Low",
-    name: c.channelName,
-    title: c.channelName.split("_").join(" ").toLocaleUpperCase(),
-    description:
-      channelsConfig[c.channelName as keyof typeof channelsConfig]?.title,
-    category:
-      channelsConfig[c.channelName as keyof typeof channelsConfig]?.category,
-    textSupport: c.textSupport,
-    emailSupport: c.emailSupport,
-    whatsappSupport: c.whatsappSupport,
-    inAppSupport: c.inAppSupport,
-    roles: c.noteChannelRoles
-      .map((ncr) => ncr.role?.name)
-      .filter((r): r is string => !!r),
-    subscriberIds:
-      c.assignedUsers
-        ?.map((uc) => uc.contact?.profileId)
-        .filter((id): id is number => !!id) || [],
-  }));
+  return channels.map((c) => {
+    const config = channelsConfig[c.channelName as keyof typeof channelsConfig];
+    return {
+      id: c.id,
+      priority: priorityStrings[(c.priority || 1) - 1] || "Low",
+      name: c.channelName,
+      title: c.channelName.split("_").join(" ").toLocaleUpperCase(),
+      description: config?.title,
+      category: config?.category,
+      // status: config?.published ? "Published" : "Draft",
+      published: !!config?.published,
+      textSupport: c.textSupport,
+      emailSupport: c.emailSupport,
+      whatsappSupport: c.whatsappSupport,
+      inAppSupport: c.inAppSupport,
+      roles: c.noteChannelRoles
+        .map((ncr) => ncr.role?.name)
+        .filter((r): r is string => !!r),
+      subscriberIds:
+        c.assignedUsers
+          ?.map((uc) => uc.contact?.profileId)
+          .filter((id): id is number => !!id) || [],
+    };
+  });
 }
 function whereNotificationChannels(query: GetNotificationChannelsSchema) {
   const where: Prisma.NoteChannelsWhereInput[] = [];

@@ -415,6 +415,11 @@ export const linkModules = [
                     _perm.is("viewBuilders"),
                 ).data,
             ]).data,
+            _link(
+                "Notification Channels",
+                "notification",
+                "/settings/notification-channels",
+            ).access(_role.is("Super Admin")).data,
         ]),
     ]),
     _module("Sales", "orders", "GND Sales", [
