@@ -2,6 +2,7 @@ import { useNotificationChannelContext } from "@/contexts/notification-channel-c
 import {
     invalidateInfiniteQueries,
     invalidateQueries,
+    invalidateQuery,
 } from "@/hooks/use-invalidate-query";
 import { useTRPC } from "@/trpc/client";
 import { Icons } from "@gnd/ui/custom/icons";
@@ -29,7 +30,9 @@ export function DeliveryMethods() {
             onSuccess() {
                 // Invalidate or refetch queries related to the notification channel to reflect the changes in the UI
                 invalidateInfiniteQueries("notes.getNotificationChannels");
-                invalidateQueries("notes.getNotificationChannel");
+                invalidateQuery("notes.getNotificationChannel", {
+                    id: selectedEvent!.id,
+                });
             },
         }),
     );

@@ -55,13 +55,10 @@ export const notesRouter = createTRPCRouter({
     )
     .mutation(async (props) => {
       const { notificationChannelId, roleId } = props.input;
-      await props.ctx.db.noteChannelRole.updateMany({
+      await props.ctx.db.noteChannelRole.deleteMany({
         where: {
           noteChannelId: notificationChannelId,
           roleId,
-        },
-        data: {
-          deletedAt: new Date(),
         },
       });
     }),
@@ -75,23 +72,23 @@ export const notesRouter = createTRPCRouter({
     )
     .mutation(async (props) => {
       const { notificationChannelId, roleId } = props.input;
-      if (props.input.id)
-        await props.ctx.db.noteChannelRole.updateMany({
-          where: {
-            deletedAt: {},
-            id: props.input.id,
-          },
-          data: {
-            deletedAt: null,
-          },
-        });
-      else
-        await props.ctx.db.noteChannelRole.create({
-          data: {
-            noteChannelId: notificationChannelId,
-            roleId,
-          },
-        });
+      // if (props.input.id)
+      //   await props.ctx.db.noteChannelRole.updateMany({
+      //     where: {
+      //       deletedAt: {},
+      //       id: props.input.id,
+      //     },
+      //     data: {
+      //       deletedAt: null,
+      //     },
+      //   });
+      // else
+      await props.ctx.db.noteChannelRole.create({
+        data: {
+          noteChannelId: notificationChannelId,
+          roleId,
+        },
+      });
     }),
   removeNotificationChannelSubscriber: publicProcedure
     .input(

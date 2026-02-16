@@ -20,6 +20,13 @@ export function invalidateQueries(...routes: Routes[]) {
         });
     });
 }
+export function invalidateQuery(route: Routes, input?: any) {
+    const [ns, proc] = route.split(".") as [keyof typeof _trpc, string];
+
+    _qc.invalidateQueries({
+        queryKey: (_trpc as any)[ns][proc].queryKey(input),
+    });
+}
 
 export function invalidateInfiniteQueries(...routes: Routes[]) {
     routes.forEach((route) => {
