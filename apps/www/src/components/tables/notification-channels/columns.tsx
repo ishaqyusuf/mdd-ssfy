@@ -8,6 +8,8 @@ import { ColumnDef } from "@tanstack/react-table";
 import { cn } from "@gnd/ui/cn";
 import { useNotificationChannelFilterParams } from "@/hooks/use-notification-channel-filter-params";
 import { useNotificationChannelParams } from "@/hooks/use-notification-channel-params";
+import { Mail, MessageSquare, Smartphone } from "lucide-react";
+import { getColorFromName, hexToRgba } from "@gnd/utils/colors";
 
 export type Item =
     RouterOutputs["notes"]["getNotificationChannels"]["data"][number];
@@ -16,30 +18,101 @@ interface ItemProps {
 }
 type Column = ColumnDef<Item>;
 const column1: Column = {
-    header: "header",
+    header: "Channels",
     accessorKey: "header",
     meta: {},
-    cell: ({ row: { original: item } }) => <></>,
+    cell: ({ row: { original: event } }) => {
+        const { setParams, openNotificationChannelId } =
+            useNotificationChannelParams();
+        return (
+            <div
+                key={event.id}
+                onClick={() =>
+                    setParams({
+                        openNotificationChannelId: event.id,
+                    })
+                }
+                className={cn(
+                    `w-full text-left hover:bg-muted/30 transition-all group`,
+                    openNotificationChannelId == event.id &&
+                        "bg-primary/5 border-primary shadow-sm",
+                )}
+            >
+                <div className="flex justify-between items-start mb-2">
+                    <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                                {event.title}
+                            </span>
+                            <span
+                                style={{
+                                    backgroundColor: hexToRgba(
+                                        getColorFromName(event.priority),
+                                        0.1,
+                                    ),
+                                    color: getColorFromName(event.priority),
+                                }}
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider`}
+                            >
+                                {event.priority}
+                            </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground line-clamp-1">
+                            {event.description}
+                        </p>
+                    </div>
+                    <div className="flex gap-1 shrink-0 ml-4">
+                        <div
+                            className={cn(
+                                "p-1 rounded",
+                                event.emailSupport
+                                    ? "text-primary bg-primary/10"
+                                    : "text-muted-foreground/30",
+                            )}
+                        >
+                            <Mail className="size-4" />
+                        </div>
+                        <div
+                            className={cn(
+                                "p-1 rounded",
+                                event.textSupport
+                                    ? "text-primary bg-primary/10"
+                                    : "text-muted-foreground/30",
+                            )}
+                        >
+                            <MessageSquare className="size-4" />
+                        </div>
+                        <div
+                            className={cn(
+                                "p-1 rounded",
+                                event.inAppSupport
+                                    ? "text-primary bg-primary/10"
+                                    : "text-muted-foreground/30",
+                            )}
+                        >
+                            <Smartphone className="size-4" />
+                        </div>
+                    </div>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                    <span className="text-[9px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-bold uppercase tracking-tighter">
+                        {event.category}
+                    </span>
+                    {/* {event.assignments.roles.map((role) => (
+                        <span
+                            key={role}
+                            className="text-[9px] bg-primary/5 px-1.5 py-0.5 rounded text-primary font-bold"
+                        >
+                            {role}
+                        </span>
+                    ))} */}
+                </div>
+            </div>
+        );
+    },
 };
 
-export const columns: Column[] = [
-    cells.selectColumn,
-    column1,
-    {
-        header: "",
-        accessorKey: "action",
-        meta: {
-            actionCell: true,
-            preventDefault: true,
-            className: "w-[100px] dt-action-cell",
-        },
-        cell: ({ row: { original: item } }) => (
-            <>
-                <Actions item={item} />
-            </>
-        ),
-    },
-];
+export const columns: Column[] = [column1];
 
 function Actions({ item }: ItemProps) {
     const isMobile = useIsMobile();

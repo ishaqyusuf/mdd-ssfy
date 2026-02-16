@@ -150,6 +150,11 @@ export const defaultColors = {
   completed: colorsObject.limeGreen,
   scheduled: colorsObject.yellow,
   pending: colorsObject.yellow,
+  low: colorsObject.neonGreen,
+  medium: colorsObject.orange,
+  high: colorsObject.red,
+  critical: colorsObject.maroon,
+  urgent: colorsObject.maroon,
 };
 export const getDefaultColor = (value) => {
   return defaultColors?.[value?.toLocaleLowerCase()];

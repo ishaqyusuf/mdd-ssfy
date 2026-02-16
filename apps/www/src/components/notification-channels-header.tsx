@@ -10,7 +10,7 @@ export function NotificationChannelHeader({}) {
         notificationChannelFilterParams,
     );
     return (
-        <div className="flex justify-between">
+        <div className="flex px-4 justify-between">
             <SearchFilter
                 filterSchema={notificationChannelFilterParams}
                 placeholder="Search NotificationChannels..."

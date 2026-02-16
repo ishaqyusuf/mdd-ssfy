@@ -30,7 +30,7 @@ export function JobFooterContractor() {
                     _push(`submit/${ctx?.job?.controlId!}`);
                   }}
                   className={cn(
-                    "flex w-full flex-row items-center justify-center gap-2 rounded-xl bg-success h-14"
+                    "flex w-full flex-row items-center justify-center gap-2 rounded-xl bg-success h-14",
                   )}
                 >
                   <Text className="text-success-foreground text-lg font-bold">
@@ -47,7 +47,7 @@ export function JobFooterContractor() {
                     // ctx.handleSubmit();
                   }}
                   className={cn(
-                    "flex w-full flex-row items-center justify-center gap-2 rounded-xl bg-destructive h-14"
+                    "flex w-full flex-row items-center justify-center gap-2 rounded-xl bg-destructive h-14",
                   )}
                 >
                   <Text className="text-destructive-foreground text-lg font-bold">

@@ -10,9 +10,10 @@ import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/custom/icons";
-import { GetNotificationChannelsSchema } from "@api/db/queries/note";
+
 import { useNotificationChannelFilterParams } from "@/hooks/use-notification-channel-filter-params";
 import { useNotificationChannelParams } from "@/hooks/use-notification-channel-params";
+import { GetNotificationChannelsSchema } from "@notifications/schemas";
 interface Props {
     defaultFilters?: GetNotificationChannelsSchema;
 }
@@ -80,20 +81,22 @@ export function DataTable(props: Props) {
                 },
             ]}
         >
-            <div className="flex flex-col gap-4 w-full">
-                <div
-                    // ref={tableScroll.containerRef}
-                    className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
-                >
-                    <Table>
-                        <Table.TableHeader />
-                        <Table.Body>
-                            <Table.TableRow />
-                        </Table.Body>
-                    </Table>
+            <div className="flex">
+                <div className="flex flex-col gap-4 w-full">
+                    <div
+                        // ref={tableScroll.containerRef}
+                        className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
+                    >
+                        <Table>
+                            {/* <Table.TableHeader /> */}
+                            <Table.Body>
+                                <Table.TableRow />
+                            </Table.Body>
+                        </Table>
+                    </div>
+                    <Table.LoadMore />
+                    {/* <BatchActions /> */}
                 </div>
-                <Table.LoadMore />
-                {/* <BatchActions /> */}
             </div>
         </Table.Provider>
     );

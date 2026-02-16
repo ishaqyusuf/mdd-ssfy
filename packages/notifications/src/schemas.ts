@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { channelNames } from "./channels";
+import { paginationSchema } from "@gnd/utils/schema";
 
 const type = z.enum(channelNames);
 const source = z.enum(["system", "user"]).default("system");
@@ -119,3 +120,13 @@ export type NotificationTypes = {
   // job_activity: JobActivityInput;
   job_assigned: JobAssignedInput;
 };
+
+export const getNotificationChannelsSchema = z
+  .object({
+    id: z.number().optional().nullable(),
+    name: z.string().optional().nullable(),
+  })
+  .extend(paginationSchema.shape);
+export type GetNotificationChannelsSchema = z.infer<
+  typeof getNotificationChannelsSchema
+>;

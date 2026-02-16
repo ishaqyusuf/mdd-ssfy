@@ -28,7 +28,7 @@ function Content({ children }) {
     return (
         <div className={cn("pb-8", links?.noSidebar || "md:ml-[70px]")}>
             <Header />
-            <div className="px-6">{children}</div>
+            <div className="px-6 flex flex-col">{children}</div>
         </div>
     );
 }

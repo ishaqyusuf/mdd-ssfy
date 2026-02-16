@@ -30,3 +30,12 @@ export function useOrganizationList(enabled = false) {
     }));
 }
 
+export function useEmployeesList(enabled = false) {
+    const { data: employees } = useQuery(
+        useTRPC().hrm.getEmployees.queryOptions(undefined, {
+            enabled,
+        }),
+    );
+    return employees?.data || [];
+}
+

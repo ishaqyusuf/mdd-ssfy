@@ -2,44 +2,18 @@ import type { SaveInboundNoteSchema } from "@api/schemas/notes";
 import type { TRPCContext } from "@api/trpc/init";
 import { getAuthUser } from "./user";
 import type { NoteTagNames } from "@gnd/utils/constants";
-import type { Prisma } from "@gnd/db";
-import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
-import { paginationSchema } from "@gnd/utils/schema";
-import z from "zod";
 import { getChannels } from "@notifications/channels-query";
-
-export const getNotificationChannelsSchema = z
-  .object({})
-  .extend(paginationSchema.shape);
-export type GetNotificationChannelsSchema = z.infer<
-  typeof getNotificationChannelsSchema
->;
+import type { GetNotificationChannelsSchema } from "@notifications/schemas";
 
 export async function getNotificationChannels(
   ctx: TRPCContext,
   query: GetNotificationChannelsSchema,
 ) {
   const { db } = ctx;
-  const data = await getChannels(db);
+  const data = await getChannels(db, query);
   return {
     data,
   };
-}
-function whereNotificationChannels(query: GetNotificationChannelsSchema) {
-  const where: Prisma.NotificationsWhereInput[] = [];
-  for (const [k, v] of Object.entries(query)) {
-    if (!v) continue;
-    const value = v as any;
-    switch (k as keyof GetNotificationChannelsSchema) {
-      case "q":
-        const q = { contains: v as string };
-        where.push({
-          OR: [],
-        });
-        break;
-    }
-  }
-  return composeQuery(where);
 }
 
 // export async function saveNote(ctx: TRPCContext, data: SaveNoteSchema) {
