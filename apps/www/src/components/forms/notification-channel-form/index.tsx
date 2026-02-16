@@ -7,35 +7,13 @@ import {
 } from "@/contexts/notification-channel-context";
 import { useEmployeesList, useRolesList } from "@/hooks/use-data-list";
 import { useNotificationChannelParams } from "@/hooks/use-notification-channel-params";
-import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
-import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { Card } from "@gnd/ui/composite";
-import { Icons } from "@gnd/ui/icons";
 import { ScrollArea } from "@gnd/ui/scroll-area";
-import { useQuery } from "@tanstack/react-query";
 
-import {
-    ArrowLeft,
-    ArrowRight,
-    CheckCircle2,
-    Info,
-    Mail,
-    MessageSquare,
-    Plus,
-    Search,
-    Settings,
-    Shield,
-    Smartphone,
-    Trash2,
-    User,
-    UserPlus,
-    Users,
-    X,
-    BellRing,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Info, Users, X, BellRing } from "lucide-react";
 import { ChannelSubscribers } from "./channel-subscribers";
 import { ChannelRoles } from "./channel-roles";
 import { DeliveryMethods } from "./delivery-methods";
@@ -96,7 +74,7 @@ export function Content() {
                             <div>
                                 <div className="flex items-center gap-2">
                                     <Card.Title className="text-lg md:text-xl font-black tracking-tight">
-                                        {selectedEvent?.name}
+                                        {selectedEvent?.title}
                                     </Card.Title>
                                     <Badge
                                         variant="outline"
