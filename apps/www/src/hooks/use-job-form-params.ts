@@ -12,17 +12,38 @@ export function useJobFormParams() {
         // editModelCostId: parseAsInteger,
         redirectStep: parseAsInteger,
         step: parseAsInteger,
-        projectId: parseAsInteger,
-        jobId: parseAsInteger,
-        unitId: parseAsInteger,
-        taskId: parseAsInteger,
-        userId: parseAsInteger,
-        modelId: parseAsInteger,
+        _projectId: parseAsInteger,
+        _jobId: parseAsInteger,
+        _unitId: parseAsInteger,
+        _taskId: parseAsInteger,
+        _userId: parseAsInteger,
+        _modelId: parseAsInteger,
     });
     const opened = !!params.step;
     return {
         ...params,
-        setParams,
+        projectId: params._projectId,
+        jobId: params._jobId,
+        unitId: params._unitId,
+        taskId: params._taskId,
+        userId: params._userId,
+        modelId: params._modelId,
+        // setParams,
+        setParams: (newParams) => {
+            setParams(
+                Object.entries(newParams).reduce(
+                    (acc, [key, value]) => {
+                        if (key === "step" || key === "redirectStep") {
+                            acc[key] = value;
+                        } else {
+                            acc[`_${key}`] = value;
+                        }
+                        return acc;
+                    },
+                    {} as Record<string, any>,
+                ),
+            );
+        },
         opened,
     };
 }

@@ -1,9 +1,4 @@
-import {
-    parseAsBoolean,
-    parseAsString,
-    useQueryStates,
-    parseAsInteger,
-} from "nuqs";
+import { useQueryStates, parseAsInteger } from "nuqs";
 
 export function useJobParams(options?: { shallow: boolean }) {
     const [params, setParams] = useQueryStates(

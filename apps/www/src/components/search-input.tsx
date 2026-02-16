@@ -13,10 +13,11 @@ export function SearchInput({ placeholder, value, onChangeText }: Props) {
                 <Search className="size-4 text-muted-foreground" />
             </InputGroup.Addon>
             <InputGroup.Input
-                value={value}
+                value={value || ""}
                 onChange={(e) => onChangeText(e.target.value)}
                 placeholder={placeholder}
             />
         </InputGroup>
     );
 }
+
