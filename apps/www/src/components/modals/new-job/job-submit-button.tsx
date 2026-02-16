@@ -50,8 +50,9 @@ export function JobSubmitButton({
             onSubmit={form.handleSubmit(
                 // @ts-ignore
                 (values: JobFormSchema) => {
-                    // console.log("Form Submitted with values:", values);
-                    // console.log("default values", defaultValues);
+                    console.log("Form Submitted with values:", values);
+                    console.log("default values", defaultValues);
+                    return;
                     values.requestTaskConfig = submitAsTaskRequest;
                     if (markAsComplete) values.job.status = "Submitted";
                     if (values.requestTaskConfig)

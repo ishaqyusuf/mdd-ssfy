@@ -75,28 +75,31 @@ export const jobFormShema = z
           }),
         )
         .optional(),
-      meta: z.object({
-        addon: z.number().optional().nullable(),
-        addonPercent: z.number().optional().nullable(),
-        additionalCostReason: z.string().optional().nullable(),
-        additional_cost: z.number().optional().nullable(),
-      }),
+      meta: z
+        .object({
+          addon: z.number().optional().nullable(),
+          addonPercent: z.number().optional().nullable(),
+          additionalCostReason: z.string().optional().nullable(),
+          additional_cost: z.number().optional().nullable(),
+        })
+        .optional()
+        .nullable(),
     }),
   })
   .superRefine((data, ctx) => {
     if (data.job.isCustom) {
-      if (!data.job.meta.additional_cost)
-        ctx.addIssue({
-          code: "custom",
-          message: "Additional cost is required for custom jobs",
-          path: ["job.meta.additional_cost"],
-        });
-      if (!data.job?.description)
-        ctx.addIssue({
-          code: "custom",
-          message: "Description is required for custom jobs",
-          path: ["job.description"],
-        });
+      // if (!data.job.meta.additional_cost)
+      //   ctx.addIssue({
+      //     code: "custom",
+      //     message: "Additional cost is required for custom jobs",
+      //     path: ["job.meta.additional_cost"],
+      //   });
+      // if (!data.job?.description)
+      //   ctx.addIssue({
+      //     code: "custom",
+      //     message: "Description is required for custom jobs",
+      //     path: ["job.description"],
+      //   });
     }
   });
 export type JobFormSchema = z.infer<typeof jobFormShema>;

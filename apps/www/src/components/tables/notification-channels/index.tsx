@@ -3,8 +3,8 @@
 import { NotificationChannelHeader } from "@/components/notification-channels-header";
 import { DataTable } from "./data-table";
 import { useNotificationChannelParams } from "@/hooks/use-notification-channel-params";
-import { cn } from "node_modules/@gnd/sales/src/sales-template/utils/cn";
 import { ScrollArea } from "@gnd/ui/scroll-area";
+import { cn } from "@gnd/ui/cn";
 
 export default function NotificationChannels() {
     const { openNotificationChannelId } = useNotificationChannelParams();
