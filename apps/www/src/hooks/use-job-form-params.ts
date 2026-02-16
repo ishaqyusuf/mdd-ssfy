@@ -30,19 +30,21 @@ export function useJobFormParams() {
         modelId: params._modelId,
         // setParams,
         setParams: (newParams) => {
-            setParams(
-                Object.entries(newParams).reduce(
-                    (acc, [key, value]) => {
-                        if (key === "step" || key === "redirectStep") {
-                            acc[key] = value;
-                        } else {
-                            acc[`_${key}`] = value;
-                        }
-                        return acc;
-                    },
-                    {} as Record<string, any>,
-                ),
-            );
+            if (!newParams) setParams(null);
+            else
+                setParams(
+                    Object.entries(newParams).reduce(
+                        (acc, [key, value]) => {
+                            if (key === "step" || key === "redirectStep") {
+                                acc[key] = value;
+                            } else {
+                                acc[`_${key}`] = value;
+                            }
+                            return acc;
+                        },
+                        {} as Record<string, any>,
+                    ),
+                );
         },
         opened,
     };

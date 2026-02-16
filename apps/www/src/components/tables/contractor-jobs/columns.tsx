@@ -43,15 +43,16 @@ const descriptionColumn: Column = {
                     </Progress.Status>
                 )}
             </Item.Title>
-            <Item.Description>
+            <span>
                 <TextWithTooltip
                     text={item.description || "no report"}
                     // tooltip={item.description || "no report"}
                     // maxChars={50}
-                    className="max-w-[400px] xl:max-w-[200px] 2xl:max-w-[300px]"
+
+                    className="max-w-sm line-clamp-2 xl:max-w-[250px]"
                 />
                 {/* {item.description || "no report"} */}
-            </Item.Description>
+            </span>
         </>
     ),
 };

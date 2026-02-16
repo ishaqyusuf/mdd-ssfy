@@ -116,7 +116,7 @@ export const columns: Column[] = [
                             success: "Done!.",
                         },
                     },
-                })
+                }),
             );
 
             return (
@@ -202,7 +202,7 @@ function AssignedTo({ item }: ItemProps) {
                     success: "Done!.",
                 },
             },
-        })
+        }),
     );
 
     return (
@@ -232,7 +232,7 @@ function AssignedTo({ item }: ItemProps) {
                         <CheckIcon
                             className={cn(
                                 "size-4",
-                                item?.id !== selected?.id && "text-transparent"
+                                item?.id !== selected?.id && "text-transparent",
                             )}
                         />
                     </Item.Media>
@@ -255,7 +255,7 @@ function Actions({ item }: ItemProps) {
                 _qc.invalidateQueries({
                     queryKey:
                         _trpc.customerService.getCustomerServices.infiniteQueryKey(
-                            {}
+                            {},
                         ),
                 });
             },
@@ -267,7 +267,7 @@ function Actions({ item }: ItemProps) {
                     success: "Done!.",
                 },
             },
-        })
+        }),
     );
     return (
         <div className="relative flex gap-2 justify-end z-10">

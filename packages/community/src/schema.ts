@@ -59,7 +59,10 @@ export const jobFormShema = z
       title: z.string().optional().nullable(),
       subtitle: z.string().optional().nullable(),
       // type: z.string(),
-      status: z.enum([...JOB_STATUS_OPTIONS]),
+      status: z
+        .enum([...JOB_STATUS_OPTIONS])
+        .optional()
+        .nullable(),
 
       tasks: z
         .array(

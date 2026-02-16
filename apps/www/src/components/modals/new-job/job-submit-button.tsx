@@ -64,8 +64,8 @@ export function JobSubmitButton({
                     // });
                 },
                 (e) => {
-                    // console.log("Form Errors:", e);
-                    // console.log("default values", defaultValues);
+                    console.log("Form Errors:", e);
+                    console.log("default values", defaultValues);
                 },
             )}
         >
