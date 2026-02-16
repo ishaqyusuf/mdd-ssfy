@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { ChannelSubscribers } from "./channel-subscribers";
 import { ChannelRoles } from "./channel-roles";
+import { DeliveryMethods } from "./delivery-methods";
 
 export function NotificationChannelForm() {
     const ctx = useCreateNotificationChannelContext();
@@ -128,82 +129,7 @@ export function Content() {
                     <ScrollArea hideScrollbar className="flex-1">
                         <Card.Content className="space-y-8 p-4 md:p-8 pb-32 md:pb-[10vh]">
                             {/* Delivery Methods */}
-                            <section className="space-y-4">
-                                <h4 className="text-xs md:text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                                    <Settings className="h-4 w-4 text-primary" />
-                                    Delivery Methods
-                                </h4>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {[
-                                        {
-                                            id: "email",
-                                            icon: Mail,
-                                            label: "Email",
-                                            desc: "Send to primary work email",
-                                            active: selectedEvent?.emailSupport,
-                                        },
-                                        {
-                                            id: "sms",
-                                            icon: MessageSquare,
-                                            label: "SMS/Text",
-                                            desc: "Mobile carrier direct text",
-                                            active: selectedEvent?.textSupport,
-                                        },
-                                        {
-                                            id: "push",
-                                            icon: Smartphone,
-                                            label: "In-App / Push",
-                                            desc: "Dashboard & Mobile alerts",
-                                            active: selectedEvent?.inAppSupport,
-                                        },
-                                    ].map((item) => {
-                                        const active = item.active;
-
-                                        return (
-                                            <Button
-                                                key={item.id}
-                                                variant="outline"
-                                                className={`h-auto p-4 items-start gap-3 justify-start rounded-xl ${
-                                                    active
-                                                        ? "border-primary bg-primary/5"
-                                                        : ""
-                                                }`}
-                                                onClick={() => {
-                                                    //   toggleChannel(
-                                                    //       selectedEvent?.id,
-                                                    //       item.id as any,
-                                                    //   );
-                                                }}
-                                            >
-                                                <div
-                                                    className={`p-2 rounded-lg ${
-                                                        active
-                                                            ? "bg-primary text-primary-foreground"
-                                                            : "bg-muted text-muted-foreground"
-                                                    }`}
-                                                >
-                                                    <item.icon className="h-5 w-5" />
-                                                </div>
-
-                                                <div className="flex-1 text-left min-w-0">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-sm font-bold truncate">
-                                                            {item.label}
-                                                        </span>
-                                                        {active && (
-                                                            <CheckCircle2 className="h-4 w-4 text-primary" />
-                                                        )}
-                                                    </div>
-                                                    <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                                                        {item.desc}
-                                                    </p>
-                                                </div>
-                                            </Button>
-                                        );
-                                    })}
-                                </div>
-                            </section>
+                            <DeliveryMethods />
 
                             {/* Assignment Rules */}
                             <section className="space-y-4">

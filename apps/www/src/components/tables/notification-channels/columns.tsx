@@ -36,9 +36,10 @@ export function ListItem({ item: event }: ItemProps) {
                 })
             }
             className={cn(
-                `w-full text-left hover:bg-muted/30 transition-all group`,
-                openNotificationChannelId == event.id &&
-                    "bg-primary/5 border-primary shadow-sm",
+                `w-full text-left cursor-pointer transition-all group`,
+                openNotificationChannelId == event.id
+                    ? "bg-primary/5 shadow-sm"
+                    : "hover:bg-muted/30",
                 "leading-tight border-b gap-2 p-4",
             )}
         >
