@@ -2,7 +2,7 @@
 
 import { _trpc } from "@/components/static-trpc";
 import { createTableContext, Table, useTableData } from "@gnd/ui/data-table";
-import { columns, mobileColumn } from "./columns";
+import { columns, ListItem, mobileColumn } from "./columns";
 
 import { NoResults } from "@gnd/ui/custom/no-results";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
@@ -87,12 +87,15 @@ export function DataTable(props: Props) {
                         // ref={tableScroll.containerRef}
                         className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
                     >
-                        <Table>
-                            {/* <Table.TableHeader /> */}
+                        {/* <Table>
+                            <Table.TableHeader />
                             <Table.Body>
                                 <Table.TableRow />
                             </Table.Body>
-                        </Table>
+                        </Table> */}
+                        {data?.map((row) => (
+                            <ListItem key={row.id} item={row} />
+                        ))}
                     </div>
                     <Table.LoadMore />
                     {/* <BatchActions /> */}

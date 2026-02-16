@@ -43,6 +43,7 @@ export interface ComboboxProps<T> {
   valueKey?: string;
   openChanged?;
   onSearch?: (value: string) => void;
+  Trigger?: React.ReactNode;
 }
 export function ComboboxDropdown<T extends ComboboxItem>({
   headless,
@@ -64,6 +65,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   onSearch,
   noSearch,
   openChanged,
+  Trigger,
 }: ComboboxProps<T>) {
   const [open, setOpen] = React.useState(false);
   const [internalSelectedItem, setInternalSelectedItem] = React.useState<
@@ -196,26 +198,30 @@ export function ComboboxDropdown<T extends ComboboxItem>({
       modal
     >
       <PopoverTrigger asChild disabled={disabled} className="w-full">
-        <Button
-          variant="outline"
-          aria-expanded={open}
-          className="relative w-full justify-between"
-        >
-          <span className="truncate text-ellipsis pr-3">
-            {selectedItem ? (
-              renderSelectedItem ? (
-                <span className="  flex items-center overflow-hidden text-ellipsis whitespace-nowrap">
-                  {renderSelectedItem?.(selectedItem)}
-                </span>
+        {Trigger ? (
+          Trigger
+        ) : (
+          <Button
+            variant="outline"
+            aria-expanded={open}
+            className="relative w-full justify-between"
+          >
+            <span className="truncate text-ellipsis pr-3">
+              {selectedItem ? (
+                renderSelectedItem ? (
+                  <span className="  flex items-center overflow-hidden text-ellipsis whitespace-nowrap">
+                    {renderSelectedItem?.(selectedItem)}
+                  </span>
+                ) : (
+                  selectedItem.label
+                )
               ) : (
-                selectedItem.label
-              )
-            ) : (
-              (placeholder ?? "Select item...")
-            )}
-          </span>
-          <ChevronsUpDown className="absolute right-2 size-4 opacity-50" />
-        </Button>
+                (placeholder ?? "Select item...")
+              )}
+            </span>
+            <ChevronsUpDown className="absolute right-2 size-4 opacity-50" />
+          </Button>
+        )}
       </PopoverTrigger>
 
       <PopoverContent

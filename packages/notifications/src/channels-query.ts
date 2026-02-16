@@ -42,7 +42,7 @@ export async function getChannels(
     },
     where: where,
     orderBy: {
-      channelName: "desc",
+      channelName: "asc",
     },
   });
   const activeChannels = channels.filter((c) => !c.deletedAt);

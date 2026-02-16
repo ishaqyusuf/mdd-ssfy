@@ -1,11 +1,17 @@
 "use client";
 
+import {
+    NotificationChannelProvider,
+    useCreateNotificationChannelContext,
+    useNotificationChannelContext,
+} from "@/contexts/notification-channel-context";
 import { useEmployeesList, useRolesList } from "@/hooks/use-data-list";
 import { useNotificationChannelParams } from "@/hooks/use-notification-channel-params";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
+import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { Card } from "@gnd/ui/composite";
 import { Icons } from "@gnd/ui/icons";
 import { ScrollArea } from "@gnd/ui/scroll-area";
@@ -30,35 +36,22 @@ import {
     X,
     BellRing,
 } from "lucide-react";
+import { ChannelSubscribers } from "./channel-subscribers";
+import { ChannelRoles } from "./channel-roles";
 
 export function NotificationChannelForm() {
+    const ctx = useCreateNotificationChannelContext();
+    return (
+        <NotificationChannelProvider value={ctx}>
+            <Content />
+        </NotificationChannelProvider>
+    );
+}
+export function Content() {
     const { openNotificationChannelId, setParams } =
         useNotificationChannelParams();
-    const users = useEmployeesList(!!openNotificationChannelId);
-    const roles = useRolesList(!!openNotificationChannelId);
-    const { data: selectedEvent } = useQuery(
-        useTRPC().notes.getNotificationChannel.queryOptions(
-            {
-                id: openNotificationChannelId!,
-            },
-            {
-                enabled: !!openNotificationChannelId,
-            },
-        ),
-    );
-    const subscribers =
-        selectedEvent?.subscriberIds?.map(
-            (s) =>
-                users?.find((u) => u.id === s) ?? {
-                    name: "Unknown User",
-                    id: s,
-                },
-        ) ?? [];
+    const { selectedEvent } = useNotificationChannelContext();
 
-    const handleRemoveUserFromEvent = (userId: number) => {
-        // Implement the logic to remove the user from the event's subscribers
-        // This might involve calling an API endpoint to update the notification channel's subscriber list
-    };
     if (!openNotificationChannelId)
         return (
             <div className="hidden w-full md:ml-[calc(var(--container-sm))]  md:flex flex-1 flex-col items-center justify-center pt-[200px] p-12 text-center bg-muted/5 animate-in fade-in duration-500">
@@ -222,100 +215,9 @@ export function NotificationChannelForm() {
                                 <Card>
                                     <Card.Content className="space-y-6">
                                         {/* Roles */}
-                                        <div>
-                                            <div className="flex justify-between items-center mb-3">
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                                    Subscriber Groups (Roles)
-                                                </p>
-                                                <Button
-                                                    variant="link"
-                                                    size="sm"
-                                                >
-                                                    + Manage Roles
-                                                </Button>
-                                            </div>
-
-                                            <div className="flex flex-wrap gap-2">
-                                                {roles?.map((role, rk) => {
-                                                    const active =
-                                                        selectedEvent?.roles.includes(
-                                                            role.name,
-                                                        );
-                                                    return (
-                                                        <Button
-                                                            key={rk}
-                                                            variant={
-                                                                active
-                                                                    ? "default"
-                                                                    : "outline"
-                                                            }
-                                                            size="sm"
-                                                            className="gap-2 rounded-full text-[11px]"
-                                                        >
-                                                            <Shield className="h-3 w-3" />
-                                                            {role.name}
-                                                            {active && (
-                                                                <X className="h-3 w-3" />
-                                                            )}
-                                                        </Button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-
+                                        <ChannelRoles />
                                         {/* Users */}
-                                        <div>
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">
-                                                Individual Subscribers (Users)
-                                            </p>
-
-                                            {users?.length ? (
-                                                <div className="space-y-2">
-                                                    {subscribers.map(
-                                                        ({ id, name }) => (
-                                                            <div
-                                                                key={id}
-                                                                className="flex items-center justify-between p-3 rounded-xl border bg-muted/30"
-                                                            >
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                                                        <User className="h-4 w-4" />
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-sm font-bold">
-                                                                            {
-                                                                                name
-                                                                            }
-                                                                        </p>
-                                                                        <p className="text-[9px] uppercase font-bold text-muted-foreground">
-                                                                            Manual
-                                                                            Override
-                                                                        </p>
-                                                                    </div>
-                                                                </div>
-
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    onClick={() =>
-                                                                        handleRemoveUserFromEvent(
-                                                                            id,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </div>
-                                                        ),
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <div className="text-center py-6 border border-dashed rounded-xl bg-muted/5 text-xs text-muted-foreground italic">
-                                                    No individual users
-                                                    assigned.
-                                                </div>
-                                            )}
-                                        </div>
+                                        <ChannelSubscribers />
                                     </Card.Content>
                                 </Card>
                             </section>
