@@ -32,7 +32,7 @@ export const getJobsSchema = z
     show: z.enum(JOBS_SHOW_OPTIONS).optional().nullable().default("all"),
     contractor: z.string().optional().nullable(),
     project: z.string().optional().nullable(),
-    unitId: z.string().optional().nullable(),
+    unitId: z.number().optional().nullable(),
   })
   .extend(paginationSchema.shape);
 export type GetJobsSchema = z.infer<typeof getJobsSchema>;
@@ -195,6 +195,11 @@ function whereJobs(query: GetJobsSchema) {
       case "jobId":
         where.push({
           id: value,
+        });
+        break;
+      case "unitId":
+        where.push({
+          homeId: value,
         });
         break;
       case "show":

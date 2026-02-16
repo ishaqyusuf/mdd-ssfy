@@ -83,6 +83,7 @@ export async function composeQueryData(query, where, model, props?: Props) {
       lte: new Date(),
     };
   }
+
   const md = await queryResponse([], {
     query,
     model,

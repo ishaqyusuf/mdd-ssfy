@@ -84,7 +84,7 @@ const lotBlock: Column = {
                                 : "success"
                         }
                         className={cn(
-                            "px-1 rounded-full text-xs font-semibold absolute -left-10 top-4 font-mono"
+                            "px-1 rounded-full text-xs font-semibold absolute -left-10 top-4 font-mono",
                         )}
                     >
                         {item?.template?.version}
@@ -112,10 +112,19 @@ const production: Column = {
 const installation: Column = {
     header: "Installation",
     accessorKey: "installation",
-    meta: {},
+    meta: {
+        preventDefault: true,
+    },
     cell: ({ row: { original: item } }) => (
         <>
-            <div className="w-16">
+            <Link
+                href={
+                    item.jobCount
+                        ? `/hrm/contractors/jobs?unitId=${item.id}`
+                        : `/`
+                }
+                className="w-16"
+            >
                 <Badge
                     variant={"secondary"}
                     style={{
@@ -125,12 +134,12 @@ const installation: Column = {
                                 : colorsObject.dimGray,
                     }}
                     className={cn(
-                        `h-5 px-1 whitespace-nowrap  text-xs text-slate-100`
+                        `h-5 px-1 whitespace-nowrap  text-xs text-slate-100`,
                     )}
                 >
                     {item.jobCount} submitted
                 </Badge>
-            </div>
+            </Link>
         </>
     ),
 };
@@ -172,7 +181,7 @@ function Actions({ item }: ItemProps) {
                         _trpc.community.getProjectUnits.infiniteQueryKey(),
                 });
             },
-        })
+        }),
     );
     const preview = (version, homeIds: any = "") => {
         openLink(
@@ -183,7 +192,7 @@ function Actions({ item }: ItemProps) {
                 version,
                 templateSlug: item.template.slug,
             },
-            true
+            true,
         );
     };
     const updateVersion = async (version) => {

@@ -3,7 +3,7 @@
 ```typescript
 export const getJobsSchema = z
   .object({
-    
+      
   })
   .extend(paginationSchema.shape);
 export type GetJobsSchema = z.infer<typeof getJobsSchema>;
