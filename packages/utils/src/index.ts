@@ -13,6 +13,7 @@ export function insertAt<T>(array: T[], index: number, item: T) {
 export function padStart(value, len: number, padding: string) {
   return _.padStart(String(value), len, padding);
 }
+// @ts-ignore
 export const devMode = process.env.NODE_ENV != "production";
 export function dbConnect(id) {
   if (!id) return undefined as any;
@@ -415,6 +416,7 @@ export function imageUrl(data: { path; bucket; provider }) {
   if (!data) return null;
   const { path, bucket, provider } = data;
   if (provider == "cloudinary")
+    // @ts-ignore
     return `${process.env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/${bucket}/${path}`;
 }
 export async function timeout(ms = 1000) {
@@ -621,12 +623,21 @@ export const uniqueBy = (data, key) => {
 
 export function handleNumberInput(input, min?, max?) {
   const num = Number.parseFloat(input);
-  if (
-    !Number.isNaN(num) &&
-    (min === undefined || num >= min) &&
-    (max === undefined || num <= max)
-  ) {
+  const isMax =
+    max === undefined || num <= max || max === Number.POSITIVE_INFINITY;
+  const isMin = min === undefined || num >= min;
+  const isNan = Number.isNaN(num);
+  console.log({
+    num,
+    min,
+    max,
+    isMax,
+    isMin,
+    isNan,
+  });
+  if (!isNan && isMin && isMax) {
     //  onChange?.(num);
+    console.log({ num });
     return num;
   }
   if (input === "") return null;

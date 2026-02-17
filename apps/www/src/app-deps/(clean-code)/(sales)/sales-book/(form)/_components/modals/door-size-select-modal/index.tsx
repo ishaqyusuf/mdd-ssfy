@@ -4,7 +4,6 @@ import {
     updateComponentPricingUseCase,
 } from "@/app/(clean-code)/(sales)/_common/use-case/sales-book-pricing-use-case";
 import Money from "@/components/_v1/money";
-import { Menu } from "@/components/(clean-code)/menu";
 import FormInput from "@/components/common/controls/form-input";
 import FormSelect from "@/components/common/controls/form-select";
 import Modal from "@/components/common/modal";

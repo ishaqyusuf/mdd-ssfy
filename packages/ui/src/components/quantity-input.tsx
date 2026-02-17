@@ -34,7 +34,7 @@ export function QuantityInput({
   const handleInput: React.ChangeEventHandler<HTMLInputElement> = ({
     currentTarget: el,
   }) => {
-    return handleNumberInput(el.value, min, max);
+    onChange?.(handleNumberInput(el.value, min, max));
     // const input = el.value;
     // // setRawValue(input);
 
