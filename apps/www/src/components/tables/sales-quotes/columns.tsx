@@ -85,7 +85,7 @@ export const columns: ColumnDef<Item>[] = [
         cell: ({ row: { original: item } }) => (
             <TCell.Secondary>
                 <TextWithTooltip
-                    className="max-w-[100px] lg:max-w-[10px] xl:max-w-[70px]"
+                    className="max-w-[100px] xl:max-w-[200px]"
                     text={item?.address}
                 />
             </TCell.Secondary>

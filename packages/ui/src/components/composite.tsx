@@ -1,4 +1,16 @@
 import {
+  Tooltip as TooltipBase,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./tooltip";
+
+export const Tooltip = Object.assign(TooltipBase, {
+  Content: TooltipContent,
+  Provider: TooltipProvider,
+  Trigger: TooltipTrigger,
+});
+import {
   ButtonGroup as ButtonGroupBase,
   ButtonGroupSeparator,
   ButtonGroupText,

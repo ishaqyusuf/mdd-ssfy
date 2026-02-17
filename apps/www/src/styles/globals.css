@@ -1,6 +1,7 @@
-/* @import "tailwindcss"; */
-/* @tailwind components; */
-/* @tailwind utilities; */
+/* @import "tailwindcss";
+
+@tailwind components;
+@tailwind utilities; */
 
 .data-highlighted\:text-accent-foreground[data-highlighted] {
     color: var(--accent-foreground);

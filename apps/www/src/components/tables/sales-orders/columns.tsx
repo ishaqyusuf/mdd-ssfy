@@ -11,7 +11,7 @@ import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 
 import { Badge } from "@gnd/ui/badge";
-import { Button, buttonVariants } from "@gnd/ui/button";
+import { buttonVariants } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 
 import { Check, StickyNote } from "lucide-react";

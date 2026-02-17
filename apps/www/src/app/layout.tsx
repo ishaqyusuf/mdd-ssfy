@@ -1,5 +1,5 @@
-import "@gnd/ui/globals.css";
 // import "@/styles/globals.css";
+import "@gnd/ui/globals.css";
 
 import { TailwindIndicator } from "@/components/tailwind-indicator";
 import { env } from "@/env.mjs";
