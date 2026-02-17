@@ -1,15 +1,27 @@
 import { _qc, _trpc } from "@/components/static-trpc";
-import { RouterInputs, AppRouter } from "@api/trpc/routers/_app";
+import { RouterInputs } from "@api/trpc/routers/_app";
 
 type TRPCClient = typeof _trpc;
 
-type Routes = {
+export type Routes = {
     [NS in keyof TRPCClient]: TRPCClient[NS] extends Record<string, any>
         ? {
               [P in keyof TRPCClient[NS]]: `${NS & string}.${P & string}`;
           }[keyof TRPCClient[NS]]
         : never;
 }[keyof TRPCClient];
+export type SplitRoute<R extends Routes> = R extends `${infer NS}.${infer P}`
+    ? [NS & keyof RouterInputs, P & keyof RouterInputs[NS & keyof RouterInputs]]
+    : never;
+
+export type RouteInput<R extends Routes> =
+    SplitRoute<R> extends [infer NS, infer P]
+        ? NS extends keyof RouterInputs
+            ? P extends keyof RouterInputs[NS]
+                ? RouterInputs[NS][P]
+                : never
+            : never
+        : never;
 
 export function invalidateQueries(...routes: Routes[]) {
     routes.forEach((route) => {
@@ -20,7 +32,10 @@ export function invalidateQueries(...routes: Routes[]) {
         });
     });
 }
-export function invalidateQuery(route: Routes, input?: any) {
+export function invalidateQuery<R extends Routes>(
+    route: R,
+    input?: RouteInput<R>,
+) {
     const [ns, proc] = route.split(".") as [keyof typeof _trpc, string];
 
     _qc.invalidateQueries({

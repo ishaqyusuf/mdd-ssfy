@@ -29,7 +29,7 @@ export const getJobsSchema = z
   .object({
     userId: z.number().optional().nullable(),
     jobId: z.number().optional().nullable(),
-    show: z.enum(JOBS_SHOW_OPTIONS).optional().nullable().default("all"),
+    show: z.enum(JOBS_SHOW_OPTIONS).optional().nullable(),
     contractor: z.string().optional().nullable(),
     project: z.string().optional().nullable(),
     unitId: z.number().optional().nullable(),

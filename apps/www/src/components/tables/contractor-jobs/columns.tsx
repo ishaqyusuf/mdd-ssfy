@@ -12,6 +12,9 @@ import { formatDate } from "@/utils/format";
 import { Avatar } from "@/components/avatar";
 import { Progress } from "@gnd/ui/custom/progress";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
+import { DeleteButton } from "@/components/delete-button";
+import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
+import { TableMenuTrigger } from "@/components/table-menu-trigger";
 
 export type Item = RouterOutputs["jobs"]["getJobs"]["data"][number];
 interface ItemProps {
@@ -112,17 +115,19 @@ export const columns: Column[] = [
 function Actions({ item }: ItemProps) {
     const isMobile = useIsMobile();
     return (
-        <div className="relative flex justify-end z-10">
+        <div className="relative flex items-center justify-end gap-2 z-10">
+            <DeleteButton
+                // size="xs"
+                size="sm"
+                route="jobs.deleteJob"
+                input={{ id: item.id }}
+                onDelete={() => {
+                    invalidateInfiniteQueries("jobs.getJobs");
+                }}
+            />
             <Menu
-                triggerSize={isMobile ? "default" : "xs"}
-                Trigger={
-                    <Button
-                        className={cn(isMobile || "size-4 p-0")}
-                        variant="ghost"
-                    >
-                        <Icons.MoreHoriz className="" />
-                    </Button>
-                }
+                triggerSize={isMobile ? "default" : "sm"}
+                Trigger={<TableMenuTrigger />}
             >
                 <Menu.Item SubMenu={<></>}>Mark as</Menu.Item>
             </Menu>

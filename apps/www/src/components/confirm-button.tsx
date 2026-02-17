@@ -4,10 +4,11 @@ import { useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 
-import { Button, ButtonProps } from "@gnd/ui/button";
+import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { Icon, IconKeys } from "./_v1/icons";
 
+type ButtonProps = React.ComponentProps<typeof Button>;
 export interface ConfirmBtnProps extends ButtonProps {
     icon?: IconKeys;
     trash?: boolean;
