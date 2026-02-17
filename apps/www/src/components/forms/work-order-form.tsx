@@ -38,7 +38,7 @@ export function WorkOrderForm({ data }: Props) {
     const trpc = useTRPC();
     const qc = useQueryClient();
     const { data: projectList } = useQuery(
-        trpc.community.workOrder.projectsList.queryOptions()
+        trpc.community.workOrder.projectsList.queryOptions(),
     );
     const [block, lot, projectName, id] = form.watch([
         "block",
@@ -56,8 +56,8 @@ export function WorkOrderForm({ data }: Props) {
             },
             {
                 enabled: !!findHomeOwnerUid && !id,
-            }
-        )
+            },
+        ),
     );
     useEffect(() => {
         if (!homeOwner) return;
@@ -85,7 +85,7 @@ export function WorkOrderForm({ data }: Props) {
                 });
             },
             onError(error, variables, context) {},
-        })
+        }),
     );
     const { options: buildersOptions } = useCommunityBuildersList(true);
 
@@ -94,6 +94,7 @@ export function WorkOrderForm({ data }: Props) {
             ...formData,
         });
     }
+    console.log({ projectList });
     return (
         <Form {...form}>
             <div
@@ -108,6 +109,7 @@ export function WorkOrderForm({ data }: Props) {
 
                     comboProps={{
                         onSelect(item) {
+                            console.log(item);
                             form.setValue("lot", null);
                             form.setValue("block", null);
                             form.setValue("meta.lotBlock", null);
@@ -115,7 +117,7 @@ export function WorkOrderForm({ data }: Props) {
                         items: projectList?.map((a) => ({
                             label: a.title,
                             id: a.title,
-                            disabled: !a.active,
+                            // disabled: !a.active,
                         })),
                     }}
                 />
@@ -130,7 +132,7 @@ export function WorkOrderForm({ data }: Props) {
                             form.setValue("block", item?.data?.block);
                             form.setValue(
                                 "meta.lotBlock",
-                                item?.data?.lotBlock
+                                item?.data?.lotBlock,
                             );
                         },
                         disabled: !project?.active,

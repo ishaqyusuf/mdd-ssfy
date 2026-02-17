@@ -131,9 +131,11 @@ export function ComboboxDropdown<T extends ComboboxItem>({
                   key={itemIndex}
                   value={value}
                   onSelect={(id) => {
+                    // console.log({ id, id2: id?.toUpperCase(), filteredItems });
                     const foundItem = filteredItems?.find(
                       (item) =>
-                        String(item.id)?.toUpperCase() === id?.toUpperCase(),
+                        String(item.id)?.trim().toUpperCase() ===
+                        id?.trim()?.toUpperCase(),
                     );
                     if (!foundItem) {
                       return;
