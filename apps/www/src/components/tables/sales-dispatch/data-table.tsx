@@ -12,9 +12,6 @@ import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { BatchActions } from "./batch-actions";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { useQuery } from "@gnd/ui/tanstack";
-import { useEffect } from "react";
-import { useMediaQuery } from "react-responsive";
-import { screens } from "@/lib/responsive";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 export function DataTable({ driver = false }) {
