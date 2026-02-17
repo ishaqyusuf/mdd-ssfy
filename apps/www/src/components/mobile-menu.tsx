@@ -25,7 +25,7 @@ export function MobileMenu() {
             </div>
             <SheetContent
                 side="left"
-                className="border-none rounded-none -ml-4"
+                className="w-full border-none rounded-none lg:-ml-4 px-2 overflow-auto"
             >
                 <div className="ml-2 mb-8">
                     <Icons.Logo />

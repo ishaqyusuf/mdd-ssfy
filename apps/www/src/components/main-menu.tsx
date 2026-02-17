@@ -58,7 +58,7 @@ export function MainMenu() {
     const [expandedItem, setExpandedItem] = useState<string | null>(null);
     return (
         <div className="mt-6 w-full">
-            <nav className="w-full overflow-auto">
+            <nav className="w-full">
                 <div className="flex flex-col gap-2">
                     {/* <span>{JSON.stringify({ activeLink })}</span> */}
                     {linkModules?.modules
