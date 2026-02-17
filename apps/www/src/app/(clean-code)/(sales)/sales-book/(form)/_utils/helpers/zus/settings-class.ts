@@ -1,5 +1,4 @@
 import { dotObject } from "@/app-deps/(clean-code)/_common/utils/utils";
-import { formatMoney, toFixed } from "@/lib/use-number";
 import { FieldPath, FieldPathValue } from "react-hook-form";
 
 import {
@@ -15,7 +14,7 @@ export class SettingsClass extends CostingClass {
         // public zus: ZusSales,
         public itemUid?,
         public stepUid?,
-        public staticZus?: ZusSales
+        public staticZus?: ZusSales,
     ) {
         super();
         this.setting = this;
@@ -33,16 +32,16 @@ export class SettingsClass extends CostingClass {
     public getItemType() {
         return Object.entries(this.zus.kvStepForm)?.find(
             ([uid, data]) =>
-                uid?.startsWith(this.itemUid) && data.title == "Item Type"
+                uid?.startsWith(this.itemUid) && data.title == "Item Type",
         )?.[1]?.value as any;
     }
     public currentProfile() {
         return this.salesProfiles().find(
-            (profile) => profile.id == this.dotGet("metaData.salesProfileId")
+            (profile) => profile.id == this.dotGet("metaData.salesProfileId"),
         );
     }
     public dotGet<K extends FieldPath<ZusSales>>(
-        path: K
+        path: K,
     ): FieldPathValue<ZusSales, K> {
         return dotObject.pick(path, this.zus);
     }
@@ -58,7 +57,7 @@ export class SettingsClass extends CostingClass {
         itemForm: ZusItemFormData,
         redirectUid,
         isRoot,
-        stepUid
+        stepUid,
     ) {
         const route = this.zus.setting.composedRouter;
         const rootUid = this.getRootUid();
@@ -78,13 +77,13 @@ export class SettingsClass extends CostingClass {
     public getNextRouteFromSettings(
         itemForm: ZusItemFormData,
         isRoot,
-        redirectUid
+        redirectUid,
     ) {
         const routeData = this.composeNextRoute(
             itemForm,
             redirectUid,
             isRoot,
-            this.stepUid
+            this.stepUid,
         );
 
         if (!routeData.nextRoute) {
@@ -98,7 +97,7 @@ export class SettingsClass extends CostingClass {
                     itemForm,
                     null,
                     false,
-                    _stepUid
+                    _stepUid,
                 );
                 const exists = stepSequences.includes(nx?.nextStepUid);
                 if (!exists && nx?.nextRoute) return nx;
@@ -109,7 +108,7 @@ export class SettingsClass extends CostingClass {
     public getRedirectableRoutes() {
         const settings = this.zus.setting;
         const stepSequence = this.zus.sequence.stepComponent[this.itemUid]?.map(
-            (s) => s.split("-")[1]
+            (s) => s.split("-")[1],
         );
 
         const steps = settings.steps
