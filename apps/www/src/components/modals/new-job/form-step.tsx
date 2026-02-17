@@ -20,7 +20,9 @@ import { JobSubmitButton } from "./job-submit-button";
 
 export function FormStep({}) {
     const { setParams, ...params } = useJobFormParams();
-
+    const { defaultValues, markAsComplete, setMarkAsComplete } =
+        useJobFormContext();
+    if (!defaultValues) return null;
     return (
         <>
             <StepTitle title="Configure Job Details" />
@@ -292,6 +294,7 @@ function FormContent() {
                 </div>
             </div>
             <Portal nodeId={"jobActionButton"}>
+                {/* @ts-ignore */}
                 <JobSubmitButton form={form} />
             </Portal>
         </>

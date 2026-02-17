@@ -389,6 +389,7 @@ export const communityRouters = createTRPCRouter({
     return ctx.db.$transaction(async (db) => {
       const { unit, user, job } = input;
       let jobId = job.id;
+      if (!job.meta) job.meta = {};
       if (job.isCustom) {
         job.meta = {
           ...job.meta,
@@ -438,7 +439,7 @@ export const communityRouters = createTRPCRouter({
             user: user?.id ? { connect: { id: user.id } } : undefined,
             home: unit?.id ? { connect: { id: unit.id } } : undefined,
             meta: job.meta as any,
-            status: job.status,
+            status: job.status!,
             builderTask: input?.builderTaskId
               ? { connect: { id: input.builderTaskId } }
               : undefined,
@@ -845,41 +846,43 @@ export const communityRouters = createTRPCRouter({
         select: {
           id: true,
           taskName: true,
-          communityModelInstallTasks: {
-            select: {
-              id: true,
-              qty: true,
-              installCostModel: {
-                select: {
-                  title: true,
-                  unitCost: true,
-                  unit: true,
-                },
-              },
-            },
-            where: {
-              communityModel: {
-                homes: {
-                  some: {
-                    id: homeId,
-                  },
-                },
-              },
-            },
-          },
+          // communityModelInstallTasks: {
+          //   select: {
+          //     id: true,
+          //     qty: true,
+          //     installCostModel: {
+          //       select: {
+          //         title: true,
+          //         unitCost: true,
+          //         unit: true,
+          //       },
+          //     },
+          //   },
+          //   where: {
+
+          //     // communityModel: {
+          //     //   homes: {
+          //     //     some: {
+          //     //       id: homeId,
+          //     //     },
+          //     //   },
+          //     // },
+          //   },
+          // },
         },
       });
 
       return tasks.map((task) => ({
         id: task.id,
         taskName: task.taskName,
-        installTasksCount: task.communityModelInstallTasks.length,
+        // installTasksCount: task.communityModelInstallTasks.length,
+
         // installCostModel: task.communityModelInstallTasks?.[0]?.installCostModel || null,
         // qty: task.communityModelInstallTasks?.[0]?.qty || null,
-        estimatedCost: task.communityModelInstallTasks.reduce((acc, t) => {
-          const cost = (t.installCostModel?.unitCost || 0) * (t.qty || 0);
-          return acc + cost;
-        }, 0),
+        // estimatedCost: task.communityModelInstallTasks.reduce((acc, t) => {
+        //   const cost = (t.installCostModel?.unitCost || 0) * (t.qty || 0);
+        //   return acc + cost;
+        // }, 0),
       }));
     }),
   saveCommunityModelCostForm: publicProcedure

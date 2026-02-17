@@ -17,21 +17,28 @@ export function NewJobFooter() {
     };
     return (
         <CustomModal.Portal>
-            <CustomModal.Footer className=" bg-muted/20 sborder-t border-border  flex justify-between items-center shrink-0">
-                <Button
-                    onClick={step === 1 ? onClose : handleBack}
-                    // className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors"
-                    variant="outline"
-                >
-                    {step === 1 ? (
-                        "Cancel"
-                    ) : (
-                        <>
-                            <ChevronLeft className="size-4" /> Back
-                        </>
-                    )}
-                </Button>
+            <CustomModal.Footer className=" bg-muted/20 sborder-t border-border gap-4 flex justify-between items-center shrink-0">
+                {step > 1 && (
+                    <Button
+                        onClick={step === 1 ? onClose : handleBack}
+                        // className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors"
+                        variant="outline"
+                    >
+                        {step === 1 ? (
+                            "Cancel"
+                        ) : (
+                            <>
+                                <ChevronLeft className="size-4" /> Back
+                            </>
+                        )}
+                    </Button>
+                )}
                 <div className="flex-1"></div>
+                {step > 1 && (
+                    <Button onClick={onClose} variant="destructive">
+                        Cancel
+                    </Button>
+                )}
                 {/* {step === 5 ? (
                     <button
                         onClick={onClose}

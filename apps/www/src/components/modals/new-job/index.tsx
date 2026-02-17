@@ -23,11 +23,11 @@ export function NewJobModal() {
             ? [
                   UserSelectStep,
                   ProjectSelectStep,
-                  UnitSelectStep,
                   TaskSelectStep,
+                  UnitSelectStep,
                   FormStep,
               ]
-            : [ProjectSelectStep, UnitSelectStep, TaskSelectStep, FormStep];
+            : [ProjectSelectStep, TaskSelectStep, UnitSelectStep, FormStep];
     return (
         <CustomModal
             className=""

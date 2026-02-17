@@ -86,7 +86,7 @@ export function TaskSelectStep({}) {
                                         {item.taskName}
                                     </p>
                                     <span className="text-xs font-bold text-foreground bg-muted px-2 py-1 rounded">
-                                        ${item.estimatedCost.toFixed(2)}
+                                        {/* ${item.estimatedCost.toFixed(2)} */}
                                     </span>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
