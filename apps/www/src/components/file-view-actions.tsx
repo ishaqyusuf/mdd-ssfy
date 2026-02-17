@@ -1,7 +1,7 @@
 import { useFilePreviewParams } from "@/hooks/use-file-preview-params";
 import { openLink } from "@/lib/open-link";
 import { Button } from "@gnd/ui/button";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 
 export function FileViewActions() {
     const { params, apiPath } = useFilePreviewParams();
@@ -17,3 +17,4 @@ export function FileViewActions() {
         </div>
     );
 }
+

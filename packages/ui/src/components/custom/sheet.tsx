@@ -14,7 +14,7 @@ import {
 import { useMediaQuery } from "react-responsive";
 import { Label } from "../label";
 import { Button } from "../button";
-import { Icons } from "./icons";
+import { Icons } from "../icons";
 import { screens } from "@gnd/utils/responsive";
 import Portal from "./portal";
 import { createContext, useContext } from "react";
@@ -46,11 +46,10 @@ const sheetContentVariant = cva(
       rounded: false,
       size: "default",
     },
-  }
+  },
 );
 interface Props
-  extends SheetContentProps,
-    VariantProps<typeof sheetContentVariant> {
+  extends SheetContentProps, VariantProps<typeof sheetContentVariant> {
   children?;
   open?: boolean;
   onOpenChange?;
@@ -86,7 +85,7 @@ export const useSheet = () => {
   const context = useContext(CustomSheetContext);
   if (context === undefined) {
     throw new Error(
-      "useCustomSheetContext must be used within a CustomSheetProvider"
+      "useCustomSheetContext must be used within a CustomSheetProvider",
     );
   }
   return context;
@@ -129,7 +128,7 @@ function CustomSheetBase({
               isDesktop && secondaryOpened
                 ? props.secondarySize || "5xl"
                 : props.primarySize || "xl",
-          })
+          }),
         )}
       >
         {children}
@@ -186,7 +185,7 @@ export function MultiSheetContent({ children = null, className = "" }) {
           className={cn(
             "overflow-hidden flex flex-col flex-1",
             className,
-            secondaryOpened && "pr-4"
+            secondaryOpened && "pr-4",
           )}
         >
           {children}

@@ -13,7 +13,7 @@ import {
 } from "@gnd/ui/dialog";
 import { Form } from "@gnd/ui/form";
 
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 import { GetSalesResolutionData } from "@/actions/get-sales-resolution-data";
 import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
 import { ResolvePayment, resolvePaymentSchema } from "@api/db/queries/wallet";

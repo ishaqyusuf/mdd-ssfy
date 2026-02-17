@@ -10,11 +10,13 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 import { EyeOffIcon } from "lucide-react";
 
-interface DataTableColumnHeaderProps<TData, TValue>
-    extends React.HTMLAttributes<HTMLDivElement> {
+interface DataTableColumnHeaderProps<
+    TData,
+    TValue,
+> extends React.HTMLAttributes<HTMLDivElement> {
     column: Column<TData, TValue>;
     title: string;
 }

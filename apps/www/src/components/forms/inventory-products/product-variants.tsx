@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { capitalize, throttle } from "lodash";
 import { useMutation } from "@gnd/ui/tanstack";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 import { ChartSpline } from "lucide-react";
 import { VariantPricingTab } from "./variant-pricing-tab";
 import { cn } from "@gnd/ui/cn";

@@ -17,7 +17,7 @@ import { useEffect } from "react";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Form } from "@gnd/ui/form";
 import { Button } from "@gnd/ui/button";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 
 interface BuilderFormProps {
     defaultValues?: RouterOutputs["community"]["getBuilderForm"];

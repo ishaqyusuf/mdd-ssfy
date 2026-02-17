@@ -8,8 +8,8 @@ import { Button } from "@gnd/ui/button";
 import AuthGuard, {
     AuthPermissions,
 } from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
-import { Icons } from "./icons";
 import LinkableNode from "./link-node";
+import { Icons } from "@gnd/ui/icons";
 
 interface Props {
     title;

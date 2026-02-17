@@ -23,7 +23,7 @@ import { SelectTag } from "../select-tag";
 import { FilterList } from "./filter-list";
 import { getSearchKey, isSearchKey, searchIcons } from "./search-utils";
 import { useSearchFilterContext } from "@/hooks/use-search-filter";
-import { Icon } from "@gnd/ui/custom/icons";
+import { Icon } from "@gnd/ui/icons";
 import { PageFilterData } from "@api/type";
 import { Calendar } from "@gnd/ui/calendar";
 import {
@@ -75,7 +75,7 @@ export function SearchFilterTRPC({
     {
       enableOnFormTags: true,
       enabled: Boolean(prompt),
-    }
+    },
   );
 
   useHotkeys("meta+s", (evt) => {
@@ -122,7 +122,7 @@ export function SearchFilterTRPC({
   };
   const hasValidFilters =
     Object.entries(filters).filter(
-      ([key, value]) => value !== null && !isSearchKey(key)
+      ([key, value]) => value !== null && !isSearchKey(key),
     ).length > 0;
 
   const __filters = (filterList || [])?.filter((a) => !isSearchKey(a.value));
@@ -160,7 +160,7 @@ export function SearchFilterTRPC({
               className={cn(
                 "absolute right-3 top-[10px] z-10 opacity-50 transition-opacity duration-300 hover:opacity-100",
                 hasValidFilters && "opacity-100",
-                isOpen && "opacity-100"
+                isOpen && "opacity-100",
               )}
             >
               <Icons.Filter className="size-4" />
@@ -172,7 +172,7 @@ export function SearchFilterTRPC({
           onRemove={(obj) => {
             setFilters(obj);
             const clearPrompt = Object.entries(obj).find(([k, v]) =>
-              isSearchKey(k)
+              isSearchKey(k),
             )?.[0];
             if (clearPrompt) setPrompt("");
           }}
@@ -297,13 +297,13 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
               <TableCell
                 className={cn(
                   "capitalize flex gap-4 pr-12 cursor-pointer items-center",
-                  isCurrentFilter(df) && "font-semibold"
+                  isCurrentFilter(df) && "font-semibold",
                 )}
               >
                 <CheckCircle
                   className={cn(
                     "size-3",
-                    !isCurrentFilter(df) ? "opacity-20" : ""
+                    !isCurrentFilter(df) ? "opacity-20" : "",
                   )}
                 />
                 {df}

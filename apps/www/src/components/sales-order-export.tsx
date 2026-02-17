@@ -3,7 +3,7 @@ import { OrderSearchFilter } from "./sales-order-search-filter";
 import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
@@ -35,8 +35,8 @@ export function SalesOrderExport() {
             },
             {
                 enabled: false,
-            }
-        )
+            },
+        ),
     );
     async function exportData() {
         try {
@@ -74,7 +74,7 @@ export function SalesOrderExport() {
                 })),
                 {
                     cellStyles: true,
-                }
+                },
             );
             // auto column widths
             worksheet["!cols"] = [

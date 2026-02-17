@@ -3,7 +3,7 @@ import { useSiteNav } from "./use-site-nav";
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import { Icons } from "@gnd/ui/icons";
-import { Icon } from "@gnd/ui/custom/icons";
+import { Icon } from "@gnd/ui/icons";
 import { LinkItem, NavLink, NavModule } from "../lib/utils";
 // import {ChevronDown} from "lucide-icons"
 interface Props {}

@@ -5,7 +5,7 @@ import {
 } from "@/hooks/use-invalidate-query";
 import { useTRPC } from "@/trpc/client";
 import { cn } from "@gnd/ui/cn";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useMutation } from "@tanstack/react-query";
 import { ComponentProps, useEffect, useState } from "react";

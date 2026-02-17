@@ -7,7 +7,7 @@ import { cn } from "@gnd/ui/cn";
 import { stripSpecialCharacters } from "@gnd/utils";
 import { env } from "@/env.mjs";
 import { generateRandomString } from "@/lib/utils";
-import { IconKeys } from "@gnd/ui/custom/icons";
+import { IconKeys } from "@gnd/ui/icons";
 import { Label } from "@gnd/ui/label";
 import { BlobPath } from "@gnd/utils/constants";
 type Props = {

@@ -7,7 +7,7 @@ import { Button } from "@gnd/ui/button";
 import { Label } from "@gnd/ui/label";
 import { useTable } from ".";
 import { cn } from "../../../utils";
-import { IconKeys, Icons } from "../icons";
+import { IconKeys, Icons } from "../../icons";
 import { Menu } from "../menu";
 import { ConfirmBtn } from "../confirm-button";
 
@@ -24,7 +24,7 @@ export function BatchAction({ children = null }) {
       className={cn(
         show
           ? "fixed bottom-10 left-1/2 z-10 m-4 -translate-x-1/2 transform"
-          : "hidden"
+          : "hidden",
       )}
     >
       <motion.div

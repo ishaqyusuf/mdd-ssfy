@@ -1,15 +1,15 @@
 "use client";
 
-import {} from "react";
+import React from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import { useBool } from "@/lib/use-loader";
 import { cn } from "@/lib/utils";
 import { Info, Trash } from "lucide-react";
 
-import { Button, ButtonProps } from "@gnd/ui/button";
-
-import { Icons } from "./icons";
+import { Button } from "@gnd/ui/button";
+import { Icons } from "@gnd/ui/icons";
+type ButtonProps = React.ComponentProps<typeof Button>;
 
 export interface ConfirmBtnProps extends ButtonProps {
     Icon?;

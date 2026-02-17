@@ -592,7 +592,7 @@ import { NoResults } from "@acme/ui/custom/no-results";
 import { EmptyState } from "@acme/ui/custom/empty-state";
 import { Button } from "@acme/ui/button";
 import Link from "next/link";
-import { Icons } from "@acme/ui/custom/icons";
+import { Icons } from "@acme/ui/icons";
 import { _trpc } from "@/components/static-trpc";
 import { RouterInputs } from "@api/trpc/routers/_app";
 

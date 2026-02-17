@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "@/components/link";
 import { cn } from "@/lib/utils";
 import { cva, VariantProps } from "class-variance-authority";
-import { Icons as BaseIcon, Icon as LucideIcon } from "@gnd/ui/custom/icons";
+import { Icons as BaseIcon, Icon as LucideIcon } from "@gnd/ui/icons";
 import {
     Archive,
     BarChart2,

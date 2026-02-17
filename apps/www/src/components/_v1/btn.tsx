@@ -2,11 +2,11 @@
 
 import { cn } from "@/lib/utils";
 
-import { Button, ButtonProps } from "@gnd/ui/button";
+import { Button } from "@gnd/ui/button";
+import { Icons } from "@gnd/ui/icons";
+import { ComponentProps } from "react";
 
-import { Icons } from "./icons";
-
-interface Props extends ButtonProps {
+interface Props extends ComponentProps<typeof Button> {
     isLoading?: boolean;
     icon?: boolean;
 }

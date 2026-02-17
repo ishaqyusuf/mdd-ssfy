@@ -10,7 +10,7 @@ import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Button } from "@gnd/ui/button";
 import Link from "next/link";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 import { GetCommunityTemplatesSchema } from "@api/db/queries/community-template";
 interface Props {
     defaultFilters?: GetCommunityTemplatesSchema;

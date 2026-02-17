@@ -7,7 +7,7 @@ import { Item } from "./resolution-center-content";
 import Money from "../_v1/money";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { skeletonListData } from "@/utils/format";
-import { Icon, PaymentMethodIcon, StatusIcon } from "@gnd/ui/custom/icons";
+import { Icon, PaymentMethodIcon, StatusIcon } from "@gnd/ui/icons";
 import { formatDate } from "@/lib/use-day";
 import { ResolutionDialog } from "./resolution-dialog";
 import { DataSkeleton } from "../data-skeleton";

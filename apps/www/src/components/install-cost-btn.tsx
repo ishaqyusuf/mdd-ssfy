@@ -1,6 +1,6 @@
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { Button } from "@gnd/ui/button";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 
 interface Props {
     id: number;

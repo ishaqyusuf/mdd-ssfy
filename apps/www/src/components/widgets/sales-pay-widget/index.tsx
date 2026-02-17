@@ -1,6 +1,6 @@
 import { Menu } from "@/components/(clean-code)/menu";
 import { salesPaymentMethods } from "@/utils/constants";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 
 interface Props {
     label?;

@@ -23,7 +23,7 @@ import {
     Popover,
     Select,
 } from "@gnd/ui/composite";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { Form } from "@gnd/ui/form";

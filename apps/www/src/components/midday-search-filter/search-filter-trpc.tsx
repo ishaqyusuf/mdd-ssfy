@@ -24,7 +24,7 @@ import { SelectTag } from "../select-tag";
 import { FilterList } from "./filter-list";
 import { getSearchKey, isSearchKey, searchIcons } from "./search-utils";
 import { useSearchFilterContext } from "@/hooks/use-search-filter";
-import { Icon } from "@gnd/ui/custom/icons";
+import { Icon } from "@gnd/ui/icons";
 import { PageFilterData } from "@api/type";
 import { Calendar } from "@gnd/ui/calendar";
 import {

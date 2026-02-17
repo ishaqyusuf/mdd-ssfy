@@ -10,7 +10,7 @@ import { useTable } from "@gnd/ui/data-table";
 import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
 import { printQuote } from "@/utils/sales-invoice";
 import { Button } from "@gnd/ui/button";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 import { Download } from "lucide-react";
 
 export function BatchActions({}) {

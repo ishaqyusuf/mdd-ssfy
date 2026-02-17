@@ -3,8 +3,9 @@
 import { cn, formatCurrency } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { useEffect, useState } from "react";
-import { Icons } from "./icons";
+
 import LinkableNode from "./link-node";
+import { Icons } from "@gnd/ui/icons";
 
 interface Props {
     children?;

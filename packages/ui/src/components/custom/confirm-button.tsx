@@ -3,9 +3,10 @@
 import { useState, useTransition } from "react";
 
 import { cn } from "@gnd/ui/cn";
-import { Icon, IconKeys } from "./icons";
-import { Button, ButtonProps } from "../button";
+import { Icon, IconKeys } from "../icons";
+import { Button } from "../button";
 
+type ButtonProps = React.ComponentProps<typeof Button>;
 export interface ConfirmBtnProps extends ButtonProps {
   icon?: IconKeys;
   trash?: boolean;
@@ -59,7 +60,7 @@ export function ConfirmBtn({
         size == "icon" && "size-8 p-0",
         size == "icon" && variant == "ghost" && "size-6",
         size == "xs" && "h-6 w-6 p-0",
-        variant != "destructive" && trash && "text-red-500 hover:text-red-600"
+        variant != "destructive" && trash && "text-red-500 hover:text-red-600",
       )}
       {...props}
     >
@@ -67,7 +68,7 @@ export function ConfirmBtn({
         name={iconName}
         className={cn(
           isPending || isDeleting ? "size-3.5 animate-spin" : "size-4",
-          size == "xs" && "size-3"
+          size == "xs" && "size-3",
         )}
       />
 

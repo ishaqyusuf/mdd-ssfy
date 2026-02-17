@@ -3,7 +3,7 @@ import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cos
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Sidebar } from "@gnd/ui/composite";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 import { useQuery } from "@tanstack/react-query";
 import { CommunityInstallCostForm } from "./forms/community-install-cost-form";
 import { Skeleton } from "@gnd/ui/skeleton";

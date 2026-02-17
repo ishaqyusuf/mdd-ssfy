@@ -11,7 +11,7 @@ import {
     Trash2,
     X,
 } from "lucide-react";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 import {
     AlertDialog,
     AlertDialogContent,

@@ -1,5 +1,5 @@
 import { sum } from "@gnd/utils";
-import { IconKeys } from "@gnd/ui/custom/icons";
+import { IconKeys } from "@gnd/ui/icons";
 export type NavModule = ReturnType<typeof createNavModule>;
 export type NavSection = ReturnType<typeof createNavSection>;
 export type NavLink = ReturnType<typeof createNavLink>["data"] | undefined;

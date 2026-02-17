@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { ResetInventories } from "./reset-inventories";
 import { Tabs } from "@gnd/ui/composite";
 import { Building2, Home, Users2 } from "lucide-react";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 // import { Tabs } from "@gnd/ui/custom/tabs";
 export function CommunityTabs() {
     function CustomTab({

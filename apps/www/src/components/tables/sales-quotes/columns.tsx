@@ -9,7 +9,7 @@ import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { cells } from "@gnd/ui/custom/data-table/cells";
 import { Button } from "@gnd/ui/button";
-import { Icons } from "@gnd/ui/custom/icons";
+import { Icons } from "@gnd/ui/icons";
 import { printQuote } from "@/utils/sales-invoice";
 import { Download } from "lucide-react";
 
@@ -57,7 +57,7 @@ export const columns: ColumnDef<Item>[] = [
             <TCell.Primary
                 className={cn(
                     item.isBusiness && "text-blue-700",
-                    "whitespace-nowrap uppercase"
+                    "whitespace-nowrap uppercase",
                 )}
             >
                 <TextWithTooltip
