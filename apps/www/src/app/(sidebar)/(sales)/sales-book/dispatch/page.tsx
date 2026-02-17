@@ -23,7 +23,7 @@ export default async function Page(props: Props) {
     const searchParams = await props.searchParams;
     const filter = loadDispatchFilterParams(searchParams);
     batchPrefetch([
-        (trpc.dispatch.index as any).infiniteQueryOptions({
+        trpc.dispatch.index.infiniteQueryOptions({
             ...filter,
         }),
     ]);

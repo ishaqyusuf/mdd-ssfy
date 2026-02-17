@@ -16,14 +16,14 @@ import { qtyMatrixDifference, recomposeQty } from "@sales/utils/sales-control";
 
 export async function getDispatches(
   ctx: TRPCContext,
-  query: DispatchQueryParamsSchema
+  query: DispatchQueryParamsSchema,
 ) {
   const { db } = ctx;
-  query.sort = "dueDate,createdAt";
+  query.sort = ["dueDate", "createdAt"];
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereDispatch(query),
-    db.orderDelivery
+    db.orderDelivery,
   );
   const data = await db.orderDelivery.findMany({
     where,
@@ -77,7 +77,7 @@ export async function getDispatches(
         ...a,
         uid: String(a.id),
       };
-    })
+    }),
   );
 }
 
@@ -107,7 +107,7 @@ export async function getSalesDeliveryInfo(ctx: TRPCContext, salesId) {
 }
 export async function updateSalesDeliveryOption(
   ctx: TRPCContext,
-  data: UpdateSalesDeliveryOptionSchema
+  data: UpdateSalesDeliveryOptionSchema,
 ) {
   if (data.option && !data.deliveryId) {
     await ctx.db.salesOrders.update({
@@ -175,7 +175,7 @@ export async function updateSalesDeliveryOption(
 
 export async function getDispatchOverview(
   ctx: TRPCContext,
-  query: SalesDispatchOverviewSchema
+  query: SalesDispatchOverviewSchema,
 ) {
   const result = await getSalesDispatchOverview(ctx.db, {
     salesId: query.salesId,
@@ -190,7 +190,7 @@ export async function getDispatchOverview(
     dispatch,
     dispatchItems: result.order.itemControls.map((item) => {
       const listedItems = dispatch?.items.filter(
-        (a) => a.item?.controlUid == item.uid
+        (a) => a.item?.controlUid == item.uid,
       );
       const totalListedQty = recomposeQty(
         qtyMatrixSum(
@@ -199,23 +199,23 @@ export async function getDispatchOverview(
               d.items
                 .filter((i) => i.item.controlUid === item.uid)
                 .map(transformQtyHandle)
-                .flat()
+                .flat(),
             )
-            .flat()
-        )
+            .flat(),
+        ),
       );
       const trs = listedItems?.map(transformQtyHandle);
       const listedQty = qtyMatrixSum(...(trs || ([] as any)));
 
       const dispatchable = result.dispatchables.find((d) => d.uid === item.uid);
       const deliverableQty = recomposeQty(
-        qtyMatrixSum(...(dispatchable?.deliverables?.map((a) => a.qty) || []))
+        qtyMatrixSum(...(dispatchable?.deliverables?.map((a) => a.qty) || [])),
       );
       const nonDeliverableQty = recomposeQty(
         qtyMatrixDifference(
           dispatchable?.totalQty!,
-          qtyMatrixSum(deliverableQty, totalListedQty)
-        )
+          qtyMatrixSum(deliverableQty, totalListedQty),
+        ),
       );
       let packingHistory = listedItems?.map((a) => ({
         qty: transformQtyHandle(a),
@@ -231,14 +231,16 @@ export async function getDispatchOverview(
             !p.packingUid ||
             (p.packingUid &&
               packingHistory?.findIndex((a) => a.packingUid === p.packingUid) ==
-                o)
+                o),
         )
         .map((d) => ({
           ...d,
           qty: !d.packingUid
             ? d.qty
             : qtyMatrixSum(
-                ...packingHistory?.filter((p) => p.packingUid === d.packingUid)!
+                ...packingHistory?.filter(
+                  (p) => p.packingUid === d.packingUid,
+                )!,
               ),
         }));
       return {
