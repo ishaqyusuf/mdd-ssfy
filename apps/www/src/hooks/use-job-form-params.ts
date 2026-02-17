@@ -29,7 +29,18 @@ export function useJobFormParams() {
         userId: params._userId,
         modelId: params._modelId,
         // setParams,
-        setParams: (newParams) => {
+        setParams: (
+            newParams: {
+                step?: number;
+                redirectStep?: number;
+                projectId?: number;
+                jobId?: number;
+                unitId?: number;
+                taskId?: number;
+                userId?: number;
+                modelId?: number;
+            } | null,
+        ) => {
             if (!newParams) setParams(null);
             else
                 setParams(
@@ -47,6 +58,7 @@ export function useJobFormParams() {
                 );
         },
         opened,
+        // open()
     };
 }
 

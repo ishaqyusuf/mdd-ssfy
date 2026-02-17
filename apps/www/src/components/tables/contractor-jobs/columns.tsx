@@ -15,6 +15,9 @@ import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { DeleteButton } from "@/components/delete-button";
 import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 import { TableMenuTrigger } from "@/components/table-menu-trigger";
+import { EditButton } from "@/components/edit-button";
+import { useJobFormParams } from "@/hooks/use-job-form-params";
+import { useJobRole } from "@/hooks/use-job-role";
 
 export type Item = RouterOutputs["jobs"]["getJobs"]["data"][number];
 interface ItemProps {
@@ -114,8 +117,22 @@ export const columns: Column[] = [
 
 function Actions({ item }: ItemProps) {
     const isMobile = useIsMobile();
+    const { setParams } = useJobFormParams();
+    const isAdmin = useJobRole().isAdmin;
     return (
         <div className="relative flex items-center justify-end gap-2 z-10">
+            <EditButton
+                onClick={(e) => {
+                    setParams({
+                        jobId: item.id,
+                        step: isAdmin ? 5 : 4,
+                        projectId: item?.project?.id,
+                        unitId: item?.home?.id,
+                        modelId: item?.home?.communityTemplateId,
+                        taskId: item?.builderTaskId || -1,
+                    });
+                }}
+            />
             <DeleteButton
                 // size="xs"
                 size="sm"

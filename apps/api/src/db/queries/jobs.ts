@@ -60,6 +60,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
       amount: true,
       controlId: true,
       isCustom: true,
+      builderTaskId: true,
       coWorker: {
         select: {
           name: true,
@@ -96,6 +97,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
           lotBlock: true,
           id: true,
           modelName: true,
+          communityTemplateId: true,
         },
       },
       jobInstallTasks: {

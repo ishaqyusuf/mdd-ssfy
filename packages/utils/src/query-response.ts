@@ -44,7 +44,7 @@ export function queryMeta(query?: any, sortFn?) {
   const take = query.size ? Number(query.size) : 20;
   const { cursor = 0 } = query;
   // const [sort, sortOrder = "desc"] = (query.sort || "createdAt").split(".");
-  const multiSorts = query.sort;
+  const multiSorts = query.sort?.split(",");
   const [sort, sortOrder = "desc"] = (query.sort?.[0] || "createdAt")?.split(
     ".",
   );
@@ -52,7 +52,7 @@ export function queryMeta(query?: any, sortFn?) {
   //query.sort?.split(",");
   let orderBy =
     multiSorts?.length > 1
-      ? multiSorts.map((ms) => {
+      ? multiSorts?.map((ms) => {
           const [sort, _sortOrder] = ms.split(".");
 
           return (

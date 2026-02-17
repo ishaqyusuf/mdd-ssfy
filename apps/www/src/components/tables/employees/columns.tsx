@@ -25,6 +25,7 @@ import { useTable } from "@gnd/ui/data-table";
 import { useProfilesList, useRolesList } from "@/hooks/use-data-list";
 import { useState } from "react";
 import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
+import { EditButton } from "@/components/edit-button";
 
 export type Item = RouterOutputs["hrm"]["getEmployees"]["data"][number];
 interface ItemProps {
@@ -136,17 +137,13 @@ function Action({ item }: { item: Item }) {
     }
     return (
         <div className="relative flex items-center gap-2 z-10">
-            <Button
-                size="sm"
-                variant="outline"
+            <EditButton
                 onClick={(e) => {
                     setParams({
                         editEmployeeId: item.id,
                     });
                 }}
-            >
-                <Icons.Edit className="h-4 w-4" />
-            </Button>
+            />
             <Menu>
                 <Menu.Item
                     onClick={(e) => {

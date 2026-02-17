@@ -627,17 +627,8 @@ export function handleNumberInput(input, min?, max?) {
     max === undefined || num <= max || max === Number.POSITIVE_INFINITY;
   const isMin = min === undefined || num >= min;
   const isNan = Number.isNaN(num);
-  console.log({
-    num,
-    min,
-    max,
-    isMax,
-    isMin,
-    isNan,
-  });
+
   if (!isNan && isMin && isMax) {
-    //  onChange?.(num);
-    console.log({ num });
     return num;
   }
   if (input === "") return null;

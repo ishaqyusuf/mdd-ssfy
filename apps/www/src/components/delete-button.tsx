@@ -8,7 +8,7 @@ import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useMutation } from "@tanstack/react-query";
-import { ComponentProps, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 interface Props<R extends Routes> {
     route: R;
@@ -68,6 +68,7 @@ export function DeleteButton<R extends Routes>(props: Props<R>) {
         <SubmitButton
             // variant="destructive"
             size={size as any}
+            type="button"
             disabled={props.disabled || isDeleting}
             onClick={async () => {
                 if (!confirm) {
