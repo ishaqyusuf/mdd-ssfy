@@ -1,18 +1,13 @@
 "use client";
 
+import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { useTRPC } from "@/trpc/client";
-
-import { TableProvider, useTableData } from "..";
+import { Table, useTableData } from "@gnd/ui/data-table";
 import { Addon, columns, driverColumns, mobileColumn } from "./columns";
-import { Table, TableBody } from "@gnd/ui/table";
-import { TableHeaderComponent } from "../table-header";
-import { TableRow } from "../table-row";
-import { LoadMoreTRPC } from "../load-more";
-import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { BatchActions } from "./batch-actions";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
-import { useQuery } from "@gnd/ui/tanstack";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { useDriversList } from "@/hooks/use-data-list";
 
 export function DataTable({ driver = false }) {
     const trpc = useTRPC();
@@ -21,16 +16,20 @@ export function DataTable({ driver = false }) {
         filter: filters,
         route: driver ? trpc.dispatch.assignedDispatch : trpc.dispatch.index,
     });
-    const { setParams: setSalesPreviewParams } = useSalesPreview();
-    const { data: drivers } = useQuery(trpc.hrm.getDrivers.queryOptions({}));
+    // const { setParams: setSalesPreviewParams } = useSalesPreview();
+    const drivers = useDriversList(true);
     // const ctx = use
     const addons: Addon = {
         drivers: drivers || [],
         driverMode: !!driver,
     };
+    const tableScroll = useTableScroll({
+        useColumnWidths: true,
+        startFromColumn: 2,
+    });
     const ctx = useSalesOverviewQuery();
     return (
-        <TableProvider
+        <Table.Provider
             args={[
                 {
                     addons,
@@ -38,6 +37,7 @@ export function DataTable({ driver = false }) {
                     data,
                     mobileColumn: driver ? null : mobileColumn,
                     checkbox: true,
+                    tableScroll,
                     tableMeta: {
                         deleteAction(id) {
                             // deleteStudent.execute({
@@ -63,16 +63,14 @@ export function DataTable({ driver = false }) {
         >
             <div className="flex flex-col gap-4">
                 <Table>
-                    <TableHeaderComponent />
-                    <TableBody>
-                        <TableRow />
-                    </TableBody>
+                    <Table.TableHeader />
+                    <Table.Body>
+                        <Table.TableRow />
+                    </Table.Body>
                 </Table>
-                {!hasNextPage || (
-                    <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />
-                )}
+                <Table.LoadMore />
                 <BatchActions />
             </div>
-        </TableProvider>
+        </Table.Provider>
     );
 }

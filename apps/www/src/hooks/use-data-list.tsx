@@ -39,3 +39,18 @@ export function useEmployeesList(enabled = false) {
     return employees?.data || [];
 }
 
+export function useDriversList(enabled = false) {
+    const { data: drivers } = useQuery(
+        useTRPC().hrm.getEmployees.queryOptions(
+            {
+                can: ["viewDelivery"],
+                cannot: ["editOrders"],
+            },
+            {
+                enabled,
+            },
+        ),
+    );
+    return drivers?.data || [];
+}
+

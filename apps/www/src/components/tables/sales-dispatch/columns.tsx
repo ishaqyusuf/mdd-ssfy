@@ -1,13 +1,10 @@
 "use client";
 
 import { ColumnDef } from "@/types/type";
-import { ActionCell } from "../action-cell";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Progress } from "@gnd/ui/custom/progress";
 import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
-import { Icons } from "@gnd/ui/icons";
-import { Button } from "@gnd/ui/button";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { useState } from "react";
 import { DatePicker } from "@/components/_v1/date-range-picker";
@@ -16,30 +13,15 @@ import { toast } from "@gnd/ui/use-toast";
 import { Menu } from "@/components/(clean-code)/menu";
 import { salesDispatchStatus } from "@gnd/utils/constants";
 import { getColorFromName } from "@/lib/color";
-import { useTable } from "..";
 import { useQueryClient } from "@gnd/ui/tanstack";
 import { useTRPC } from "@/trpc/client";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { Card, CardContent, CardHeader } from "@gnd/ui/card";
-import {
-    Calendar,
-    Clock,
-    MapPin,
-    MoreVertical,
-    Package,
-    Phone,
-    Truck,
-    User,
-} from "lucide-react";
-import { Badge } from "@gnd/ui/badge";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@gnd/ui/dropdown-menu";
+import { Calendar, Clock, MapPin, Package, Phone, Truck } from "lucide-react";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";
 import { getInitials } from "@/utils/format";
+import { useTable } from "@gnd/ui/data-table";
 
 export type Item = RouterOutputs["dispatch"]["index"]["data"][number];
 export type Addon = {
@@ -56,20 +38,7 @@ const status: ColumnDef<Item> = {
 };
 function Status({ item, admin }: { item: Item; admin?: boolean }) {
     const [status, setStatus] = useState(item.status);
-    const deliveryUpdate = useSalesDeliveryUpdate({
-        salesId: item?.order?.id,
-        defaultOption: item?.deliveryMode,
-        deliveryId: item?.id,
-        onSuccess(data, variable, context) {
-            toast({
-                duration: 2000,
-                variant: "success",
-                description: "Dispatch status updated",
-                title: "Updated!",
-            });
-            setStatus(variable.status);
-        },
-    });
+
     return (
         <Menu
             Icon={null}
@@ -83,9 +52,9 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
             {salesDispatchStatus.map((__status) => (
                 <Menu.Item
                     onClick={(e) => {
-                        deliveryUpdate.update({
-                            status: __status,
-                        });
+                        // deliveryUpdate.update({
+                        //     status: __status,
+                        // });
                     }}
                     key={__status}
                 >
@@ -116,19 +85,7 @@ function ScheduleDate({ item, editable }: { item: Item; editable?: boolean }) {
     const ctx = useTable();
     const addon: Addon = ctx?.addons;
     const driverMode = addon?.driverMode;
-    const deliveryUpdate = useSalesDeliveryUpdate({
-        salesId: item?.order?.id,
-        defaultOption: item?.deliveryMode,
-        deliveryId: item?.id,
-        onSuccess() {
-            toast({
-                duration: 2000,
-                variant: "success",
-                description: "Dispatch Date Updated",
-                title: "Updated!",
-            });
-        },
-    });
+
     return (
         <TCell.Secondary className="font-mono$">
             <div className="w-32">
@@ -146,9 +103,9 @@ function ScheduleDate({ item, editable }: { item: Item; editable?: boolean }) {
                         hideIcon
                         value={date}
                         onSelect={(e) => {
-                            deliveryUpdate.update({
-                                date: e,
-                            });
+                            // deliveryUpdate.update({
+                            //     date: e,
+                            // });
                         }}
                         variant="secondary"
                         className="w-auto"
@@ -163,9 +120,9 @@ function Action({ item, driverMode }: { item: Item; driverMode?: boolean }) {
     const { setParams: setSalesPreviewParams } = useSalesPreview();
     const ctx = useSalesOverviewQuery();
     return (
-        <ActionCell itemId={item.id}>
+        <div className="flex items-center justify-end">
             <ActionMenu item={item} />
-        </ActionCell>
+        </div>
     );
 }
 const order: ColumnDef<Item> = {
@@ -245,9 +202,9 @@ const assignedTo: ColumnDef<Item> = {
                 {addon?.drivers?.map((driver) => (
                     <Menu.Item
                         onClick={(e) => {
-                            deliveryUpdate.update({
-                                driverId: driver.id,
-                            });
+                            // deliveryUpdate.update({
+                            //     driverId: driver.id,
+                            // });
                         }}
                         key={driver?.id}
                     >

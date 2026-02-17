@@ -2,7 +2,11 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 
 export function useSalesCreateDispatch() {
-    const { mutate: createDispatch, data } = useMutation(
+    const {
+        mutate: createDispatch,
+        data,
+        isPending: isCreating,
+    } = useMutation(
         useTRPC().dispatch.createDispatch.mutationOptions({
             onSuccess(data) {
                 console.log("created dispatch", data);
@@ -15,6 +19,7 @@ export function useSalesCreateDispatch() {
     return {
         createDispatch,
         data,
+        isCreating,
     };
 }
 

@@ -153,7 +153,6 @@ export function validateRules(accessList: Access[], can?, userId?, _role?) {
                     case "notIn":
                         return a.values.every((p) => !can?.[p]);
                 }
-                break;
             case "role":
                 switch (a.equator) {
                     case "every":
@@ -166,7 +165,6 @@ export function validateRules(accessList: Access[], can?, userId?, _role?) {
                     case "notIn":
                         return a.values.every((p) => role !== p);
                 }
-                break;
         }
 
         return true;
@@ -501,7 +499,8 @@ export const linkModules = [
             _link("Dispatch", "delivery2", "/sales-books/quotes", [
                 _subLink("Dispatch Task", "/sales-book/dispatch-task").access(
                     _perm.is("editDelivery"),
-                    _perm.isNot("editOrders"),
+                    _perm.isNot("viewOrders"),
+                    _role.isNot("Super Admin"),
                 ).data,
                 _subLink("Delivery", "/sales-book/dispatch").access(
                     _perm.is("editDelivery"),

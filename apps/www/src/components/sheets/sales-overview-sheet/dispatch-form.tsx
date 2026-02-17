@@ -5,11 +5,11 @@ import { useEffect } from "react";
 import { SalesDispatchStatus } from "@/app-deps/(clean-code)/(sales)/types";
 import { DatePicker } from "@/components/(clean-code)/custom/controlled/date-picker";
 import FormSelect from "@/components/common/controls/form-select";
-
 import { Form } from "@gnd/ui/form";
-
 import { useDispatch } from "./context";
-import { DispatchFormFooter } from "./dispatch-form-footer";
+import { SubmitButton } from "@gnd/ui/submit-button";
+import { Button } from "@gnd/ui/button";
+import { useSalesCreateDispatch } from "@/hooks/use-create-sales-dispatch";
 
 interface DispatchFormProps {
     dispatch?: any;
@@ -21,7 +21,7 @@ export function DispatchForm({ dispatch, onSubmit }: DispatchFormProps) {
     const ctx = useDispatch();
 
     const { form } = useDispatch();
-
+    const { createDispatch, isCreating } = useSalesCreateDispatch();
     useEffect(() => {
         if (ctx.data) {
             form.reset({
@@ -80,7 +80,23 @@ export function DispatchForm({ dispatch, onSubmit }: DispatchFormProps) {
                         }
                     />
                 </div>
-                <DispatchFormFooter />
+                <div className="flex justify-end space-x-2">
+                    <Button
+                        //    isSubmitting={ctx?.bachWorker?.executing}
+                        type="button"
+                        variant="outline"
+                    >
+                        Cancel
+                    </Button>
+                    <SubmitButton
+                        onClick={(e) => {
+                            //    createDispatch({});
+                        }}
+                        type="submit"
+                    >
+                        Create Dispatch
+                    </SubmitButton>
+                </div>
             </form>
         </Form>
     );
