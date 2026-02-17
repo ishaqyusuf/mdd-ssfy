@@ -125,12 +125,9 @@ function Actions({ item }: ItemProps) {
                     invalidateInfiniteQueries("jobs.getJobs");
                 }}
             />
-            <Menu
-                triggerSize={isMobile ? "default" : "sm"}
-                Trigger={<TableMenuTrigger />}
-            >
+            {/* <Menu Trigger={<TableMenuTrigger />}>
                 <Menu.Item SubMenu={<></>}>Mark as</Menu.Item>
-            </Menu>
+            </Menu> */}
         </div>
     );
 }
