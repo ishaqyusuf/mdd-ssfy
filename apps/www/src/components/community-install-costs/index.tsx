@@ -41,7 +41,13 @@ export default function CommunityInstallCostRate() {
                     </Table.Row>
                 </Table.Header>
                 <Table.Body>
-                    <InstallCostLine rate={{} as any} />
+                    <InstallCostLine
+                        rate={
+                            {
+                                id: -1,
+                            } as any
+                        }
+                    />
                     {ctx?.communityInstallCostRates?.map((rate, index) => (
                         <InstallCostLine key={rate.id} rate={rate} />
                     ))}

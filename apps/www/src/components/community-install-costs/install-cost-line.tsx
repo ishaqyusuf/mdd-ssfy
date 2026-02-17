@@ -56,6 +56,7 @@ function Form({ rate }) {
     const form = useZodForm(communityInstallCostRateSchema, {
         defaultValues: {
             ...rate,
+            id: rate.id == -1 ? null : rate.id,
         },
     });
     const { mutate: handleUpdate, isPending: isUpdating } = useMutation(
