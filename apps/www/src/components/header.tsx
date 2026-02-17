@@ -25,18 +25,27 @@ export function Header() {
                 </div>
                 <div
                     id="headerTitleSlot"
-                    className="flex items-center space-x-1"
+                    className="hidden md:flex items-center space-x-1"
                 />
-                <div id="headerNav" className="flex items-center space-x-1" />
+                <div
+                    id="headerNav"
+                    className="hidden md:flex items-center space-x-1"
+                />
                 <div
                     id="breadCrumb"
-                    className="flex items-center space-x-1"
+                    className="hidden md:flex items-center space-x-1"
                 ></div>
                 <OpenSearchButton />
 
                 <div className="flex-1"></div>
-                <div className="mx-4 flex gap-4 " id="navRightSlot"></div>
-                <div className="inline-flex gap-4" id="actionNav"></div>
+                <div
+                    className="hidden md:flex mx-4  gap-4 "
+                    id="navRightSlot"
+                ></div>
+                <div
+                    className="hidden md:inline-flex gap-4"
+                    id="actionNav"
+                ></div>
                 <NotificationCenter />
                 <UserNav />
             </header>
