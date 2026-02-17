@@ -164,32 +164,7 @@ function Action({ item, driverMode }: { item: Item; driverMode?: boolean }) {
     const ctx = useSalesOverviewQuery();
     return (
         <ActionCell itemId={item.id}>
-            <Menu>
-                <Menu.Item
-                    onClick={(e) => {
-                        ctx.openDispatch(
-                            item?.order?.orderId,
-                            item.id,
-                            "packing",
-                        );
-                    }}
-                    icon="packingList"
-                >
-                    Packing
-                </Menu.Item>
-                <Menu.Item
-                    icon="production"
-                    onClick={(e) => {
-                        ctx.openDispatch(
-                            item?.order?.orderId,
-                            item.id,
-                            "production",
-                        );
-                    }}
-                >
-                    Production
-                </Menu.Item>
-            </Menu>
+            <ActionMenu item={item} />
         </ActionCell>
     );
 }
@@ -333,6 +308,33 @@ export const mobileColumn: ColumnDef<Item>[] = [
         },
     },
 ]; // SalesItemCard.tsx
+function ActionMenu({ item }: { item: Item }) {
+    const ctx = useSalesOverviewQuery();
+    return (
+        <Menu>
+            <Menu.Item
+                onClick={(e) => {
+                    ctx.openDispatch(item?.order?.orderId, item.id, "packing");
+                }}
+                icon="packingList"
+            >
+                Packing
+            </Menu.Item>
+            <Menu.Item
+                icon="production"
+                onClick={(e) => {
+                    ctx.openDispatch(
+                        item?.order?.orderId,
+                        item.id,
+                        "production",
+                    );
+                }}
+            >
+                Production
+            </Menu.Item>
+        </Menu>
+    );
+}
 export function SalesItemCard({ item: dispatch }: { item: Item }) {
     const ctx = useSalesOverviewQuery();
 
@@ -365,64 +367,7 @@ export function SalesItemCard({ item: dispatch }: { item: Item }) {
                             <Progress.Status>{dispatch.status}</Progress.Status>
                         </Progress>
 
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0"
-                                >
-                                    <MoreVertical className="h-4 w-4" />
-                                    <span className="sr-only">Open menu</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuItem
-                                    onClick={() => {
-                                        //  handleMenuAction(
-                                        //      dispatch.id,
-                                        //      "set-schedule",
-                                        //  );
-                                    }}
-                                >
-                                    <Calendar className="mr-2 h-4 w-4" />
-                                    Set Schedule Date
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => {
-                                        //   handleMenuAction(
-                                        //       dispatch.id,
-                                        //       "assign",
-                                        //   );
-                                    }}
-                                >
-                                    <User className="mr-2 h-4 w-4" />
-                                    Assign To
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => {
-                                        // handleMenuAction(
-                                        //     dispatch.id,
-                                        //     "update-status",
-                                        // );
-                                    }}
-                                >
-                                    <Package className="mr-2 h-4 w-4" />
-                                    Update Status
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => {
-                                        //  handleMenuAction(
-                                        //      dispatch.id,
-                                        //      "preview",
-                                        //  );
-                                    }}
-                                >
-                                    <Clock className="mr-2 h-4 w-4" />
-                                    Preview
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <ActionMenu item={dispatch} />
                     </div>
                 </div>
             </CardHeader>
