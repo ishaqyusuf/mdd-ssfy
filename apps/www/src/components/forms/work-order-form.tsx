@@ -109,7 +109,6 @@ export function WorkOrderForm({ data }: Props) {
 
                     comboProps={{
                         onSelect(item) {
-                            console.log(item);
                             form.setValue("lot", null);
                             form.setValue("block", null);
                             form.setValue("meta.lotBlock", null);
@@ -117,7 +116,7 @@ export function WorkOrderForm({ data }: Props) {
                         items: projectList?.map((a) => ({
                             label: a.title,
                             id: a.title,
-                            // disabled: !a.active,
+                            disabled: !a.active,
                         })),
                     }}
                 />
