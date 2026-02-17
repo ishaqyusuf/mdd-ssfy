@@ -20,6 +20,8 @@ import {
   submitDispatchTask,
   updateSalesControlSchema,
 } from "@sales/exports";
+import type { SalesDispatchStatus } from "@sales/types";
+import type { DeliveryOption } from "@gnd/utils/sales";
 
 export const dispatchRouters = createTRPCRouter({
   index: publicProcedure
@@ -62,7 +64,7 @@ export const dispatchRouters = createTRPCRouter({
     .input(
       z.object({
         salesId: z.number().nullable().optional(),
-      })
+      }),
     )
     .query(async (props) => {
       return getSalesDeliveryInfo(props.ctx, props.input.salesId);
@@ -79,5 +81,41 @@ export const dispatchRouters = createTRPCRouter({
     .input(salesDispatchOverviewSchema)
     .query(async (props) => {
       return getDispatchOverview(props.ctx, props.input);
+    }),
+  createDispatch: publicProcedure
+    .input(
+      z.object({
+        salesId: z.number(),
+        deliveryMode: z.string(),
+        dueDate: z.date(),
+        driverId: z.number().nullable().optional(),
+        status: z.string().optional(),
+      }),
+    )
+    .mutation(async (props) => {
+      const { salesId, deliveryMode, dueDate, driverId, status } = props.input;
+      return props.ctx.db.orderDelivery.create({
+        data: {
+          deliveryMode: deliveryMode || ("delivery" as DeliveryOption),
+          createdBy: {
+            connect: {
+              id: props.ctx.userId!,
+            },
+          },
+          driver: driverId
+            ? {
+                connect: {
+                  id: driverId,
+                },
+              }
+            : undefined,
+          status: status || ("queue" as SalesDispatchStatus),
+          dueDate,
+          meta: {},
+          order: {
+            connect: { id: salesId },
+          },
+        },
+      });
     }),
 });

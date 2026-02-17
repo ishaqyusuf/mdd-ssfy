@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { getCachedProductionUsers } from "@/actions/cache/get-cached-production-users";
 
@@ -6,7 +6,7 @@ import {
     createSalesDispatchItemsSchema,
     createSalesDispatchSchema,
 } from "@/actions/schema";
-import { useSalesControlAction } from "@/hooks/use-sales-control-action";
+
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { timeout } from "@/lib/timeout";
 import createContextFactory from "@/utils/context-factory";
@@ -14,9 +14,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useAsyncMemo } from "use-async-memo";
 import z from "zod";
-
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
+import { useZodForm } from "@/hooks/use-zod-form";
 
 const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
     createContextFactory(function () {
@@ -29,8 +29,8 @@ const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
                 },
                 {
                     enabled: !!ctx.params["sales-overview-id"],
-                }
-            )
+                },
+            ),
         );
         console.log({ data });
         return {
@@ -43,7 +43,7 @@ const { useContext: useDispatch, Provider: DispatchProvider } =
         const ctx = useSalesOverviewQuery();
         const trpc = useTRPC();
         const { data: drivers } = useQuery(
-            trpc.hrm.getDrivers.queryOptions({})
+            trpc.hrm.getDrivers.queryOptions({}),
         );
         const { data, refetch } = useQuery(
             trpc.dispatch.orderDispatchOverview.queryOptions(
@@ -52,19 +52,16 @@ const { useContext: useDispatch, Provider: DispatchProvider } =
                 },
                 {
                     enabled: !!ctx.params["sales-overview-id"],
-                }
-            )
+                },
+            ),
         );
         const [openForm, setOpenForm] = useState(false);
-        const bachWorker = useSalesControlAction({
-            onFinish() {},
-        });
+
         const formSchema = z.object({
             delivery: createSalesDispatchSchema,
             itemData: createSalesDispatchItemsSchema,
         });
-        const form = useForm<z.infer<typeof formSchema>>({
-            resolver: zodResolver(formSchema),
+        const form = useZodForm(formSchema, {
             defaultValues: {
                 delivery: {
                     deliveryMode: "delivery",
@@ -85,7 +82,6 @@ const { useContext: useDispatch, Provider: DispatchProvider } =
                 ...a,
                 id: a.id?.toString(),
             })),
-            bachWorker,
         };
     });
 
@@ -112,8 +108,8 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
                 },
                 {
                     enabled: !!ctx.params["sales-overview-id"],
-                }
-            )
+                },
+            ),
         );
         const [selections, setSelections] = useState({});
 

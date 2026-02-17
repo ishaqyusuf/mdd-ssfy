@@ -4,7 +4,7 @@ import { prisma } from "@/db";
 import { QtyControlType } from "@gnd/utils/sales";
 import { updateSalesStatAction } from "./update-sales-stat";
 import { createNoteAction } from "@/modules/notes/actions/create-note-action";
-import { createSalesDispatch } from "./create-sales-dispatch-action";
+
 import { SalesDispatchStatus } from "@api/type";
 
 export async function markSalesDispatchAsComplete(id) {
@@ -35,12 +35,12 @@ export async function markSalesDispatchAsComplete(id) {
         },
     });
     const delivery = order?.deliveries?.[0];
-    if (!delivery) {
-        const d = await createSalesDispatch({
-            deliveryMode: order?.deliveryOption as any,
-            orderId: id,
-        });
-    }
+    // if (!delivery) {
+    //     const d = await createSalesDispatch({
+    //         deliveryMode: order?.deliveryOption as any,
+    //         orderId: id,
+    //     });
+    // }
     await markSalesAsCompleted(id, ["prodCompleted", "dispatchCompleted"]);
     await createNoteAction({
         type: "dispatch",
