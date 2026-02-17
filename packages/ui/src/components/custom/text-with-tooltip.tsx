@@ -6,6 +6,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../tooltip";
+import { cn } from "../../utils";
 
 interface TextWithTooltipProps {
   text: string | number;
@@ -35,7 +36,7 @@ export function TextWithTooltip({ text, className }: TextWithTooltipProps) {
   // REMiNDER: check if that is the correct way to handle this
   if (!isTruncated)
     return (
-      <div ref={textRef} className={`truncate ${className}`}>
+      <div ref={textRef} className={cn("truncate", className)}>
         {text}
       </div>
     );
@@ -45,7 +46,7 @@ export function TextWithTooltip({ text, className }: TextWithTooltipProps) {
       <Tooltip>
         <TooltipTrigger asChild>
           {/* <div className="inline-flex"> */}
-          <span ref={textRef} className={`truncate ${className}`}>
+          <span ref={textRef} className={cn("truncate", className)}>
             {text}
           </span>
           {/* {String(text)?.slice(-5)} */}
