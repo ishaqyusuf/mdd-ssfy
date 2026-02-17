@@ -10,6 +10,8 @@ export const channelNames = [
   "sales_dispatch_completed",
   "sales_dispatch_cancelled",
   "sales_back_order",
+  "sales_dispatch_assigned",
+  "sales_dispatch_late",
   "sales_production_assigned",
   "sales_production_unassigned",
   "sales_production_started",
