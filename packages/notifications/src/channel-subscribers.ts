@@ -111,8 +111,8 @@ export async function getSubscribersForNotificationType(
 
         await db.notePadContacts.create({
           data: {
-            name: u.email,
-            email: u.email,
+            // name: u.email,
+            // email: u.email,
             role: "employee",
             profileId: u.id,
           },
@@ -160,7 +160,8 @@ export async function getSubscribersForNotificationType(
 
     subscribers.push({
       email: user.email,
-      id: user.id,
+      id: contact.id,
+      profileId: user.id,
       name: user.name!,
       role: "employee",
       emailNotification: prefs?.emailEnabled ?? channel.emailSupport ?? false,
@@ -173,6 +174,88 @@ export async function getSubscribersForNotificationType(
   return subscribers;
 }
 
+export async function getSubscriberAccount(
+  db: Db,
+  profileId: number,
+  role: "employee" | "customer",
+): Promise<{
+  id: number;
+  profileId: number;
+  name: string;
+  email?: string;
+  phoneNo?: string;
+  role?: "employee" | "customer";
+} | null> {
+  // ── 1. Resolve email from the correct table ──────────────────────────────
+  let email: string | null | undefined;
+  let name: string | null | undefined;
+  if (role === "employee") {
+    const user = await db.users.findFirst({
+      where: { id: profileId, deletedAt: null },
+      select: { email: true, name: true },
+    });
+    email = user?.email;
+    name = user?.name;
+  } else {
+    const customer = await db.customers.findFirst({
+      where: { id: profileId, deletedAt: null },
+      select: { email: true, name: true, businessName: true },
+    });
+    email = customer?.email;
+    name = customer?.name || customer?.businessName;
+  }
+
+  if (!email) return null;
+
+  // ── 3. Find or create the NotePadContact ─────────────────────────────────
+  let contact = await db.notePadContacts.findFirst({
+    where: { profileId, role, deletedAt: null },
+    select: {
+      id: true,
+      //   assignedChannels: {
+      //     where: { noteChannelId: channel.id },
+      //     select: {
+      //       emailEnabled: true,
+      //       inAppEnabled: true,
+      //       whatsappEnabled: true,
+      //     },
+      //   },
+    },
+  });
+
+  if (!contact) {
+    contact = await db.notePadContacts.create({
+      data: {
+        // name: email,
+        // email,
+        role,
+        profileId,
+      },
+      select: {
+        id: true,
+        // assignedChannels: {
+        //   where: { noteChannelId: channel.id },
+        //   select: {
+        //     emailEnabled: true,
+        //     inAppEnabled: true,
+        //     whatsappEnabled: true,
+        //   },
+        // },
+      },
+    });
+  }
+
+  // ── 4. Resolve prefs — contact assignment first, channel defaults as fallback
+  //   const prefs = contact.assignedChannels[0];
+
+  return {
+    email,
+    id: contact.id,
+    name: name!,
+    role,
+    profileId: profileId,
+  };
+}
 export async function getSubscribersForNotificationTypeByIds(
   db: Db,
   notificationType: string,
@@ -218,6 +301,7 @@ export async function getSubscribersForNotificationTypeByIds(
     where: { profileId, role, deletedAt: null },
     select: {
       id: true,
+      profileId: true,
       assignedChannels: {
         where: { noteChannelId: channel.id },
         select: {
@@ -232,13 +316,14 @@ export async function getSubscribersForNotificationTypeByIds(
   if (!contact) {
     contact = await db.notePadContacts.create({
       data: {
-        name: email,
-        email,
+        // name: email,
+        // email,
         role,
         profileId,
       },
       select: {
         id: true,
+        profileId: true,
         assignedChannels: {
           where: { noteChannelId: channel.id },
           select: {
@@ -256,7 +341,8 @@ export async function getSubscribersForNotificationTypeByIds(
 
   return {
     email,
-    id: profileId,
+    id: contact.id,
+    profileId: contact.profileId!,
     name: name!,
     role,
     emailNotification: prefs?.emailEnabled ?? channel.emailSupport ?? false,

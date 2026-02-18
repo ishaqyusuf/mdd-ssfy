@@ -1,6 +1,7 @@
 import { ContactRole, Db, NoteStatus } from "@gnd/db";
 import { CreateActivityInput } from "./schemas";
 import { UserData } from "./base";
+import { getSubscriberAccount } from "./channel-subscribers";
 
 // const activityTypes = ["sales_checkout_success"] as const;
 const activityStatus = [] as const;
@@ -90,8 +91,8 @@ export async function getActivties(db: Db, params: GetActivitiesParams) {
       senderContact: {
         select: {
           id: true,
-          name: true,
-          email: true,
+          // name: true,
+          // email: true,
         },
       },
       tags: {
@@ -198,35 +199,7 @@ export const getContact = async (
   },
   role: ContactRole = "employee",
 ): Promise<UserData> => {
-  const contact = await db.notePadContacts.upsert({
-    where: {
-      name_email_phoneNo: {
-        email: email,
-        name: name!,
-        phoneNo: phoneNo!,
-      },
-    },
-    update: {
-      // profileId: id,
-      profileId: id,
-      role,
-    },
-    create: {
-      email: email,
-      name: name!,
-      phoneNo: phoneNo,
-      profileId: id,
-      role,
-    },
-  });
-
-  return {
-    id: contact.id,
-    name: contact.name,
-    email: contact.email!,
-
-    // phoneNo: contact.phoneNo,
-  };
+  return (await getSubscriberAccount(db, id!, role)) as UserData;
 };
 export const getContactId = async (
   db: Db,
@@ -293,8 +266,8 @@ export async function getChannelSubcribers(
           contact: {
             select: {
               id: true,
-              email: true,
-              name: true,
+              // email: true,
+              // name: true,
               profileId: true,
             },
           },
@@ -342,8 +315,8 @@ export async function getChannelSubcribers(
       },
       select: {
         id: true,
-        email: true,
-        name: true,
+        // email: true,
+        // name: true,
         profileId: true,
       },
     })),

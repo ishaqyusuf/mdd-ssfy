@@ -9,6 +9,7 @@ import { loginByTokenSchema } from "@api/schemas/hrm";
 import { consoleLog } from "@gnd/utils";
 import { getContact } from "@notifications/activities";
 import { sign } from "jsonwebtoken";
+import { getSubscriberAccount } from "@notifications/channel-subscribers";
 export const userRoutes = createTRPCRouter({
   // validateAuth: publicProcedure.input()
   getLoginByToken: publicProcedure
@@ -21,16 +22,17 @@ export const userRoutes = createTRPCRouter({
   }),
   notificationAccount: publicProcedure.query(async (props) => {
     const user = await auth(props.ctx);
-    const recipient = await getContact(
+    const recipient = (await getSubscriberAccount(
       props.ctx.db,
-      {
-        email: user?.email || "",
-        name: user?.name || "",
-        phoneNo: user?.phoneNo || "",
-        id: user.id,
-      },
+      user.id,
+      // {
+      //   email: user?.email || "",
+      //   name: user?.name || "",
+      //   phoneNo: user?.phoneNo || "",
+      //   id: user.id,
+      // },
       "employee",
-    );
+    ))!;
     return {
       id: recipient.id,
       email: recipient.email,
