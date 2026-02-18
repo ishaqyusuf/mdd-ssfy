@@ -32,12 +32,12 @@ export interface NotificationHandler<T = any> {
 export interface UserData {
   id: number;
   name: string;
-  // email: string | null;
   email?: string;
   phoneNo?: string;
-  // avatar_url?: string;
-  // team_id: string;
-  // role?: "owner" | "member";
+  role?: "employee" | "customer";
+  emailNotification: boolean;
+  inAppNotification: boolean;
+  whatsAppNotification: boolean;
 }
 
 // Combine template data with all Resend options using intersection type

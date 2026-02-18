@@ -108,14 +108,14 @@ export class InventoryImportService {
     for (const uid of preData.componentUids) {
       const component = stepData.stepProducts.find((a) => a.uid == uid);
       const depComponent = stepData.depsComponentsList.find(
-        (a) => a.uid === uid
+        (a) => a.uid === uid,
       );
       if (!depComponent && !component) continue;
       if (preData.inventories.find((i) => i.uid == uid)) {
         if (component) {
           this.prepareInventorySubCategories(
             uid,
-            component.subCategoriesComponentsUid
+            component.subCategoriesComponentsUid,
           );
           // if main component, generate component data.
           // images
@@ -148,7 +148,7 @@ export class InventoryImportService {
         // sub categories
         this.prepareInventorySubCategories(
           uid,
-          component.subCategoriesComponentsUid
+          component.subCategoriesComponentsUid,
         );
         // variants
         // variant pricings.
@@ -162,7 +162,7 @@ export class InventoryImportService {
       const component = stepData.stepProducts.find((a) => a.uid == uid);
       if (!component) continue;
       const pricings = stepData.step.priceSystem?.filter(
-        (p) => p?.stepProductUid === uid
+        (p) => p?.stepProductUid === uid,
       );
       for (let di = 0; di < pricings.length; di++) {
         const m = pricings[di]!;
@@ -172,15 +172,15 @@ export class InventoryImportService {
         )
           continue;
         const priceList = pricings.filter(
-          (a) => a.dependenciesUid == m.dependenciesUid
+          (a) => a.dependenciesUid == m.dependenciesUid,
         );
         this.#generateInventoryVariants(
           uid,
           m.dependenciesUid!,
-          priceList.filter((a) => ({
+          priceList.map((a) => ({
             price: a.price,
             date: a.createdAt,
-          }))
+          })),
         );
       }
     }
@@ -196,7 +196,7 @@ export class InventoryImportService {
     pricings: {
       price?;
       date?;
-    }[]
+    }[],
   ) {
     const oldVariant = this.#getVariant(uid, variantUid);
     const inventoryId = this.inventoryIdByUid(uid);
@@ -213,14 +213,14 @@ export class InventoryImportService {
           const { id: inventoryCategoryVariantAttributeId, ...rest } =
             this.#getInventoryCategoryVariantAttributeId(
               inventoryId,
-              valueInventoryId
+              valueInventoryId,
             );
 
           if (!valueInventoryId)
             this.#log(
               "inventoryVariantAttribute",
               `${uid} inventory`,
-              `inventory not found!`
+              `inventory not found!`,
             );
           if (
             !inventoryCategoryVariantAttributeId
@@ -232,7 +232,7 @@ export class InventoryImportService {
               //   "..."
               //  ...rest
               //   ""
-              rest
+              rest,
             );
 
           this.#addCreateData("inventoryVariantAttribute", {
@@ -254,7 +254,7 @@ export class InventoryImportService {
           newCostPrice: p?.price,
           oldCostPrice: pricings?.[pi - 1]?.price,
           effectiveFrom: p?.date,
-          effectiveTo: p?.[pi + 1]?.date,
+          effectiveTo: pricings?.[pi + 1]?.date,
         } as Prisma.PriceHistoryCreateManyInput);
       });
     }
@@ -268,7 +268,7 @@ export class InventoryImportService {
       this.#data.tables.inventoryCategoryVariantAttribute.createMany.find(
         (a) =>
           a.valuesInventoryCategoryId == valuesInventoryCategoryId &&
-          a.inventoryCategoryId == inventoryCategoryId
+          a.inventoryCategoryId == inventoryCategoryId,
       )?.id;
     if (!id && inventoryCategoryId && valuesInventoryCategoryId) {
       id = this.#addCreateData("inventoryCategoryVariantAttribute", {
@@ -326,7 +326,7 @@ export class InventoryImportService {
     const stepData = this.getStepData();
     const stepsUids = this.allStepsUids;
     const missingTypes = stepsUids.filter((u) =>
-      this.#inventoryCategories.every((ic) => ic.uid !== u)
+      this.#inventoryCategories.every((ic) => ic.uid !== u),
     );
     missingTypes.map((uid) => {
       const stepTitle =
@@ -403,8 +403,8 @@ export class InventoryImportService {
       new Set(
         [...stepData?.depsComponentsList?.map((a) => a?.uid), ...stepProdUids]
           .filter((s) => !!s)
-          .map((a) => a!)
-      )
+          .map((a) => a!),
+      ),
     );
     // .filter(
     //   a =>
@@ -544,8 +544,8 @@ export class InventoryImportService {
           .map((p) => p.dependenciesUid?.split("-")?.filter(Boolean))
           ?.flat()
           .filter((a) => a)
-          .map((a) => a!)
-      )
+          .map((a) => a!),
+      ),
     );
     let components = stepProducts
       .map((product) => {
@@ -570,8 +570,8 @@ export class InventoryImportService {
       .filter(
         (a, i) =>
           components.findIndex(
-            (e) => e.name?.toLowerCase() === a?.name?.toLowerCase()
-          ) == i
+            (e) => e.name?.toLowerCase() === a?.name?.toLowerCase(),
+          ) == i,
       )
       ?.filter((a) => a.name);
     const componentStepUids = components
@@ -622,7 +622,7 @@ export class InventoryImportService {
         ...componentStepUids,
         ...psStepUids,
         ...priceDepsStepsWithComponents.map((a) => a.uid),
-      ])
+      ]),
     )
       .filter(Boolean)
       .map((s) => s!);
@@ -700,7 +700,7 @@ export class InventoryImportService {
               : a.title == "Height"
                 ? `h${p.name?.replace("-", "_")}`
                 : p.uid,
-        }))
+        })),
       )
       .flat();
     const addSizes = (step, uids: string[], k: "w" | "h") => {
@@ -796,7 +796,7 @@ export class InventoryImportService {
           createMany: [],
           table: this.db[name],
         };
-      })
+      }),
     );
   }
 }

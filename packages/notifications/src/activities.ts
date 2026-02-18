@@ -224,6 +224,7 @@ export const getContact = async (
     id: contact.id,
     name: contact.name,
     email: contact.email!,
+
     // phoneNo: contact.phoneNo,
   };
 };
@@ -367,5 +368,4 @@ export async function getChannelSubcribers(
   return [...contacts, ...contactsFromUsersWithNoContact].filter(
     Boolean,
   ) as UserData[];
-  return [];
 }

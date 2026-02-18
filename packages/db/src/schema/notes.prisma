@@ -41,9 +41,9 @@ enum NoteStatus {
 
 model NotePadContacts {
     id               Int                       @unique @default(autoincrement())
-    name             String
-    email            String?
-    phoneNo          String?
+    // name             String
+    // email            String?
+    // phoneNo          String?
     role             ContactRole?
     profileId        Int? //user.id or customer.id
     notesReceived    NoteRecipients[]
@@ -53,7 +53,8 @@ model NotePadContacts {
     readReceipts     NotePadReadReceipt[]
     assignedChannels AssignedUserNoteChannel[]
 
-    @@unique([name, email, phoneNo])
+    // @@unique([profileId,role])
+    // @@unique([name, email, phoneNo])
 }
 
 enum ContactRole {
