@@ -31,6 +31,7 @@ export interface NotificationHandler<T = any> {
 
 export interface UserData {
   id: number;
+  profileId: number;
   name: string;
   email?: string;
   phoneNo?: string;
