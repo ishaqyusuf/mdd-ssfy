@@ -1,4 +1,4 @@
-import { skeletonListData } from "@/utils";
+import { skeletonListData } from "../utils";
 import { generateRandomString, RenturnTypeAsync, timeout } from "@gnd/utils";
 import { createContext, useContext, useEffect, useState } from "react";
 
@@ -16,7 +16,7 @@ interface Props<T extends (...args: any) => any> {
 }
 
 export const useCreateDataSkeletonCtx = <T extends (...args: any) => any>(
-  props: Props<T> = {}
+  props: Props<T> = {},
 ) => {
   const { defaultState = false, loader, autoLoad = false, deps = [] } = props;
 
