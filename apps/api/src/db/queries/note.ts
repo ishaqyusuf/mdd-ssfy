@@ -4,6 +4,7 @@ import { getAuthUser } from "./user";
 import type { NoteTagNames } from "@gnd/utils/constants";
 import { getChannels } from "@notifications/channels-query";
 import type { GetNotificationChannelsSchema } from "@notifications/schemas";
+import { getSubscriberAccount } from "@notifications/channel-subscribers";
 
 export async function getNotificationChannels(
   ctx: TRPCContext,
@@ -82,22 +83,6 @@ export async function saveInboundNote(
 export async function getSenderId(ctx: TRPCContext) {
   const user = await getAuthUser(ctx);
   if (!user) throw new Error("Unauthorized!");
-  const senderContactId = (
-    await ctx.db.notePadContacts.upsert({
-      where: {
-        name_email_phoneNo: {
-          email: user.email,
-          name: user.name as any,
-          phoneNo: user.phoneNo as any,
-        },
-      },
-      update: {},
-      create: {
-        email: user.email,
-        name: user.name as any,
-        phoneNo: user.phoneNo,
-      },
-    })
-  ).id;
+  const senderContactId = (await getSubscriberAccount(ctx.db, user.id))?.id!;
   return senderContactId;
 }

@@ -177,7 +177,7 @@ export async function getSubscribersForNotificationType(
 export async function getSubscriberAccount(
   db: Db,
   profileId: number,
-  role: "employee" | "customer",
+  role: "employee" | "customer" = "employee",
 ): Promise<{
   id: number;
   profileId: number;

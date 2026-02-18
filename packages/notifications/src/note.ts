@@ -1,6 +1,7 @@
 import { NoteTagTypes } from "@gnd/utils/constants";
 import { Db } from "@gnd/db";
 import { TagFilters } from "./utils";
+import { getSubscriberAccount } from "./channel-subscribers";
 
 interface CreateNoteData {
   type?: NoteTagTypes;
@@ -25,23 +26,7 @@ export async function createNoteAction(props: CreateNoteData) {
     where: { id: authorId },
   });
   //   const auth = data.author;
-  const senderContactId = (
-    await db.notePadContacts.upsert({
-      where: {
-        name_email_phoneNo: {
-          email: auth.email,
-          name: auth.name!,
-          phoneNo: auth.phoneNo!,
-        },
-      },
-      update: {},
-      create: {
-        email: auth.email,
-        name: auth.name!,
-        phoneNo: auth.phoneNo,
-      },
-    })
-  ).id;
+  const senderContactId = (await getSubscriberAccount(db, auth.id))?.id!;
   const note = await db.notePad.create({
     data: {
       // type: data.type,

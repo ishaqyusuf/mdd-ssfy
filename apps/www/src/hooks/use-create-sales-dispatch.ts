@@ -1,7 +1,12 @@
 import { useTRPC } from "@/trpc/client";
+import { RouterOutputs } from "@api/trpc/routers/_app";
 import { useMutation } from "@tanstack/react-query";
 
-export function useSalesCreateDispatch() {
+interface Props {
+    onSuccess?: (data: RouterOutputs["dispatch"]["createDispatch"]) => void;
+    onError?: (error: any) => void;
+}
+export function useSalesCreateDispatch({ onSuccess, onError }: Props = {}) {
     const {
         mutate: createDispatch,
         data,
@@ -10,9 +15,10 @@ export function useSalesCreateDispatch() {
         useTRPC().dispatch.createDispatch.mutationOptions({
             onSuccess(data) {
                 console.log("created dispatch", data);
+                onSuccess?.(data);
             },
             onError(error) {
-                console.error("failed to create dispatch", error);
+                onError?.(error);
             },
         }),
     );

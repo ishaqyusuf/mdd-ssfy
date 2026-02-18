@@ -2,11 +2,11 @@ import { z } from "zod";
 import { channelNames } from "./channels";
 import { paginationSchema } from "@gnd/utils/schema";
 
-const type = z.enum(channelNames);
+const channel = z.enum(channelNames);
 const source = z.enum(["system", "user"]).default("system");
 const priority = z.number().int().min(1).max(10).default(5);
 const baseActivityTags = z.object({
-  type,
+  type: channel,
   source,
   priority,
   sendEmail: z.boolean().optional().default(false),
@@ -30,7 +30,7 @@ export const createActivitySchema = z.object({
   // userIds: z.array(z.number()).optional().nullable(), ///number().optional(),
   // recipientId: z.number().optional(),
   // userIdType: z.enum(["user", "customer"]).optional().default("user"),
-  type,
+  type: channel,
   source,
   priority,
   // status: z.enum([]),
@@ -110,6 +110,7 @@ export const jobAssignedSchema = z.object({
   jobId: z.number(),
   // authorId: z.number(),
   assignedToId: z.number(),
+  assignedToName: z.string().optional(),
   // comment: z.string().optional(),
   // author: z.string().optional().nullable(),
 });
@@ -130,3 +131,29 @@ export const getNotificationChannelsSchema = z
 export type GetNotificationChannelsSchema = z.infer<
   typeof getNotificationChannelsSchema
 >;
+export const salesDispatchAssignedSchema = z.object({
+  // salesId: z.number(),
+  orderNo: z.string().optional(),
+
+  dispatchId: z.number(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
+  // status: z.enum(["queue", "assigned", "en_route", "delivered"]).optional(),
+});
+export type SalesDispatchAssignedInput = z.infer<
+  typeof salesDispatchAssignedSchema
+>;
+export const baseNotificationJobSchema = z.object({
+  role: z.enum(["customer", "employee"]).optional().default("employee"),
+  senderId: z.number().optional(),
+  senderRole: z.enum(["customer", "employee"]).optional().default("employee"),
+});
+
+export const notificationJobSchema = z.discriminatedUnion("channel", [
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_dispatch_assigned"),
+    payload: salesDispatchAssignedSchema,
+  }),
+]);
+export type NotificationJobInput = z.infer<typeof notificationJobSchema>;

@@ -23,6 +23,8 @@ import {
 } from "@sales/exports";
 import type { SalesDispatchStatus } from "@sales/types";
 import type { DeliveryOption } from "@gnd/utils/sales";
+import { tasks } from "@trigger.dev/sdk/v3";
+import type { NotificationJobInput } from "@notifications/schemas";
 
 export const dispatchRouters = createTRPCRouter({
   index: publicProcedure
@@ -87,7 +89,7 @@ export const dispatchRouters = createTRPCRouter({
     .input(createDispatchSchema)
     .mutation(async (props) => {
       const { salesId, deliveryMode, dueDate, driverId, status } = props.input;
-      return props.ctx.db.orderDelivery.create({
+      const dispatch = await props.ctx.db.orderDelivery.create({
         data: {
           deliveryMode: deliveryMode || ("delivery" as DeliveryOption),
           createdBy: {
@@ -109,6 +111,27 @@ export const dispatchRouters = createTRPCRouter({
             connect: { id: salesId },
           },
         },
+        include: {
+          order: {
+            select: {
+              orderId: true,
+            },
+          },
+        },
       });
+      await tasks.trigger("notification", {
+        channel: "sales_dispatch_assigned",
+        senderId: props.ctx.userId!,
+        payload: {
+          orderNo: dispatch.order?.orderId,
+          dispatchId: dispatch.id,
+          deliveryMode: dispatch.deliveryMode,
+          dueDate: dispatch.dueDate,
+          driverId: dispatch.driverId,
+          // status: dispatch.status,
+        },
+        // payload: {}
+      } as NotificationJobInput);
+      return dispatch;
     }),
 });

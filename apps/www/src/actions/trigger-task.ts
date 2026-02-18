@@ -19,6 +19,7 @@ export const triggerTask = actionClient
             const event = await tasks.trigger(params.taskName, {
                 ...(params?.payload || {}),
             });
+            // event.
 
             return event;
         } catch (error) {

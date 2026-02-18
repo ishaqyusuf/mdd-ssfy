@@ -3,6 +3,7 @@ import { user } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { TagFilters } from "../utils";
 import { NoteTagTypes } from "@gnd/utils/constants";
+import { getSubscriberAccount } from "@notifications/channel-subscribers";
 
 interface CreateNoteData {
     type?: NoteTagTypes;
@@ -15,23 +16,7 @@ interface CreateNoteData {
 }
 export async function createNoteAction(data: CreateNoteData) {
     const auth = await user();
-    const senderContactId = (
-        await prisma.notePadContacts.upsert({
-            where: {
-                name_email_phoneNo: {
-                    email: auth.email,
-                    name: auth.name,
-                    phoneNo: auth.phoneNo,
-                },
-            },
-            update: {},
-            create: {
-                email: auth.email,
-                name: auth.name,
-                phoneNo: auth.phoneNo,
-            },
-        })
-    ).id;
+    const senderContactId = (await getSubscriberAccount(prisma, auth.id)).id;
     const note = await prisma.notePad.create({
         data: {
             // type: data.type,

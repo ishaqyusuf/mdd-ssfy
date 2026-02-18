@@ -10,43 +10,42 @@ import { useDispatch } from "./context";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { Button } from "@gnd/ui/button";
 import { useSalesCreateDispatch } from "@/hooks/use-create-sales-dispatch";
+import { useZodForm } from "@/hooks/use-zod-form";
+import { createDispatchSchema } from "@sales/schema";
 
-interface DispatchFormProps {
-    dispatch?: any;
-    onSubmit?: (values: any) => void;
-    onCancel?: () => void;
-}
-
-export function DispatchForm({ dispatch, onSubmit }: DispatchFormProps) {
+export function DispatchForm() {
     const ctx = useDispatch();
+    const form = useZodForm(createDispatchSchema, {
+        defaultValues: {
+            deliveryMode: "delivery",
+            dueDate: new Date(),
+            driverId: undefined,
+            salesId: ctx.data?.id,
+            status: "queue",
+        },
+    });
+    // const { form } = useDispatch();
 
-    const { form } = useDispatch();
-    const { createDispatch, isCreating } = useSalesCreateDispatch();
-    useEffect(() => {
-        if (ctx.data) {
-            form.reset({
-                delivery: {
-                    deliveryMode: "delivery",
-                    deliveryDate: new Date(),
-                    status: "queue",
-                },
-                itemData: {
-                    orderId: ctx.data.id,
-                },
-            });
-        }
-    }, [ctx.data]);
+    const { createDispatch, isCreating } = useSalesCreateDispatch({
+        onSuccess(data) {
+            //
+        },
+    });
 
+    const handleSubmit = (values: any) => {
+        createDispatch(values);
+    };
     return (
         <Form {...form}>
             <form
-                // onSubmit={form.handleSubmit(handleSubmit)}
+                onSubmit={form.handleSubmit(handleSubmit)}
                 className="space-y-6"
             >
                 <div className="grid grid-cols-2 items-end gap-4">
                     <DatePicker
+                        // @ts-ignore
                         control={form.control}
-                        name="delivery.deliveryDate"
+                        name="dueDate"
                         size="sm"
                         label="Dispatch Date"
                     />
@@ -54,7 +53,8 @@ export function DispatchForm({ dispatch, onSubmit }: DispatchFormProps) {
                         size="sm"
                         options={ctx?.drivers || []}
                         label={"Assign To"}
-                        name="delivery.driverId"
+                        name="driverId"
+                        // @ts-ignore
                         control={form.control}
                         placeholder="Select Driver"
                         titleKey="name"
@@ -63,14 +63,16 @@ export function DispatchForm({ dispatch, onSubmit }: DispatchFormProps) {
 
                     <FormSelect
                         label="Dispatch Mode"
+                        // @ts-ignore
                         control={form.control}
-                        name="delivery.deliveryMode"
+                        name="deliveryMode"
                         options={["pickup", "delivery"]}
                     />
                     <FormSelect
                         label="Dispatch Status"
+                        // @ts-ignore
                         control={form.control}
-                        name="delivery.status"
+                        name="status"
                         options={
                             [
                                 "queue",
@@ -88,12 +90,7 @@ export function DispatchForm({ dispatch, onSubmit }: DispatchFormProps) {
                     >
                         Cancel
                     </Button>
-                    <SubmitButton
-                        onClick={(e) => {
-                            //    createDispatch({});
-                        }}
-                        type="submit"
-                    >
+                    <SubmitButton isSubmitting={isCreating} type="submit">
                         Create Dispatch
                     </SubmitButton>
                 </div>
