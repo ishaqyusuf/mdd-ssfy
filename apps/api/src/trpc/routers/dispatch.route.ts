@@ -13,6 +13,7 @@ import {
 import { z } from "zod";
 import {
   cancelDispatchTask,
+  createDispatchSchema,
   deletePackingItem,
   deletePackingSchema,
   getSalesDispatchOverview,
@@ -83,15 +84,7 @@ export const dispatchRouters = createTRPCRouter({
       return getDispatchOverview(props.ctx, props.input);
     }),
   createDispatch: publicProcedure
-    .input(
-      z.object({
-        salesId: z.number(),
-        deliveryMode: z.string(),
-        dueDate: z.date(),
-        driverId: z.number().nullable().optional(),
-        status: z.string().optional(),
-      }),
-    )
+    .input(createDispatchSchema)
     .mutation(async (props) => {
       const { salesId, deliveryMode, dueDate, driverId, status } = props.input;
       return props.ctx.db.orderDelivery.create({

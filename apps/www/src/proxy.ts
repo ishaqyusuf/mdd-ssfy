@@ -35,14 +35,15 @@ export default async function proxy(req: NextRequest) {
     if (encodedSearchParams) {
         loginUrl.searchParams.append("return_to", encodedSearchParams);
     }
-    if (pathName === "/") {
+    const isLogin = pathName === "/login";
+    if (pathName === "/" || isLogin) {
         const auth = await getAuth(req);
         if (auth) {
             const link = getDefaultLink(auth);
             const url = new URL(link, req.url);
             return NextResponse.redirect(url);
         }
-        return NextResponse.redirect(loginUrl);
+        if (!isLogin) return NextResponse.redirect(loginUrl);
     }
     return NextResponse.next();
 }
@@ -72,7 +73,7 @@ function getDefaultLink(auth) {
             role: auth.role,
             can: auth.can,
             userId: auth?.userId,
-        })
+        }),
     );
     return validLinks.defaultLink;
 }

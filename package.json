@@ -28,7 +28,7 @@
     "mobile": "turbo dev --parallel  --filter @gnd/expo-app --filter @gnd/api --filter @gnd/www",
     "dev": "turbo dev --parallel",
     "www": "turbo dev --parallel --filter @gnd/www --filter @gnd/api",
-    "www:jobs": "turbo dev --parallel --filter @gnd/www --filter @gnd/api --filter @gnd/jobs",
+    "www:jobs": "turbo dev --parallel --filter @gnd/www --filter @gnd/jobs",
     "www:prod": "turbo dev:prod --parallel --filter @gnd/www --filter @gnd/api",
     "format": "biome format --write .",
     "lint": "turbo lint && manypkg check",
