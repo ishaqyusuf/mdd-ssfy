@@ -465,7 +465,6 @@ export async function getSubscribersAccount(
     // Channel not found — proceed without notification config rather than throw,
     // so callers get account data even when the channel name is stale/wrong.
   }
-
   // ── 2. Fetch source accounts (Users or Customers) ─────────────────────────
   // Done first to gate contact creation: if a profileId has no real account,
   // we must not create an orphaned NotePadContacts row for it.
@@ -622,8 +621,8 @@ export async function getSubscribersAccount(
       };
     }
 
+    // console.log(new Date().toISOString(), "DEBUG", { result });
     results.push(result);
   }
-
   return results;
 }

@@ -12,9 +12,11 @@ import { Button } from "@gnd/ui/button";
 import { useSalesCreateDispatch } from "@/hooks/use-create-sales-dispatch";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { createDispatchSchema } from "@sales/schema";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 export function DispatchForm() {
     const ctx = useDispatch();
+    const { setParams } = useSalesOverviewQuery();
     const form = useZodForm(createDispatchSchema, {
         defaultValues: {
             deliveryMode: "delivery",
@@ -28,7 +30,10 @@ export function DispatchForm() {
 
     const { createDispatch, isCreating } = useSalesCreateDispatch({
         onSuccess(data) {
-            //
+            setParams({
+                salesTab: "packing",
+                dispatchId: data.id,
+            });
         },
     });
 

@@ -55,7 +55,6 @@ export function DispatchList({}) {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[50px]"></TableHead>
                             <TableHead>Dispatch ID</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Assigned By</TableHead>
@@ -86,32 +85,14 @@ export function DispatchList({}) {
                             // >
                             (dispatch, index) => (
                                 <Fragment key={index}>
-                                    <TableRow>
-                                        <TableCell>
-                                            {/* <CollapsibleTrigger asChild> */}
-                                            <Button
-                                                onClick={() =>
-                                                    sq.setParams({
-                                                        dispatchOverviewId:
-                                                            sq.params
-                                                                .dispatchOverviewId ==
-                                                            dispatch.id
-                                                                ? null
-                                                                : dispatch.id,
-                                                    })
-                                                }
-                                                variant="ghost"
-                                                size="sm"
-                                            >
-                                                {sq.params.dispatchOverviewId ==
-                                                dispatch.id ? (
-                                                    <ChevronUp className="h-4 w-4" />
-                                                ) : (
-                                                    <ChevronDown className="h-4 w-4" />
-                                                )}
-                                            </Button>
-                                            {/* </CollapsibleTrigger> */}
-                                        </TableCell>
+                                    <TableRow
+                                        onClick={(e) => {
+                                            sq.setParams({
+                                                dispatchId: dispatch.id,
+                                                salesTab: "dispatch",
+                                            });
+                                        }}
+                                    >
                                         <TableCell className="font-medium">
                                             <DataSkeleton pok="date">
                                                 {dispatch.id}

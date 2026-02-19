@@ -47,6 +47,7 @@ function Content() {
     );
     const isQuote = data?.type === "quote";
     // const dispatchQty = data?.
+    const mode = query?.viewMode;
     return (
         <CustomSheet
             sheetName="sales-overview-sheet"
@@ -74,7 +75,7 @@ function Content() {
                             <DataSkeleton pok="textLg">
                                 <span>
                                     {[data?.orderId, data?.displayName]?.join(
-                                        " | "
+                                        " | ",
                                     )}
                                 </span>
                             </DataSkeleton>
@@ -91,7 +92,7 @@ function Content() {
                                         Notes
                                     </TabsTrigger>
                                 </>
-                            ) : query?.dispatchId ? (
+                            ) : mode === "dispatch-modal" ? (
                                 <>
                                     <TabsTrigger value="production">
                                         Productions
@@ -122,9 +123,6 @@ function Content() {
                                     >
                                         Transactions
                                     </TabsTrigger>
-                                    {/* <TabsTrigger value="payment">
-                                        Payment
-                                    </TabsTrigger> */}
                                     <TabsTrigger
                                         className={cn(!isQuote || "hidden")}
                                         value="dispatch"
@@ -156,7 +154,7 @@ function Content() {
                                 />
                             </TabsContent>
                         </>
-                    ) : query?.dispatchId ? (
+                    ) : mode === "dispatch-modal" ? (
                         <>
                             <TabsContent value="production">
                                 <ProductionTab />
@@ -178,6 +176,9 @@ function Content() {
                             </TabsContent>
                             <TabsContent value="dispatch">
                                 <DispatchTab />
+                            </TabsContent>
+                            <TabsContent value="packing">
+                                <PackingTab />
                             </TabsContent>
                         </>
                     )}

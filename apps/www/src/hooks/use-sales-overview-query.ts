@@ -13,6 +13,7 @@ import {
 import { useOnCloseQuery } from "./use-on-close-query";
 import { z } from "zod";
 import { useSalesQueryClient } from "./use-sales-query-client";
+import { useAuth } from "./use-auth";
 
 const openModes = [
     "quote",
@@ -43,19 +44,19 @@ export function useSalesOverviewQuery() {
         // refreshTok: parseAsString,
         dispatchOverviewId: parseAsInteger,
     });
-    const session = useSession({
-        required: true,
-        onUnauthenticated() {
-            redirect("/login");
-        },
-    });
+    const auth = useAuth();
     const assignedTo =
-        session?.data?.can?.viewProduction && !session?.data?.can?.viewOrders
-            ? session?.data?.user.id
-            : null;
+        auth?.can?.viewProduction && !auth?.can?.viewOrders ? auth?.id : null;
+    const viewMode =
+        auth?.can?.viewProduction && !auth?.can?.viewOrders
+            ? "production-tasks"
+            : auth?.can?.viewDelivery && !auth?.can?.viewOrders
+              ? "dispatch-modal"
+              : "general";
     const salesQuery = useSalesQueryClient();
     return {
         ...params,
+        viewMode,
         dispatchMode: !!params.dispatchId,
         salesQuery,
         params,
@@ -73,7 +74,7 @@ export function useSalesOverviewQuery() {
         openDispatch(
             orderNo: string,
             dispatchId,
-            salesTab: typeof params.salesTab
+            salesTab: typeof params.salesTab,
         ) {
             setParams({
                 "sales-overview-id": orderNo,

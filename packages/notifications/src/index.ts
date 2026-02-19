@@ -17,11 +17,14 @@ const handlers = {
   job_assigned: jobAssigned,
   sales_dispatch_assigned: salesDispatchAssigned,
 } as const;
-import { generateSenderEmail } from "./utils";
+import { generateEmailMeta } from "./utils";
 export class Notifications {
   #emailService: EmailService;
   #db: Db;
-  public fromEmail: string;
+  public emailMeta: {
+    from: string;
+    replyTo: string;
+  } = undefined as any;
 
   constructor(
     private db: Db,
@@ -94,7 +97,7 @@ export class Notifications {
     const customEmail = handler.createEmail(
       validatedData,
       user,
-      this.fromEmail,
+      this.emailMeta,
       // , teamContext
     );
 
@@ -140,8 +143,6 @@ export class Notifications {
               channelName: type as string,
             },
           );
-
-          console.log("Data", author);
           resolve(accounts);
           // const account = await getSubscriberAccount(
           //   this.#db,
@@ -163,10 +164,10 @@ export class Notifications {
         // getTeamById(this.#db, teamId),
       ])
     ).flat();
-    this.fromEmail = generateSenderEmail(author, type);
+    this.emailMeta = generateEmailMeta(author!, type);
     logger.info("Fetched author and contacts", author);
     console.log("Data", author);
-    return;
+    return null as any;
     // consoleLog("Fetched author and contacts:", author);
     // consoleLog("Fetched  contacts:", contacts);
     // console.log("Fetched team members:", contacts);
@@ -255,7 +256,7 @@ export class Notifications {
         const sampleEmail = handler.createEmail(
           validatedData,
           firstUser,
-          this.fromEmail,
+          this.emailMeta,
           // teamContext,
         );
 

@@ -14,7 +14,6 @@ export function useSalesCreateDispatch({ onSuccess, onError }: Props = {}) {
     } = useMutation(
         useTRPC().dispatch.createDispatch.mutationOptions({
             onSuccess(data) {
-                console.log("created dispatch", data);
                 onSuccess?.(data);
             },
             onError(error) {

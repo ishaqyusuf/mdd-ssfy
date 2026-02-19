@@ -14,12 +14,7 @@ export const notification = schemaTask({
   run: async (data) => {
     const notifications = new Notifications(db);
     const { channel, author, recipients, payload } = data;
-    console.log("Creating notification", {
-      channel,
-      author,
-      recipients,
-      payload,
-    });
+
     return notifications.create(channel as any, payload, {
       author,
       recipients: recipients as any,
