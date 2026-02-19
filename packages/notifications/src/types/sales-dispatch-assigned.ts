@@ -18,7 +18,14 @@ export const salesDispatchAssigned: NotificationHandler = {
       },
     };
   },
-  // createEmail(data, user) {
-
-  // },
+  createEmail(data, user, args) {
+    return {
+      ...args,
+      template: "sales-dispatch-assigned",
+      emailType: "customer",
+      to: [user.email],
+      subject: `New Dispatch Assigned: Order ${data.orderNo}`,
+      data: {},
+    };
+  },
 };

@@ -10,6 +10,10 @@ const isPretty = process.env.LOG_PRETTY === "true";
  */
 const baseLogger = pino({
   level: process.env.LOG_LEVEL || "info",
+  redact: {
+    paths: ["email", "password", "address"],
+    // remove: true,
+  },
   serializers: {
     req: pino.stdSerializers.req,
     res: pino.stdSerializers.res,

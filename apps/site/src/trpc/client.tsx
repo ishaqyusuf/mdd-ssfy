@@ -1,7 +1,7 @@
 "use client";
 
-// import type { AppRouter } from "@midday/api/trpc/routers/_app";
-// import { createClient } from "@midday/supabase/client";
+// import type { AppRouter } from "@gnd/api/trpc/routers/_app";
+// import { createClient } from "@gnd/supabase/client";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider, isServer } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink, loggerLink } from "@trpc/client";
@@ -36,7 +36,7 @@ function getQueryClient() {
 export function TRPCReactProvider(
   props: Readonly<{
     children: React.ReactNode;
-  }>
+  }>,
 ) {
   const queryClient = getQueryClient();
   const auth = useAuth();
@@ -70,7 +70,7 @@ export function TRPCReactProvider(
             (opts.direction === "down" && opts.result instanceof Error),
         }),
       ],
-    })
+    }),
   );
 
   return (

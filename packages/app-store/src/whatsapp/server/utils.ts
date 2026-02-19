@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import { triggerJob } from "@midday/job-client";
-import { logger } from "@midday/logger";
+import { triggerJob } from "@gnd/job-client";
+import { logger } from "@gnd/logger";
 
 // WhatsApp webhook payload types
 export interface WhatsAppWebhookPayload {

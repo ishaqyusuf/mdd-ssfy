@@ -1,5 +1,5 @@
-// import { getI18n } from "@midday/email/locales";
-// import { getInboxEmail } from "@midday/inbox";
+// import { getI18n } from "@gnd/email/locales";
+// import { getInboxEmail } from "@gnd/inbox";
 import type { NotificationHandler } from "../base";
 import { salesCheckoutSuccessSchema } from "../schemas";
 

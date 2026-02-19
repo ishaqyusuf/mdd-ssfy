@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@gnd/db": "workspace:*",
+    "@gnd/logger": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@gnd/email": "workspace:*",
     "resend": "^6.5.2",

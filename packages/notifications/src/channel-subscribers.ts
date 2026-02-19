@@ -519,8 +519,6 @@ export async function getSubscribersAccount(
     id: true,
     profileId: true,
     name: true,
-    // email: true,
-    // phoneNo: true,
     role: true,
     ...(channel
       ? {

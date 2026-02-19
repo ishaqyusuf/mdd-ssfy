@@ -21,7 +21,6 @@ import {
   format,
   formatDate,
 } from "date-fns";
-import { saveNote } from "@gnd/utils/note";
 import { generateControlId, generateJobId } from "@gnd/community/utils/job";
 import { Notifications } from "@gnd/notifications";
 import { JOBS_SHOW_OPTIONS } from "@community/constants";
@@ -463,26 +462,26 @@ export async function createJob(ctx: TRPCContext, query: CreateJobSchema) {
         assignedToId: query?.worker?.id!,
       });
     }
-    await saveNote(
-      ctx.db,
-      {
-        headline: query?.mode == "assign" ? "Job Assigned" : "Job Submitted",
-        note: generateJobId(jobId),
-        subject:
-          query?.mode == "assign" ? `New job assignment` : `New job submission`,
-        tags: [
-          {
-            tagName: "jobControlId",
-            tagValue: controlId,
-          },
-          {
-            tagName: "jobId",
-            tagValue: String(jobId),
-          },
-        ],
-      },
-      ctx.userId!,
-    );
+    // await saveNote(
+    //   ctx.db,
+    //   {
+    //     headline: query?.mode == "assign" ? "Job Assigned" : "Job Submitted",
+    //     note: generateJobId(jobId),
+    //     subject:
+    //       query?.mode == "assign" ? `New job assignment` : `New job submission`,
+    //     tags: [
+    //       {
+    //         tagName: "jobControlId",
+    //         tagValue: controlId,
+    //       },
+    //       {
+    //         tagName: "jobId",
+    //         tagValue: String(jobId),
+    //       },
+    //     ],
+    //   },
+    //   ctx.userId!,
+    // );
   } else {
     const result = await db.jobs.updateMany({
       where: {

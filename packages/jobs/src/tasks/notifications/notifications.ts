@@ -1,5 +1,5 @@
 import { Notifications } from "@gnd/notifications";
-import { schemaTask } from "@trigger.dev/sdk";
+import { logger, schemaTask } from "@trigger.dev/sdk";
 import { db } from "@gnd/db";
 import { notificationJobSchema } from "@notifications/schemas";
 

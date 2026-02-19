@@ -1,14 +1,5 @@
 import { Db } from "@gnd/db";
-import {
-  createActivity,
-  getChannelSubcribers,
-  getContactsByUserIds,
-  // getUsersById,
-  // getTeamById,
-  // getTeamMembers,
-  shouldSendNotification,
-  updateActivityMetadata,
-} from "./activities";
+import { createNote, createActivity, getChannelSubcribers } from "./activities";
 import { EmailService } from "./services/email-service";
 import { createActivitySchema, NotificationTypes } from "./schemas";
 import {
@@ -20,44 +11,25 @@ import {
 import { jobAssigned } from "./types/job-assigned-schema";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { consoleLog } from "@gnd/utils";
-import {
-  getSubscriberAccount,
-  getSubscribersAccount,
-} from "./channel-subscribers";
+import { getSubscribersAccount } from "./channel-subscribers";
+import { logger } from "@gnd/logger";
 const handlers = {
   job_assigned: jobAssigned,
   sales_dispatch_assigned: salesDispatchAssigned,
 } as const;
+import { generateSenderEmail } from "./utils";
 export class Notifications {
   #emailService: EmailService;
   #db: Db;
-  constructor(private db: Db) {
+  public fromEmail: string;
+
+  constructor(
+    private db: Db,
+    // private logger?: Logger,
+  ) {
     this.#emailService = new EmailService(db);
     this.#db = db;
   }
-
-  // #toUserData(
-  //   contacts: Array<{
-  //     id: number;
-  //     // role?: string;
-  //     name: string | null;
-  //     // avatarUrl: string | null;
-  //     email: string;
-  //     // locale?: string | null;
-  //   }>,
-  //   // teamId: string,
-  //   // teamInfo: { name: string | null; inboxId: string | null },
-  // ): UserData[] {
-  //   return contacts.map((member) => ({
-  //     id: member.id,
-  //     full_name: member.name ?? undefined,
-  //     // avatar_url: member.avatarUrl ?? undefined,
-  //     email: member.email ?? "",
-  //     // locale: member.locale ?? "en",
-  //     // team_id: teamId,
-  //     // role: member.role ?? "member",
-  //   }));
-  // }
 
   async #createActivities<T extends keyof NotificationTypes>(
     handler: any,
@@ -68,13 +40,6 @@ export class Notifications {
     // options?: NotificationOptions,
     contacts?: UserData[],
   ) {
-    // console.log("Creating activities with data:", {
-    //   validatedData,
-    //   groupId,
-    //   notificationType,
-    //   options,
-    // });
-    // return;
     const activityPromises = await Promise.all(
       contacts!
         ?.filter((a) => a.inAppNotification)
@@ -129,6 +94,7 @@ export class Notifications {
     const customEmail = handler.createEmail(
       validatedData,
       user,
+      this.fromEmail,
       // , teamContext
     );
 
@@ -148,7 +114,9 @@ export class Notifications {
 
     return baseEmailInput;
   }
-
+  async saveNote(data, authId) {
+    return createNote(this.#db, data, authId);
+  }
   async create<T extends keyof NotificationTypes>(
     type: T,
     payload: Omit<NotificationTypes[T], "users">,
@@ -172,6 +140,8 @@ export class Notifications {
               channelName: type as string,
             },
           );
+
+          console.log("Data", author);
           resolve(accounts);
           // const account = await getSubscriberAccount(
           //   this.#db,
@@ -193,8 +163,12 @@ export class Notifications {
         // getTeamById(this.#db, teamId),
       ])
     ).flat();
-    consoleLog("Fetched author and contacts:", author);
-    consoleLog("Fetched  contacts:", contacts);
+    this.fromEmail = generateSenderEmail(author, type);
+    logger.info("Fetched author and contacts", author);
+    console.log("Data", author);
+    return;
+    // consoleLog("Fetched author and contacts:", author);
+    // consoleLog("Fetched  contacts:", contacts);
     // console.log("Fetched team members:", contacts);
     // if (!teamInfo) {
     //   throw new Error(`Team not found: ${teamId}`);
@@ -225,6 +199,7 @@ export class Notifications {
       contacts,
     );
   }
+
   async #createInternal<T extends keyof NotificationTypes>(
     type: T,
     data: NotificationTypes[T],
@@ -274,15 +249,13 @@ export class Notifications {
           throw new Error("No team members available for email context");
         }
 
-        // Check the email type to determine behavior
-        // const teamContext = {
-        //   id: teamInfo?.id || "",
-        //   name: teamInfo?.name || "Team",
-        //   inboxId: teamInfo?.inboxId || "",
-        // };
+        consoleLog("Creating email with context:", {
+          firstUser,
+        });
         const sampleEmail = handler.createEmail(
           validatedData,
           firstUser,
+          this.fromEmail,
           // teamContext,
         );
 

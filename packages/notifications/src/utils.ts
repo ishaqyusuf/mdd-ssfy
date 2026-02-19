@@ -1,4 +1,5 @@
 import { Prisma } from "@gnd/db";
+import { UserData } from "./base";
 
 export type TagFilters = ReturnType<typeof noteTagFilter>;
 // export function filterNotesByTags(notes: GetNotes, tagFilters: TagFilters[]) {
@@ -98,3 +99,12 @@ const activityTypes = [
 ] as const;
 
 export type ActivityType = (typeof activityTypes)[number];
+
+export function generateSenderEmail(sender: UserData, channel: ChannelNames) {
+  return {
+    from: `${sender.name} From GND Millwork<${
+      sender.email?.split("@")[0]
+    }@gndprodesk.com>`,
+    replyTo: `${sender.email}`,
+  };
+}

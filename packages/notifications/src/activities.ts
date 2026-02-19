@@ -1,7 +1,10 @@
 import { ContactRole, Db, NoteStatus } from "@gnd/db";
 import { CreateActivityInput } from "./schemas";
 import { UserData } from "./base";
-import { getSubscriberAccount } from "./channel-subscribers";
+import {
+  getSubscriberAccount,
+  getSubscribersAccount,
+} from "./channel-subscribers";
 
 // const activityTypes = ["sales_checkout_success"] as const;
 const activityStatus = [] as const;
@@ -15,6 +18,20 @@ const activityStatus = [] as const;
 //   groupId?: string;
 //   tags: Record<string, any>;
 // };
+export async function createNote(db: Db, data, authId) {
+  const authorId = (await getSubscribersAccount(db, [authId]))?.[0]?.id;
+  const tags = Object.fromEntries(
+    data.tags.map((t) => [t.tagName, t.tagValue]),
+  );
+  return createActivity(
+    db,
+    {
+      ...data,
+      tags,
+    },
+    authorId,
+  );
+}
 export async function createActivity(
   db: Db,
   params: CreateActivityInput,

@@ -658,6 +658,7 @@
         "pino-pretty": "^13.1.3",
       },
       "devDependencies": {
+        "@gnd/tsconfig": "workspace:*",
         "typescript": "catalog:",
       },
     },
@@ -667,6 +668,7 @@
       "dependencies": {
         "@gnd/db": "workspace:*",
         "@gnd/email": "workspace:*",
+        "@gnd/logger": "workspace:*",
         "@gnd/utils": "workspace:*",
         "resend": "^6.5.2",
         "zod": "catalog:",
