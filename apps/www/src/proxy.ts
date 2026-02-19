@@ -38,6 +38,7 @@ export default async function proxy(req: NextRequest) {
     const isLogin = pathName === "/login";
     if (pathName === "/" || isLogin) {
         const auth = await getAuth(req);
+
         if (auth) {
             const link = getDefaultLink(auth);
             const url = new URL(link, req.url);
@@ -57,11 +58,13 @@ async function getAuth(req) {
         });
         if (usr.ok) {
             const data = await usr.json();
-            return {
-                role: data?.role,
-                can: data?.can,
-                userId: data?.userId,
-            };
+            return data?.userId
+                ? {
+                      role: data?.role,
+                      can: data?.can,
+                      userId: data?.userId,
+                  }
+                : null;
         }
     } catch (error) {}
     return null;
