@@ -143,4 +143,21 @@ export const dispatchRouters = createTRPCRouter({
       // await tasks.
       return dispatch;
     }),
+  deleteDispatch: publicProcedure
+    .input(
+      z.object({
+        dispatchId: z.number(),
+      }),
+    )
+    .mutation(async (props) => {
+      await props.ctx.db.orderDelivery.update({
+        where: {
+          id: props.input.dispatchId,
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+      // return deletePackingItem(props.ctx.db, props.input);
+    }),
 });

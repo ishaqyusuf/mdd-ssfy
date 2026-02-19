@@ -39,7 +39,7 @@ export function PackingItemForm({}) {
     const trpc = useTRPC();
 
     const trigger = useTaskTrigger({
-        onSucces() {
+        onSuccess() {
             queryClient.invalidateQueries({
                 queryKey: trpc.dispatch.dispatchOverview.queryKey(),
             });
@@ -65,7 +65,7 @@ export function PackingItemForm({}) {
             if (hasQty(qty)) {
                 const { pendingPick, picked, remainder } = pickQtyFrom(
                     qty,
-                    dispatchableQty
+                    dispatchableQty,
                 );
                 if (hasQty(picked)) {
                     packItems.packingList[0].submissions.push({

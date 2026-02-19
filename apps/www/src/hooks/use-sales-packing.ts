@@ -112,7 +112,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
         const isStarting = startDispatch.isPending;
         const trigger = useTaskTrigger({
             debug: true,
-            onSucces() {
+            onSuccess() {
                 qc.invalidateQueries({
                     queryKey: trpc.dispatch.dispatchOverview.queryKey(),
                 });

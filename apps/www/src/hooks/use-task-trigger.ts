@@ -12,7 +12,7 @@ interface Props {
     errorToast?: string;
     executingToast?: string;
     onError?;
-    onSucces?;
+    onSuccess?;
     onStarted?;
     debug?: boolean;
     silent?: boolean;
@@ -55,7 +55,7 @@ export function useTaskTrigger(props?: Props) {
 
         if (run?.status === "COMPLETED") {
             setStatus("COMPLETED");
-            props?.onSucces?.();
+            props?.onSuccess?.();
         }
     }, [error, run]);
     useEffect(() => {

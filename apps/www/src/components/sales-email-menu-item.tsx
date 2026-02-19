@@ -29,7 +29,7 @@ export function SalesEmailMenuItem({
         errorToast: "Failed",
         successToast: "Sent!",
         debug: true,
-        onSucces(e) {
+        onSuccess(e) {
             menuRef?.current?._onOpenChanged(false);
         },
         onError(e) {
@@ -48,8 +48,8 @@ export function SalesEmailMenuItem({
                     emailType: withPayment
                         ? "with payment"
                         : partPayment
-                        ? "with part payment"
-                        : "without payment",
+                          ? "with part payment"
+                          : "without payment",
                     printType: isQuote ? "quote" : "order",
                     salesIds: [salesId],
                 } as SendSalesEmailPayload,

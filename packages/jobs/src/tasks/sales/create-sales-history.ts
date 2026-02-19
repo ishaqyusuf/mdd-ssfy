@@ -20,6 +20,7 @@ export const createSalesHistory = schemaTask({
       as: props.salesType == "order" ? "order-hx" : "quote-hx",
       salesUid: props.salesNo,
       author: props.author,
+      type: props.salesType,
     });
     await createNoteAction({
       authorId: props.author.id,
@@ -31,7 +32,7 @@ export const createSalesHistory = schemaTask({
           "activity",
           props.salesType == "order"
             ? "sales_invoice_updated"
-            : "quote_invoice_updated"
+            : "quote_invoice_updated",
         ),
       ],
     });

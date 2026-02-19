@@ -88,7 +88,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
         },
     } = useMemo(() => {
         const filtered = prod.data?.items?.filter((item) =>
-            !itemIds ? true : itemIds?.includes(item.controlUid)
+            !itemIds ? true : itemIds?.includes(item.controlUid),
         );
         const _items = filtered
             ?.map((item) => ({
@@ -125,15 +125,15 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                 .filter(
                     (a) =>
                         a.createAssignmentMeta?.qty?.qty ||
-                        a.submitAssignments?.length
+                        a.submitAssignments?.length,
                 );
             const pendingSubmissions = sum(
                 _items.map((a) =>
-                    sum(a.submitAssignments.map((b) => b.qty.qty))
-                )
+                    sum(a.submitAssignments.map((b) => b.qty.qty)),
+                ),
             );
             const pendingAssignments = sum(
-                _items.map((a) => a.createAssignmentMeta?.qty?.qty)
+                _items.map((a) => a.createAssignmentMeta?.qty?.qty),
             );
 
             return {
@@ -188,7 +188,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
     };
     const tsk = useTaskTrigger({
         // silent: true,
-        onSucces: onSuccess,
+        onSuccess: onSuccess,
     });
 
     const auth = useAuth();
@@ -232,7 +232,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                 case "delete.assign":
                     const deliveredQty = sum(
                         deleteAssignmentItems,
-                        "deliveredQty"
+                        "deliveredQty",
                     );
                     const submitQty = sum(deleteAssignmentItems, "submitQty");
                     if (deliveredQty) {
@@ -259,7 +259,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                 case "delete.submit":
                     const _deliveredQty = sum(
                         deleteSubmitItems,
-                        "deliveredQty"
+                        "deliveredQty",
                     );
                     if (_deliveredQty) {
                         toast({
