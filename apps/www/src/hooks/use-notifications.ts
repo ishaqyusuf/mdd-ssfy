@@ -37,7 +37,7 @@ export function useNotifications() {
     const hasUnseenNotifications = useMemo(
         () =>
             notifications.some(
-                (notification) => notification.status === "unread",
+                (notification) => notification.receipt?.status === "unread",
             ),
         [notifications],
     );

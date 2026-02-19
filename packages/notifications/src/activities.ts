@@ -34,6 +34,7 @@ export async function createActivity(
       subject: params.subject,
       headline: params.headline,
       note: params.note,
+
       senderContact: {
         connect: {
           id: authorId,
@@ -68,7 +69,7 @@ export async function createActivity(
 }
 export type GetActivitiesParams = {
   contactIds: number[];
-  status?: NoteStatus;
+  status?: NoteStatus[];
 };
 export async function getActivties(db: Db, params: GetActivitiesParams) {
   const { contactIds, status } = params;
@@ -79,7 +80,7 @@ export async function getActivties(db: Db, params: GetActivitiesParams) {
           notePadContactId: {
             in: contactIds,
           },
-          ...(status ? { status } : {}),
+          ...(status?.length ? { status: { in: status } } : {}),
         },
       },
     },
@@ -114,19 +115,21 @@ export async function getActivties(db: Db, params: GetActivitiesParams) {
       },
     },
   });
-  return activities.map(({ tags, recipients, ...activity }) => {
-    return {
-      ...activity,
-      receipt: recipients[0],
-      tags: tags.reduce(
-        (acc, { tagName, tagValue }) => {
-          acc[tagName] = tagValue;
-          return acc;
-        },
-        {} as Record<string, any>,
-      ),
-    };
-  });
+  return {
+    data: activities.map(({ tags, recipients, ...activity }) => {
+      return {
+        ...activity,
+        receipt: recipients[0],
+        tags: tags.reduce(
+          (acc, { tagName, tagValue }) => {
+            acc[tagName] = tagValue;
+            return acc;
+          },
+          {} as Record<string, any>,
+        ),
+      };
+    }),
+  };
 }
 export const getContactsByUserIds = async (
   db: Db,

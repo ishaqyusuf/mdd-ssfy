@@ -54,6 +54,7 @@ export function JobHeader({}) {
         });
     };
     const trigger = useTaskTrigger({
+        silent: true,
         onStarted() {
             // setOpened(false);
             // form.reset(defaultValues);

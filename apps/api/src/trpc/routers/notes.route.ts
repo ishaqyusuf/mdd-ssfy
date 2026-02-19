@@ -4,7 +4,7 @@ import { getNotificationChannels, saveInboundNote } from "@api/db/queries/note";
 import { saveNote, saveNoteSchema } from "@gnd/utils/note";
 import z from "zod";
 import { getNotificationChannelsSchema } from "@notifications/schemas";
-import { consoleLog } from "@gnd/utils";
+import { getActivties } from "@notifications/activities";
 
 export const notesRouter = createTRPCRouter({
   getNotificationChannels: publicProcedure
@@ -128,14 +128,18 @@ export const notesRouter = createTRPCRouter({
       }),
     )
     .query(async (props) => {
-      const {
-        maxPriority,
-        pageSize = 20,
-        status = ["unread", "read"],
-      } = props.input;
+      return getActivties(props.ctx.db, {
+        contactIds: props.input.contactIds,
+        status: props.input.status as any,
+      });
+      // const {
+      //   maxPriority,
+      //   pageSize = 20,
+      //   status = ["unread", "read"],
+      // } = props.input;
 
-      return {
-        data: [],
-      };
+      // return {
+      //   data: [],
+      // };
     }),
 });

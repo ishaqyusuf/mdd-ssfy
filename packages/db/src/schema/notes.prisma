@@ -21,7 +21,7 @@ model NotePad {
 
 model NoteRecipients {
     id               Int             @unique @default(autoincrement())
-    notePage         NotePad         @relation(fields: [notePadId], references: [id])
+    note             NotePad         @relation(fields: [notePadId], references: [id])
     status           NoteStatus?     @default(unread)
     deletedAt        DateTime?       @db.Timestamp(0)
     createdAt        DateTime?       @default(now()) @db.Timestamp(0)

@@ -11,8 +11,8 @@ export const salesDispatchAssigned: NotificationHandler = {
     return {
       type: "sales_dispatch_assigned",
       source: "user",
-      subject: `Dispatch assigned: ${data.orderNo}`,
-      // note: `Dispatch ${data.dispatchId} has been assigned to driver ${data.assignedToName || data.assignedToId}. Delivery mode: ${data.deliveryMode}.`,
+      subject: `Dispatch assigned`,
+      headline: `Dispatch ${dispatchId} for order ${orderNo} has been assigned to you. Delivery mode: ${deliveryMode}.`,
       tags: {
         dispatchId,
       },
