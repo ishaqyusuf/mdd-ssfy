@@ -5,6 +5,7 @@ generator client {
     provider        = "prisma-client-js"
     previewFeatures = ["typedSql"]
     runtime         = "bun"
+
     // output          = "../../node_modules/.prisma/client"
 }
 
@@ -12,7 +13,8 @@ generator client {
 datasource db {
     provider     = "mysql"
     relationMode = "prisma"
-    url          = env("DATABASE_URL")
+
+    url = env("DATABASE_URL")
 }
 
 model AutoCompletes {
@@ -153,13 +155,13 @@ model ModelHasRoles {
     roleId  Int
     modelId Int
 
-    role           Roles         @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "model_has_roles_role_id_foreign")
-    user           Users         @relation(fields: [modelId], references: [id])
-    deletedAt      DateTime?     @db.Timestamp(0)
-    organization   Organization? @relation(fields: [organizationId], references: [id])
-    organizationId Int?
+    role           Roles        @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "model_has_roles_role_id_foreign")
+    user           Users        @relation(fields: [modelId], references: [id])
+    deletedAt      DateTime?    @db.Timestamp(0)
+    organization   Organization @relation(fields: [organizationId], references: [id])
+    organizationId Int
 
-    @@id([roleId, modelId])
+    @@id([roleId, modelId, organizationId])
     @@index([modelId])
     @@index([organizationId])
 }
@@ -301,6 +303,7 @@ model Roles {
     deletedAt          DateTime?            @db.Timestamp(0)
     ModelHasRoles      ModelHasRoles[]
     RoleHasPermissions RoleHasPermissions[]
+    channels           NoteChannelRole[]
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
@@ -1694,14 +1697,16 @@ enum PayoutStatus {
 
 model Jobs {
     id          Int       @unique @default(autoincrement())
+    controlId   String?
     userId      Int
     coWorkerId  Int?
-    type        String    @db.VarChar(255)
+    type        String?   @db.VarChar(255)
     homeId      Int?
     // unitId      Int?
     projectId   Int?
     // taskId      Int?
     amount      Float
+    isCustom    Boolean?
     title       String?   @db.VarChar(255)
     subtitle    String?   @db.VarChar(255)
     description String?   @db.LongText
@@ -1719,15 +1724,20 @@ model Jobs {
     paymentId   Int?
 
     // checkNo     String?      @db.VarChar(255)
-    deletedAt DateTime?    @db.Timestamp(0)
-    createdAt DateTime?    @default(now()) @db.Timestamp(0)
-    updatedAt DateTime?    @updatedAt
-    payment   JobPayments? @relation(fields: [paymentId], references: [id])
-    home      Homes?       @relation(fields: [homeId], references: [id])
-    user      Users?       @relation(name: "installer", fields: [userId], references: [id])
-    coWorker  Users?       @relation(name: "co-worker", fields: [coWorkerId], references: [id])
-    project   Projects?    @relation(fields: [projectId], references: [id])
-    homeTasks HomeTasks[]
+    deletedAt       DateTime?         @db.Timestamp(0)
+    createdAt       DateTime?         @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?         @updatedAt
+    payment         JobPayments?      @relation(fields: [paymentId], references: [id])
+    home            Homes?            @relation(fields: [homeId], references: [id])
+    user            Users?            @relation(name: "installer", fields: [userId], references: [id])
+    coWorker        Users?            @relation(name: "co-worker", fields: [coWorkerId], references: [id])
+    project         Projects?         @relation(fields: [projectId], references: [id])
+    // homeTasks       HomeTasks[]
+    // jobHomeTasks    JobHomeTask[]
+    jobInstallTasks JobInstallTasks[]
+
+    builderTask   BuilderTask? @relation(fields: [builderTaskId], references: [id])
+    builderTaskId Int?
 
     @@index([createdAt, homeId, type, status, userId])
     @@index([paymentId])
@@ -1737,8 +1747,49 @@ model Jobs {
     @@index([projectId])
 }
 
+// model JobHomeTask {
+//     id         Int    @unique @default(autoincrement())
+//     jobId      Int
+//     // homeTaskId Int
+//     addonTotal Float?
+//     taskTotal  Float?
+//     grandTotal Float?
+//     deletedAt DateTime? @db.Timestamp(0)
+//     createdAt DateTime? @default(now()) @db.Timestamp(0)
+//     updatedAt DateTime? @updatedAt
+//     job             Jobs              @relation(fields: [jobId], references: [id])
+//     // homeTask        HomeTasks         @relation(fields: [homeTaskId], references: [id])
+//     jobInstallTasks JobInstallTasks[]
+
+//     @@index([jobId])
+//     // @@index([homeTaskId])
+// }
+
+model JobInstallTasks {
+    id     Int    @unique @default(autoincrement())
+    jobId  Int
+    qty    Float?
+    maxQty Float?
+    rate   Float?
+    total  Float?
+
+    job Jobs @relation(fields: [jobId], references: [id])
+    // jobHomeTask   JobHomeTask? @relation(fields: [jobHomeTaskId], references: [id])
+    // jobHomeTaskId Int?
+
+    deletedAt                   DateTime?                  @db.Timestamp(0)
+    createdAt                   DateTime?                  @default(now()) @db.Timestamp(0)
+    updatedAt                   DateTime?                  @updatedAt
+    communityModelInstallTask   CommunityModelInstallTask? @relation(fields: [communityModelInstallTaskId], references: [id])
+    communityModelInstallTaskId Int?
+
+    @@index([jobId])
+    // @@index([jobHomeTaskId])
+    @@index([communityModelInstallTaskId])
+}
+
 model JobPayments {
-    id            Int       @unique @default(autoincrement())
+    id            Int                     @unique @default(autoincrement())
     amount        Int
     charges       Int?
     subTotal      Int?
@@ -1746,16 +1797,36 @@ model JobPayments {
     paidBy        Int
     checkNo       String?
     paymentMethod String?
-    meta          Json?     @db.Json
-    createdAt     DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt     DateTime? @updatedAt
-    deletedAt     DateTime? @db.Timestamp(0)
+    meta          Json?                   @db.Json
+    createdAt     DateTime?               @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?               @updatedAt
+    deletedAt     DateTime?               @db.Timestamp(0)
     jobs          Jobs[]
-    user          Users?    @relation(name: "worker", fields: [userId], references: [id])
-    payer         Users?    @relation(name: "payer", fields: [paidBy], references: [id])
+    adjustments   JobPaymentAdjustments[]
+    user          Users?                  @relation(name: "worker", fields: [userId], references: [id])
+    payer         Users?                  @relation(name: "payer", fields: [paidBy], references: [id])
 
     @@index([userId])
     @@index([paidBy])
+}
+
+model JobPaymentAdjustments {
+    id          Int             @unique @default(autoincrement())
+    amount      Int
+    type        AdjustmentTypes
+    description String?
+
+    createdAt     DateTime?    @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime?    @updatedAt
+    deletedAt     DateTime?    @db.Timestamp(0)
+    jobPayments   JobPayments? @relation(fields: [jobPaymentsId], references: [id])
+    jobPaymentsId Int?
+}
+
+enum AdjustmentTypes {
+    BONUS
+    EXPENSE
+    DEDUCTION
 }
 
 // ---- sales-payment.prisma ----
@@ -2634,7 +2705,8 @@ model NotePad {
 
 model NoteRecipients {
     id               Int             @unique @default(autoincrement())
-    notePage         NotePad         @relation(fields: [notePadId], references: [id])
+    note             NotePad         @relation(fields: [notePadId], references: [id])
+    status           NoteStatus?     @default(unread)
     deletedAt        DateTime?       @db.Timestamp(0)
     createdAt        DateTime?       @default(now()) @db.Timestamp(0)
     notePadId        Int
@@ -2645,18 +2717,33 @@ model NoteRecipients {
     @@index([notePadContactId])
 }
 
-model NotePadContacts {
-    id            Int                  @unique @default(autoincrement())
-    name          String
-    email         String?
-    phoneNo       String?
-    notesReceived NoteRecipients[]
-    notesSent     NotePad[]
-    deletedAt     DateTime?            @db.Timestamp(0)
-    createdAt     DateTime?            @default(now()) @db.Timestamp(0)
-    readReceipts  NotePadReadReceipt[]
+enum NoteStatus {
+    read
+    unread
+    archived
+}
 
-    @@unique([name, email, phoneNo])
+model NotePadContacts {
+    id               Int                       @unique @default(autoincrement())
+    name             String?
+    // email            String?
+    // phoneNo          String?
+    role             ContactRole?
+    profileId        Int? //user.id or customer.id
+    notesReceived    NoteRecipients[]
+    notesSent        NotePad[]
+    deletedAt        DateTime?                 @db.Timestamp(0)
+    createdAt        DateTime?                 @default(now()) @db.Timestamp(0)
+    readReceipts     NotePadReadReceipt[]
+    assignedChannels AssignedUserNoteChannel[]
+
+    // @@unique([profileId,role])
+    // @@unique([name, email, phoneNo])
+}
+
+enum ContactRole {
+    customer
+    employee
 }
 
 model NoteTags {
@@ -2717,27 +2804,85 @@ model NotePadReadReceipt {
     @@index([notePadId])
 }
 
+model NoteChannels {
+    id               Int                       @unique @default(autoincrement())
+    emailSupport     Boolean?
+    textSupport      Boolean?
+    whatsappSupport  Boolean?
+    inAppSupport     Boolean?
+    priority         Int?
+    channelName      String
+    deletedAt        DateTime?                 @db.Timestamp(0)
+    createdAt        DateTime?                 @default(now()) @db.Timestamp(0)
+    noteChannelRoles NoteChannelRole[]
+    userConfigs      UserNoteChannelConfig[]
+    assignedUsers    AssignedUserNoteChannel[]
+
+    @@unique([channelName])
+}
+
+model AssignedUserNoteChannel {
+    id               Int              @unique @default(autoincrement())
+    noteChannel      NoteChannels?    @relation(fields: [noteChannelId], references: [id])
+    noteChannelId    Int?
+    contact          NotePadContacts? @relation(fields: [notePadContactId], references: [id])
+    notePadContactId Int?
+
+    textEnabled     Boolean?
+    whatsappEnabled Boolean?
+    emailEnabled    Boolean?
+    inAppEnabled    Boolean?
+
+    @@index([noteChannelId])
+}
+
+model UserNoteChannelConfig {
+    id            Int           @unique @default(autoincrement())
+    noteChannel   NoteChannels? @relation(fields: [noteChannelId], references: [id])
+    noteChannelId Int?
+
+    @@index([noteChannelId])
+}
+
+model NoteChannelRole {
+    id Int @unique @default(autoincrement())
+
+    deletedAt DateTime? @db.Timestamp(0)
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+
+    // @@unique([roleName])
+    role          Roles?        @relation(fields: [roleId], references: [id])
+    roleId        Int?
+    noteChannel   NoteChannels? @relation(fields: [noteChannelId], references: [id])
+    noteChannelId Int?
+
+    @@index([noteChannelId])
+    @@index([roleId])
+}
+
 // ---- users.prisma ----
 model Users {
-    id                Int        @unique @default(autoincrement())
-    slug              String?
-    name              String?    @db.VarChar(255)
-    username          String?    @db.VarChar(255)
-    email             String     @db.VarChar(255)
-    phoneNo           String?    @db.VarChar(255)
-    phoneCode         String?    @db.VarChar(255)
-    country           String?    @db.VarChar(255)
-    emailVerifiedAt   DateTime?  @db.Timestamp(0)
-    password          String?    @db.VarChar(255)
-    rememberToken     String?    @db.VarChar(100)
-    meta              Json?      @db.Json
-    deletedAt         DateTime?  @db.Timestamp(0)
-    createdAt         DateTime?  @default(now()) @db.Timestamp(0)
-    updatedAt         DateTime?  @updatedAt
-    employeeProfileId Int?
-    type              UserTypes?
-    verificationToken String?    @unique
-
+    id                          Int                              @unique @default(autoincrement())
+    // id2               String?    @default(cuid()) // for Better Auth
+    slug                        String?
+    name                        String?                          @db.VarChar(255)
+    username                    String?                          @db.VarChar(255)
+    email                       String                           @db.VarChar(255)
+    phoneNo                     String?                          @db.VarChar(255)
+    phoneCode                   String?                          @db.VarChar(255)
+    country                     String?                          @db.VarChar(255)
+    emailVerifiedAt             DateTime?                        @db.Timestamp(0)
+    password                    String?                          @db.VarChar(255)
+    rememberToken               String?                          @db.VarChar(100)
+    meta                        Json?                            @db.Json
+    deletedAt                   DateTime?                        @db.Timestamp(0)
+    createdAt                   DateTime?                        @default(now()) @db.Timestamp(0)
+    updatedAt                   DateTime?                        @updatedAt
+    employeeProfileId           Int?
+    type                        UserTypes?
+    verificationToken           String?                          @unique
+    accountUser                 User?
+    // accountUser                 User?                            @relation(fields: [userId], references: [id])
     workOrders                  WorkOrders[]
     salesProductions            SalesOrders[]                    @relation(name: "producer")
     reppedProductions           SalesOrders[]                    @relation(name: "salesRep")
@@ -2791,17 +2936,6 @@ enum UserTypes {
     CUSTOMER
     EMPLOYEE
     MANAGER
-}
-
-model Session {
-    id           String    @id @default(cuid())
-    sessionToken String    @unique @map("session_token")
-    userId       Int
-    expires      DateTime
-    deletedAt    DateTime? @db.Timestamp(0)
-    user         Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    @@index([userId])
 }
 
 model EmailTokenLogin {
@@ -3178,18 +3312,93 @@ model CheckoutTenders {
 
 // ---- organization.prisma ----
 model Organization {
-    id      Int     @unique @default(autoincrement())
+    id      Int      @unique @default(autoincrement())
     name    String
+    primary Boolean?
     address String?
+
+    phone String?
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
     projects     Projects[]
+    homes        Homes[]
     sales        SalesOrders[]
     userProfiles ModelHasRoles[]
     workOrders   WorkOrders[]
+}
+
+// ---- account.prisma ----
+model Account {
+    id String @id @default(uuid())
+
+    accountId             String
+    providerId            String
+    accessToken           String?
+    refreshToken          String?
+    idToken               String?
+    accessTokenExpiresAt  DateTime?
+    refreshTokenExpiresAt DateTime?
+    scope                 String?
+    password              String?
+    // userId                Int
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    deletedAt DateTime? @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+
+    // user User @relation(fields: [userId], references: [id])
+    // user   User   @relation(fields: [userId], references: [id])
+    // userId String
+    user   User   @relation(fields: [userId], references: [id])
+    userId String
+
+    @@unique([providerId, accountId]) // ensures unique per provider
+}
+
+model User {
+    id String @id @default(uuid())
+
+    userId          Int       @unique
+    user            Users     @relation(fields: [userId], references: [id])
+    // accounts Account[]
+    name            String?   @db.VarChar(255)
+    email           String    @db.VarChar(255)
+    emailVerifiedAt DateTime? @db.Timestamp(0)
+    createdAt       DateTime? @default(now()) @db.Timestamp(0)
+    deletedAt       DateTime? @db.Timestamp(0)
+    updatedAt       DateTime? @updatedAt
+
+    accounts Account[]
+    sessions Session[]
+}
+
+model Verification {
+    id         String    @id @default(uuid())
+    identifier String
+    value      String
+    expiresAt  DateTime
+    createdAt  DateTime? @default(now()) @db.Timestamp(0)
+    deletedAt  DateTime? @db.Timestamp(0)
+    updatedAt  DateTime? @updatedAt
+}
+
+model Session {
+    id           String    @id @default(cuid())
+    sessionToken String?   @unique @map("session_token")
+    token        String?
+    ipAddress    String?
+    userAgent    String?
+    userId       Int
+    userId2      String?
+    expires      DateTime?
+    deletedAt    DateTime? @db.Timestamp(0)
+    user         Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user2        User?     @relation(fields: [userId2], references: [id], onDelete: Cascade)
+
+    @@index([userId])
 }
 
 // ---- gallery.prisma ----
@@ -3268,6 +3477,8 @@ model Homes {
     jobs                Jobs[]
     invoices            Invoices[]
     analytics           CommunityHomeAnalytics[]
+    organization        Organization?            @relation(fields: [organizationId], references: [id])
+    organizationId      Int?
 
     @@index([createdAt, deletedAt, modelName, search, projectId])
     @@index([projectId])
@@ -3276,18 +3487,18 @@ model Homes {
 }
 
 model HomeTasks {
-    id                   Int       @unique @default(autoincrement())
+    id                   Int          @unique @default(autoincrement())
     archived             Boolean?
     homeId               Int?
-    type                 String?   @db.VarChar(255)
-    taskName             String?   @db.VarChar(255)
-    taskUid              String?   @db.VarChar(255)
-    status               String?   @db.VarChar(255)
-    meta                 Json?     @db.Json
-    producerName         String?   @db.VarChar(255)
-    search               String?   @db.VarChar(255)
-    productionStatus     String?   @db.VarChar(255)
-    checkNo              String?   @db.VarChar(255)
+    type                 String?      @db.VarChar(255)
+    taskName             String?      @db.VarChar(255)
+    taskUid              String?      @db.VarChar(255)
+    status               String?      @db.VarChar(255)
+    meta                 Json?        @db.Json
+    producerName         String?      @db.VarChar(255)
+    search               String?      @db.VarChar(255)
+    productionStatus     String?      @db.VarChar(255)
+    checkNo              String?      @db.VarChar(255)
     projectId            Int?
     assignedToId         Int?
     billable             Boolean?
@@ -3300,26 +3511,29 @@ model HomeTasks {
     amountDue            Float?
     amountPaid           Float?
     completedAt          DateTime?
-    jobId                Int?
-    checkDate            DateTime? @db.Timestamp(0)
-    statusDate           DateTime? @db.Timestamp(0)
-    sentToProductionAt   DateTime? @db.Timestamp(0)
-    producedAt           DateTime? @db.Timestamp(0)
-    prodStartedAt        DateTime? @db.Timestamp(0)
-    productionStatusDate DateTime? @db.Timestamp(0)
-    productionDueDate    DateTime? @db.Timestamp(0)
-    deletedAt            DateTime? @db.Timestamp(0)
-    createdAt            DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt            DateTime? @updatedAt
-    home                 Homes?    @relation(fields: [homeId], references: [id])
-    project              Projects? @relation(fields: [projectId], references: [id])
-    job                  Jobs?     @relation(fields: [jobId], references: [id])
-    assignedTo           Users?    @relation(fields: [assignedToId], references: [id])
+    // jobId                Int?
+    checkDate            DateTime?    @db.Timestamp(0)
+    statusDate           DateTime?    @db.Timestamp(0)
+    sentToProductionAt   DateTime?    @db.Timestamp(0)
+    producedAt           DateTime?    @db.Timestamp(0)
+    prodStartedAt        DateTime?    @db.Timestamp(0)
+    productionStatusDate DateTime?    @db.Timestamp(0)
+    productionDueDate    DateTime?    @db.Timestamp(0)
+    deletedAt            DateTime?    @db.Timestamp(0)
+    createdAt            DateTime?    @default(now()) @db.Timestamp(0)
+    updatedAt            DateTime?    @updatedAt
+    home                 Homes?       @relation(fields: [homeId], references: [id])
+    project              Projects?    @relation(fields: [projectId], references: [id])
+    // job                  Jobs?         @relation(fields: [jobId], references: [id])
+    assignedTo           Users?       @relation(fields: [assignedToId], references: [id])
+    builderTask          BuilderTask? @relation(fields: [builderTaskId], references: [id])
+    builderTaskId        Int?
+    // jobHomeTasks         JobHomeTask[]
 
-    @@index([createdAt, deletedAt, produceable, billable, addon, deco, punchout, installable, taskName, projectId, jobId])
+    @@index([createdAt, deletedAt, produceable, billable, addon, deco, punchout, installable, taskName, projectId])
     @@index([homeId])
     @@index([projectId])
-    @@index([jobId])
+    // @@index([jobId])
     @@index([assignedToId])
 }
 
@@ -3402,6 +3616,7 @@ model CommunityModelCost {
 model Builders {
     id            Int             @unique @default(autoincrement())
     name          String?         @db.VarChar(255)
+    address       String?         @db.VarChar(255)
     slug          String?         @db.VarChar(255)
     meta          Json?           @db.Json
     deletedAt     DateTime?       @db.Timestamp(0)
@@ -3409,6 +3624,96 @@ model Builders {
     updatedAt     DateTime?       @updatedAt
     projects      Projects[]
     homeTemplates HomeTemplates[]
+    tasks         BuilderTask[]
+}
+
+model BuilderTask {
+    id                         Int                         @unique @default(autoincrement())
+    builderId                  Int
+    taskName                   String                      @db.VarChar(255)
+    taskUid                    String                      @db.VarChar(255)
+    billable                   Boolean?
+    productionable             Boolean?
+    installable                Boolean?
+    addonPercentage            Float?
+    createdAt                  DateTime?                   @default(now()) @db.Timestamp(0)
+    updatedAt                  DateTime?                   @updatedAt
+    deletedAt                  DateTime?                   @db.Timestamp(0)
+    builder                    Builders                    @relation(fields: [builderId], references: [id])
+    communityModelInstallTasks CommunityModelInstallTask[]
+    homeTasks                  HomeTasks[]
+    builderTaskInstallCosts    BuilderTaskInstallCost[]
+    jobs                       Jobs[]
+
+    @@index([builderId])
+}
+
+model BuilderTaskInstallCost {
+    id                 Int                          @unique @default(autoincrement())
+    builderTaskId      Int
+    installCostModelId Int
+    defaultQty         Float?
+    totalCost          Float?
+    createdAt          DateTime?                    @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime?                    @updatedAt
+    deletedAt          DateTime?                    @db.Timestamp(0)
+    builderTask        BuilderTask                  @relation(fields: [builderTaskId], references: [id])
+    status             BuilderTaskInstallCostStatus @default(active)
+    installCostModel   InstallCostModel             @relation(fields: [installCostModelId], references: [id])
+    modelInstallTasks  CommunityModelInstallTask[]
+
+    @@index([builderTaskId])
+    @@index([installCostModelId])
+}
+
+model InstallCostModel {
+    id                         Int                         @unique @default(autoincrement())
+    title                      String                      @db.VarChar(255)
+    unit                       String?                     @db.VarChar(255)
+    unitCost                   Float?
+    status                     InstallCostModelStatus
+    deletedAt                  DateTime?                   @db.Timestamp(0)
+    createdAt                  DateTime?                   @default(now()) @db.Timestamp(0)
+    updatedAt                  DateTime?                   @updatedAt
+    communityModelInstallTasks CommunityModelInstallTask[]
+    builderTaskInstallCosts    BuilderTaskInstallCost[]
+}
+
+enum BuilderTaskInstallCostStatus {
+    active
+    inactive
+}
+
+enum InstallCostModelStatus {
+    active
+    inactive
+}
+
+enum CommunityModelInstallTaskStatus {
+    active
+    inactive
+}
+
+model CommunityModelInstallTask {
+    id                       Int                             @unique @default(autoincrement())
+    communityModelId         Int
+    installCostModelId       Int
+    qty                      Float?
+    totalCost                Float?
+    createdAt                DateTime?                       @default(now()) @db.Timestamp(0)
+    updatedAt                DateTime?                       @updatedAt
+    deletedAt                DateTime?                       @db.Timestamp(0)
+    communityModel           CommunityModels                 @relation(fields: [communityModelId], references: [id])
+    installCostModel         InstallCostModel                @relation(fields: [installCostModelId], references: [id])
+    builderTask              BuilderTask?                    @relation(fields: [builderTaskId], references: [id])
+    builderTaskId            Int?
+    status                   CommunityModelInstallTaskStatus
+    jobInstallTasks          JobInstallTasks[]
+    builderTaskInstallCost   BuilderTaskInstallCost?         @relation(fields: [builderTaskInstallCostId], references: [id])
+    builderTaskInstallCostId Int?
+
+    @@index([communityModelId])
+    @@index([installCostModelId])
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
@@ -3448,8 +3753,9 @@ model CommunityModels {
     costs   CommunityModelCost[]
     pivot   CommunityModelPivot? @relation(fields: [pivotId], references: [id])
 
-    history        CommunityTemplateHistory[]
-    templateValues CommunityModelTemplateValue[]
+    history                    CommunityTemplateHistory[]
+    templateValues             CommunityModelTemplateValue[]
+    communityModelInstallTasks CommunityModelInstallTask[]
 
     @@index([pivotId])
     @@index([projectId])
