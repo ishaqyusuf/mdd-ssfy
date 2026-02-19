@@ -138,9 +138,9 @@ export const dispatchRouters = createTRPCRouter({
             deliveryMode: dispatch.deliveryMode,
             dueDate: dispatch.dueDate,
             driverId: dispatch.driverId,
-            // status: dispatch.status,
           },
         } as NotificationJobInput);
+      // await tasks.
       return dispatch;
     }),
 });
