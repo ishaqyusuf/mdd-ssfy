@@ -13,10 +13,12 @@ import { Button } from "@gnd/ui/button";
 import { useJobsKpi } from "@/hooks/use-jobs-kpi";
 import { Layers, PenTool } from "lucide-react";
 import { Badge } from "@gnd/ui/badge";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { NotificationJobInput } from "@notifications/schemas";
 
 export function JobHeader({}) {
     const [filters, setFilters] = useQueryStates(jobFilterParams);
-    const { mutate: testActivity, isPending } = useMutation(
+    const { mutate: _testActivity, isPending } = useMutation(
         useTRPC().jobs.testActivity.mutationOptions({
             onError(error, variables, onMutateResult, context) {
                 console.log({
@@ -25,6 +27,38 @@ export function JobHeader({}) {
             },
         }),
     );
+    const testActivity = () => {
+        // _testActivity();
+        trigger.trigger({
+            taskName: "notification",
+            payload: {
+                channel: "sales_dispatch_assigned",
+                author: {
+                    id: 1,
+                    role: "employee",
+                },
+                recipients: [
+                    {
+                        ids: [1],
+                        role: "employee",
+                    },
+                ],
+                payload: {
+                    dispatchId: 1,
+                    orderNo: "ORD-001",
+                    deliveryMode: "delivery",
+                    dueDate: new Date(),
+                    driverId: 1,
+                },
+            } as NotificationJobInput,
+        });
+    };
+    const trigger = useTaskTrigger({
+        onStarted() {
+            // setOpened(false);
+            // form.reset(defaultValues);
+        },
+    });
     const { totalCustomJobs, totalJobs } = useJobsKpi();
     const showingCustom = filters.show === "custom";
     return (

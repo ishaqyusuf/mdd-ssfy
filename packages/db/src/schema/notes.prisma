@@ -41,7 +41,7 @@ enum NoteStatus {
 
 model NotePadContacts {
     id               Int                       @unique @default(autoincrement())
-    // name             String
+    name             String?
     // email            String?
     // phoneNo          String?
     role             ContactRole?

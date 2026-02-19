@@ -8,8 +8,6 @@ import { batchPrefetch, trpc } from "@/trpc/server";
 
 import { SearchParams } from "nuqs";
 import { PageTitle } from "@gnd/ui/custom/page-title";
-import { NotificationChannelHeader } from "@/components/notification-channels-header";
-import { DataTable } from "@/components/tables/notification-channels/data-table";
 import { loadNotificationChannelFilterParams } from "@/hooks/use-notification-channel-filter-params";
 import { NotificationChannelForm } from "@/components/forms/notification-channel-form";
 import NotificationChannels from "@/components/tables/notification-channels";

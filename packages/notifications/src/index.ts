@@ -19,7 +19,11 @@ import {
 } from "./base";
 import { jobAssigned } from "./types/job-assigned-schema";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
-
+import { consoleLog } from "@gnd/utils";
+import {
+  getSubscriberAccount,
+  getSubscribersAccount,
+} from "./channel-subscribers";
 const handlers = {
   job_assigned: jobAssigned,
   sales_dispatch_assigned: salesDispatchAssigned,
@@ -156,17 +160,41 @@ export class Notifications {
     // console.log("Creating notification:", { type, payload, options });
     const [author, ...contacts] = (
       await Promise.all([
-        getContactsByUserIds(this.#db, options?.author?.role!, [
-          options?.author?.id!,
-        ]),
+        new Promise<UserData[]>(async (resolve) => {
+          if (!options?.author?.id) {
+            return resolve([]);
+          }
+          const accounts = await getSubscribersAccount(
+            this.#db,
+            [options.author.id],
+            {
+              role: options.author.role!,
+              channelName: type as string,
+            },
+          );
+          resolve(accounts);
+          // const account = await getSubscriberAccount(
+          //   this.#db,
+          //   options.author.id!,
+          //   options.author.role!,
+          // );
+          // if (!account) {
+          //   return resolve([]);
+          // }
+          // resolve([account]);
+        }),
         ...(options?.recipients?.map((recipient) =>
-          getContactsByUserIds(this.#db, recipient.role!, recipient.ids || []),
+          getSubscribersAccount(this.#db, recipient.ids || [], {
+            role: recipient.role!,
+            channelName: type as string,
+          }),
         ) || []),
         getChannelSubcribers(this.#db, type as string),
         // getTeamById(this.#db, teamId),
       ])
     ).flat();
-
+    consoleLog("Fetched author and contacts:", author);
+    consoleLog("Fetched  contacts:", contacts);
     // console.log("Fetched team members:", contacts);
     // if (!teamInfo) {
     //   throw new Error(`Team not found: ${teamId}`);

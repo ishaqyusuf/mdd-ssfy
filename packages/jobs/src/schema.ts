@@ -40,6 +40,7 @@ export const taskNames = [
   "update-sales-control",
   "sales-commission",
   "reset-sales-control",
+  "notification",
 ] as const;
 export type TaskName = (typeof taskNames)[number];
 

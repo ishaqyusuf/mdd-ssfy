@@ -36,9 +36,9 @@ export interface UserData {
   email?: string;
   phoneNo?: string;
   role?: "employee" | "customer";
-  emailNotification: boolean;
-  inAppNotification: boolean;
-  whatsAppNotification: boolean;
+  emailNotification?: boolean;
+  inAppNotification?: boolean;
+  whatsAppNotification?: boolean;
 }
 
 // Combine template data with all Resend options using intersection type

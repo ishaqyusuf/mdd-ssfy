@@ -87,7 +87,7 @@ export async function getChannels(
             .filter((cn) => !channels.some((c) => c.channelName === cn))
             .map((cn) => ({
               channelName: cn,
-              priority: channelsConfig[cn].priority || 5,
+              priority: channelsConfig[cn]?.priority || 5,
             })),
         }),
       ]);
