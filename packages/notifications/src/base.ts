@@ -50,15 +50,24 @@ export type EmailInput = {
 
 // Use intersection type to combine our options with Resend's CreateEmailOptions
 export type NotificationOptions = {
-  priority?: number;
-  sendEmail?: boolean;
-  userIds?: number[];
-  userIdType?: ContactRole;
-  authorIdType?: ContactRole;
-  authorId?: number; // Optional authorId for activity creation, can be used in email generation as well
-  author?: UserData; // Optional author object, can be used directly if available to avoid extra DB fetch
-  contacts?: UserData[]; // Optional contacts array, can be used directly if available to avoid extra DB fetch
-} & Partial<CreateEmailOptions>;
+  author: {
+    id: number;
+    role?: ContactRole;
+  };
+  recipients?: {
+    ids: number[];
+    role?: ContactRole;
+  }[];
+  // priority?: number;
+  // sendEmail?: boolean;
+  // userIds?: number[];
+  // userIdType?: ContactRole;
+  // authorIdType?: ContactRole;
+  // authorId?: number; // Optional authorId for activity creation, can be used in email generation as well
+  // authorContact?: UserData; // Optional author object, can be used directly if available to avoid extra DB fetch
+  // contacts?: UserData[]; // Optional contacts array, can be used directly if available to avoid extra DB fetch
+};
+// & Partial<CreateEmailOptions>;
 
 export interface NotificationResult {
   type: string;

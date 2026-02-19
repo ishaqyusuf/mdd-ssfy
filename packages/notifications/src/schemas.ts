@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { channelNames } from "./channels";
+import { ChannelName, channelNames } from "./channels";
 import { paginationSchema } from "@gnd/utils/schema";
 
 const channel = z.enum(channelNames);
@@ -26,13 +26,13 @@ export const createActivitySchema = z.object({
   headline: z.string().optional(),
   note: z.string().optional(),
   authorId: z.number().optional(),
-  sendEmail: z.boolean().optional().default(false),
+  // sendEmail: z.boolean().optional().default(false),
   // userIds: z.array(z.number()).optional().nullable(), ///number().optional(),
   // recipientId: z.number().optional(),
   // userIdType: z.enum(["user", "customer"]).optional().default("user"),
   type: channel,
   source,
-  priority,
+  // priority,
   // status: z.enum([]),
   // groupId: z.string().uuid().optional(), // Links related activities together
   tags: z.record(z.string(), z.any()), // Flexible - any JSON object
@@ -116,10 +116,12 @@ export const jobAssignedSchema = z.object({
 });
 export type JobAssignedInput = z.infer<typeof jobAssignedSchema>;
 // Notification types map - all available notification types with their data structures
+
 export type NotificationTypes = {
   // sales_checkout_success: SalesCheckoutSuccessInput;
   // job_activity: JobActivityInput;
   job_assigned: JobAssignedInput;
+  sales_dispatch_assigned: SalesDispatchAssignedInput;
 };
 
 export const getNotificationChannelsSchema = z
@@ -134,7 +136,6 @@ export type GetNotificationChannelsSchema = z.infer<
 export const salesDispatchAssignedSchema = z.object({
   // salesId: z.number(),
   orderNo: z.string().optional(),
-
   dispatchId: z.number(),
   deliveryMode: z.enum(["pickup", "delivery"]).optional(),
   dueDate: z.date().optional(),
@@ -145,14 +146,33 @@ export type SalesDispatchAssignedInput = z.infer<
   typeof salesDispatchAssignedSchema
 >;
 export const baseNotificationJobSchema = z.object({
-  role: z.enum(["customer", "employee"]).optional().default("employee"),
-  senderId: z.number().optional(),
-  senderRole: z.enum(["customer", "employee"]).optional().default("employee"),
+  author: z.object({
+    id: z.number(),
+    role: z.enum(["customer", "employee"]).default("employee"),
+  }),
+  recipients: z
+    .array(
+      z.object({
+        ids: z.array(z.number()),
+        role: z.enum(["customer", "employee"]).optional().default("employee"),
+      }),
+    )
+    .optional()
+    .nullable(),
+  // channel: z.enum(channelNames).default('job_approved'),
+  // channel: z.enum(["a"] as const),
+  payload: z.record(z.string(), z.any()),
 });
 
+const _channel = (channel: ChannelName) => channel as string;
+//z.literal(channel);
 export const notificationJobSchema = z.discriminatedUnion("channel", [
   baseNotificationJobSchema.extend({
     channel: z.literal("sales_dispatch_assigned"),
+    payload: salesDispatchAssignedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_dispatch_created"),
     payload: salesDispatchAssignedSchema,
   }),
 ]);

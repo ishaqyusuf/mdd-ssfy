@@ -119,19 +119,28 @@ export const dispatchRouters = createTRPCRouter({
           },
         },
       });
-      await tasks.trigger("notification", {
-        channel: "sales_dispatch_assigned",
-        senderId: props.ctx.userId!,
-        payload: {
-          orderNo: dispatch.order?.orderId,
-          dispatchId: dispatch.id,
-          deliveryMode: dispatch.deliveryMode,
-          dueDate: dispatch.dueDate,
-          driverId: dispatch.driverId,
-          // status: dispatch.status,
-        },
-        // payload: {}
-      } as NotificationJobInput);
+      if (dispatch.driverId)
+        await tasks.trigger("notification", {
+          channel: "sales_dispatch_assigned",
+          author: {
+            id: props.ctx.userId!,
+            role: "employee",
+          },
+          recipients: [
+            {
+              ids: [dispatch.driverId],
+              role: "employee",
+            },
+          ],
+          payload: {
+            orderNo: dispatch.order?.orderId,
+            dispatchId: dispatch.id,
+            deliveryMode: dispatch.deliveryMode,
+            dueDate: dispatch.dueDate,
+            driverId: dispatch.driverId,
+            // status: dispatch.status,
+          },
+        } as NotificationJobInput);
       return dispatch;
     }),
 });

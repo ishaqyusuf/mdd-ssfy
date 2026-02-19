@@ -1,6 +1,7 @@
 import { Db } from "@gnd/db";
 import {
   createActivity,
+  getChannelSubcribers,
   getContactsByUserIds,
   // getUsersById,
   // getTeamById,
@@ -17,9 +18,11 @@ import {
   UserData,
 } from "./base";
 import { jobAssigned } from "./types/job-assigned-schema";
+import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 
 const handlers = {
   job_assigned: jobAssigned,
+  sales_dispatch_assigned: salesDispatchAssigned,
 } as const;
 export class Notifications {
   #emailService: EmailService;
@@ -56,9 +59,9 @@ export class Notifications {
     handler: any,
     validatedData: NotificationTypes[T],
     groupId: string,
-    notificationType: string,
+    // notificationType: string,
     author: UserData,
-    options?: NotificationOptions,
+    // options?: NotificationOptions,
     contacts?: UserData[],
   ) {
     // console.log("Creating activities with data:", {
@@ -69,41 +72,45 @@ export class Notifications {
     // });
     // return;
     const activityPromises = await Promise.all(
-      contacts!?.map(async (user: UserData) => {
-        const activityInput = handler.createActivity(validatedData, user);
-        // Check if user wants in-app notifications for this type
-        const inAppEnabled = await shouldSendNotification(
-          this.#db,
-          user.id,
-          //  user.team_id,
-          notificationType,
-          "in_app",
-        );
+      contacts!
+        ?.filter((a) => a.inAppNotification)
+        ?.map(async (user: UserData) => {
+          // if(!user?.inAppNotification)
+          // return null;
+          const activityInput = handler.createActivity(validatedData, user);
+          // Check if user wants in-app notifications for this type
+          // const inAppEnabled = await shouldSendNotification(
+          //   this.#db,
+          //   user.id,
+          //   //  user.team_id,
+          //   notificationType,
+          //   "in_app",
+          // );
 
-        // Apply priority logic based on notification preferences
-        let finalPriority = activityInput.priority;
+          // Apply priority logic based on notification preferences
+          // let finalPriority = activityInput.priority;
 
-        // Runtime priority override takes precedence
-        if (options?.priority !== undefined) {
-          finalPriority = options.priority;
-        } else if (!inAppEnabled) {
-          // If in-app notifications are disabled, set to low priority (7-10 range)
-          // so it's not visible in the notification center
-          finalPriority = Math.max(7, activityInput.priority + 4);
-          finalPriority = Math.min(10, finalPriority); // Cap at 10
-        }
+          // // Runtime priority override takes precedence
+          // if (options?.priority !== undefined) {
+          //   finalPriority = options.priority;
+          // } else if (!inAppEnabled) {
+          //   // If in-app notifications are disabled, set to low priority (7-10 range)
+          //   // so it's not visible in the notification center
+          //   finalPriority = Math.max(7, activityInput.priority + 4);
+          //   finalPriority = Math.min(10, finalPriority); // Cap at 10
+          // }
 
-        activityInput.priority = finalPriority;
-        activityInput.groupId = groupId;
+          // activityInput.priority = finalPriority;
+          activityInput.groupId = groupId;
 
-        // Validate with Zod schema
-        const validatedActivity = createActivitySchema.parse(activityInput);
+          // Validate with Zod schema
+          const validatedActivity = createActivitySchema.parse(activityInput);
 
-        // Create activity directly using DB query
-        return createActivity(this.#db, validatedActivity, author?.id, [
-          user.id,
-        ]);
-      }),
+          // Create activity directly using DB query
+          return createActivity(this.#db, validatedActivity, author?.id, [
+            user.id,
+          ]);
+        }),
     );
     return activityPromises.filter(Boolean);
   }
@@ -112,7 +119,7 @@ export class Notifications {
     validatedData: NotificationTypes[T],
     user: UserData,
     // teamContext: { id: string; name: string; inboxId: string },
-    options?: NotificationOptions,
+    // options?: NotificationOptions,
   ): EmailInput {
     // Create email input using handler's createEmail function
     const customEmail = handler.createEmail(
@@ -128,10 +135,12 @@ export class Notifications {
 
     // Apply runtime options (highest priority)
     // Extract non-email options first
-    const { priority, sendEmail, ...resendOptions } = options || {};
-    if (Object.keys(resendOptions).length > 0) {
-      Object.assign(baseEmailInput, resendOptions);
-    }
+    // const {
+    //   // priority, sendEmail,
+    //   ...resendOptions } = options || {};
+    // if (Object.keys(resendOptions).length > 0) {
+    //   Object.assign(baseEmailInput, resendOptions);
+    // }
 
     return baseEmailInput;
   }
@@ -144,22 +153,21 @@ export class Notifications {
     options?: NotificationOptions,
     // contacts?: UserData[],
   ): Promise<NotificationResult> {
-    console.log("Creating notification:", { type, payload, options });
+    // console.log("Creating notification:", { type, payload, options });
     const [author, ...contacts] = (
       await Promise.all([
-        getContactsByUserIds(this.#db, options?.authorIdType!, [
-          options?.authorId!,
+        getContactsByUserIds(this.#db, options?.author?.role!, [
+          options?.author?.id!,
         ]),
-        getContactsByUserIds(
-          this.#db,
-          options?.userIdType!,
-          options?.userIds || [],
-        ),
+        ...(options?.recipients?.map((recipient) =>
+          getContactsByUserIds(this.#db, recipient.role!, recipient.ids || []),
+        ) || []),
+        getChannelSubcribers(this.#db, type as string),
         // getTeamById(this.#db, teamId),
       ])
     ).flat();
 
-    console.log("Fetched team members:", contacts);
+    // console.log("Fetched team members:", contacts);
     // if (!teamInfo) {
     //   throw new Error(`Team not found: ${teamId}`);
     // }
@@ -183,9 +191,9 @@ export class Notifications {
       type,
       data,
       author!,
-      {
-        ...(options || {}),
-      },
+      // {
+      //   ...(options || {}),
+      // },
       contacts,
     );
   }
@@ -193,11 +201,11 @@ export class Notifications {
     type: T,
     data: NotificationTypes[T],
     author: UserData,
-    options: NotificationOptions,
+    // options: NotificationOptions,
     contacts?: UserData[],
     // teamInfo?: { id: string; name: string | null; inboxId: string | null },
   ): Promise<NotificationResult> {
-    const handler = handlers[type];
+    const handler = handlers[type as any];
     // const { author, contacts } = options;
     if (!handler) {
       throw new Error(`Unknown notification type: ${type}`);
@@ -216,9 +224,9 @@ export class Notifications {
         handler,
         validatedData,
         groupId,
-        type as string,
+        // type as string,
         author,
-        options,
+        // options,
         contacts,
       );
       // return null as any;
@@ -229,10 +237,10 @@ export class Notifications {
         failed: 0,
       };
 
-      const sendEmail = options?.sendEmail ?? false;
+      // const sendEmail = options?.sendEmail ?? false;
 
       // Send emails if requested and handler supports email
-      if (sendEmail && handler.createEmail) {
+      if (handler?.createEmail) {
         const firstUser = contacts?.[0]!;
         if (!firstUser) {
           throw new Error("No team members available for email context");
@@ -258,7 +266,7 @@ export class Notifications {
               validatedData,
               firstUser,
               // teamContext,
-              options,
+              // options,
             ),
           ];
 
@@ -285,7 +293,7 @@ export class Notifications {
               validatedData,
               user,
               // teamContext,
-              options,
+              // options,
             ),
           );
 
@@ -309,7 +317,7 @@ export class Notifications {
               validatedData,
               user,
               // teamContext,
-              options,
+              // options,
             ),
           );
 

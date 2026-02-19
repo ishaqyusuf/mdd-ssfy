@@ -23,10 +23,10 @@ export async function createActivity(
 ) {
   const tags = {
     ...params.tags,
-    type: params.type,
+    channel: params.type,
     source: params.source,
-    priority: params.priority,
-    sendEmail: params.sendEmail,
+    // priority: params.priority,
+    // sendEmail: params.sendEmail,
   };
 
   const activity = await db.notePad.create({

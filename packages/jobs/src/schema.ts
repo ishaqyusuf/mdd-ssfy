@@ -5,6 +5,7 @@ import {
 } from "@gnd/utils/sales";
 import { salesType } from "@gnd/utils/constants";
 import { salesCheckoutSuccessSchema } from "@notifications/schemas";
+import { ChannelName } from "@notifications/channels";
 // import { salesQueryParamsSchema } from "@api/schemas/sales";
 
 export const taskNames = [
@@ -339,16 +340,3 @@ export const markSalesAsCompletedSchema = z.object({
   ids: z.array(z.number()),
   authorName: z.string(),
 });
-const baseJobSchema = z.object({
-  // teamId: z.string().uuid(),
-  sendEmail: z.boolean().optional().default(false),
-});
-export const notificationSchema = z.discriminatedUnion("type", [
-  baseJobSchema
-    .extend({
-      type: z.literal("sales_checkout_success"),
-    })
-    .extend(salesCheckoutSuccessSchema.omit({}).shape),
-]);
-
-export type NotificationPayload = z.infer<typeof notificationSchema>;
