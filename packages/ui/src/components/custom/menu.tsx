@@ -169,9 +169,9 @@ function Item({
     return (
       <DropdownMenuSub {...props}>
         <DropdownMenuSubTrigger>
-          {icon || ItemIcon ? (
+          {iconName || ItemIcon ? (
             <Icon
-              name={icon}
+              name={iconName}
               Icon={ItemIcon}
               className="mr-2 size-4 text-muted-foreground/70"
             />
