@@ -17,7 +17,7 @@ import { closestCorners } from "@dnd-kit/core";
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { RouterOutputs } from "@api/trpc/routers/_app";
-import { Card } from "@gnd/ui/composite";
+import { Card } from "@gnd/ui/namespace";
 
 import { AddInput } from "./add-input-block";
 
@@ -100,7 +100,7 @@ function FormContent({}) {
     const { mutate, isPending: savingSort } = useMutation(
         _trpc.community.updateRecordsIndicesIndices.mutationOptions({
             meta: null,
-        })
+        }),
     );
 
     const store = useCommunityModelStore();
@@ -135,7 +135,7 @@ function FormContent({}) {
             <Sortable.Content
                 className={cn(
                     "grid gap-4 grid-cols-4",
-                    templateEditMode ? "gap-6" : "gap-4"
+                    templateEditMode ? "gap-6" : "gap-4",
                 )}
             >
                 {__fields.map((inputField, index) => (

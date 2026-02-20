@@ -4,7 +4,7 @@ import {
   FieldPath,
   FieldValues,
 } from "react-hook-form";
-import { Field } from "../composite";
+import { Field } from "../namespace";
 import { FieldSet } from "../field";
 import { RadioGroup, RadioGroupItem } from "../radio-group";
 import { cn } from "../../utils";
@@ -75,7 +75,7 @@ export function RadioGroupField<
                     />
                   </Field>
                 </Field.Label>
-              )
+              ),
             )}
           </RadioGroup>
           {fieldState.invalid && <Field.Error errors={[fieldState.error]} />}

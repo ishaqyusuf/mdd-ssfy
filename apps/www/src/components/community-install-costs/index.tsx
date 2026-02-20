@@ -5,7 +5,7 @@ import {
     useCreateCommunityInstallCostRateContext,
 } from "@/hooks/use-community-install-costs";
 import { useTRPC } from "@/trpc/client";
-import { Table } from "@gnd/ui/composite";
+import { Table } from "@gnd/ui/namespace";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Download, History } from "lucide-react";

@@ -9,7 +9,7 @@ import { cn } from "@gnd/ui/cn";
 import { getColorFromName } from "@gnd/utils/colors";
 import { ArrowUpRight, DollarSign } from "lucide-react";
 import { timeAgo } from "@gnd/utils/dayjs";
-import { Item } from "@gnd/ui/composite";
+import { Item } from "@gnd/ui/namespace";
 
 export function DataTable({}) {
     const trpc = useTRPC();

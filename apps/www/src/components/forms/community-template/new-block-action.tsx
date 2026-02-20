@@ -3,7 +3,7 @@ import Button from "@/components/common/button";
 import { SubmitButton } from "@/components/submit-button";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { createCommunityTemplateBlockSchema } from "@community/community-template-schemas";
-import { Popover } from "@gnd/ui/composite";
+import { Popover } from "@gnd/ui/namespace";
 import { FormInput } from "@gnd/ui/controls/form-input";
 import { Form } from "@gnd/ui/form";
 import { Icons } from "@gnd/ui/icons";

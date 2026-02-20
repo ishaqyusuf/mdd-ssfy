@@ -9,7 +9,7 @@ import { cn } from "@gnd/ui/cn";
 import { useCustomerServiceParams } from "@/hooks/use-customer-service-params";
 import { cells } from "@gnd/ui/data-table/cells";
 import { formatDate } from "@gnd/utils/dayjs";
-import { Item } from "@gnd/ui/composite";
+import { Item } from "@gnd/ui/namespace";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { _qc, _trpc } from "@/components/static-trpc";

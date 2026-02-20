@@ -6,7 +6,7 @@ import { ButtonGroup } from "@gnd/ui/button-group";
 import { Button } from "@gnd/ui/button";
 import { formatMoney, percentageValue } from "@gnd/utils";
 import { Label } from "@gnd/ui/label";
-import { InputGroup } from "@gnd/ui/composite";
+import { InputGroup } from "@gnd/ui/namespace";
 import { Send, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
@@ -30,7 +30,7 @@ export function PaymentLinkMenuAction(props: Props) {
                 totalAmount: 0,
                 percentage: 0,
             },
-        }
+        },
     );
     const { opened, percentage, totalAmount } = form.watch();
     const { data } = useQuery(
@@ -40,8 +40,8 @@ export function PaymentLinkMenuAction(props: Props) {
             },
             {
                 enabled: !!opened,
-            }
-        )
+            },
+        ),
     );
     useEffect(() => {}, [data]);
     const { setDisabled } = useMenuContext();
@@ -81,7 +81,7 @@ export function PaymentLinkMenuAction(props: Props) {
                         onClick={(e) => {
                             form.setValue(
                                 "amount",
-                                percentageValue(totalAmount, a)
+                                percentageValue(totalAmount, a),
                             );
                             form.setValue("percentage", a);
                         }}

@@ -11,7 +11,7 @@ import { formatDate } from "@gnd/utils/dayjs";
 import { ApprovalForm } from "./approval-form";
 import { ApprovedForm } from "./approved-form";
 import { Building2, MapPin, MessageSquare } from "lucide-react";
-import { Card } from "@gnd/ui/composite";
+import { Card } from "@gnd/ui/namespace";
 import { JobScope } from "./job-scope";
 import { FinancialSummary } from "./financial-summary";
 import { Avatar } from "@/components/avatar";

@@ -1,6 +1,6 @@
 import { useJobOverviewContext } from "@/contexts/job-overview-context";
 import { useTRPC } from "@/trpc/client";
-import { Card } from "@gnd/ui/composite";
+import { Card } from "@gnd/ui/namespace";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";

@@ -1,5 +1,5 @@
 import { Button } from "@gnd/ui/button";
-import { AlertDialog, InputGroup, Item } from "@gnd/ui/composite";
+import { AlertDialog, InputGroup, Item } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import { useState, useTransition } from "react";
 import { useEffect } from "react";
@@ -47,12 +47,12 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                     amount: z.number(),
                     percentage: z.number().optional().nullable(),
                     totalAmount: z.number().optional().nullable(),
-                })
+                }),
             ),
         }),
         {
             defaultValues,
-        }
+        },
     );
     const auth = useAuth();
     const trigger = useTaskTrigger({
@@ -73,7 +73,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                 data: await Promise.all(
                     data.sales.map(async (sale) => {
                         const walletId = await getCustomerWalletId(
-                            sale?.accountNo
+                            sale?.accountNo,
                         );
                         const mode = "order" as SalesPrintModes;
                         return {
@@ -87,7 +87,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                                 email: sale.email,
                             },
                         };
-                    })
+                    }),
                 ),
             });
             // const payload: SendSalesReminderPayload = {
@@ -145,8 +145,8 @@ export function SendSalesReminder({ children, salesIds }: Props) {
             },
             {
                 enabled: !!salesIds?.length && opened,
-            }
-        )
+            },
+        ),
     );
     const {
         formState: { isValid },
@@ -159,7 +159,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
             sales: uniqueList(
                 data?.data?.map((sale) => {
                     const common = data.data.filter((a) =>
-                        sale.email ? a.email === sale.email : a.id == sale.id
+                        sale.email ? a.email === sale.email : a.id == sale.id,
                     );
                     return {
                         ids: common.map((a) => a.id),
@@ -175,7 +175,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                             ?.accountNo,
                     };
                 }),
-                "email"
+                "email",
             ),
         });
     }, [data]);
@@ -236,7 +236,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                                                                     ...field,
                                                                     amount: percentageValue(
                                                                         field.totalAmount,
-                                                                        a
+                                                                        a,
                                                                     ),
                                                                     percentage:
                                                                         a,
@@ -254,7 +254,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                                                         >
                                                             {a} %
                                                         </Button>
-                                                    )
+                                                    ),
                                                 )}
                                             </ButtonGroup>
                                         </div>
@@ -268,7 +268,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
                                                 <InputGroup.Addon align="inline-end">
                                                     /$
                                                     {formatMoney(
-                                                        field.totalAmount
+                                                        field.totalAmount,
                                                     )}
                                                 </InputGroup.Addon>
                                             </InputGroup>

@@ -7,7 +7,7 @@ import { Icons } from "@gnd/ui/icons";
 import { ColumnDef } from "@tanstack/react-table";
 import { cn } from "@gnd/ui/cn";
 import { useBuilderParams } from "@/hooks/use-builder-params";
-import { Item } from "@gnd/ui/composite";
+import { Item } from "@gnd/ui/namespace";
 
 export type Item = RouterOutputs["community"]["getBuilders"]["data"][number];
 interface ItemProps {

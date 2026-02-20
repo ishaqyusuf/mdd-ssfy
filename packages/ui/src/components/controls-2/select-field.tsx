@@ -4,7 +4,7 @@ import {
   FieldPath,
   FieldValues,
 } from "react-hook-form";
-import { Field, Select } from "../composite";
+import { Field, Select } from "../namespace";
 
 interface Props<T> {
   label?: string;
@@ -60,7 +60,7 @@ export function SelectField<
                   <Select.Item key={option.value} value={option.value}>
                     {option.label}
                   </Select.Item>
-                )
+                ),
               )}
             </Select.Content>
           </Select>

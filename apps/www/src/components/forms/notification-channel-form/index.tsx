@@ -10,7 +10,7 @@ import { useNotificationChannelParams } from "@/hooks/use-notification-channel-p
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
-import { Card } from "@gnd/ui/composite";
+import { Card } from "@gnd/ui/namespace";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 
 import { ArrowLeft, ArrowRight, Info, Users, X, BellRing } from "lucide-react";

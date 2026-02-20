@@ -2,7 +2,7 @@
 import { Button } from "@gnd/ui/button";
 import { ButtonGroup } from "@gnd/ui/button-group";
 import { cn } from "@gnd/ui/cn";
-import { Tabs } from "@gnd/ui/composite";
+import { Tabs } from "@gnd/ui/namespace";
 import Portal from "@gnd/ui/custom/portal";
 import { Separator } from "@gnd/ui/separator";
 import Link from "next/link";
@@ -20,7 +20,7 @@ export function SalesCustomTab({}) {
                             asChild
                             className={cn(
                                 "capitalize",
-                                path.includes(a) && "bg-green-600"
+                                path.includes(a) && "bg-green-600",
                             )}
                             variant={path.includes(a) ? "default" : "outline"}
                         >

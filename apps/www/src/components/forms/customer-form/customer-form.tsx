@@ -29,7 +29,7 @@ import { cn } from "@gnd/ui/cn";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { Controller } from "react-hook-form";
-import { Field } from "@gnd/ui/composite";
+import { Field } from "@gnd/ui/namespace";
 
 export type CustomerFormData = z.infer<typeof createCustomerSchema>;
 

@@ -1,5 +1,5 @@
 import { Button } from "@gnd/ui/button";
-import { Collapsible } from "@gnd/ui/composite";
+import { Collapsible } from "@gnd/ui/namespace";
 import { useSaleOverview } from "./sheets/sales-overview-sheet/context";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 

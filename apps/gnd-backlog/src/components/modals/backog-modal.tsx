@@ -1,7 +1,7 @@
 import { useBacklogParams } from "@/hooks/use-backlog-params";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { backlogFormSchema, saveBacklogSchema } from "@api/db/queries/backlogs";
-import { Dialog, Field } from "@gnd/ui/composite";
+import { Dialog, Field } from "@gnd/ui/namespace";
 import { _trpc } from "../static-trpc";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -18,8 +18,8 @@ export function BacklogModal() {
       },
       {
         enabled: opened,
-      }
-    )
+      },
+    ),
   );
   useEffect(() => {
     if (isPending) return;

@@ -4,7 +4,7 @@ import {
   FieldPath,
   FieldValues,
 } from "react-hook-form";
-import { Field, Select } from "../composite";
+import { Field, Select } from "../namespace";
 import React from "react";
 import { PopoverContent } from "../popover";
 

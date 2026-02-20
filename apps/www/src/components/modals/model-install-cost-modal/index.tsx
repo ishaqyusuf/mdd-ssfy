@@ -10,7 +10,7 @@ import { AlertTriangle, DollarSign, Layers } from "lucide-react";
 import { useEffect } from "react";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { BuilderTaskItem } from "./builder-task-item";
-import { DropdownMenu, Sidebar } from "@gnd/ui/composite";
+import { DropdownMenu, Sidebar } from "@gnd/ui/namespace";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import {

@@ -1,7 +1,7 @@
 "use client";
 import { useNotifications } from "@/hooks/use-notifications";
 import { Button } from "@gnd/ui/button";
-import { Popover, Tabs } from "@gnd/ui/composite";
+import { Popover, Tabs } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { useEffect, useState } from "react";

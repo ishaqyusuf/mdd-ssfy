@@ -16,7 +16,7 @@ import { SalesFormSave } from "./sales-form-save";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { Button } from "@gnd/ui/button";
 import { SidebarProvider } from "@gnd/ui/sidebar";
-import { Sidebar } from "@gnd/ui/composite";
+import { Sidebar } from "@gnd/ui/namespace";
 
 export function SalesFormClient({ data }) {
     const zus = useFormDataStore();

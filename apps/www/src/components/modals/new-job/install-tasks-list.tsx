@@ -1,6 +1,6 @@
 import { useJobFormContext } from "@/contexts/job-form-context";
 import { useJobRole } from "@/hooks/use-job-role";
-import { InputGroup } from "@gnd/ui/composite";
+import { InputGroup } from "@gnd/ui/namespace";
 import { Controller } from "react-hook-form";
 import { AdminJobFormContent } from "./admin-job-form-content";
 import NumberFlow from "@number-flow/react";

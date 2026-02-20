@@ -4,7 +4,7 @@ import {
   FieldPath,
   FieldValues,
 } from "react-hook-form";
-import { Field, InputGroup } from "../composite";
+import { Field, InputGroup } from "../namespace";
 import { Input } from "../input";
 import { cn } from "../../utils";
 

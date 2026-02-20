@@ -4,7 +4,7 @@ import { Icons } from "@gnd/ui/icons";
 import { SalesQuoteSearchFilter } from "./sales-quote-search-filter";
 import { SalesCustomTab } from "./sales-custom-tab";
 import { ButtonGroup } from "@gnd/ui/button-group";
-import { DropdownMenu } from "@gnd/ui/composite";
+import { DropdownMenu } from "@gnd/ui/namespace";
 import { Separator } from "@gnd/ui/separator";
 import { CreateSalesBtn } from "./create-sales-btn";
 

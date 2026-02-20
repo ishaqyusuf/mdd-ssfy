@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ResetInventories } from "./reset-inventories";
-import { Tabs } from "@gnd/ui/composite";
+import { Tabs } from "@gnd/ui/namespace";
 import { Building2, Home, Users2 } from "lucide-react";
 import { Icons } from "@gnd/ui/icons";
 // import { Tabs } from "@gnd/ui/custom/tabs";

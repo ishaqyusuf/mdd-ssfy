@@ -18,7 +18,7 @@ import { Icons } from "@gnd/ui/icons";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@gnd/ui/tanstack";
 import { triggerTask } from "@/actions/trigger-task";
-import { Item } from "@gnd/ui/composite";
+import { Item } from "@gnd/ui/namespace";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { useTable } from "@gnd/ui/data-table";

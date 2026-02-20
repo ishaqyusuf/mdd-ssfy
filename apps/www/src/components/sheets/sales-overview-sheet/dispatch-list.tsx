@@ -9,14 +9,6 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatDate } from "@/lib/use-day";
 import { skeletonListData } from "@/utils/format";
 
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@gnd/ui/table";
 import { useDispatch } from "./context";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { useMutation } from "@tanstack/react-query";
@@ -26,6 +18,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { ResetSalesControl } from "@sales/schema";
 import { newSalesHelper } from "@/lib/sales";
 import { Menu } from "@gnd/ui/custom/menu";
+import { Item, Table } from "@gnd/ui/namespace";
 
 export function DispatchList({}) {
     const ctx = useDispatch();
@@ -73,113 +66,89 @@ export function DispatchList({}) {
             {ctx?.data?.id && !ctx?.data?.deliveries?.length ? (
                 <EmptyDelivery />
             ) : (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Dispatch ID</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Assigned By</TableHead>
-                            <TableHead>Assigned To</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right"></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {/* <DataSkeleton className="min-h-36" key={index}> */}
-                        {skeletonListData(ctx?.data?.deliveries, 2, {})?.map(
-                            // <Collapsible
-                            //     open={
-                            //         sq.params.dispatchOverviewId ===
-                            //         dispatch.id
-                            //     }
-                            //     key={`collapsible-${index}`}
-                            //     onOpenChange={() =>
-                            //         sq.setParams({
-                            //             dispatchOverviewId:
-                            //                 sq.params.dispatchOverviewId ==
-                            //                 dispatch.id
-                            //                     ? null
-                            //                     : dispatch.id,
-                            //         })
-                            //     }
-                            //     asChild
-                            // >
-                            (dispatch, index) => (
-                                <TableRow
-                                    key={index}
-                                    className="cursor-pointer"
-                                    onClick={(e) => {
-                                        sq.setParams({
-                                            dispatchId: dispatch.id,
-                                            salesTab: "packing",
-                                        });
-                                    }}
-                                >
-                                    <TableCell className="font-medium">
-                                        <DataSkeleton pok="date">
-                                            {dispatch.id}
-                                        </DataSkeleton>
-                                    </TableCell>
-                                    <TableCell>
-                                        <DataSkeleton pok="date">
-                                            {formatDate(dispatch.dueDate) ||
-                                                "No due date"}
-                                        </DataSkeleton>
-                                    </TableCell>
-                                    <TableCell>
+                <Item.Group role="list" className="divide-y">
+                    {skeletonListData(ctx?.data?.deliveries, 2, {})?.map(
+                        (dispatch, index) => (
+                            <Item
+                                key={index}
+                                variant="ghost"
+                                role="listitem"
+                                className="cursor-pointer"
+                                onClick={() =>
+                                    sq.setParams({
+                                        dispatchId: dispatch.id,
+                                        salesTab: "packing",
+                                    })
+                                }
+                            >
+                                {/* LEFT */}
+                                <Item.Content className="gap-1">
+                                    <Item.Title className="flex items-center gap-3">
                                         <DataSkeleton pok="textSm">
-                                            {dispatch?.createdBy?.name}
+                                            Dispatch #{dispatch.id}
                                         </DataSkeleton>
-                                    </TableCell>
-                                    <TableCell>
-                                        <DataSkeleton pok="date">
-                                            {dispatch.driver?.name || (
-                                                <span className="italics">
-                                                    Not assigned
-                                                </span>
-                                            )}
-                                        </DataSkeleton>
-                                    </TableCell>
-                                    <TableCell>
-                                        <DataSkeleton pok="date">
-                                            <StatusBadge
-                                                status={dispatch.status}
-                                            />
-                                        </DataSkeleton>
-                                    </TableCell>
-                                    <TableCell className="w-8 text-right">
-                                        <DataSkeleton pok="date">
-                                            <Menu>
-                                                <Menu.Item
-                                                    icon="packingList"
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        preview(dispatch.id);
-                                                    }}
-                                                >
-                                                    Preview
-                                                </Menu.Item>
 
-                                                <Menu.Trash
-                                                    action={(e) =>
-                                                        deleteDispatch(
-                                                            dispatch.id,
-                                                        )
-                                                    }
-                                                >
-                                                    Delete
-                                                </Menu.Trash>
-                                            </Menu>
-                                        </DataSkeleton>
-                                    </TableCell>
-                                </TableRow>
-                            ),
-                            {
-                                /* </Collapsible> */
-                            },
-                        )}
-                    </TableBody>
-                </Table>
+                                        <StatusBadge status={dispatch.status} />
+                                    </Item.Title>
+
+                                    <Item.Description className="flex flex-wrap gap-x-4 gap-y-1">
+                                        <span>
+                                            <DataSkeleton pok="date">
+                                                📅{" "}
+                                                {formatDate(dispatch.dueDate) ||
+                                                    "No due date"}
+                                            </DataSkeleton>
+                                        </span>
+
+                                        <span>
+                                            <DataSkeleton pok="textSm">
+                                                👤 {dispatch?.createdBy?.name}
+                                            </DataSkeleton>
+                                        </span>
+
+                                        <span>
+                                            <DataSkeleton pok="textSm">
+                                                🚚{" "}
+                                                {dispatch.driver?.name || (
+                                                    <span className="italic text-muted-foreground">
+                                                        Not assigned
+                                                    </span>
+                                                )}
+                                            </DataSkeleton>
+                                        </span>
+                                    </Item.Description>
+                                </Item.Content>
+
+                                {/* ACTIONS */}
+                                <Item.Actions
+                                    className="self-start"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <DataSkeleton pok="date">
+                                        <Menu>
+                                            <Menu.Item
+                                                icon="packingList"
+                                                onClick={() =>
+                                                    preview(dispatch.id)
+                                                }
+                                            >
+                                                Preview
+                                            </Menu.Item>
+
+                                            <Menu.Trash
+                                                action={() =>
+                                                    deleteDispatch(dispatch.id)
+                                                }
+                                            >
+                                                Delete
+                                            </Menu.Trash>
+                                        </Menu>
+                                    </DataSkeleton>
+                                </Item.Actions>
+                            </Item>
+                        ),
+                    )}
+                </Item.Group>
             )}
         </div>
     );

@@ -2,7 +2,7 @@ import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { CustomModal } from "../custom-modal";
 import { StepsDescription } from "./steps-description";
 import { NewJobFooter } from "./new-job-footer";
-import { Tabs } from "@gnd/ui/composite";
+import { Tabs } from "@gnd/ui/namespace";
 import { useJobStepInfo } from "@/hooks/use-job-step-info";
 import { UserSelectStep } from "./user-select-step";
 import { ProjectSelectStep } from "./project-select-step";

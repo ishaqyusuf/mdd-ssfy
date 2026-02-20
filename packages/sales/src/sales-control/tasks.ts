@@ -365,9 +365,6 @@ export async function markAsCompletedTask(db: Db, args: UpdateSalesControl) {
     meta: args.meta,
     submitAll: {},
   });
-  // const data = await getSaleInformation(db, {
-  //   salesId: args.meta.salesId,
-  // });
   await packDispatchItemTask(db, {
     meta: args.meta,
     packItems: {

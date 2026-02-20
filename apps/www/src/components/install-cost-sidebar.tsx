@@ -2,7 +2,7 @@
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
-import { Sidebar } from "@gnd/ui/composite";
+import { Sidebar } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import { useQuery } from "@tanstack/react-query";
 import { CommunityInstallCostForm } from "./forms/community-install-cost-form";

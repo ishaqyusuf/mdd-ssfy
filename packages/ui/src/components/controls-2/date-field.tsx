@@ -4,7 +4,7 @@ import {
   FieldPath,
   FieldValues,
 } from "react-hook-form";
-import { Field, InputGroup, Popover } from "../composite";
+import { Field, InputGroup, Popover } from "../namespace";
 import { Calendar } from "../calendar";
 import { useState } from "react";
 import { Button } from "../button";
@@ -41,7 +41,7 @@ export function DateField<
     Partial<ControllerProps<TFieldValues, TName>>,
     "control" | "name" | "defaultValue" | "disabled"
   > &
-    Props<TOptionType>
+    Props<TOptionType>,
 ) {
   let { control, name, fieldProps, disabled, defaultValue } = props;
   if (!fieldProps) fieldProps = {};
@@ -84,7 +84,7 @@ export function DateField<
                 variant={"outline"}
                 className={cn(
                   "pl-3 text-left font-normal",
-                  !field.value && "text-muted-foreground"
+                  !field.value && "text-muted-foreground",
                   // size == "sm" && "h-8"
                 )}
               >

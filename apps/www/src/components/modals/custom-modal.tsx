@@ -9,7 +9,7 @@ import Portal from "../_v1/portal";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 
 import { ComponentPropsWithoutRef } from "react";
-import { Dialog } from "@gnd/ui/composite";
+import { Dialog } from "@gnd/ui/namespace";
 
 const sheetContentVariant = cva("flex flex-col w-full ", {
     variants: {

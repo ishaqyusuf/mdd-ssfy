@@ -1,4 +1,4 @@
-import { InputGroup } from "@gnd/ui/composite";
+import { InputGroup } from "@gnd/ui/namespace";
 import { Search } from "lucide-react";
 
 interface Props {

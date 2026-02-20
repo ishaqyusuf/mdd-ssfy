@@ -1,7 +1,7 @@
 import { Minus, Plus } from "lucide-react";
 import * as React from "react";
 import { cn } from "../utils";
-import { InputGroup } from "./composite";
+import { InputGroup } from "./namespace";
 import { Icons } from "./icons";
 import { handleNumberInput } from "@gnd/utils";
 

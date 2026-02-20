@@ -1,6 +1,6 @@
 import { useJobOverviewContext } from "@/contexts/job-overview-context";
 import { Badge } from "@gnd/ui/badge";
-import { Card, Table } from "@gnd/ui/composite";
+import { Card, Table } from "@gnd/ui/namespace";
 import { FileText, PackageOpen } from "lucide-react";
 
 export function JobScope() {

@@ -20,7 +20,7 @@ import {
 
 import ProjectFormSection from "./project-form-section";
 import { useJobSubmitCtx } from "./use-submit-job";
-import { Field } from "@gnd/ui/composite";
+import { Field } from "@gnd/ui/namespace";
 import { Switch } from "@gnd/ui/switch";
 import { Controller } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";

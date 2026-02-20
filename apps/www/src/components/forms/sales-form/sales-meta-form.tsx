@@ -36,7 +36,7 @@ import { ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useSalesSummaryToggle } from "@/store/invoice-summary-toggle";
 import { SalesCustomerInput } from "./sales-customer-input";
-import { Sidebar } from "@gnd/ui/composite";
+import { Sidebar } from "@gnd/ui/namespace";
 
 export function SalesMetaForm({}) {
     const zus = useFormDataStore();

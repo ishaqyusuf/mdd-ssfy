@@ -1,5 +1,5 @@
 import { Button } from "@gnd/ui/button";
-import { Popover } from "@gnd/ui/composite";
+import { Popover } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import { TemplateInputConfig } from "./template-input-config";
 import { useState } from "react";

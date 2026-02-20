@@ -4,7 +4,7 @@ import {
   FieldPath,
   FieldValues,
 } from "react-hook-form";
-import { Field, InputGroup } from "../composite";
+import { Field, InputGroup } from "../namespace";
 import { Input } from "../input";
 
 interface Props<T> {
@@ -27,7 +27,7 @@ export function TextAreaField<
     Partial<ControllerProps<TFieldValues, TName>>,
     "control" | "name" | "defaultValue" | "disabled"
   > &
-    Props<TOptionType>
+    Props<TOptionType>,
 ) {
   let { control, name, fieldProps, disabled, defaultValue } = props;
   if (!fieldProps) fieldProps = {};

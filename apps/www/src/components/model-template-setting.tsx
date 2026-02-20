@@ -3,7 +3,7 @@ import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cos
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { Button } from "@gnd/ui/button";
-import { DropdownMenu, Field, Popover, Select } from "@gnd/ui/composite";
+import { DropdownMenu, Field, Popover, Select } from "@gnd/ui/namespace";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
 import { Eye, Settings, Tag } from "lucide-react";

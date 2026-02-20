@@ -21,7 +21,7 @@ import { Input } from "@gnd/ui/input";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { toast } from "@gnd/ui/use-toast";
-import { Table } from "@gnd/ui/composite";
+import { Table } from "@gnd/ui/namespace";
 export type ResetPasswordFormInputs = z.infer<typeof resetPasswordSchema>;
 
 export function InstallCostForm({ data }: { data: InstallCostSettings }) {

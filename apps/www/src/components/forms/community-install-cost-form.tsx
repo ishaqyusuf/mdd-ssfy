@@ -24,7 +24,7 @@ import { FormDebugBtn } from "../form-debug-btn";
 import { cn } from "@gnd/ui/cn";
 
 import { Env } from "../env";
-import { Field } from "@gnd/ui/composite";
+import { Field } from "@gnd/ui/namespace";
 import { Controller } from "react-hook-form";
 import { Input } from "@gnd/ui/input";
 import z from "zod";

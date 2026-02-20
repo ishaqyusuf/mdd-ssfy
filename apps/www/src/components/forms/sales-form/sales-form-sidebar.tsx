@@ -1,4 +1,4 @@
-import { Sidebar } from "@gnd/ui/composite";
+import { Sidebar } from "@gnd/ui/namespace";
 import { SalesMetaForm } from "./sales-meta-form";
 import { useSidebar } from "@gnd/ui/sidebar";
 import { Footer } from "@/components/forms/sales-form/footer";

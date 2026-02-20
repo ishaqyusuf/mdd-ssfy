@@ -477,7 +477,7 @@ import { SubmitButton } from "@/components/submit-button";
 For shadcn imports, components with multiple subcomponents (Dialog, Popover, Sheet, Tabs, etc.) are wrapped for better import:
 
 ```ts
-import {Dialog,Sheet} from "@acme/ui/composite"
+import {Dialog,Sheet} from "@acme/ui/namespace"
 ```
 
 Usage:
@@ -496,7 +496,7 @@ Usage:
 ```
 
 **Rules**
-- Composite components are re-exported from `@acme/ui/composite`.
+- Composite components are re-exported from `@acme/ui/namespace`.
 - Avoid importing subcomponents individually.
 - Maintain nested structure for headers/content.
 
@@ -761,7 +761,7 @@ export async function getExamplesFilter(ctx: TRPCContext) {
 
 ### 8.1 Overview
 This section defines the standardized structure for building forms in the monorepo.
-All forms use **useZodForm** for Zod-based validation, **custom input components** from @acme/ui/controls-2, and **composite layout components** from @acme/ui/composite.
+All forms use **useZodForm** for Zod-based validation, **custom input components** from @acme/ui/controls-2, and **composite layout components** from @acme/ui/namespace.
 
 The goal is consistent form design, predictable validation, and strong type safety.
 
@@ -778,7 +778,7 @@ import { RadioGroupField } from "@acme/ui/controls-2/radio-group-field";
 import { CheckboxField } from "@acme/ui/controls-2/checkbox-field";
 import { SelectField } from "@acme/ui/controls-2/select-field";
 
-import { Field, InputGroup } from "@acme/ui/composite";
+import { Field, InputGroup } from "@acme/ui/namespace";
 import { cn } from "@acme/ui/cn"; 
 
 ---

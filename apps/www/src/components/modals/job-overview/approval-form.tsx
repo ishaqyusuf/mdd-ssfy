@@ -1,5 +1,5 @@
 import { useJobOverviewContext } from "@/contexts/job-overview-context";
-import { Card } from "@gnd/ui/composite";
+import { Card } from "@gnd/ui/namespace";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { ShieldAlert, CheckCircle2, XCircle } from "lucide-react";
 import { useTRPC } from "@/trpc/client";

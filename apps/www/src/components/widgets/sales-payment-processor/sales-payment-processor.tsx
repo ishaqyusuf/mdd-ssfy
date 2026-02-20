@@ -22,7 +22,7 @@ import {
     Item,
     Popover,
     Select,
-} from "@gnd/ui/composite";
+} from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Skeletons } from "@gnd/ui/custom/skeletons";

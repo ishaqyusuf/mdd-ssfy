@@ -1,6 +1,6 @@
 import { Button } from "@gnd/ui/button";
 import { ButtonGroup } from "@gnd/ui/button-group";
-import { DropdownMenu } from "@gnd/ui/composite";
+import { DropdownMenu } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import { Separator } from "@gnd/ui/separator";
 import Link from "next/link";

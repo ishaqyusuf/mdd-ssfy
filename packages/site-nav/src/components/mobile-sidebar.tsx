@@ -1,5 +1,5 @@
 import { Button } from "@gnd/ui/button";
-import { Sheet } from "@gnd/ui/composite";
+import { Sheet } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import { useState } from "react";
 import { NavsList } from "./navs-list";

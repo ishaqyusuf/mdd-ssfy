@@ -13,7 +13,7 @@ import {
   JobFormProvider,
   // useJobFormContext,
 } from "@/hooks/use-job-form";
-// import { Tabs } from "@/components/ui/composite";
+// import { Tabs } from "@/components/ui/namespace";
 import { Step4Meta } from "./step-4-meta";
 // import { Step4Meta } from "./step-4-meta";
 
@@ -23,7 +23,7 @@ export function AddJobSheet({ ref }) {
       // "50%", "90%",
       "100%",
     ],
-    []
+    [],
   );
   const ctx = useCreateJobFormContext(ref);
   return (

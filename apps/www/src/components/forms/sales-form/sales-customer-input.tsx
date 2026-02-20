@@ -2,7 +2,7 @@ import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(fo
 import { _trpc } from "@/components/static-trpc";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { useQuery } from "@gnd/ui/tanstack";
-import { InputGroup, Item } from "@gnd/ui/composite";
+import { InputGroup, Item } from "@gnd/ui/namespace";
 import { Search } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Fragment, useEffect, useState } from "react";

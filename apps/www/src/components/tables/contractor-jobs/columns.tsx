@@ -6,7 +6,7 @@ import { Icons } from "@gnd/ui/icons";
 import { ColumnDef } from "@tanstack/react-table";
 import { cn } from "@gnd/ui/cn";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
-import { Item } from "@gnd/ui/composite";
+import { Item } from "@gnd/ui/namespace";
 import { padStart } from "@gnd/utils";
 import { formatDate } from "@/utils/format";
 import { Avatar } from "@/components/avatar";

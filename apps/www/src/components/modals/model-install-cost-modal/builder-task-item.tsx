@@ -3,7 +3,7 @@ import { useModelInstallConfigContext } from "@/hooks/use-model-install-config";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
-import { DropdownMenu, Sidebar } from "@gnd/ui/composite";
+import { DropdownMenu, Sidebar } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import {
     AlertTriangle,

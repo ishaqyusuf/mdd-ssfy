@@ -10,7 +10,7 @@ import { _qc, _trpc } from "./static-trpc";
 import { InputField } from "@gnd/ui/controls-2/input-field";
 import { CheckboxField } from "@gnd/ui/controls-2/checkbox-field";
 import { Separator } from "@gnd/ui/separator";
-import { Table } from "@gnd/ui/composite";
+import { Table } from "@gnd/ui/namespace";
 import { useFieldArray } from "react-hook-form";
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { useEffect } from "react";

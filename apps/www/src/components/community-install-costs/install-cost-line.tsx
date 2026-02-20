@@ -7,7 +7,7 @@ import { communityInstallCostRateSchema } from "@community/schema";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
-import { InputGroup, Item, Table } from "@gnd/ui/composite";
+import { InputGroup, Item, Table } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { SubmitButton } from "@gnd/ui/submit-button";

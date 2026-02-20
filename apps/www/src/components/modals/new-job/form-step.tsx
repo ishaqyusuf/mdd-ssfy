@@ -9,7 +9,7 @@ import { useZodForm } from "@/hooks/use-zod-form";
 import { JobFormSchema, jobFormShema } from "@community/schema";
 import { Controller, useFieldArray } from "react-hook-form";
 import { handleNumberInput, percentageValue, sum } from "@gnd/utils";
-import { Card, Field, InputGroup, Item } from "@gnd/ui/composite";
+import { Card, Field, InputGroup, Item } from "@gnd/ui/namespace";
 import { Checkbox } from "@gnd/ui/checkbox";
 import Portal from "@gnd/ui/custom/portal";
 import { useJobFormContext } from "@/contexts/job-form-context";

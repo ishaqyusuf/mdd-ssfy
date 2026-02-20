@@ -1,7 +1,7 @@
 import { useZodForm } from "@/hooks/use-zod-form";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import { AlertDialog, Field, InputGroup } from "@gnd/ui/composite";
+import { AlertDialog, Field, InputGroup } from "@gnd/ui/namespace";
 import { Slider } from "@gnd/ui/slider";
 import { Calculator, CheckCircle2, Trash2 } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";

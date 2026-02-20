@@ -7,7 +7,7 @@ import { SelectProjectStep } from "@/components/forms/job/select-project-step";
 import { SelectUnitStep } from "@/components/forms/job/select-unit-step";
 import { SafeArea } from "@/components/safe-area";
 
-import { Tabs } from "@/components/ui/composite";
+import { Tabs } from "@/components/ui/namespace";
 import {
   JobFormContextProvider,
   JobFormProps,

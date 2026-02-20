@@ -1,6 +1,6 @@
 import { Label } from "@gnd/ui/label";
 import { getSquareDevicesAction } from "./action";
-import { Item } from "@gnd/ui/composite";
+import { Item } from "@gnd/ui/namespace";
 import { Action } from "./client";
 import { squareClient } from "@gnd/square";
 import { consoleLog } from "@gnd/utils";

@@ -9,7 +9,7 @@ import {
 } from "@/hooks/use-data-skeleton";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { Button } from "@gnd/ui/button";
-import { Collapsible } from "@gnd/ui/composite";
+import { Collapsible } from "@gnd/ui/namespace";
 
 interface Props {
     accountNo?: string;

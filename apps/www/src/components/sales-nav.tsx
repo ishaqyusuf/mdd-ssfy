@@ -1,7 +1,7 @@
 "use client";
 import { buttonVariants } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
-import { NavigationMenu } from "@gnd/ui/composite";
+import { NavigationMenu } from "@gnd/ui/namespace";
 import Portal from "@gnd/ui/custom/portal";
 import Link from "next/link";
 import { AuthGuard } from "./auth-guard";
@@ -19,7 +19,7 @@ export function SalesNav() {
                                     className={cn(
                                         buttonVariants({
                                             variant: "ghost",
-                                        })
+                                        }),
                                     )}
                                     href="/sales-book/orders"
                                 >
@@ -33,7 +33,7 @@ export function SalesNav() {
                                     className={cn(
                                         buttonVariants({
                                             variant: "ghost",
-                                        })
+                                        }),
                                     )}
                                     href="/sales-book/quotes"
                                 >

@@ -1,6 +1,6 @@
 import { cn } from "@gnd/ui/cn";
 import { getInitials } from "@gnd/utils";
-import { Avatar as Avataar } from "@gnd/ui/composite";
+import { Avatar as Avataar } from "@gnd/ui/namespace";
 import { getColorFromName } from "@/lib/color";
 interface Props {
     url?: string;

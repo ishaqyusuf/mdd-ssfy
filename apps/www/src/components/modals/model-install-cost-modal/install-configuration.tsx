@@ -4,7 +4,7 @@ import { useZodForm } from "@/hooks/use-zod-form";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
-import { InputGroup, Item, Table } from "@gnd/ui/composite";
+import { InputGroup, Item, Table } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import NumberFlow from "@number-flow/react";
