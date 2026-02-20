@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import NumberFlow from "@number-flow/react";
 import { ActivityIcon, CheckCircle, CheckIcon } from "lucide-react";
 

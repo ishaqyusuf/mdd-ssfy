@@ -10,7 +10,7 @@ import { useState } from "react";
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import { useSalesDeliveryUpdate } from "@/hooks/use-sales-delivery-update";
 import { toast } from "@gnd/ui/use-toast";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { salesDispatchStatus } from "@gnd/utils/constants";
 import { getColorFromName } from "@/lib/color";
 import { useQueryClient } from "@gnd/ui/tanstack";

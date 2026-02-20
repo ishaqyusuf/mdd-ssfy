@@ -1,25 +1,14 @@
 "use client";
 
-import { Fragment, useState } from "react";
-import { deleteSalesDeliveryAction } from "@/actions/delete-sales-delivery-action";
-import { salesProgressFallBackAction } from "@/actions/sales-progress-fallback";
 import { Icons } from "@/components/_v1/icons";
 import StatusBadge from "@/components/_v1/status-badge";
-import { Menu } from "@/components/(clean-code)/menu";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { timeout } from "@/lib/timeout";
+
 import { formatDate } from "@/lib/use-day";
 import { skeletonListData } from "@/utils/format";
-import { ChevronDown, ChevronUp } from "lucide-react";
 
-import { Button } from "@gnd/ui/button";
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "@gnd/ui/collapsible";
 import {
     Table,
     TableBody,
@@ -28,15 +17,15 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
-
 import { useDispatch } from "./context";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
-import { printSalesData } from "@/utils/sales-print-utils";
 import { useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useAuth } from "@/hooks/use-auth";
 import { ResetSalesControl } from "@sales/schema";
+import { newSalesHelper } from "@/lib/sales";
+import { Menu } from "@gnd/ui/custom/menu";
 
 export function DispatchList({}) {
     const ctx = useDispatch();
@@ -74,6 +63,11 @@ export function DispatchList({}) {
         });
     };
     const { setParams: setSalesPreviewParams } = useSalesPreview();
+    const sh = newSalesHelper();
+    const preview = async (dispatchId) => {
+        await sh.generateTokenDispatchId(ctx.data.id, dispatchId);
+        sh.openPrintLink();
+    };
     return (
         <div className="rounded-md border">
             {ctx?.data?.id && !ctx?.data?.deliveries?.length ? (
@@ -128,7 +122,8 @@ export function DispatchList({}) {
                                     </TableCell>
                                     <TableCell>
                                         <DataSkeleton pok="date">
-                                            {formatDate(dispatch.dueDate)}
+                                            {formatDate(dispatch.dueDate) ||
+                                                "No due date"}
                                         </DataSkeleton>
                                     </TableCell>
                                     <TableCell>
@@ -138,7 +133,11 @@ export function DispatchList({}) {
                                     </TableCell>
                                     <TableCell>
                                         <DataSkeleton pok="date">
-                                            {dispatch.driver?.name}
+                                            {dispatch.driver?.name || (
+                                                <span className="italics">
+                                                    Not assigned
+                                                </span>
+                                            )}
                                         </DataSkeleton>
                                     </TableCell>
                                     <TableCell>
@@ -154,38 +153,13 @@ export function DispatchList({}) {
                                                 <Menu.Item
                                                     icon="packingList"
                                                     onClick={(e) => {
-                                                        setSalesPreviewParams({
-                                                            previewMode:
-                                                                "packing list",
-                                                            salesPreviewSlug:
-                                                                ctx?.data?.order
-                                                                    ?.orderId,
-                                                            salesPreviewType:
-                                                                "order",
-                                                            dispatchId: String(
-                                                                dispatch.id,
-                                                            ),
-                                                        });
+                                                        e.preventDefault();
+                                                        preview(dispatch.id);
                                                     }}
                                                 >
                                                     Preview
                                                 </Menu.Item>
-                                                <Menu.Item
-                                                    icon="print"
-                                                    onClick={(e) => {
-                                                        printSalesData({
-                                                            mode: "order-packing",
-                                                            dispatchId:
-                                                                dispatch.id,
-                                                            preview: false,
-                                                            slugs: ctx?.data
-                                                                ?.order
-                                                                ?.orderId,
-                                                        });
-                                                    }}
-                                                >
-                                                    Print
-                                                </Menu.Item>
+
                                                 <Menu.Trash
                                                     action={(e) =>
                                                         deleteDispatch(

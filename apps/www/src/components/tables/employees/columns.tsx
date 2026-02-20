@@ -4,7 +4,7 @@ import { ActionCell } from "../action-cell";
 import { ColumnDef, ColumnMeta, PageItemData } from "@/types/type";
 import { getEmployees } from "@/actions/get-employees";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { updateEmployeeRole } from "@/actions/update-employee-role";

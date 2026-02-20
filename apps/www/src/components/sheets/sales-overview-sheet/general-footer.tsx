@@ -7,7 +7,7 @@ import {
 } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-use-case";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@/components/_v1/icons";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 

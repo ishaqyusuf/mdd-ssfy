@@ -5,7 +5,7 @@ import { Button } from "@gnd/ui/button";
 import { useProduction } from "./context";
 import { useProductionItem } from "./production-tab";
 import { DropdownMenu, Tabs } from "@gnd/ui/composite";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { sum, timeout } from "@gnd/utils";
 import { createAssignmentSchema } from "@/actions/schema";

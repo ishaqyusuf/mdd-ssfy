@@ -32,8 +32,9 @@ export interface CreateSalesAssignmentProps {
 }
 export async function createSalesAssignmentAction(
   db: Db,
-  args: CreateSalesAssignmentProps
+  args: CreateSalesAssignmentProps,
 ) {
+  if (!args.items.length) return null;
   const lastAssignmentId = await lastId(db.orderItemProductionAssignments);
   await db.orderItemProductionAssignments.createMany({
     data: args.items.map(
@@ -51,7 +52,7 @@ export async function createSalesAssignmentAction(
           assignedById: args.authorId,
           itemId: item.itemInfo.itemId!,
           salesItemControlUid: item.itemInfo.controlUid,
-        } satisfies Prisma.OrderItemProductionAssignmentsCreateManyInput)
+        }) satisfies Prisma.OrderItemProductionAssignmentsCreateManyInput,
     ),
   });
   if (args.updateStats) {
@@ -67,16 +68,16 @@ export async function createSalesAssignmentAction(
               ...item.qty,
             },
           },
-          db
+          db,
         );
-      })
+      }),
     );
     await updateSalesStatAction(
       {
         salesId: args.salesId,
         types: ["prodAssigned"],
       },
-      db
+      db,
     );
   }
   if (args.submit) {
@@ -98,7 +99,7 @@ export async function createSalesAssignmentAction(
       salesId: args.salesId,
       items: args.items.map((data) => ({
         assignmentId: assignments.find(
-          (a) => a.salesItemControlUid === data.itemInfo.controlUid
+          (a) => a.salesItemControlUid === data.itemInfo.controlUid,
         )!?.id,
         itemInfo: data.itemInfo,
         qty: data.qty,
@@ -118,8 +119,9 @@ export interface CreateSalesAssignmentSubmissionProps {
 }
 export async function createSalesAssignmentSubmissionAction(
   db: Db,
-  args: CreateSalesAssignmentSubmissionProps
+  args: CreateSalesAssignmentSubmissionProps,
 ) {
+  if (!args.items.length) return null;
   await db.orderProductionSubmissions.createMany({
     data: args.items.map(
       (item) =>
@@ -138,7 +140,7 @@ export async function createSalesAssignmentSubmissionAction(
           // salesItemControlUid: item.itemInfo.controlUid,
           meta: {},
           assignmentId: item.assignmentId,
-        } satisfies Prisma.OrderProductionSubmissionsCreateManyInput)
+        }) satisfies Prisma.OrderProductionSubmissionsCreateManyInput,
     ),
   });
   if (args.updateStats) {
@@ -154,16 +156,16 @@ export async function createSalesAssignmentSubmissionAction(
               ...item.qty,
             },
           },
-          db
+          db,
         );
-      })
+      }),
     );
     await updateSalesStatAction(
       {
         salesId: args.salesId,
         types: ["prodCompleted"],
       },
-      db
+      db,
     );
   }
 }
@@ -206,7 +208,7 @@ export async function getDispatchCompletetionNotes(db: Db, dispatchId) {
 }
 export async function packDispatchItemsAction(
   db: Db,
-  props: PackDispatchItemsAction
+  props: PackDispatchItemsAction,
 ) {
   const { data } = props;
   await db.orderItemDelivery.createMany({
@@ -229,7 +231,7 @@ export async function packDispatchItemsAction(
               orderProductionSubmissionId: ps.submissionId,
               packedBy: props.authorName,
               packingStatus: "packed" as DispatchItemPackingStatus,
-            } satisfies Prisma.OrderItemDeliveryCreateManyInput)
+            }) satisfies Prisma.OrderItemDeliveryCreateManyInput,
         );
       })
       .flat(),
@@ -240,7 +242,7 @@ export async function packDispatchItemsAction(
         salesId: data?.order.id,
         types: [getDispatchControlType(props.packItems!.dispatchStatus as any)],
       },
-      db
+      db,
     );
 }
 
@@ -255,7 +257,7 @@ type SubmitAssingmentsAction = {
 } & SubmitAll;
 export async function submitAssignmentsAction(
   db: Db,
-  props: SubmitAssingmentsAction
+  props: SubmitAssingmentsAction,
 ) {
   const { assignedToId, authorId, data } = props;
   const createSubmissions: CreateSalesAssignmentSubmissionProps["items"] = [];
@@ -299,6 +301,7 @@ export async function submitAssignmentsAction(
     salesId: data.order.id,
     items: createSubmissions,
   });
+  return createAssignments.length || createSubmissions.length;
 }
 interface SubmitNonProductionsAction {
   data: RenturnTypeAsync<typeof getSaleInformation>;
@@ -307,7 +310,7 @@ interface SubmitNonProductionsAction {
 
 export async function submitNonProductionsAction(
   db: Db,
-  { data, authorId }: SubmitNonProductionsAction
+  { data, authorId }: SubmitNonProductionsAction,
 ) {
   const createAssignments: CreateSalesAssignmentProps["items"] = [];
   const createSubmissions: CreateSalesAssignmentSubmissionProps["items"] = [];
@@ -318,12 +321,12 @@ export async function submitNonProductionsAction(
     const pendingProds = recomposeQty(
       qtyMatrixDifference(
         item.analytics?.stats.qty!,
-        item.analytics?.stats.prodAssigned!
-      )
+        item.analytics?.stats.prodAssigned!,
+      ),
     );
 
     console.log(
-      `${item.title} - ${item.itemConfig?.production} : ${pendingProds.qty}`
+      `${item.title} - ${item.itemConfig?.production} : ${pendingProds.qty}`,
     );
     // const pendingProds = item.analytics?.production!;
     const deliverables = item.deliverables;

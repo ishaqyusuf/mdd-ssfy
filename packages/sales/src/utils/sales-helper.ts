@@ -1,7 +1,8 @@
+import { SalesPdfToken } from "@gnd/utils/tokenizer";
 import { addDays } from "date-fns";
 import { SalesPrintModes } from "src/constants";
 
-export class SalesUrls {
+export class SalesHelper {
   #token: string = "";
   constructor(
     public baseUrl: string,
@@ -14,7 +15,15 @@ export class SalesUrls {
       salesIds,
       expiry: addDays(new Date(), 7).toISOString(),
       mode,
-    });
+    } as SalesPdfToken);
+  }
+  async generateTokenDispatchId(salesId: number, dispatchId: number) {
+    this.#token = await this.generator({
+      salesIds: [salesId],
+      dispatchId,
+      expiry: addDays(new Date(), 7).toISOString(),
+      mode: "packing list" as SalesPrintModes,
+    } as SalesPdfToken);
   }
   public get shareUrl() {
     return `${this.baseUrl}/api/download/sales?token=${this.#token}&preview=false`;

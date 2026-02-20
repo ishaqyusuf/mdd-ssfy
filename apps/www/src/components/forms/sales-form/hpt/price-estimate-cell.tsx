@@ -1,6 +1,6 @@
 import { LineInput } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
 import { DataLine } from "@/components/(clean-code)/data-table/Dl";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { MoneyBadge } from "@/components/(clean-code)/money-badge";
 import Money from "@/components/_v1/money";
 import { Label } from "@gnd/ui/label";

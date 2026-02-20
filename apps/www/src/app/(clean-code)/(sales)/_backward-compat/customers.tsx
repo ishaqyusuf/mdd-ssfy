@@ -1,4 +1,4 @@
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { chunker } from "@/lib/chunker";
 
 import {

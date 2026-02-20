@@ -13,14 +13,15 @@ import {
 import { getSaleInformation } from "./get-sale-information";
 import { noteTag, saveNote, SaveNoteSchema } from "@gnd/utils/note";
 import { pickQtyFrom, recomposeQty } from "../utils/sales-control";
+import { hasQty } from "@gnd/utils/sales";
 export async function submitAllTask(db: Db, data: UpdateSalesControl) {
   const submitArgs = data.submitAll;
   const info = await getSaleInformation(db, {
     salesId: data.meta.salesId,
   });
-  await db.$transaction(
+  return await db.$transaction(
     async (tx) => {
-      await submitAssignmentsAction(tx as any, {
+      return await submitAssignmentsAction(tx as any, {
         authorId: data.meta.authorId,
         data: info,
         ...submitArgs,
@@ -28,7 +29,7 @@ export async function submitAllTask(db: Db, data: UpdateSalesControl) {
     },
     {
       maxWait: 30 * 1000,
-    }
+    },
   );
 }
 export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
@@ -43,7 +44,7 @@ export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
     if (s) {
       const { pendingPick, picked, remainder } = pickQtyFrom(
         recomposeQty(s.qty as any),
-        recomposeQty(item.analytics.assignment.pending)
+        recomposeQty(item.analytics.assignment.pending),
       );
 
       if (picked) {
@@ -83,12 +84,12 @@ export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
     },
     {
       maxWait: 30 * 1000,
-    }
+    },
   );
 }
 export async function submitNonProductionsTask(
   db: Db,
-  data: UpdateSalesControl
+  data: UpdateSalesControl,
 ) {
   const info = await getSaleInformation(db, {
     salesId: data.meta.salesId,
@@ -102,7 +103,7 @@ export async function submitNonProductionsTask(
     },
     {
       maxWait: 30 * 1000,
-    }
+    },
   );
   return {
     info,
@@ -198,20 +199,43 @@ export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
     },
     {
       maxWait: 30 * 1000,
-    }
+    },
   );
   return response;
 }
 export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
-  // const notProds = await submitNonProductionsTask(db, data);
-  // let info = !notProds?.response?.updated
-  //   ? notProds?.info
-  //   : await getSaleInformation(db, {
-  //       salesId: data.meta.salesId,
-  //     });
+  if (data.packItems?.packMode == "all")
+    await submitAllTask(db, {
+      meta: data.meta,
+      submitAll: {},
+    });
   const info = await getSaleInformation(db, {
     salesId: data.meta.salesId,
   });
+  if (data.packItems?.packMode !== "selection") {
+    // data.packItems.packingList =
+    const packingList: NonNullable<
+      NonNullable<typeof data.packItems>["packingList"]
+    > = [];
+
+    for (const item of info.items) {
+      if (!item.itemId) continue;
+
+      const pendingSubmissions = (
+        item.analytics?.pendingSubmissions ?? []
+      ).filter((s) => hasQty(s.qty));
+
+      if (!pendingSubmissions.length) continue;
+      packingList.push({
+        salesItemId: item.itemId,
+        submissions: pendingSubmissions.map((s) => ({
+          submissionId: s.assignmentId, // assignmentId is the submission's id
+          qty: s.qty,
+        })),
+      });
+    }
+    data.packItems!.packingList = packingList;
+  }
   const response = await db.$transaction(
     async (tx) => {
       return await packDispatchItemsAction(tx as any, {
@@ -224,7 +248,7 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
     },
     {
       maxWait: 30 * 1000,
-    }
+    },
   );
 }
 export async function resetSalesTask(db: Db, salesId) {
@@ -234,12 +258,12 @@ export async function resetSalesTask(db: Db, salesId) {
     },
     {
       maxWait: 30 * 1000,
-    }
+    },
   );
 }
 export async function deleteSubmissionsTask(db: Db, data: UpdateSalesControl) {
   await db.$transaction(async (tx) => {
-    const args = data.deleteSubmissions;
+    const args = data.deleteSubmissions!;
     if (args.submissionIds?.length)
       await tx.orderProductionSubmissions.updateMany({
         where: {
@@ -289,7 +313,7 @@ export async function deleteSubmissionsTask(db: Db, data: UpdateSalesControl) {
 }
 export async function deleteAssignmentsTasks(db: Db, data: UpdateSalesControl) {
   await db.$transaction(async (tx) => {
-    const args = data.deleteAssignments;
+    const args = data.deleteAssignments!;
     if (args.assignmentIds?.length)
       await tx.orderItemProductionAssignments.updateMany({
         where: {
@@ -334,4 +358,26 @@ export async function deleteAssignmentsTasks(db: Db, data: UpdateSalesControl) {
       });
   });
   await resetSalesTask(db, data.meta.salesId);
+}
+
+export async function markAsCompletedTask(db: Db, args: UpdateSalesControl) {
+  await submitAllTask(db, {
+    meta: args.meta,
+    submitAll: {},
+  });
+  // const data = await getSaleInformation(db, {
+  //   salesId: args.meta.salesId,
+  // });
+  await packDispatchItemTask(db, {
+    meta: args.meta,
+    packItems: {
+      dispatchId: args.markAsCompleted?.dispatchId!,
+      packMode: "all",
+      dispatchStatus: "completed",
+    },
+  });
+  await submitDispatchTask(db, {
+    meta: args.meta,
+    submitDispatch: args.markAsCompleted,
+  });
 }

@@ -1,11 +1,11 @@
 import { getBaseUrl } from "@/envs";
 import { generateToken } from "@/actions/token-action";
-import { SalesUrls } from "@sales/utils/sales-urls";
+import { SalesHelper } from "@sales/utils/sales-helper";
 import { share } from "@gnd/utils/share";
 import { openLink } from "./open-link";
 
-export function newSalesUrls() {
-    const sp = new SalesUrls(getBaseUrl(), generateToken, share, openLink);
+export function newSalesHelper() {
+    const sp = new SalesHelper(getBaseUrl(), generateToken, share, openLink);
     return sp;
 }
 

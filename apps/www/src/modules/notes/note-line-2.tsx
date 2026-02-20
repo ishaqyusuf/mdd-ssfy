@@ -1,4 +1,4 @@
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { GetNotes } from "./actions/get-notes-action";
 import { Progress } from "@gnd/ui/custom/progress";
 import { formatDate } from "@/lib/use-day";

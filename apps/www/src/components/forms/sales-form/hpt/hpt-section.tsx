@@ -2,7 +2,7 @@ import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@/components/_v1/icons";
 import Money from "@/components/_v1/money";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { AnimatedNumber } from "@/components/animated-number";
 import { WageInput } from "@/components/forms/sales-form/hpt/wage-input";
 import { cn } from "@/lib/utils";

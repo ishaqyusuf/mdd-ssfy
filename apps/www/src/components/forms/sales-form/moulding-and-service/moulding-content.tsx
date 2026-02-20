@@ -14,7 +14,7 @@ import { QtyInput } from "./qty-input";
 import { AnimatedNumber } from "@/components/animated-number";
 import { LineInput } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
 import { MouldingClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/moulding-class";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import Money from "@/components/_v1/money";
 import { Label } from "@gnd/ui/label";
 import { DataLine } from "@/components/(clean-code)/data-table/Dl";

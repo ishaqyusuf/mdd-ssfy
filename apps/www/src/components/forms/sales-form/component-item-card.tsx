@@ -11,7 +11,7 @@ import {
 import { updateComponentsSortingAction } from "@/actions/update-components-sorting";
 import { DeleteRowAction } from "@/components/_v1/data-table/data-table-row-actions";
 import { Icons } from "@/components/_v1/icons";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { _modal } from "@/components/common/modal/provider";
 import { CustomComponentForm } from "@/components/forms/sales-form/custom-component";
 import { useSortControl } from "@/hooks/use-sort-control";
@@ -97,7 +97,7 @@ export function ComponentItemCard({
         const cls = new ComponentHelperClass(
             stepUid,
             component?.uid,
-            component
+            component,
         );
         return {
             cls,
@@ -148,7 +148,7 @@ export function ComponentItemCard({
                         ? "border-muted-foreground bg-muted"
                         : "hover:border-muted-foreground/50",
                     sortMode &&
-                        "border-dashed border-muted-foreground hover:border-muted-foreground"
+                        "border-dashed border-muted-foreground hover:border-muted-foreground",
                 )}
                 onClick={!sortMode ? selectComponent : undefined}
             >
@@ -204,7 +204,7 @@ export function ComponentItemCard({
                     <div
                         className={cn(
                             !component?.variations?.length && "hidden",
-                            "px-1"
+                            "px-1",
                         )}
                     >
                         <Filter className="size-4 text-muted-foreground/70" />
@@ -212,7 +212,7 @@ export function ComponentItemCard({
                     <div
                         className={cn(
                             !component?.sectionOverride?.overrideMode &&
-                                "hidden"
+                                "hidden",
                         )}
                     >
                         <LucideVariable className="size-4 text-muted-foreground/70" />
@@ -242,7 +242,7 @@ export function ComponentItemCard({
 
             <div
                 className={cn(
-                    "absolute  left-0 top-0 m-4 flexs hidden items-center gap-2"
+                    "absolute  left-0 top-0 m-4 flexs hidden items-center gap-2",
                 )}
             >
                 <div className={cn(selectState?.count ? "" : "hidden")}>
@@ -253,7 +253,7 @@ export function ComponentItemCard({
                 </div>
                 <div
                     className={cn(
-                        !component?.sectionOverride?.overrideMode && "hidden"
+                        !component?.sectionOverride?.overrideMode && "hidden",
                     )}
                 >
                     <LucideVariable className="size-4 text-muted-foreground/70" />
@@ -268,8 +268,8 @@ export function ComponentItemCard({
                     open
                         ? ""
                         : selectState?.count
-                        ? "hidden"
-                        : "hidden bg-muted dark:bg-muted-foreground group-hover:flex"
+                          ? "hidden"
+                          : "hidden bg-muted dark:bg-muted-foreground group-hover:flex",
                 )}
             >
                 <div>
@@ -282,7 +282,7 @@ export function ComponentItemCard({
                                         onClick={() => {
                                             openComponentModal(
                                                 ctx.cls,
-                                                component
+                                                component,
                                             );
                                         }}
                                         Icon={Info}

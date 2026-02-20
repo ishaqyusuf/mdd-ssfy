@@ -4,7 +4,7 @@ import { Env } from "@/components/env";
 import { Icons } from "@/components/_v1/icons";
 import Portal from "@/components/_v1/portal";
 
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { AssignmentCompleteDate } from "./assignment-complete-date";
 import Customers from "./customers";
 import DoorPriceHarvest from "./door-price-harvest";

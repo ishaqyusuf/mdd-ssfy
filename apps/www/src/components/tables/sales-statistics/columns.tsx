@@ -2,7 +2,7 @@
 
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { Progress } from "@gnd/ui/custom/progress";
 import { SalesPayWidget } from "@/components/widgets/sales-pay-widget";
 import { useBatchSales } from "@/hooks/use-batch-sales";

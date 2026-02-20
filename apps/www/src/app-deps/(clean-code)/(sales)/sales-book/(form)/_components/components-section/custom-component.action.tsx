@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 
 import { useFormDataStore } from "../../_common/_stores/form-data-store";
 import { UseStepContext } from "./ctx";

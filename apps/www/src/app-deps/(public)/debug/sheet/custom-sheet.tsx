@@ -1,4 +1,4 @@
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import Button from "@/components/common/button";
 import Modal from "@/components/common/modal";
 

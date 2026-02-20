@@ -1,5 +1,5 @@
 import { chunker } from "@/lib/chunker";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { loadSalesWithoutStats, updateSalesStats } from "./sales-stat.action";
 
 export default function SalesStat({}) {

@@ -2,7 +2,7 @@ import { useCallback } from "react";
 
 import { DeleteRowAction } from "@/components/_v1/data-table/data-table-row-actions";
 import { Icons } from "@/components/_v1/icons";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { _modal } from "@/components/common/modal/provider";
 import { cn } from "@/lib/utils";
 import { BoxSelect, Folder } from "lucide-react";

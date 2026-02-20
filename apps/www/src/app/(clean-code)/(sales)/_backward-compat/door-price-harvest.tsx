@@ -3,7 +3,7 @@ import {
     harvestDoorPricingUseCase,
     saveHarvestedDoorPricingUseCase,
 } from "@/app-deps/(clean-code)/(sales)/_common/use-case/step-component-use-case";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { chunker } from "@/lib/chunker";
 import { toast } from "sonner";
 

@@ -1,4 +1,4 @@
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { useSalesDeliveryUpdate } from "@/hooks/use-sales-delivery-update";

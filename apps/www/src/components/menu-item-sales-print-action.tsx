@@ -3,7 +3,7 @@ import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { SalesPrintProps } from "@/utils/sales-print-utils";
 import { Menu } from "@gnd/ui/custom/menu";
 import { MessageCircle } from "lucide-react";
-import { newSalesUrls } from "@/lib/sales";
+import { newSalesHelper } from "@/lib/sales";
 
 interface Props {
     pdf?: boolean;
@@ -23,7 +23,7 @@ export function MenuItemPrintAction(props: Props) {
         onOpenMenu,
     } = props;
     async function print(e, params?: SalesPrintProps) {
-        const sp = newSalesUrls();
+        const sp = newSalesHelper();
         if (props.salesIds) {
             e.preventDefault();
             await sp.generateTokenSalesIds(

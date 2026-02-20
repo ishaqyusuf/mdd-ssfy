@@ -76,6 +76,7 @@ export const updateSalesControlSchema = z.object({
     })
     .nullable()
     .optional(),
+
   deleteSubmissions: z
     .object({
       submissionIds: z.array(z.number()).optional().nullable(),
@@ -145,11 +146,19 @@ export const updateSalesControlSchema = z.object({
             note: z.string().optional(),
           }),
         )
-        .nullable(),
+        .nullable()
+        .optional(),
+      // packAll: z.boolean().optional().nullable(),
+      packMode: z
+        .enum(["all", "available", "selection"])
+        .optional()
+        .nullable()
+        .default("selection"),
     })
     .nullable()
     .optional(),
   submitDispatch: dispatchForm.optional().nullable(),
+  markAsCompleted: dispatchForm.optional().nullable(),
 });
 
 export type UpdateSalesControl = z.infer<typeof updateSalesControlSchema>;

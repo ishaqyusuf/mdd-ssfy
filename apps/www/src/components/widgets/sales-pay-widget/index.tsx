@@ -1,4 +1,4 @@
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { salesPaymentMethods } from "@/utils/constants";
 import { Icons } from "@gnd/ui/icons";
 

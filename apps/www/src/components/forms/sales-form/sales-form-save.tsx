@@ -9,7 +9,7 @@ import {
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { zhInitializeState } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-form-helper";
 import { Icons } from "@/components/_v1/icons";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import Button from "@/components/common/button";
 
 import { parseAsBoolean, useQueryStates } from "nuqs";

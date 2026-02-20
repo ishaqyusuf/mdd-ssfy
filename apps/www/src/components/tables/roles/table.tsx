@@ -18,7 +18,7 @@ import { useEmployeeParams } from "@/hooks/use-employee-params";
 import { columns, Item } from "./columns";
 import { LoadMore } from "../load-more";
 import FContentShell from "@/components/(clean-code)/fikr-ui/f-content-shell";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { useRolesParams } from "@/hooks/use-roles-params";
 import Portal from "@/components/_v1/portal";
 import { Icons } from "@gnd/ui/icons";

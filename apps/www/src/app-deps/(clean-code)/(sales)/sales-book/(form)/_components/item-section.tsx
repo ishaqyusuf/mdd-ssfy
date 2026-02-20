@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { restoreMissingComponentData } from "@/actions/restore-missing-component-data";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { swap } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -69,10 +69,10 @@ function ItemSectionHeader({ uid, ignoreCollapse = false }) {
         try {
             await restoreMissingComponentData(
                 cls.formItem.id,
-                cls.formItem.groupItem.hptId
+                cls.formItem.groupItem.hptId,
             );
             toast.success(
-                "Restore completed. Refresh and Save to get updated invoice."
+                "Restore completed. Refresh and Save to get updated invoice.",
             );
         } catch (error) {
             toast.error(error.message);
@@ -103,7 +103,7 @@ function ItemSectionHeader({ uid, ignoreCollapse = false }) {
                         zus.updateFormItem(
                             uid,
                             "collapsed",
-                            !formItem.collapsed
+                            !formItem.collapsed,
                         );
                     }}
                     className="h-8"

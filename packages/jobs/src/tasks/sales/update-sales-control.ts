@@ -5,6 +5,7 @@ import {
   createAssignmentsTask,
   deleteAssignmentsTasks,
   deleteSubmissionsTask,
+  markAsCompletedTask,
   packDispatchItemTask,
   submitAllTask,
   updateSalesControlSchema,
@@ -26,9 +27,10 @@ export const updateSalesControl = schemaTask({
       createAssignments: createAssignmentsTask,
       deleteSubmissions: deleteSubmissionsTask,
       deleteAssignments: deleteAssignmentsTasks,
+      markAsCompleted: markAsCompletedTask,
     };
     const actionKey = Object.entries(input).find(
-      ([k, v]) => !!v && !!(actionMaps as any)[k as any]
+      ([k, v]) => !!v && !!(actionMaps as any)[k as any],
     )?.[0]!;
     const action = (actionMaps as any)[actionKey];
     if (action) return await action(db, input);

@@ -4,7 +4,7 @@ import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(fo
 import { SettingsClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import { Icons } from "@/components/_v1/icons";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { AnimatedNumber } from "@/components/animated-number";
 import { FormSelectProps } from "@/components/common/controls/form-select";
 import { NumberInput } from "@/components/currency-input";

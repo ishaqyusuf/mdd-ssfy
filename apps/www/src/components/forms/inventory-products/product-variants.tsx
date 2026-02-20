@@ -19,7 +19,7 @@ import { cn } from "@gnd/ui/cn";
 import { VariantFilters } from "./variant-filters";
 import { Progress } from "@gnd/ui/custom/progress";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { Button } from "@gnd/ui/button";
 import { INVENTORY_STATUS } from "@sales/constants";
 import { getColorFromName } from "@/lib/color";

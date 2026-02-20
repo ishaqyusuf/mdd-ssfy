@@ -1,7 +1,7 @@
 import { getTakeOffStepForms } from "@/actions/get-takeoff-step-forms";
 import { useTakeoff, useTakeoffItem } from "./context";
 import { ComponentHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { ComponentImg } from "@/components/forms/sales-form/component-img";
 import { Home } from "lucide-react";
 
@@ -10,7 +10,7 @@ export function SectionSelector() {
     const { itemUid: uid, section } = useTakeoffItem();
     async function select(componentUid, templateId?) {
         const section = ctx.sections.find(
-            (s) => s.componentUid == componentUid
+            (s) => s.componentUid == componentUid,
         );
         const template = section?.templates?.find((t) => t.id == templateId);
         const stepForms = await getTakeOffStepForms({
@@ -44,7 +44,7 @@ export function SectionSelector() {
         zus.dotUpdate(`sequence.stepComponent.${uid}`, seq);
         const component = new ComponentHelperClass(
             rootItemStepUid,
-            section.componentUid
+            section.componentUid,
         );
         component.resetGroupItem(section.title);
     }
@@ -88,7 +88,7 @@ export function SectionSelector() {
                                         onClick={(e) => {
                                             select(
                                                 section.componentUid,
-                                                template.id
+                                                template.id,
                                             );
                                         }}
                                         key={template.id}

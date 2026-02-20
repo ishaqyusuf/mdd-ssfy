@@ -1,7 +1,7 @@
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import Money from "@/components/_v1/money";
 import { DataLine } from "@/components/(clean-code)/data-table/Dl";
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { MoneyBadge } from "@/components/(clean-code)/money-badge";
 import { AnimatedNumber } from "@/components/animated-number";
 import { cn } from "@/lib/utils";

@@ -1,4 +1,4 @@
-import { Menu } from "@/components/(clean-code)/menu";
+import { Menu } from "@gnd/ui/custom/menu";
 import { useTakeoffItem } from "./context";
 import { copySalesTakeOffItem } from "@/lib/sales/copy-sales-item";
 import ConfirmBtn from "@/components/confirm-button";
