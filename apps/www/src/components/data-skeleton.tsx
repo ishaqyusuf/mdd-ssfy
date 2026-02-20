@@ -16,7 +16,7 @@ export function DataSkeleton({
     children = null,
     className = "",
     placeholder = "",
-    as = "div",
+    as = "span",
     pok,
 }: Props) {
     const ctx = useDataSkeleton();

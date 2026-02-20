@@ -20,47 +20,11 @@ import { newSalesHelper } from "@/lib/sales";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Item, Table } from "@gnd/ui/namespace";
 import { DynamicIcon } from "lucide-react/dynamic";
+import { DispatchListMenu } from "./dispatch-list-menu";
 export function DispatchList({}) {
     const ctx = useDispatch();
     const sq = useSalesOverviewQuery();
-    const loader = useLoadingToast();
-    const auth = useAuth();
-    const { mutate: mutateDeleteDispatch, isPending: isDeleting } = useMutation(
-        useTRPC().dispatch.deleteDispatch.mutationOptions({
-            onSuccess() {
-                loader.success("Deleted!.");
-                sq.salesQuery.dispatchUpdated();
-                trigger({
-                    taskName: "reset-sales-control",
-                    payload: {
-                        meta: {
-                            salesId: ctx.data?.id!,
-                            authorId: auth?.id!,
-                            authorName: auth?.name!,
-                        },
-                    } as ResetSalesControl,
-                });
-            },
-        }),
-    );
-    const { trigger } = useTaskTrigger({
-        silent: true,
-        onSuccess() {
-            sq.salesQuery.dispatchUpdated();
-            console.log("triggered fallback");
-        },
-    });
-    const deleteDispatch = async (id) => {
-        mutateDeleteDispatch({
-            dispatchId: id,
-        });
-    };
-    const { setParams: setSalesPreviewParams } = useSalesPreview();
-    const sh = newSalesHelper();
-    const preview = async (dispatchId) => {
-        await sh.generateTokenDispatchId(ctx.data.id, dispatchId);
-        sh.openPrintLink();
-    };
+
     return (
         <div className="rounded-md border">
             {ctx?.data?.id && !ctx?.data?.deliveries?.length ? (
@@ -131,24 +95,7 @@ export function DispatchList({}) {
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <DataSkeleton pok="date">
-                                        <Menu>
-                                            <Menu.Item
-                                                icon="packingList"
-                                                onClick={() =>
-                                                    preview(dispatch.id)
-                                                }
-                                            >
-                                                Preview
-                                            </Menu.Item>
-
-                                            <Menu.Trash
-                                                action={() =>
-                                                    deleteDispatch(dispatch.id)
-                                                }
-                                            >
-                                                Delete
-                                            </Menu.Trash>
-                                        </Menu>
+                                        <DispatchListMenu dispatch={dispatch} />
                                     </DataSkeleton>
                                 </Item.Actions>
                             </Item>
