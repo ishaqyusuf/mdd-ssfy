@@ -13,7 +13,7 @@ import { Icons } from "@gnd/ui/icons";
 import { printQuote } from "@/utils/sales-invoice";
 import { Download } from "lucide-react";
 
-type Item = RouterOutputs["sales"]["quotes"]["data"][number];
+export type Item = RouterOutputs["sales"]["quotes"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
     cells.selectColumn,
     {

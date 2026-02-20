@@ -1,89 +1,45 @@
-import { generateToken } from "@/actions/token-action";
 import { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
-import { env } from "@/env.mjs";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
-import { openLink } from "@/lib/open-link";
-import { timeout } from "@/lib/timeout";
 import { SalesPrintProps } from "@/utils/sales-print-utils";
 import { Menu } from "@gnd/ui/custom/menu";
-import { SalesPdfToken } from "@gnd/utils/tokenizer";
-import { SalesPrintModes } from "@sales/constants";
-import { addDays } from "date-fns";
 import { MessageCircle } from "lucide-react";
-import QueryString from "qs";
-import { share } from "@gnd/utils/share";
-import { getBaseUrl } from "@/envs";
+import { newSalesUrls } from "@/lib/sales";
+
 interface Props {
     pdf?: boolean;
     type: SalesType;
     onOpenMenu?;
     // salesId;
-    slug?;
+    // slug?;
     share?: boolean;
     salesIds?: number[];
 }
 export function MenuItemPrintAction(props: Props) {
     const loader = useLoadingToast();
-    const { type, slug, pdf, onOpenMenu } = props;
+    const {
+        type,
+        // slug,
+        pdf,
+        onOpenMenu,
+    } = props;
     async function print(e, params?: SalesPrintProps) {
+        const sp = newSalesUrls();
         if (props.salesIds) {
             e.preventDefault();
-            const tok = await generateToken({
-                salesIds: props.salesIds,
-                expiry: addDays(new Date(), 7).toISOString(),
-                mode: params?.mode || type, // "order" as SalesPrintModes,
-
-                // mode: props.type
-            } satisfies SalesPdfToken);
+            await sp.generateTokenSalesIds(
+                props.salesIds,
+                params?.mode || type,
+            );
             if (props.share) {
-                const baseUrl = getBaseUrl();
-                const url = `${baseUrl}/api/download/sales?token=${tok}&preview=false`;
-                await share({
-                    url,
-                    msg: `Hello! download your sales ${url}`,
-                    recipient: `+234 8186877306`,
-                });
+                await sp.share(
+                    `Hello! download your sales ${sp.shareUrl}`,
+                    `+234 8186877306`,
+                );
                 return;
             }
-            openLink(
-                props.pdf ? `api/download/sales` : `p/sales-invoice`,
-                {
-                    token: tok,
-                    preview: !props.pdf,
-                },
-                true
-            );
+            sp.openPrintLink(props.pdf);
             onOpenMenu?.(false);
             return;
-        }
-        const query = {
-            slugs: slug,
-            mode: type,
-            preview: false,
-            ...(params || {}),
-        } as SalesPrintProps;
-        if (!pdf) openLink(`/printer/sales`, query, true);
-        else {
-            e.preventDefault();
-            loader.loading("Downloading...");
-            const pdf = await fetch(
-                `${
-                    env.NEXT_PUBLIC_NODE_ENV == "production"
-                        ? ""
-                        : "https://gndprodesk.com"
-                }/api/pdf/sales?${QueryString.stringify(query)}`
-            ).then((res) => res.json());
-            const link = document.createElement("a");
-            // link.href = pdf.url;
-            const downloadUrl = pdf.url.replace(
-                "/fl_attachment/",
-                `/fl_attachment:${query.slugs}/`
-            ); //+ `/${query.slugs}.pdf`;
-
-            link.href = downloadUrl;
-            link.download = `${query.slugs}.pdf`;
-            link.click();
-            onOpenMenu?.(false);
         }
     }
     if (props.share) {

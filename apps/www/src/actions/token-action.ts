@@ -1,7 +1,6 @@
 "use server";
 
 import {
-    salesPdfToken,
     tokenize,
     TokenSchemaNames,
     tokenSchemas,
@@ -13,6 +12,6 @@ export async function generateToken(data) {
 }
 
 export async function validateTokenAction(tok, schemaName: TokenSchemaNames) {
-    return validateToken(tok, tokenSchemas[schemaName]);
+    return validateToken(tok, tokenSchemas[schemaName as any]);
 }
 
