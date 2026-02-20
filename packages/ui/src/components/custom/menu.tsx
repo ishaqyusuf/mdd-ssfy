@@ -90,7 +90,7 @@ export const useMenuContext = () => {
 function BaseMenu(props: RowActionMoreMenuProps, ref) {
   const {
     children,
-    Icon = Icons.Menu,
+    Icon: MenuIcon = Icons.Menu,
     label,
     disabled,
     Trigger,
@@ -133,7 +133,7 @@ function BaseMenu(props: RowActionMoreMenuProps, ref) {
                 triggerSize == "sm" && "h-6 w-6",
               )}
             >
-              {Icon && <Icon className="h-4 w-4" />}
+              <Icon Icon={MenuIcon} className="h-4 w-4" />
               {label && <span className="">{label}</span>}
             </Button>
           )}
@@ -153,24 +153,29 @@ function Item({
   link,
   href,
   children,
-  Icon,
+  Icon: ItemIcon,
   SubMenu,
   onClick,
   _blank,
-  icon,
+  icon: iconName,
   shortCut,
   className,
   ...props
 }: MenuItemProps) {
   const { disabled } = useMenuContext();
-  if (!Icon && icon) Icon = Icons[icon];
-  if (typeof Icon === "string") Icon = Icons[Icon];
+
   // Lucide.ALargeSmall
   if (SubMenu)
     return (
       <DropdownMenuSub {...props}>
         <DropdownMenuSubTrigger>
-          {Icon && <Icon className="mr-2 size-4 text-muted-foreground/70" />}
+          {icon || ItemIcon ? (
+            <Icon
+              name={icon}
+              Icon={ItemIcon}
+              className="mr-2 size-4 text-muted-foreground/70"
+            />
+          ) : null}
           {children}
           {!!shortCut && (
             <>
@@ -196,7 +201,11 @@ function Item({
       onClick={link || href ? null : (onClick as any)}
       className={cn("gap-2", className)}
     >
-      {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground/70" />}
+      <Icon
+        name={iconName}
+        Icon={ItemIcon}
+        className="h-3.5 w-3.5 text-muted-foreground/70"
+      />
       {children}
       {!!shortCut && (
         <>

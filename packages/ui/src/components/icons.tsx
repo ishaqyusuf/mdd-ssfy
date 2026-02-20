@@ -1,6 +1,7 @@
 import { ArchiveIcon } from "@radix-ui/react-icons";
 import { FaFacebook, FaInstagram, FaXTwitter } from "react-icons/fa6";
 import { FiGithub } from "react-icons/fi";
+import { DynamicIcon } from "lucide-react/dynamic";
 import {
   MdAdd,
   MdAddLink,
@@ -241,6 +242,7 @@ import { Cross2Icon, DashboardIcon } from "@radix-ui/react-icons";
 
 import { cva, VariantProps } from "class-variance-authority";
 import { cn } from "../utils";
+import { ComponentProps } from "react";
 
 export type Icon = LucideIcon;
 type SVGIconProps = {
@@ -946,7 +948,9 @@ export const Icons = {
   placeholder: ImageIcon,
   ...IconsBase,
 };
-export type IconKeys = keyof typeof Icons;
+export type IconKeys =
+  | keyof typeof Icons
+  | ComponentProps<typeof DynamicIcon>["name"];
 const iconVariants = cva("", {
   variants: {
     variant: {
@@ -966,10 +970,17 @@ const iconVariants = cva("", {
 });
 export function Icon({
   name,
+  Icon,
   className,
   ...props
-}: { name: IconKeys; className?: string } & VariantProps<typeof iconVariants>) {
-  const RenderIcon = Icons[name];
+}: {
+  name?: IconKeys;
+  className?: string;
+  Icon?;
+} & VariantProps<typeof iconVariants>) {
+  let RenderIcon = Icons[name] || Icon;
+  if (!RenderIcon && name)
+    RenderIcon = (props) => <DynamicIcon name={name} {...props} />;
   if (!RenderIcon) return null;
   return <RenderIcon className={cn("", iconVariants(props), className)} />;
 }

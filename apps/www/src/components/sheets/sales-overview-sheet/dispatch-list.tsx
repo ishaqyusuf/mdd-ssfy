@@ -19,7 +19,7 @@ import { ResetSalesControl } from "@sales/schema";
 import { newSalesHelper } from "@/lib/sales";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Item, Table } from "@gnd/ui/namespace";
-
+import { DynamicIcon } from "lucide-react/dynamic";
 export function DispatchList({}) {
     const ctx = useDispatch();
     const sq = useSalesOverviewQuery();
@@ -71,7 +71,6 @@ export function DispatchList({}) {
                         (dispatch, index) => (
                             <Item
                                 key={index}
-                                variant="ghost"
                                 role="listitem"
                                 className="cursor-pointer"
                                 onClick={() =>
@@ -114,6 +113,13 @@ export function DispatchList({}) {
                                                         Not assigned
                                                     </span>
                                                 )}
+                                            </DataSkeleton>
+                                        </span>
+                                        <span>
+                                            <DataSkeleton pok="textSm">
+                                                📦{" "}
+                                                {dispatch.packPercentage ?? 0}%
+                                                packed
                                             </DataSkeleton>
                                         </span>
                                     </Item.Description>
