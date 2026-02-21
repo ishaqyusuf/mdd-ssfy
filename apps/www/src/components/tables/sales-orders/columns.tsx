@@ -271,27 +271,7 @@ export const columns: ColumnDef<Item>[] = [
             return <InvoiceColumn item={item} />;
         },
     },
-    // {
-    //     header: "Pending",
-    //     accessorKey: "pending",
-    //     cell: ({ row: { original: item } }) => (
-    //         <div>
-    //             {item.invoice.pending ? (
-    //                 <TCell.Money
-    //                     value={Math.abs(item.invoice.pending || 0)}
-    //                     className={cn(
-    //                         "font-mono$ font-medium text-muted-foreground",
-    //                         item.invoice.pending > 0 && "text-red-700/80",
-    //                         item.invoice.pending < 0 &&
-    //                             "bg-emerald-700 text-white",
-    //                     )}
-    //                 />
-    //             ) : (
-    //                 "-"
-    //             )}
-    //         </div>
-    //     ),
-    // },
+
     {
         header: "Method",
         accessorKey: "dispatch",
