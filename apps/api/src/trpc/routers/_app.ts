@@ -27,6 +27,7 @@ import { printRouter } from "./print.route";
 import { workOrderRouter } from "./work-order.route";
 import { jobRoutes } from "./jobs.route";
 import { settingsRouter } from "./settings.route";
+import { newSalesFormRouter } from "./new-sales-form.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
@@ -45,6 +46,7 @@ export const appRouter = createTRPCRouter({
   jobs: jobRoutes,
   orgs,
   notes: notesRouter,
+  newSalesForm: newSalesFormRouter,
   print: printRouter,
   sales: salesRouter,
   salesDashboard: salesDashboardRouter,

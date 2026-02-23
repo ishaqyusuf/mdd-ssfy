@@ -3,9 +3,9 @@ import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useTRPC } from "@/trpc/client";
 import { Menu } from "@gnd/ui/custom/menu";
 import { ResetSalesControl } from "@sales/schema";
-import { useMutation } from "node_modules/@tanstack/react-query/build/modern/useMutation";
 import { useDispatch } from "./context";
 import { newSalesHelper } from "@/lib/sales";
+import { useMutation } from "@tanstack/react-query";
 
 interface Props {
     dispatch;
