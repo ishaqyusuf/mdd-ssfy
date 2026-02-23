@@ -59,3 +59,8 @@ always ignore imports statements, and focus on function declarations, schema dec
 
 
 
+Files → kebab-case (login-page.tsx, message-fetcher.ts, use-message-fetcher.ts)
+Components → PascalCase (LoginPage, MessageCard, StatusDot)
+Functions/variables → camelCase (fetchMessages, handleSendCode, addLog)
+Constants → SCREAMING_SNAKE_CASE (BATCH_SIZE, RETRY_MAX_MS)
+Types/interfaces → PascalCase (FetchedMessage, FetcherState)

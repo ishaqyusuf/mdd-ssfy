@@ -414,9 +414,14 @@ const { isPending, mutate } = useMutation(
 
 ### Invalidate Query
 ```ts
-  _qc.invalidateQueries({
-                    queryKey: _trpc.example.exampleFn.queryKey({}),
-                });
+import {
+    invalidateQueries,
+    invalidateInfiniteQueries,
+    invalidateQuery,
+} from "@/lib/invalidate-query";
+  invalidateQueries("example.exampleFn");
+   invalidateQueries("channel.getChannels","...");
+invalidateQuery("channel.getChannels", {}) // with input options
 ```
 
 ### Rules / Notes
@@ -424,7 +429,7 @@ const { isPending, mutate } = useMutation(
 - `_qc` is the shared QueryClient for cache operations.
 - Use `isPending` for loading states (suspense-friendly).
 - For paginated results, use backend `paginationSchema` and compose helpers.
-- Mutations should invalidate relevant queries using `_qc.invalidateQueries()`.
+- Mutations should invalidate relevant queries using `invalidateQueries("")`.
 
 ---
 
