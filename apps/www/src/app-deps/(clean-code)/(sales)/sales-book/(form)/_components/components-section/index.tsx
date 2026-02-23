@@ -46,12 +46,10 @@ import { ComponentHelperClass } from "../../_utils/helpers/zus/step-component-cl
 import { zusDeleteComponents } from "../../_utils/helpers/zus/zus-step-helper";
 import { ComponentImg } from "../../../../../../../components/forms/sales-form/component-img";
 import { openComponentModal } from "../modals/component-form";
-import { openEditComponentPrice } from "../modals/component-price-modal";
-import { openSectionSettingOverride } from "../modals/component-section-setting-override";
+
 import { openComponentVariantModal } from "../modals/component-visibility-modal";
-import { openDoorPriceModal } from "../modals/door-price-modal";
 import DoorSizeModal from "../modals/door-size-modal";
-import { openDoorSizeSelectModal } from "../modals/door-size-select-modal/open-modal";
+
 import { openStepPricingModal } from "../modals/step-pricing-modal";
 import { UseStepContext, useStepContext } from "./ctx";
 import { CustomComponentAction } from "./custom-component.action";

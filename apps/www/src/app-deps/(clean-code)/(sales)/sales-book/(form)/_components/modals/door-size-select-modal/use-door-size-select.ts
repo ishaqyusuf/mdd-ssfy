@@ -1,6 +1,6 @@
 import { cn, generateRandomString, inToFt, sum, toNumber } from "@/lib/utils";
 
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { _modal } from "@/components/common/modal/provider";
@@ -11,6 +11,7 @@ import { ftToIn } from "@/app/(clean-code)/(sales)/_common/utils/sales-utils";
 import { composeDoor } from "@/lib/sales/compose-door";
 import { updateDoorGroupForm } from "@/lib/sales/update-door-form";
 import createContextFactory from "@/utils/context-factory";
+import { useFormDataStore } from "../../../_common/_stores/form-data-store";
 
 interface Props {
     cls?: ComponentHelperClass;
@@ -20,13 +21,31 @@ export const { useContext: useCtx, Provider: DoorSizeSelectProvider } =
     createContextFactory((props: Props) => {
         const { cls, door } = props;
         const swapPaths = door?.sizeList?.map((s) => s.path);
-        const memoied = composeDoor(cls, door);
+        const supplierDep = useFormDataStore((s) => {
+            const doorStep = Object.entries(s.kvStepForm).find(
+                ([itemStepUid, stepForm]) =>
+                    itemStepUid?.startsWith(`${cls.itemUid}-`) &&
+                    stepForm?.title === "Door",
+            )?.[1];
+            return doorStep?.formStepMeta?.supplierUid || null;
+        });
+
+        const memoied = useMemo(
+            () => composeDoor(cls, door),
+            [cls, door, supplierDep],
+        );
         const { selections, sizePriceList, priceModel, routeConfig } = memoied;
         const form = useForm({
             defaultValues: {
                 selections,
             },
         });
+
+        useEffect(() => {
+            form.reset({
+                selections,
+            });
+        }, [form, selections]);
         function updateDoorForm(clear = false) {
             const data = form.getValues();
             return updateDoorGroupForm(cls, data.selections, swapPaths, clear);
@@ -89,4 +108,3 @@ export const { useContext: useCtx, Provider: DoorSizeSelectProvider } =
             },
         };
     });
-
