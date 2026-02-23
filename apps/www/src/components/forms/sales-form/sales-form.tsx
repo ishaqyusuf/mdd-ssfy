@@ -15,7 +15,7 @@ import { useSalesSummaryToggle } from "@/store/invoice-summary-toggle";
 import { SalesFormSave } from "./sales-form-save";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { Button } from "@gnd/ui/button";
-import { SidebarProvider } from "@gnd/ui/sidebar";
+import { SidebarProvider, useSidebar } from "@gnd/ui/sidebar";
 import { Sidebar } from "@gnd/ui/namespace";
 
 export function SalesFormClient({ data }) {
@@ -31,14 +31,26 @@ export function SalesFormClient({ data }) {
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const { hidden } = useSalesSummaryToggle();
-    const sPreview = useSalesPreview();
-    const [takeOff, takeOffChanged] = useLocalStorage("take-off", false);
+
     if (!zus.formStatus || zus.currentTab != "invoice") return <></>;
+
+    return (
+        <Sidebar.Provider className="min-h-screen w-full bg-white dark:bg-primary-foreground  xl:gap-4">
+            <Content data={data} />
+        </Sidebar.Provider>
+    );
+}
+function Content({ data }) {
+    const sPreview = useSalesPreview();
     function preview() {
         sPreview.preview(zus.metaData?.salesId, zus?.metaData?.type);
     }
+    const sidebar = useSidebar();
+    const hidden = !sidebar?.open;
+    const zus = useFormDataStore();
+    const [takeOff, takeOffChanged] = useLocalStorage("take-off", false);
     return (
-        <Sidebar.Provider className="min-h-screen w-full bg-white dark:bg-primary-foreground  xl:gap-4">
+        <>
             <Sidebar.Inset>
                 <div
                     className={cn(
@@ -73,7 +85,7 @@ export function SalesFormClient({ data }) {
                     <Sidebar.Trigger></Sidebar.Trigger>
                 </div>
                 <div className="flex">
-                    <div className={cn("flex-1", !hidden && "xl:mr-96s")}>
+                    <div className={cn("flex-1", !hidden && "xl:mr-96")}>
                         {takeOff ? (
                             <TakeOff />
                         ) : (
@@ -100,14 +112,10 @@ export function SalesFormClient({ data }) {
                 </div>
             </Sidebar.Inset>
 
-            <SalesFormSidebar
-                opened
-                className="hidden xl:flex"
-                collapsible="none"
-            />
+            <SalesFormSidebar className="hidden xl:flex" />
             <SalesFormSidebar className="xl:hidden" />
             <FormWatcher />
             <TakeoffSwitch {...{ takeOff, takeOffChanged }} />
-        </Sidebar.Provider>
+        </>
     );
 }

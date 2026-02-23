@@ -19,7 +19,7 @@ export function SalesFormSidebar({
             side="right"
             hidden={!sb.open && !opened}
             className={cn(
-                "top-(--header-height) h-[calc(100svh-var(--header-height))]! stickys top-0s   h-svhs border-l",
+                "top-[var(--header-height)] h-[calc(100svh-var(--header-height))] border-l",
                 className,
             )}
             {...props}
