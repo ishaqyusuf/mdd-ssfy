@@ -40,6 +40,9 @@ export function ProjectSelectStep({}) {
                             onClick={() => {
                                 setParams({
                                     projectId: item.id,
+                                    unitId: null,
+                                    modelId: null,
+                                    taskId: null,
                                     step:
                                         params.redirectStep || params.step + 1,
                                     redirectStep: null,
@@ -93,4 +96,3 @@ function LoadingSkeleton({ isPending, children }) {
         </div>
     );
 }
-

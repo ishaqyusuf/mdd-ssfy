@@ -10,14 +10,15 @@ import { StepTitle } from "./step-title";
 import { SubHeader } from "./sub-header";
 export function TaskSelectStep({}) {
     const { setParams, ...params } = useJobFormParams();
-    const { data, isPending, refetch, isEnabled } = useQuery(
+    const canLoadTasks = !!params.projectId;
+    const { data, isPending } = useQuery(
         _trpc.community.getBuilderTasksForProject.queryOptions(
             {
                 projectId: params.projectId!,
-                homeId: params.unitId!,
+                homeId: params.unitId || -1,
             },
             {
-                enabled: !!params.projectId && !!params.unitId,
+                enabled: canLoadTasks,
             },
         ),
     );
@@ -37,6 +38,11 @@ export function TaskSelectStep({}) {
                     placeholder="Search tasks..."
                 />
             </SubHeader>
+            {!canLoadTasks && (
+                <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                    Select a project first to load available tasks.
+                </div>
+            )}
             <LoadingSkeleton isPending={isPending}>
                 <div className="space-y-2">
                     <button
@@ -99,6 +105,11 @@ export function TaskSelectStep({}) {
                             />
                         </button>
                     ))}
+                    {canLoadTasks && !results.length && (
+                        <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                            No tasks found for this project.
+                        </div>
+                    )}
                 </div>
             </LoadingSkeleton>
         </div>
@@ -132,4 +143,3 @@ function LoadingSkeleton({ isPending, children }) {
         </div>
     );
 }
-

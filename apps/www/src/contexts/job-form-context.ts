@@ -13,9 +13,6 @@ export const useCreateJobFormContext = () => {
     const {
         data: defaultValues,
         isPending,
-        refetch,
-        fetchStatus,
-        isFetching,
     } = useQuery(
         useTRPC().community.getJobForm.queryOptions(
             {
@@ -43,6 +40,7 @@ export const useCreateJobFormContext = () => {
     const [markAsComplete, setMarkAsComplete] = useState(false);
     return {
         defaultValues,
+        isPending,
         markAsComplete,
         setMarkAsComplete,
     };
@@ -56,4 +54,3 @@ export const useJobFormContext = () => {
     }
     return context;
 };
-

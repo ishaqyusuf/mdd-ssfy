@@ -31,14 +31,14 @@ export function useJobFormParams() {
         // setParams,
         setParams: (
             newParams: {
-                step?: number;
-                redirectStep?: number;
-                projectId?: number;
-                jobId?: number;
-                unitId?: number;
-                taskId?: number;
-                userId?: number;
-                modelId?: number;
+                step?: number | null;
+                redirectStep?: number | null;
+                projectId?: number | null;
+                jobId?: number | null;
+                unitId?: number | null;
+                taskId?: number | null;
+                userId?: number | null;
+                modelId?: number | null;
             } | null,
         ) => {
             if (!newParams) setParams(null);
@@ -46,6 +46,7 @@ export function useJobFormParams() {
                 setParams(
                     Object.entries(newParams).reduce(
                         (acc, [key, value]) => {
+                            if (value === undefined) return acc;
                             if (key === "step" || key === "redirectStep") {
                                 acc[key] = value;
                             } else {
@@ -61,4 +62,3 @@ export function useJobFormParams() {
         // open()
     };
 }
-

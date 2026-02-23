@@ -132,4 +132,3 @@ function LoadingSkeleton({ isPending, children }) {
         </div>
     );
 }
-

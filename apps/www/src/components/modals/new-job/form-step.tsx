@@ -11,6 +11,7 @@ import { Controller, useFieldArray } from "react-hook-form";
 import { handleNumberInput, percentageValue, sum } from "@gnd/utils";
 import { Card, Field, InputGroup, Item } from "@gnd/ui/namespace";
 import { Checkbox } from "@gnd/ui/checkbox";
+import { Skeleton } from "@gnd/ui/skeleton";
 import Portal from "@gnd/ui/custom/portal";
 import { useJobFormContext } from "@/contexts/job-form-context";
 import { cn } from "@/lib/utils";
@@ -19,10 +20,35 @@ import { InstallTasksList } from "./install-tasks-list";
 import { JobSubmitButton } from "./job-submit-button";
 
 export function FormStep({}) {
-    const { setParams, ...params } = useJobFormParams();
-    const { defaultValues, markAsComplete, setMarkAsComplete } =
-        useJobFormContext();
-    if (!defaultValues) return null;
+    const { ...params } = useJobFormParams();
+    const { defaultValues, isPending } = useJobFormContext();
+    const isReadyToLoadForm =
+        !!params.unitId && !!params.taskId && !!params.userId && !!params.modelId;
+
+    if (!isReadyToLoadForm) {
+        return (
+            <div className="space-y-4">
+                <StepTitle title="Configure Job Details" />
+                <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                    Complete the previous steps first so job details can load.
+                </div>
+            </div>
+        );
+    }
+
+    if (isPending || !defaultValues) {
+        return (
+            <div className="space-y-4">
+                <StepTitle title="Configure Job Details" />
+                <div className="space-y-2">
+                    <Skeleton className="h-6 w-1/3" />
+                    <Skeleton className="h-28 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+            </div>
+        );
+    }
     return (
         <>
             <StepTitle title="Configure Job Details" />
@@ -300,4 +326,3 @@ function FormContent() {
         </>
     );
 }
-
