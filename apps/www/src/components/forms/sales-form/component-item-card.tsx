@@ -61,7 +61,7 @@ import { CustomComponentAction } from "@/app-deps/(clean-code)/(sales)/sales-boo
 import SearchBar from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/search-bar";
 import { Tabs } from "@gnd/ui/custom/tabs";
 import { DoorSuppliers } from "@/components/forms/sales-form/door-suppliers";
-import { DoorSupplierBadge } from "@/components/forms/sales-form/door-supplier-badge";
+
 import { SuperAdminGuard } from "@/components/auth-guard";
 import Image from "next/image";
 import { env } from "@/env.mjs";

@@ -28,9 +28,11 @@ export function Content({ itemStepUid }) {
     const isDoor = ctx.cls.isDoor();
     const door = ctx.cls?.getDoorStepForm2();
     const supplier = door?.form?.formStepMeta;
+
     const trpc = useTRPC();
     const { data } = useSuspenseQuery(trpc.sales.getSuppliers.queryOptions({}));
     const select = (uid?, name?) => {
+        console.log("select", uid, name);
         ctx.cls.setDoorSupplier(door.itemStepUid, {
             uid,
             name,
