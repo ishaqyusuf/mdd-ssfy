@@ -276,6 +276,28 @@ export function ItemWorkflowPanel() {
             .map((step) => seedStep(step));
         return [...initial, ...routeSteps];
     }
+    function mergeSeriesWithExisting(existingSteps: any[], configuredSteps: any[]) {
+        return configuredSteps.map((seriesStep, index) => {
+            if (index === 0) return seriesStep;
+            const routeUid = seriesStep?.step?.uid;
+            const routeId = seriesStep?.stepId;
+            const existing = existingSteps.find(
+                (step) =>
+                    (routeUid && step?.step?.uid === routeUid) ||
+                    (routeId != null && step?.stepId === routeId),
+            );
+            if (!existing) return seriesStep;
+            return {
+                ...seriesStep,
+                ...existing,
+                stepId: seriesStep.stepId ?? existing.stepId ?? null,
+                step: {
+                    ...(existing.step || {}),
+                    ...(seriesStep.step || {}),
+                },
+            };
+        });
+    }
 
     function applyRouteRecursion({
         line,
@@ -393,6 +415,29 @@ export function ItemWorkflowPanel() {
                 title: current.step?.title || activeStep?.step?.title || "",
             },
         };
+
+        const selectedStepTitle = normalizeTitle(nextSteps[currentStepIndex]?.step?.title);
+        const isItemTypeStep =
+            currentStepIndex === 0 || selectedStepTitle === "item type";
+        if (isItemTypeStep) {
+            const rootUid =
+                nextSteps[currentStepIndex]?.step?.uid ||
+                routeData?.stepsById?.[nextSteps[currentStepIndex]?.stepId || -1] ||
+                routeData?.rootStepUid;
+            const rootStep = rootUid ? routeData?.stepsByUid?.[rootUid] : null;
+            if (rootStep) {
+                const configuredSeries = buildConfiguredRouteSteps(rootStep, component);
+                const mergedSeries = mergeSeriesWithExisting(nextSteps, configuredSeries);
+                updateLineItem(line.uid, {
+                    formSteps: mergedSeries,
+                });
+                setActiveStepByLine((prev) => ({
+                    ...prev,
+                    [line.uid]: mergedSeries.length > 1 ? 1 : 0,
+                }));
+                return;
+            }
+        }
 
         const routed = applyRouteRecursion({
             line,

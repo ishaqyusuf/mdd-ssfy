@@ -2,7 +2,6 @@
 
 import { Button } from "@gnd/ui/button";
 import { X, Receipt } from "lucide-react";
-import { SummaryPanel } from "./summary-panel";
 import { InvoiceOverviewPanel } from "./invoice-overview-panel";
 
 interface Props {
@@ -45,8 +44,7 @@ export function InvoiceSummarySidebar(props: Props) {
                         </div>
                     </div>
 
-                    <div className="flex-1 space-y-4 overflow-auto p-4">
-                        <SummaryPanel />
+                    <div className="flex-1 overflow-auto p-4">
                         <InvoiceOverviewPanel />
                     </div>
                 </div>

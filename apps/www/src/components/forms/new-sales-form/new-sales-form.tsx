@@ -13,7 +13,6 @@ import {
 import { useNewSalesFormAutoSave } from "./use-auto-save";
 import { HeaderActions } from "./sections/header-actions";
 import { StatusStrip } from "./sections/status-strip";
-import { CustomerPanel } from "./sections/customer-panel";
 import { ItemWorkflowPanel } from "./sections/item-workflow-panel";
 import { InvoiceSummarySidebar } from "./sections/invoice-summary-sidebar";
 import { useRouter } from "next/navigation";
@@ -273,7 +272,6 @@ export function NewSalesForm(props: Props) {
                             lastSavedAt={lastSavedAt}
                             message={lastSaveError}
                         />
-                        <CustomerPanel />
                         <ItemWorkflowPanel />
                     </div>
                 </div>

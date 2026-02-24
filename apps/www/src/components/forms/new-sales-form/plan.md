@@ -358,17 +358,17 @@ Implemented UI changes:
   - desktop keeps right-side overview panel (`lg:block`) when enabled
   - mobile uses in-page collapsible summary section (toggleable, animated) instead of modal overlay
   - header mobile-summary action now toggles collapse state.
-- `sections/customer-panel.tsx`
+- `sections/invoice-overview-panel.tsx` (contains customer profile summary block)
   - updated to card-style sample hierarchy (search block + selected customer block)
   - stronger labels, card backgrounds, and row spacing for sample fidelity.
-- `sections/summary-panel.tsx`
+- `sections/invoice-overview-panel.tsx`
   - grouped metadata, notes, extra-costs, and totals into bordered sample-style card sections.
 
 Validation:
 - Filtered `tsc` check for touched files returned no matching errors for:
   - `new-sales-form.tsx`
-  - `sections/customer-panel.tsx`
-  - `sections/summary-panel.tsx`
+  - `sections/invoice-overview-panel.tsx` (customer profile + invoice summary)
+  - `sections/invoice-overview-panel.tsx`
   - `sections/header-actions.tsx`
   - `sections/invoice-overview-panel.tsx`
 
@@ -376,7 +376,7 @@ Validation:
 - [x] Added dedicated invoice summary sidebar container following provided sample pattern:
   - desktop: right-side sticky sidebar with header + close/hide action
   - mobile: slide-over sidebar with backdrop overlay and close action.
-- [x] Sidebar now hosts `SummaryPanel` + `InvoiceOverviewPanel` in one unified shell (`sections/invoice-summary-sidebar.tsx`).
+- [x] Sidebar now hosts only `InvoiceOverviewPanel` with sample-structured invoice summary sections (`sections/invoice-summary-sidebar.tsx`).
 - [x] Main form layout updated to work with sidebar shell and overview toggles in `new-sales-form.tsx`.
 
 ### 2026-02-24 Batch P1-7 (In Progress - Strict Sample Layout Structure)
@@ -391,6 +391,30 @@ Validation:
 - [ ] Remaining strict parity items:
   - exact token-level spacing/typography parity against sample across all rows
   - exact bottom desktop footer action row parity (separate from top header controls).
+
+### 2026-02-24 Patch Note (Exact Invoice Summary Content Structure)
+- [x] `InvoiceOverviewPanel` now mirrors requested content sections:
+  1. Customer Profile
+  2. Global Invoice Details
+  3. Totals & Pricing (Entire Invoice)
+  4. Customer Credit Limit
+- [x] Added sample-style visual structure inside summary:
+  - icon/title heading block
+  - customer profile with change/search mode layout
+  - global details two-row grid inputs/selects
+  - totals card with tax group + labor + add-on + highlighted grand total
+  - credit limit progress strip with used/limit display.
+- [x] Customer profile card is now collapsible for billing/shipping detail visibility (show/hide on toggle).
+
+### 2026-02-24 Patch Note (Default Item Workflow Row)
+- [x] Enforced one default line item on record hydration when payload line items are empty.
+- [x] Because active item is set from first line during hydrate, item workflow now opens with one item by default.
+
+### 2026-02-24 Patch Note (Item Type Step Series Injection)
+- [x] Added explicit first-step (`Item Type`) selection logic:
+  - when selected, fetches configured route sequence for selected component UID
+  - injects full step series into step pills immediately
+  - opens next step after `Item Type` by default.
 
 ## 1) Mission and Constraints
 
@@ -443,9 +467,9 @@ Rebuild sales form flows with **exact legacy business behavior** and **UI fideli
 - Sections:
   - `apps/www/src/components/forms/new-sales-form/sections/header-actions.tsx`
   - `apps/www/src/components/forms/new-sales-form/sections/status-strip.tsx`
-  - `apps/www/src/components/forms/new-sales-form/sections/customer-panel.tsx`
+  - `apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
   - `apps/www/src/components/forms/new-sales-form/sections/line-items-panel.tsx`
-  - `apps/www/src/components/forms/new-sales-form/sections/summary-panel.tsx`
+  - `apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
 
 ### Routes
 - `apps/www/src/app/(sidebar)/(sales)/sales-form/layout.tsx`

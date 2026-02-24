@@ -165,7 +165,10 @@ export function normalizeExtraCosts(
 }
 
 export function hydrateRecord(record: NewSalesFormRecord): NewSalesFormRecord {
-    const lineItems = normalizeLineItems(record.lineItems || []);
+    const normalized = normalizeLineItems(record.lineItems || []);
+    const lineItems = normalized.length
+        ? normalized
+        : [createEmptyLineItem(0)];
     const meta = normalizeMeta(record.form || {});
     const extraCosts = normalizeExtraCosts(record.extraCosts || []);
     const summary = computeSummary(
