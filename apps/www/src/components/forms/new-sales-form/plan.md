@@ -475,6 +475,19 @@ Validation:
 - [x] Left non-settings actions as placeholders (non-functional) for now.
 - [x] Wired `Settings` menu option to open existing sales form settings sheet modal.
 
+### 2026-02-24 Patch Note (Invoice Summary Customer/Profile Parity)
+- [x] Added customer profile selector to invoice summary (`Global Invoice Details`) using customer profile options from TRPC (`customers.getCustomerProfiles`).
+- [x] Restored customer selection side-effect parity in invoice summary:
+  - selecting customer now resolves and applies `customerProfileId`, `billingAddressId`, `shippingAddressId`, `paymentTerm`, and `taxCode` via `newSalesForm.resolveCustomer`.
+  - selected customer preview block updates immediately in summary panel while resolved metadata is applied.
+- [x] Manual customer profile selection now updates `customerProfileId` and aligns net-term default from profile metadata (`netTerm`/`net`) when available.
+
+Validation note:
+- Filtered typecheck output showed no new hits in:
+  - `components/forms/new-sales-form/api.ts`
+  - `components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
+- Workspace still contains pre-existing unrelated TypeScript errors outside new-sales-form scope.
+
 ## 1) Mission and Constraints
 
 ### Mission
@@ -740,3 +753,27 @@ Do not cut over legacy entry points until:
   - step card highlight now reflects selected membership from `selectedProdUids`.
   - step value/price for multi-select steps is now composed from selected components (primary display + aggregate step price).
   - when first selection exists, route recursion continues from the first selected component to keep next configured step active; when all selections are cleared, downstream generated steps are trimmed.
+- 2026-02-24: Door and moulding progression updated toward old-form interaction parity:
+  - Door step card click now opens a component-specific size/qty modal (`DoorSizeQtyDialog`) instead of directly advancing.
+  - Door modal persists per-component rows into `housePackageTool.doors` keyed by `stepProductId`, recalculates `housePackageTool.totalDoors/totalPrice`, and synchronizes line `qty/lineTotal`.
+  - Door selection state now toggles from modal apply outcome (`selected` only when qty rows exist), not raw card click.
+  - Multi-select steps (`Door`/`Moulding`/`Weatherstrip Color`) no longer auto-advance on selection; progression is explicit via a floating `Next Step` action in the step content area.
+- 2026-02-24: Removed selected-component preview image from item cards in new workflow panel (`item-workflow-panel`) per latest UI direction.
+- 2026-02-24: Workflow layout update:
+  - moved component selection/rendering surfaces (root step components + step component grids/forms) into the active item card.
+  - removed separate external component panel so components now render in-context within each item card, matching requested item-centric layout.
+- 2026-02-24: Save-state UI placement update:
+  - removed in-body unsaved/saving status card (`StatusStrip`) from form content area.
+  - surfaced same save-state indicators in sales header (`HeaderActions`): status pill, last-saved timestamp, and error/stale message text.
+- 2026-02-24: Removed inner component container card in item workflow:
+  - dropped nested bordered background wrapper around in-item component section so components render directly within the active item card.
+- 2026-02-24: Door supplier configuration parity pass (new-form native implementation):
+  - Added new-form supplier query/mutation hooks in `new-sales-form/api.ts` using `sales.getSuppliers`, `sales.saveSupplier`, `sales.deleteSupplier`.
+  - Door step now has in-card `Doors` / `Suppliers` tabs (legacy parity concept), without legacy form-store dependencies.
+  - Supplier selection is persisted on the active door step under step meta (`meta.formStepMeta.supplierUid` / `supplierName`) for save round-trip.
+  - Added supplier management UI in door section (default supplier reset, create, edit, delete, select) wired to sales supplier endpoints.
+  - `DoorSizeQtyDialog` now consumes selected supplier and resolves per-size prices from component pricing keys:
+    - prefers supplier key format `\"{size} & {supplierUid}\"`
+    - falls back to plain `\"{size}\"` pricing.
+  - Door size modal now respects route config flags (`noHandle`, `hasSwing`) for qty input mode and swing input visibility.
+  - Validation: workspace-wide typecheck still has unrelated baseline failures; targeted grep on typecheck output returned no errors for modified files (`new-sales-form/api.ts`, `item-workflow-panel.tsx`, `workflow-modals.tsx`).

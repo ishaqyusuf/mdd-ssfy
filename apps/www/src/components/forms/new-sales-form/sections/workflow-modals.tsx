@@ -25,8 +25,9 @@ function toNumber(value: unknown, fallback = 0) {
 function calcDoorRow(row: DoorLine): DoorLine {
     const lhQty = toNumber(row.lhQty, 0);
     const rhQty = toNumber(row.rhQty, 0);
+    const totalInput = toNumber(row.totalQty, 0);
     const unitPrice = toNumber(row.unitPrice, 0);
-    const totalQty = lhQty + rhQty;
+    const totalQty = lhQty + rhQty > 0 ? lhQty + rhQty : totalInput;
     return {
         ...row,
         lhQty,
@@ -263,6 +264,13 @@ interface DoorSizeQtyDialogProps {
         title?: string | null;
         salesPrice?: number | null;
         basePrice?: number | null;
+        pricing?: Record<string, { id?: number; price?: number | null }>;
+    } | null;
+    supplierUid?: string | null;
+    supplierName?: string | null;
+    routeConfig?: {
+        noHandle?: boolean;
+        hasSwing?: boolean;
     } | null;
     onApply: (payload: { rows: DoorLine[]; selected: boolean }) => void;
 }
@@ -271,7 +279,77 @@ function rowsForComponent(line: NewSalesFormLineItem, componentId: number | null
     const rows = (line.housePackageTool?.doors || [])
         .filter((door) => Number(door.stepProductId || 0) === Number(componentId || 0))
         .map(calcDoorRow);
-    return rows.length ? rows : [blankDoorRow()];
+    return rows;
+}
+function resolveSizeFromPricingKey(
+    key: string,
+    supplierUid?: string | null,
+) {
+    const raw = String(key || "").trim();
+    if (!raw) return null;
+    if (supplierUid) {
+        const suffix = `& ${supplierUid}`;
+        if (raw.endsWith(suffix)) {
+            const size = raw.slice(0, -suffix.length).trim();
+            return size.includes("x") ? size : null;
+        }
+    }
+    if (raw.includes(" & ")) {
+        const size = raw.split(" & ")[0]?.trim() || "";
+        return size.includes("x") ? size : null;
+    }
+    return raw.includes("x") ? raw : null;
+}
+function deriveDoorSizeRows(
+    existingRows: DoorLine[],
+    component: DoorSizeQtyDialogProps["component"],
+    supplierUid?: string | null,
+) {
+    const bySize = new Map<string, DoorLine>();
+    existingRows.forEach((row) => {
+        if (row.dimension) bySize.set(String(row.dimension).trim(), row);
+    });
+    const pricing = component?.pricing || {};
+    const keys = Object.keys(pricing || {});
+    const candidateSizes = Array.from(
+        new Set(
+            keys
+                .map((key) => resolveSizeFromPricingKey(key, supplierUid))
+                .filter(Boolean),
+        ),
+    );
+    if (!candidateSizes.length) {
+        if (existingRows.length) return existingRows;
+        return [
+            calcDoorRow({
+                ...blankDoorRow(),
+                stepProductId: component?.id || null,
+                unitPrice: Number(component?.salesPrice ?? component?.basePrice ?? 0),
+            }),
+        ];
+    }
+
+    return candidateSizes.map((size) => {
+        const normalizedSize = String(size).trim();
+        const existing = bySize.get(normalizedSize);
+        const supplierKey = supplierUid
+            ? `${normalizedSize} & ${supplierUid}`
+            : null;
+        const priceBucket =
+            (supplierKey ? pricing?.[supplierKey] : null) ||
+            pricing?.[normalizedSize] ||
+            null;
+        const computedPrice = Number(priceBucket?.price);
+        const unitPrice = Number.isFinite(computedPrice)
+            ? computedPrice
+            : Number(component?.salesPrice ?? component?.basePrice ?? existing?.unitPrice ?? 0);
+        return calcDoorRow({
+            ...(existing || blankDoorRow()),
+            dimension: normalizedSize,
+            stepProductId: component?.id || existing?.stepProductId || null,
+            unitPrice,
+        });
+    });
 }
 
 export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
@@ -279,8 +357,14 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 
     useEffect(() => {
         if (!props.open || !props.component) return;
-        setRows(rowsForComponent(props.line, props.component.id));
-    }, [props.open, props.component, props.line]);
+        const existing = rowsForComponent(props.line, props.component.id);
+        const nextRows = deriveDoorSizeRows(
+            existing,
+            props.component,
+            props.supplierUid,
+        );
+        setRows(nextRows);
+    }, [props.open, props.component, props.line, props.supplierUid]);
 
     const totals = useMemo(() => {
         const normalized = rows.map((row) =>
@@ -309,12 +393,25 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                         Set dimensions and quantities for this door component.
                     </DialogDescription>
                 </DialogHeader>
+                <div className="text-xs text-muted-foreground">
+                    Supplier: <span className="font-semibold text-foreground">{props.supplierName || "GND MILLWORK"}</span>
+                </div>
                 <div className="max-h-[60vh] space-y-3 overflow-auto rounded-lg border p-3">
                     <div className="grid grid-cols-12 gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         <p className="col-span-3">Dimension</p>
-                        <p className="col-span-2">Swing</p>
-                        <p className="col-span-2">LH</p>
-                        <p className="col-span-2">RH</p>
+                        {props.routeConfig?.hasSwing ? (
+                            <p className="col-span-2">Swing</p>
+                        ) : (
+                            <p className="col-span-2" />
+                        )}
+                        {props.routeConfig?.noHandle ? (
+                            <p className="col-span-4">Qty</p>
+                        ) : (
+                            <>
+                                <p className="col-span-2">LH</p>
+                                <p className="col-span-2">RH</p>
+                            </>
+                        )}
                         <p className="col-span-2">Unit Price</p>
                         <p className="col-span-1">Del</p>
                     </div>
@@ -323,71 +420,97 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                             <Input
                                 className="col-span-3"
                                 value={row.dimension || ""}
-                                onChange={(e) =>
-                                    setRows((prev) =>
-                                        prev.map((item, ri) =>
-                                            ri === index
-                                                ? {
-                                                      ...item,
-                                                      dimension: e.target.value,
-                                                  }
-                                                : item,
-                                        ),
-                                    )
-                                }
                                 placeholder="2-8 x 8-0"
+                                readOnly
                             />
-                            <Input
-                                className="col-span-2"
-                                value={row.swing || ""}
-                                onChange={(e) =>
-                                    setRows((prev) =>
-                                        prev.map((item, ri) =>
-                                            ri === index
-                                                ? {
-                                                      ...item,
-                                                      swing: e.target.value,
-                                                  }
-                                                : item,
-                                        ),
-                                    )
-                                }
-                                placeholder="LH/RH"
-                            />
-                            <Input
-                                className="col-span-2"
-                                type="number"
-                                value={row.lhQty || 0}
-                                onChange={(e) =>
-                                    setRows((prev) =>
-                                        prev.map((item, ri) =>
-                                            ri === index
-                                                ? calcDoorRow({
-                                                      ...item,
-                                                      lhQty: toNumber(e.target.value, 0),
-                                                  })
-                                                : item,
-                                        ),
-                                    )
-                                }
-                            />
-                            <Input
-                                className="col-span-2"
-                                type="number"
-                                value={row.rhQty || 0}
-                                onChange={(e) =>
-                                    setRows((prev) =>
-                                        prev.map((item, ri) =>
-                                            ri === index
-                                                ? calcDoorRow({
-                                                      ...item,
-                                                      rhQty: toNumber(e.target.value, 0),
-                                                  })
-                                                : item,
-                                        ),
-                                    )
-                                }
-                            />
+                            {props.routeConfig?.hasSwing ? (
+                                <Input
+                                    className="col-span-2"
+                                    value={row.swing || ""}
+                                    onChange={(e) =>
+                                        setRows((prev) =>
+                                            prev.map((item, ri) =>
+                                                ri === index
+                                                    ? {
+                                                          ...item,
+                                                          swing: e.target.value,
+                                                      }
+                                                    : item,
+                                            ),
+                                        )
+                                    }
+                                    placeholder="LH/RH"
+                                />
+                            ) : (
+                                <div className="col-span-2" />
+                            )}
+                            {props.routeConfig?.noHandle ? (
+                                <Input
+                                    className="col-span-4"
+                                    type="number"
+                                    value={row.totalQty || 0}
+                                    onChange={(e) =>
+                                        setRows((prev) =>
+                                            prev.map((item, ri) =>
+                                                ri === index
+                                                    ? calcDoorRow({
+                                                          ...item,
+                                                          totalQty: toNumber(
+                                                              e.target.value,
+                                                              0,
+                                                          ),
+                                                          lhQty: 0,
+                                                          rhQty: 0,
+                                                      })
+                                                    : item,
+                                            ),
+                                        )
+                                    }
+                                />
+                            ) : (
+                                <>
+                                    <Input
+                                        className="col-span-2"
+                                        type="number"
+                                        value={row.lhQty || 0}
+                                        onChange={(e) =>
+                                            setRows((prev) =>
+                                                prev.map((item, ri) =>
+                                                    ri === index
+                                                        ? calcDoorRow({
+                                                              ...item,
+                                                              lhQty: toNumber(
+                                                                  e.target.value,
+                                                                  0,
+                                                              ),
+                                                          })
+                                                        : item,
+                                                ),
+                                            )
+                                        }
+                                    />
+                                    <Input
+                                        className="col-span-2"
+                                        type="number"
+                                        value={row.rhQty || 0}
+                                        onChange={(e) =>
+                                            setRows((prev) =>
+                                                prev.map((item, ri) =>
+                                                    ri === index
+                                                        ? calcDoorRow({
+                                                              ...item,
+                                                              rhQty: toNumber(
+                                                                  e.target.value,
+                                                                  0,
+                                                              ),
+                                                          })
+                                                        : item,
+                                                ),
+                                            )
+                                        }
+                                    />
+                                </>
+                            )}
                             <Input
                                 className="col-span-2"
                                 type="number"
@@ -410,7 +533,18 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                 className="col-span-1"
                                 variant="destructive"
                                 onClick={() =>
-                                    setRows((prev) => prev.filter((_, ri) => ri !== index))
+                                    setRows((prev) =>
+                                        prev.map((item, ri) =>
+                                            ri === index
+                                                ? calcDoorRow({
+                                                      ...item,
+                                                      lhQty: 0,
+                                                      rhQty: 0,
+                                                      totalQty: 0,
+                                                  })
+                                                : item,
+                                        ),
+                                    )
                                 }
                             >
                                 X
@@ -419,26 +553,6 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                     ))}
                 </div>
                 <div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-3 text-sm">
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                            setRows((prev) => [
-                                ...prev,
-                                calcDoorRow({
-                                    ...blankDoorRow(),
-                                    stepProductId: props.component?.id || null,
-                                    unitPrice: Number(
-                                        props.component?.salesPrice ??
-                                            props.component?.basePrice ??
-                                            0,
-                                    ),
-                                }),
-                            ])
-                        }
-                    >
-                        Add Size Row
-                    </Button>
                     <p className="ml-auto">
                         Doors: <span className="font-semibold">{totals.totalDoors}</span>
                     </p>
@@ -455,9 +569,12 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                     </Button>
                     <Button
                         onClick={() => {
+                            const persistedRows = totals.normalized.filter(
+                                (row) => Number(row.totalQty || 0) > 0,
+                            );
                             props.onApply({
-                                rows: totals.normalized,
-                                selected: totals.totalDoors > 0,
+                                rows: persistedRows,
+                                selected: persistedRows.length > 0,
                             });
                             props.onOpenChange(false);
                         }}

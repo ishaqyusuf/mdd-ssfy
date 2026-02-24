@@ -38,8 +38,8 @@ export const resetSalesControlSchema = z.object({
 export type ResetSalesControl = z.infer<typeof resetSalesControlSchema>;
 
 export const dispatchForm = z.object({
-  dispatchId: z.number(),
-  receivedBy: z.string(),
+  dispatchId: z.number().optional().nullable(),
+  receivedBy: z.string().optional().nullable(),
   receivedDate: z.date().optional().nullable(),
   note: z.string().optional(),
   signature: z.string().optional().nullable(),

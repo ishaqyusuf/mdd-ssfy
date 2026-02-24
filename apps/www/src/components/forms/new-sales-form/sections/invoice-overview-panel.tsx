@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Input } from "@gnd/ui/input";
 import { Button } from "@gnd/ui/button";
@@ -22,7 +22,11 @@ import {
     Truck,
     X,
 } from "lucide-react";
-import { useNewSalesFormSearchCustomersQuery } from "../api";
+import {
+    useCustomerProfilesQuery,
+    useNewSalesFormResolveCustomerQuery,
+    useNewSalesFormSearchCustomersQuery,
+} from "../api";
 import { useNewSalesFormStore } from "../store";
 
 function currency(value?: number | null) {
@@ -38,6 +42,7 @@ const DELIVERY_OPTIONS = ["pickup", "delivery", "ship"];
 export function InvoiceOverviewPanel() {
     const record = useNewSalesFormStore((s) => s.record);
     const setMeta = useNewSalesFormStore((s) => s.setMeta);
+    const patchRecord = useNewSalesFormStore((s) => s.patchRecord);
     const upsertExtraCost = useNewSalesFormStore((s) => s.upsertExtraCost);
 
     const [isCustomerSearchActive, setIsCustomerSearchActive] = useState(false);
@@ -45,6 +50,45 @@ export function InvoiceOverviewPanel() {
     const [isCustomerExpanded, setIsCustomerExpanded] = useState(false);
     const debounced = useDebounce(customerSearchQuery, 250);
     const customerSearch = useNewSalesFormSearchCustomersQuery(debounced);
+    const customerProfiles = useCustomerProfilesQuery(true);
+    const resolvedCustomer = useNewSalesFormResolveCustomerQuery(
+        {
+            customerId: Number(record?.form.customerId || 0),
+            billingId: record?.form.billingAddressId || undefined,
+            shippingId: record?.form.shippingAddressId || undefined,
+        },
+        !!record?.form.customerId,
+    );
+
+    useEffect(() => {
+        const data = resolvedCustomer.data as any;
+        if (!record || !data || !record.form.customerId) return;
+        const nextMeta = {
+            customerId: Number(data.customerId || record.form.customerId || 0) || null,
+            customerProfileId: data.profileId ?? record.form.customerProfileId ?? null,
+            billingAddressId: data.billing?.id ?? data.billingId ?? null,
+            shippingAddressId: data.shipping?.id ?? data.shippingId ?? null,
+            paymentTerm: (data.netTerm as string) || "None",
+            taxCode: (data.taxCode as string) || null,
+        };
+        const changed =
+            nextMeta.customerId !== (record.form.customerId ?? null) ||
+            nextMeta.customerProfileId !== (record.form.customerProfileId ?? null) ||
+            nextMeta.billingAddressId !== (record.form.billingAddressId ?? null) ||
+            nextMeta.shippingAddressId !== (record.form.shippingAddressId ?? null) ||
+            nextMeta.paymentTerm !== (record.form.paymentTerm ?? "None") ||
+            nextMeta.taxCode !== (record.form.taxCode ?? null);
+        if (changed) setMeta(nextMeta);
+    }, [
+        record?.form.billingAddressId,
+        record?.form.customerId,
+        record?.form.customerProfileId,
+        record?.form.paymentTerm,
+        record?.form.shippingAddressId,
+        record?.form.taxCode,
+        resolvedCustomer.data,
+        setMeta,
+    ]);
 
     if (!record) return null;
 
@@ -71,6 +115,7 @@ export function InvoiceOverviewPanel() {
             .join("")
             .toUpperCase();
     }, [record.customer?.name, record.customer?.businessName]);
+    const profileOptions = customerProfiles.data || [];
 
     return (
         <section className="space-y-6">
@@ -136,7 +181,21 @@ export function InvoiceOverviewPanel() {
                                     <button
                                         key={customer.id}
                                         onClick={() => {
-                                            setMeta({ customerId: customer.id });
+                                            setMeta({
+                                                customerId: customer.id,
+                                                customerProfileId: null,
+                                                billingAddressId: null,
+                                                shippingAddressId: null,
+                                            });
+                                            patchRecord({
+                                                customer: {
+                                                    id: customer.id,
+                                                    name: customer.name,
+                                                    businessName: customer.businessName,
+                                                    phoneNo: customer.phoneNo,
+                                                    email: customer.email,
+                                                },
+                                            });
                                             setIsCustomerSearchActive(false);
                                         }}
                                         className="group flex items-center gap-3 border-l-4 border-transparent p-3 text-left transition-colors hover:border-primary/50 hover:bg-muted/50"
@@ -231,7 +290,53 @@ export function InvoiceOverviewPanel() {
                     <h3 className="text-sm font-bold">Global Invoice Details</h3>
                 </div>
                 <div className="grid gap-4 rounded-xl border border-border bg-muted/30 p-4 shadow-sm">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                Customer Profile
+                            </label>
+                            <Select
+                                value={
+                                    record.form.customerProfileId
+                                        ? String(record.form.customerProfileId)
+                                        : "none"
+                                }
+                                onValueChange={(value) => {
+                                    if (value === "none") {
+                                        setMeta({ customerProfileId: null });
+                                        return;
+                                    }
+                                    const selectedId = Number(value);
+                                    const profile = profileOptions.find(
+                                        (p) => Number(p.id) === selectedId,
+                                    ) as any;
+                                    const profileMeta = profile?.meta || {};
+                                    setMeta({
+                                        customerProfileId: selectedId,
+                                        paymentTerm:
+                                            profileMeta?.netTerm ||
+                                            profileMeta?.net ||
+                                            record.form.paymentTerm ||
+                                            "None",
+                                    });
+                                }}
+                            >
+                                <SelectTrigger className="h-9 rounded-lg bg-card text-xs font-bold">
+                                    <SelectValue placeholder="Select Profile" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">None</SelectItem>
+                                    {profileOptions.map((profile) => (
+                                        <SelectItem
+                                            key={profile.id}
+                                            value={String(profile.id)}
+                                        >
+                                            {profile.title}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <div className="flex flex-col gap-1.5">
                             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                                 P.O. Number

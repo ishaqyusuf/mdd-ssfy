@@ -6,10 +6,13 @@ import { Input } from "@gnd/ui/input";
 import { env } from "@/env.mjs";
 import { useNewSalesFormStore } from "../store";
 import {
+    useSalesDeleteSupplierMutation,
+    useSalesSaveSupplierMutation,
+    useSalesSuppliersQuery,
     useNewSalesFormStepRoutingQuery,
     useSalesStepComponentsQuery,
 } from "../api";
-import { MouldingCalculatorDialog } from "./workflow-modals";
+import { DoorSizeQtyDialog, MouldingCalculatorDialog } from "./workflow-modals";
 
 const AUTO_ADVANCE_TITLES = new Set([
     "height",
@@ -25,7 +28,9 @@ const MULTI_SELECT_STEP_TITLES = new Set([
 ]);
 
 function normalizeTitle(value?: string | null) {
-    return String(value || "").trim().toLowerCase();
+    return String(value || "")
+        .trim()
+        .toLowerCase();
 }
 
 function buildSelectedByStepUid(steps: any[]) {
@@ -38,8 +43,13 @@ function buildSelectedByStepUid(steps: any[]) {
     return selected;
 }
 
-function isComponentVisibleByRules(component: any, selectedByStepUid: Record<string, string>) {
-    const variations = Array.isArray(component?.variations) ? component.variations : [];
+function isComponentVisibleByRules(
+    component: any,
+    selectedByStepUid: Record<string, string>,
+) {
+    const variations = Array.isArray(component?.variations)
+        ? component.variations
+        : [];
     if (!variations.length) return true;
     for (const variation of variations) {
         const rules = Array.isArray(variation?.rules) ? variation.rules : [];
@@ -53,7 +63,8 @@ function isComponentVisibleByRules(component: any, selectedByStepUid: Record<str
             const selected = stepUid ? selectedByStepUid[stepUid] : null;
             if (!candidates.length) return true;
             if (!selected) return operator !== "is";
-            if (operator === "isNot") return candidates.every((uid: string) => uid !== selected);
+            if (operator === "isNot")
+                return candidates.every((uid: string) => uid !== selected);
             return candidates.some((uid: string) => uid === selected);
         });
         if (matches) return true;
@@ -61,7 +72,10 @@ function isComponentVisibleByRules(component: any, selectedByStepUid: Record<str
     return false;
 }
 
-function resolveComponentPriceByDeps(component: any, selectedByStepUid: Record<string, string>) {
+function resolveComponentPriceByDeps(
+    component: any,
+    selectedByStepUid: Record<string, string>,
+) {
     const directSales = Number(component?.salesPrice);
     const directBase = Number(component?.basePrice);
     if (Number.isFinite(directSales) || Number.isFinite(directBase)) {
@@ -71,7 +85,10 @@ function resolveComponentPriceByDeps(component: any, selectedByStepUid: Record<s
         };
     }
     const pricing =
-        component?.pricing || component?.pricings || component?.priceData || null;
+        component?.pricing ||
+        component?.pricings ||
+        component?.priceData ||
+        null;
     if (!pricing || typeof pricing !== "object") {
         return {
             salesPrice: null,
@@ -162,6 +179,20 @@ function stepKey(lineUid: string, stepIndex: number) {
 function isMultiSelectStepTitle(title?: string | null) {
     return MULTI_SELECT_STEP_TITLES.has(normalizeTitle(title));
 }
+function isDoorStepTitle(title?: string | null) {
+    return normalizeTitle(title) === "door";
+}
+function getDoorSupplierMeta(step: any) {
+    const meta = step?.meta || {};
+    const formStepMeta = meta?.formStepMeta || {};
+    const supplierUid = formStepMeta?.supplierUid || meta?.supplierUid || null;
+    const supplierName =
+        formStepMeta?.supplierName || meta?.supplierName || null;
+    return {
+        supplierUid: supplierUid ? String(supplierUid) : null,
+        supplierName: supplierName ? String(supplierName) : null,
+    };
+}
 function getSelectedProdUids(step: any) {
     const metaUids = Array.isArray(step?.meta?.selectedProdUids)
         ? step.meta.selectedProdUids
@@ -174,9 +205,12 @@ function getSelectedProdUids(step: any) {
 }
 function compactStepValue(selectedComponents: any[]) {
     if (!selectedComponents.length) return "";
-    if (selectedComponents.length === 1) return selectedComponents[0]?.title || "";
+    if (selectedComponents.length === 1)
+        return selectedComponents[0]?.title || "";
     const first = selectedComponents[0]?.title || "";
-    return first ? `${first} +${selectedComponents.length - 1}` : `${selectedComponents.length} selected`;
+    return first
+        ? `${first} +${selectedComponents.length - 1}`
+        : `${selectedComponents.length} selected`;
 }
 
 function findStepByTitle(routeData: any, title: string | null) {
@@ -222,7 +256,10 @@ function resolveComponentImageSrc(src?: string | null) {
     ) {
         return value;
     }
-    const base = String(env.NEXT_PUBLIC_CLOUDINARY_BASE_URL || "").replace(/\/$/, "");
+    const base = String(env.NEXT_PUBLIC_CLOUDINARY_BASE_URL || "").replace(
+        /\/$/,
+        "",
+    );
     const normalized = value.replace(/^\//, "");
     if (!base) return normalized;
     if (normalized.startsWith("dyke/")) return `${base}/${normalized}`;
@@ -247,7 +284,9 @@ function isShelfItem(line: any) {
     return getItemType(line) === "shelf items";
 }
 function firstPendingStepIndex(steps: any[]) {
-    const pending = steps.findIndex((step) => !String(step?.prodUid || "").trim());
+    const pending = steps.findIndex(
+        (step) => !String(step?.prodUid || "").trim(),
+    );
     return pending >= 0 ? pending : Math.max(0, steps.length - 1);
 }
 
@@ -259,13 +298,31 @@ export function ItemWorkflowPanel() {
     const editor = useNewSalesFormStore((s) => s.editor);
     const setEditor = useNewSalesFormStore((s) => s.setEditor);
 
-    const [activeStepByLine, setActiveStepByLine] = useState<Record<string, number>>(
-        {},
-    );
+    const [activeStepByLine, setActiveStepByLine] = useState<
+        Record<string, number>
+    >({});
     const [isMouldingDialogOpen, setIsMouldingDialogOpen] = useState(false);
+    const [doorStepModal, setDoorStepModal] = useState<{
+        open: boolean;
+        component: any | null;
+    }>({
+        open: false,
+        component: null,
+    });
+    const [doorSectionTab, setDoorSectionTab] = useState<"doors" | "suppliers">(
+        "doors",
+    );
+    const [supplierNameInput, setSupplierNameInput] = useState("");
+    const [editingSupplier, setEditingSupplier] = useState<{
+        id: number;
+        name: string;
+    } | null>(null);
 
     const stepRoutingQuery = useNewSalesFormStepRoutingQuery({});
     const routeData = stepRoutingQuery.data;
+    const suppliersQuery = useSalesSuppliersQuery(true);
+    const saveSupplierMutation = useSalesSaveSupplierMutation();
+    const deleteSupplierMutation = useSalesDeleteSupplierMutation();
 
     const activeLine =
         record?.lineItems?.find((line) => line.uid === editor.activeItem) ||
@@ -275,7 +332,8 @@ export function ItemWorkflowPanel() {
     const activeStepIndex =
         activeLine == null
             ? 0
-            : (activeStepByLine[activeLine.uid] ?? Math.max(0, activeLineSteps.length - 1));
+            : (activeStepByLine[activeLine.uid] ??
+              Math.max(0, activeLineSteps.length - 1));
     const activeStep = activeLineSteps[activeStepIndex] || null;
 
     const stepComponentsQuery = useSalesStepComponentsQuery(
@@ -305,9 +363,14 @@ export function ItemWorkflowPanel() {
                     !(component as any)?._metaData?.custom &&
                     !(component as any)?.custom,
             )
-            .filter((component) => isComponentVisibleByRules(component, selectedByStepUid))
+            .filter((component) =>
+                isComponentVisibleByRules(component, selectedByStepUid),
+            )
             .map((component) => {
-                const price = resolveComponentPriceByDeps(component, selectedByStepUid);
+                const price = resolveComponentPriceByDeps(
+                    component,
+                    selectedByStepUid,
+                );
                 return {
                     ...component,
                     salesPrice:
@@ -315,13 +378,17 @@ export function ItemWorkflowPanel() {
                             ? price.salesPrice
                             : component.salesPrice,
                     basePrice:
-                        component?.basePrice == null ? price.basePrice : component.basePrice,
+                        component?.basePrice == null
+                            ? price.basePrice
+                            : component.basePrice,
                 };
             });
     }, [stepComponentsQuery.data, activeLineSteps]);
     const activeRootComponents = useMemo(() => {
         const roots = rootComponentsQuery.data || [];
-        const configured = new Set(Object.keys(routeData?.composedRouter || {}));
+        const configured = new Set(
+            Object.keys(routeData?.composedRouter || {}),
+        );
         if (!configured.size) return [];
         const selectedByStepUid = buildSelectedByStepUid(activeLineSteps);
         return roots
@@ -334,7 +401,10 @@ export function ItemWorkflowPanel() {
                 isComponentVisibleByRules(component, selectedByStepUid),
             )
             .map((component: any) => {
-                const price = resolveComponentPriceByDeps(component, selectedByStepUid);
+                const price = resolveComponentPriceByDeps(
+                    component,
+                    selectedByStepUid,
+                );
                 return {
                     ...component,
                     salesPrice:
@@ -348,7 +418,7 @@ export function ItemWorkflowPanel() {
                 };
             });
     }, [routeData, rootComponentsQuery.data, activeLineSteps]);
-
+    const activeDoorSupplier = getDoorSupplierMeta(activeStep);
     if (!record) return null;
 
     function resolveNextStep({
@@ -370,15 +440,17 @@ export function ItemWorkflowPanel() {
 
         const currentStep = steps[currentStepIndex];
         const rootComponentUid = steps[0]?.prodUid;
-        const rootRoute = rootComponentUid ? routeData.composedRouter?.[rootComponentUid] : null;
+        const rootRoute = rootComponentUid
+            ? routeData.composedRouter?.[rootComponentUid]
+            : null;
 
         const currentStepUid =
-            currentStep.step?.uid || routeData.stepsById?.[currentStep.stepId || -1];
+            currentStep.step?.uid ||
+            routeData.stepsById?.[currentStep.stepId || -1];
 
-        let nextStep: any =
-            selectedComponent.redirectUid
-                ? routeData.stepsByUid?.[selectedComponent.redirectUid]
-                : null;
+        let nextStep: any = selectedComponent.redirectUid
+            ? routeData.stepsByUid?.[selectedComponent.redirectUid]
+            : null;
 
         if (!nextStep && currentStepUid && rootRoute) {
             const nextUid = rootRoute.route?.[currentStepUid];
@@ -433,7 +505,10 @@ export function ItemWorkflowPanel() {
             .map((step) => seedStep(step));
         return [...initial, ...routeSteps];
     }
-    function mergeSeriesWithExisting(existingSteps: any[], configuredSteps: any[]) {
+    function mergeSeriesWithExisting(
+        existingSteps: any[],
+        configuredSteps: any[],
+    ) {
         return configuredSteps.map((seriesStep, index) => {
             if (index === 0) return seriesStep;
             const routeUid = seriesStep?.step?.uid;
@@ -493,8 +568,12 @@ export function ItemWorkflowPanel() {
             }
 
             const routeStep = routeData?.stepsByUid?.[nextStep.uid];
-            const candidates = (routeStep?.components || []).filter((component: any) => !!component.uid);
-            const hiddenAuto = AUTO_ADVANCE_TITLES.has(normalizeTitle(nextStep.title));
+            const candidates = (routeStep?.components || []).filter(
+                (component: any) => !!component.uid,
+            );
+            const hiddenAuto = AUTO_ADVANCE_TITLES.has(
+                normalizeTitle(nextStep.title),
+            );
 
             if (!candidates.length) {
                 const virtualSteps = [...nextSteps, seedStep(nextStep)];
@@ -542,11 +621,13 @@ export function ItemWorkflowPanel() {
         steps,
         currentStepIndex,
         component,
+        selectedOverride,
     }: {
         line: (typeof record.lineItems)[number];
         steps: any[];
         currentStepIndex: number;
         component: any;
+        selectedOverride?: boolean;
     }) {
         const nextSteps = [...steps];
         const current = nextSteps[currentStepIndex];
@@ -555,13 +636,19 @@ export function ItemWorkflowPanel() {
 
         if (isMultiSelectStep) {
             const selectedSet = new Set(getSelectedProdUids(current));
-            if (selectedSet.has(component.uid)) selectedSet.delete(component.uid);
-            else selectedSet.add(component.uid);
+            const nextSelected =
+                typeof selectedOverride === "boolean"
+                    ? selectedOverride
+                    : !selectedSet.has(component.uid);
+            if (nextSelected) selectedSet.add(component.uid);
+            else selectedSet.delete(component.uid);
 
             const selectedUids = Array.from(selectedSet);
             const selectedComponents = selectedUids
                 .map((uid) =>
-                    visibleComponents.find((candidate: any) => candidate.uid === uid),
+                    visibleComponents.find(
+                        (candidate: any) => candidate.uid === uid,
+                    ),
                 )
                 .filter(Boolean);
             const primary = selectedComponents[0] || null;
@@ -590,9 +677,13 @@ export function ItemWorkflowPanel() {
                         title: c.title,
                         img: c.img || null,
                         salesPrice:
-                            c.salesPrice == null ? null : Number(c.salesPrice || 0),
+                            c.salesPrice == null
+                                ? null
+                                : Number(c.salesPrice || 0),
                         basePrice:
-                            c.basePrice == null ? null : Number(c.basePrice || 0),
+                            c.basePrice == null
+                                ? null
+                                : Number(c.basePrice || 0),
                     })),
                 },
                 step: {
@@ -614,28 +705,12 @@ export function ItemWorkflowPanel() {
                 }));
                 return;
             }
-
-            const routed = applyRouteRecursion({
-                line,
-                steps: nextSteps,
-                startIndex: currentStepIndex,
-                selectedComponent: {
-                    uid: primary.uid,
-                    title: primary.title,
-                    redirectUid: primary.redirectUid,
-                },
-            });
-
             updateLineItem(line.uid, {
-                formSteps: routed.steps,
+                formSteps: nextSteps,
             });
-            const nextIndex =
-                routed.steps[currentStepIndex + 1] != null
-                    ? currentStepIndex + 1
-                    : currentStepIndex;
             setActiveStepByLine((prev) => ({
                 ...prev,
-                [line.uid]: nextIndex,
+                [line.uid]: currentStepIndex,
             }));
             return;
         }
@@ -645,9 +720,14 @@ export function ItemWorkflowPanel() {
             componentId: component.id,
             prodUid: component.uid,
             value: component.title,
-            price: component.salesPrice == null ? current.price : Number(component.salesPrice || 0),
+            price:
+                component.salesPrice == null
+                    ? current.price
+                    : Number(component.salesPrice || 0),
             basePrice:
-                component.basePrice == null ? current.basePrice : Number(component.basePrice || 0),
+                component.basePrice == null
+                    ? current.basePrice
+                    : Number(component.basePrice || 0),
             meta: {
                 ...(current.meta || {}),
                 img: component.img || null,
@@ -661,18 +741,28 @@ export function ItemWorkflowPanel() {
             },
         };
 
-        const selectedStepTitle = normalizeTitle(nextSteps[currentStepIndex]?.step?.title);
+        const selectedStepTitle = normalizeTitle(
+            nextSteps[currentStepIndex]?.step?.title,
+        );
         const isItemTypeStep =
             currentStepIndex === 0 || selectedStepTitle === "item type";
         if (isItemTypeStep) {
             const rootUid =
                 nextSteps[currentStepIndex]?.step?.uid ||
-                routeData?.stepsById?.[nextSteps[currentStepIndex]?.stepId || -1] ||
+                routeData?.stepsById?.[
+                    nextSteps[currentStepIndex]?.stepId || -1
+                ] ||
                 routeData?.rootStepUid;
             const rootStep = rootUid ? routeData?.stepsByUid?.[rootUid] : null;
             if (rootStep) {
-                const configuredSeries = buildConfiguredRouteSteps(rootStep, component);
-                const mergedSeries = mergeSeriesWithExisting(nextSteps, configuredSeries);
+                const configuredSeries = buildConfiguredRouteSteps(
+                    rootStep,
+                    component,
+                );
+                const mergedSeries = mergeSeriesWithExisting(
+                    nextSteps,
+                    configuredSeries,
+                );
                 updateLineItem(line.uid, {
                     formSteps: mergedSeries,
                 });
@@ -707,8 +797,55 @@ export function ItemWorkflowPanel() {
             [line.uid]: autoNext,
         }));
     }
+    function proceedMultiSelectStep(
+        line: (typeof record.lineItems)[number],
+        stepIndex: number,
+    ) {
+        const steps = line.formSteps || [];
+        const step = steps[stepIndex];
+        if (!step) return;
+        const selectedUids = getSelectedProdUids(step);
+        if (!selectedUids.length) return;
+        const candidates = selectedUids
+            .map(
+                (uid) =>
+                    visibleComponents.find(
+                        (component: any) => component.uid === uid,
+                    ) ||
+                    step?.meta?.selectedComponents?.find(
+                        (component: any) => component.uid === uid,
+                    ),
+            )
+            .filter(Boolean);
+        const primary = candidates[0];
+        if (!primary) return;
+        const routed = applyRouteRecursion({
+            line,
+            steps,
+            startIndex: stepIndex,
+            selectedComponent: {
+                uid: primary.uid,
+                title: primary.title,
+                redirectUid: primary.redirectUid,
+            },
+        });
+        updateLineItem(line.uid, {
+            formSteps: routed.steps,
+        });
+        const nextIndex =
+            routed.steps[stepIndex + 1] != null
+                ? stepIndex + 1
+                : routed.activeIndex;
+        setActiveStepByLine((prev) => ({
+            ...prev,
+            [line.uid]: nextIndex,
+        }));
+    }
 
-    function selectRootComponent(line: (typeof record.lineItems)[number], component: any) {
+    function selectRootComponent(
+        line: (typeof record.lineItems)[number],
+        component: any,
+    ) {
         const rootStep = routeData?.rootStepUid
             ? routeData?.stepsByUid?.[routeData.rootStepUid]
             : null;
@@ -719,7 +856,8 @@ export function ItemWorkflowPanel() {
         updateLineItem(line.uid, {
             formSteps: routedSteps,
             title:
-                normalizeTitle(line.title).startsWith("new line") || !line.title?.trim()
+                normalizeTitle(line.title).startsWith("new line") ||
+                !line.title?.trim()
                     ? component.title || line.title
                     : line.title,
         });
@@ -731,6 +869,660 @@ export function ItemWorkflowPanel() {
             ...prev,
             [line.uid]: firstPendingStepIndex(routedSteps),
         }));
+    }
+    function updateDoorSupplierAtStep(
+        line: (typeof record.lineItems)[number],
+        stepIndex: number,
+        supplier?: { uid?: string | null; name?: string | null } | null,
+    ) {
+        const steps = [...(line.formSteps || [])];
+        const step = steps[stepIndex];
+        if (!step) return;
+        const currentMeta = step.meta || {};
+        const currentFormStepMeta = currentMeta.formStepMeta || {};
+        steps[stepIndex] = {
+            ...step,
+            meta: {
+                ...currentMeta,
+                formStepMeta: {
+                    ...currentFormStepMeta,
+                    supplierUid: supplier?.uid || null,
+                    supplierName: supplier?.name || null,
+                },
+            },
+        };
+        updateLineItem(line.uid, {
+            formSteps: steps,
+        });
+    }
+    function getRouteConfigForLine(
+        line: (typeof record.lineItems)[number],
+        step: any,
+        component?: any,
+    ) {
+        const rootComponentUid = line?.formSteps?.[0]?.prodUid;
+        const routeConfigRaw =
+            routeData?.composedRouter?.[rootComponentUid]?.config;
+        const config = {
+            ...(routeConfigRaw && typeof routeConfigRaw === "object"
+                ? routeConfigRaw
+                : {}),
+        } as Record<string, any>;
+        const override = component?.sectionOverride;
+        if (override?.overrideMode) {
+            if (typeof override.noHandle === "boolean")
+                config.noHandle = override.noHandle;
+            if (typeof override.hasSwing === "boolean")
+                config.hasSwing = override.hasSwing;
+        }
+        if (step?.meta?.sectionOverride?.overrideMode) {
+            if (typeof step.meta.sectionOverride.noHandle === "boolean")
+                config.noHandle = step.meta.sectionOverride.noHandle;
+            if (typeof step.meta.sectionOverride.hasSwing === "boolean")
+                config.hasSwing = step.meta.sectionOverride.hasSwing;
+        }
+        return config;
+    }
+    function renderItemComponentPanel(
+        line: (typeof record.lineItems)[number],
+        steps: any[],
+        activeIndex: number,
+        activeItemStep: any,
+    ) {
+        const selectedUids = new Set(getSelectedProdUids(activeItemStep));
+        if (!steps.length) {
+            return (
+                <div className="space-y-3">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Root Step Components
+                    </p>
+                    {stepRoutingQuery.isPending ||
+                    rootComponentsQuery.isPending ? (
+                        <p className="text-sm text-muted-foreground">
+                            Loading step routing...
+                        </p>
+                    ) : !activeRootComponents.length ? (
+                        <p className="text-sm text-muted-foreground">
+                            No root components found in sales settings route.
+                        </p>
+                    ) : (
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                            {activeRootComponents.map((component: any) => (
+                                <button
+                                    key={component.uid}
+                                    type="button"
+                                    className="overflow-hidden rounded-xl border bg-card text-left transition hover:border-primary"
+                                    onClick={() =>
+                                        selectRootComponent(line, component)
+                                    }
+                                >
+                                    <div className="h-32 bg-muted">
+                                        {resolveComponentImageSrc(
+                                            component.img,
+                                        ) ? (
+                                            <img
+                                                src={
+                                                    resolveComponentImageSrc(
+                                                        component.img,
+                                                    ) || ""
+                                                }
+                                                alt={
+                                                    component.title ||
+                                                    component.uid
+                                                }
+                                                className="h-full w-full object-contain p-2"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                                No image
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="p-3">
+                                        <p className="font-semibold">
+                                            {component.title || component.uid}
+                                        </p>
+                                        <p className="text-xs font-medium text-primary">
+                                            {moneyAny(
+                                                component.salesPrice ??
+                                                    component.basePrice ??
+                                                    component?.pricing?.[
+                                                        component.uid
+                                                    ]?.price ??
+                                                    null,
+                                            ) || "No price"}
+                                        </p>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        return (
+            <div className="space-y-3">
+                <div className="mb-3 flex items-center gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Select Component:{" "}
+                        {activeItemStep?.step?.title || "Current Step"}
+                    </p>
+                    <div className="ml-auto flex items-center gap-2">
+                        {isDoorStepTitle(activeItemStep?.step?.title) ? (
+                            <div className="flex items-center gap-1 rounded-md border bg-muted/30 p-1">
+                                <Button
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    variant={
+                                        doorSectionTab === "doors"
+                                            ? "default"
+                                            : "ghost"
+                                    }
+                                    onClick={() => setDoorSectionTab("doors")}
+                                >
+                                    Doors
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    variant={
+                                        doorSectionTab === "suppliers"
+                                            ? "default"
+                                            : "ghost"
+                                    }
+                                    onClick={() =>
+                                        setDoorSectionTab("suppliers")
+                                    }
+                                >
+                                    Suppliers
+                                </Button>
+                            </div>
+                        ) : null}
+                        {isDoorStepTitle(activeItemStep?.step?.title) ? (
+                            <p className="text-xs text-muted-foreground">
+                                Supplier:{" "}
+                                <span className="font-semibold text-foreground">
+                                    {getDoorSupplierMeta(activeItemStep)
+                                        .supplierName || "GND MILLWORK"}
+                                </span>
+                            </p>
+                        ) : null}
+                        {isMouldingItem(line) ? (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setIsMouldingDialogOpen(true)}
+                            >
+                                Moulding Calculator
+                            </Button>
+                        ) : null}
+                    </div>
+                </div>
+
+                {isServiceItem(line) &&
+                normalizeTitle(activeItemStep?.step?.title).includes(
+                    "line item",
+                ) ? (
+                    <div className="space-y-3 rounded-lg border p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Service Line Item
+                        </p>
+                        <div className="grid gap-3 md:grid-cols-12">
+                            <div className="md:col-span-6">
+                                <Input
+                                    value={line.title || ""}
+                                    onChange={(e) =>
+                                        updateLineItem(line.uid, {
+                                            title: e.target.value,
+                                        })
+                                    }
+                                    placeholder="Service title"
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <Input
+                                    type="number"
+                                    value={line.qty || 0}
+                                    onChange={(e) =>
+                                        updateLineItem(line.uid, {
+                                            qty: Number(e.target.value || 0),
+                                        })
+                                    }
+                                    placeholder="Qty"
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={line.unitPrice || 0}
+                                    onChange={(e) =>
+                                        updateLineItem(line.uid, {
+                                            unitPrice: Number(
+                                                e.target.value || 0,
+                                            ),
+                                        })
+                                    }
+                                    placeholder="Unit"
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <Input
+                                    value={money(line.lineTotal) || "$0.00"}
+                                    readOnly
+                                />
+                            </div>
+                        </div>
+                        <Input
+                            value={line.description || ""}
+                            onChange={(e) =>
+                                updateLineItem(line.uid, {
+                                    description: e.target.value,
+                                })
+                            }
+                            placeholder="Service description"
+                        />
+                    </div>
+                ) : isShelfItem(line) &&
+                  normalizeTitle(activeItemStep?.step?.title).includes(
+                      "shelf",
+                  ) ? (
+                    <div className="space-y-3 rounded-lg border p-3">
+                        <div className="flex items-center">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                Shelf Items
+                            </p>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="ml-auto"
+                                onClick={() =>
+                                    updateLineItem(line.uid, {
+                                        shelfItems: [
+                                            ...(line.shelfItems || []),
+                                            {
+                                                id: null,
+                                                categoryId: null,
+                                                productId: null,
+                                                description: "",
+                                                qty: 1,
+                                                unitPrice: 0,
+                                                totalPrice: 0,
+                                                meta: {},
+                                            },
+                                        ],
+                                    })
+                                }
+                            >
+                                Add Shelf Row
+                            </Button>
+                        </div>
+                        {(line.shelfItems || []).length ? (
+                            <div className="space-y-2">
+                                {(line.shelfItems || []).map((row, idx) => (
+                                    <div
+                                        key={`shelf-row-${idx}`}
+                                        className="grid gap-2 md:grid-cols-12"
+                                    >
+                                        <Input
+                                            className="md:col-span-5"
+                                            value={row.description || ""}
+                                            onChange={(e) =>
+                                                updateLineItem(line.uid, {
+                                                    shelfItems: (
+                                                        line.shelfItems || []
+                                                    ).map((item, i) =>
+                                                        i === idx
+                                                            ? {
+                                                                  ...item,
+                                                                  description:
+                                                                      e.target
+                                                                          .value,
+                                                              }
+                                                            : item,
+                                                    ),
+                                                })
+                                            }
+                                            placeholder="Description"
+                                        />
+                                        <Input
+                                            className="md:col-span-2"
+                                            type="number"
+                                            value={row.qty || 0}
+                                            onChange={(e) =>
+                                                updateLineItem(line.uid, {
+                                                    shelfItems: (
+                                                        line.shelfItems || []
+                                                    ).map((item, i) => {
+                                                        if (i !== idx)
+                                                            return item;
+                                                        const qty = Number(
+                                                            e.target.value || 0,
+                                                        );
+                                                        return {
+                                                            ...item,
+                                                            qty,
+                                                            totalPrice:
+                                                                qty *
+                                                                Number(
+                                                                    item.unitPrice ||
+                                                                        0,
+                                                                ),
+                                                        };
+                                                    }),
+                                                })
+                                            }
+                                            placeholder="Qty"
+                                        />
+                                        <Input
+                                            className="md:col-span-2"
+                                            type="number"
+                                            step="0.01"
+                                            value={row.unitPrice || 0}
+                                            onChange={(e) =>
+                                                updateLineItem(line.uid, {
+                                                    shelfItems: (
+                                                        line.shelfItems || []
+                                                    ).map((item, i) => {
+                                                        if (i !== idx)
+                                                            return item;
+                                                        const unitPrice =
+                                                            Number(
+                                                                e.target
+                                                                    .value || 0,
+                                                            );
+                                                        return {
+                                                            ...item,
+                                                            unitPrice,
+                                                            totalPrice:
+                                                                Number(
+                                                                    item.qty ||
+                                                                        0,
+                                                                ) * unitPrice,
+                                                        };
+                                                    }),
+                                                })
+                                            }
+                                            placeholder="Unit"
+                                        />
+                                        <Input
+                                            className="md:col-span-2"
+                                            value={
+                                                money(row.totalPrice) || "$0.00"
+                                            }
+                                            readOnly
+                                        />
+                                        <Button
+                                            className="md:col-span-1"
+                                            variant="destructive"
+                                            onClick={() =>
+                                                updateLineItem(line.uid, {
+                                                    shelfItems: (
+                                                        line.shelfItems || []
+                                                    ).filter(
+                                                        (_, i) => i !== idx,
+                                                    ),
+                                                })
+                                            }
+                                        >
+                                            X
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
+                                No shelf rows yet.
+                            </p>
+                        )}
+                    </div>
+                ) : !activeItemStep?.stepId && !activeItemStep?.step?.id ? (
+                    <p className="text-sm text-muted-foreground">
+                        Step is missing ID and cannot load components yet.
+                    </p>
+                ) : isDoorStepTitle(activeItemStep?.step?.title) &&
+                  doorSectionTab === "suppliers" ? (
+                    <div className="space-y-3 rounded-lg border p-3">
+                        <div className="flex items-center gap-2">
+                            <Input
+                                placeholder={
+                                    editingSupplier
+                                        ? "Update supplier name"
+                                        : "New supplier name"
+                                }
+                                value={supplierNameInput}
+                                onChange={(e) =>
+                                    setSupplierNameInput(e.target.value)
+                                }
+                            />
+                            <Button
+                                size="sm"
+                                disabled={saveSupplierMutation.isPending}
+                                onClick={async () => {
+                                    const name = supplierNameInput.trim();
+                                    if (!name) return;
+                                    await saveSupplierMutation.mutateAsync({
+                                        id: editingSupplier?.id || null,
+                                        name,
+                                    });
+                                    await suppliersQuery.refetch();
+                                    setSupplierNameInput("");
+                                    setEditingSupplier(null);
+                                }}
+                            >
+                                {editingSupplier ? "Update" : "Add"}
+                            </Button>
+                            {editingSupplier ? (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setEditingSupplier(null);
+                                        setSupplierNameInput("");
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
+                            ) : null}
+                        </div>
+                        <button
+                            type="button"
+                            className={`flex w-full items-center rounded-lg border px-3 py-2 text-left text-sm ${
+                                !getDoorSupplierMeta(activeItemStep).supplierUid
+                                    ? "border-primary bg-primary/5"
+                                    : "hover:border-primary"
+                            }`}
+                            onClick={() =>
+                                updateDoorSupplierAtStep(
+                                    line,
+                                    activeIndex,
+                                    null,
+                                )
+                            }
+                        >
+                            GND MILLWORK (Default)
+                        </button>
+                        {(suppliersQuery.data?.stepProducts || []).map(
+                            (supplier) => {
+                                const selected =
+                                    getDoorSupplierMeta(activeItemStep)
+                                        .supplierUid === supplier.uid;
+                                return (
+                                    <div
+                                        key={supplier.id}
+                                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${
+                                            selected
+                                                ? "border-primary bg-primary/5"
+                                                : "hover:border-primary"
+                                        }`}
+                                    >
+                                        <button
+                                            type="button"
+                                            className="flex-1 text-left text-sm uppercase"
+                                            onClick={() =>
+                                                updateDoorSupplierAtStep(
+                                                    line,
+                                                    activeIndex,
+                                                    {
+                                                        uid: supplier.uid,
+                                                        name: supplier.name,
+                                                    },
+                                                )
+                                            }
+                                        >
+                                            {supplier.name}
+                                        </button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                                setEditingSupplier({
+                                                    id: supplier.id,
+                                                    name: supplier.name,
+                                                });
+                                                setSupplierNameInput(
+                                                    supplier.name || "",
+                                                );
+                                            }}
+                                        >
+                                            Edit
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            disabled={
+                                                deleteSupplierMutation.isPending
+                                            }
+                                            onClick={async () => {
+                                                if (
+                                                    getDoorSupplierMeta(
+                                                        activeItemStep,
+                                                    ).supplierUid ===
+                                                    supplier.uid
+                                                ) {
+                                                    updateDoorSupplierAtStep(
+                                                        line,
+                                                        activeIndex,
+                                                        null,
+                                                    );
+                                                }
+                                                await deleteSupplierMutation.mutateAsync(
+                                                    {
+                                                        id: supplier.id,
+                                                    },
+                                                );
+                                                await suppliersQuery.refetch();
+                                            }}
+                                        >
+                                            Delete
+                                        </Button>
+                                    </div>
+                                );
+                            },
+                        )}
+                    </div>
+                ) : stepComponentsQuery.isPending ? (
+                    <p className="text-sm text-muted-foreground">
+                        Loading components...
+                    </p>
+                ) : !visibleComponents.length ? (
+                    <p className="text-sm text-muted-foreground">
+                        No components returned for this step.
+                    </p>
+                ) : (
+                    <>
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                            {visibleComponents.map((component) => {
+                                const isSelected = selectedUids.has(
+                                    component.uid,
+                                );
+                                return (
+                                    <button
+                                        key={component.uid}
+                                        type="button"
+                                        className={`overflow-hidden rounded-xl border text-left transition ${
+                                            isSelected
+                                                ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                                                : "bg-card hover:border-primary"
+                                        }`}
+                                        onClick={() =>
+                                            isDoorStepTitle(
+                                                activeItemStep?.step?.title,
+                                            )
+                                                ? setDoorStepModal({
+                                                      open: true,
+                                                      component,
+                                                  })
+                                                : saveSelectedComponent({
+                                                      line,
+                                                      steps,
+                                                      currentStepIndex:
+                                                          activeIndex,
+                                                      component,
+                                                  })
+                                        }
+                                    >
+                                        <div className="h-32 bg-muted">
+                                            {resolveComponentImageSrc(
+                                                component.img,
+                                            ) ? (
+                                                <img
+                                                    src={
+                                                        resolveComponentImageSrc(
+                                                            component.img,
+                                                        ) || ""
+                                                    }
+                                                    alt={
+                                                        component.title ||
+                                                        component.uid
+                                                    }
+                                                    className="h-full w-full object-contain p-2"
+                                                />
+                                            ) : (
+                                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                                    No image
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="space-y-1 p-3">
+                                            <p className="font-semibold leading-tight">
+                                                {component.title}
+                                            </p>
+                                            <p className="text-xs font-medium text-primary">
+                                                {moneyAny(
+                                                    component.salesPrice ??
+                                                        component.basePrice ??
+                                                        component?.pricing?.[
+                                                            component.uid
+                                                        ]?.price ??
+                                                        null,
+                                                ) || "No price"}
+                                            </p>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {isMultiSelectStepTitle(activeItemStep?.step?.title) ? (
+                            <div className="sticky bottom-3 mt-4 flex justify-end">
+                                <Button
+                                    onClick={() =>
+                                        proceedMultiSelectStep(
+                                            line,
+                                            activeIndex,
+                                        )
+                                    }
+                                    disabled={!selectedUids.size}
+                                >
+                                    Next Step
+                                </Button>
+                            </div>
+                        ) : null}
+                    </>
+                )}
+            </div>
+        );
     }
 
     return (
@@ -768,7 +1560,8 @@ export function ItemWorkflowPanel() {
                         const isActive = line.uid === activeLine?.uid;
                         const steps = line.formSteps || [];
                         const activeIndex =
-                            activeStepByLine[line.uid] ?? Math.max(0, steps.length - 1);
+                            activeStepByLine[line.uid] ??
+                            Math.max(0, steps.length - 1);
                         const activeItemStep = steps[activeIndex];
 
                         return (
@@ -796,9 +1589,6 @@ export function ItemWorkflowPanel() {
                                         <p className="mt-1 text-base font-semibold">
                                             {line.title || `Item ${index + 1}`}
                                         </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {steps.length} step{steps.length === 1 ? "" : "s"} in flow
-                                        </p>
                                     </button>
                                     <div className="md:col-span-4">
                                         <Input
@@ -816,7 +1606,9 @@ export function ItemWorkflowPanel() {
                                             size="sm"
                                             variant="destructive"
                                             className="w-full"
-                                            onClick={() => removeLineItem(line.uid)}
+                                            onClick={() =>
+                                                removeLineItem(line.uid)
+                                            }
                                         >
                                             Remove
                                         </Button>
@@ -835,393 +1627,124 @@ export function ItemWorkflowPanel() {
                                                         : "text-muted-foreground"
                                                 }`}
                                                 onClick={() =>
-                                                    setActiveStepByLine((prev) => ({
-                                                        ...prev,
-                                                        [line.uid]: si,
-                                                    }))
+                                                    setActiveStepByLine(
+                                                        (prev) => ({
+                                                            ...prev,
+                                                            [line.uid]: si,
+                                                        }),
+                                                    )
                                                 }
                                             >
-                                                {step.step?.title || `Step ${si + 1}`}
-                                                {step.value ? `: ${step.value}` : ""}
+                                                {step.step?.title ||
+                                                    `Step ${si + 1}`}
+                                                {step.value
+                                                    ? `: ${step.value}`
+                                                    : ""}
                                             </button>
                                         ))}
                                     </div>
                                 ) : null}
-
-                                {isActive &&
-                                resolveComponentImageSrc(activeItemStep?.meta?.img) ? (
-                                    <div className="mt-3 overflow-hidden rounded-lg border bg-muted/30">
-                                        <img
-                                            src={
-                                                resolveComponentImageSrc(
-                                                    activeItemStep?.meta?.img,
-                                                ) || ""
-                                            }
-                                            alt={
-                                                activeItemStep.value ||
-                                                activeItemStep.step?.title ||
-                                                "Selected"
-                                            }
-                                            className="h-36 w-full object-contain p-2"
-                                        />
+                                {isActive ? (
+                                    <div className="mt-4">
+                                        {renderItemComponentPanel(
+                                            line,
+                                            steps,
+                                            activeIndex,
+                                            activeItemStep,
+                                        )}
                                     </div>
                                 ) : null}
                             </div>
                         );
                     })}
                 </div>
-
-                {activeLine && !(activeLine.formSteps || []).length ? (
-                    <div className="rounded-xl border bg-background p-4">
-                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            Root Step Components
-                        </p>
-                        {stepRoutingQuery.isPending || rootComponentsQuery.isPending ? (
-                            <p className="text-sm text-muted-foreground">Loading step routing...</p>
-                        ) : !activeRootComponents.length ? (
-                            <p className="text-sm text-muted-foreground">
-                                No root components found in sales settings route.
-                            </p>
-                        ) : (
-                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                                {activeRootComponents.map((component: any) => (
-                                    <button
-                                        key={component.uid}
-                                        type="button"
-                                        className="overflow-hidden rounded-xl border bg-card text-left transition hover:border-primary"
-                                        onClick={() => selectRootComponent(activeLine, component)}
-                                    >
-                                        <div className="h-32 bg-muted">
-                                            {resolveComponentImageSrc(component.img) ? (
-                                                <img
-                                                    src={resolveComponentImageSrc(component.img) || ""}
-                                                    alt={component.title || component.uid}
-                                                    className="h-full w-full object-contain p-2"
-                                                />
-                                            ) : (
-                                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                                                    No image
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="p-3">
-                                            <p className="font-semibold">
-                                                {component.title || component.uid}
-                                            </p>
-                                            <p className="text-xs font-medium text-primary">
-                                                {moneyAny(
-                                                    component.salesPrice ??
-                                                        component.basePrice ??
-                                                        component?.pricing?.[component.uid]
-                                                            ?.price ??
-                                                        null,
-                                                ) || "No price"}
-                                            </p>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                ) : null}
-
-                {!activeLine || !activeStep ? null : (
-                    <div className="rounded-xl border bg-background p-4">
-                        <div className="mb-3 flex items-center gap-2">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                Select Component: {activeStep.step?.title || "Current Step"}
-                            </p>
-                            <div className="ml-auto flex items-center gap-2">
-                                {isMouldingItem(activeLine) ? (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => setIsMouldingDialogOpen(true)}
-                                    >
-                                        Moulding Calculator
-                                    </Button>
-                                ) : null}
-                            </div>
-                        </div>
-
-                        {isServiceItem(activeLine) &&
-                        normalizeTitle(activeStep.step?.title).includes("line item") ? (
-                            <div className="space-y-3 rounded-lg border p-3">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                    Service Line Item
-                                </p>
-                                <div className="grid gap-3 md:grid-cols-12">
-                                    <div className="md:col-span-6">
-                                        <Input
-                                            value={activeLine.title || ""}
-                                            onChange={(e) =>
-                                                updateLineItem(activeLine.uid, {
-                                                    title: e.target.value,
-                                                })
-                                            }
-                                            placeholder="Service title"
-                                        />
-                                    </div>
-                                    <div className="md:col-span-2">
-                                        <Input
-                                            type="number"
-                                            value={activeLine.qty || 0}
-                                            onChange={(e) =>
-                                                updateLineItem(activeLine.uid, {
-                                                    qty: Number(e.target.value || 0),
-                                                })
-                                            }
-                                            placeholder="Qty"
-                                        />
-                                    </div>
-                                    <div className="md:col-span-2">
-                                        <Input
-                                            type="number"
-                                            step="0.01"
-                                            value={activeLine.unitPrice || 0}
-                                            onChange={(e) =>
-                                                updateLineItem(activeLine.uid, {
-                                                    unitPrice: Number(e.target.value || 0),
-                                                })
-                                            }
-                                            placeholder="Unit"
-                                        />
-                                    </div>
-                                    <div className="md:col-span-2">
-                                        <Input
-                                            value={money(activeLine.lineTotal) || "$0.00"}
-                                            readOnly
-                                        />
-                                    </div>
-                                </div>
-                                <Input
-                                    value={activeLine.description || ""}
-                                    onChange={(e) =>
-                                        updateLineItem(activeLine.uid, {
-                                            description: e.target.value,
-                                        })
-                                    }
-                                    placeholder="Service description"
-                                />
-                            </div>
-                        ) : isShelfItem(activeLine) &&
-                          normalizeTitle(activeStep.step?.title).includes("shelf") ? (
-                            <div className="space-y-3 rounded-lg border p-3">
-                                <div className="flex items-center">
-                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                        Shelf Items
-                                    </p>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="ml-auto"
-                                        onClick={() =>
-                                            updateLineItem(activeLine.uid, {
-                                                shelfItems: [
-                                                    ...(activeLine.shelfItems || []),
-                                                    {
-                                                        id: null,
-                                                        categoryId: null,
-                                                        productId: null,
-                                                        description: "",
-                                                        qty: 1,
-                                                        unitPrice: 0,
-                                                        totalPrice: 0,
-                                                        meta: {},
-                                                    },
-                                                ],
-                                            })
-                                        }
-                                    >
-                                        Add Shelf Row
-                                    </Button>
-                                </div>
-                                {(activeLine.shelfItems || []).length ? (
-                                    <div className="space-y-2">
-                                        {(activeLine.shelfItems || []).map((row, idx) => (
-                                            <div
-                                                key={`shelf-row-${idx}`}
-                                                className="grid gap-2 md:grid-cols-12"
-                                            >
-                                                <Input
-                                                    className="md:col-span-5"
-                                                    value={row.description || ""}
-                                                    onChange={(e) =>
-                                                        updateLineItem(activeLine.uid, {
-                                                            shelfItems: (
-                                                                activeLine.shelfItems || []
-                                                            ).map((item, i) =>
-                                                                i === idx
-                                                                    ? {
-                                                                          ...item,
-                                                                          description:
-                                                                              e.target.value,
-                                                                      }
-                                                                    : item,
-                                                            ),
-                                                        })
-                                                    }
-                                                    placeholder="Description"
-                                                />
-                                                <Input
-                                                    className="md:col-span-2"
-                                                    type="number"
-                                                    value={row.qty || 0}
-                                                    onChange={(e) =>
-                                                        updateLineItem(activeLine.uid, {
-                                                            shelfItems: (
-                                                                activeLine.shelfItems || []
-                                                            ).map((item, i) => {
-                                                                if (i !== idx) return item;
-                                                                const qty = Number(
-                                                                    e.target.value || 0,
-                                                                );
-                                                                return {
-                                                                    ...item,
-                                                                    qty,
-                                                                    totalPrice:
-                                                                        qty *
-                                                                        Number(
-                                                                            item.unitPrice || 0,
-                                                                        ),
-                                                                };
-                                                            }),
-                                                        })
-                                                    }
-                                                    placeholder="Qty"
-                                                />
-                                                <Input
-                                                    className="md:col-span-2"
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={row.unitPrice || 0}
-                                                    onChange={(e) =>
-                                                        updateLineItem(activeLine.uid, {
-                                                            shelfItems: (
-                                                                activeLine.shelfItems || []
-                                                            ).map((item, i) => {
-                                                                if (i !== idx) return item;
-                                                                const unitPrice = Number(
-                                                                    e.target.value || 0,
-                                                                );
-                                                                return {
-                                                                    ...item,
-                                                                    unitPrice,
-                                                                    totalPrice:
-                                                                        Number(item.qty || 0) *
-                                                                        unitPrice,
-                                                                };
-                                                            }),
-                                                        })
-                                                    }
-                                                    placeholder="Unit"
-                                                />
-                                                <Input
-                                                    className="md:col-span-2"
-                                                    value={money(row.totalPrice) || "$0.00"}
-                                                    readOnly
-                                                />
-                                                <Button
-                                                    className="md:col-span-1"
-                                                    variant="destructive"
-                                                    onClick={() =>
-                                                        updateLineItem(activeLine.uid, {
-                                                            shelfItems: (
-                                                                activeLine.shelfItems || []
-                                                            ).filter((_, i) => i !== idx),
-                                                        })
-                                                    }
-                                                >
-                                                    X
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">
-                                        No shelf rows yet.
-                                    </p>
-                                )}
-                            </div>
-                        ) : !activeStep.stepId && !activeStep.step?.id ? (
-                            <p className="text-sm text-muted-foreground">
-                                Step is missing ID and cannot load components yet.
-                            </p>
-                        ) : stepComponentsQuery.isPending ? (
-                            <p className="text-sm text-muted-foreground">Loading components...</p>
-                        ) : !visibleComponents.length ? (
-                            <p className="text-sm text-muted-foreground">
-                                No components returned for this step.
-                            </p>
-                        ) : (
-                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                                {visibleComponents.map((component) => {
-                                    const selectedUids = new Set(getSelectedProdUids(activeStep));
-                                    const isSelected = selectedUids.has(component.uid);
-                                    return (
-                                        <button
-                                            key={component.uid}
-                                            type="button"
-                                            className={`overflow-hidden rounded-xl border text-left transition ${
-                                                isSelected
-                                                    ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                                                    : "bg-card hover:border-primary"
-                                            }`}
-                                            onClick={() =>
-                                                saveSelectedComponent({
-                                                    line: activeLine,
-                                                    steps: activeLineSteps,
-                                                    currentStepIndex: activeStepIndex,
-                                                    component,
-                                                })
-                                            }
-                                        >
-                                            <div className="h-32 bg-muted">
-                                                {resolveComponentImageSrc(component.img) ? (
-                                                    <img
-                                                        src={
-                                                            resolveComponentImageSrc(component.img) || ""
-                                                        }
-                                                        alt={component.title || component.uid}
-                                                        className="h-full w-full object-contain p-2"
-                                                    />
-                                                ) : (
-                                                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                                                        No image
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="space-y-1 p-3">
-                                                <p className="font-semibold leading-tight">
-                                                    {component.title}
-                                                </p>
-                                                <p className="text-xs font-medium text-primary">
-                                                    {moneyAny(
-                                                        component.salesPrice ??
-                                                            component.basePrice ??
-                                                            component?.pricing?.[component.uid]
-                                                                ?.price ??
-                                                            null,
-                                                    ) || "No price"}
-                                                </p>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                )}
             </section>
+
+            {activeLine ? (
+                <DoorSizeQtyDialog
+                    open={doorStepModal.open}
+                    onOpenChange={(open) =>
+                        setDoorStepModal((prev) => ({
+                            ...prev,
+                            open,
+                            component: open ? prev.component : null,
+                        }))
+                    }
+                    line={activeLine}
+                    component={doorStepModal.component}
+                    supplierUid={activeDoorSupplier.supplierUid}
+                    supplierName={activeDoorSupplier.supplierName}
+                    routeConfig={getRouteConfigForLine(
+                        activeLine,
+                        activeStep,
+                        doorStepModal.component,
+                    )}
+                    onApply={({ rows, selected }) => {
+                        if (!doorStepModal.component) return;
+                        const existingDoors =
+                            activeLine.housePackageTool?.doors || [];
+                        const targetComponentId = Number(
+                            doorStepModal.component.id || 0,
+                        );
+                        const retainedDoors = existingDoors.filter(
+                            (door) =>
+                                Number(door.stepProductId || 0) !==
+                                targetComponentId,
+                        );
+                        const nextDoors = [
+                            ...retainedDoors,
+                            ...rows.map((row) => ({
+                                ...row,
+                                stepProductId:
+                                    targetComponentId ||
+                                    row.stepProductId ||
+                                    null,
+                            })),
+                        ];
+                        const totalDoors = nextDoors.reduce(
+                            (sum, door) => sum + Number(door.totalQty || 0),
+                            0,
+                        );
+                        const totalPrice = nextDoors.reduce(
+                            (sum, door) => sum + Number(door.lineTotal || 0),
+                            0,
+                        );
+
+                        updateLineItem(activeLine.uid, {
+                            housePackageTool: {
+                                ...(activeLine.housePackageTool || {
+                                    id: null,
+                                }),
+                                doors: nextDoors,
+                                totalDoors,
+                                totalPrice,
+                            } as any,
+                            qty: totalDoors || activeLine.qty,
+                            lineTotal: totalPrice || activeLine.lineTotal,
+                        } as any);
+
+                        saveSelectedComponent({
+                            line: activeLine,
+                            steps: activeLineSteps,
+                            currentStepIndex: activeStepIndex,
+                            component: doorStepModal.component,
+                            selectedOverride: selected,
+                        });
+                    }}
+                />
+            ) : null}
 
             {activeLine ? (
                 <MouldingCalculatorDialog
                     open={isMouldingDialogOpen}
                     onOpenChange={setIsMouldingDialogOpen}
                     line={activeLine}
-                    onApply={(linePatch) => updateLineItem(activeLine.uid, linePatch)}
+                    onApply={(linePatch) =>
+                        updateLineItem(activeLine.uid, linePatch)
+                    }
                 />
             ) : null}
         </>
     );
 }
+

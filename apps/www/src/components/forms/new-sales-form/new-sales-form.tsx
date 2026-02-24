@@ -12,7 +12,6 @@ import {
 } from "./api";
 import { useNewSalesFormAutoSave } from "./use-auto-save";
 import { HeaderActions } from "./sections/header-actions";
-import { StatusStrip } from "./sections/status-strip";
 import { ItemWorkflowPanel } from "./sections/item-workflow-panel";
 import { InvoiceSummarySidebar } from "./sections/invoice-summary-sidebar";
 import { useRouter } from "next/navigation";
@@ -242,6 +241,10 @@ export function NewSalesForm(props: Props) {
                     type={props.type}
                     orderId={record.orderId}
                     isSaving={autosave.isSaving || finalSave.isPending}
+                    saveStatus={saveStatus}
+                    dirty={dirty}
+                    lastSavedAt={lastSavedAt}
+                    statusMessage={lastSaveError}
                     isOverviewOpen={editor.isOverviewOpen}
                     autosaveEnabled={editor.autosaveEnabled}
                     onSaveDraft={saveDraftNow}
@@ -271,12 +274,6 @@ export function NewSalesForm(props: Props) {
 
                 <div className="flex-1 overflow-y-auto p-4 pb-28 sm:p-6 lg:p-8 lg:pb-8">
                     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-                        <StatusStrip
-                            saveStatus={saveStatus}
-                            dirty={dirty}
-                            lastSavedAt={lastSavedAt}
-                            message={lastSaveError}
-                        />
                         <ItemWorkflowPanel />
                     </div>
                 </div>

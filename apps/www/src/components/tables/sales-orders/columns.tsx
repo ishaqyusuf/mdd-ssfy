@@ -5,7 +5,6 @@ import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Progress } from "@gnd/ui/custom/progress";
 import { useBatchSales } from "@/hooks/use-batch-sales";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
@@ -21,10 +20,18 @@ import { cells } from "@gnd/ui/custom/data-table/cells";
 import Link from "next/link";
 import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
 import { useBin } from "@/hooks/use-bin";
+import { useAuth } from "@/hooks/use-auth";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import {
+    invalidateInfiniteQueries,
+    invalidateQuery,
+} from "@/hooks/use-invalidate-query";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { _qc, _trpc } from "@/components/static-trpc";
+import { UpdateSalesControl } from "@sales/schema";
+import { toast } from "@gnd/ui/use-toast";
 export type Item = RouterOutputs["sales"]["index"]["data"][number];
 export const columns2: ColumnDef<Item>[] = [
     cells.selectColumn,
@@ -319,14 +326,25 @@ export const columns: ColumnDef<Item>[] = [
 function Actions({ item }: { item: Item }) {
     const produceable = !!item.stats?.prodCompleted?.total;
     const batchSales = useBatchSales();
-    const isMobile = useIsMobile();
     const isBin = useBin();
+    const auth = useAuth();
+    const { trigger } = useTaskTrigger({
+        // silent: true,
+        onSuccess() {
+            invalidateInfiniteQueries("sales.getOrders");
+            toast({
+                title: "Updated sales order.",
+                description: `Sales order ${item.orderId} has been updated.`,
+            });
+        },
+    });
+    const activeDispatch = ((item as any)?.deliveries || []).find(
+        (delivery) => !["cancelled", "completed"].includes(delivery?.status),
+    );
     const { mutate: restore, isPending: isRestoring } = useMutation(
         useTRPC().sales.restore.mutationOptions({
             onSuccess: () => {
-                _qc.invalidateQueries({
-                    queryKey: _trpc.sales.getOrders.infiniteQueryKey(),
-                });
+                invalidateInfiniteQueries("sales.getOrders");
             },
             meta: {
                 toastTitle: {
@@ -379,9 +397,29 @@ function Actions({ item }: { item: Item }) {
                                 disabled={!produceable}
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    batchSales.markAsProductionCompleted(
-                                        item.id,
-                                    );
+                                    if (!activeDispatch?.id) {
+                                        batchSales.markAsProductionCompleted(
+                                            item.id,
+                                        );
+                                        return;
+                                    }
+                                    trigger({
+                                        taskName: "update-sales-control",
+                                        payload: {
+                                            meta: {
+                                                salesId: item.id,
+                                                authorId: auth?.id!,
+                                                authorName: auth?.name!,
+                                            },
+                                            packItems: {
+                                                dispatchId: activeDispatch.id,
+                                                dispatchStatus:
+                                                    activeDispatch.status ||
+                                                    "queue",
+                                                packMode: "all",
+                                            },
+                                        } as UpdateSalesControl,
+                                    });
                                 }}
                             >
                                 Production Complete
@@ -389,7 +427,26 @@ function Actions({ item }: { item: Item }) {
                             <Menu.Item
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    batchSales.markAsFulfilled(item.id);
+                                    // if (!activeDispatch?.id) {
+                                    //     batchSales.markAsFulfilled(item.id);
+                                    //     return;
+                                    // }
+                                    trigger({
+                                        taskName: "update-sales-control",
+                                        payload: {
+                                            meta: {
+                                                salesId: item.id,
+                                                authorId: auth?.id!,
+                                                authorName: auth?.name!,
+                                            },
+                                            markAsCompleted: {
+                                                // dispatchId: activeDispatch.id,
+                                                // receivedBy:
+                                                //     auth?.name || "System",
+                                                // receivedDate: new Date(),
+                                            },
+                                        } as UpdateSalesControl,
+                                    });
                                 }}
                             >
                                 Fulfillment Complete

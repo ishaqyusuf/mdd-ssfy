@@ -2,10 +2,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useTRPC } from "@/trpc/client";
 import { Menu } from "@gnd/ui/custom/menu";
-import { ResetSalesControl } from "@sales/schema";
+import { ResetSalesControl, UpdateSalesControl } from "@sales/schema";
 import { useDispatch } from "./context";
 import { newSalesHelper } from "@/lib/sales";
 import { useMutation } from "@tanstack/react-query";
+import { invalidateQuery } from "@/hooks/use-invalidate-query";
 
 interface Props {
     dispatch;
@@ -19,6 +20,9 @@ export function DispatchListMenu({ dispatch }: Props) {
         silent: true,
         onSuccess() {
             // sq.salesQuery.dispatchUpdated();
+            invalidateQuery("dispatch.orderDispatchOverview", {
+                salesNo: ctx.data?.order?.orderId!,
+            });
             console.log("triggered fallback");
         },
     });
@@ -50,6 +54,40 @@ export function DispatchListMenu({ dispatch }: Props) {
         await sh.generateTokenDispatchId(ctx.data.id, dispatchId);
         sh.openPrintLink();
     };
+    const packAll = () => {
+        trigger({
+            taskName: "update-sales-control",
+            payload: {
+                meta: {
+                    salesId: ctx.data?.id!,
+                    authorId: auth?.id!,
+                    authorName: auth?.name!,
+                },
+                packItems: {
+                    dispatchId: dispatch.id,
+                    dispatchStatus: dispatch.status || "queue",
+                    packMode: "all",
+                },
+            } as UpdateSalesControl,
+        });
+    };
+    const markAsCompleted = () => {
+        trigger({
+            taskName: "update-sales-control",
+            payload: {
+                meta: {
+                    salesId: ctx.data?.id!,
+                    authorId: auth?.id!,
+                    authorName: auth?.name!,
+                },
+                markAsCompleted: {
+                    dispatchId: dispatch.id,
+                    receivedBy: auth?.name || "System",
+                    receivedDate: new Date(),
+                },
+            } as UpdateSalesControl,
+        });
+    };
     return (
         <Menu>
             {/* <Menu.Item icon="calendar" onClick={changeDueDate}>
@@ -58,6 +96,14 @@ export function DispatchListMenu({ dispatch }: Props) {
 
             <Menu.Item icon="packingList" onClick={() => preview(dispatch.id)}>
                 Preview
+            </Menu.Item>
+
+            <Menu.Item icon="packingList" onClick={packAll}>
+                Pack all
+            </Menu.Item>
+
+            <Menu.Item icon="check" onClick={markAsCompleted}>
+                Mark as completed
             </Menu.Item>
 
             <Menu.Trash action={() => deleteDispatch(dispatch.id)}>

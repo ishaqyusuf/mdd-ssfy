@@ -63,6 +63,14 @@ export function useNewSalesFormSearchCustomersQuery(query?: string | null) {
     );
 }
 
+export function useCustomerProfilesQuery(enabled = true) {
+    const trpc = useTRPC();
+    return useQuery({
+        ...trpc.customers.getCustomerProfiles.queryOptions(),
+        enabled,
+    });
+}
+
 export function useSalesStepComponentsQuery(
     input: { stepId?: number | null; stepTitle?: string | null },
     enabled = true,
@@ -79,6 +87,28 @@ export function useSalesStepComponentsQuery(
             },
         ),
     );
+}
+
+export function useSalesSuppliersQuery(enabled = true) {
+    const trpc = useTRPC();
+    return useQuery(
+        trpc.sales.getSuppliers.queryOptions(
+            {},
+            {
+                enabled,
+            },
+        ),
+    );
+}
+
+export function useSalesSaveSupplierMutation() {
+    const trpc = useTRPC();
+    return useMutation(trpc.sales.saveSupplier.mutationOptions());
+}
+
+export function useSalesDeleteSupplierMutation() {
+    const trpc = useTRPC();
+    return useMutation(trpc.sales.deleteSupplier.mutationOptions());
 }
 
 export function useNewSalesFormResolveCustomerQuery(
